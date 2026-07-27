@@ -495,7 +495,7 @@ export function isSafari(): boolean {
     /constructor/i.test(window.HTMLElement.toString()) ||
     (function (p) {
       return p.toString() === '[object SafariRemoteNotification]';
-    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
+    })(!window['safari'] || window['safari'].pushNotification);
   return isSafari;
 }
 

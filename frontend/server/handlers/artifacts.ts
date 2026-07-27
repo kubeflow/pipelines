@@ -109,12 +109,14 @@ export interface GCSProviderInfo {
  *    scalability, and is prone to many CVEs in the artifact proxy
  *    deployment.
  *
- * Note: Secret-backed provider mode (fromEnv === 'false') is unsupported
- * in multi-user deployments. The ml-pipeline-ui ClusterRole no longer
- * grants secrets:get/list permissions, so getK8sSecret() calls will be
- * denied by RBAC at the cluster level. This mode may still work in
- * standalone (single-tenant) deployments where the service account has
- * direct secret access. See: https://github.com/kubeflow/pipelines/pull/12860
+ * Note: Secret-backed provider mode (fromEnv === 'false') names a Kubernetes
+ * Secret to source object-store credentials from. The frontend server only
+ * honors it when the requested namespace is the server's own namespace, so it
+ * never reads Secrets from a customer namespace. In multi-user deployments the
+ * provider info is dropped for user namespaces and artifact retrieval falls
+ * back to the server's own environment credentials (SeaweedFS in the kubeflow
+ * namespace) or the per-namespace artifact proxy.
+ * See: https://github.com/kubeflow/pipelines/pull/12860
  *
  * Security: This addresses the vulnerability where the namespace parameter
  * could be manipulated to access artifacts from other namespaces.
@@ -286,14 +288,41 @@ export function getArtifactsHandler({
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
 
+    // Security: The ml-pipeline-ui service account is only permitted to read
+    // Secrets from its own (server) namespace. Secret-backed provider info
+    // (fromEnv === 'false') names a Secret to read for object-store
+    // credentials; honoring it for a customer/user namespace would read
+    // Secrets cross-namespace, which is forbidden. When the requested
+    // namespace is not the server's own namespace we drop the provider info so
+    // credential resolution falls back to the server's own environment
+    // credentials (SeaweedFS in the kubeflow namespace) or, when enabled, the
+    // per-namespace artifact proxy. See:
+    // https://github.com/kubeflow/pipelines/pull/12860
+    // A missing namespace only occurs when auth is disabled (single-tenant): the
+    // auth middleware rejects namespace-less requests whenever auth is enabled, so
+    // treating it as server-local cannot be triggered by a multi-user caller.
+    const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
+    if (!allowProviderSecrets && providerInfo) {
+      console.warn(
+        `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
+          `only be read from the server namespace; falling back to environment credentials.`,
+      );
+    }
+    const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+
     let client: MinioClient;
     switch (source) {
       case 'gcs':
-        await getGCSArtifactHandler({ bucket, key }, peek, providerInfo, namespace)(req, res);
+        await getGCSArtifactHandler(
+          { bucket, key },
+          peek,
+          effectiveProviderInfo,
+          namespace,
+        )(req, res);
         break;
       case 'minio':
         try {
-          client = await createMinioClient(minio, 'minio', providerInfo, namespace);
+          client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
@@ -310,7 +339,7 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(aws, 's3', providerInfo, namespace);
+          client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
@@ -381,11 +410,48 @@ function getHttpArtifactsHandler(
         req.headers[auth.key] || req.headers[auth.key.toLowerCase()] || auth.defaultValue;
       headers[auth.key] = Array.isArray(headerValue) ? headerValue[0] : headerValue;
     }
-    if (!isAllowedDomain(url, allowedDomain)) {
-      res.status(500).send(`Domain not allowed.`);
-      return;
+    // Follow redirects manually so every hop is re-checked against the
+    // allowlist. Letting fetch auto-follow only validates the first URL, so an
+    // allowed host could 3xx the request to an internal address (link-local
+    // metadata, cluster services) and exfiltrate the response plus any auth
+    // header.
+    const maxRedirects = 5;
+    let currentUrl = url;
+    let response: Awaited<ReturnType<typeof fetch>>;
+    for (let hop = 0; ; hop++) {
+      if (!isAllowedDomain(currentUrl, allowedDomain)) {
+        res.status(500).send(`Domain not allowed.`);
+        return;
+      }
+      response = await fetch(currentUrl, { headers, redirect: 'manual' });
+      const status = response.status ?? 200;
+      if (status < 300 || status >= 400) {
+        break;
+      }
+      const location = response.headers?.get('location');
+      if (!location) {
+        break;
+      }
+      // We are not streaming this redirect response, so release its body.
+      // Node's fetch keeps the connection tied up until GC if the body is left
+      // unconsumed, which shows up under redirect-heavy artifact traffic.
+      if (response.body) {
+        await response.body.cancel().catch(() => undefined);
+      }
+      if (hop >= maxRedirects) {
+        res.status(500).send('Too many redirects while retrieving artifact');
+        return;
+      }
+      // An allowed host can hand back a malformed Location header; resolve it
+      // defensively so a bad value turns into a controlled 500 rather than an
+      // unhandled exception escaping the handler.
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        res.status(500).send('Invalid redirect location while retrieving artifact');
+        return;
+      }
     }
-    const response = await fetch(url, { headers });
     if (!response.body) {
       res.status(500).send('Unable to retrieve artifact: empty response body');
       return;
@@ -558,12 +624,14 @@ function sanitizeTarEntryName(name: string): string | null {
 }
 
 /**
- * Parses GCS provider info and retrieves credentials from a Kubernetes secret.
+ * Parses GCS provider info and retrieves credentials from a Kubernetes Secret.
  *
- * WARNING: This function is unsupported in multi-user deployments.
- * The ml-pipeline-ui ClusterRole no longer grants secrets:get/list
- * permissions, so getK8sSecret() calls will be denied by RBAC.
- * See: https://github.com/kubeflow/pipelines/pull/12860
+ * Security: The artifact handler only forwards provider info when the
+ * requested namespace is the frontend server's own namespace, so this function
+ * never reads Secrets from a customer namespace. In multi-user deployments the
+ * provider info is dropped for user namespaces and credentials fall back to
+ * the server's own environment credentials or the per-namespace artifact
+ * proxy. See: https://github.com/kubeflow/pipelines/pull/12860
  */
 async function parseGCSProviderInfo(
   providerInfo: GCSProviderInfo,

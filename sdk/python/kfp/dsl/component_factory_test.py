@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from tempfile import TemporaryDirectory
 from typing import List
 import unittest
 
@@ -83,6 +84,25 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
             install_kfp_package=False,
         )
         self.assertEqual(command, [])
+
+    def test_with_local_kfp_package_path_uses_no_deps(self):
+        with TemporaryDirectory() as kfp_source:
+            command = component_factory._get_packages_to_install_command(
+                packages_to_install=[],
+                kfp_package_path=kfp_source,
+            )
+
+        self.assertIn(f"'{kfp_source}' '--no-deps'", command[2])
+
+    def test_with_pull_request_kfp_package_path_uses_no_deps(self):
+        kfp_source = 'git+https://github.com/kubeflow/pipelines@refs/pull/13665/merge#egg=kfp&subdirectory=sdk/python'
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=[],
+            kfp_package_path=kfp_source,
+        )
+
+        self.assertIn(f"'{kfp_source}' '--no-deps'", command[2])
 
     def test_with_user_packages_to_install_and_kfp_package_path_and_install_kfp_false(
             self):
@@ -165,9 +185,9 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 '\n'
                 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
                 '--no-warn-script-location --index-url https://myurl.org/simple '
-                "--trusted-host https://myurl.org/simple 'package1' 'package2'  &&  python3 "
+                "'package1' 'package2'  &&  python3 "
                 '-m pip install --quiet --no-warn-script-location --index-url '
-                'https://myurl.org/simple --trusted-host https://myurl.org/simple kfp '
+                'https://myurl.org/simple kfp '
                 '\'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" '
                 '"$@"\n'
             ]))

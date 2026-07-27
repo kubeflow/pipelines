@@ -23,6 +23,7 @@ import functools
 import io
 import os
 import re
+import shutil
 import unittest
 from unittest import mock
 
@@ -46,7 +47,7 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def set_packages_for_test_classes(monkeypatch, request):
+def set_packages_for_test_classes(monkeypatch, request, tmp_path):
     if request.cls.__name__ in {
             'TestLocalExecutionValidation', 'TestSupportOfComponentTypes',
             'TestSupportOfComponentTypes', 'TestExceptionHandlingAndLogging',
@@ -57,12 +58,18 @@ def set_packages_for_test_classes(monkeypatch, request):
                 os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
         kfp_pipeline_spec_path = os.path.join(root_dir, 'api', 'v2alpha1',
                                               'python')
+        isolated_pipeline_spec_path = tmp_path / 'kfp_pipeline_spec'
+        shutil.copytree(
+            kfp_pipeline_spec_path,
+            isolated_pipeline_spec_path,
+            ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '.git',
+                                          'build', 'dist', '*.egg-info'))
         original_dsl_component = dsl.component
         monkeypatch.setattr(
             dsl, 'component',
             functools.partial(
                 original_dsl_component,
-                packages_to_install=[kfp_pipeline_spec_path]))
+                packages_to_install=[str(isolated_pipeline_spec_path)]))
 
 
 class TestLocalExecutionValidation(

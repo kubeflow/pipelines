@@ -38,6 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -50,7 +51,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -227,6 +230,50 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+type retryDuringTerminalReportDispatcher struct {
+	manager  *ResourceManager
+	runID    string
+	retryErr error
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *apiserverPlugins.PersistedRun) bool {
+	d.retryErr = d.manager.RetryRun(ctx, d.runID)
+	return true
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+type countingTerminalReportDispatcher struct {
+	onRunEndCalls int
+}
+
+func (d *countingTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) OnRunEnd(context.Context, *apiserverPlugins.PersistedRun) bool {
+	d.onRunEndCalls++
+	return true
+}
+
+func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
+}
 
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
@@ -507,6 +554,140 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
+}
+
+type retryWorkflowExecClient struct {
+	workflowClient util.ExecutionInterface
+}
+
+func (c *retryWorkflowExecClient) Execution(namespace string) util.ExecutionInterface {
+	return c.workflowClient
+}
+
+func (c *retryWorkflowExecClient) Compare(old, new interface{}) bool {
+	return false
+}
+
+type updateConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateConflictsRemaining int
+	createCalls              int
+}
+
+func (c *updateConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateConflictsRemaining > 0 {
+		c.updateConflictsRemaining--
+		return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *updateConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+type persistentConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateCalls int
+	createCalls int
+}
+
+func (c *persistentConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	c.updateCalls++
+	return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+}
+
+func (c *persistentConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type createAlreadyExistsWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateNotFoundRemaining      int
+	createAlreadyExistsRemaining int
+}
+
+func (c *createAlreadyExistsWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateNotFoundRemaining > 0 {
+		c.updateNotFoundRemaining--
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *createAlreadyExistsWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	if c.createAlreadyExistsRemaining > 0 {
+		c.createAlreadyExistsRemaining--
+		return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableGetFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getFailuresRemaining int
+	createCalls          int
+}
+
+func (c *retryableGetFailureWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	if c.getFailuresRemaining > 0 {
+		c.getFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+func (c *retryableGetFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateFailuresRemaining int
+	createCalls             int
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateFailuresRemaining > 0 {
+		c.updateFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type genericUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	createCalls int
+}
+
+func (c *genericUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	return nil, errors.New("transient update failure")
+}
+
+func (c *genericUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, workflowClient util.ExecutionInterface) {
+	t.Helper()
+	run, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
 }
 
 // Tests CreatePipeline and CreatePipelineVersion
@@ -2641,14 +2822,14 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	assert.Contains(t, string(*storedRun.PluginsOutputString), "mlflow-exp-1")
 
 	// Parse and verify the plugin output structure.
-	outputs, err := apiservermlflow.DeserializePluginsOutput(storedRun.PluginsOutputString)
+	outputs, err := apiserverPlugins.DeserializePluginsOutput(storedRun.PluginsOutputString)
 	require.NoError(t, err)
-	output := outputs[apiservermlflow.PluginName]
+	output := outputs["mlflow"]
 	require.NotNil(t, output)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
-	assert.Equal(t, "mlflow-exp-1", output.Entries[apiservermlflow.EntryExperimentID].Value.GetStringValue())
-	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiservermlflow.EntryRootRunID].Value.GetStringValue())
-	assert.Contains(t, output.Entries[apiservermlflow.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
+	assert.Equal(t, "mlflow-exp-1", output.Entries["experiment_id"].Value.GetStringValue())
+	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
+	assert.Contains(t, output.Entries[apiserverPlugins.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
 
 }
 
@@ -2837,6 +3018,118 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_RetriesWorkflowUpdateConflict(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &updateConflictWorkflowClient{
+		FakeWorkflowClient:       workflowClient,
+		updateConflictsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, conflictWorkflowClient.updateConflictsRemaining)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_ReturnsUnavailableWhenWorkflowUpdateConflictPersists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &persistentConflictWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "expected retryable error after persistent workflow update conflict, got: %v", err)
+	assert.Greater(t, conflictWorkflowClient.updateCalls, 1)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	alreadyExistsWorkflowClient := &createAlreadyExistsWorkflowClient{
+		FakeWorkflowClient:           workflowClient,
+		updateNotFoundRemaining:      1,
+		createAlreadyExistsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: alreadyExistsWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateNotFoundRemaining)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.createAlreadyExistsRemaining)
+}
+
+func TestRetryRun_CreatesWorkflowAfterRetryableGetFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := &retryableGetFailureWorkflowClient{
+		FakeWorkflowClient:   client.NewWorkflowClientFake(),
+		getFailuresRemaining: 10,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 9, workflowClient.getFailuresRemaining)
+	assert.Equal(t, 1, workflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesRetryableWorkflowUpdateFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	retryableFailureWorkflowClient := &retryableUpdateFailureWorkflowClient{
+		FakeWorkflowClient:      workflowClient,
+		updateFailuresRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: retryableFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.updateFailuresRemaining)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.createCalls)
+}
+
+func TestRetryRun_GenericWorkflowUpdateFailureDoesNotCreate(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	genericFailureWorkflowClient := &genericUpdateFailureWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: genericFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error updating workflow")
+	assert.Equal(t, 0, genericFailureWorkflowClient.createCalls)
+}
+
 func TestRetryRun_PreservesRunFields(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -2878,6 +3171,12 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	var updateCalls []updateCall
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/2.0/mlflow/experiments/get-by-name":
+			// Return experiment for initial run creation
+			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"exp-1","name":"Default"}}`))
+		case "/api/2.0/mlflow/runs/create":
+			// Return a temporary parent run ID for initial run creation
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"temp-parent-run"}}}`))
 		case "/api/2.0/mlflow/runs/update":
 			defer r.Body.Close()
 			var payload struct {
@@ -2916,7 +3215,7 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
-	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -2931,9 +3230,9 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	updatedRun, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	updatedOutputs, err := apiservermlflow.DeserializePluginsOutput(updatedRun.PluginsOutputString)
+	updatedOutputs, err := apiserverPlugins.DeserializePluginsOutput(updatedRun.PluginsOutputString)
 	require.NoError(t, err)
-	updatedOutput := updatedOutputs[apiservermlflow.PluginName]
+	updatedOutput := updatedOutputs["mlflow"]
 	require.NotNil(t, updatedOutput)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
 	assert.Equal(t, "", updatedOutput.StateMessage)
@@ -2985,7 +3284,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating and creating a workflow")
+	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
@@ -3832,6 +4131,177 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
+func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
+	wfClient := client.NewWorkflowClientFake()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "workflow-name",
+			Namespace:       "ns1",
+			ResourceVersion: "retry-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: "run-id"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := wfClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+		ctx,
+		wfClient,
+		"workflow-name",
+		"terminal-version",
+		util.LabelKeyWorkflowPersistedFinalState,
+		"true",
+	)
+	require.NoError(t, err)
+	assert.False(t, labelAdded)
+
+	updatedWorkflow, err := wfClient.Get(ctx, "workflow-name", v1.GetOptions{})
+	require.NoError(t, err)
+	_, hasFinalStateLabel := updatedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
+func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsStale(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.State = model.RuntimeStateRunning
+	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
+	runWithPluginOutput.FinishedAtInSec = 0
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &countingTerminalReportDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	currentWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	currentWorkflow.SetVersion("retry-version")
+	_, err = store.ExecClientFake.Execution(namespace).Update(ctx, currentWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	staleTerminalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	assert.Equal(t, 0, dispatcher.onRunEndCalls)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, currentRun.State)
+	assert.Equal(t, int64(0), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	// Report a terminal workflow whose CR no longer exists, simulating a
+	// deletion between the persistence agent's read and this report. The run
+	// row must still be finalized before the caller receives the NotFound
+	// signal that stops further retries.
+	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName + "-deleted",
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"caller should receive the NotFound signal so the persistence agent stops retrying")
+	assert.Nil(t, reportedWorkflow)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
+	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &retryDuringTerminalReportDispatcher{
+		manager: manager,
+		runID:   run.UUID,
+	}
+	manager.pluginDispatcher = dispatcher
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	require.NoError(t, dispatcher.retryErr)
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+
+	retriedWorkflow, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(retriedWorkflow.ExecutionStatus().Condition()))
+	_, hasFinalStateLabel := retriedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
 // TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString
 // set, reporting a terminal workflow triggers the plugin dispatcher's
 // OnRunEnd, which updates the plugin output state.
@@ -3885,15 +4355,18 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	require.NoError(t, err)
+	require.NoError(t, err,
+		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
-	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
+	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED, and the
+	// run still reaches its terminal state.
 	updatedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedRun.PluginsOutputString, "PluginsOutputString should be updated after terminal report")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "PLUGIN_FAILED")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "config unavailable")
+	assert.Equal(t, model.RuntimeStateFailed, updatedRun.State)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
@@ -5345,7 +5818,7 @@ func TestValidateTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.tags)
+			err := model.ValidateTags(tt.tags)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)

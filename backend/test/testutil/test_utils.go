@@ -218,6 +218,12 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 }
 
 func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
+	// CI serves checked-out fixtures inside the test cluster so the API server
+	// can exercise URL imports without relying on external network access.
+	if fixtureBaseURL := os.Getenv("KFP_TEST_FIXTURE_BASE_URL"); fixtureBaseURL != "" {
+		return strings.TrimRight(fixtureBaseURL, "/") + "/" + strings.TrimLeft(path, "/"), nil
+	}
+
 	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
 
 	pullNumber := os.Getenv("PULL_NUMBER")
@@ -225,8 +231,12 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 		url = fmt.Sprintf("https://raw.githubusercontent.com/%s/pull/%s/head/%s", repoName, pullNumber, path)
 	}
 
-	// Verify the URL exists
-	resp, err := http.Head(url)
+	// Verify the URL exists. Anonymous requests to raw.githubusercontent.com
+	// are rate limited per source IP, and CI runners share heavily-used egress
+	// IPs, so this HEAD intermittently returns 429. Authenticate with
+	// GITHUB_TOKEN when available (raising the limit to the per-token bucket)
+	// and retry transient rate-limit / server errors.
+	resp, err := headWithGitHubAuthAndRetry(url)
 	if err != nil {
 		return url, fmt.Errorf("failed to verify URL exists: %s\n"+
 			"Error: %v\n"+
@@ -248,6 +258,61 @@ func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
 	}
 
 	return url, nil
+}
+
+// headWithGitHubAuthAndRetry issues a HEAD request, attaching a bearer token
+// from GITHUB_TOKEN when set, and retries rate-limit (429) and server (5xx)
+// responses with a bounded backoff. A definitive response (2xx/4xx other than
+// 429) is returned immediately so a genuinely missing file is not retried.
+// headRetryMaxAttempts bounds the URL-verification retries; headRetryBackoffUnit
+// is the base backoff unit (a var so tests can shorten it).
+const headRetryMaxAttempts = 4
+
+var headRetryBackoffUnit = time.Second
+
+func headWithGitHubAuthAndRetry(url string) (*http.Response, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+
+	maxAttempts := headRetryMaxAttempts
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		request, err := http.NewRequest(http.MethodHead, url, nil)
+		if err != nil {
+			return nil, err
+		}
+		if token != "" {
+			request.Header.Set("Authorization", "Bearer "+token)
+		}
+
+		resp, err := http.DefaultClient.Do(request)
+		switch {
+		case err != nil:
+			lastErr = err
+			// Do can return a non-nil response alongside an error (e.g. a
+			// redirect-policy error); close it so connections are not leaked
+			// across retries.
+			if resp != nil {
+				if closeErr := resp.Body.Close(); closeErr != nil {
+					logger.Log("Warning: failed to close response body: %v", closeErr)
+				}
+			}
+		case resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= 500:
+			lastErr = fmt.Errorf("transient status %d from %s", resp.StatusCode, url)
+			if closeErr := resp.Body.Close(); closeErr != nil {
+				logger.Log("Warning: failed to close response body: %v", closeErr)
+			}
+		default:
+			return resp, nil
+		}
+
+		if attempt < maxAttempts {
+			backoff := time.Duration(1<<attempt) * headRetryBackoffUnit
+			logger.Log("URL HEAD %s failed (attempt %d/%d): %v; retrying in %s",
+				url, attempt, maxAttempts, lastErr, backoff)
+			time.Sleep(backoff)
+		}
+	}
+	return nil, lastErr
 }
 
 // getBranchOrPR returns a human-readable string indicating whether we're using a branch or PR

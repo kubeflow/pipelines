@@ -133,7 +133,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label(E2eCriticalShardForPipeline(pipelineFile)), FlakeAttempts(2), func() {
 				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
@@ -283,6 +283,6 @@ func cleanupE2EExperiments(testContext *apitests.TestContext) {
 func cleanupE2EPipelines(testContext *apitests.TestContext) {
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
-		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
+		testutil.DeletePipelineBestEffort(pipelineClient, pipeline.PipelineID, true)
 	}
 }

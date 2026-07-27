@@ -137,8 +137,8 @@ if [ -n "${GITHUB_ENV:-}" ]; then
   echo "MLFLOW_TRACKING_USERNAME=" >> "$GITHUB_ENV"
   echo "MLFLOW_TRACKING_PASSWORD=" >> "$GITHUB_ENV"
   echo "MLFLOW_WORKSPACE=" >> "$GITHUB_ENV"
-  # Later workflow steps need these to re-establish port-forward: background jobs from this step
-  # are terminated when the step exits, so test-and-report starts kubectl port-forward again.
+  # Later workflow steps need these to re-establish MLflow/API port-forwards: background jobs
+  # from this step are terminated when the step exits, so test-and-report starts them again.
   echo "MLFLOW_PORT_FORWARD_NS=$MLFLOW_NAMESPACE" >> "$GITHUB_ENV"
   echo "MLFLOW_PORT_FORWARD_SVC=$MLFLOW_SVC" >> "$GITHUB_ENV"
   echo "MLFLOW_PORT_FORWARD_REMOTE_PORT=$MLFLOW_PORT" >> "$GITHUB_ENV"

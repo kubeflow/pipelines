@@ -1,0 +1,59 @@
+# Presubmit gate for the Python tooling and CI action wiring under .github:
+# the unit tests are stdlib-only and use the `*_test.py` suffix, so select
+# that pattern explicitly because it is not unittest discover's default.
+name: CI Scripts Tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/actions/create-cluster/**'
+      - '.github/actions/deploy/**'
+      - '.github/actions/download-artifact-with-retry/**'
+      - '.github/resources/curl-retry/**'
+      - '.github/resources/runtime-base-images.txt'
+      - '.github/resources/scripts/*.py'
+      # The observability shell scripts are covered by Python-driven tests.
+      - '.github/resources/scripts/*.sh'
+      - '.github/resources/scripts/kfp-readiness/**'
+      - '.github/actions/junit-summary/**'
+      - '.github/workflows/ci-checks.yml'
+      - '.github/workflows/create-manifest.yml'
+      - '.github/actions/upload-artifact-with-retry/**'
+      - '.github/actions/test-and-report/**'
+      - '.github/workflows/api-server-tests.yml'
+      - '.github/workflows/create-manifest.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/image-builds.yml'
+      - '.github/workflows/ci-scripts-tests.yml'
+      - '.github/workflows/gh-workflow-approve.yml'
+      - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
+      - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
+      - 'manifests/kustomize/third-party/argo/base/kustomization.yaml'
+      - 'manifests/kustomize/third-party/argo/installs/**'
+      - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+      - 'backend/Dockerfile'
+      - 'backend/src/common/types.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'test/install-argo-cli.sh'
+      - 'third_party/argo/COMPATIBILITY_VERSION'
+      - 'third_party/argo/Makefile'
+      - 'third_party/argo/UPGRADE.md'
+      - 'third_party/argo/VERSION'
+
+permissions:
+  contents: read
+
+jobs:
+  python-script-tests:
+    name: Run .github scripts unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run Python script unit tests
+        working-directory: .github/resources/scripts
+        run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run JUnit summary action unit tests
+        working-directory: .github/actions/junit-summary
+        run: python3 -m unittest discover -v -p '*_test.py'

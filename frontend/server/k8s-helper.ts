@@ -60,6 +60,20 @@ function getConfiguredServerNamespace(): string | undefined {
   return serverNamespace || process.env.FRONTEND_SERVER_NAMESPACE?.trim() || undefined;
 }
 
+/**
+ * Returns the namespace the frontend server itself runs in (read from the
+ * mounted service account when in-cluster, or from FRONTEND_SERVER_NAMESPACE
+ * otherwise).
+ *
+ * Security: This is the only namespace the ml-pipeline-ui service account is
+ * permitted to read Secrets from. Callers use it to ensure the UI never reads
+ * Secrets from a customer/user namespace. See:
+ * https://github.com/kubeflow/pipelines/pull/12860
+ */
+export function getServerNamespace(): string | undefined {
+  return getConfiguredServerNamespace();
+}
+
 function resolveNamespace(providedNamespace?: string): string | undefined {
   return providedNamespace || getConfiguredServerNamespace();
 }

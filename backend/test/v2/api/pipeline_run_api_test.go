@@ -56,12 +56,13 @@ var _ = BeforeEach(func() {
 var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.PipelineRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	type TestParams struct {
-		pipelineCacheEnabled bool
+		pipelineCacheDisabled bool
+		cacheLabel            string
 	}
 
 	testParams := []TestParams{
-		{pipelineCacheEnabled: true},
-		{pipelineCacheEnabled: false},
+		{pipelineCacheDisabled: false, cacheLabel: constants.PipelineCacheEnabled},
+		{pipelineCacheDisabled: true, cacheLabel: constants.PipelineCacheDisabled},
 	}
 	pipelineDirectory := "valid"
 	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
@@ -69,12 +70,12 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	Context("Create a valid pipeline and verify the created run >", func() {
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
-				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
+				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, !param.pipelineCacheDisabled), Label(param.cacheLabel), func() {
 					createdExperiment := createExperiment(experimentName)
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
 					testutil.CheckIfSkipping(pipelineFileName)
-					configuredPipelineSpecFile := configureCacheSettingAndGetPipelineFile(pipelineFilePath, param.pipelineCacheEnabled)
+					configuredPipelineSpecFile := configureCacheSettingAndGetPipelineFile(pipelineFilePath, param.pipelineCacheDisabled)
 					createdPipeline := uploadAPipeline(configuredPipelineSpecFile, &testContext.Pipeline.PipelineGeneratedName)
 					createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 					pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(configuredPipelineSpecFile)
@@ -182,7 +183,14 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
 			testutil.WaitForRunToBeInState(runClient, &createdPipelineRun.RunID, []run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}, nil)
 			archivePipelineRun(&createdPipelineRun.RunID)
-			pipelineRunAfterArchive := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+			var pipelineRunAfterArchive *run_model.V2beta1Run
+			Eventually(func() *run_model.V2beta1Run {
+				pipelineRunAfterArchive = testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
+				if pipelineRunAfterArchive.State == nil || pipelineRunAfterArchive.StorageState == nil {
+					return nil
+				}
+				return pipelineRunAfterArchive
+			}, "30s", "1s").ShouldNot(BeNil(), "Expected archived pipeline run to retain state and storage state")
 			Expect(*pipelineRunAfterArchive.State).To(BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateRUNNING, run_model.V2beta1RuntimeStatePENDING}))
 			Expect(*pipelineRunAfterArchive.StorageState).To(Equal(run_model.V2beta1RunStorageStateARCHIVED))
 
@@ -373,10 +381,7 @@ func createExperiment(experimentName string) *experiment_model.V2beta1Experiment
 func createdExpectedRunAndVerify(createdPipelineRun *run_model.V2beta1Run, pipelineID *string, pipelineVersionID *string, experimentID *string, pipelineInputMap map[string]interface{}) {
 	expectedPipelineRun := createExpectedPipelineRun(pipelineID, pipelineVersionID, experimentID, pipelineInputMap, false)
 	matcher.MatchPipelineRuns(createdPipelineRun, expectedPipelineRun)
-	createdPipelineRunFromDB, createRunError := runClient.Get(&runparams.RunServiceGetRunParams{
-		RunID: createdPipelineRun.RunID,
-	})
-	Expect(createRunError).NotTo(HaveOccurred(), "Failed to get run with Id="+createdPipelineRun.RunID)
+	createdPipelineRunFromDB := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
 
 	// Making the fields that can be different but we don't care about equal to stabilize tests
 	matcher.MatchPipelineRuns(createdPipelineRun, createdPipelineRunFromDB)

@@ -267,25 +267,18 @@ func (s *ScheduledWorkflow) setLabel(key string, value string) {
 	s.Labels[key] = value
 }
 
-// UpdateStatus updates the status of a workflow in the Kubernetes API server.
-func (s *ScheduledWorkflow) UpdateStatus(updatedEpoch int64, submitted bool,
+// UpdateStatus updates the ScheduledWorkflow object's status fields (in-memory).
+func (s *ScheduledWorkflow) UpdateStatus(submitted bool,
 	scheduledEpoch int64, active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus, location *time.Location) {
-
-	// updatedEpoch contains current time but using current time causes the
-	// SWF to fail to be reconciled by the controller. Set LastProbeTime and
-	// LastTransitionTime to 0 to avoid the irreconcilable status updates.
-	updatedTime := metav1.NewTime(time.Unix(0, 0).UTC())
 
 	conditionType, status, message := s.getStatusAndMessage(len(active))
 
 	condition := swfapi.ScheduledWorkflowCondition{
-		Type:               conditionType,
-		Status:             status,
-		LastProbeTime:      updatedTime,
-		LastTransitionTime: updatedTime,
-		Reason:             string(conditionType),
-		Message:            message,
+		Type:    conditionType,
+		Status:  status,
+		Reason:  string(conditionType),
+		Message: message,
 	}
 
 	conditions := make([]swfapi.ScheduledWorkflowCondition, 0)

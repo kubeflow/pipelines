@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/glog"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -44,7 +45,7 @@ func TestParseKfpMLflowRuntimeConfig_Success(t *testing.T) {
 		Timeout:            "10s",
 		InsecureSkipVerify: false,
 		InjectUserEnvVars:  false,
-		TLS: &commonmlflow.TLSConfig{
+		TLS: &commonplugins.TLSConfig{
 			InsecureSkipVerify: false,
 		},
 	}
