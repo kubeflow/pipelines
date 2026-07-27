@@ -124,7 +124,7 @@ h5py==3.14.0
     # via
     #   keras
     #   tensorflow
-httplib2==0.30.2
+httplib2==0.32.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
@@ -248,7 +248,7 @@ pexpect==4.9.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==12.2.0
+pillow==12.3.0
     # via bokeh
 platformdirs==4.4.0
     # via jupyter-core
@@ -282,7 +282,7 @@ pure-eval==0.2.3
     # via stack-data
 pyarrow==14.0.1
     # via -r requirements.in
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via
     #   pyasn1-modules
     #   rsa
@@ -339,7 +339,7 @@ six==1.17.0
     #   google-pasta
     #   python-dateutil
     #   tensorflow
-soupsieve==2.8
+soupsieve==2.8.4
     # via beautifulsoup4
 stack-data==0.6.3
     # via ipython

@@ -29,6 +29,8 @@ REPO_ROOT = SCRIPTS_DIR.parents[2]
 SETUP_BUILDX_SCRIPT = SCRIPTS_DIR / 'setup-buildx-with-retry.sh'
 CURL_CONFIG = REPO_ROOT / '.github/resources/curl-retry/.curlrc'
 CREATE_CLUSTER_ACTION = REPO_ROOT / '.github/actions/create-cluster/action.yml'
+CREATE_MANIFEST_WORKFLOW = REPO_ROOT / '.github/workflows/create-manifest.yml'
+CI_SCRIPTS_WORKFLOW = REPO_ROOT / '.github/workflows/ci-scripts-tests.yml'
 BUILDKIT_IMAGE = 'moby/buildkit:buildx-stable-1'
 
 
@@ -166,6 +168,20 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         curl_home = (
             'CURL_HOME: ${{ github.workspace }}/.github/resources/curl-retry')
         self.assertEqual(action.count(curl_home), 2)
+
+    def test_manifest_creation_uses_daemon_backed_buildx_driver(self):
+        workflow = CREATE_MANIFEST_WORKFLOW.read_text()
+        setup_step = workflow.split(
+            '- name: Set up Docker Buildx', maxsplit=1)[1].split(
+                '- name: Create and Push Manifest', maxsplit=1)[0]
+
+        self.assertIn('uses: docker/setup-buildx-action@v3', setup_step)
+        self.assertIn('driver: docker', setup_step)
+
+    def test_manifest_workflow_changes_run_ci_script_tests(self):
+        workflow = CI_SCRIPTS_WORKFLOW.read_text()
+
+        self.assertIn("'.github/workflows/create-manifest.yml'", workflow)
 
 
 if __name__ == '__main__':
