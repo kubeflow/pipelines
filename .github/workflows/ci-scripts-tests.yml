@@ -27,7 +27,17 @@ on:
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
+      - 'manifests/kustomize/third-party/argo/base/kustomization.yaml'
+      - 'manifests/kustomize/third-party/argo/installs/**'
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+      - 'backend/Dockerfile'
+      - 'backend/src/common/types.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'test/install-argo-cli.sh'
+      - 'third_party/argo/COMPATIBILITY_VERSION'
+      - 'third_party/argo/Makefile'
+      - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
 
 permissions:
