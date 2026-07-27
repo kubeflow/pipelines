@@ -114,12 +114,14 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	}
 	sort.Strings(sortedPVCNames)
 
+	image := resolveImageForCache(opts, opts.Container.Image)
+
 	cacheKey, err := cacheClient.GenerateCacheKey(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
 		outputParametersTypeMap,
 		userCmdArgs,
-		opts.Container.Image,
+		image,
 		sortedPVCNames,
 	)
 	if err != nil {

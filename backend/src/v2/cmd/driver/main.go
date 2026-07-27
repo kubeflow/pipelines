@@ -96,18 +96,22 @@ var (
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
-	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
-	httpsProxy           = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
-	noProxy              = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
-	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
-	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
-	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
-	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
-	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
-	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
-	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
+	httpProxy                          = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
+	httpsProxy                         = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
+	noProxy                            = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	publishLogs                        = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
+	cacheDisabledFlag                  = flag.Bool("cache_disabled", false, "Disable cache globally.")
+	cacheResolveImageDigestFlag        = flag.Bool("cache_resolve_image_digest", false, "Resolve container image tags to digests when computing cache fingerprints. Disabled by default.")
+	cacheImageDigestDockerConfig       = flag.String("cache_image_digest_docker_config", "", "Path to Docker config.json / .dockerconfigjson used for private registry auth when resolving image digests.")
+	cacheImageDigestDockerHubRegistry  = flag.String("cache_image_digest_dockerhub_registry_host", "", "Docker Hub / mirror registry API host (default: registry-1.docker.io).")
+	cacheImageDigestInsecureRegistries = flag.String("cache_image_digest_insecure_registries", "", "Comma-separated registry hosts that should use HTTP for digest resolution.")
+	mlPipelineTLSEnabled               = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
+	metadataTLSEnabled                 = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
+	caCertPath                         = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
+	defaultRunAsUser                   = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
+	defaultRunAsGroup                  = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
+	defaultRunAsNonRoot                = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
+	defaultHostUsers                   = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
 )
 
 // func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
@@ -420,16 +424,22 @@ func drive() (err error) {
 		PipelineLogLevel:           *logLevel,
 		PublishLogs:                *publishLogs,
 		CacheDisabled:              *cacheDisabledFlag,
-		DriverType:                 *driverType,
-		TaskName:                   *taskName,
-		MLPipelineServerAddress:    *mlPipelineServerAddress,
-		MLPipelineServerPort:       *mlPipelineServerPort,
-		MLMDServerAddress:          *mlmdServerAddress,
-		MLMDServerPort:             *mlmdServerPort,
-		MLPipelineTLSEnabled:       *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:             *metadataTLSEnabled,
-		CaCertPath:                 *caCertPath,
-		PluginDispatcher:           pluginDispatcher,
+		CacheResolveImageDigest:    *cacheResolveImageDigestFlag,
+		CacheImageDigestConfig: driver.ImageDigestResolveConfig{
+			DockerConfigPath:      *cacheImageDigestDockerConfig,
+			DockerHubRegistryHost: *cacheImageDigestDockerHubRegistry,
+			InsecureRegistries:    *cacheImageDigestInsecureRegistries,
+		},
+		DriverType:              *driverType,
+		TaskName:                *taskName,
+		MLPipelineServerAddress: *mlPipelineServerAddress,
+		MLPipelineServerPort:    *mlPipelineServerPort,
+		MLMDServerAddress:       *mlmdServerAddress,
+		MLMDServerPort:          *mlmdServerPort,
+		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
+		MLMDTLSEnabled:          *metadataTLSEnabled,
+		CaCertPath:              *caCertPath,
+		PluginDispatcher:        pluginDispatcher,
 	}
 	var execution *driver.Execution
 	var driverErr error

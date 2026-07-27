@@ -69,6 +69,19 @@ type Options struct {
 
 	CacheDisabled bool
 
+	// CacheResolveImageDigest, when true, resolves the container image tag to a
+	// content digest before including it in the cache fingerprint. Default false
+	// preserves historical behavior (image reference string as-is).
+	CacheResolveImageDigest bool
+
+	// CacheImageDigestConfig configures registry endpoints and credentials used
+	// when CacheResolveImageDigest is enabled.
+	CacheImageDigestConfig ImageDigestResolveConfig
+
+	// ImageDigestResolver optionally overrides digest resolution for tests or
+	// custom resolvers. Nil uses the default registry HTTP resolver.
+	ImageDigestResolver ImageDigestResolver
+
 	DriverType string
 
 	TaskName string // the original name of the task, used for input resolution

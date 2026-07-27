@@ -84,6 +84,28 @@ data:
   ## This value is used if the user did not set a value in the pipeline.
   DEFAULT_CACHE_STALENESS: ""
   ## DEFAULT_CACHE_STALENESS: "P7D"
+  ## CACHE_RESOLVE_IMAGE_DIGEST controls whether the API server asks the container
+  ## driver to resolve mutable image tags to content digests when computing v2
+  ## cache fingerprints. Default "false" preserves historical behavior (image
+  ## reference string as-is). Set to "true" to enable.
+  ## When enabled, resolution failures (network, auth, unsupported registry)
+  ## fall back to the original image reference so the run continues; mutable-tag
+  ## cache hits remain possible in that fail-open path. Enabling this flag also
+  ## normalizes resolved refs (e.g. ubuntu:22.04 -> docker.io/library/ubuntu@sha256:...),
+  ## which invalidates previously written cache entries that used the tag string.
+  CACHE_RESOLVE_IMAGE_DIGEST: "false"
+  ## CACHE_IMAGE_DIGEST_DOCKER_CONFIG_SECRET is an optional Secret name of type
+  ## kubernetes.io/dockerconfigjson. When set (and CACHE_RESOLVE_IMAGE_DIGEST is
+  ## true), the Secret is mounted into container-driver pods for private
+  ## registry authentication during digest resolution.
+  CACHE_IMAGE_DIGEST_DOCKER_CONFIG_SECRET: ""
+  ## CACHE_IMAGE_DIGEST_DOCKERHUB_REGISTRY_HOST overrides the registry API host
+  ## used for short-name Docker Hub images (e.g. ubuntu:22.04). Default empty
+  ## uses registry-1.docker.io. Token realm/service come from WWW-Authenticate.
+  CACHE_IMAGE_DIGEST_DOCKERHUB_REGISTRY_HOST: ""
+  ## CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES is a comma-separated list of registry
+  ## hosts that should use HTTP (not HTTPS) for digest resolution.
+  CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES: ""
   ## ConMaxLifeTime will set the connection max lifetime for MySQL
   ## this is very important to setup when using external databases.
   ## See this issue for more details: https://github.com/kubeflow/pipelines/issues/5329
