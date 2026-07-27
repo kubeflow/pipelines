@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -63,8 +64,6 @@ var (
 		Name: "pipeline_version_upload_requests",
 		Help: "The number of pipeline version upload requests",
 	})
-
-	// TODO(jingzhang36): error count and success count.
 )
 
 type PipelineUploadServerOptions struct {
@@ -98,12 +97,17 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		uploadPipelineRequests.Inc()
 		uploadPipelineVersionRequests.Inc()
 	}
+	startTime := time.Now()
 
 	glog.Infof("Upload pipeline called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
 		glog.Errorf("Failed to read pipeline from file: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read pipeline from file"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	defer file.Close()
@@ -112,18 +116,30 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	if err != nil {
 		glog.Errorf("Failed to read a pipeline spec file: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to read a pipeline spec file"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
 	pipelineNamespace := r.URL.Query().Get(NamespaceStringQuery)
 	if err := validation.ValidateFieldLength("Pipeline", "Namespace", pipelineNamespace); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	pipelineNamespace = s.resourceManager.ReplaceNamespace(pipelineNamespace)
 	err = validation.ValidateNamespaceRequired(pipelineNamespace)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -134,6 +150,10 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline due to authorization error: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -159,6 +179,10 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		if err := json.Unmarshal([]byte(tagsParam), &tags); err != nil {
 			glog.Errorf("Failed to parse tags query parameter: %v", err)
 			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to parse tags query parameter. Expected JSON object with string keys and values"))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 		pipeline.Tags = tags
@@ -173,6 +197,10 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 
 	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -183,15 +211,27 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
 			glog.Errorf("Failed to create a pipeline and a pipeline version. The pipeline already exists: %v", err)
 			s.writeErrorToResponse(w, http.StatusConflict, errors.New("Failed to create a pipeline and a pipeline version"))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
 			glog.Errorf("Failed to create a pipeline and a pipeline version: %v", err)
 			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(err.(*util.UserError).ExternalMessage()))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 		glog.Errorf("Failed to create a pipeline and a pipeline version: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline and a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -208,6 +248,10 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	default:
 		glog.Errorf("Failed to create a pipeline. Invalid API version: %v", apiVersion)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -220,13 +264,25 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline. Marshaling error: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	_, err = w.Write(data)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline. Write error: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
+		}
 		return
+	}
+	if s.options.CollectMetrics {
+		requestCounter.WithLabelValues("pipeline_upload", "UploadPipeline", "success").Inc()
+		requestLatency.WithLabelValues("pipeline_upload", "UploadPipeline").Observe(time.Since(startTime).Seconds())
 	}
 }
 
@@ -249,12 +305,17 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	if s.options.CollectMetrics {
 		uploadPipelineVersionRequests.Inc()
 	}
+	startTime := time.Now()
 
 	glog.Infof("Upload pipeline version called")
 	file, header, err := r.FormFile(FormFileKey)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Error parsing pipeline spec filename: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	defer file.Close()
@@ -263,12 +324,20 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Error reading pipeline spec file: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	pipelineID := r.URL.Query().Get(PipelineKey)
 	if pipelineID == "" {
 		glog.Errorf("Failed to create a pipeline version. Error reading pipeline id")
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -284,6 +353,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	// Validate PipelineVersion name length
 	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersionName); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -291,12 +364,20 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Error reading namespace: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
 	err = validation.ValidateNamespaceRequired(namespace)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -308,6 +389,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Authorization error: %v", err)
 		s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -318,6 +403,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		if err := json.Unmarshal([]byte(tagsParam), &versionTags); err != nil {
 			glog.Errorf("Failed to parse tags query parameter: %v", err)
 			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New("Failed to parse tags query parameter. Expected JSON object with string keys and values"))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 	}
@@ -338,15 +427,27 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		if util.IsUserErrorCodeMatch(err, codes.AlreadyExists) {
 			glog.Errorf("Failed to create a pipeline version. The pipeline already exists: %v", err)
 			s.writeErrorToResponse(w, http.StatusConflict, errors.New("Failed to create a pipeline version"))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 		if util.IsUserErrorCodeMatch(err, codes.InvalidArgument) {
 			glog.Errorf("Failed to create a pipeline version: %v", err)
 			s.writeErrorToResponse(w, http.StatusBadRequest, errors.New(err.(*util.UserError).ExternalMessage()))
+			if s.options.CollectMetrics {
+				requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+				requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+			}
 			return
 		}
 		glog.Errorf("Failed to create a pipeline version: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
@@ -359,6 +460,10 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	default:
 		glog.Errorf("Failed to create a pipeline version. Invalid API version: %v", apiVersion)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	// Marshal the message to bytes
@@ -370,17 +475,27 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Marshaling error: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 	_, err = w.Write(data)
 	if err != nil {
 		glog.Errorf("Failed to create a pipeline version. Write error: %v", err)
 		s.writeErrorToResponse(w, http.StatusInternalServerError, errors.New("Failed to create a pipeline version"))
+		if s.options.CollectMetrics {
+			requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "error").Inc()
+			requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
+		}
 		return
 	}
 
 	if s.options.CollectMetrics {
 		pipelineVersionCount.Inc()
+		requestCounter.WithLabelValues("pipeline_upload", "UploadPipelineVersion", "success").Inc()
+		requestLatency.WithLabelValues("pipeline_upload", "UploadPipelineVersion").Observe(time.Since(startTime).Seconds())
 	}
 }
 
