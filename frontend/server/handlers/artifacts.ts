@@ -152,12 +152,12 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const namespaceParam = getOptionalRequestString(request.query.namespace, 'namespace');
-    if ('error' in namespaceParam) {
-      response.status(namespaceParam.error.status).send(namespaceParam.error.message);
+    const namespaceParameter = getOptionalRequestString(request.query.namespace, 'namespace');
+    if ('error' in namespaceParameter) {
+      response.status(namespaceParameter.error.status).send(namespaceParameter.error.message);
       return;
     }
-    const namespace = namespaceParam.value;
+    const namespace = namespaceParameter.value;
 
     if (!namespace) {
       console.warn(
