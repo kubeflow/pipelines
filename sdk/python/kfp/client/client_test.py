@@ -505,7 +505,45 @@ class TestClient(parameterized.TestCase):
                         pipeline_name=pipeline_name,
                         description='description',
                         namespace='ns1')
+    @patch('kfp.Client.get_user_namespace', return_value='fallback-ns')
+    def test_upload_pipeline_without_namespace_falls_back(
+            self, mock_get_user_namespace):
+        with patch.object(self.client._upload_api,
+                          'upload_pipeline') as mock_upload_pipeline:
+            with patch.object(auth, 'is_ipython', return_value=False):
+                self.client.upload_pipeline(
+                    pipeline_package_path='fake.yaml',
+                    pipeline_name='my-pipeline',
+                    description='description')
 
+                mock_upload_pipeline.assert_called_once_with(
+                    'fake.yaml',
+                    name='my-pipeline',
+                    description='description',
+                    namespace='fallback-ns')
+
+                mock_get_user_namespace.assert_called_once()
+
+
+    @patch('kfp.Client.get_user_namespace', return_value='fallback-ns')
+    def test_upload_pipeline_with_explicit_namespace_does_not_fall_back(
+            self, mock_get_user_namespace):
+        with patch.object(self.client._upload_api,
+                          'upload_pipeline') as mock_upload_pipeline:
+            with patch.object(auth, 'is_ipython', return_value=False):
+                self.client.upload_pipeline(
+                    pipeline_package_path='fake.yaml',
+                    pipeline_name='my-pipeline',
+                    description='description',
+                    namespace='explicit-ns')
+
+                mock_upload_pipeline.assert_called_once_with(
+                    'fake.yaml',
+                    name='my-pipeline',
+                    description='description',
+                    namespace='explicit-ns')
+
+                mock_get_user_namespace.assert_not_called()
     def test_upload_pipeline_version_from_pipeline_func(self):
 
         @component
