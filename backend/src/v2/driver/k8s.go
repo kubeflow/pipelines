@@ -753,13 +753,14 @@ func extendPodSpecPatch(
 		}
 		existingSecurityContext := podSpec.Containers[0].SecurityContext
 		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
+		runAsNonRootEnforced := existingSecurityContext.RunAsNonRoot != nil && *existingSecurityContext.RunAsNonRoot
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
 				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
-				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
-					glog.Warningf("Setting runAsUser=0 (root) on a container with hardened security context; consider using a non-root UID")
+				if *userSecurityContext.RunAsUser == 0 && (isCompilerHardened || runAsNonRootEnforced) {
+					return fmt.Errorf("runAsUser=0 (root) is not allowed: the container security context enforces non-root execution (runAsNonRoot=true or allowPrivilegeEscalation=false); use a non-root UID instead")
 				}
 				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
 			}

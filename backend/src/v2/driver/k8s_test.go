@@ -9,6 +9,7 @@ import (
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
@@ -2396,24 +2397,10 @@ func Test_extendPodSpecPatch_SecurityContext_RootOnHardenedContainer(t *testing.
 		map[string]*structpb.Value{},
 		nil,
 	)
-	assert.Nil(t, err)
-	assert.NotNil(t, got)
-	// runAsUser=0 is applied but the container is flagged as hardened
-	// (allowPrivilegeEscalation=false), so a warning is logged.
-	assert.Equal(t, &k8score.PodSpec{
-		Containers: []k8score.Container{
-			{
-				Name: "main",
-				SecurityContext: &k8score.SecurityContext{
-					RunAsUser:                &rootUID,
-					AllowPrivilegeEscalation: &allowPrivEsc,
-					Capabilities: &k8score.Capabilities{
-						Drop: []k8score.Capability{"ALL"},
-					},
-				},
-			},
-		},
-	}, got)
+	// runAsUser=0 on a hardened container (allowPrivilegeEscalation=false)
+	// must be rejected with an immediate error instead of deferring to kubelet.
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "runAsUser=0 (root) is not allowed")
 }
 
 func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRoot(t *testing.T) {
@@ -2491,6 +2478,88 @@ func Test_extendPodSpecPatch_SecurityContext_UserRunAsNonRootNoAdmin(t *testing.
 	assert.Nil(t, err)
 	// User-specified runAsNonRoot is applied when no admin default is set.
 	assert.True(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
+}
+
+func Test_extendPodSpecPatch_SecurityContext_RootRejectedWhenRunAsNonRootEnforced(t *testing.T) {
+	adminRunAsNonRoot := true
+	rootUID := int64(0)
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{
+			DefaultRunAsNonRoot: &adminRunAsNonRoot,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: &rootUID,
+				},
+			},
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	// runAsUser=0 must be rejected when admin enforces runAsNonRoot=true.
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "runAsUser=0 (root) is not allowed")
+}
+
+func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedWhenRunAsNonRootEnforced(t *testing.T) {
+	adminRunAsNonRoot := true
+	nonRootUID := int64(1000)
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{
+			DefaultRunAsNonRoot: &adminRunAsNonRoot,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: &nonRootUID,
+				},
+			},
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	require.Nil(t, err)
+	require.Equal(t, nonRootUID, *got.Containers[0].SecurityContext.RunAsUser)
+}
+
+func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedOnHardenedContainer(t *testing.T) {
+	nonRootUID := int64(1000)
+	allowPrivEsc := false
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{
+			Name: "main",
+			SecurityContext: &k8score.SecurityContext{
+				AllowPrivilegeEscalation: &allowPrivEsc,
+			},
+		},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+			SecurityContext: &kubernetesplatform.SecurityContext{
+				RunAsUser: &nonRootUID,
+			},
+		}},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	// Non-root UID is allowed even on hardened containers.
+	require.Nil(t, err)
+	require.Equal(t, nonRootUID, *got.Containers[0].SecurityContext.RunAsUser)
 }
 
 func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
