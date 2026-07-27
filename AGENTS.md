@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-26
+- Last updated: 2026-07-27
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -154,6 +154,9 @@ This target:
 - Installs cert-manager for certificate management
 - Deploys KFP using `manifests/kustomize/env/dev-kind`
 - Includes webhook proxy for advanced debugging scenarios
+
+Both targets wait for cluster components to become ready with configurable timeouts (defaults unchanged; override for slow connections or resource-constrained CI):
+`MYSQL_WAIT_TIMEOUT` (default `10m`), `CERT_MANAGER_WAIT_TIMEOUT` (default `300s`), `METADATA_GRPC_WAIT_TIMEOUT` (default `3m`), `ML_PIPELINE_WAIT_TIMEOUT` (default `3m`), e.g. `make -C backend kind-cluster-agnostic MYSQL_WAIT_TIMEOUT=20m`.
 
 ### Deployment modes
 
