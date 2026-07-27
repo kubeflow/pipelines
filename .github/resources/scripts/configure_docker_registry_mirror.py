@@ -26,8 +26,7 @@ from pathlib import Path
 def configure_registry_mirror(config_path: Path, mirror: str) -> bool:
     """Put mirror first in registry-mirrors while preserving other settings."""
     existing_config = (
-        config_path.read_text(encoding='utf-8') if config_path.exists() else ''
-    )
+        config_path.read_text(encoding='utf-8') if config_path.exists() else '')
     if existing_config.strip():
         config = json.loads(existing_config)
     else:
@@ -37,26 +36,20 @@ def configure_registry_mirror(config_path: Path, mirror: str) -> bool:
 
     existing_mirrors = config.get('registry-mirrors', [])
     if not isinstance(existing_mirrors, list) or not all(
-        isinstance(existing_mirror, str)
-        for existing_mirror in existing_mirrors
-    ):
+            isinstance(existing_mirror, str)
+            for existing_mirror in existing_mirrors):
         raise ValueError('registry-mirrors must be a list of strings')
 
     normalized_mirror = mirror.rstrip('/')
     configured_mirror = next(
-        (
-            existing_mirror
-            for existing_mirror in existing_mirrors
-            if existing_mirror.rstrip('/') == normalized_mirror
-        ),
+        (existing_mirror for existing_mirror in existing_mirrors
+         if existing_mirror.rstrip('/') == normalized_mirror),
         mirror,
     )
     mirrors = [configured_mirror]
     mirrors.extend(
-        existing_mirror
-        for existing_mirror in existing_mirrors
-        if existing_mirror.rstrip('/') != normalized_mirror
-    )
+        existing_mirror for existing_mirror in existing_mirrors
+        if existing_mirror.rstrip('/') != normalized_mirror)
     if existing_mirrors == mirrors:
         return False
 
@@ -64,17 +57,15 @@ def configure_registry_mirror(config_path: Path, mirror: str) -> bool:
     config_path.parent.mkdir(parents=True, exist_ok=True)
     mode = (
         stat.S_IMODE(config_path.stat().st_mode)
-        if config_path.exists()
-        else 0o644
-    )
+        if config_path.exists() else 0o644)
     temporary_path = None
     try:
         with tempfile.NamedTemporaryFile(
-            mode='w',
-            encoding='utf-8',
-            dir=config_path.parent,
-            prefix=f'.{config_path.name}.',
-            delete=False,
+                mode='w',
+                encoding='utf-8',
+                dir=config_path.parent,
+                prefix=f'.{config_path.name}.',
+                delete=False,
         ) as temporary_file:
             temporary_path = Path(temporary_file.name)
             json.dump(config, temporary_file, indent=2, sort_keys=True)

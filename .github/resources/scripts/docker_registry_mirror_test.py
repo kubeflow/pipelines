@@ -23,15 +23,12 @@ from pathlib import Path
 
 from configure_docker_registry_mirror import configure_registry_mirror
 
-
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 CONFIGURE_MIRROR_SCRIPT = (
-    REPOSITORY_ROOT
-    / '.github/resources/scripts/configure-docker-hub-mirror.sh'
-)
+    REPOSITORY_ROOT /
+    '.github/resources/scripts/configure-docker-hub-mirror.sh')
 MIRROR_SCRIPT = (
-    'bash ./.github/resources/scripts/configure-docker-hub-mirror.sh'
-)
+    'bash ./.github/resources/scripts/configure-docker-hub-mirror.sh')
 
 
 class DockerRegistryMirrorTest(unittest.TestCase):
@@ -46,20 +43,23 @@ class DockerRegistryMirrorTest(unittest.TestCase):
     def test_adds_mirror_without_discarding_existing_configuration(self):
         self.config_path.write_text(
             json.dumps({
-                'features': {'containerd-snapshotter': True},
+                'features': {
+                    'containerd-snapshotter': True
+                },
                 'registry-mirrors': ['https://registry.example.com'],
             }),
             encoding='utf-8',
         )
-        changed = configure_registry_mirror(
-            self.config_path, 'https://mirror.gcr.io'
-        )
+        changed = configure_registry_mirror(self.config_path,
+                                            'https://mirror.gcr.io')
 
         self.assertTrue(changed)
         self.assertEqual(
             json.loads(self.config_path.read_text(encoding='utf-8')),
             {
-                'features': {'containerd-snapshotter': True},
+                'features': {
+                    'containerd-snapshotter': True
+                },
                 'registry-mirrors': [
                     'https://mirror.gcr.io',
                     'https://registry.example.com',
@@ -68,9 +68,8 @@ class DockerRegistryMirrorTest(unittest.TestCase):
         )
 
     def test_creates_missing_configuration(self):
-        changed = configure_registry_mirror(
-            self.config_path, 'https://mirror.gcr.io'
-        )
+        changed = configure_registry_mirror(self.config_path,
+                                            'https://mirror.gcr.io')
 
         self.assertTrue(changed)
         self.assertEqual(
@@ -84,9 +83,8 @@ class DockerRegistryMirrorTest(unittest.TestCase):
             encoding='utf-8',
         )
 
-        changed = configure_registry_mirror(
-            self.config_path, 'https://mirror.gcr.io'
-        )
+        changed = configure_registry_mirror(self.config_path,
+                                            'https://mirror.gcr.io')
 
         self.assertFalse(changed)
         self.assertEqual(
@@ -101,17 +99,13 @@ class DockerRegistryMirrorTest(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(ValueError, 'list of strings'):
-            configure_registry_mirror(
-                self.config_path, 'https://mirror.gcr.io'
-            )
+            configure_registry_mirror(self.config_path, 'https://mirror.gcr.io')
 
     def test_rejects_non_object_daemon_configuration(self):
         self.config_path.write_text('[]', encoding='utf-8')
 
         with self.assertRaisesRegex(ValueError, 'JSON object'):
-            configure_registry_mirror(
-                self.config_path, 'https://mirror.gcr.io'
-            )
+            configure_registry_mirror(self.config_path, 'https://mirror.gcr.io')
 
     def test_hosted_docker_workflows_configure_mirror(self):
         paths_and_following_steps = {
@@ -119,16 +113,16 @@ class DockerRegistryMirrorTest(unittest.TestCase):
                 'Restore Kind node image cache',
             '.github/workflows/build-tools-images.yml':
                 'Build and push api-generator',
-            '.github/workflows/image-builds.yml': 'Set up Docker Buildx',
+            '.github/workflows/image-builds.yml':
+                'Set up Docker Buildx',
             '.github/workflows/runtime-base-images.yml':
                 'Configure runtime base images',
         }
 
         for relative_path, following_step in paths_and_following_steps.items():
             with self.subTest(path=relative_path):
-                contents = (REPOSITORY_ROOT / relative_path).read_text(
-                    encoding='utf-8'
-                )
+                contents = (REPOSITORY_ROOT /
+                            relative_path).read_text(encoding='utf-8')
                 self.assertIn(MIRROR_SCRIPT, contents)
                 self.assertLess(
                     contents.index('Configure Docker Hub mirror'),
@@ -140,18 +134,16 @@ class DockerRegistryMirrorTest(unittest.TestCase):
         binary_directory.mkdir()
         command_log = Path(self.temp_directory.name) / 'commands.log'
         for command_name, contents in {
-            'docker': (
-                '#!/usr/bin/env bash\n'
-                'echo "docker $*" >> "$COMMAND_LOG"\n'
-                'if [[ "$1" == "info" ]]; then\n'
-                '  echo "Registry Mirrors: ${DOCKER_HUB_MIRROR:-https://mirror.gcr.io}/"\n'
-                'fi\n'
-            ),
-            'sudo': '#!/usr/bin/env bash\nexec "$@"\n',
-            'systemctl': (
-                '#!/usr/bin/env bash\n'
-                'echo "systemctl $*" >> "$COMMAND_LOG"\n'
-            ),
+                'docker': (
+                    '#!/usr/bin/env bash\n'
+                    'echo "docker $*" >> "$COMMAND_LOG"\n'
+                    'if [[ "$1" == "info" ]]; then\n'
+                    '  echo "Registry Mirrors: ${DOCKER_HUB_MIRROR:-https://mirror.gcr.io}/"\n'
+                    'fi\n'),
+                'sudo':
+                    '#!/usr/bin/env bash\nexec "$@"\n',
+                'systemctl': ('#!/usr/bin/env bash\n'
+                              'echo "systemctl $*" >> "$COMMAND_LOG"\n'),
         }.items():
             command_path = binary_directory / command_name
             command_path.write_text(contents, encoding='utf-8')
