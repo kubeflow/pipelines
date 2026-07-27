@@ -17,6 +17,7 @@ package testutil
 import (
 	"fmt"
 	"os"
+	"time"
 
 	pipeline_params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
@@ -66,12 +67,47 @@ func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pip
 	return pipelineUploadClient.UploadFile(tempPipelineFile.Name(), uploadParams)
 }
 
-// DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
-func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+func deletePipelineWithRetry(client *api_server.PipelineClient, pipelineID string, cascade bool) error {
 	ginkgo.GinkgoHelper()
 	logger.Log("Deleting pipeline with id=%s (cascade=%v)", pipelineID, cascade)
-	err := client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
-	gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
+	var err error
+	for attempt := 1; attempt <= 3; attempt++ {
+		err = client.Delete(&pipeline_params.PipelineServiceDeletePipelineParams{PipelineID: pipelineID, Cascade: &cascade})
+		if err == nil {
+			break
+		}
+		if !IsRetriableAPITestError(err) || attempt == 3 {
+			break
+		}
+		logger.Log("Transient API error while deleting pipeline %s (attempt %d/3): %v", pipelineID, attempt, err)
+		time.Sleep(2 * time.Second)
+	}
+	return err
+}
+
+// DeletePipeline deletes a pipeline by id. When cascade is true the server also deletes all pipeline versions.
+func DeletePipeline(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+	err := deletePipelineWithRetry(client, pipelineID, cascade)
+	if err != nil {
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
+	}
+	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
+}
+
+// DeletePipelineBestEffort keeps cleanup resilient to transient API/backend outages.
+func DeletePipelineBestEffort(client *api_server.PipelineClient, pipelineID string, cascade bool) {
+	err := deletePipelineWithRetry(client, pipelineID, cascade)
+	if err != nil {
+		if !IsRetriableAPITestError(err) {
+			gomega.Expect(err).NotTo(gomega.HaveOccurred(), fmt.Sprintf("Error occurred while deleting pipeline with id=%s", pipelineID))
+			return
+		}
+		// ponytail: cleanup should not fail the enclosing test when the API or
+		// backing store is already tearing down; make primary-flow callers use
+		// DeletePipeline so non-cleanup deletions still fail loudly.
+		logger.Log("Failed to delete pipeline with id=%s during cleanup after transient API retries: %v", pipelineID, err)
+		return
+	}
 	logger.Log("Pipeline with id=%s, DELETED", pipelineID)
 }
 

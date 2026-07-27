@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.26.2-alpine@sha256:f85330846cde1e57ca9ec309382da3b8e6ae3ab943d2739500e08c86393a21b1 AS builder
+FROM golang:1.26.5-alpine@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS builder
 
 ARG GCFLAGS=""
 
@@ -23,6 +23,14 @@ COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
 
+# git is required by the GOPROXY direct fallback below to fetch modules
+# from source when the module proxy errors.
+RUN apk add --no-cache git
+
+# Fall back to fetching modules directly from source on any module proxy
+# error (the default comma separator only falls back on 404/410), so a
+# transient proxy.golang.org failure cannot fail the build.
+ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
 
 COPY . .

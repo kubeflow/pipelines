@@ -9,8 +9,8 @@ spec:
         - name: ml-pipeline-api-server
           env:
             - name: HTTP_PROXY
-              value: "http://squid.squid.svc.cluster.local:3128"
+              value: "http://tinyproxy.tinyproxy.svc.cluster.local:3128"
             - name: HTTPS_PROXY
-              value: "http://squid.squid.svc.cluster.local:3128"
+              value: "http://tinyproxy.tinyproxy.svc.cluster.local:3128"
             - name: NO_PROXY
               value: "localhost,127.0.0.1,10.96.0.0/12,.svc.cluster.local,kubernetes.default.svc,mysql,mysql.kubeflow,seaweedfs.kubeflow,metadata-grpc-service,metadata-grpc-service.kubeflow,ml-pipeline.kubeflow"

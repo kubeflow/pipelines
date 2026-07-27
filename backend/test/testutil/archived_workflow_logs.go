@@ -2,8 +2,10 @@ package testutil
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"path"
 	"sort"
 	"strings"
@@ -65,13 +67,41 @@ func listLogKeys(ctx context.Context, client *minio.Client, bucket, prefix strin
 	return keys, nil
 }
 
+type logKeyLister func(ctx context.Context, client *minio.Client, bucket, prefix string) ([]string, error)
+
+func isPermanentLogListError(err error) bool {
+	var errorResponse minio.ErrorResponse
+	if !errors.As(err, &errorResponse) {
+		return false
+	}
+
+	switch errorResponse.StatusCode {
+	case http.StatusUnauthorized, http.StatusForbidden:
+		return true
+	}
+
+	switch errorResponse.Code {
+	case "AccessDenied", "InvalidAccessKeyId", "InvalidToken", "SignatureDoesNotMatch":
+		return true
+	default:
+		return false
+	}
+}
+
 func pollForLogKeys(ctx context.Context, client *minio.Client, bucket, prefix string) ([]string, time.Duration, error) {
+	return pollForLogKeysWithLister(ctx, client, bucket, prefix, listLogKeys)
+}
+
+func pollForLogKeysWithLister(ctx context.Context, client *minio.Client, bucket, prefix string, lister logKeyLister) ([]string, time.Duration, error) {
 	start := time.Now()
 	deadline := start.Add(pollTimeout)
 	for {
-		keys, err := listLogKeys(ctx, client, bucket, prefix)
+		keys, err := lister(ctx, client, bucket, prefix)
 		if err == nil && len(keys) > 0 {
 			return keys, time.Since(start), nil
+		}
+		if isPermanentLogListError(err) {
+			return nil, time.Since(start), fmt.Errorf("failed listing objects under %q: %w", prefix, err)
 		}
 		if time.Now().After(deadline) {
 			if err != nil {

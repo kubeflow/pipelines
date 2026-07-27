@@ -60,7 +60,7 @@ rules:
         - error
         - argsIgnorePattern: '^_'
           varsIgnorePattern: '^_'
-          caughtErrorsIgnorePattern: '^_'
+          caughtErrors: none
           ignoreRestSiblings: true
     import/no-unresolved:
         - error

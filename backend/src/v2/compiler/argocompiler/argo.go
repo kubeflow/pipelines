@@ -62,6 +62,11 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
+	// Optional: administrator-configured labels and annotations for driver pods.
+	// Nil means not set (feature disabled). The API server reads this from its own
+	// configuration and passes it in, so callers that compile outside the API server,
+	// such as the standalone compiler, simply leave it nil and get no extra metadata.
+	DriverPodConfig *common.DriverPodConfig
 }
 
 const (
@@ -219,6 +224,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
+		c.driverPodConfig = opts.DriverPodConfig
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -325,6 +331,36 @@ type workflowCompiler struct {
 	defaultRunAsGroup    *int64
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
+	driverPodConfig      *common.DriverPodConfig
+}
+
+// applyDriverPodConfig applies driver pod labels and annotations to a workflow
+// template's metadata. Existing keys are kept, since admin configuration has lower
+// priority than metadata that the system already set.
+func applyDriverPodConfig(d *common.DriverPodConfig, tmpl *wfapi.Template) {
+	if d == nil || tmpl == nil {
+		return
+	}
+	if len(d.Labels) > 0 {
+		if tmpl.Metadata.Labels == nil {
+			tmpl.Metadata.Labels = make(map[string]string, len(d.Labels))
+		}
+		for k, v := range d.Labels {
+			if _, exists := tmpl.Metadata.Labels[k]; !exists {
+				tmpl.Metadata.Labels[k] = v
+			}
+		}
+	}
+	if len(d.Annotations) > 0 {
+		if tmpl.Metadata.Annotations == nil {
+			tmpl.Metadata.Annotations = make(map[string]string, len(d.Annotations))
+		}
+		for k, v := range d.Annotations {
+			if _, exists := tmpl.Metadata.Annotations[k]; !exists {
+				tmpl.Metadata.Annotations[k] = v
+			}
+		}
+	}
 }
 
 func (c *workflowCompiler) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {

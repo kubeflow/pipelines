@@ -88,6 +88,24 @@ describe('ArtifactPreview', () => {
     );
   });
 
+  it('carries providerInfo from the session map into download and view links', async () => {
+    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce('s3 content');
+    const sessionMap = new Map([['s3://bucket/key', '{"Provider":"s3"}']]);
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value={'s3://bucket/key'} namespace={'kubeflow'} sessionMap={sessionMap} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() =>
+      expect(screen.getByText('View All').getAttribute('href')).toEqual(
+        'artifacts/get?source=s3&namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=bucket&key=key',
+      ),
+    );
+    expect(screen.getByText('s3://bucket/key').getAttribute('href')).toEqual(
+      'artifacts/s3/bucket/key?namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+    );
+  });
+
   it('handles artifact that previews with maxlines', async () => {
     const data = `012\n345\n678\n910`;
     vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);

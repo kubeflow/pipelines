@@ -32,6 +32,20 @@ ARTIFACT_PROXY_ENABLED=false
 MULTI_USER=false
 AWF_VERSION=""
 POD_TO_POD_TLS_ENABLED=false
+IAM_CONNTRACK_WINDOW_ACTIVE=false
+IAM_CONNTRACK_BASELINE="/tmp/kfp-seaweedfs-iam-conntrack-window.tsv"
+
+report_iam_conntrack_window() {
+  if [ "$IAM_CONNTRACK_WINDOW_ACTIVE" != "true" ]; then
+    return
+  fi
+  IAM_CONNTRACK_WINDOW_ACTIVE=false
+  "${C_DIR}/conntrack-window.sh" report "$IAM_CONNTRACK_BASELINE" || true
+}
+
+# Multi-user deployment may exit under `set -e` anywhere between the IAM gate
+# and Profile reconciliation. Preserve that entire conntrack window on failure.
+trap report_iam_conntrack_window EXIT
 
 # Loop over script arguments passed. This uses a single switch-case
 # block with default value in case we want to make alternative deployments
@@ -113,13 +127,56 @@ fi
 
 
 # Deploy multi-user prerequisites if multi-user mode is enabled
+# wait_for_pods_ready waits for pods to reach condition=Ready and, on timeout,
+# dumps pod status, per-container readiness (including any istio-proxy sidecar),
+# recent namespace events, and container logs before failing. These multi-user
+# prerequisites intermittently miss the readiness deadline; without this a
+# timeout under `set -e` exits with only a bare "timed out" line and no state,
+# leaving the cause (sidecar not ready, image pull, slow init) undiagnosable.
+wait_for_pods_ready() {
+  local namespace="$1" selector="$2" timeout="$3" label="$4"
+  local wait_args=(-n "$namespace" wait --for=condition=Ready pods --timeout "$timeout")
+  local scope_args=(-n "$namespace")
+  if [ -n "$selector" ]; then
+    wait_args+=(-l "$selector")
+    scope_args+=(-l "$selector")
+  else
+    wait_args+=(--all)
+  fi
+
+  if kubectl "${wait_args[@]}"; then
+    return 0
+  fi
+
+  echo "ERROR: ${label} did not become Ready within ${timeout}; collecting diagnostics:"
+  echo "----- pods -----"
+  kubectl "${scope_args[@]}" get pods -o wide || true
+  echo "----- describe (container readiness / events) -----"
+  kubectl "${scope_args[@]}" describe pods || true
+  echo "----- recent namespace events -----"
+  # Sort by creationTimestamp: lastTimestamp is deprecated/absent for
+  # events.k8s.io/v1 objects, which leaves the output unsorted on new clusters.
+  kubectl -n "$namespace" get events --sort-by=.metadata.creationTimestamp 2>/dev/null | tail -40 || true
+  echo "----- logs (all containers, incl. istio-proxy sidecar) -----"
+  if [ -n "$selector" ]; then
+    kubectl -n "$namespace" logs -l "$selector" --all-containers=true --tail=100 --prefix=true || true
+  else
+    # kubectl logs needs a resource or selector; with no selector (e.g. the
+    # Istio wait covers the whole namespace) dump each pod individually.
+    for pod in $(kubectl -n "$namespace" get pods -o name 2>/dev/null | head -20); do
+      kubectl -n "$namespace" logs "$pod" --all-containers=true --tail=100 --prefix=true || true
+    done
+  fi
+  return 1
+}
+
 if [ "${MULTI_USER}" == "true" ]; then
   echo "Installing Istio..."
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-crds/base?ref=master
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-namespace/base?ref=master
   kubectl apply -k https://github.com/kubeflow/manifests/common/istio/istio-install/base?ref=master
   echo "Waiting for all Istio Pods to become ready..."
-  kubectl wait --for=condition=Ready pods --all -n istio-system --timeout=300s
+  wait_for_pods_ready istio-system "" 300s "Istio pods"
 
   echo "Deploying Metacontroller CRD..."
   kubectl apply -f manifests/kustomize/third-party/metacontroller/base/crd.yaml
@@ -127,7 +184,7 @@ if [ "${MULTI_USER}" == "true" ]; then
 
   echo "Installing Profile Controller Resources..."
   kubectl apply -k https://github.com/kubeflow/manifests/applications/dashboard/upstream/profile-controller/overlays/kubeflow?ref=master
-  kubectl -n kubeflow wait --for=condition=Ready pods -l app.kubernetes.io/name=profile-controller --timeout 180s
+  echo "Profile controller applied; its readiness will be joined after the KFP rollout."
 fi
 
 # Manifests will be deployed according to the flag provided
@@ -181,6 +238,19 @@ then
 fi
 
 if [ "${MULTI_USER}" == "true" ]; then
+  # The profile controller is independent of the main KFP rollout until the
+  # Profile is created below. Apply both first, then join their readiness gates
+  # so controller startup is hidden behind the longer KFP rollout.
+  wait_for_pods_ready kubeflow "app.kubernetes.io/name=profile-controller" 180s "profile-controller pod"
+
+  # Profile reconciliation makes a one-shot IAM request before creating the
+  # user namespace artifact secret. Pod readiness alone does not prove that
+  # this Service path is accepting connections, so validate it from the
+  # profile controller's own network namespace before creating the Profile.
+  "${C_DIR}/conntrack-window.sh" capture "$IAM_CONNTRACK_BASELINE" || true
+  IAM_CONNTRACK_WINDOW_ACTIVE=true
+  "${C_DIR}/wait-for-seaweedfs-iam.sh"
+
   echo "Creating KF Profile..."
   kubectl apply -f test_data/kubernetes/seaweedfs/test-profiles.yaml
 
@@ -213,16 +283,19 @@ if [ "${MULTI_USER}" == "true" ]; then
   done
 
   if ! kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
-    echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after ${TIMEOUT}s"
+    echo "Secret mlpipeline-minio-artifact was not visible after ${TIMEOUT}s; collecting diagnostics before a final recheck."
     echo "Checking namespace labels:"
     kubectl get namespace "$KF_PROFILE" --show-labels 2>&1 || true
-    echo "Checking profile controller logs:"
-    kubectl -n kubeflow logs deploy/kubeflow-pipelines-profile-controller --tail=50 2>&1 || true
-    echo "Checking metacontroller logs:"
-    kubectl -n kubeflow logs -l app.kubernetes.io/name=metacontroller --tail=50 2>&1 || true
-    exit 1
+    "${C_DIR}/wait-for-seaweedfs-iam.sh" --diagnostics-only
+    if kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" > /dev/null 2>&1; then
+      echo "Secret mlpipeline-minio-artifact appeared in namespace ${KF_PROFILE} during final diagnostic recheck."
+    else
+      echo "ERROR: Secret mlpipeline-minio-artifact not found in namespace ${KF_PROFILE} after final diagnostic recheck."
+      exit 1
+    fi
   fi
 
+  report_iam_conntrack_window
   echo "Verifying Pipeline Integration..."
   echo "Secret keys present: $(kubectl get secret mlpipeline-minio-artifact -n "$KF_PROFILE" -o json | jq -r '.data | keys | join(", ")')"
 fi

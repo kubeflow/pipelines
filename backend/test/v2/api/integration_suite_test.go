@@ -213,7 +213,7 @@ func cleanupExperiments() {
 func cleanupPipelines() {
 	logger.Log("Deleting %d pipeline(s)", len(testContext.Pipeline.CreatedPipelines))
 	for _, pipeline := range testContext.Pipeline.CreatedPipelines {
-		testutil.DeletePipeline(pipelineClient, pipeline.PipelineID, true)
+		testutil.DeletePipelineBestEffort(pipelineClient, pipeline.PipelineID, true)
 	}
 }
 

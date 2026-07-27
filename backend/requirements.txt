@@ -68,7 +68,7 @@ protobuf==6.33.5
     #   kfp
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via
     #   pyasn1-modules
     #   rsa
@@ -82,8 +82,9 @@ pyyaml==6.0.2
     # via
     #   kfp
     #   kubernetes
-requests==2.32.5
+requests==2.33.0
     # via
+    #   -r requirements.in
     #   google-api-core
     #   google-cloud-storage
     #   kubernetes

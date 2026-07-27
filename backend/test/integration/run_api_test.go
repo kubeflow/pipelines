@@ -34,6 +34,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
@@ -349,16 +350,24 @@ func (s *RunApiTestSuite) TestRunApis() {
 	}}
 	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
 	assert.Nil(t, err)
+	longRunningRunID := longRunningRunDetail.Run.ID
 
 	/* ---------- Terminate the long-running run ------------*/
 	err = s.runClient.Terminate(&runparams.RunServiceTerminateRunV1Params{
-		RunID: longRunningRunDetail.Run.ID,
+		RunID: longRunningRunID,
 	})
 	assert.Nil(t, err)
 
 	/* ---------- Get long-running run ---------- */
-	longRunningRunDetail, _, err = s.runClient.Get(&runparams.RunServiceGetRunV1Params{RunID: longRunningRunDetail.Run.ID})
-	assert.Nil(t, err)
+	var getRunErr error
+	require.Eventually(t, func() bool {
+		longRunningRunDetail, _, getRunErr = s.runClient.Get(&runparams.RunServiceGetRunV1Params{RunID: longRunningRunID})
+		if getRunErr != nil || longRunningRunDetail == nil || longRunningRunDetail.Run == nil {
+			return false
+		}
+		return longRunningRunDetail.Run.Status == "Terminating" || longRunningRunDetail.Run.Status == "Failed"
+	}, time.Minute, time.Second, "terminated run should become Terminating or Failed")
+	require.NoError(t, getRunErr)
 	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipelineVersion.ID, longRunningPipelineVersion.Name)
 }
 
@@ -368,11 +377,19 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
+	// A terminate request moves the run from "Terminating" to "Failed" (the v1
+	// status a canceled run maps to) as the workflow stops. Depending on timing
+	// before this Get either is a valid post-terminate status, so assert
+	// membership and copy the actual status into the expected run below rather
+	// than racing on the transient "Terminating".
+	assert.Contains(t, []string{"Terminating", "Failed"}, runDetail.Run.Status,
+		"terminated run should be Terminating or Failed")
+
 	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
 		Name:           "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
-		Status:         "Terminating",
+		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
