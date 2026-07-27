@@ -544,6 +544,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   `backend/api/Dockerfile` and reuses that local image for v1beta1 and v2beta1 generation,
   so generator upgrades and their checked-in outputs can be validated atomically.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
+- Changes to `frontend/server/handlers/artifacts.ts` trigger `e2e-test.yml` so the multi-user artifact-proxy and
+  SeaweedFS namespace-isolation checks run before artifact authorization changes merge.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
