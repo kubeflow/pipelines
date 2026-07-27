@@ -26,26 +26,6 @@ pull_buildkit_image() {
   docker pull "$BUILDKIT_IMAGE"
 }
 
-pull_buildkit_with_backoff() {
-  local max_attempts=5
-  local attempt=1
-
-  while [[ "$attempt" -le "$max_attempts" ]]; do
-    if pull_buildkit_image; then
-      return 0
-    fi
-
-    if [[ "$attempt" -eq "$max_attempts" ]]; then
-      return 1
-    fi
-
-    local sleep_seconds=$((attempt * 20))
-    echo "Retrying BuildKit mirror and Docker Hub in ${sleep_seconds}s..."
-    sleep "$sleep_seconds"
-    attempt=$((attempt+1))
-  done
-}
-
 setup_builder() {
   docker buildx rm "$BUILDER_NAME" >/dev/null 2>&1 || true
   docker buildx create --name "$BUILDER_NAME" --driver docker-container \
@@ -57,7 +37,7 @@ setup_builder() {
 # Pull and locally tag the explicit mirror path first. Docker's daemon-level
 # mirror can silently fall through to Docker Hub, defeating path diversity when
 # a runner cannot reach registry-1.docker.io.
-pull_buildkit_with_backoff
+retry 5 20 pull_buildkit_image
 retry 3 20 setup_builder
 
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
