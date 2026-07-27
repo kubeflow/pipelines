@@ -845,6 +845,8 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 					string(model.RuntimeStateFailedV1),
 					string(model.RuntimeStateSkippedV1),
 					string(model.RuntimeStateErrorV1),
+					model.LegacyStateDone,
+					model.LegacyStateDisabled,
 				}},
 				sq.And{
 					sq.Or{sq.Eq{"State": ""}, sq.Expr("State IS NULL")},
@@ -857,6 +859,8 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 						string(model.RuntimeStateFailedV1),
 						string(model.RuntimeStateSkippedV1),
 						string(model.RuntimeStateErrorV1),
+						model.LegacyStateDone,
+						model.LegacyStateDisabled,
 					}},
 				},
 			},

@@ -377,8 +377,10 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// (StorageState, FinishedAtInSec) and ORDER BY FinishedAtInSec ASC.
 	// Without this index, every GC batch scans the full run_details table.
 	if db.Migrator().HasTable("run_details") {
-		if err := db.Exec("CREATE INDEX IF NOT EXISTS idx_run_gc_lifecycle ON run_details (StorageState, FinishedAtInSec)").Error; err != nil {
-			glog.Warningf("Failed to create GC lifecycle index on run_details (may already exist): %v", err)
+		if !db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
+			if err := db.Exec("CREATE INDEX idx_run_gc_lifecycle ON run_details (StorageState, FinishedAtInSec)").Error; err != nil {
+				glog.Warningf("Failed to create GC lifecycle index on run_details: %v", err)
+			}
 		}
 	}
 
