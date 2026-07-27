@@ -172,10 +172,15 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 	versionDisplayNameQueryString := r.URL.Query().Get(VersionDisplayNameQueryStringKey)
 	versionDescriptionQueryString := r.URL.Query().Get(VersionDescriptionQueryStringKey)
 
-	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, pipeline.Name)
+	// Each version field falls back to the corresponding pipeline field independently,
+	// so omitting one query parameter never changes how the others are resolved.
+	pipelineVersionName := versionNameQueryString
+	if pipelineVersionName == "" {
+		pipelineVersionName = pipeline.Name
+	}
 	versionDisplayName := versionDisplayNameQueryString
 	if versionDisplayName == "" {
-		versionDisplayName = pipelineVersionName
+		versionDisplayName = pipeline.DisplayName
 	}
 	versionDescription := model.LargeText(versionDescriptionQueryString)
 	if versionDescriptionQueryString == "" {
