@@ -12,7 +12,7 @@ Python proto code should be updated prior to releasing the package. For this rea
 
 Python proto code *should not* be checked into source control.
 
-1. Update version in `python/setup.py` if applicable.
+1. Update version in `python/kfp/kubernetes/__init__.py` if applicable.
 2. `make clean-python python`
 
 If you get an error `error: invalid command 'bdist_wheel'`, run `pip install wheel` then try again.

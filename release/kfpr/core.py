@@ -399,7 +399,7 @@ export API_VERSION=v2beta1
       'run',
       '--rm',
       '--user',
-      f'{os.getuid()}:{os.getgid()}',
+      f'{os.getuid()}:{os.getgid()}' if hasattr(os, 'getuid') else '0:0',
       '--mount',
       f'type=bind,source={root},target={repo_path}',
       f'ghcr.io/kubeflow/kfp-release:{image_tag}',
@@ -426,9 +426,9 @@ git clone --depth 1 --branch v26.0 https://github.com/protocolbuffers/protobuf.g
 mkdir -p api/v2alpha1/google/protobuf
 cp /tmp/protobuf-src/src/google/protobuf/*.proto api/v2alpha1/google/protobuf/
 cd "{repo_path}/kubernetes_platform/python"
-python3 -m pip install --user --break-system-packages -r requirements.txt
+python3 -m pip install --user --break-system-packages build -r requirements.txt
 python3 generate_proto.py
-python3 setup.py sdist
+python3 -m build --sdist
 pip wheel --no-deps dist/*.tar.gz -w dist
 '''.strip()
   return [
@@ -436,7 +436,7 @@ pip wheel --no-deps dist/*.tar.gz -w dist
       'run',
       '--rm',
       '--user',
-      f'{os.getuid()}:{os.getgid()}',
+      f'{os.getuid()}:{os.getgid()}' if hasattr(os, 'getuid') else '0:0',
       '-e',
       'HOME=/tmp',
       '--mount',

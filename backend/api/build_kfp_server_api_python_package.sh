@@ -67,7 +67,10 @@ cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 
 echo "Building the python package in $DIR."
 pushd "$DIR"
-python3 setup.py --quiet sdist
+rm -f setup.py
+sed "s/{{packageVersion}}/$VERSION/g" "$CURRENT_DIR/$API_VERSION/python_http_client_template/pyproject.toml" > pyproject.toml
+python3 -m pip install build
+python3 -m build --sdist
 popd
 
 echo "Run the following commands to update the package on PyPI"

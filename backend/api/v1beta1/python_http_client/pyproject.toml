@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kfp-server-api"
+version = "2.17.0"
+description = "Kubeflow Pipelines API"
+readme = "README.md"
+authors = [
+    { name = "google", email = "kubeflow-pipelines@google.com" }
+]
+license = { text = "Apache 2.0" }
+dependencies = [
+    "urllib3 >= 1.15",
+    "six >= 1.10",
+    "certifi",
+    "python-dateutil"
+]
+keywords = ["OpenAPI", "OpenAPI-Generator", "Kubeflow Pipelines API"]
+
+[project.urls]
+Homepage = "https://github.com/kubeflow/pipelines"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["test", "tests"]

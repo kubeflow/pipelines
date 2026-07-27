@@ -23,7 +23,8 @@ python: python
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
 		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+			python3 -m pip install --user --break-system-packages build && \
+			python3 -m build --sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
 
 .PHONY: clean-python
 clean-python:

@@ -37,7 +37,8 @@ else
     TARGET_TAR_FILE=kfp-kubernetes-$KFP_KUBERNETES_VERSION.tar.gz
     pushd "$(dirname "$0")"
     dist_dir=$(mktemp -d)
-    python3 setup.py sdist bdist_wheel --dist-dir "$dist_dir"
+    python3 -m pip install build
+    python3 -m build --outdir "$dist_dir"
     cp "$dist_dir"/*.tar.gz $TARGET_TAR_FILE
     popd
     echo "Created package."

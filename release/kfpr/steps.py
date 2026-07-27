@@ -461,8 +461,9 @@ def _update_sdk_version_files(context: ReleaseContext) -> None:
   else:
     _replace(root / 'sdk/python/kfp/version.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f"__version__ = '{metadata.tag}'")
     _replace(root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f"__version__ = '{metadata.tag}'")
-    _replace(root / 'api/v2alpha1/python/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f"VERSION = '{metadata.tag}'")
-    _replace(root / 'backend/api/v2beta1/python_http_client/setup.py', r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", f'VERSION = "{metadata.tag}"')
+    _replace(root / 'api/v2alpha1/python/pyproject.toml', r'version\s*=\s*["\']([^"\']+)["\']', f"version = '{metadata.tag}'")
+    _replace(root / 'backend/api/v2beta1/python_http_client/pyproject.toml', r'version\s*=\s*["\']([^"\']+)["\']', f'version = "{metadata.tag}"')
+    _replace(root / 'sdk/python/pyproject.toml', r'kfp-kubernetes==\d+\.\d+\.\d+(?:[a-zA-Z0-9.-]+)?', f'kfp-kubernetes=={metadata.tag}')
     _replace(root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py', r"__version__\s*=\s*['\"]([^'\"]+)['\"]", f'__version__ = "{metadata.tag}"')
     next_major = metadata.major + 1
     _replace(root / 'sdk/python/requirements.in', r'kfp-pipeline-spec>=[^,\n]+,<\d+', f'kfp-pipeline-spec>={metadata.tag},<{next_major}')

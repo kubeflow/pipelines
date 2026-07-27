@@ -1136,8 +1136,9 @@ class StepSdkVersionFilesTest(unittest.TestCase):
       files = {
           'sdk/python/kfp/version.py': "__version__ = '1.2.3'\n",
           'kubernetes_platform/python/kfp/kubernetes/__init__.py': "__version__ = '1.2.3'\n",
-          'api/v2alpha1/python/setup.py': "NAME = 'kfp-pipeline-spec'\nVERSION = '1.2.3'\n",
-          'backend/api/v2beta1/python_http_client/setup.py': 'NAME = "kfp-server-api"\nVERSION = "1.2.3"\n',
+          'api/v2alpha1/python/pyproject.toml': "name = 'kfp-pipeline-spec'\nversion = '1.2.3'\n",
+          'backend/api/v2beta1/python_http_client/pyproject.toml': 'name = "kfp-server-api"\nversion = "1.2.3"\n',
+          'sdk/python/pyproject.toml': 'kfp-kubernetes==1.2.3\n',
           'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py': '__version__ = "1.2.3"\n',
           'sdk/python/requirements.in': (
               'kfp-pipeline-spec>=1.2.3,<3\n'
@@ -1213,8 +1214,9 @@ class StepSdkVersionFilesTest(unittest.TestCase):
 
       self.assertEqual((root / 'sdk/python/kfp/version.py').read_text(), "__version__ = '1.3.0'\n")
       self.assertEqual((root / 'kubernetes_platform/python/kfp/kubernetes/__init__.py').read_text(), "__version__ = '1.3.0'\n")
-      self.assertIn("VERSION = '1.3.0'", (root / 'api/v2alpha1/python/setup.py').read_text())
-      self.assertIn('VERSION = "1.3.0"', (root / 'backend/api/v2beta1/python_http_client/setup.py').read_text())
+      self.assertIn("version = '1.3.0'", (root / 'api/v2alpha1/python/pyproject.toml').read_text())
+      self.assertIn('version = "1.3.0"', (root / 'backend/api/v2beta1/python_http_client/pyproject.toml').read_text())
+      self.assertIn('kfp-kubernetes==1.3.0', (root / 'sdk/python/pyproject.toml').read_text())
       self.assertIn('__version__ = "1.3.0"', (root / 'backend/api/v2beta1/python_http_client/kfp_server_api/__init__.py').read_text())
       self.assertIn('kfp-pipeline-spec>=1.3.0,<2', (root / 'sdk/python/requirements.in').read_text())
       self.assertIn('kfp-server-api>=1.3.0,<2', (root / 'sdk/python/requirements.in').read_text())

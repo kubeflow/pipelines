@@ -12,7 +12,7 @@ make clean-go golang
 
 Generate kfp-pipeline-spec:
 
-Update `VERSION` in [v2alpha1/python/setup.py](https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/python/setup.py) if applicable.
+Update `version` in [v2alpha1/python/pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/python/pyproject.toml) if applicable.
 
 ```bash
 make clean-python python

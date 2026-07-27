@@ -17,7 +17,7 @@ git clone https://github.com/kubeflow/pipelines.git && cd pipelines
 We suggest using a tool like [virtual env](https://docs.python.org/3/library/venv.html) or something similar for isolating 
 your environment and/or packages for you development environment. For this setup we'll stick with virtual env. 
 
-For supported python versions, see the sdk [setup.py](https://github.com/kubeflow/pipelines/blob/master/sdk/python/setup.py). 
+For supported python versions, see the sdk [pyproject.toml](https://github.com/kubeflow/pipelines/blob/master/sdk/python/pyproject.toml). 
 
 ```bash
 # optional, replace with your tool of choice
