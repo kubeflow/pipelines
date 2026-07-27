@@ -865,6 +865,29 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
 
+func TestUpdateRunWithExpectedState_DetectsConcurrentStateChange(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateRunning, staleRun.State)
+
+	require.NoError(t, runStore.TerminateRun(staleRun.UUID))
+
+	staleRun.State = model.RuntimeStateUnspecified
+	staleRun.Conditions = string(model.RuntimeStateUnspecified.ToV1())
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+	updated, err := runStore.UpdateRunWithExpectedState(staleRun, model.RuntimeStateRunning)
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	currentRun, err := runStore.GetRun(staleRun.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, currentRun.State)
+	assert.Equal(t, "workflow1", string(currentRun.WorkflowRuntimeManifest))
+}
+
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()

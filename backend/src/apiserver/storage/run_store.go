@@ -83,6 +83,10 @@ type RunStoreInterface interface {
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
 
+	// Updates a run only when its persisted state still matches expectedState.
+	// Returns false without updating when another writer changed the state.
+	UpdateRunWithExpectedState(run *model.Run, expectedState model.RuntimeState) (bool, error)
+
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
 	// Conditions, etc.) to avoid redundant writes and potential clobbering.
@@ -611,9 +615,18 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+func (s *RunStore) UpdateRunWithExpectedState(run *model.Run, expectedState model.RuntimeState) (bool, error) {
+	return s.updateRun(run, &expectedState)
+}
+
+func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
 	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
 		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
@@ -640,40 +653,53 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if run.PluginsOutputString != nil {
 		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
 	}
-	sql, args, err := sq.
+	updateQuery := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.Eq{"UUID": run.UUID}).
-		ToSql()
+		Where(sq.Eq{"UUID": run.UUID})
+	if expectedState != nil {
+		updateQuery = updateQuery.Where(sq.Eq{"State": expectedState.ToString()})
+	}
+	sql, args, err := updateQuery.ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		if expectedState != nil {
+			currentRun, getErr := s.GetRun(run.UUID)
+			if getErr != nil {
+				return false, getErr
+			}
+			if currentRun.State.ToV2() == expectedState.ToV2() {
+				return true, nil
+			}
+			return false, nil
+		}
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given

@@ -3973,6 +3973,110 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
+type runStoreWithBeforeFirstConditionalUpdateHook struct {
+	storage.RunStoreInterface
+	beforeFirstUpdate func()
+	updateCalls       int
+}
+
+func (s *runStoreWithBeforeFirstConditionalUpdateHook) UpdateRunWithExpectedState(run *model.Run, expectedState model.RuntimeState) (bool, error) {
+	s.updateCalls++
+	if s.updateCalls == 1 {
+		s.beforeFirstUpdate()
+	}
+	return s.RunStoreInterface.UpdateRunWithExpectedState(run, expectedState)
+}
+
+func TestReportWorkflowResource_RetriesConcurrentTerminationWithoutRegressingState(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	runStore := manager.runStore.(*storage.RunStore)
+	hookedRunStore := &runStoreWithBeforeFirstConditionalUpdateHook{
+		RunStoreInterface: runStore,
+		beforeFirstUpdate: func() {
+			require.NoError(t, runStore.TerminateRun(run.UUID))
+		},
+	}
+	manager.runStore = hookedRunStore
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.NoError(t, err)
+
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, updatedRun.State)
+	assert.Equal(t, string(model.RuntimeStateCancelling.ToV1()), updatedRun.Conditions)
+	assert.Equal(t, model.LargeText(staleWorkflow.ToStringForStore()), updatedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, 2, hookedRunStore.updateCalls)
+}
+
+func TestShouldPreserveTerminatedRunState(t *testing.T) {
+	testCases := []struct {
+		name          string
+		currentState  model.RuntimeState
+		reportedState model.RuntimeState
+		want          bool
+	}{
+		{
+			name:          "canceling rejects unspecified",
+			currentState:  model.RuntimeStateCancelling,
+			reportedState: model.RuntimeStateUnspecified,
+			want:          true,
+		},
+		{
+			name:          "canceling rejects running",
+			currentState:  model.RuntimeStateCancelling,
+			reportedState: model.RuntimeStateRunning,
+			want:          true,
+		},
+		{
+			name:          "canceling accepts canceled",
+			currentState:  model.RuntimeStateCancelling,
+			reportedState: model.RuntimeStateCanceled,
+			want:          false,
+		},
+		{
+			name:          "canceling rejects skipped",
+			currentState:  model.RuntimeStateCancelling,
+			reportedState: model.RuntimeStateSkipped,
+			want:          true,
+		},
+		{
+			name:          "canceled rejects failed",
+			currentState:  model.RuntimeStateCanceled,
+			reportedState: model.RuntimeStateFailed,
+			want:          true,
+		},
+		{
+			name:          "canceled accepts canceled",
+			currentState:  model.RuntimeStateCanceled,
+			reportedState: model.RuntimeStateCanceled,
+			want:          false,
+		},
+		{
+			name:          "running accepts succeeded",
+			currentState:  model.RuntimeStateRunning,
+			reportedState: model.RuntimeStateSucceeded,
+			want:          false,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			assert.Equal(t, testCase.want, shouldPreserveTerminatedRunState(testCase.currentState, testCase.reportedState))
+		})
+	}
+}
+
 func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
