@@ -11,6 +11,8 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
+      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
   pull_request:
@@ -19,6 +21,8 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
+      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
 
@@ -40,6 +44,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Configure runtime base images
         id: configure-runtime-base-images

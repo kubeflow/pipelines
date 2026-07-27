@@ -10,11 +10,14 @@ if [[ ! -d "$C_DIR" ]]; then
   C_DIR="$PWD"
 fi
 source "${C_DIR}/helper-functions.sh"
+BUILDKIT_CONFIG_DEFAULT="$(cd "${C_DIR}/.." && pwd)/buildkitd.toml"
+BUILDKIT_CONFIG="${BUILDKIT_CONFIG:-$BUILDKIT_CONFIG_DEFAULT}"
 
 setup_builder() {
   docker buildx rm "$BUILDER_NAME" >/dev/null 2>&1 || true
   docker buildx create --name "$BUILDER_NAME" --driver docker-container \
-    --driver-opt "image=$BUILDKIT_IMAGE" --use
+    --driver-opt "image=$BUILDKIT_IMAGE" \
+    --buildkitd-config "$BUILDKIT_CONFIG" --use
   docker buildx inspect "$BUILDER_NAME" --bootstrap >/dev/null
 }
 

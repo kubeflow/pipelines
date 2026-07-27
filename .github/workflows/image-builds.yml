@@ -170,6 +170,10 @@ jobs:
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
       - name: Set up Docker Buildx
         shell: bash
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
