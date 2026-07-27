@@ -178,6 +178,12 @@ func TestUpdateDAGExecutionsState_StateResolution(t *testing.T) {
 			expectedState: pb.Execution_RUNNING,
 		},
 		{
+			name:          "one failed while sibling still running",
+			taskStates:    []pb.Execution_State{pb.Execution_FAILED, pb.Execution_RUNNING},
+			expectedTasks: 2,
+			expectedState: pb.Execution_RUNNING,
+		},
+		{
 			name:          "cached and canceled count as complete",
 			taskStates:    []pb.Execution_State{pb.Execution_COMPLETE, pb.Execution_CACHED, pb.Execution_CANCELED},
 			expectedTasks: 3,
