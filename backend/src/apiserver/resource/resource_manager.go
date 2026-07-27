@@ -1225,30 +1225,30 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 }
 
 // Fetches execution logs from a archived pod logs.
-func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer) error {
 	if workflowManifest == "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeId)
+		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeID)
 	}
 
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(workflowManifest))
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeID)
 	}
 
-	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeId)
+	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeID)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeID)
 	}
 
 	logReader, err := r.objectStore.GetFileReader(ctx, logPath)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeID)
 	}
 	defer logReader.Close()
 
 	err = r.logArchive.CopyLogFromArchiveReader(logReader, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeID)
 	}
 	return nil
 }
