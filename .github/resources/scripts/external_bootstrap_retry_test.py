@@ -23,7 +23,6 @@ import tempfile
 import threading
 import unittest
 
-
 SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
 REPO_ROOT = SCRIPTS_DIR.parents[2]
 SETUP_BUILDX_SCRIPT = SCRIPTS_DIR / 'setup-buildx-with-retry.sh'
@@ -32,6 +31,7 @@ CREATE_CLUSTER_ACTION = REPO_ROOT / '.github/actions/create-cluster/action.yml'
 CREATE_MANIFEST_WORKFLOW = REPO_ROOT / '.github/workflows/create-manifest.yml'
 CI_SCRIPTS_WORKFLOW = REPO_ROOT / '.github/workflows/ci-scripts-tests.yml'
 BUILDKIT_IMAGE = 'moby/buildkit:buildx-stable-1'
+BUILDKIT_MIRROR_IMAGE = 'mirror.gcr.io/moby/buildkit:buildx-stable-1'
 BUILDKIT_CONFIG = REPO_ROOT / '.github/resources/buildkitd.toml'
 
 
@@ -63,7 +63,8 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.bin_dir.mkdir()
         self.command_log = self.temp_path / 'docker.log'
         self.sleep_log = self.temp_path / 'sleep.log'
-        self.pull_state = self.temp_path / 'pull-count'
+        self.canonical_pull_state = self.temp_path / 'canonical-pull-count'
+        self.mirror_pull_state = self.temp_path / 'mirror-pull-count'
         self.github_output = self.temp_path / 'github-output'
         self._write_fake_commands()
 
@@ -76,29 +77,40 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
             '#!/usr/bin/env bash\n'
             'printf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n'
             'if [[ "$1" == "pull" ]]; then\n'
+            '  if [[ "$2" == "$MIRROR_IMAGE" ]]; then\n'
+            '    state_file="$MIRROR_PULL_STATE"\n'
+            '    failed_pulls="$FAILED_MIRROR_PULLS"\n'
+            '  else\n'
+            '    state_file="$CANONICAL_PULL_STATE"\n'
+            '    failed_pulls="$FAILED_CANONICAL_PULLS"\n'
+            '  fi\n'
             '  count=0\n'
-            '  [[ -f "$PULL_STATE" ]] && count=$(<"$PULL_STATE")\n'
+            '  [[ -f "$state_file" ]] && count=$(<"$state_file")\n'
             '  count=$((count + 1))\n'
-            '  printf \'%s\' "$count" > "$PULL_STATE"\n'
-            '  [[ "$count" -le "$FAIL_PULLS" ]] && exit 1\n'
+            '  printf \'%s\' "$count" > "$state_file"\n'
+            '  [[ "$count" -le "$failed_pulls" ]] && exit 1\n'
             'fi\n'
             'exit 0\n')
         docker.chmod(0o755)
 
         sleep = self.bin_dir / 'sleep'
-        sleep.write_text(
-            '#!/usr/bin/env bash\n'
-            'printf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n')
+        sleep.write_text('#!/usr/bin/env bash\n'
+                         'printf \'%s\\n\' "$1" >> "$SLEEP_LOG"\n')
         sleep.chmod(0o755)
 
-    def _run_setup_buildx(self, failed_pulls):
+    def _run_setup_buildx(self,
+                          failed_mirror_pulls=0,
+                          failed_canonical_pulls=0):
         environment = os.environ.copy()
         environment.update({
+            'CANONICAL_PULL_STATE': str(self.canonical_pull_state),
             'COMMAND_LOG': str(self.command_log),
-            'FAIL_PULLS': str(failed_pulls),
+            'FAILED_CANONICAL_PULLS': str(failed_canonical_pulls),
+            'FAILED_MIRROR_PULLS': str(failed_mirror_pulls),
             'GITHUB_OUTPUT': str(self.github_output),
+            'MIRROR_IMAGE': BUILDKIT_MIRROR_IMAGE,
+            'MIRROR_PULL_STATE': str(self.mirror_pull_state),
             'PATH': f'{self.bin_dir}:{environment["PATH"]}',
-            'PULL_STATE': str(self.pull_state),
             'SLEEP_LOG': str(self.sleep_log),
         })
         return subprocess.run(
@@ -110,11 +122,23 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         )
 
     def test_buildkit_pull_uses_long_backoff_before_bootstrap(self):
-        result = self._run_setup_buildx(failed_pulls=3)
+        result = self._run_setup_buildx(
+            failed_mirror_pulls=3, failed_canonical_pulls=3)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         commands = self.command_log.read_text().splitlines()
-        self.assertEqual(commands[:4], [f'pull {BUILDKIT_IMAGE}'] * 4)
+        expected_attempt = [
+            f'pull {BUILDKIT_MIRROR_IMAGE}',
+            f'pull {BUILDKIT_IMAGE}',
+        ]
+        self.assertEqual(commands[:6], expected_attempt * 3)
+        self.assertEqual(
+            commands[6:8],
+            [
+                f'pull {BUILDKIT_MIRROR_IMAGE}',
+                f'tag {BUILDKIT_MIRROR_IMAGE} {BUILDKIT_IMAGE}',
+            ],
+        )
         self.assertIn(
             f'buildx create --name test-builder --driver docker-container '
             f'--driver-opt image={BUILDKIT_IMAGE} '
@@ -125,14 +149,37 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
                          'builder_name=test-builder\n')
 
     def test_buildkit_pull_exhaustion_stops_before_bootstrap(self):
-        result = self._run_setup_buildx(failed_pulls=99)
+        result = self._run_setup_buildx(
+            failed_mirror_pulls=99, failed_canonical_pulls=99)
 
         self.assertNotEqual(result.returncode, 0)
         commands = self.command_log.read_text().splitlines()
-        self.assertEqual(commands, [f'pull {BUILDKIT_IMAGE}'] * 5)
+        self.assertEqual(
+            commands,
+            [
+                f'pull {BUILDKIT_MIRROR_IMAGE}',
+                f'pull {BUILDKIT_IMAGE}',
+            ] * 5,
+        )
         self.assertEqual(self.sleep_log.read_text().splitlines(),
                          ['20', '40', '60', '80'])
         self.assertNotIn('buildx create', '\n'.join(commands))
+
+    def test_buildkit_pull_falls_back_to_docker_hub_in_same_attempt(self):
+        result = self._run_setup_buildx(
+            failed_mirror_pulls=99, failed_canonical_pulls=0)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        commands = self.command_log.read_text().splitlines()
+        self.assertEqual(
+            commands[:2],
+            [
+                f'pull {BUILDKIT_MIRROR_IMAGE}',
+                f'pull {BUILDKIT_IMAGE}',
+            ],
+        )
+        self.assertFalse(self.sleep_log.exists())
+        self.assertNotIn(f'tag {BUILDKIT_MIRROR_IMAGE}', '\n'.join(commands))
 
     @unittest.skipUnless(shutil.which('curl'), 'curl is required')
     def test_kind_curl_config_retries_transient_http_failures(self):
@@ -143,7 +190,11 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         try:
             result = subprocess.run(
                 [
-                    'curl', '--retry-delay', '0', '--fail', '--silent',
+                    'curl',
+                    '--retry-delay',
+                    '0',
+                    '--fail',
+                    '--silent',
                     '--show-error',
                     f'http://127.0.0.1:{server.server_port}/tool',
                 ],
