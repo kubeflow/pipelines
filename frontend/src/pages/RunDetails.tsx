@@ -63,7 +63,7 @@ import CompareUtils from 'src/lib/CompareUtils';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import RunUtils from 'src/lib/RunUtils';
 import { compareGraphEdges, KeyValue, transitiveReduction } from 'src/lib/StaticGraphParser';
-import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
+import { hasFinished, isPodLifecycleFailure, NodePhase } from 'src/lib/StatusUtils';
 import {
   decodeCompressedNodes,
   errorToMessage,
@@ -1042,13 +1042,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       if (node) {
         selectedNodeDetails.phaseMessage =
           node && node.message
-            ? `This step is in ${node.phase} state with this message: ` + node.message
+            ? (isPodLifecycleFailure(node.message)
+                ? 'This step failed due to a Kubernetes pod issue, not an error in your pipeline code: '
+                : `This step is in ${node.phase} state with this message: `) + node.message
             : undefined;
 
         selectedNodeDetails.phase = node.phase;
 
         switch (node.phase) {
-          // TODO: make distinction between system and pipelines error clear
           case NodePhase.ERROR:
           case NodePhase.FAILED:
             sidepanelBannerMode = 'error';
