@@ -16,13 +16,18 @@
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 
 .PHONY: python
-python: python
+python:
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
+		sh -c 'mkdir -p /go/src/github.com/kubeflow/pipelines/sdk/python/kfp/cli/uistatic && \
+			if [ -d /go/src/github.com/kubeflow/pipelines/frontend/build ]; then \
+				cp -r /go/src/github.com/kubeflow/pipelines/frontend/build/* /go/src/github.com/kubeflow/pipelines/sdk/python/kfp/cli/uistatic/; \
+				find /go/src/github.com/kubeflow/pipelines/sdk/python/kfp/cli/uistatic/ -name "*.map" -type f -delete; \
+			fi && \
+			cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
 			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
 
 .PHONY: clean-python
@@ -30,3 +35,4 @@ clean-python:
 	rm -rf python/build
 	rm -rf python/dist
 	rm -rf python/kfp.egg-info
+	find python/kfp/cli/uistatic/ -type f ! -name '.gitkeep' -delete
