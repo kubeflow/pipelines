@@ -1381,6 +1381,27 @@
             "type": "string"
           },
           {
+            "name": "version_name",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Optional name of the initial pipeline version. Defaults to the pipeline name when omitted."
+          },
+          {
+            "name": "version_display_name",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted."
+          },
+          {
+            "name": "version_description",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Optional description of the initial pipeline version. Defaults to the pipeline description when omitted."
+          },
+          {
             "name": "namespace",
             "in": "query",
             "required": false,

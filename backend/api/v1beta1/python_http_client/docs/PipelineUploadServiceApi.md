@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> ApiPipeline upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
+> ApiPipeline upload_pipeline(uploadfile, name=name, description=description, version_name=version_name, version_display_name=version_display_name, version_description=version_description, namespace=namespace)
 
 
 
@@ -50,10 +50,13 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     uploadfile = '/path/to/file' # file | The pipeline to upload. Maximum size of 32MB is supported.
 name = 'name_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
+version_name = 'version_name_example' # str | Optional name of the initial pipeline version. Defaults to the pipeline name when omitted. (optional)
+version_display_name = 'version_display_name_example' # str | Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted. (optional)
+version_description = 'version_description_example' # str | Optional description of the initial pipeline version. Defaults to the pipeline description when omitted. (optional)
 namespace = 'namespace_example' # str |  (optional)
 
     try:
-        api_response = api_instance.upload_pipeline(uploadfile, name=name, description=description, namespace=namespace)
+        api_response = api_instance.upload_pipeline(uploadfile, name=name, description=description, version_name=version_name, version_display_name=version_display_name, version_description=version_description, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline: %s\n" % e)
@@ -66,6 +69,9 @@ Name | Type | Description  | Notes
  **uploadfile** | **file**| The pipeline to upload. Maximum size of 32MB is supported. | 
  **name** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
+ **version_name** | **str**| Optional name of the initial pipeline version. Defaults to the pipeline name when omitted. | [optional] 
+ **version_display_name** | **str**| Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted. | [optional] 
+ **version_description** | **str**| Optional description of the initial pipeline version. Defaults to the pipeline description when omitted. | [optional] 
  **namespace** | **str**|  | [optional] 
 
 ### Return type
