@@ -63,8 +63,6 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         self.bin_dir.mkdir()
         self.command_log = self.temp_path / 'docker.log'
         self.sleep_log = self.temp_path / 'sleep.log'
-        self.canonical_pull_state = self.temp_path / 'canonical-pull-count'
-        self.mirror_pull_state = self.temp_path / 'mirror-pull-count'
         self.github_output = self.temp_path / 'github-output'
         self._write_fake_commands()
 
@@ -73,24 +71,13 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
 
     def _write_fake_commands(self):
         docker = self.bin_dir / 'docker'
-        docker.write_text(
-            '#!/usr/bin/env bash\n'
-            'printf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n'
-            'if [[ "$1" == "pull" ]]; then\n'
-            '  if [[ "$2" == "$MIRROR_IMAGE" ]]; then\n'
-            '    state_file="$MIRROR_PULL_STATE"\n'
-            '    failed_pulls="$FAILED_MIRROR_PULLS"\n'
-            '  else\n'
-            '    state_file="$CANONICAL_PULL_STATE"\n'
-            '    failed_pulls="$FAILED_CANONICAL_PULLS"\n'
-            '  fi\n'
-            '  count=0\n'
-            '  [[ -f "$state_file" ]] && count=$(<"$state_file")\n'
-            '  count=$((count + 1))\n'
-            '  printf \'%s\' "$count" > "$state_file"\n'
-            '  [[ "$count" -le "$failed_pulls" ]] && exit 1\n'
-            'fi\n'
-            'exit 0\n')
+        docker.write_text('#!/usr/bin/env bash\n'
+                          'printf \'%s\\n\' "$*" >> "$COMMAND_LOG"\n'
+                          '[[ "$1 $2" == "pull $MIRROR_IMAGE" ]] && '
+                          '  [[ "$FAIL_MIRROR_PULL" == "true" ]] && exit 1\n'
+                          '[[ "$1 $2" == "pull $CANONICAL_IMAGE" ]] && '
+                          '  [[ "$FAIL_CANONICAL_PULL" == "true" ]] && exit 1\n'
+                          'exit 0\n')
         docker.chmod(0o755)
 
         sleep = self.bin_dir / 'sleep'
@@ -99,17 +86,16 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
         sleep.chmod(0o755)
 
     def _run_setup_buildx(self,
-                          failed_mirror_pulls=0,
-                          failed_canonical_pulls=0):
+                          fail_mirror_pull=False,
+                          fail_canonical_pull=False):
         environment = os.environ.copy()
         environment.update({
-            'CANONICAL_PULL_STATE': str(self.canonical_pull_state),
+            'CANONICAL_IMAGE': BUILDKIT_IMAGE,
             'COMMAND_LOG': str(self.command_log),
-            'FAILED_CANONICAL_PULLS': str(failed_canonical_pulls),
-            'FAILED_MIRROR_PULLS': str(failed_mirror_pulls),
+            'FAIL_CANONICAL_PULL': str(fail_canonical_pull).lower(),
+            'FAIL_MIRROR_PULL': str(fail_mirror_pull).lower(),
             'GITHUB_OUTPUT': str(self.github_output),
             'MIRROR_IMAGE': BUILDKIT_MIRROR_IMAGE,
-            'MIRROR_PULL_STATE': str(self.mirror_pull_state),
             'PATH': f'{self.bin_dir}:{environment["PATH"]}',
             'SLEEP_LOG': str(self.sleep_log),
         })
@@ -121,19 +107,13 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
             text=True,
         )
 
-    def test_buildkit_pull_uses_long_backoff_before_bootstrap(self):
-        result = self._run_setup_buildx(
-            failed_mirror_pulls=3, failed_canonical_pulls=3)
+    def test_buildkit_pull_uses_mirror_before_bootstrap(self):
+        result = self._run_setup_buildx()
 
         self.assertEqual(result.returncode, 0, result.stderr)
         commands = self.command_log.read_text().splitlines()
-        expected_attempt = [
-            f'pull {BUILDKIT_MIRROR_IMAGE}',
-            f'pull {BUILDKIT_IMAGE}',
-        ]
-        self.assertEqual(commands[:6], expected_attempt * 3)
         self.assertEqual(
-            commands[6:8],
+            commands[:2],
             [
                 f'pull {BUILDKIT_MIRROR_IMAGE}',
                 f'tag {BUILDKIT_MIRROR_IMAGE} {BUILDKIT_IMAGE}',
@@ -143,14 +123,13 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
             f'buildx create --name test-builder --driver docker-container '
             f'--driver-opt image={BUILDKIT_IMAGE} '
             f'--buildkitd-config {BUILDKIT_CONFIG} --use', commands)
-        self.assertEqual(self.sleep_log.read_text().splitlines(),
-                         ['20', '40', '60'])
+        self.assertFalse(self.sleep_log.exists())
         self.assertEqual(self.github_output.read_text(),
                          'builder_name=test-builder\n')
 
     def test_buildkit_pull_exhaustion_stops_before_bootstrap(self):
         result = self._run_setup_buildx(
-            failed_mirror_pulls=99, failed_canonical_pulls=99)
+            fail_mirror_pull=True, fail_canonical_pull=True)
 
         self.assertNotEqual(result.returncode, 0)
         commands = self.command_log.read_text().splitlines()
@@ -161,13 +140,11 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
                 f'pull {BUILDKIT_IMAGE}',
             ] * 5,
         )
-        self.assertEqual(self.sleep_log.read_text().splitlines(),
-                         ['20', '40', '60', '80'])
+        self.assertEqual(self.sleep_log.read_text().splitlines(), ['20'] * 4)
         self.assertNotIn('buildx create', '\n'.join(commands))
 
     def test_buildkit_pull_falls_back_to_docker_hub_in_same_attempt(self):
-        result = self._run_setup_buildx(
-            failed_mirror_pulls=99, failed_canonical_pulls=0)
+        result = self._run_setup_buildx(fail_mirror_pull=True)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         commands = self.command_log.read_text().splitlines()
