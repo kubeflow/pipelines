@@ -15,7 +15,9 @@ on:
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
+      - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-checks.yml'
+      - '.github/workflows/create-manifest.yml'
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'
       - '.github/workflows/api-server-tests.yml'
@@ -26,7 +28,17 @@ on:
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
+      - 'manifests/kustomize/third-party/argo/base/kustomization.yaml'
+      - 'manifests/kustomize/third-party/argo/installs/**'
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
+      - 'backend/Dockerfile'
+      - 'backend/src/common/types.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'test/install-argo-cli.sh'
+      - 'third_party/argo/COMPATIBILITY_VERSION'
+      - 'third_party/argo/Makefile'
+      - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
 
 permissions:
@@ -41,4 +53,7 @@ jobs:
       - uses: actions/checkout@v6
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
+        run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run JUnit summary action unit tests
+        working-directory: .github/actions/junit-summary
         run: python3 -m unittest discover -v -p '*_test.py'

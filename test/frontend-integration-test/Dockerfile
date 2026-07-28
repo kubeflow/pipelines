@@ -1,5 +1,5 @@
 # Multi-arch Selenium image supporting amd64 and arm64
-FROM selenium/standalone-chromium:143.0
+FROM selenium/standalone-chromium:150.0
 
 # Derive from frontend/.nvmrc at build time:
 #   docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) .
