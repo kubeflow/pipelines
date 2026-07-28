@@ -114,6 +114,7 @@ func (s *JobStore) ListJobs(
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return errorF(err)
 	}
@@ -122,7 +123,6 @@ func (s *JobStore) ListJobs(
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
