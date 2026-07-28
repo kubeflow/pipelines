@@ -1074,7 +1074,7 @@ func createPVC(
 	}
 
 	// Create the PVC in the cluster
-	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
 	}
@@ -1194,13 +1194,13 @@ func deletePVC(
 	}
 
 	// Get the PVC you want to delete, verify that it exists.
-	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(ctx, pvcName, metav1.GetOptions{})
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
 	}
 
 	// Delete the PVC.
-	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(ctx, pvcName, metav1.DeleteOptions{})
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
 	}
@@ -1305,7 +1305,7 @@ func publishDriverExecution(
 		return fmt.Errorf("error getting pod name: %w", err)
 	}
 
-	pod, err := k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error retrieving info for pod %s: %w", podName, err)
 	}
