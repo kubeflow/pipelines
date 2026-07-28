@@ -377,11 +377,8 @@ class RetryPolicy:
         # include defaults so that IR is more reflective of runtime behavior
         max_retry_count = self.max_retry_count or 0
         backoff_duration = self.backoff_duration or '0s'
-        backoff_factor = self.backoff_factor or 2.0
-        backoff_max_duration = self.backoff_max_duration or '3600s'
-
-        backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
-        backoff_max_duration_seconds = f'{convert_duration_to_seconds(backoff_max_duration)}s'
+        backoff_duration_seconds = f'{utils.convert_duration_to_seconds(backoff_duration)}s'
+        backoff_max_duration_seconds = f'{utils.convert_duration_to_seconds(backoff_max_duration)}s'
 
         return json_format.ParseDict(
             {
@@ -390,6 +387,22 @@ class RetryPolicy:
                 'backoff_factor': backoff_factor,
                 'backoff_max_duration': backoff_max_duration_seconds,
             }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+
+
+@dataclasses.dataclass
+class AutoscalingPolicy:
+    """The autoscaling policy (VPA) of a container execution.
+
+    Attributes:
+        mode (str): The VPA update mode, e.g., 'Auto', 'Off', 'Initial'.
+    """
+    mode: str = 'Auto'
+
+    def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.AutoscalingPolicy:
+        return json_format.ParseDict(
+            {
+                'mode': self.mode,
+            }, pipeline_spec_pb2.PipelineTaskSpec.AutoscalingPolicy())
 
 
 @dataclasses.dataclass
@@ -429,6 +442,7 @@ class TaskSpec:
     cache_key: Optional[str] = None
     display_name: Optional[str] = None
     retry_policy: Optional[RetryPolicy] = None
+    autoscaling_policy: Optional[AutoscalingPolicy] = None
 
 
 @dataclasses.dataclass

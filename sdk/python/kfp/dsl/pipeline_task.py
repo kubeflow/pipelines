@@ -605,6 +605,19 @@ class PipelineTask:
 
         return self
 
+    @warn_if_final()
+    def enable_auto_scaling(self, mode: str = 'Auto') -> 'PipelineTask':
+        """Enables Kubernetes Vertical Pod Autoscaler (VPA) for the task.
+
+        Args:
+            mode: The VPA update mode (e.g., 'Auto', 'Off', 'Initial'). Default is 'Auto'.
+
+        Returns:
+            Self, to allow chaining.
+        """
+        self._task_spec.autoscaling_policy = structures.AutoscalingPolicy(mode=mode)
+        return self
+
     @block_if_final()
     def set_retry(self,
                   num_retries: int,
