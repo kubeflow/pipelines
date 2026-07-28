@@ -43,6 +43,7 @@ on:
       - 'third_party/argo/Makefile'
       - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 permissions:
   contents: read
