@@ -76,6 +76,18 @@ jobs:
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
         continue-on-error: true
 
+      - name: Install Test dependencies
+        run: uv sync --extra ci --frozen
+
+      - name: Build & install kfp-server-api dist
+        id: install-kfp-server-api
+        shell: bash
+        working-directory: backend/api/v2beta1/python_http_client
+        run: |
+          rm -rf dist/
+          uv build --out-dir dist/
+          uv pip install dist/*.whl
+
       - name: Run tests
         id: tests
         if: ${{ steps.forward-api-port.outcome == 'success' }}

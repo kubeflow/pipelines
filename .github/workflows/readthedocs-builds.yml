@@ -35,11 +35,13 @@ jobs:
       - name: Install protobuf dependencies & generate proto files
         uses: ./.github/actions/protobuf
 
-      - name: Generate kfp-kubernetes proto files
-        run: make -C kubernetes_platform python
+      - name: Install kfp & kfp-kubernetes from source
+        uses: ./.github/actions/kfp-k8s
 
       - name: Install release automation package
-        run: uv pip install -e release
+        run: |
+          uv pip install -e release
+          uv pip install --upgrade 'typer>=0.16,<1.0'
 
       - name: Test release automation
         run: uv run python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
