@@ -132,6 +132,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
 
       - name: Install Fake GPU Operator (fake backend)
         uses: ./.github/actions/install-fgo-fake
@@ -182,17 +183,6 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          source ./.github/resources/scripts/helper-functions.sh
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
-            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
-            --tag registry.domain.local/modelcar:test \
-            .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -247,6 +237,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
 
       - name: Configure Input Variables
         shell: bash
@@ -273,17 +264,6 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          source ./.github/resources/scripts/helper-functions.sh
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
-            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
-            --tag registry.domain.local/modelcar:test \
-            .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
@@ -370,6 +350,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
 
       - name: Deploy MLflow with Kubernetes auth
         id: deploy-mlflow
@@ -445,17 +426,6 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          source ./.github/resources/scripts/helper-functions.sh
-          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
-            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
-            --tag registry.domain.local/modelcar:test \
-            .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
