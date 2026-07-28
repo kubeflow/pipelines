@@ -39,7 +39,7 @@ dependencies = [
   # Update this version in lockstep with kfp/version.py on each release.
   "kfp-pipeline-spec==2.15.2",
   # Pin kfp-server-api to VERSION (backend API release), not kfp SDK version.
-  "kfp-server-api==2.16.1",
+  "kfp-server-api==2.17.0",
   "kubernetes>=8.0.0,<31",
   # protobuf version should be identical to the one in kfp-pipeline-spec
   "protobuf>=6.31.1,<7.0",
