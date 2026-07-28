@@ -302,7 +302,7 @@ class Client:
         in_cluster = True
         try:
             k8s.config.load_incluster_config()
-        except:
+        except Exception:
             in_cluster = False
 
         if in_cluster:
@@ -313,7 +313,7 @@ class Client:
         try:
             k8s.config.load_kube_config(
                 client_configuration=config, context=kube_context)
-        except:
+        except Exception:
             print('Failed to load kube config.')
             return config
 
