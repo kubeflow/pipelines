@@ -30,11 +30,13 @@ import (
 type MockMLMDClient struct {
 	pb.MetadataStoreServiceClient
 
-	getExecutionsByContextFn func(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error)
-	getExecutionsByIDFn      func(ctx context.Context, req *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error)
-	getContextsByExecutionFn func(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error)
-	getContextTypeFn         func(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error)
-	PutExecutionFn           func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error)
+	getExecutionsByContextFn  func(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error)
+	getExecutionsByIDFn       func(ctx context.Context, req *pb.GetExecutionsByIDRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByIDResponse, error)
+	getContextsByExecutionFn  func(ctx context.Context, req *pb.GetContextsByExecutionRequest, opts ...grpc.CallOption) (*pb.GetContextsByExecutionResponse, error)
+	getContextTypeFn          func(ctx context.Context, req *pb.GetContextTypeRequest, opts ...grpc.CallOption) (*pb.GetContextTypeResponse, error)
+	PutExecutionFn            func(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error)
+	getEventsByExecutionIDsFn func(ctx context.Context, req *pb.GetEventsByExecutionIDsRequest, opts ...grpc.CallOption) (*pb.GetEventsByExecutionIDsResponse, error)
+	getArtifactsByIDFn        func(ctx context.Context, req *pb.GetArtifactsByIDRequest, opts ...grpc.CallOption) (*pb.GetArtifactsByIDResponse, error)
 }
 
 func (m *MockMLMDClient) GetExecutionsByContext(ctx context.Context, req *pb.GetExecutionsByContextRequest, opts ...grpc.CallOption) (*pb.GetExecutionsByContextResponse, error) {
@@ -55,6 +57,14 @@ func (m *MockMLMDClient) GetContextType(ctx context.Context, req *pb.GetContextT
 
 func (m *MockMLMDClient) PutExecution(ctx context.Context, req *pb.PutExecutionRequest, opts ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
 	return m.PutExecutionFn(ctx, req, opts...)
+}
+
+func (m *MockMLMDClient) GetEventsByExecutionIDs(ctx context.Context, req *pb.GetEventsByExecutionIDsRequest, opts ...grpc.CallOption) (*pb.GetEventsByExecutionIDsResponse, error) {
+	return m.getEventsByExecutionIDsFn(ctx, req, opts...)
+}
+
+func (m *MockMLMDClient) GetArtifactsByID(ctx context.Context, req *pb.GetArtifactsByIDRequest, opts ...grpc.CallOption) (*pb.GetArtifactsByIDResponse, error) {
+	return m.getArtifactsByIDFn(ctx, req, opts...)
 }
 
 // ---------- helpers ----------
