@@ -65,7 +65,11 @@ setuptools.setup(
         # second list of deps are true dependencies for building the site
         "docs": (
             [
-                "protobuf>=4.21.1,<5",
+                # Must stay aligned with the protobuf range kfp itself requires
+                # (see sdk/python/requirements.in), otherwise `pip install
+                # .[docs]` cannot resolve a protobuf version that satisfies
+                # both this package and the pinned `kfp` dependency below.
+                "protobuf>=6.31.1,<7.0",
                 "grpcio-status<=1.47.0",
             ]
             + [
