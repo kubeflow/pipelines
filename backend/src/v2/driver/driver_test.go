@@ -646,6 +646,7 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 // Validate that setting publishLogs to true propagates to the driver container
 // commands in the podSpec.
 func Test_initPodSpecPatch_publishLogs(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
 	podSpec, err := initPodSpecPatch(
 		&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{},
 		&pipelinespec.ComponentSpec{},
@@ -671,12 +672,14 @@ func Test_initPodSpecPatch_publishLogs(t *testing.T) {
 	assert.Nil(t, err)
 	cmd := podSpec.Containers[0].Command
 	assert.Contains(t, cmd, "--publish_logs")
-	// TODO: There may be a simpler way to check this.
+	publishLogsCount := 0
 	for idx, val := range cmd {
 		if val == "--publish_logs" {
+			publishLogsCount++
 			assert.Equal(t, cmd[idx+1], "true")
 		}
 	}
+	assert.Equal(t, 1, publishLogsCount, "expected --publish_logs flag to occur exactly once")
 }
 
 func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
