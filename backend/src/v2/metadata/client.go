@@ -1184,8 +1184,12 @@ func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID
 		if err != nil {
 			return nil, err
 		}
-		inputs[name] = &pipelinespec.ArtifactList{
-			Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+		if existing, ok := inputs[name]; ok {
+			existing.Artifacts = append(existing.Artifacts, runtimeArtifact)
+		} else {
+			inputs[name] = &pipelinespec.ArtifactList{
+				Artifacts: []*pipelinespec.RuntimeArtifact{runtimeArtifact},
+			}
 		}
 	}
 	return inputs, nil
