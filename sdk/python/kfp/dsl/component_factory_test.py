@@ -185,9 +185,9 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 '\n'
                 'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
                 '--no-warn-script-location --index-url https://myurl.org/simple '
-                "--trusted-host https://myurl.org/simple 'package1' 'package2'  &&  python3 "
+                "'package1' 'package2'  &&  python3 "
                 '-m pip install --quiet --no-warn-script-location --index-url '
-                'https://myurl.org/simple --trusted-host https://myurl.org/simple kfp '
+                'https://myurl.org/simple kfp '
                 '\'--no-deps\' \'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" '
                 '"$@"\n'
             ]))

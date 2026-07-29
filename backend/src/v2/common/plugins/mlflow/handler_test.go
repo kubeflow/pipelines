@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/assert"
@@ -519,7 +520,7 @@ func TestRetrieveUserContainerEnvVars_BasicAuth_InjectsCredentialSecretRefs(t *t
 		ParentRunID:       "test-parent-run-id",
 		ExperimentID:      "test-exp",
 		AuthType:          commonmlflow.AuthTypeBasicAuth,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			UsernameKey: "username",
 			PasswordKey: "password",
 		},
@@ -569,7 +570,7 @@ func TestRetrieveUserContainerEnvVars_BearerAuth_InjectsCredentialSecretRef(t *t
 		ParentRunID:  "test-parent-run-id",
 		ExperimentID: "test-exp",
 		AuthType:     commonmlflow.AuthTypeBearer,
-		CredentialSecretRef: &commonmlflow.CredentialSecretRef{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
 			TokenKey: "token",
 		},
 		Timeout:           "10s",

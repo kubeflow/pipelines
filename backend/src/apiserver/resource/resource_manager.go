@@ -35,7 +35,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
-	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
@@ -150,7 +149,7 @@ type ResourceManager struct {
 	uuid                      util.UUIDGeneratorInterface
 	authenticators            []kfpauth.Authenticator
 	options                   *ResourceManagerOptions
-	pluginDispatcher          apiserverPlugins.PluginDispatcher
+	pluginDispatcher          apiserverPlugins.RunPluginDispatcher
 }
 
 func NewResourceManager(clientManager ClientManagerInterface, options *ResourceManagerOptions) *ResourceManager {
@@ -175,11 +174,11 @@ func NewResourceManager(clientManager ClientManagerInterface, options *ResourceM
 		authenticators:            clientManager.Authenticators(),
 		options:                   options,
 	}
-	if apiservermlflow.IsEnabled() {
-		rm.pluginDispatcher = apiservermlflow.NewRunPluginDispatcher(rm.k8sCoreClient, rm.runStore)
-	} else {
-		rm.pluginDispatcher = &apiserverPlugins.NoOpDispatcher{}
+	dispatcher, err := apiserverPlugins.GetPluginDispatcher(rm.k8sCoreClient, rm.runStore)
+	if err != nil {
+		glog.Errorf("failed to create plugin dispatcher: %s", err)
 	}
+	rm.pluginDispatcher = dispatcher
 	return rm
 }
 
@@ -502,6 +501,15 @@ func (r *ResourceManager) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv
 	if err != nil {
 		return nil, nil, util.Wrap(err, "Failed to create a pipeline and a pipeline version due to template creation error")
 	}
+	if tmpl.GetTemplateType() == template.V1 {
+		ns := p.Namespace
+		if ns == "" {
+			ns = common.GetPodNamespace()
+		}
+		if util.IsV1PipelinesBlocked(ns) {
+			return nil, nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
+		}
+	}
 	// Validate pipeline's name in:
 	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements
 	// 2. display name must be non-empty
@@ -606,19 +614,6 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	}
 }
 
-func isNamespaceAllowed(namespace string, allowedNamespaces string) bool {
-	if allowedNamespaces == "" {
-		return false
-	}
-	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
-	for _, n := range strings.Split(allowedNamespaces, ",") {
-		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
-			return true
-		}
-	}
-	return false
-}
-
 // Creates a run and schedule a workflow CR.
 // Manifest's namespace gets overwritten with the run.Namespace.
 // Creating a run from recurring run prioritizes recurring run's pipeline spec over the run's one.
@@ -684,11 +679,8 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		return nil, util.NewInternalServerError(util.NewInvalidInputError("Namespace cannot be empty when creating an Argo workflow. Check if you have specified POD_NAMESPACE or try adding the parent namespace to the request"), "Failed to create a run due to empty namespace")
 	}
 
-	if common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
-		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
-		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
-			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
-		}
+	if util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
+		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 	}
 
 	executionSpec.SetExecutionNamespace(k8sNamespace)
@@ -734,7 +726,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 
 	defer func() {
 		if !runPersisted {
-			if pr, prErr := apiservermlflow.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
+			if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, k8sNamespace); prErr == nil {
 				r.pluginDispatcher.OnRunEnd(ctx, pr)
 			}
 		}
@@ -1112,7 +1104,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
-		if pr, prErr := apiservermlflow.ModelToPersistedRun(run, namespace); prErr == nil {
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
 			r.pluginDispatcher.OnRunRetry(ctx, pr)
 		}
 	}
@@ -1357,10 +1349,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 	var scheduledWorkflow *scheduledworkflow.ScheduledWorkflow
 	var tmpl template.Template
 
-	// When plugins are enabled the SWF controller must call the CreateRun API
-	// so that per-run plugin logic executes.
-	pluginsEnabled := job.PluginsInputString != nil && *job.PluginsInputString != ""
-
 	// If the pipeline version or pipeline spec is provided, this means the user wants to pin to a specific pipeline.
 	// Otherwise, always let the ScheduledWorkflow controller pick the latest.
 	if job.PipelineVersionId != "" || job.PipelineSpecManifest != "" || job.WorkflowSpecManifest != "" {
@@ -1372,7 +1360,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.NewInternalServerError(err, "Failed to create a recurring run with an invalid pipeline spec manifest")
 		}
 
-		if pluginsEnabled {
+		// When plugins are enabled, the SWF controller must call the CreateRun API
+		// so that per-run plugin logic executes.
+		if r.pluginDispatcher.PluginsRegistered() {
 			// Plugin-enabled: create a lightweight SWF without inline workflow spec
 			// so the SWF controller calls the CreateRun API for per-run plugin logic.
 			scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
@@ -1433,11 +1423,8 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		}
 	}
 
-	if tmpl != nil && common.GetBoolConfigWithDefault(common.BlockV1Pipelines, false) && tmpl.GetTemplateType() == template.V1 {
-		allowedNamespaces := common.GetStringConfigWithDefault(common.V1NamespaceWhitelist, "")
-		if !isNamespaceAllowed(k8sNamespace, allowedNamespaces) {
-			return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
-		}
+	if tmpl != nil && util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
+		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
 	}
 
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
@@ -1757,7 +1744,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// completed, return a retryable signal before callers report tasks or
 		// workflow metrics from a stale terminal report.
 		if run != nil && run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
-			pr, prErr := apiservermlflow.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
+			pr, prErr := apiserverPlugins.ModelToPersistedRun(run, execSpec.ExecutionNamespace())
 			if prErr != nil {
 				glog.Warningf("Failed to build PersistedRun for plugin sync on run %q: %v", run.UUID, prErr)
 			} else if !r.pluginDispatcher.OnRunEnd(ctx, pr) {
@@ -2216,6 +2203,15 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	tmpl, err := template.New(pipelineSpecBytes, templateOptions)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a pipeline version due to template creation error")
+	}
+	if tmpl.GetTemplateType() == template.V1 {
+		pipelineNamespace, _ := r.FetchNamespaceFromPipelineId(pipelineId)
+		if pipelineNamespace == "" {
+			pipelineNamespace = common.GetPodNamespace()
+		}
+		if util.IsV1PipelinesBlocked(pipelineNamespace) {
+			return nil, util.NewInvalidInputError("V1 pipeline specs are not allowed. Please migrate to using KFP V2 pipelines.")
+		}
 	}
 	// Validate pipeline's name in:
 	// 1. pipeline spec for v2 pipelines and v2-compatible pipeline must comply with MLMD requirements

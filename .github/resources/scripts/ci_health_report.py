@@ -46,6 +46,7 @@ import collections
 import io
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -71,6 +72,8 @@ TARGET_WORKFLOWS = [
 
 ISSUE_TITLE = "CI Health Report (automated)"
 ISSUE_LABEL = "ci-health"
+JUNIT_ARTIFACT_PREFIX = "junit-xml - "
+RETRY_ARTIFACT_SUFFIX = re.compile(r"^(?P<base>.+) - retry-(?P<attempt>\d+)$")
 
 # Job conclusions that are not results at all: master-push workflows cancel
 # in-progress runs, so counting cancellations as either success or failure
@@ -289,6 +292,24 @@ def collect_lane_stats(token, repo, since, max_runs):
     return lanes, failed_runs, reruns, notes
 
 
+def select_junit_artifacts(artifacts):
+    """Selects the latest artifact for each possibly retried JUnit report."""
+    selected_by_base_name = {}
+    for artifact in artifacts:
+        name = artifact.get("name", "")
+        if not name.startswith(JUNIT_ARTIFACT_PREFIX) or artifact.get("expired"):
+            continue
+
+        retry_match = RETRY_ARTIFACT_SUFFIX.match(name)
+        base_name = retry_match.group("base") if retry_match else name
+        retry_attempt = int(retry_match.group("attempt")) if retry_match else -1
+        selected = selected_by_base_name.get(base_name)
+        if selected is None or retry_attempt > selected[0]:
+            selected_by_base_name[base_name] = (retry_attempt, artifact)
+
+    return [artifact for _, artifact in selected_by_base_name.values()]
+
+
 def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
     """Tallies failed testcases from junit-xml artifacts of failed runs.
 
@@ -317,11 +338,7 @@ def collect_failed_tests(token, repo, failed_runs, max_junit_runs):
         except (urllib.error.HTTPError, RateLimited, OSError):
             ingestion_errors += 1
             continue
-        for artifact in artifacts:
-            if not artifact.get("name", "").startswith("junit-xml - "):
-                continue
-            if artifact.get("expired"):
-                continue
+        for artifact in select_junit_artifacts(artifacts):
             try:
                 content = api_request(token, artifact["archive_download_url"], raw=True)
                 archive = zipfile.ZipFile(io.BytesIO(content))

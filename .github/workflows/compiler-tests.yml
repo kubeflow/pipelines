@@ -53,10 +53,12 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
+        env:
+          DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
         run: |
           TEST_LABEL=${{ env.TESTS_LABEL }}
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            TEST_LABEL=${{ inputs.test_label }}
+            TEST_LABEL=$DISPATCH_TEST_LABEL
           fi
           echo "TEST_LABEL=$TEST_LABEL" >> "$GITHUB_OUTPUT"
 

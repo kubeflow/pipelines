@@ -17,6 +17,8 @@ set -u
 
 INTERVAL_SECONDS=5
 PID_FILE="/tmp/runner-telemetry.pid"
+PROC_ROOT="${RUNNER_TELEMETRY_PROC_ROOT:-/proc}"
+CGROUP_ROOT="${RUNNER_TELEMETRY_CGROUP_ROOT:-/sys/fs/cgroup}"
 
 # Job summaries are not retrievable through the logs API; mirror rendered
 # output to stdout so the job log carries the numbers too.
@@ -36,6 +38,125 @@ cpu_totals() {
         for (i = 2; i <= 9; i++) total += $i
         print total - idle, total
     }' /proc/stat
+}
+
+contention_snapshot() {
+    local output="$1"
+    : > "$output"
+    printf 'epoch_us\t%s\n' "$(python3 -c 'import time; print(time.time_ns() // 1000)')" >> "$output"
+
+    if [[ -r "$PROC_ROOT/pressure/cpu" ]]; then
+        awk '
+            ($1 == "some" || $1 == "full") {
+                for (i = 2; i <= NF; i++) {
+                    split($i, field, "=")
+                    if (field[1] == "total") print "cpu_psi_" $1 "_us\t" field[2]
+                }
+            }
+        ' "$PROC_ROOT/pressure/cpu" >> "$output"
+    fi
+
+    local cpu_stat=""
+    if [[ -r "$PROC_ROOT/self/cgroup" ]]; then
+        local cgroup_path
+        cgroup_path=$(awk -F: '$1 == "0" {print $3; exit}' "$PROC_ROOT/self/cgroup")
+        if [[ -n "$cgroup_path" && -r "$CGROUP_ROOT$cgroup_path/cpu.stat" ]]; then
+            cpu_stat="$CGROUP_ROOT$cgroup_path/cpu.stat"
+        else
+            cgroup_path=$(awk -F: '$2 ~ /(^|,)cpu(,|$)/ {print $3; exit}' "$PROC_ROOT/self/cgroup")
+            for candidate in \
+                "$CGROUP_ROOT/cpu,cpuacct$cgroup_path/cpu.stat" \
+                "$CGROUP_ROOT/cpu$cgroup_path/cpu.stat"; do
+                if [[ -n "$cgroup_path" && -r "$candidate" ]]; then
+                    cpu_stat="$candidate"
+                    break
+                fi
+            done
+        fi
+    fi
+    # A cgroup namespace commonly exposes the process cgroup as the mount root.
+    if [[ -z "$cpu_stat" && -r "$CGROUP_ROOT/cpu.stat" ]]; then
+        cpu_stat="$CGROUP_ROOT/cpu.stat"
+    fi
+
+    if [[ -n "$cpu_stat" ]]; then
+        awk '
+            $1 == "nr_periods" || $1 == "nr_throttled" || $1 == "throttled_usec" {
+                print "runner_cgroup_" $1 "\t" $2
+            }
+            $1 == "throttled_time" {
+                print "runner_cgroup_throttled_usec\t" int($2 / 1000)
+            }
+        ' "$cpu_stat" >> "$output"
+    fi
+}
+
+render_contention_deltas() {
+    local baseline="$1"
+    if [[ -z "$baseline" || ! -r "$baseline" ]]; then
+        printf '\n## Test-window contention deltas\n\n_Baseline unavailable; test setup ended before the Ginkgo window._\n' | publish
+        return 0
+    fi
+
+    local end_snapshot="${baseline}.end"
+    contention_snapshot "$end_snapshot"
+    python3 - "$baseline" "$end_snapshot" <<'PY' | publish
+import sys
+
+
+def read_snapshot(path):
+    values = {}
+    with open(path) as snapshot:
+        for line in snapshot:
+            key, separator, value = line.rstrip().partition("\t")
+            if separator and value.isdigit():
+                values[key] = int(value)
+    return values
+
+
+baseline = read_snapshot(sys.argv[1])
+end = read_snapshot(sys.argv[2])
+elapsed_us = end.get("epoch_us", 0) - baseline.get("epoch_us", 0)
+metrics = (
+    ("CPU PSI some stall", "cpu_psi_some_us", "time"),
+    ("CPU PSI full stall", "cpu_psi_full_us", "time"),
+    ("Runner cgroup CPU periods", "runner_cgroup_nr_periods", "count"),
+    ("Runner cgroup throttled periods", "runner_cgroup_nr_throttled", "count"),
+    ("Runner cgroup throttled time", "runner_cgroup_throttled_usec", "time"),
+)
+
+print("\n## Test-window contention deltas\n")
+print("| Metric | Baseline | End | Delta | Status |")
+print("|---|---:|---:|---:|---|")
+for label, key, kind in metrics:
+    before = baseline.get(key)
+    after = end.get(key)
+    if before is None or after is None:
+        print(f"| {label} | {before if before is not None else '—'} | "
+              f"{after if after is not None else '—'} | — | unavailable |")
+        continue
+    if after < before:
+        print(f"| {label} | {before} | {after} | — | counter reset |")
+        continue
+    delta = after - before
+    if kind == "time":
+        rendered_delta = f"{delta / 1000:.1f} ms"
+        if elapsed_us > 0 and key.startswith("cpu_psi_"):
+            rendered_delta += f" ({100 * delta / elapsed_us:.2f}% of window)"
+    else:
+        rendered_delta = str(delta)
+    print(f"| {label} | {before} | {after} | {rendered_delta} | ok |")
+
+period_keys = ("runner_cgroup_nr_periods", "runner_cgroup_nr_throttled")
+if all(key in baseline and key in end for key in period_keys):
+    periods = end[period_keys[0]] - baseline[period_keys[0]]
+    throttled = end[period_keys[1]] - baseline[period_keys[1]]
+else:
+    periods = throttled = -1
+if periods > 0 and throttled >= 0:
+    print(f"\n_Runner cgroup throttled periods: {100 * throttled / periods:.1f}% of test-window periods._")
+print("\n_CPU PSI is host-wide. Runner-cgroup counters do not include sibling Kind cgroups on every runner layout._")
+PY
 }
 
 sample_loop() {
@@ -62,10 +183,12 @@ sample_loop() {
 
 render() {
     local csv="$1"
+    local contention_baseline="${2:-}"
     if [[ -f "$PID_FILE" ]]; then
         kill "$(cat "$PID_FILE")" 2>/dev/null || true
         rm -f "$PID_FILE"
     fi
+    render_contention_deltas "$contention_baseline"
     if [[ ! -r "$csv" ]] || [[ $(wc -l < "$csv") -lt 3 ]]; then
         echo "_Runner telemetry: no samples collected._" | publish
         return 0
@@ -157,10 +280,13 @@ case "${1:-}" in
         sample_loop "${2:?csv path required}"
         ;;
     render)
-        render "${2:?csv path required}"
+        render "${2:?csv path required}" "${3:-}"
+        ;;
+    contention-baseline)
+        contention_snapshot "${2:?snapshot path required}"
         ;;
     *)
-        echo "usage: $0 {sample|render} <csv>"
+        echo "usage: $0 {sample|render|contention-baseline} <path> [contention-baseline]"
         exit 1
         ;;
 esac

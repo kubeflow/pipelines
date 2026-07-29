@@ -72,10 +72,10 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
-					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled.",
+					Type:    swfapi.ScheduledWorkflowEnabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowEnabled),
+					Message: "The schedule is enabled.",
 				},
 			},
 		},
@@ -87,15 +87,15 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
-					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled.",
+					Type:    swfapi.ScheduledWorkflowEnabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowEnabled),
+					Message: "The schedule is enabled.",
 				}, {
-					Type:               swfapi.ScheduledWorkflowDisabled,
-					Status:             corev1.ConditionTrue,
-					Reason:             string(swfapi.ScheduledWorkflowDisabled),
-					Message:            "The schedule is disabled.",
+					Type:    swfapi.ScheduledWorkflowDisabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowDisabled),
+					Message: "The schedule is disabled.",
 				},
 			},
 		},
