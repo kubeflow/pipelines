@@ -219,6 +219,14 @@ func resolveInputs(
 				typeMismatch := func(actual string) error {
 					return fmt.Errorf("input parameter %q type mismatch: expect %s, got %s", name, spec.GetParameterType(), actual)
 				}
+				parsedValue, err := parseJSONStringParameter(
+					value, spec.GetParameterType())
+				if err != nil {
+					return fmt.Errorf(
+						"parsing JSON input parameter %q: %w", name, err)
+				}
+				value = parsedValue
+				inputs.GetParameterValues()[name] = value
 				switch v := value.GetKind().(type) {
 				case *structpb.Value_NullValue:
 					// If parameter was set to nil by driver, allow input parameter to have a nil value.
@@ -227,7 +235,6 @@ func resolveInputs(
 					}
 					return fmt.Errorf("got null for input parameter %q", name)
 				case *structpb.Value_StringValue:
-					// TODO(Bobgy): consider whether we support parsing string as JSON for any other types.
 					if spec.GetParameterType() != pipelinespec.ParameterType_STRING {
 						return typeMismatch("string")
 					}
