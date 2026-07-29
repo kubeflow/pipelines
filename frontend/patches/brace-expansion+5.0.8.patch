@@ -1,0 +1,12 @@
+diff --git a/node_modules/brace-expansion/dist/commonjs/index.js b/node_modules/brace-expansion/dist/commonjs/index.js
+index be9df86..849931e 100644
+--- a/node_modules/brace-expansion/dist/commonjs/index.js
++++ b/node_modules/brace-expansion/dist/commonjs/index.js
+@@ -260,4 +260,7 @@ function expand_(str, max, maxLength, isTop) {
+     }
+     return acc;
+ }
++// Preserve the callable CommonJS export used by minimatch versions before 9.
++// The named properties keep the brace-expansion 5 API available as well.
++module.exports = Object.assign(expand, exports);
+ //# sourceMappingURL=index.js.map

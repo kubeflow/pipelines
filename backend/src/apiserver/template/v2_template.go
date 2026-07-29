@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -148,6 +149,9 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
+			// Read the admin configured driver pod metadata here, at the API server layer,
+			// so the compiler itself stays free of any dependency on API server state.
+			DriverPodConfig: common.GetDriverPodConfig(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}
@@ -391,6 +395,9 @@ func (t *V2Spec) RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (u
 			DefaultRunAsGroup:    t.templateOptions.DefaultRunAsGroup,
 			DefaultRunAsNonRoot:  t.templateOptions.DefaultRunAsNonRoot,
 			DefaultHostUsers:     t.templateOptions.DefaultHostUsers,
+			// Read the admin configured driver pod metadata here, at the API server layer,
+			// so the compiler itself stays free of any dependency on API server state.
+			DriverPodConfig: common.GetDriverPodConfig(),
 		}
 		obj, err = argocompiler.Compile(job, kubernetesSpec, opts)
 	}

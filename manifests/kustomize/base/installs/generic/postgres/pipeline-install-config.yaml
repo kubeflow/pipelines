@@ -125,3 +125,10 @@ data:
   ## USERID_PREFIX is stripped from the header value before it is used as the user id.
   USERID_HEADER: "kubeflow-userid"
   USERID_PREFIX: ""
+  ## Custom labels and annotations for driver pods (JSON format).
+  ## Useful for enabling Istio sidecar injection or other infrastructure integration.
+  ## Every value must be a JSON string, for example "true" rather than true.
+  ## Keys with the prefix "pipelines.kubeflow.org/" are reserved and will be filtered out.
+  ## Example: '{"sidecar.istio.io/inject":"true"}'
+  DRIVER_POD_LABELS: ""
+  DRIVER_POD_ANNOTATIONS: ""

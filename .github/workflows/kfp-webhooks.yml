@@ -69,7 +69,7 @@ jobs:
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: kfp-samples-tests-artifacts-k8s-${{ matrix.k8s_version }}
