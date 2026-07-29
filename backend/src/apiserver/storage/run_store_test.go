@@ -1008,6 +1008,106 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
+func TestUpdateRunFromWorkflow_RejectsStaleReportAfterTermination(t *testing.T) {
+	for _, incomingState := range []model.RuntimeState{
+		model.RuntimeStateRunning,
+		model.RuntimeStateUnspecified,
+	} {
+		t.Run(string(incomingState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			staleRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			expectedState := staleRun.State
+
+			require.NoError(t, runStore.TerminateRun("1"))
+
+			staleRun.State = incomingState
+			staleRun.Conditions = string(incomingState.ToV1())
+			staleRun.WorkflowRuntimeManifest = "stale-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, []*model.RuntimeStatus{{
+				UpdateTimeInSec: 1,
+				State:           model.RuntimeStateRunning,
+			}}, persistedRun.StateHistory)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_AllowsTerminalReportAfterTermination(t *testing.T) {
+	for _, terminalState := range []model.RuntimeState{
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled,
+	} {
+		t.Run(string(terminalState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			require.NoError(t, runStore.TerminateRun("1"))
+			cancelingRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			expectedState := cancelingRun.State
+			cancelingRun.State = terminalState
+			cancelingRun.Conditions = string(terminalState.ToV1())
+			cancelingRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(cancelingRun, expectedState)
+			require.NoError(t, err)
+			assert.True(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, terminalState, persistedRun.State)
+			assert.Equal(t, string(terminalState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("terminal-workflow"), persistedRun.WorkflowRuntimeManifest)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_DoesNotRegressTerminalRun(t *testing.T) {
+	for _, terminalState := range []model.RuntimeState{
+		model.RuntimeStateSucceeded,
+		model.RuntimeStateCanceled,
+	} {
+		t.Run(string(terminalState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			terminalRun, err := runStore.GetRun("2")
+			require.NoError(t, err)
+			if terminalState != terminalRun.State {
+				terminalRun.State = terminalState
+				terminalRun.Conditions = string(terminalState.ToV1())
+				require.NoError(t, runStore.UpdateRun(terminalRun))
+			}
+
+			expectedState := terminalRun.State
+			terminalRun.State = model.RuntimeStateRunning
+			terminalRun.Conditions = "Running"
+			terminalRun.WorkflowRuntimeManifest = "stale-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(terminalRun, expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("2")
+			require.NoError(t, err)
+			assert.Equal(t, terminalState, persistedRun.State)
+			assert.Equal(t, string(terminalState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+		})
+	}
+}
+
 func TestTerminateRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()

@@ -1786,12 +1786,22 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		}
 	}
 	if updateError == nil {
+		expectedState := run.State
 		run.State = state
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
-		if updateError = r.runStore.UpdateRun(run); updateError != nil {
+		var updated bool
+		updated, updateError = r.runStore.UpdateRunFromWorkflow(run, expectedState)
+		if updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
+		}
+		if !updated {
+			return nil, util.NewUnavailableServerError(
+				fmt.Errorf("run state changed from %s while applying workflow state %s", expectedState, state),
+				"Skipping stale workflow report for run %s - will retry",
+				runId,
+			)
 		}
 	}
 	if jobId == "" {
