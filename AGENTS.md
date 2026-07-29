@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-24
+- Last updated: 2026-07-27
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -324,8 +324,9 @@ The following files are generated; edit their sources and regenerate:
   `backend/api/{v1beta1,v2beta1}/go_http_client`, and the generated Swagger files
   under `backend/api/{v1beta1,v2beta1}/swagger`
   - Sources: `backend/api/{v1beta1,v2beta1}/*.proto` and `backend/api/Dockerfile`
-  - Generate with the published toolchain: `make -C backend/api API_VERSION=<version> generate`
-  - Generate after changing the toolchain: `make -C backend/api API_VERSION=<version> generate-from-scratch`
+  - Generate: `make -C backend/api API_VERSION=<version> generate` (uses pre-built image, fast)
+  - Source build: `USE_PREBUILT_IMAGE=false make -C backend/api API_VERSION=<version> generate` (accurate)
+  - Legacy target: `make -C backend/api API_VERSION=<version> generate-from-scratch` (always builds from source)
 - Frontend OpenAPI clients under `frontend/src/apis`, `frontend/src/apisv2beta1`, `frontend/server/src/generated/apis`, and `frontend/server/src/generated/apisv2beta1`, with shared runtime/model support under `frontend/src/generated/openapi` and `frontend/server/src/generated/openapi`
   - Sources: Swagger specs under `backend/api/**/swagger/*.json`
   - Generate: `cd frontend && npm run apis` / `npm run apis:v2beta1` / `npm run apis:all` (uses pinned Docker image `openapitools/openapi-generator-cli:v7.19.0`)
@@ -532,7 +533,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Workflows: `.github/workflows/` (build, test, lint, release)
 - `.github/dependabot.yml` schedules weekly Go module updates and repository-wide Docker ecosystem updates. Docker coverage recursively includes Dockerfiles, Containerfiles, and Kubernetes manifest image references, grouping each image's updates across directories.
 - `ci-health-report.yml` runs daily (and on dispatch): aggregates master-branch lane failure rates and per-test flake counts from `junit-xml - *` artifacts, publishing to the job summary and a tracking issue labeled `ci-health`.
-- `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling, diagnostics, and meta-workflow concurrency on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, `ci-checks.yml`, `gh-workflow-approve.yml`, the create-cluster action, the scoped curl retry configuration, or the test workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
+- `ci-scripts-tests.yml` runs the stdlib unit tests for CI tooling, diagnostics, and meta-workflow concurrency on PRs touching `.github/resources/scripts/*.py`, `.github/resources/scripts/*.sh`, `ci-checks.yml`, `create-manifest.yml`, `gh-workflow-approve.yml`, the create-cluster action, the scoped curl retry configuration, or the test workflow itself (run locally with `cd .github/resources/scripts && python3 -m unittest discover -v -p '*_test.py'`).
 - The `CI Check` and `Approve Workflow Runs` meta-workflows filter unrelated label events before entering per-PR job concurrency. Only `synchronize` events cancel an active run, so Dependabot/Prow label bursts do not leave cancelled checks on the current head SHA.
 - Composite actions: `.github/actions/` (e.g., `kfp-k8s`, `create-cluster`, `deploy`, `test-and-report`)
 - Typical checks: Go unit tests (backend), Python SDK tests, frontend tests/lint, image builds.
@@ -548,8 +549,8 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Pipeline store variants (v2 engine): tests run with `database` and `kubernetes` stores, and a dedicated job compiles pipelines to Kubernetes-native manifests.
   - Example: `e2e-test.yml` job "API integration tests v2 - K8s with ${pipeline_store}" and "compile pipelines with Kubernetes".
 - Legacy V2 integration preserves every database/Kubernetes-store and TLS variant while splitting the long PVC cache scenario into a parallel `pvc-cache` job; the `main` group runs the complementary tests on an independent cluster.
-- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.14` and `v4.0.5` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
-- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.5` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
+- Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.17` and `v4.0.8` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
+- Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.8` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
 - Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use the historical ten Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. Manual workflow dispatches retain their requested concurrency.
 - Standard automatic and multi-user E2E Critical lanes split the 33 pipeline specs into duration-balanced shard A/B jobs on independent Kind runners; low-Kubernetes, TLS, and manual-dispatch compatibility lanes stay unsharded. The cache-enabled multi-user shards exercise the artifact-proxy compatibility path. Pipeline-level Ginkgo labels define the partition, and new Critical pipelines default to shard B so coverage is preserved.
@@ -566,7 +567,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Multi-user deploy applies the profile controller before KFP and joins its readiness after the main KFP rollout, overlapping independent startup while preserving the IAM and Profile-creation gates.
 - KFP deployment readiness captures one bounded pod describe/events snapshot when a regular or init container remains in `ContainerCreating` for more than 60 seconds, including when the pod eventually becomes ready.
 - Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images; upgrade tests overlap old-release deployment and preparation behind the same barrier.
-- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls. Buildx setup pre-pulls its BuildKit image with five-attempt backoff, Kind tool downloads use a scoped curl retry policy, Kind node image bootstrap falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once after an initial setup failure.
+- CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls. Build jobs pre-pull their BuildKit image with five-attempt backoff, while registry-only multi-architecture manifest jobs use Buildx's daemon-backed `docker` driver and do not start or pull a BuildKit container. Kind tool downloads use a scoped curl retry policy, Kind node image bootstrap falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once after an initial setup failure.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
 - The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. The archive includes test-task base images plus MySQL and the supported Argo controller/executor images so Kind deployment does not depend on live Docker Hub or Quay pulls. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.
 - The `test-and-report` action port-forwards MLMD on port `8080` only when `ARGO_COMPATIBILITY_TESTS=true`, allowing the canonical Argo compatibility API job to validate execution/artifact metadata without adding another test lane.
@@ -704,7 +705,8 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 ### Essential commands
 
 - Compile pipeline: `kfp dsl compile --py pipeline.py --output pipeline.yaml`
-- Generate protos: `make -C api python && make -C api golang`
+- Generate protos: `make -C api python && make -C api golang` (fast with pre-built images)
+- Generate protos (accurate): `USE_PREBUILT_IMAGE=false make -C api python && USE_PREBUILT_IMAGE=false make -C api golang`
 - Deploy local cluster (standalone): `make -C backend kind-cluster-agnostic`
 - Deploy local cluster (development) and run the API server in the IDE: `make -C backend dev-kind-cluster`
 - Run SDK tests: `pytest -v sdk/python/kfp`
