@@ -16,7 +16,7 @@ spec:
     spec:
       serviceAccountName: kubeflow-pipelines-cloudsql-proxy
       containers:
-        - image: gcr.io/cloudsql-docker/gce-proxy:1.25.0
+        - image: gcr.io/cloudsql-docker/gce-proxy:1.38.1
           name: cloudsqlproxy
           env:            
             - name: GCP_CLOUDSQL_INSTANCE_NAME
