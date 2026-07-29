@@ -217,8 +217,19 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 	)
 
 	_, nestedTask := testContext.RunDagDriver("nested", testContext.RootTask)
+	require.Equal(t, "nested", nestedTask.GetName())
+	require.Equal(t, "Nested DAG Display", nestedTask.GetDisplayName())
+
 	_, createPVCTask := testContext.RunContainerDriver("createpvc", nestedTask, nil, true)
 	require.Len(t, createPVCTask.GetOutputs().GetParameters(), 1)
+	require.Equal(t, "createpvc", createPVCTask.GetName())
+	require.Equal(t, "Create PVC Display", createPVCTask.GetDisplayName())
+	require.Equal(
+		t,
+		"createpvc",
+		createPVCTask.GetOutputs().GetParameters()[0].GetProducer().GetTaskName(),
+		"IOProducer.TaskName must be the canonical DAG task key, not DisplayName",
+	)
 
 	refreshedNestedTask, err := testContext.ClientManager.KFPAPIClient().GetTask(
 		context.Background(),
@@ -231,6 +242,11 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 		t,
 		createPVCTask.GetOutputs().GetParameters()[0].GetValue().GetStringValue(),
 		refreshedNestedTask.GetOutputs().GetParameters()[0].GetValue().GetStringValue(),
+	)
+	assert.Equal(
+		t,
+		"createpvc",
+		refreshedNestedTask.GetOutputs().GetParameters()[0].GetProducer().GetTaskName(),
 	)
 
 	_, _ = testContext.RunContainerDriver("createpvc", nestedTask, nil, true)

@@ -109,11 +109,15 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 		getRunErr          error
 		updateStatusesErr  error
 		expectedErrors     []string
+		// expectNotSucceeded asserts the persisted task is no longer SUCCEEDED
+		// after a finalization failure that still managed to force a FAILED update.
+		expectNotSucceeded bool
 	}{
 		{
 			name:               "batch flush",
 			updateTasksBulkErr: errors.New("flush failed"),
 			expectedErrors:     []string{"failed to flush batch updates", "flush failed"},
+			expectNotSucceeded: true,
 		},
 		{
 			name:               "batch flush and fallback update",
@@ -122,14 +126,16 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			expectedErrors:     []string{"flush failed", "failed to persist task", "fallback failed"},
 		},
 		{
-			name:           "run refresh",
-			getRunErr:      errors.New("refresh failed"),
-			expectedErrors: []string{"failed to refresh run", "refresh failed"},
+			name:               "run refresh",
+			getRunErr:          errors.New("refresh failed"),
+			expectedErrors:     []string{"failed to refresh run", "refresh failed"},
+			expectNotSucceeded: true,
 		},
 		{
-			name:              "status propagation",
-			updateStatusesErr: errors.New("propagation failed"),
-			expectedErrors:    []string{"failed to update statuses", "propagation failed"},
+			name:               "status propagation",
+			updateStatusesErr:  errors.New("propagation failed"),
+			expectedErrors:     []string{"failed to update statuses", "propagation failed"},
+			expectNotSucceeded: true,
 		},
 	}
 
@@ -176,6 +182,15 @@ func TestFinalizeExecutionReturnsPersistenceFailures(t *testing.T) {
 			require.Error(t, err)
 			for _, expectedError := range test.expectedErrors {
 				assert.Contains(t, err.Error(), expectedError)
+			}
+			if test.expectNotSucceeded {
+				persistedTask, getErr := baseAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+					TaskId: task.GetTaskId(),
+					RunId:  run.GetRunId(),
+				})
+				require.NoError(t, getErr)
+				assert.NotEqual(t, apiv2beta1.PipelineTask_SUCCEEDED, persistedTask.GetState())
+				assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persistedTask.GetState())
 			}
 		})
 	}
@@ -732,6 +747,51 @@ func Test_getPlaceholders_WorkspaceArtifactPath(t *testing.T) {
 	}
 }
 
+func Test_getPlaceholders_CustomPath(t *testing.T) {
+	customPath := "/mnt/custom/output/file"
+	execIn := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "s3://bucket/path/to/model",
+							CustomPath: &customPath,
+						},
+					},
+				},
+			},
+		},
+	}
+	ph, err := getPlaceholders(execIn)
+	require.NoError(t, err)
+	assert.Equal(t, "s3://bucket/path/to/model", ph["{{$.outputs.artifacts['model'].uri}}"])
+	assert.Equal(t, customPath, ph["{{$.outputs.artifacts['model'].path}}"])
+}
+
+func Test_prepareOutputFolders_CustomPath(t *testing.T) {
+	customPath := "/mnt/custom/output/file"
+	execIn := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"model": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Uri:        "s3://bucket/path/to/model",
+							CustomPath: &customPath,
+						},
+					},
+				},
+			},
+		},
+	}
+	mockFS := NewMockFileSystem()
+	launcher := &LauncherV2{fileSystem: mockFS}
+	require.NoError(t, launcher.prepareOutputFolders(execIn))
+	require.Len(t, mockFS.MkdirAllCalls, 1)
+	assert.Equal(t, filepath.Dir(customPath), mockFS.MkdirAllCalls[0].Path)
+}
+
 func Test_executorInput_compileCmdAndArgs(t *testing.T) {
 	executorInputJSON := `{
 		"inputs": {
@@ -926,11 +986,15 @@ func Test_executeV2(t *testing.T) {
 	}
 	mockAPI.AddRun(run)
 
-	// Create test task
+	// Create test task with canonical Name distinct from TaskInfo DisplayName.
+	const (
+		canonicalTaskName = "train-model"
+		displayTaskName   = "Train Model Display"
+	)
 	task := &apiv2beta1.PipelineTask{
 		TaskId:  "test-task-456",
 		RunId:   "test-run-123",
-		Name:    "train-model",
+		Name:    canonicalTaskName,
 		State:   apiv2beta1.PipelineTask_RUNNING,
 		Type:    apiv2beta1.PipelineTask_RUNTIME,
 		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{},
@@ -941,10 +1005,10 @@ func Test_executeV2(t *testing.T) {
 	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{Task: task, RunId: task.GetRunId()})
 	assert.NoError(t, err)
 
-	// Create task spec
+	// Create task spec with a display name that differs from the canonical DAG key.
 	taskSpec := &pipelinespec.PipelineTaskSpec{
 		TaskInfo: &pipelinespec.PipelineTaskInfo{
-			Name: "train-model",
+			Name: displayTaskName,
 		},
 	}
 
@@ -1001,6 +1065,17 @@ func Test_executeV2(t *testing.T) {
 	assert.Contains(t, executorOutput.ParameterValues, "output_message")
 	assert.Equal(t, 0.95, executorOutput.ParameterValues["output_metric"].GetNumberValue())
 	assert.Equal(t, "Training completed successfully", executorOutput.ParameterValues["output_message"].GetStringValue())
+
+	// Verify IOProducer.TaskName uses canonical task Name, not TaskInfo DisplayName.
+	updatedTask, err := mockAPI.GetTask(ctx, &apiv2beta1.GetTaskRequest{TaskId: task.GetTaskId(), RunId: task.GetRunId()})
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedTask.GetOutputs().GetParameters())
+	for _, param := range updatedTask.GetOutputs().GetParameters() {
+		require.NotNil(t, param.GetProducer())
+		assert.Equal(t, canonicalTaskName, param.GetProducer().GetTaskName(),
+			"IOProducer.TaskName must be canonical Name, not DisplayName %q", displayTaskName)
+		assert.NotEqual(t, displayTaskName, param.GetProducer().GetTaskName())
+	}
 
 	// Verify artifact was uploaded to object store
 	assert.True(t, mockObjStore.WasUploaded("s3://bucket/output/model.pkl"), "Expected model artifact to be uploaded")

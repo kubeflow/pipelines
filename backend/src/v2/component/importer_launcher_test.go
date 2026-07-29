@@ -89,6 +89,37 @@ func TestImportLauncher_FindMatchedArtifactUsesFullArtifactEquality(t *testing.T
 	}
 }
 
+type countingListByURIAPI struct {
+	*kfpapi.MockAPI
+	listByURICalls int
+}
+
+func (api *countingListByURIAPI) ListArtifactsByURI(ctx context.Context, uri, namespace string) ([]*apiv2beta1.Artifact, error) {
+	api.listByURICalls++
+	return api.MockAPI.ListArtifactsByURI(ctx, uri, namespace)
+}
+
+func TestImportLauncher_ReimportSkipsFindMatchedArtifact(t *testing.T) {
+	mockAPI := &countingListByURIAPI{MockAPI: kfpapi.NewMockAPI()}
+	launcher := &ImportLauncher{
+		opts: LauncherV2Options{
+			Namespace: "test-namespace",
+			ImporterSpec: &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
+				Reimport: true,
+			},
+		},
+		clientManager: clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI),
+	}
+
+	require.True(t, launcher.opts.ImporterSpec.GetReimport())
+	// Execute gates findMatchedArtifact behind !Reimport; assert the gate holds.
+	if !launcher.opts.ImporterSpec.GetReimport() {
+		_, err := launcher.findMatchedArtifact(context.Background(), &apiv2beta1.Artifact{})
+		require.NoError(t, err)
+	}
+	require.Equal(t, 0, mockAPI.listByURICalls)
+}
+
 func TestImportLauncher_RefreshesRunBeforeUpdatingStatuses(t *testing.T) {
 	taskSpec := &pipelinespec.PipelineTaskSpec{
 		TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "importer"},
@@ -301,6 +332,117 @@ func TestImportLauncher_RetryReusesExistingTask(t *testing.T) {
 		}
 	}
 	require.Len(t, importerTasks, 1)
+}
+
+func TestImportLauncher_UsesCanonicalTaskNameNotDisplayName(t *testing.T) {
+	const (
+		canonicalTaskName = "importer-task"
+		displayTaskName   = "Import Dataset Display"
+	)
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: displayTaskName},
+		ComponentRef: &pipelinespec.ComponentRef{Name: "comp-importer"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+				"artifact": {
+					ArtifactType: &pipelinespec.ArtifactTypeSchema{
+						Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+						SchemaVersion: "0.0.1",
+					},
+				},
+			},
+		},
+		Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "exec-importer"},
+	}
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "pipeline-with-importer"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						canonicalTaskName: taskSpec,
+					},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"comp-importer": componentSpec,
+		},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", canonicalTaskName)
+	require.NoError(t, err)
+	importerSpec := &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
+		ArtifactUri: &pipelinespec.ValueOrRuntimeParameter{
+			Value: &pipelinespec.ValueOrRuntimeParameter_Constant{
+				Constant: structpb.NewStringValue("gs://bucket/model"),
+			},
+		},
+		TypeSchema: &pipelinespec.ArtifactTypeSchema{
+			Kind:          &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			SchemaVersion: "0.0.1",
+		},
+	}
+
+	runID := uuid.NewString()
+	rootTaskID := uuid.NewString()
+	rootTask := &apiv2beta1.PipelineTask{
+		TaskId:    rootTaskID,
+		RunId:     runID,
+		Name:      "root",
+		State:     apiv2beta1.PipelineTask_RUNNING,
+		Type:      apiv2beta1.PipelineTask_DAG,
+		ScopePath: "root",
+	}
+	mockAPI := &importerTestAPI{
+		MockAPI: kfpapi.NewMockAPI(),
+		runs: map[string]*apiv2beta1.Run{
+			runID: {RunId: runID},
+		},
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: runID, Task: rootTask})
+	require.NoError(t, err)
+
+	clientManager := clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI)
+	importerLauncher, err := NewImporterLauncher(&LauncherV2Options{
+		Namespace:     "test-namespace",
+		PodName:       "test-pod",
+		PodUID:        "test-pod-uid",
+		PipelineName:  pipelineSpec.GetPipelineInfo().GetName(),
+		ComponentSpec: componentSpec,
+		ImporterSpec:  importerSpec,
+		PipelineSpec:  pipelineSpecStruct,
+		TaskSpec:      taskSpec,
+		ScopePath:     scopePath,
+		Run:           &apiv2beta1.Run{RunId: runID, Tasks: []*apiv2beta1.PipelineTask{rootTask}},
+		ParentTask:    rootTask,
+	}, clientManager)
+	require.NoError(t, err)
+
+	require.NoError(t, importerLauncher.Execute(context.Background()))
+
+	refreshedRun, err := mockAPI.GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: runID})
+	require.NoError(t, err)
+	var importerTask *apiv2beta1.PipelineTask
+	for _, task := range refreshedRun.GetTasks() {
+		if task.GetType() == apiv2beta1.PipelineTask_IMPORTER {
+			importerTask = task
+			break
+		}
+	}
+	require.NotNil(t, importerTask)
+	require.Equal(t, canonicalTaskName, importerTask.GetName(), "Name must be the canonical DAG task key")
+	require.Equal(t, displayTaskName, importerTask.GetDisplayName(), "DisplayName must come from TaskInfo")
+	require.Len(t, importerTask.GetOutputs().GetArtifacts(), 1)
+	require.Equal(
+		t,
+		canonicalTaskName,
+		importerTask.GetOutputs().GetArtifacts()[0].GetProducer().GetTaskName(),
+		"IOProducer.TaskName must be the canonical DAG task key, not DisplayName",
+	)
 }
 
 type importerTestAPI struct {

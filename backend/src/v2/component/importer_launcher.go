@@ -91,7 +91,8 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		RunId: l.opts.Run.RunId,
 		Task: &apiV2beta1.PipelineTask{
-			Name:           l.opts.TaskSpec.GetTaskInfo().GetName(),
+			// Name is the canonical DAG task key; DisplayName is the user-facing TaskInfo name.
+			Name:           l.opts.ScopePath.GetLast().GetTaskName(),
 			DisplayName:    l.opts.TaskSpec.GetTaskInfo().GetName(),
 			RunId:          l.opts.Run.RunId,
 			ParentTaskId:   &parentTaskID,
@@ -180,10 +181,14 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		return executionErr
 	}
 
-	// Determine if the Artifact already exists.
-	preExistingArtifact, executionErr := l.findMatchedArtifact(ctx, artifactToImport)
-	if executionErr != nil {
-		return executionErr
+	// Determine if the Artifact already exists. Skip the lookup when reimport
+	// is requested so we never pay for an unbounded URI scan that we will ignore.
+	var preExistingArtifact *apiV2beta1.Artifact
+	if !l.opts.ImporterSpec.GetReimport() {
+		preExistingArtifact, executionErr = l.findMatchedArtifact(ctx, artifactToImport)
+		if executionErr != nil {
+			return executionErr
+		}
 	}
 
 	// Get the output artifact name from the component spec.
@@ -197,14 +202,15 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		ArtifactKey: artifactOutputKey,
 		Type:        apiV2beta1.IOType_OUTPUT,
 		Producer: &apiV2beta1.IOProducer{
-			TaskName: l.opts.TaskSpec.GetTaskInfo().GetName(),
+			// Producer TaskName must be the canonical DAG task key, not DisplayName.
+			TaskName: createdTask.GetName(),
 		},
 	}
 	if l.opts.IterationIndex != nil {
 		outputIO.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
 		outputIO.Producer.Iteration = l.opts.IterationIndex
 	}
-	if l.opts.ImporterSpec.Reimport || preExistingArtifact == nil {
+	if l.opts.ImporterSpec.GetReimport() || preExistingArtifact == nil {
 		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
 		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
 			Artifact:       artifactToImport,

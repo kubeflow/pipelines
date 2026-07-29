@@ -41,7 +41,7 @@ components:
                 runtimeValue:
                   constant: 5Mi
           taskInfo:
-            name: createpvc
+            name: Create PVC Display
     outputDefinitions:
       parameters:
         pvc_name:
@@ -61,6 +61,6 @@ root:
         componentRef:
           name: comp-nested
         taskInfo:
-          name: nested
+          name: Nested DAG Display
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.14.6

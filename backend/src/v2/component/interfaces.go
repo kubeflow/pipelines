@@ -217,8 +217,10 @@ func resolveArtifactBucketConfig(
 	if err != nil {
 		return nil, "", err
 	}
+	// Missing launcher ConfigMap is optional, but under-root / reject checks must
+	// still run against the default pipeline root rather than fail-open.
 	if launcherConfig == nil {
-		return bucketConfig, bucketConfig.SessionInfoPath(), nil
+		launcherConfig = &config.Config{}
 	}
 
 	underPipelineRoot, err := launcherConfig.IsPathUnderDefaultPipelineRoot(prefix)

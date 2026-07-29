@@ -845,7 +845,8 @@ func createPVCTask(
 			ParameterKey: "name", // create-pvc output parameter is always "name"
 			Type:         apiV2beta1.IOType_OUTPUT,
 			Producer: &apiV2beta1.IOProducer{
-				TaskName: opts.Task.GetTaskInfo().GetName(),
+				// Producer TaskName must be the canonical DAG task key, not DisplayName.
+				TaskName: opts.TaskName,
 			},
 		})
 

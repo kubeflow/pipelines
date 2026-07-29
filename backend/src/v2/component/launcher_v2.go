@@ -259,20 +259,11 @@ func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) 
 	l.batchUpdater.QueueTaskUpdate(l.options.Task)
 
 	if flushErr := l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); flushErr != nil {
-		l.options.Task.State = apiV2beta1.PipelineTask_FAILED
-		finalizationErr := fmt.Errorf("failed to flush batch updates: %w", flushErr)
-		executionErr = errors.Join(executionErr, finalizationErr)
-		l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
-			Message: finalizationErr.Error(),
-		}
-		_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
-			TaskId: l.options.Task.GetTaskId(),
-			Task:   l.options.Task,
-			RunId:  l.options.Task.GetRunId(),
-		})
-		if updateTaskErr != nil {
-			return errors.Join(executionErr, fmt.Errorf("failed to persist task after batch flush failure: %w", updateTaskErr))
-		}
+		return l.persistFailedTaskAfterFinalizationError(
+			ctx,
+			executionErr,
+			fmt.Errorf("failed to flush batch updates: %w", flushErr),
+		)
 	}
 
 	fullView := apiV2beta1.GetRunRequest_FULL
@@ -281,7 +272,11 @@ func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) 
 		View:  &fullView,
 	})
 	if getRunErr != nil {
-		return errors.Join(executionErr, fmt.Errorf("failed to refresh run before status propagation: %w", getRunErr))
+		return l.persistFailedTaskAfterFinalizationError(
+			ctx,
+			executionErr,
+			fmt.Errorf("failed to refresh run before status propagation: %w", getRunErr),
+		)
 	}
 	l.options.Run = refreshedRun
 	if updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(
@@ -290,7 +285,35 @@ func (l *LauncherV2) finalizeExecution(ctx context.Context, executionErr error) 
 		l.pipelineSpec,
 		l.options.Task,
 	); updateStatusErr != nil {
-		return errors.Join(executionErr, fmt.Errorf("failed to update statuses: %w", updateStatusErr))
+		return l.persistFailedTaskAfterFinalizationError(
+			ctx,
+			executionErr,
+			fmt.Errorf("failed to update statuses: %w", updateStatusErr),
+		)
+	}
+	return executionErr
+}
+
+// persistFailedTaskAfterFinalizationError forces the task to FAILED after a
+// post-success finalization step fails so callers do not leave SUCCEEDED state
+// persisted when GetRun/UpdateStatuses (or the batch flush) cannot complete.
+func (l *LauncherV2) persistFailedTaskAfterFinalizationError(
+	ctx context.Context,
+	executionErr error,
+	finalizationErr error,
+) error {
+	l.options.Task.State = apiV2beta1.PipelineTask_FAILED
+	executionErr = errors.Join(executionErr, finalizationErr)
+	l.options.Task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+		Message: finalizationErr.Error(),
+	}
+	_, updateTaskErr := l.clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+		TaskId: l.options.Task.GetTaskId(),
+		Task:   l.options.Task,
+		RunId:  l.options.Task.GetRunId(),
+	})
+	if updateTaskErr != nil {
+		return errors.Join(executionErr, fmt.Errorf("failed to persist task after finalization failure: %w", updateTaskErr))
 	}
 	return executionErr
 }
@@ -378,7 +401,8 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 				Type:         apiV2beta1.IOType_OUTPUT,
 				Value:        val,
 				Producer: &apiV2beta1.IOProducer{
-					TaskName: l.options.TaskSpec.GetTaskInfo().GetName(),
+					// Producer TaskName must be the canonical DAG task key, not DisplayName.
+					TaskName: l.options.Task.GetName(),
 				}}
 			if l.options.IterationIndex != nil {
 				param.Producer.Iteration = l.options.IterationIndex
@@ -1496,7 +1520,7 @@ func (l *LauncherV2) downloadArtifacts(ctx context.Context) error {
 				}
 			}
 			// Iterating through the artifact list allows for collected artifacts to be properly consumed.
-			localPath, err := LocalPathForURI(artifact.Uri)
+			localPath, err := retrieveArtifactPath(artifact)
 			if err != nil {
 				glog.Warningf("Input Artifact %q does not have a recognized storage URI %q. Skipping downloading to local path.", artifactKey, artifact.Uri)
 				continue
@@ -1583,7 +1607,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 			}
 		}
 
-		localPath, err := LocalPathForURI(inputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(inputArtifact)
 		if err != nil {
 			// Input Artifact does not have a recognized storage URI
 			continue
@@ -1602,7 +1626,7 @@ func getPlaceholders(executorInput *pipelinespec.ExecutorInput) (placeholders ma
 		outputArtifact := artifactList.Artifacts[0]
 		placeholders[fmt.Sprintf(`{{$.outputs.artifacts['%s'].uri}}`, name)] = outputArtifact.Uri
 
-		localPath, err := LocalPathForURI(outputArtifact.Uri)
+		localPath, err := retrieveArtifactPath(outputArtifact)
 		if err != nil {
 			return nil, fmt.Errorf("resolve output artifact %q's local path: %w", name, err)
 		}
@@ -1768,7 +1792,7 @@ func (l *LauncherV2) prepareOutputFolders(executorInput *pipelinespec.ExecutorIn
 
 		for _, outputArtifact := range artifactList.Artifacts {
 
-			localPath, err := LocalPathForURI(outputArtifact.Uri)
+			localPath, err := retrieveArtifactPath(outputArtifact)
 			if err != nil {
 				return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 			}

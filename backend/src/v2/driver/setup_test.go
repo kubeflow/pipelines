@@ -859,10 +859,11 @@ func (tc *TestContext) setupDagOptions(
 		PublishLogs:              "false",
 		CacheDisabled:            false,
 		DriverType:               "DAG",
-		TaskName:                 taskSpec.TaskInfo.GetName(),
-		PodName:                  "system-dag-driver",
-		PodUID:                   "some-uid",
-		ScopePath:                tc.ScopePath,
+		// TaskName is the canonical DAG task key from ScopePath, not TaskInfo display name.
+		TaskName:  tc.ScopePath.GetLast().GetTaskName(),
+		PodName:   "system-dag-driver",
+		PodUID:    "some-uid",
+		ScopePath: tc.ScopePath,
 	}
 }
 
@@ -905,10 +906,11 @@ func (tc *TestContext) setupContainerOptions(
 		PublishLogs:              "false",
 		CacheDisabled:            false,
 		DriverType:               "CONTAINER",
-		TaskName:                 taskSpec.TaskInfo.GetName(),
-		PodName:                  "system-container-impl",
-		PodUID:                   "some-uid",
-		ScopePath:                tc.ScopePath,
+		// TaskName is the canonical DAG task key from ScopePath, not TaskInfo display name.
+		TaskName:  tc.ScopePath.GetLast().GetTaskName(),
+		PodName:   "system-container-impl",
+		PodUID:    "some-uid",
+		ScopePath: tc.ScopePath,
 	}
 }
 

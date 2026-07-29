@@ -99,6 +99,29 @@ func TestResolveArtifactBucketConfig_PreservesExplicitProviderQueryString(t *tes
 	assert.Equal(t, "true", sessionInfo.Params["fromEnv"])
 }
 
+func TestResolveArtifactBucketConfig_NilConfigRejectsOutsideRootURI(t *testing.T) {
+	_, _, err := resolveArtifactBucketConfig(
+		nil,
+		"s3://other-bucket/outside/path",
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "outside the configured pipeline root")
+}
+
+func TestResolveArtifactBucketConfig_NilConfigAllowsUnderDefaultRoot(t *testing.T) {
+	bucketConfig, sessionLookupPath, err := resolveArtifactBucketConfig(
+		nil,
+		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs",
+	)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"minio://mlpipeline/v2/artifacts/run-1/system-container/executor-logs",
+		sessionLookupPath,
+	)
+	assert.NotNil(t, bucketConfig)
+}
+
 func TestObjectStoreClientGetBucket_RejectsEncodedQueryDelimiterBypass(t *testing.T) {
 	ctx := context.Background()
 	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
