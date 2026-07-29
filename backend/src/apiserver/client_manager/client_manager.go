@@ -378,7 +378,11 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Without this index, every GC batch scans the full run_details table.
 	if db.Migrator().HasTable("run_details") {
 		if !db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
-			if err := db.Exec("CREATE INDEX idx_run_gc_lifecycle ON run_details (StorageState, FinishedAtInSec)").Error; err != nil {
+			q := dialect.QuoteIdentifier
+			indexSQL := fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
+				q("idx_run_gc_lifecycle"), q("run_details"),
+				q("StorageState"), q("FinishedAtInSec"))
+			if err := db.Exec(indexSQL).Error; err != nil {
 				glog.Warningf("Failed to create GC lifecycle index on run_details: %v", err)
 			}
 		}

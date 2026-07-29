@@ -113,7 +113,7 @@ data:
   ARCHIVED_RUNS_RETENTION_TIME: ""
   ## RUNS_GC_INTERVAL: Poll interval for the run garbage collector.
   RUNS_GC_INTERVAL: "6h"
-  ## RUNS_GC_BATCH_SIZE: Maximum rows processed per GC pass.
+  ## RUNS_GC_BATCH_SIZE: Maximum rows per GC batch (the collector drains all batches per tick).
   RUNS_GC_BATCH_SIZE: "100"
   ## Default security context for customer workload containers.
   ## Leave empty to disable (default). When set, SDK-specified values

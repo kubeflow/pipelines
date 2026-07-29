@@ -869,6 +869,7 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 			sq.NotEq{"StorageState": []string{
 				string(model.StorageStateArchived),
 				string(model.StorageStateArchivedV1),
+				model.LegacyStateDisabled,
 			}},
 		}).
 		OrderBy("FinishedAtInSec ASC").
