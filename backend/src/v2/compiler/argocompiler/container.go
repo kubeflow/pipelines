@@ -186,6 +186,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--pod_spec_patch_path", outputPath(paramPodSpecPatch),
 		"--condition_path", outputPath(paramCondition),
 		"--kubernetes_config", inputValue(paramKubernetesConfig),
+		"--namespace", fmt.Sprintf("$(%s)", component.EnvNamespace),
 		"--http_proxy", proxy.GetConfig().GetHttpProxy(),
 		"--https_proxy", proxy.GetConfig().GetHttpsProxy(),
 		"--no_proxy", proxy.GetConfig().GetNoProxy(),

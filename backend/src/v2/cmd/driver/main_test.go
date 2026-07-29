@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"os"
 	"testing"
 
@@ -15,48 +14,24 @@ func strPtr(s string) *string {
 	return &s
 }
 
-func TestResolveStringFlag(t *testing.T) {
-	t.Run("prefers primary flag", func(t *testing.T) {
-		primary := "new-task-id"
-		legacy := "old-task-id"
-		if got := resolveStringFlag(&primary, &legacy); got != primary {
-			t.Fatalf("resolveStringFlag() = %q, want %q", got, primary)
-		}
-	})
-
-	t.Run("falls back to legacy flag", func(t *testing.T) {
-		primary := ""
-		legacy := "old-task-id"
-		if got := resolveStringFlag(&primary, &legacy); got != legacy {
-			t.Fatalf("resolveStringFlag() = %q, want %q", got, legacy)
-		}
-	})
-}
-
-func TestLegacyMetadataFlagsRemainRegistered(t *testing.T) {
-	expectedDefaults := map[string]string{
-		"mlmd_server_address":  "",
-		"mlmd_server_port":     "",
-		"metadata_tls_enabled": "false",
-	}
-
-	for name, expectedDefault := range expectedDefaults {
-		registeredFlag := flag.Lookup(name)
-		if registeredFlag == nil {
-			t.Fatalf("legacy flag %q is not registered", name)
-		}
-		if registeredFlag.DefValue != expectedDefault {
-			t.Errorf("legacy flag %q default = %q, want %q", name, registeredFlag.DefValue, expectedDefault)
-		}
-	}
-}
-
 func TestResolveNamespace(t *testing.T) {
+	t.Run("prefers explicit namespace flag", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "ignored")
+
+		got, err := resolveNamespace("flag-namespace")
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "flag-namespace" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "flag-namespace")
+		}
+	})
+
 	t.Run("prefers NAMESPACE", func(t *testing.T) {
 		t.Setenv("NAMESPACE", "kubeflow")
 		t.Setenv("POD_NAMESPACE", "ignored")
 
-		got, err := resolveNamespace()
+		got, err := resolveNamespace("")
 		if err != nil {
 			t.Fatalf("resolveNamespace() error = %v", err)
 		}
@@ -65,16 +40,13 @@ func TestResolveNamespace(t *testing.T) {
 		}
 	})
 
-	t.Run("falls back to POD_NAMESPACE", func(t *testing.T) {
+	t.Run("does not fall back to POD_NAMESPACE", func(t *testing.T) {
 		t.Setenv("NAMESPACE", "")
 		t.Setenv("POD_NAMESPACE", "kubeflow-from-pod")
 
-		got, err := resolveNamespace()
-		if err != nil {
-			t.Fatalf("resolveNamespace() error = %v", err)
-		}
-		if got != "kubeflow-from-pod" {
-			t.Fatalf("resolveNamespace() = %q, want %q", got, "kubeflow-from-pod")
+		got, err := resolveNamespace("")
+		if err == nil && got == "kubeflow-from-pod" {
+			t.Fatal("resolveNamespace() fell back to POD_NAMESPACE")
 		}
 	})
 }

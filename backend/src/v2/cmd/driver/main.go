@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"time"
@@ -59,30 +58,23 @@ var (
 	runID             = flag.String("run_id", "", "pipeline run uid")
 	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
 	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
-	componentSpecJson = flag.String("component", "", "legacy component spec override")
-	taskSpecJson      = flag.String("task", "", "task spec")
 	runtimeConfigJson = flag.String("runtime_config", "", "jobruntime config")
 	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
 	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	namespaceFlag     = flag.String("namespace", "", "Kubernetes namespace for runtime operations.")
 
 	// container inputs
-	parentTaskID       = flag.String("parent_task_id", "", "Parent PipelineTask ID")
-	legacyParentTaskID = flag.String("dag_execution_id", "", "Legacy alias for parent task id")
-	containerSpecJson  = flag.String("container", "", "legacy container spec override")
-	k8sExecConfigJson  = flag.String("kubernetes_config", "{}", "kubernetes executor config")
+	parentTaskID      = flag.String("parent_task_id", "", "Parent PipelineTask ID")
+	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
-	mlPipelineServerAddress  = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
-	mlPipelineServerPort     = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	legacyMLMDServerAddress  = flag.String("mlmd_server_address", "", "Legacy no-op MLMD server address")
-	legacyMLMDServerPort     = flag.String("mlmd_server_port", "", "Legacy no-op MLMD server port")
-	legacyMetadataTLSEnabled = flag.Bool("metadata_tls_enabled", false, "Legacy no-op metadata TLS flag")
+	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
+	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
 
 	// output paths
-	parentTaskIDPath       = flag.String("parent_task_id_path", "", "Parent Task ID output path")
-	legacyParentTaskIDPath = flag.String("execution_id_path", "", "Legacy alias for parent task id output path")
-	iterationCountPath     = flag.String("iteration_count_path", "", "Iteration Count output path")
-	podSpecPatchPath       = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
+	parentTaskIDPath   = flag.String("parent_task_id_path", "", "Parent Task ID output path")
+	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
+	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
 	// the value stored in the paths will be either 'true' or 'false'
 	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
 	conditionPath      = flag.String("condition_path", "", "Condition output path")
@@ -175,7 +167,7 @@ func drive() (err error) {
 		return err
 	}
 
-	namespace, err := resolveNamespace()
+	namespace, err := resolveNamespace(*namespaceFlag)
 	if err != nil {
 		return err
 	}
@@ -196,10 +188,9 @@ func drive() (err error) {
 	}
 
 	var parentTask *go_client.PipelineTask
-	resolvedParentTaskID := resolveStringFlag(parentTaskID, legacyParentTaskID)
-	if resolvedParentTaskID != "" {
+	if *parentTaskID != "" {
 		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{
-			TaskId: resolvedParentTaskID,
+			TaskId: *parentTaskID,
 			RunId:  *runID,
 		})
 		if err != nil {
@@ -223,13 +214,7 @@ func drive() (err error) {
 	if err != nil || scopePath == nil {
 		return fmt.Errorf("failed to build scope path: %w", err)
 	}
-	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecs(
-		scopePath,
-		*driverType,
-		*componentSpecJson,
-		*taskSpecJson,
-		*containerSpecJson,
-	)
+	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecs(scopePath, *driverType)
 	if err != nil {
 		return fmt.Errorf("failed to resolve specs from scope path: %w", err)
 	}
@@ -297,7 +282,7 @@ func drive() (err error) {
 	}
 
 	executionPaths := &TaskPaths{
-		TaskID:         resolveStringFlag(parentTaskIDPath, legacyParentTaskIDPath),
+		TaskID:         *parentTaskIDPath,
 		IterationCount: *iterationCountPath,
 		CachedDecision: *cachedDecisionPath,
 		Condition:      *conditionPath,
@@ -307,11 +292,11 @@ func drive() (err error) {
 	return handleExecution(execution, *driverType, executionPaths)
 }
 
-func resolveNamespace() (string, error) {
-	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
-		return namespace, nil
+func resolveNamespace(explicitNamespace string) (string, error) {
+	if explicitNamespace != "" {
+		return explicitNamespace, nil
 	}
-	if namespace := os.Getenv("POD_NAMESPACE"); namespace != "" {
+	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
 		return namespace, nil
 	}
 	const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
@@ -320,16 +305,6 @@ func resolveNamespace() (string, error) {
 		return "", fmt.Errorf("NAMESPACE environment variable must be set")
 	}
 	return string(bytes.TrimSpace(namespaceBytes)), nil
-}
-
-func resolveStringFlag(primary, legacy *string) string {
-	if primary != nil && *primary != "" {
-		return *primary
-	}
-	if legacy != nil {
-		return *legacy
-	}
-	return ""
 }
 
 func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
@@ -470,24 +445,8 @@ func buildScopePath(
 func resolveDriverSpecs(
 	scopePath *util.ScopePath,
 	driverType string,
-	rawComponentSpec string,
-	rawTaskSpec string,
-	rawContainerSpec string,
 ) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
-	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecsFromScopePath(scopePath, driverType)
-	if err == nil {
-		return componentSpec, taskSpec, containerSpec, nil
-	}
-	var unavailableErr specSourceUnavailableError
-	if !errors.As(err, &unavailableErr) {
-		return nil, nil, nil, err
-	}
-
-	// Legacy fields remain available for older workflows, but they must resolve
-	// as one self-consistent tuple. Mixing current task metadata with a fallback
-	// raw container can make the driver reason about different executable state
-	// than the container spec it ultimately launches.
-	return resolveDriverSpecsFromLegacy(driverType, rawComponentSpec, rawTaskSpec, rawContainerSpec)
+	return resolveDriverSpecsFromScopePath(scopePath, driverType)
 }
 
 type specSourceUnavailableError struct {
@@ -533,48 +492,6 @@ func resolveDriverSpecsFromScopePath(
 		containerSpec, err = loadContainerSpec(componentSpec, scopePath.GetPipelineSpec())
 		if err != nil {
 			return nil, nil, nil, err
-		}
-	}
-
-	return componentSpec, taskSpec, containerSpec, nil
-}
-
-func resolveDriverSpecsFromLegacy(
-	driverType string,
-	rawComponentSpec string,
-	rawTaskSpec string,
-	rawContainerSpec string,
-) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
-	if rawComponentSpec == "" {
-		return nil, nil, nil, fmt.Errorf("component spec not found")
-	}
-	componentSpec := &pipelinespec.ComponentSpec{}
-	if err := util.UnmarshalString(rawComponentSpec, componentSpec); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy component spec: %w", err)
-	}
-	if err := validateDriverComponentKinds(driverType, componentSpec); err != nil {
-		return nil, nil, nil, err
-	}
-
-	var taskSpec *pipelinespec.PipelineTaskSpec
-	if driverType != ROOT_DAG {
-		if rawTaskSpec == "" {
-			return nil, nil, nil, fmt.Errorf("task spec not found")
-		}
-		taskSpec = &pipelinespec.PipelineTaskSpec{}
-		if err := util.UnmarshalString(rawTaskSpec, taskSpec); err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy task spec: %w", err)
-		}
-	}
-
-	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
-	if driverType == CONTAINER {
-		if rawContainerSpec == "" {
-			return nil, nil, nil, fmt.Errorf("container spec not found")
-		}
-		containerSpec = &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
-		if err := util.UnmarshalString(rawContainerSpec, containerSpec); err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to unmarshal legacy container spec: %w", err)
 		}
 	}
 
