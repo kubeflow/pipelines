@@ -789,25 +789,25 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	assert.NotNil(t, updatedTask1)
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, updatedTask1.GetState())
 	params := updatedTask1.GetOutputs().GetParameters()
-	sortParams(params)
-	assert.Equal(t, "initial1", params[0].GetValue().AsInterface())
-	assert.Equal(t, "updated1", params[1].GetValue().AsInterface())
+	assert.Len(t, params, 1)
+	assert.Equal(t, "out1", params[0].GetParameterKey())
+	assert.Equal(t, "updated1", params[0].GetValue().AsInterface())
 
 	updatedTask2 := resp.GetTasks()[task2.GetTaskId()]
 	assert.NotNil(t, updatedTask2)
 	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, updatedTask2.GetState())
 	params = updatedTask2.GetOutputs().GetParameters()
-	sortParams(params)
-	assert.Equal(t, "initial2", params[0].GetValue().AsInterface())
-	assert.Equal(t, "updated2", params[1].GetValue().AsInterface())
+	assert.Len(t, params, 1)
+	assert.Equal(t, "out2", params[0].GetParameterKey())
+	assert.Equal(t, "updated2", params[0].GetValue().AsInterface())
 
 	updatedTask3 := resp.GetTasks()[task3.GetTaskId()]
 	assert.NotNil(t, updatedTask3)
 	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, updatedTask3.GetState())
 	params = updatedTask3.GetOutputs().GetParameters()
-	sortParams(params)
-	assert.Equal(t, "initial3", params[0].GetValue().AsInterface())
-	assert.Equal(t, "updated3", params[1].GetValue().AsInterface())
+	assert.Len(t, params, 1)
+	assert.Equal(t, "out3", params[0].GetParameterKey())
+	assert.Equal(t, "updated3", params[0].GetValue().AsInterface())
 
 	// Verify updates persisted by fetching individually
 	fetched1, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task1.GetTaskId()})
