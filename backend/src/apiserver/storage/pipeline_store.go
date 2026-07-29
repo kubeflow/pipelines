@@ -28,8 +28,8 @@ import (
 
 func (s *PipelineStore) selectJoinedColumns() []string {
 	q := s.dbDialect.QuoteIdentifier
-	p := func(col string) string { return fmt.Sprintf("%s.%s", q("pipelines"), q(col)) }
-	v := func(col string) string { return fmt.Sprintf("%s.%s", q("pipeline_versions"), q(col)) }
+	p := dialect.QualifiedColumn(q, "pipelines")
+	v := dialect.QualifiedColumn(q, "pipeline_versions")
 	return []string{
 		p("UUID"),
 		p("CreatedAtInSec"),
@@ -54,7 +54,7 @@ func (s *PipelineStore) selectJoinedColumns() []string {
 
 func (s *PipelineStore) selectPipelineColumns() []string {
 	q := s.dbDialect.QuoteIdentifier
-	p := func(col string) string { return fmt.Sprintf("%s.%s", q("pipelines"), q(col)) }
+	p := dialect.QualifiedColumn(q, "pipelines")
 	return []string{
 		p("UUID"),
 		p("CreatedAtInSec"),
@@ -68,7 +68,7 @@ func (s *PipelineStore) selectPipelineColumns() []string {
 
 func (s *PipelineStore) selectPipelineVersionColumns() []string {
 	q := s.dbDialect.QuoteIdentifier
-	v := func(col string) string { return fmt.Sprintf("%s.%s", q("pipeline_versions"), q(col)) }
+	v := dialect.QualifiedColumn(q, "pipeline_versions")
 	return []string{
 		v("UUID"),
 		v("CreatedAtInSec"),
@@ -726,7 +726,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 
 	_, err = tx.Exec(pipelineSQL, pipelineArgs...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateKeyError(err) {
 			tx.Rollback()
 			return nil, nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exists. Please specify a new name", p.Name)
@@ -814,7 +814,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	}
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateKeyError(err) {
 			tx.Rollback()
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name", p.Name)
@@ -881,7 +881,7 @@ func insertTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tableName, idColumn
 // The tag tables have a composite primary key on (idColumn, TagKey).
 func (s *PipelineStore) upsertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
 	for key, value := range tags {
-		upsertBuilder := insertUpsert(s.dbDialect, tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
+		upsertBuilder := s.dbDialect.Upsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
 			Values(entityID, key, value)
 		upsertSQL, args, err := upsertBuilder.ToSql()
 		if err != nil {
@@ -1042,7 +1042,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	_, err = tx.Exec(versionSQL, versionArgs...)
 	if err != nil {
 		tx.Rollback()
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateKeyError(err) {
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline version. The name %v already exist. Specify a new name", pv.Name)
 		}
@@ -1189,13 +1189,14 @@ func (s *PipelineStore) GetPipelineVersionWithStatus(versionId string, status mo
 // useful for fetching pipeline Version by either UUID or Name columns.
 func (s *PipelineStore) getPipelineVersionByCol(colName, colVal string, status model.PipelineVersionStatus) (*model.PipelineVersion, error) {
 	q := s.dbDialect.QuoteIdentifier
+	v := dialect.QualifiedColumn(q, "pipeline_versions")
 	qb := s.dbDialect.QueryBuilder()
 	// Prepare a SQL query
 	sql, args, err := qb.
 		Select(s.selectPipelineVersionColumns()...).
 		From(q("pipeline_versions")).
 		Where(sq.And{
-			sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q(colName)): colVal}, sq.Eq{fmt.Sprintf("%s.%s", q("pipeline_versions"), q("Status")): status}}).
+			sq.Eq{v(colName): colVal}, sq.Eq{v("Status"): status}}).
 		Limit(1).
 		ToSql()
 	if err != nil {

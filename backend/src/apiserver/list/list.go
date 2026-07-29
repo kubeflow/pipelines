@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -314,7 +315,7 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 // If quote is nil, identifiers are not quoted.
 // The collation parameter is appended after LOWER() expressions for string sorting and cursor
 // comparisons (e.g., `COLLATE "C"` for PostgreSQL, "" for MySQL/SQLite).
-func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	sqlBuilder = o.AddSortingToSelect(sqlBuilder, quote, collation)
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
@@ -327,7 +328,15 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(
 // tokens with a trailing dot (e.g. "experiments."), matching the historical
 // token layout; the dot is stripped before quoting so the output is
 // `"experiments"."Name"` rather than `"experiments."."Name"`.
-func qualifyColumn(prefix, column string, quote func(string) string) string {
+// lowerWithCollation wraps col in LOWER() and appends the collation clause if non-empty.
+func lowerWithCollation(col, collation string) string {
+	if collation == "" {
+		return fmt.Sprintf("LOWER(%s)", col)
+	}
+	return fmt.Sprintf("LOWER(%s) %s", col, collation)
+}
+
+func qualifyColumn(prefix, column string, quote dialect.QuoteFunction) string {
 	prefix = strings.TrimSuffix(prefix, ".")
 	if prefix == "" {
 		return quote(column)
@@ -337,23 +346,12 @@ func qualifyColumn(prefix, column string, quote func(string) string) string {
 
 // AddSortingToSelect adds Order By clause.
 // The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
-// If quote is nil, identifiers are not quoted.
 // The collation parameter is appended after LOWER() expressions for string sorting and cursor
 // comparisons to ensure consistent ordering across databases (e.g., `COLLATE "C"` for
 // PostgreSQL byte-order sorting, "" for MySQL/SQLite which use their default collation).
-func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
-	}
-
-	// lowerWithCollation wraps col in LOWER() and appends the collation clause if non-empty.
-	// Used consistently in both ORDER BY and WHERE cursor comparisons so that pagination
-	// boundaries are evaluated with the same collation as the sort order.
-	lowerWithCollation := func(col string) string {
-		if collation == "" {
-			return fmt.Sprintf("LOWER(%s)", col)
-		}
-		return fmt.Sprintf("LOWER(%s) %s", col, collation)
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 
 	sortByFieldNameWithPrefix := qualifyColumn(o.SortByFieldPrefix, o.SortBySQLColumn, quote)
@@ -370,7 +368,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 		strVal, sortValueIsString := o.SortByFieldValue.(string)
 		floatVal, sortValueIsFloat := o.SortByFieldValue.(float64)
 
-		sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+		sortCol := lowerWithCollation(sortByFieldNameWithPrefix, collation)
 
 		if o.IsDesc {
 			if isStringField && sortValueIsString {
@@ -379,9 +377,9 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 				// cursor we must also include the entire NULL block that follows.
 				sqlBuilder = sqlBuilder.
 					Where(sq.Or{
-						sq.Expr(fmt.Sprintf("%s < %s", sortCol, lowerWithCollation("?")), strVal),
+						sq.Expr(fmt.Sprintf("%s < %s", sortCol, lowerWithCollation("?", collation)), strVal),
 						sq.And{
-							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?")), strVal),
+							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?", collation)), strVal),
 							sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 						},
 						sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
@@ -407,9 +405,9 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 				// cursor we must also include the entire NULL block that follows.
 				sqlBuilder = sqlBuilder.
 					Where(sq.Or{
-						sq.Expr(fmt.Sprintf("%s > %s", sortCol, lowerWithCollation("?")), strVal),
+						sq.Expr(fmt.Sprintf("%s > %s", sortCol, lowerWithCollation("?", collation)), strVal),
 						sq.And{
-							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?")), strVal),
+							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?", collation)), strVal),
 							sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 						},
 						sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
@@ -466,7 +464,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 		// Also check runtime value type as fallback for old tokens that lack this field.
 		_, valueIsString := o.SortByFieldValue.(string)
 		if o.SortByFieldIsString || valueIsString {
-			sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+			sortCol := lowerWithCollation(sortByFieldNameWithPrefix, collation)
 			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortCol, order))
 		} else {
 			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
@@ -483,17 +481,10 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 // AddOrderByToSelect adds only the ORDER BY clauses from the sorting criteria,
 // without cursor WHERE clauses or LIMIT. Use this when the rows have already been
 // paged by a subquery and only need to be re-sorted for the final result set.
-func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
-	lowerWithCollation := func(col string) string {
-		if collation == "" {
-			return fmt.Sprintf("LOWER(%s)", col)
-		}
-		return fmt.Sprintf("LOWER(%s) %s", col, collation)
-	}
-
 	sortByFieldNameWithPrefix := qualifyColumn(o.SortByFieldPrefix, o.SortBySQLColumn, quote)
 	keyFieldNameWithPrefix := qualifyColumn(o.KeyFieldPrefix, o.KeyFieldName, quote)
 
@@ -506,7 +497,7 @@ func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("(%v IS NULL) ASC", sortByFieldNameWithPrefix))
 		_, valueIsString := o.SortByFieldValue.(string)
 		if o.SortByFieldIsString || valueIsString {
-			sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+			sortCol := lowerWithCollation(sortByFieldNameWithPrefix, collation)
 			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortCol, order))
 		} else {
 			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
@@ -524,7 +515,7 @@ func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 // containing these.
 // The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
 // If quote is nil, identifiers are not quoted.
-func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction) sq.SelectBuilder {
 	if o.Filter != nil {
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, quote)
 	}

@@ -53,6 +53,8 @@ func (f *fakeListable) DefaultSortField() string {
 	return "CreatedTimestamp"
 }
 
+func testQuote(s string) string { return `"` + s + `"` }
+
 var fakeAPIToModelMap = map[string]string{
 	"timestamp": "CreatedTimestamp",
 	"name":      "FakeName",
@@ -687,7 +689,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) < LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField <= ?) OR SortField IS NULL) ORDER BY (SortField IS NULL) ASC, LOWER(SortField) DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") < LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" <= ?) OR "SortField" IS NULL) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -704,7 +706,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) > LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField >= ?) OR SortField IS NULL) ORDER BY (SortField IS NULL) ASC, LOWER(SortField) ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") > LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" >= ?) OR "SortField" IS NULL) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111},
 		},
 		{
@@ -722,7 +724,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(SortField) > LOWER(?) OR (LOWER(SortField) = LOWER(?) AND KeyField >= ?) OR SortField IS NULL) AND (Name = ?) ORDER BY (SortField IS NULL) ASC, LOWER(SortField) ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("SortField") > LOWER(?) OR (LOWER("SortField") = LOWER(?) AND "KeyField" >= ?) OR "SortField" IS NULL) AND ("Name" = ?) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"value", "value", 1111, "SomeName"},
 		},
 		{
@@ -739,7 +741,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY (SortField IS NULL) ASC, LOWER(SortField) DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: nil,
 		},
 		{
@@ -762,7 +764,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY (CreatedAtInSec IS NULL) ASC, CreatedAtInSec ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: nil,
 		},
 		// Numeric field, second page (SortByFieldValue is float64, e.g. CreatedAtInSec):
@@ -782,7 +784,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (CreatedAtInSec > ? OR (CreatedAtInSec = ? AND KeyField >= ?) OR CreatedAtInSec IS NULL) ORDER BY (CreatedAtInSec IS NULL) ASC, CreatedAtInSec ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" > ? OR ("CreatedAtInSec" = ? AND "KeyField" >= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{float64(1234567890), float64(1234567890), "uuid-2"},
 		},
 		{
@@ -798,7 +800,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable ORDER BY (SortField IS NULL) ASC, LOWER(SortField) ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: nil,
 		},
 		{
@@ -815,7 +817,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					Filter:            f,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (Name = ?) ORDER BY (SortField IS NULL) ASC, LOWER(SortField) ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("Name" = ?) ORDER BY ("SortField" IS NULL) ASC, LOWER("SortField") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"SomeName"},
 		},
 		// Numeric field, second page (SortByFieldValue is float64): bind parameter preserves full precision.
@@ -834,7 +836,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (MetricValue > ? OR (MetricValue = ? AND KeyField >= ?) OR MetricValue IS NULL) ORDER BY (MetricValue IS NULL) ASC, MetricValue ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("MetricValue" > ? OR ("MetricValue" = ? AND "KeyField" >= ?) OR "MetricValue" IS NULL) ORDER BY ("MetricValue" IS NULL) ASC, "MetricValue" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
 		},
 		{
@@ -852,7 +854,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (MetricValue < ? OR (MetricValue = ? AND KeyField <= ?) OR MetricValue IS NULL) ORDER BY (MetricValue IS NULL) ASC, MetricValue DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("MetricValue" < ? OR ("MetricValue" = ? AND "KeyField" <= ?) OR "MetricValue" IS NULL) ORDER BY ("MetricValue" IS NULL) ASC, "MetricValue" DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{float64(0.123456789), float64(0.123456789), "uuid-1"},
 		},
 		// Non-metric nullable string field, DESC with cursor: NULL handling in both
@@ -872,7 +874,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(FakeName) < LOWER(?) OR (LOWER(FakeName) = LOWER(?) AND KeyField <= ?) OR FakeName IS NULL) ORDER BY (FakeName IS NULL) ASC, LOWER(FakeName) DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("FakeName") < LOWER(?) OR (LOWER("FakeName") = LOWER(?) AND "KeyField" <= ?) OR "FakeName" IS NULL) ORDER BY ("FakeName" IS NULL) ASC, LOWER("FakeName") DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{"some_value", "some_value", "uuid-3"},
 		},
 		// Non-metric nullable string field, ASC with cursor.
@@ -891,7 +893,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (LOWER(FakeName) > LOWER(?) OR (LOWER(FakeName) = LOWER(?) AND KeyField >= ?) OR FakeName IS NULL) ORDER BY (FakeName IS NULL) ASC, LOWER(FakeName) ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE (LOWER("FakeName") > LOWER(?) OR (LOWER("FakeName") = LOWER(?) AND "KeyField" >= ?) OR "FakeName" IS NULL) ORDER BY ("FakeName" IS NULL) ASC, LOWER("FakeName") ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"some_value", "some_value", "uuid-3"},
 		},
 		// Non-metric nullable numeric field, DESC with cursor.
@@ -910,7 +912,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (CreatedAtInSec < ? OR (CreatedAtInSec = ? AND KeyField <= ?) OR CreatedAtInSec IS NULL) ORDER BY (CreatedAtInSec IS NULL) ASC, CreatedAtInSec DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" < ? OR ("CreatedAtInSec" = ? AND "KeyField" <= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{float64(1000), float64(1000), "uuid-4"},
 		},
 		// Non-metric nullable numeric field, ASC with cursor.
@@ -929,7 +931,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (CreatedAtInSec > ? OR (CreatedAtInSec = ? AND KeyField >= ?) OR CreatedAtInSec IS NULL) ORDER BY (CreatedAtInSec IS NULL) ASC, CreatedAtInSec ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("CreatedAtInSec" > ? OR ("CreatedAtInSec" = ? AND "KeyField" >= ?) OR "CreatedAtInSec" IS NULL) ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{float64(1000), float64(1000), "uuid-4"},
 		},
 		// Metric sort, non-NULL cursor, ASC (case A): NULL rows sort last, so the
@@ -948,7 +950,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value > ? OR (sort_metric_value = ? AND KeyField >= ?) OR sort_metric_value IS NULL) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" > ? OR ("sort_metric_value" = ? AND "KeyField" >= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
 		},
 		// Metric sort, non-NULL cursor, DESC (case A).
@@ -965,7 +967,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:              true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value < ? OR (sort_metric_value = ? AND KeyField <= ?) OR sort_metric_value IS NULL) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" < ? OR ("sort_metric_value" = ? AND "KeyField" <= ?) OR "sort_metric_value" IS NULL) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{float64(0.5), float64(0.5), "uuid-1"},
 		},
 		// Metric sort, NULL cursor, ASC (case B): all non-NULL rows are already paged
@@ -982,7 +984,7 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            false,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value IS NULL AND KeyField >= ?) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value ASC, KeyField ASC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" >= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" ASC, "KeyField" ASC LIMIT 124`,
 			wantArgs: []interface{}{"uuid-9"},
 		},
 		// Metric sort, NULL cursor, DESC (case B): key tie-break flips to <=.
@@ -998,14 +1000,14 @@ func TestAddPaginationAndFilterToSelect(t *testing.T) {
 					IsDesc:            true,
 				},
 			},
-			wantSQL:  "SELECT * FROM MyTable WHERE (sort_metric_value IS NULL AND KeyField <= ?) ORDER BY (sort_metric_value IS NULL) ASC, sort_metric_value DESC, KeyField DESC LIMIT 124",
+			wantSQL:  `SELECT * FROM MyTable WHERE ("sort_metric_value" IS NULL AND "KeyField" <= ?) ORDER BY ("sort_metric_value" IS NULL) ASC, "sort_metric_value" DESC, "KeyField" DESC LIMIT 124`,
 			wantArgs: []interface{}{"uuid-9"},
 		},
 	}
 
 	for _, test := range tests {
 		sql := sq.Select("*").From("MyTable")
-		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, nil, ""), nil).ToSql()
+		gotSQL, gotArgs, err := test.in.AddFilterToSelect(test.in.AddPaginationToSelect(sql, testQuote, ""), testQuote).ToSql()
 
 		if gotSQL != test.wantSQL || !reflect.DeepEqual(gotArgs, test.wantArgs) || err != nil {
 			t.Errorf("BuildListSQLQuery(%+v) =\nGot: %q, %v, %v\nWant: %q, %v, nil",
@@ -1275,11 +1277,11 @@ func TestAddSortingToSelectWithPipelineVersionModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("pipeline_versions")
-	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, nil, "").ToSql()
+	sql, _, err := listableOptions.AddSortingToSelect(sqlBuilder, testQuote, "").ToSql()
 	assert.Nil(t, err)
 
-	assert.Contains(t, sql, "pipeline_versions.Name") // sorting field
-	assert.Contains(t, sql, "pipeline_versions.UUID") // primary key field
+	assert.Contains(t, sql, `"pipeline_versions"."Name"`) // sorting field
+	assert.Contains(t, sql, `"pipeline_versions"."UUID"`) // primary key field
 }
 
 func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
@@ -1304,9 +1306,9 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err := NewOptions(listable, 10, "name", newFilter)
 	assert.Nil(t, err)
 	sqlBuilder := sq.Select("*").From("run_details")
-	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
+	sql, args, err := listableOptions.AddFilterToSelect(sqlBuilder, testQuote).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE (Conditions = ?)") // status is not case-insensitive; exact comparison
+	assert.Contains(t, sql, `WHERE ("Conditions" = ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "Succeeded")
 
 	notEqualProtoFilter := &api.Filter{}
@@ -1321,8 +1323,8 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	listableOptions, err = NewOptions(listable, 10, "name", newNotEqualFilter)
 	assert.Nil(t, err)
 	sqlBuilder = sq.Select("*").From("run_details")
-	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, nil).ToSql()
+	sql, args, err = listableOptions.AddFilterToSelect(sqlBuilder, testQuote).ToSql()
 	assert.Nil(t, err)
-	assert.Contains(t, sql, "WHERE (Conditions <> ?)") // status is not case-insensitive; exact comparison
+	assert.Contains(t, sql, `WHERE ("Conditions" <> ?)`) // status is not case-insensitive; exact comparison
 	assert.Contains(t, args, "somevalue")
 }

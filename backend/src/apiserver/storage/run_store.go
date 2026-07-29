@@ -224,12 +224,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(pagedBuilder, opts)
 		sqlBuilder = opts.AddOrderByToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
-	// Apply correct placeholder format for the final SQL generation
-	if s.dbDialect.Name() == "pgx" {
-		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
-	}
-
-	sql, args, err := sqlBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -241,14 +236,11 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
-		qb.Select(quoteAll(q, runColumns)...).
+		qb.Select(dialect.QuoteAll(q, runColumns)...).
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runId}).
 			Limit(1), nil)
-	if s.dbDialect.Name() == "pgx" {
-		getRunBuilder = getRunBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := getRunBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(getRunBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -320,12 +312,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// format, it replaces its own ?s with $1,$2 before the outer builder runs,
 	// causing duplicate $1 numbering and mismatched args. Question is a no-op,
 	// so the outermost caller can do one unified Dollar replacement on the
-	// complete SQL string.
-	//
-	// sq.SelectBuilder couples query structure with placeholder format (squirrel
-	// design limitation — not separable at the KFP layer), so we enforce the
-	// contract here rather than relying on callers to pass the right format.
-	// Callers MUST apply PlaceholderFormat(sq.Dollar) before ToSql() on pgx.
+	// complete SQL string via dbDialect.FinalizeSelect().
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
@@ -344,14 +331,12 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"filtered." + q("UUID"),
 		resourceRefConcatQuery + " AS " + q("refs"),
 	}
-	subQ := func() sq.SelectBuilder {
-		return qb.
-			Select(columnsAfterJoiningResourceReferences...).
-			FromSelect(filteredSelectBuilder, "filtered").
-			LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
-				q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
-			GroupBy("filtered." + q("UUID"))
-	}()
+	subQ := qb.
+		Select(columnsAfterJoiningResourceReferences...).
+		FromSelect(filteredSelectBuilder, "filtered").
+		LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
+			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
+		GroupBy("filtered." + q("UUID"))
 
 	// Layer 2: LEFT JOIN tasks
 	tasksConcatQuery := s.dbDialect.ConcatExprs(
@@ -364,14 +349,12 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"rdref." + q("refs"),
 		tasksConcatQuery + " AS " + q("taskDetails"),
 	}
-	subQ = func() sq.SelectBuilder {
-		return qb.
-			Select(columnsAfterJoiningTasks...).
-			FromSelect(subQ, "rdref").
-			LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
-				q("tasks"), q("UUID"), q("RunUUID"))).
-			GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
-	}()
+	subQ = qb.
+		Select(columnsAfterJoiningTasks...).
+		FromSelect(subQ, "rdref").
+		LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
+			q("tasks"), q("UUID"), q("RunUUID"))).
+		GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
 
 	// Layer 3: LEFT JOIN run_metrics
 	// This layer does two things:
@@ -392,29 +375,22 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// Build the metrics subquery. If sorting by a metric, add the CASE WHEN expression
 	// using a bind parameter for the metric name to prevent SQL injection.
 	// The column alias is always the fixed constant model.MetricSortSQLAlias.
-	subQWithMetrics := func() sq.SelectBuilder {
-		sb := qb.
-			Select(columnsAfterJoiningRunMetrics...).
-			FromSelect(subQ, "subq").
-			LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
-				q("run_metrics"), q("UUID"), q("RunUUID"))).
-			GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
-		if opts != nil && opts.IsMetricSort() {
-			// For metric sorts opts.SortByFieldName holds the raw metric name. It is
-			// validated in token.unmarshal() and passed as a bind parameter value —
-			// never as a SQL identifier — so it is injection-safe.
-			// The alias uses the fixed constant MetricSortSQLAlias, not user input.
-			metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-				q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-			sb = sb.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
-		}
-		return sb
-	}()
+	subQWithMetrics := qb.
+		Select(columnsAfterJoiningRunMetrics...).
+		FromSelect(subQ, "subq").
+		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
+			q("run_metrics"), q("UUID"), q("RunUUID"))).
+		GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
+	if opts != nil && opts.IsMetricSort() {
+		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
+			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
+		subQWithMetrics = subQWithMetrics.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
+	}
 
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
-		quoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
+		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
 		"withmetrics."+q("refs"),
 		"withmetrics."+q("taskDetails"),
 		"withmetrics."+q("metrics"))
@@ -431,7 +407,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
-	finalSelectColumns := quoteAll(q, runColumns)
+	finalSelectColumns := dialect.QuoteAll(q, runColumns)
 	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
 
 	// Include metric sort column in SELECT when sorting by metric.
@@ -563,7 +539,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			StorageState:   model.StorageState(storageState),
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    string(description),
+			Description:    description,
 			RecurringRunId: jID,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
@@ -589,14 +565,6 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				Parameters:           model.LargeText(parameters),
 				RuntimeConfig:        runtimeConfig,
 			},
-		}
-		if pluginsInput.Valid {
-			lt := model.LargeText(pluginsInput.String)
-			run.PluginsInputString = &lt
-		}
-		if pluginsOutput.Valid {
-			lt := model.LargeText(pluginsOutput.String)
-			run.PluginsOutputString = &lt
 		}
 		if pluginsInput.Valid {
 			lt := model.LargeText(pluginsInput.String)
@@ -731,7 +699,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
-		if r.RecurringRunId != "" && isDuplicateError(s.dbDialect, err) {
+		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateKeyError(err) {
 			existingRun, getErr := s.GetRun(r.UUID)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
@@ -932,7 +900,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateKeyError(err) {
 			return util.NewAlreadyExistError(
 				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}

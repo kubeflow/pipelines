@@ -23,9 +23,9 @@ import (
 )
 
 func TestSelectWithQuotedColumns(t *testing.T) {
-	dialects := []dialectSpec{
-		{name: "mysql", d: dialect.NewDBDialect("mysql")},
-		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	dialects := []dialect.DBDialect{
+		dialect.NewDBDialect("mysql"),
+		dialect.NewDBDialect("pgx"),
 	}
 
 	cases := []struct {
@@ -64,12 +64,12 @@ func TestSelectWithQuotedColumns(t *testing.T) {
 	}
 
 	for _, dl := range dialects {
-		t.Run(dl.name, func(t *testing.T) {
+		t.Run(dl.Name(), func(t *testing.T) {
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
-					builder := selectWithQuotedColumns(dl.d.QueryBuilder(), dl.d.QuoteIdentifier, "testTable", tc.columns, tc.selectCount)
+					builder := selectWithQuotedColumns(dl.QueryBuilder(), dl.QuoteIdentifier, "testTable", tc.columns, tc.selectCount)
 					gotSQL, _, _ := builder.ToSql()
-					require.Equal(t, tc.want[dl.name], gotSQL)
+					require.Equal(t, tc.want[dl.Name()], gotSQL)
 				})
 			}
 		})
@@ -77,9 +77,9 @@ func TestSelectWithQuotedColumns(t *testing.T) {
 }
 
 func TestFilterByExperiment(t *testing.T) {
-	dialects := []dialectSpec{
-		{name: "mysql", d: dialect.NewDBDialect("mysql")},
-		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	dialects := []dialect.DBDialect{
+		dialect.NewDBDialect("mysql"),
+		dialect.NewDBDialect("pgx"),
 	}
 
 	cases := []struct {
@@ -109,9 +109,9 @@ func TestFilterByExperiment(t *testing.T) {
 	}
 
 	for _, dl := range dialects {
-		t.Run(dl.name, func(t *testing.T) {
-			qb := dl.d.QueryBuilder()
-			q := dl.d.QuoteIdentifier
+		t.Run(dl.Name(), func(t *testing.T) {
+			qb := dl.QueryBuilder()
+			q := dl.QuoteIdentifier
 
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestFilterByExperiment(t *testing.T) {
 					gotSQL, args, err := builder.ToSql()
 					require.NoError(t, err)
 					require.Equal(t, 1, len(args))
-					require.Equal(t, tc.want[dl.name], gotSQL)
+					require.Equal(t, tc.want[dl.Name()], gotSQL)
 				})
 			}
 		})
@@ -129,9 +129,9 @@ func TestFilterByExperiment(t *testing.T) {
 }
 
 func TestFilterByNamespace(t *testing.T) {
-	dialects := []dialectSpec{
-		{name: "mysql", d: dialect.NewDBDialect("mysql")},
-		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	dialects := []dialect.DBDialect{
+		dialect.NewDBDialect("mysql"),
+		dialect.NewDBDialect("pgx"),
 	}
 
 	cases := []struct {
@@ -161,9 +161,9 @@ func TestFilterByNamespace(t *testing.T) {
 	}
 
 	for _, dl := range dialects {
-		t.Run(dl.name, func(t *testing.T) {
-			qb := dl.d.QueryBuilder()
-			q := dl.d.QuoteIdentifier
+		t.Run(dl.Name(), func(t *testing.T) {
+			qb := dl.QueryBuilder()
+			q := dl.QuoteIdentifier
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
 					builder, err := FilterByNamespace(qb, q, "testTable", []string{"*"}, tc.count, tc.ns)
@@ -172,7 +172,7 @@ func TestFilterByNamespace(t *testing.T) {
 					gotSQL, args, err := builder.ToSql()
 					require.NoError(t, err)
 					require.Equal(t, 1, len(args))
-					require.Equal(t, tc.want[dl.name], gotSQL)
+					require.Equal(t, tc.want[dl.Name()], gotSQL)
 				})
 			}
 		})
@@ -227,9 +227,9 @@ func TestFilterByResourceReferenceCombinedPredicate(t *testing.T) {
 }
 
 func TestFilterByResourceReference(t *testing.T) {
-	dialects := []dialectSpec{
-		{name: "mysql", d: dialect.NewDBDialect("mysql")},
-		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	dialects := []dialect.DBDialect{
+		dialect.NewDBDialect("mysql"),
+		dialect.NewDBDialect("pgx"),
 	}
 
 	type in struct {
@@ -282,9 +282,9 @@ func TestFilterByResourceReference(t *testing.T) {
 	}
 
 	for _, dl := range dialects {
-		t.Run(dl.name, func(t *testing.T) {
-			qb := dl.d.QueryBuilder()
-			q := dl.d.QuoteIdentifier
+		t.Run(dl.Name(), func(t *testing.T) {
+			qb := dl.QueryBuilder()
+			q := dl.QuoteIdentifier
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
 					builder, err := FilterByResourceReference(qb, q, "testTable", []string{"*"}, model.RunResourceType, tc.in.count, tc.in.fctx)
@@ -293,7 +293,7 @@ func TestFilterByResourceReference(t *testing.T) {
 					gotSQL, args, err := builder.ToSql()
 					require.NoError(t, err)
 					require.Equal(t, tc.wantArgsN, len(args))
-					require.Equal(t, tc.want[dl.name], gotSQL)
+					require.Equal(t, tc.want[dl.Name()], gotSQL)
 				})
 			}
 		})

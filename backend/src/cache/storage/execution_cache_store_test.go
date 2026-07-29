@@ -221,7 +221,7 @@ func TestGetExecutionCacheWithEmptyKey(t *testing.T) {
 // "ExecutionCacheKey" to maintain compatibility with various SQL dialects,
 // instead of GORM's default snake_case "execution_cache_key".
 func TestGetExecutionCache_SQLUsesTaggedColumnName(t *testing.T) {
-	db, dialect := NewFakeDBOrFatal()
+	db, _ := NewFakeDBOrFatal()
 	defer closeDB(t, db)
 
 	dryRun := db.Session(&gorm.Session{DryRun: true}).
@@ -233,13 +233,11 @@ func TestGetExecutionCache_SQLUsesTaggedColumnName(t *testing.T) {
 		"WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
 	assert.False(t, strings.Contains(sql, "execution_cache_key"),
 		"WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
-
-	_ = dialect
 }
 
 // Same guardrail for the duplicate-existence check in CreateExecutionCache.
 func TestCreateExecutionCache_DuplicateCheck_SQLUsesTaggedColumnName(t *testing.T) {
-	db, dialect := NewFakeDBOrFatal()
+	db, _ := NewFakeDBOrFatal()
 	defer closeDB(t, db)
 
 	dryRun := db.Session(&gorm.Session{DryRun: true}).
@@ -251,8 +249,6 @@ func TestCreateExecutionCache_DuplicateCheck_SQLUsesTaggedColumnName(t *testing.
 		"duplicate-check WHERE clause must reference the tag-declared column name 'ExecutionCacheKey', got: %s", sql)
 	assert.False(t, strings.Contains(sql, "execution_cache_key"),
 		"duplicate-check WHERE clause must not use GORM's default snake_case conversion, got: %s", sql)
-
-	_ = dialect
 }
 
 // Regression test: empty-key creation must not falsely report a duplicate.

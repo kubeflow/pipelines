@@ -23,19 +23,17 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
-
-// Quoter represents a dialect-aware identifier quoting function (e.g., s.dbDialect.QuoteIdentifier).
-type Quoter = dialect.QuoteFunction
 
 // selectWithQuotedColumns builds a SELECT ... FROM ... using the provided dialect-aware
 // builder and quoter. It maps all column identifiers through q() and quotes the table name.
 // When selectCount is true, it selects count(*) instead of the provided columns.
 func selectWithQuotedColumns(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -59,7 +57,7 @@ func selectWithQuotedColumns(
 // and placeholders are correct for the active database.
 func FilterByExperiment(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -74,7 +72,7 @@ func FilterByExperiment(
 // It relies on the injected builder (qb) and quoter (q) for dialect-correct SQL.
 func FilterByNamespace(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -91,7 +89,7 @@ func FilterByNamespace(
 // MySQL/PostgreSQL/SQLite.
 func FilterByResourceReference(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	resourceType model.ResourceType,
@@ -115,13 +113,13 @@ func FilterByResourceReference(
 		Select(q("ResourceUUID")).
 		From(q("resource_references") + " AS " + q("rf")).
 		Where(sq.And{
-			sq.Eq{qualifyIdentifier(q, "rf.ResourceType"): resourceType},
-			sq.Eq{qualifyIdentifier(q, "rf.ReferenceUUID"): filterContext.ID},
-			sq.Eq{qualifyIdentifier(q, "rf.ReferenceType"): filterContext.Type},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ResourceType"): resourceType},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ReferenceUUID"): filterContext.ID},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ReferenceType"): filterContext.Type},
 		}).
 		PlaceholderFormat(sq.Question).ToSql()
 	if err != nil {
-		return sel, util.NewInternalServerError(err, "Failed to create subquery to filter by resource reference: %v", err.Error())
+		return sq.SelectBuilder{}, util.NewInternalServerError(err, "Failed to create subquery to filter by resource reference: %v", err.Error())
 	}
 
 	// WHERE UUID IN (<subquery>) — quote UUID to preserve exact case on Postgres.

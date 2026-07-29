@@ -31,16 +31,16 @@ func NewFakeDB() (*sql.DB, dialect.DBDialect, error) {
 	// Initialize GORM
 	dbInstance, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		return nil, dialect.DBDialect{}, util.Wrap(err, "Could not create the GORM database")
+		return nil, nil, util.Wrap(err, "Could not create the GORM database")
 	}
 	// Create tables
 	if err := dbInstance.AutoMigrate(model.AllModels()...); err != nil {
-		return nil, dialect.DBDialect{}, util.Wrap(err, "Failed to automigrate models")
+		return nil, nil, util.Wrap(err, "Failed to automigrate models")
 	}
 
 	sqlDB, err := dbInstance.DB()
 	if err != nil {
-		return nil, dialect.DBDialect{}, util.Wrap(err, "Failed to get generic database object from GORM DB")
+		return nil, nil, util.Wrap(err, "Failed to get generic database object from GORM DB")
 	}
 	return sqlDB, dialect.NewDBDialect("sqlite"), nil
 }

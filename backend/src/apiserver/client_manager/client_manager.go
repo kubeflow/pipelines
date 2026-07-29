@@ -212,10 +212,6 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
-func (c *ClientManager) DBDialect() sqldrv.DBDialect {
-	return c.dbDialect
-}
-
 func (c *ClientManager) init(options *Options) error {
 	// time
 	c.time = util.NewRealTime()
@@ -460,7 +456,7 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	util.TerminateIfError(err)
 
 	// Create database if not exist
-	// TODO(kaikaila):1.Move DB creation out of the client manager and into the deployment/init phase (i.e. add a manifests/kustomize/third-party/postgresql/base/pg-init-configmap.yaml)
+	// TODO:1.Move DB creation out of the client manager and into the deployment/init phase (i.e. add a manifests/kustomize/third-party/postgresql/base/pg-init-configmap.yaml)
 	// 2.Introduce a dedicated restricted user for KFP components, limited to the mlpipeline database
 	// Refer to manifests/kustomize/third-party/postgresql/base/pg-secret.yaml
 	drvDialect := sqldrv.NewDBDialect(driverName)
@@ -1345,10 +1341,8 @@ func backfillExperimentIDToRunTable(db *gorm.DB) error {
 	return err
 }
 
-// Returns the same error, if it's not "already exists" related.
-// Otherwise, return nil.
 func ignoreAlreadyExistError(dialect sqldrv.DBDialect, err error) error {
-	if err != nil && strings.Contains(err.Error(), (dialect.ExistDatabaseErrHint())) {
+	if err == nil || dialect.IsDuplicateDatabaseError(err) {
 		return nil
 	}
 	return err

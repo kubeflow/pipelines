@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -182,10 +183,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
-	if s.dbDialect.Name() == "pgx" {
-		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := sqlBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -196,12 +194,9 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	getJobBuilder := s.addResourceReferences(
-		qb.Select(quoteAll(q, jobColumns)...).From(q("jobs")),
+		qb.Select(dialect.QuoteAll(q, jobColumns)...).From(q("jobs")),
 	).Where(sq.Eq{q("UUID"): id}).Limit(1)
-	if s.dbDialect.Name() == "pgx" {
-		getJobBuilder = getJobBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := getJobBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(getJobBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
 			err.Error())
@@ -226,7 +221,7 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	q := s.dbDialect.QuoteIdentifier
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
-	agg := s.dbDialect.ConcatAgg(false, qualifyIdentifier(q, "r.Payload"), ",")
+	agg := s.dbDialect.ConcatAgg(false, filter.QualifyIdentifier(q, "r.Payload"), ",")
 	// Build correlated subquery. This is a correlated subquery that references
 	// the outer query's jobs.UUID, so we use string concatenation for the structure.
 	// The ResourceType value 'Job' is a constant (model.JobResourceType), not user input.
@@ -235,8 +230,8 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	sub := fmt.Sprintf("SELECT %s FROM %s AS %s WHERE %s='Job' AND %s = %s",
 		agg,
 		q("resource_references"), q("r"),
-		qualifyIdentifier(q, "r.ResourceType"),
-		qualifyIdentifier(q, "r.ResourceUUID"), qualifyIdentifier(q, "jobs.UUID"))
+		filter.QualifyIdentifier(q, "r.ResourceType"),
+		filter.QualifyIdentifier(q, "r.ResourceUUID"), filter.QualifyIdentifier(q, "jobs.UUID"))
 	refsExpr := s.dbDialect.ConcatExprs(
 		[]string{"'['", "COALESCE((" + sub + "), '')", "']'"},
 		"",

@@ -225,7 +225,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	qb := s.dbDialect.QueryBuilder()
 
 	// SQL for getting the filtered and paginated rows
-	sqlBuilder := qb.Select(quoteAll(q, taskColumns)...).From(q("tasks"))
+	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("PipelineName"): filterContext.ID})
 	}
@@ -308,11 +308,12 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 
 func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 	q := s.dbDialect.QuoteIdentifier
+	t := dialect.QualifiedColumn(q, "tasks")
 	qb := s.dbDialect.QueryBuilder()
 	sql, args, err := qb.
-		Select(quoteAll(q, taskColumns)...).
+		Select(dialect.QuoteAll(q, taskColumns)...).
 		From(q("tasks")).
-		Where(sq.Eq{fmt.Sprintf("%s.%s", q("tasks"), q("UUID")): id}).
+		Where(sq.Eq{t("UUID"): id}).
 		Limit(1).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get task: %v", err.Error())
@@ -342,7 +343,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	sql, args, err := qb.
-		Select(quoteAll(q, taskColumns)...).
+		Select(dialect.QuoteAll(q, taskColumns)...).
 		From(q("tasks")).
 		Where(sq.Eq{q("PodName"): podNames, q("RunUUID"): runID}).
 		ToSql()
@@ -374,8 +375,8 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		q := s.dbDialect.QuoteIdentifier
-		quotedCols := quoteAll(q, taskColumnsWithPayload)
-		sqlInsert := insertUpsert(s.dbDialect, table_name, []string{"UUID"}, true, taskColumnsWithPayload)
+		quotedCols := dialect.QuoteAll(q, taskColumnsWithPayload)
+		sqlInsert := s.dbDialect.Upsert(table_name, []string{"UUID"}, true, taskColumnsWithPayload)
 		sqlInsert = sqlInsert.Columns(quotedCols...)
 		for _, t := range ts {
 			childrenPodsString := ""

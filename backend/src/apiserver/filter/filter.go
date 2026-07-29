@@ -25,6 +25,7 @@ import (
 	"github.com/Masterminds/squirrel"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/kubernetes/v2beta1"
 )
@@ -389,9 +390,9 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 // QualifyIdentifier quotes identifiers correctly when they are qualified with dots,
 // e.g. "experiments.Name" -> `"experiments"."Name"` (or the dialect's quote style).
 // If there is no dot, it simply quotes the key.
-func QualifyIdentifier(q func(string) string, key string) string {
+func QualifyIdentifier(q dialect.QuoteFunction, key string) string {
 	if q == nil {
-		return key
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 	if strings.Contains(key, ".") {
 		parts := strings.Split(key, ".")
@@ -405,9 +406,9 @@ func QualifyIdentifier(q func(string) string, key string) string {
 
 // AddToSelect builds a WHERE clause from the Filter f, adds it to the supplied
 // SelectBuilder object and returns it for use in SQL queries.
-func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote func(string) string) squirrel.SelectBuilder {
+func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote dialect.QuoteFunction) squirrel.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 
 	var andExprs []squirrel.Sqlizer

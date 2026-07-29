@@ -28,12 +28,12 @@ func NewFakeDB() (*gorm.DB, dialect.DBDialect, error) {
 	// Initialize GORM
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		return nil, dialect.DBDialect{}, fmt.Errorf("could not create the GORM database: %v", err)
+		return nil, nil, fmt.Errorf("could not create the GORM database: %v", err)
 	}
 	// Create tables
 	err = db.AutoMigrate(&model.ExecutionCache{})
 	if err != nil {
-		return nil, dialect.DBDialect{}, fmt.Errorf("AutoMigrate failed: %v", err)
+		return nil, nil, fmt.Errorf("AutoMigrate failed: %v", err)
 	}
 
 	return db, dialect.NewDBDialect("sqlite"), nil
