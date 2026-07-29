@@ -548,5 +548,30 @@ class TestClient(parameterized.TestCase):
             self.assertEqual(result, expected_result)
 
 
+class TestInClusterDnsName(unittest.TestCase):
+
+    @patch.object(client.Client, '_get_config_with_default_credentials')
+    @patch('kubernetes.config.load_incluster_config')
+    def test_load_config_uses_short_cluster_dns_name(self, mock_incluster,
+                                                     mock_get_creds):
+        mock_get_creds.side_effect = lambda cfg: cfg
+        kfp_client = client.Client.__new__(client.Client)
+        config = kfp_client._load_config(
+            host=None,
+            client_id=None,
+            namespace='kubeflow',
+            other_client_id=None,
+            other_client_secret=None,
+            existing_token=None,
+            proxy=None,
+            ssl_ca_cert=None,
+            kube_context=None,
+            credentials=None,
+            verify_ssl=None,
+        )
+        self.assertEqual(config.host, 'ml-pipeline.kubeflow.svc:8888')
+        mock_incluster.assert_called_once()
+
+
 if __name__ == '__main__':
     unittest.main()
