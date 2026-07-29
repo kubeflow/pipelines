@@ -57,6 +57,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
+const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
+
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
 	proxy.InitializeConfigWithEmptyForTests()
@@ -848,7 +851,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 			model: &model.PipelineVersion{
 				Name:         "complex",
 				Parameters:   "[{\"name\":\"output\"},{\"name\":\"project\"},{\"name\":\"schema\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json\"},{\"name\":\"train\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv\"},{\"name\":\"evaluation\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv\"},{\"name\":\"preprocess-mode\",\"value\":\"local\"},{\"name\":\"preprocess-module\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py\"},{\"name\":\"target\",\"value\":\"tips\"},{\"name\":\"learning-rate\",\"value\":\"0.1\"},{\"name\":\"hidden-layer-size\",\"value\":\"1500\"},{\"name\":\"steps\",\"value\":\"3000\"},{\"name\":\"workers\",\"value\":\"0\"},{\"name\":\"pss\",\"value\":\"0\"},{\"name\":\"predict-mode\",\"value\":\"local\"},{\"name\":\"analyze-mode\",\"value\":\"local\"},{\"name\":\"analyze-slice-column\",\"value\":\"trip_start_hour\"}]",
-				PipelineSpec: model.LargeText(complexPipeline),
+				PipelineSpec: complexPipeline,
 			},
 		},
 		{
@@ -1170,6 +1173,82 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreatePipelineAndPipelineVersion_V1Blocked(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "ns1")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	_, _, err := manager.CreatePipelineAndPipelineVersion(
+		&model.Pipeline{Name: "v1-pipeline", Namespace: "blocked-ns"},
+		&model.PipelineVersion{
+			Name:         "v1-version",
+			PipelineSpec: complexPipeline,
+		},
+	)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+}
+
+func TestCreatePipelineAndPipelineVersion_V1Blocked_PodNamespaceFallback(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "other-ns")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	_, _, err := manager.CreatePipelineAndPipelineVersion(
+		&model.Pipeline{Name: "v1-pipeline"},
+		&model.PipelineVersion{
+			Name:         "v1-version",
+			PipelineSpec: complexPipeline,
+		},
+	)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+}
+
+func TestCreatePipelineVersion_V1Blocked(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "ns1")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	p, err := manager.CreatePipeline(&model.Pipeline{Name: "test-pipeline", Namespace: "blocked-ns"})
+	require.Nil(t, err)
+
+	_, err = manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1-version",
+		PipelineId:   p.UUID,
+		PipelineSpec: complexPipeline,
+	})
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
 }
 
 // Tests GetPipelineByNameAndNamespace
@@ -2041,94 +2120,6 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
-func TestIsNamespaceAllowed(t *testing.T) {
-	tt := []struct {
-		msg               string
-		namespace         string
-		allowedNamespaces string
-		expected          bool
-	}{
-		{
-			msg:               "EmptyAllowedNamespaces",
-			namespace:         "ns1",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "NamespaceInList",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          true,
-		},
-		{
-			msg:               "NamespaceNotInList",
-			namespace:         "ns4",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          false,
-		},
-		{
-			msg:               "SingleAllowedNamespace_Match",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1",
-			expected:          true,
-		},
-		{
-			msg:               "SingleAllowedNamespace_NoMatch",
-			namespace:         "ns2",
-			allowedNamespaces: "ns1",
-			expected:          false,
-		},
-		{
-			msg:               "CaseInsensitiveNamespace",
-			namespace:         "NS1",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "CaseInsensitiveAllowedList",
-			namespace:         "ns1",
-			allowedNamespaces: "NS1,NS2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundNamespace",
-			namespace:         "  ns1  ",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundAllowedEntries",
-			namespace:         "ns1",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAndCaseInsensitive",
-			namespace:         "  NS1  ",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "EmptyNamespace_EmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "EmptyNamespace_NonEmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "ns1,ns2",
-			expected:          false,
-		},
-	}
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			result := isNamespaceAllowed(test.namespace, test.allowedNamespaces)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
 func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 	tt := []struct {
 		msg               string
@@ -2196,11 +2187,11 @@ func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -3381,11 +3372,11 @@ func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)

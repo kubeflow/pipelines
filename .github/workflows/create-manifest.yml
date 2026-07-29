@@ -31,8 +31,11 @@ jobs:
       packages: write
       id-token: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: ./.github/actions/download-artifact-with-retry
         with:
           path: /tmp/digests
           pattern: digests-${{ env.APP_NAME }}-*
@@ -47,6 +50,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          # imagetools only reads and writes registry manifests. Use the
+          # daemon-backed driver so this job does not pull a BuildKit image.
+          driver: docker
 
       - name: Create and Push Manifest
         working-directory: /tmp/digests

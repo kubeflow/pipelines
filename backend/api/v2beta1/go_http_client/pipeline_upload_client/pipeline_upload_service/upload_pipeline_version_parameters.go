@@ -61,6 +61,12 @@ UploadPipelineVersionParams contains all the parameters to send to the API endpo
 */
 type UploadPipelineVersionParams struct {
 
+	/* CodeSourceURL.
+
+	   Optional URL to the pipeline source code.
+	*/
+	CodeSourceURL *string
+
 	// Description.
 	Description *string
 
@@ -138,6 +144,17 @@ func (o *UploadPipelineVersionParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithCodeSourceURL adds the codeSourceURL to the upload pipeline version params
+func (o *UploadPipelineVersionParams) WithCodeSourceURL(codeSourceURL *string) *UploadPipelineVersionParams {
+	o.SetCodeSourceURL(codeSourceURL)
+	return o
+}
+
+// SetCodeSourceURL adds the codeSourceUrl to the upload pipeline version params
+func (o *UploadPipelineVersionParams) SetCodeSourceURL(codeSourceURL *string) {
+	o.CodeSourceURL = codeSourceURL
+}
+
 // WithDescription adds the description to the upload pipeline version params
 func (o *UploadPipelineVersionParams) WithDescription(description *string) *UploadPipelineVersionParams {
 	o.SetDescription(description)
@@ -211,6 +228,23 @@ func (o *UploadPipelineVersionParams) WriteToRequest(r runtime.ClientRequest, re
 		return err
 	}
 	var res []error
+
+	if o.CodeSourceURL != nil {
+
+		// query param code_source_url
+		var qrCodeSourceURL string
+
+		if o.CodeSourceURL != nil {
+			qrCodeSourceURL = *o.CodeSourceURL
+		}
+		qCodeSourceURL := qrCodeSourceURL
+		if qCodeSourceURL != "" {
+
+			if err := r.SetQueryParam("code_source_url", qCodeSourceURL); err != nil {
+				return err
+			}
+		}
+	}
 
 	if o.Description != nil {
 
