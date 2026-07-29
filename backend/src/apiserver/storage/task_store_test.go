@@ -1376,6 +1376,47 @@ func TestMergeParameters_RaceConditionScenario(t *testing.T) {
 	assert.True(t, hasIter1, "Should preserve iteration 1 parameter")
 }
 
+func TestMergeParameters_OrdinaryOutputLaterWins(t *testing.T) {
+	val1, err := structpb.NewValue("value1")
+	require.NoError(t, err)
+	val2, err := structpb.NewValue("value2")
+	require.NoError(t, err)
+
+	oldParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		Value:        val1,
+		ParameterKey: "result",
+		Type:         apiv2beta1.IOType_OUTPUT,
+		Producer: &apiv2beta1.IOProducer{
+			TaskName: "task1",
+		},
+	}
+	newParam := &apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+		Value:        val2,
+		ParameterKey: "result",
+		Type:         apiv2beta1.IOType_OUTPUT,
+		Producer: &apiv2beta1.IOProducer{
+			TaskName: "task1",
+		},
+	}
+
+	oldParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{oldParam})
+	require.NoError(t, err)
+	newParams, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{newParam})
+	require.NoError(t, err)
+
+	result, err := mergeParameters(oldParams, newParams)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(result), "ordinary output updates must replace earlier values")
+
+	typeFunc := func() *apiv2beta1.PipelineTask_InputOutputs_IOParameter {
+		return &apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
+	}
+	resultProtos, err := model.JSONSliceToProtoSlice(result, typeFunc)
+	require.NoError(t, err)
+	require.Len(t, resultProtos, 1)
+	assert.Equal(t, "value2", resultProtos[0].GetValue().GetStringValue())
+}
+
 // TestCreateTask_AutoPopulatesStateHistory verifies that state_history is automatically
 // populated when creating a task with a state (mirrors Run behavior).
 func TestCreateTask_AutoPopulatesStateHistory(t *testing.T) {

@@ -1371,15 +1371,16 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 				key = fmt.Sprintf("%s-%d", key, *p.Producer.Iteration)
 			}
 		}
-		// Include the value hash, in cases like the iterator case where
-		// iterations propagate values to upstream tasks, the iteration
-		// index is not propagated (like in a for-loop-task), so we need
-		// to include the value hash to avoid collisions.
-		valueHash, err := hashProtoValue(p.GetValue())
-		if err != nil {
-			return "", err
+		// Include the value hash only for collected/iterator cases that lack
+		// iteration identity. Ordinary parameters use type+key+producer(+iteration)
+		// so a later update with a different value replaces the earlier entry.
+		if parameterMergeKeyNeedsValueHash(p) {
+			valueHash, err := hashProtoValue(p.GetValue())
+			if err != nil {
+				return "", err
+			}
+			key = fmt.Sprintf("%s-%s", key, valueHash)
 		}
-		key = fmt.Sprintf("%s-%s", key, valueHash)
 		return key, nil
 	}
 	mergedParams := map[string]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{}
@@ -1406,6 +1407,25 @@ func mergeParameters(old, new model.JSONSlice) (model.JSONSlice, error) {
 		return nil, err
 	}
 	return parameters, nil
+}
+
+// parameterMergeKeyNeedsValueHash reports whether a parameter's merge identity
+// must include the value hash. Collected/iterator payloads sometimes propagate
+// without an iteration index; hashing the value keeps those entries distinct.
+// Ordinary parameters intentionally omit the value so later updates replace earlier ones.
+func parameterMergeKeyNeedsValueHash(p *apiv2beta1.PipelineTask_InputOutputs_IOParameter) bool {
+	if p == nil {
+		return false
+	}
+	switch p.Type {
+	case apiv2beta1.IOType_COLLECTED_INPUTS,
+		apiv2beta1.IOType_ITERATOR_INPUT,
+		apiv2beta1.IOType_ITERATOR_INPUT_RAW,
+		apiv2beta1.IOType_ITERATOR_OUTPUT:
+		return p.Producer == nil || p.Producer.Iteration == nil
+	default:
+		return false
+	}
 }
 
 func (s *TaskStore) GetChildTasks(taskID string) ([]*model.Task, error) {

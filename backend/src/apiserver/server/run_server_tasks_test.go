@@ -111,12 +111,12 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 	updated, err := runSrv.UpdateTask(context.Background(), updReq)
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, updated.GetState())
-	// Parameter values are merged, not overridden
+	// Ordinary parameter outputs with the same key later-wins (value is replaced).
 
 	params := updated.GetOutputs().GetParameters()
-	sortParams(params)
-	assert.Equal(t, "3.14", params[0].GetValue().AsInterface())
-	assert.Equal(t, "done", params[1].GetValue().AsInterface())
+	assert.Len(t, params, 1)
+	assert.Equal(t, "op1", params[0].GetParameterKey())
+	assert.Equal(t, "done", params[0].GetValue().AsInterface())
 
 	// GetTask
 	got, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: created.GetTaskId()})

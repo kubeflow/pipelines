@@ -157,6 +157,7 @@ func sameLogicalTaskIdentity(existingTask, candidateTask *apiv2beta1.PipelineTas
 		return false
 	}
 	if existingTask.GetRunId() != runID ||
+		normalizedParentTaskID(existingTask) != normalizedParentTaskID(candidateTask) ||
 		existingTask.GetScopePath() != candidateTask.GetScopePath() ||
 		existingTask.GetName() != candidateTask.GetName() ||
 		existingTask.GetType() != candidateTask.GetType() {
@@ -171,6 +172,13 @@ func sameLogicalTaskIdentity(existingTask, candidateTask *apiv2beta1.PipelineTas
 		return false
 	}
 	return *existingIterationIndex == *candidateIterationIndex
+}
+
+func normalizedParentTaskID(task *apiv2beta1.PipelineTask) string {
+	if task == nil {
+		return ""
+	}
+	return task.GetParentTaskId()
 }
 
 func (m *MockAPI) CreateTask(_ context.Context, req *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
