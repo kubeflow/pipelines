@@ -74,6 +74,16 @@ kfp-kubernetes = { workspace = true }
 [tool.hatch.version]
 path = "kfp/version.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["kfp"]
+exclude = [
+  "**/*_test.py",
+  "**/test_*.py",
+  "**/*_tests.py",
+  "**/testdata/**",
+  "**/test_data/**",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
