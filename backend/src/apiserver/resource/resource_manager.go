@@ -2446,3 +2446,12 @@ func (r *ResourceManager) ListArtifacts(filterContexts []*model.FilterContext, o
 	return artifacts, totalSize, nextPageToken, nil
 }
 
+// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality using
+// a dedicated store lookup (no pagination / COUNT loop).
+func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
+	artifacts, err := r.artifactStore.GetArtifactsByURI(namespace, uri)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get artifacts by URI")
+	}
+	return artifacts, nil
+}
