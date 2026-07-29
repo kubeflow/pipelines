@@ -71,6 +71,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 	assert.Equal(t, "ns1", created.Namespace)
 	assert.Equal(t, model.ArtifactType(apiv2beta1.Artifact_Artifact), created.Type)
 	assert.Equal(t, "s3://bucket/path/file", *created.URI)
+	assert.Equal(t, artifactURIHash("s3://bucket/path/file"), created.URIHash)
 	assert.Equal(t, "model.pt", created.Name)
 	assert.Equal(t, "v", created.Metadata["k"])
 
@@ -83,6 +84,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 	assert.Equal(t, created.Namespace, fetched.Namespace)
 	assert.Equal(t, created.Type, fetched.Type)
 	assert.Equal(t, created.URI, fetched.URI)
+	assert.Equal(t, created.URIHash, fetched.URIHash)
 	assert.Equal(t, created.Name, fetched.Name)
 	assert.Equal(t, created.Metadata, fetched.Metadata)
 }
@@ -92,6 +94,126 @@ func TestGetArtifact_NotFound(t *testing.T) {
 	defer db.Close()
 	_, err := store.GetArtifact(artifactUUID1)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/path/to/artifact"
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "match-1",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR("s3://bucket/other"),
+		Name:      "other-uri",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID3, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns2",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "other-ns",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("ns1", sharedURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "match-1", matched[0].Name)
+	assert.Equal(t, "ns1", matched[0].Namespace)
+	assert.Equal(t, sharedURI, *matched[0].URI)
+	assert.Equal(t, artifactURIHash(sharedURI), matched[0].URIHash)
+}
+
+func TestGetArtifactsByURI_FiltersHashCollisions(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	lookupURI := "s3://bucket/path/to/artifact"
+	lookupHash := artifactURIHash(lookupURI)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(lookupURI),
+		Name:      "real-match",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	// Simulate a hash collision: same URIHash, different URI.
+	_, err = db.Exec(
+		`INSERT INTO artifacts (UUID, Namespace, Type, URI, URIHash, Name, Description, CreatedAtInSec, LastUpdateInSec, Metadata, NumberValue)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		artifactUUID2,
+		"ns1",
+		1,
+		"s3://bucket/different-uri",
+		lookupHash,
+		"collision",
+		"",
+		1,
+		1,
+		"{}",
+		nil,
+	)
+	require.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("ns1", lookupURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "real-match", matched[0].Name)
+	assert.Equal(t, lookupURI, *matched[0].URI)
+}
+
+func TestGetArtifactsByURI_LegacyEmptyURIHashFallback(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	legacyURI := "s3://bucket/legacy-artifact"
+	_, err := db.Exec(
+		`INSERT INTO artifacts (UUID, Namespace, Type, URI, URIHash, Name, Description, CreatedAtInSec, LastUpdateInSec, Metadata, NumberValue)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		artifactUUID1,
+		"ns1",
+		1,
+		legacyURI,
+		"",
+		"legacy-row",
+		"",
+		1,
+		1,
+		"{}",
+		nil,
+	)
+	require.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("ns1", legacyURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "legacy-row", matched[0].Name)
+	assert.Equal(t, legacyURI, *matched[0].URI)
+	assert.Equal(t, "", matched[0].URIHash)
+}
+
+func TestArtifactURIHash_EmptyURI(t *testing.T) {
+	assert.Equal(t, "", artifactURIHash(""))
 }
 
 func TestListArtifacts_BasicFiltersAndPagination(t *testing.T) {

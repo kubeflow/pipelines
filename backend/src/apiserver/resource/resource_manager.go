@@ -2445,3 +2445,4 @@ func (r *ResourceManager) ListArtifacts(filterContexts []*model.FilterContext, o
 	}
 	return artifacts, totalSize, nextPageToken, nil
 }
+

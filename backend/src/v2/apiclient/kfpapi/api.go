@@ -120,6 +120,9 @@ func (k *clientAdapter) CreateArtifactsBulk(ctx context.Context, req *gc.CreateA
 }
 
 func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace string) ([]*gc.Artifact, error) {
+	// Prefer the ArtifactServer fast path for exact URI equality (dedicated
+	// Namespace+URI WHERE query, no COUNT/pagination). Keep a single request
+	// rather than an unbounded page loop; the server returns all matches.
 	predicates := []*gc.Predicate{
 		{Key: "uri", Operation: gc.Predicate_EQUALS, Value: &gc.Predicate_StringValue{StringValue: uri}},
 	}
@@ -135,30 +138,17 @@ func (k *clientAdapter) ListArtifactsByURI(ctx context.Context, uri, namespace s
 		return nil, fmt.Errorf("failed to marshal filter: %v", err)
 	}
 
-	const pageSize = 100
-	var allArtifacts []*gc.Artifact
-	nextPageToken := ""
-
-	for {
-		artifactsResponse, err := k.c.Artifact.ListArtifacts(ctx, &gc.ListArtifactRequest{
-			Namespace: namespace,
-			Filter:    string(filterJSON),
-			PageSize:  pageSize,
-			PageToken: nextPageToken,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		allArtifacts = append(allArtifacts, artifactsResponse.GetArtifacts()...)
-		nextPageToken = artifactsResponse.GetNextPageToken()
-
-		if nextPageToken == "" {
-			break
-		}
+	artifactsResponse, err := k.c.Artifact.ListArtifacts(ctx, &gc.ListArtifactRequest{
+		Namespace: namespace,
+		Filter:    string(filterJSON),
+		// Large enough for typical URI match cardinality; server URI fast path
+		// ignores pagination and returns the full equality result set.
+		PageSize: 1000,
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	return allArtifacts, nil
+	return artifactsResponse.GetArtifacts(), nil
 }
 
 func (k *clientAdapter) ListArtifactTasks(ctx context.Context, req *gc.ListArtifactTasksRequest) (*gc.ListArtifactTasksResponse, error) {

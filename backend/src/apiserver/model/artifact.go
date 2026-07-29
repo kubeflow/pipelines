@@ -21,15 +21,17 @@ type ArtifactType apiv2beta1.Artifact_ArtifactType
 
 // Artifact represents an artifact in the KFP system
 type Artifact struct {
-	UUID            string       `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
-	Namespace       string       `gorm:"column:Namespace; not null; type:varchar(63); index:idx_type_namespace,priority:1;"`
-	Type            ArtifactType `gorm:"column:Type; default:null; index:idx_type_namespace,priority:2;"`
-	URI             *string      `gorm:"column:URI; type:text;"`
-	Name            string       `gorm:"column:Name; type:varchar(128); default:null;"`
-	Description     string       `gorm:"column:Description; type:text; default:null;"`
-	CreatedAtInSec  int64        `gorm:"column:CreatedAtInSec; not null; default:0; index:idx_artifact_created_timestamp;"`
-	LastUpdateInSec int64        `gorm:"column:LastUpdateInSec; not null; default:0; index:idx_artifact_last_update_timestamp;"`
-	Metadata        JSONData     `gorm:"column:Metadata; type:json; default:null;"`
+	UUID      string       `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
+	Namespace string       `gorm:"column:Namespace; not null; type:varchar(63); index:idx_type_namespace,priority:1;index:idx_namespace_urihash,priority:1;"`
+	Type      ArtifactType `gorm:"column:Type; default:null; index:idx_type_namespace,priority:2;"`
+	URI       *string      `gorm:"column:URI; type:varchar(2048);"`
+	// URIHash is the SHA-256 hex digest of URI (empty when URI is empty). Used for indexed lookups.
+	URIHash         string   `gorm:"column:URIHash; type:varchar(64); index:idx_namespace_urihash,priority:2;"`
+	Name            string   `gorm:"column:Name; type:varchar(128); default:null;"`
+	Description     string   `gorm:"column:Description; type:text; default:null;"`
+	CreatedAtInSec  int64    `gorm:"column:CreatedAtInSec; not null; default:0; index:idx_artifact_created_timestamp;"`
+	LastUpdateInSec int64    `gorm:"column:LastUpdateInSec; not null; default:0; index:idx_artifact_last_update_timestamp;"`
+	Metadata        JSONData `gorm:"column:Metadata; type:json; default:null;"`
 	// Used primarily for metrics
 	NumberValue *float64 `gorm:"column:NumberValue; default:null;"`
 }

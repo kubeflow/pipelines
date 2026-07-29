@@ -16,7 +16,9 @@
 package storage
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -34,12 +36,22 @@ var artifactColumns = []string{
 	"Namespace",
 	"Type",
 	"URI",
+	"URIHash",
 	"Name",
 	"Description",
 	"CreatedAtInSec",
 	"LastUpdateInSec",
 	"Metadata",
 	"NumberValue",
+}
+
+// artifactURIHash returns the SHA-256 hex digest of uri, or "" when uri is empty.
+func artifactURIHash(uri string) string {
+	if uri == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(uri))
+	return hex.EncodeToString(sum[:])
 }
 
 // Ensure that ClientManager implements the resource.ClientManagerInterface interface.
@@ -57,6 +69,10 @@ type ArtifactStoreInterface interface {
 
 	// GetArtifact fetches an artifact with a given id.
 	GetArtifact(id string) (*model.Artifact, error)
+
+	// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality.
+	// This is a dedicated lookup path that avoids paginated ListArtifacts + COUNT.
+	GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error)
 
 	// ListArtifacts fetches artifacts for given filtering and listing options.
 	// It returns the current page of artifacts, the total count across all pages,
@@ -108,6 +124,12 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 		return nil, util.NewInternalServerError(err, "Failed to marshal artifact metadata")
 	}
 
+	uri := ""
+	if newArtifact.URI != nil {
+		uri = *newArtifact.URI
+	}
+	newArtifact.URIHash = artifactURIHash(uri)
+
 	sql, args, err := sq.
 		Insert(artifactTableName).
 		SetMap(
@@ -116,6 +138,7 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 				"Namespace":       newArtifact.Namespace,
 				"Type":            newArtifact.Type,
 				"URI":             newArtifact.URI,
+				"URIHash":         newArtifact.URIHash,
 				"Name":            newArtifact.Name,
 				"Description":     newArtifact.Description,
 				"CreatedAtInSec":  newArtifact.CreatedAtInSec,
@@ -218,7 +241,7 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 	var artifacts []*model.Artifact
 	for rows.Next() {
 		var uuid, namespace string
-		var name, uri, description sql.NullString
+		var name, uri, uriHash, description sql.NullString
 		var artifactType int32
 		var createdAtInSec, lastUpdateInSec int64
 		var metadataBytes []byte
@@ -229,6 +252,7 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 			&namespace,
 			&artifactType,
 			&uri,
+			&uriHash,
 			&name,
 			&description,
 			&createdAtInSec,
@@ -253,6 +277,7 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 			UUID:            uuid,
 			Namespace:       namespace,
 			Type:            model.ArtifactType(artifactType),
+			URIHash:         uriHash.String,
 			Name:            name.String,
 			Description:     description.String,
 			CreatedAtInSec:  createdAtInSec,
@@ -396,4 +421,57 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 	}
 
 	return artifacts[0], nil
+}
+
+// GetArtifactsByURI returns artifacts matching Namespace and URI exactly.
+// Unlike ListArtifacts, this path issues a single equality query and does not
+// run a COUNT(*) or pagination loop. Lookups use the indexed URIHash column,
+// with a legacy fallback for rows that predate URIHash population. Exact URI
+// equality is re-checked in Go to protect against hash collisions.
+func (s *ArtifactStore) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
+	if namespace == "" {
+		return nil, util.NewInvalidInputError("namespace is required for GetArtifactsByURI")
+	}
+	if uri == "" {
+		return nil, util.NewInvalidInputError("uri is required for GetArtifactsByURI")
+	}
+
+	uriHash := artifactURIHash(uri)
+	sql, args, err := sq.
+		Select(artifactColumns...).
+		From(artifactTableName).
+		Where(sq.Or{
+			sq.Eq{"Namespace": namespace, "URIHash": uriHash},
+			sq.And{
+				sq.Eq{"Namespace": namespace, "URI": uri},
+				sq.Or{
+					sq.Eq{"URIHash": ""},
+					sq.Eq{"URIHash": nil},
+				},
+			},
+		}).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get artifacts by URI: %v", err.Error())
+	}
+
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get artifacts by URI: %v", err.Error())
+	}
+	defer rows.Close()
+
+	artifacts, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan artifacts by URI: %v", err.Error())
+	}
+
+	// Protect against rare SHA-256 collisions by requiring exact URI equality.
+	matched := make([]*model.Artifact, 0, len(artifacts))
+	for _, artifact := range artifacts {
+		if artifact.URI != nil && *artifact.URI == uri {
+			matched = append(matched, artifact)
+		}
+	}
+	return matched, nil
 }

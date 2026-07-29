@@ -20,8 +20,10 @@ import (
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -269,6 +271,21 @@ func TestArtifactServer_CreateArtifact_RejectsNamespaceMismatch(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "must be in the same namespace")
+}
+
+func TestExactURIEqualsFilter(t *testing.T) {
+	uri, ok := exactURIEqualsFilter(`{"predicates":[{"key":"uri","operation":"EQUALS","stringValue":"s3://bucket/a"}]}`)
+	require.True(t, ok)
+	assert.Equal(t, "s3://bucket/a", uri)
+
+	_, ok = exactURIEqualsFilter("")
+	assert.False(t, ok)
+
+	_, ok = exactURIEqualsFilter(`{"predicates":[{"key":"name","operation":"EQUALS","stringValue":"a"}]}`)
+	assert.False(t, ok)
+
+	_, ok = exactURIEqualsFilter(`{"predicates":[{"key":"uri","operation":"EQUALS","stringValue":"s3://a"},{"key":"name","operation":"EQUALS","stringValue":"n"}]}`)
+	assert.False(t, ok)
 }
 
 func TestArtifactServer_ListArtifacts_HappyPath(t *testing.T) {
@@ -565,6 +582,57 @@ func TestArtifactServer_ListArtifactTasks_ErrorWhenNoFilters(t *testing.T) {
 	s, _, _, _, _, _ := seedArtifactTasks(t)
 	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{PageSize: 2})
 	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+}
+
+type countingArtifactTaskStore struct {
+	inner     storage.ArtifactTaskStoreInterface
+	listCalls int
+}
+
+func (s *countingArtifactTaskStore) CreateArtifactTask(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	return s.inner.CreateArtifactTask(artifactTask)
+}
+
+func (s *countingArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactTask) ([]*model.ArtifactTask, error) {
+	return s.inner.CreateArtifactTasks(artifactTasks)
+}
+
+func (s *countingArtifactTaskStore) GetArtifactTask(id string) (*model.ArtifactTask, error) {
+	return s.inner.GetArtifactTask(id)
+}
+
+func (s *countingArtifactTaskStore) ListArtifactTasks(filterContexts []*model.FilterContext, ioType *model.IOType, opts *list.Options) ([]*model.ArtifactTask, int, string, error) {
+	s.listCalls++
+	return s.inner.ListArtifactTasks(filterContexts, ioType, opts)
+}
+
+func (s *countingArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error {
+	return s.inner.DeleteOutputArtifactTasksByTaskIDs(taskIDs)
+}
+
+func (s *countingArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error {
+	return s.inner.DeleteInputArtifactTasksByTaskIDs(taskIDs)
+}
+
+func TestArtifactServer_ListArtifactTasks_RejectsEmptyRunIDs(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	countingStore := &countingArtifactTaskStore{inner: clientManager.ArtifactTaskStore()}
+	clientManager.SetArtifactTaskStore(countingStore)
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := s.ListArtifactTasks(ctxWithUser(), &apiv2beta1.ListArtifactTasksRequest{
+		RunIds:   []string{""},
+		PageSize: 10,
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "run_ids must not contain empty values")
+	assert.Equal(t, 0, countingStore.listCalls, "empty run_ids must not reach artifact-task storage")
 }
 
 func TestArtifactServer_ListArtifactTasks_Pagination_TaskIds(t *testing.T) {
@@ -604,6 +672,161 @@ func TestArtifactServer_CreateArtifactTask_RejectsRunIDMismatch(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "run_id must match")
+}
+
+func TestArtifactServer_CreateArtifactTask_RejectsEmptyArtifactNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "empty-art-ns-run",
+		DisplayName:  "empty-art-ns-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "empty-art-ns-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "empty-ns-artifact",
+	})
+	require.NoError(t, err)
+
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2beta1.ArtifactTask{
+			ArtifactId: artifact.UUID,
+			TaskId:     task.UUID,
+			RunId:      runid1,
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Key:        "model",
+		},
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "must be in the same namespace")
+}
+
+func TestArtifactServer_CreateArtifactTask_RejectsEmptyTaskNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "empty-task-ns-run",
+		DisplayName:  "empty-task-ns-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "",
+		RunUUID:   runid1,
+		Name:      "empty-task-ns-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "ns1-artifact",
+	})
+	require.NoError(t, err)
+
+	_, err = s.CreateArtifactTask(ctxWithUser(), &apiv2beta1.CreateArtifactTaskRequest{
+		ArtifactTask: &apiv2beta1.ArtifactTask{
+			ArtifactId: artifact.UUID,
+			TaskId:     task.UUID,
+			RunId:      runid1,
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+			Key:        "model",
+		},
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "must be in the same namespace")
+}
+
+func TestArtifactServer_CreateArtifactTasksBulk_RejectsEmptyArtifactNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := clientManager.RunStore().CreateRun(&model.Run{
+		UUID:         runid1,
+		K8SName:      "bulk-empty-art-ns-run",
+		DisplayName:  "bulk-empty-art-ns-run",
+		StorageState: model.StorageStateAvailable,
+		Namespace:    "ns1",
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			State:            model.RuntimeStateRunning,
+		},
+	})
+	require.NoError(t, err)
+
+	task, err := clientManager.TaskStore().CreateTask(&model.Task{
+		Namespace: "ns1",
+		RunUUID:   runid1,
+		Name:      "bulk-empty-art-ns-task",
+		State:     1,
+	})
+	require.NoError(t, err)
+
+	artifact, err := clientManager.ArtifactStore().CreateArtifact(&model.Artifact{
+		Namespace: "",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		Name:      "bulk-empty-ns-artifact",
+	})
+	require.NoError(t, err)
+
+	_, err = s.CreateArtifactTasksBulk(ctxWithUser(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+			{
+				ArtifactId: artifact.UUID,
+				TaskId:     task.UUID,
+				RunId:      runid1,
+				Type:       apiv2beta1.IOType_OUTPUT,
+				Producer:   &apiv2beta1.IOProducer{TaskName: task.Name},
+				Key:        "model",
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "must be in the same namespace")
 }
 
 func TestArtifactServer_CreateArtifactTask_RequiresRunUpdateAuthorization(t *testing.T) {
