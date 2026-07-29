@@ -69,6 +69,7 @@ func TestParseSpecFormat(t *testing.T) {
 	tt := []struct {
 		template     string
 		templateType TemplateType
+		wantErr      string
 	}{{
 		// standard match
 		template: `
@@ -108,14 +109,54 @@ kind: CronWorkflow`,
 	}, {
 		template:     loadYaml(t, "testdata/hello_world.yaml"),
 		templateType: V2,
+	}, {
+		// multi-document V2 pipeline (pipeline spec + platforms section)
+		template:     loadYaml(t, "testdata/pipeline_with_volume.yaml"),
+		templateType: V2,
+	}, {
+		// valid YAML scalar (not a mapping) — not a pipeline spec
+		template:     "not a valid spec",
+		templateType: Unknown,
+	}, {
+		// malformed YAML: unclosed single-quoted scalar
+		template:     "'",
+		templateType: Unknown,
+		wantErr:      "yaml: found unexpected end of stream",
+	}, {
+		// malformed YAML: unclosed flow sequence
+		template:     "[",
+		templateType: Unknown,
+		wantErr:      "yaml: line 1: did not find expected node content",
+	}, {
+		// malformed YAML: incomplete directive
+		template:     "%",
+		templateType: Unknown,
+		wantErr:      "yaml: could not find expected directive name",
 	}}
 
 	for _, test := range tt {
-		format := inferTemplateFormat([]byte(test.template))
+		format, err := inferTemplateFormat([]byte(test.template))
 		if format != test.templateType {
 			t.Errorf("InferTemplateFormat(%s)=%q, expect %q", test.template, format, test.templateType)
 		}
+		if test.wantErr != "" {
+			require.EqualError(t, err, test.wantErr)
+		} else {
+			require.NoError(t, err)
+		}
 	}
+}
+
+func TestNewTemplateMalformedYAML(t *testing.T) {
+	_, err := New([]byte("'"), TemplateOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse pipeline spec YAML")
+}
+
+func TestNewTemplateValidNonPipelineYAML(t *testing.T) {
+	_, err := New([]byte("key: value"), TemplateOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown template format")
 }
 
 func unmarshalWf(yamlStr string) *v1alpha1.Workflow {
