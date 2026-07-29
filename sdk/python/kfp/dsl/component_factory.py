@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import base64
+import configparser
 import dataclasses
 import gzip
 import inspect
@@ -54,6 +55,7 @@ class ComponentInfo():
 
     This will likely be subsumed/augmented with BaseComponent.
     """
+
     name: str
     function_name: str
     func: Callable
@@ -67,6 +69,7 @@ class ComponentInfo():
     pip_trusted_hosts: Optional[List[str]] = None
     use_venv: bool = False
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None
+    use_local_pip_config: bool = False
 
 
 # A map from function_name to components.  This is always populated when a
@@ -78,6 +81,284 @@ REGISTERED_MODULES = None
 def _python_function_name_to_component_name(name):
     name_with_spaces = re.sub(' +', ' ', name.replace('_', ' ')).strip(' ')
     return name_with_spaces[0].upper() + name_with_spaces[1:]
+
+
+def _has_embedded_credentials(url: str) -> bool:
+    """Return True if the URL appears to contain embedded credentials.
+
+    Any occurrence of '@' after the scheme separator '://' is treated as
+    potentially sensitive userinfo, regardless of whether a password
+    (i.e., a ':' in the userinfo) is present.
+
+    Args:
+        url: The URL to check.
+
+    Returns:
+        True if the URL contains potential credentials, False otherwise.
+    """
+    scheme_sep = '://'
+    if scheme_sep not in url:
+        return False
+    scheme_index = url.find(scheme_sep)
+    # Look for '@' only after the scheme separator.
+    at_index = url.find('@', scheme_index + len(scheme_sep))
+    return at_index != -1
+
+
+def _sanitize_positive_int(value: Any, name: str) -> Optional[int]:
+    """Sanitize a config value expected to be a non-negative integer.
+
+    Args:
+        value: The value to sanitize.
+        name: The name of the config option (for warning messages).
+
+    Returns:
+        The integer value if valid, otherwise None.
+    """
+    if value is None:
+        return None
+    # Avoid treating booleans as integers.
+    if isinstance(value, bool):
+        warnings.warn(
+            f'Ignoring boolean value for pip {name} option; expected a non-negative integer.',
+            UserWarning,
+        )
+        return None
+    try:
+        int_value = int(str(value).strip())
+    except (TypeError, ValueError):
+        warnings.warn(
+            f'Ignoring invalid value {value!r} for pip {name} option; expected a non-negative integer.',
+            UserWarning,
+        )
+        return None
+    if int_value < 0:
+        warnings.warn(
+            f'Ignoring negative value {int_value} for pip {name} option; expected a non-negative integer.',
+            UserWarning,
+        )
+        return None
+    return int_value
+
+
+def _parse_local_pip_config() -> Dict[str, Any]:
+    """Parse safe pip configuration from the user's local pip.conf/pip.ini.
+
+    Looks for pip config in standard locations:
+    - ~/.config/pip/pip.conf (Unix/Linux/macOS)
+    - ~/.pip/pip.ini (Windows)
+    - $PIP_CONFIG_FILE environment variable
+
+    Only extracts safe, non-sensitive options:
+    - index-url
+    - extra-index-url
+    - trusted-host
+    - timeout
+    - retries
+    - no-cache-dir
+    - disable-pip-version-check
+
+    Filters out URLs with embedded credentials and warns the user.
+
+    Returns:
+        Dict[str, Any]: Dictionary of safe pip configuration options.
+    """
+    config_paths = []
+
+    # Check environment variable first
+    if 'PIP_CONFIG_FILE' in os.environ:
+        config_paths.append(os.environ['PIP_CONFIG_FILE'])
+
+    # Check standard locations
+    home = pathlib.Path.home()
+    config_paths.extend([
+        home / '.config' / 'pip' / 'pip.conf',
+        home / '.pip' / 'pip.ini',
+    ])
+
+    safe_config: Dict[str, Any] = {}
+    config = configparser.ConfigParser()
+
+    # Try to read the first existing config file
+    for config_path in config_paths:
+        if isinstance(config_path, str):
+            config_path = pathlib.Path(config_path)
+        if config_path.exists():
+            try:
+                config.read(config_path)
+                break
+            except Exception as e:
+                warnings.warn(
+                    f'Failed to parse pip config file {config_path}: {e}',
+                    UserWarning,
+                )
+                continue
+
+    # Extract safe options from 'global' and 'install' sections
+    for section in ['global', 'install']:
+        if not config.has_section(section):
+            continue
+
+        # Handle index-url (single value)
+        if config.has_option(section, 'index-url'):
+            url = config.get(section, 'index-url').strip()
+            if not url:
+                warnings.warn(
+                    'Skipping empty index-url in pip config.',
+                    UserWarning,
+                )
+            elif _has_embedded_credentials(url):
+                warnings.warn(
+                    'Skipping index-url from pip config because it contains embedded credentials. '
+                    'Provide credentials via environment variables or secrets.',
+                    UserWarning,
+                )
+            else:
+                if 'index-url' in safe_config and safe_config[
+                        'index-url'] != url:
+                    warnings.warn(
+                        f'Multiple index-url values found in pip config; using value from [{section}] section.',
+                        UserWarning,
+                    )
+                safe_config['index-url'] = url
+
+        # Handle extra-index-url (multiple values, space-separated)
+        if config.has_option(section, 'extra-index-url'):
+            urls = [
+                url for url in config.get(section, 'extra-index-url').split()
+                if url.strip()
+            ]
+            filtered = [
+                url for url in urls if not _has_embedded_credentials(url)
+            ]
+            skipped = [url for url in urls if _has_embedded_credentials(url)]
+            if skipped:
+                warnings.warn(
+                    'Skipping extra-index-url from pip config because it contains embedded credentials. '
+                    'Provide credentials via environment variables or secrets.',
+                    UserWarning,
+                )
+            if filtered:
+                if 'extra-index-url' in safe_config:
+                    warnings.warn(
+                        f'Multiple extra-index-url values found in pip config; using values from [{section}] section.',
+                        UserWarning,
+                    )
+                safe_config['extra-index-url'] = filtered
+
+        # Handle trusted-host (multiple values, space-separated)
+        if config.has_option(section, 'trusted-host'):
+            hosts = config.get(section, 'trusted-host').split()
+            if 'trusted-host' in safe_config:
+                warnings.warn(
+                    f'Multiple trusted-host values found in pip config; using values from [{section}] section.',
+                    UserWarning,
+                )
+            safe_config['trusted-host'] = hosts
+
+        # Handle timeout (integer)
+        if config.has_option(section, 'timeout'):
+            timeout = _sanitize_positive_int(
+                config.get(section, 'timeout'), 'timeout')
+            if timeout is not None:
+                if 'timeout' in safe_config:
+                    warnings.warn(
+                        f'Multiple timeout values found in pip config; using value from [{section}] section.',
+                        UserWarning,
+                    )
+                safe_config['timeout'] = timeout
+
+        # Handle retries (integer)
+        if config.has_option(section, 'retries'):
+            retries = _sanitize_positive_int(
+                config.get(section, 'retries'), 'retries')
+            if retries is not None:
+                if 'retries' in safe_config:
+                    warnings.warn(
+                        f'Multiple retries values found in pip config; using value from [{section}] section.',
+                        UserWarning,
+                    )
+                safe_config['retries'] = retries
+
+        # Handle boolean flags
+        if config.has_option(section, 'no-cache-dir'):
+            safe_config['no-cache-dir'] = config.getboolean(
+                section, 'no-cache-dir')
+
+        if config.has_option(section, 'disable-pip-version-check'):
+            safe_config['disable-pip-version-check'] = config.getboolean(
+                section, 'disable-pip-version-check')
+
+    return safe_config
+
+
+def _merge_pip_config_with_explicit_params(
+    local_config: Dict[str, Any],
+    pip_index_urls: Optional[List[str]],
+    pip_trusted_hosts: Optional[List[str]],
+) -> Tuple[Optional[List[str]], Optional[List[str]]]:
+    """Merge local pip config with explicit parameters.
+
+    Explicit parameters always take precedence. This function only uses local
+    config values when explicit parameters are not provided (None).
+
+    Args:
+        local_config: Dictionary of safe pip configuration from local pip.conf.
+        pip_index_urls: Explicit pip index URLs (takes precedence if provided).
+        pip_trusted_hosts: Explicit pip trusted hosts (takes precedence if provided).
+
+    Returns:
+        Tuple[Optional[List[str]], Optional[List[str]]]: Merged (index_urls, trusted_hosts).
+    """
+    merged_index_urls = pip_index_urls
+    merged_trusted_hosts = pip_trusted_hosts
+
+    # Use local config only if explicit params are None (not provided)
+    if pip_index_urls is None:
+        if 'index-url' in local_config:
+            merged_index_urls = [local_config['index-url']]
+        if 'extra-index-url' in local_config:
+            extra = local_config['extra-index-url']
+            if merged_index_urls is None:
+                merged_index_urls = extra
+            else:
+                merged_index_urls = merged_index_urls + extra
+
+    if pip_trusted_hosts is None:
+        if 'trusted-host' in local_config:
+            merged_trusted_hosts = local_config['trusted-host']
+
+    return merged_index_urls, merged_trusted_hosts
+
+
+def _make_pip_extra_options(local_config: Dict[str, Any]) -> str:
+    """Convert local pip config to pip install command-line options.
+
+    Handles: timeout, retries, no-cache-dir, disable-pip-version-check.
+
+    Args:
+        local_config: Dictionary of safe pip configuration from local pip.conf.
+
+    Returns:
+        str: Space-separated pip install options (e.g., "--timeout 60 --retries 3").
+    """
+    options = []
+
+    timeout = local_config.get('timeout')
+    if timeout is not None:
+        options.append(f'--timeout {timeout}')
+
+    retries = local_config.get('retries')
+    if retries is not None:
+        options.append(f'--retries {retries}')
+
+    if local_config.get('no-cache-dir', False):
+        options.append('--no-cache-dir')
+
+    if local_config.get('disable-pip-version-check', False):
+        options.append('--disable-pip-version-check')
+
+    return ' '.join(options)
 
 
 def make_index_url_options(pip_index_urls: Optional[List[str]],
@@ -128,7 +409,8 @@ def make_pip_install_command(
     return f'python3 -m pip install --quiet --no-warn-script-location {index_url_options}{concat_package_list}'
 
 
-_install_python_packages_script_template = '''
+_install_python_packages_script_template =\
+                                           '''
 if ! [ -x "$(command -v pip)" ]; then
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
 fi
@@ -138,7 +420,8 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 {pip_install_commands} && "$0" "$@"
 
 # Creates and activates a virtual environment in a temporary directory.
 # The environment inherits the system site packages.
-_use_venv_script_template = '''
+_use_venv_script_template =\
+                            '''
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 tmp=$(mktemp -d)
 python3 -m venv "$tmp/venv" --system-site-packages
@@ -154,6 +437,7 @@ def _get_packages_to_install_command(
     target_image: Optional[str] = None,
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
+    use_local_pip_config: bool = False,
 ) -> List[str]:
     packages_to_install = packages_to_install or []
     kfp_in_user_pkgs = any(pkg.startswith('kfp') for pkg in packages_to_install)
@@ -164,8 +448,25 @@ def _get_packages_to_install_command(
     if not inject_kfp_install and not packages_to_install:
         return []
     pip_install_strings = []
+
+    # Parse local pip config if requested
+    local_pip_config: Dict[str, Any] = {}
+    extra_pip_options = ''
+    if use_local_pip_config:
+        local_pip_config = _parse_local_pip_config()
+        pip_index_urls, pip_trusted_hosts = _merge_pip_config_with_explicit_params(
+            local_pip_config,
+            pip_index_urls if pip_index_urls is not None else None,
+            pip_trusted_hosts if pip_trusted_hosts is not None else None,
+        )
+        extra_pip_options = _make_pip_extra_options(local_pip_config)
+
     index_url_options = make_index_url_options(pip_index_urls,
                                                pip_trusted_hosts)
+
+    # Combine index URL options with extra options
+    if extra_pip_options:
+        index_url_options = f'{index_url_options} {extra_pip_options}'.strip()
 
     # Install packages before KFP. This allows us to
     # control where we source kfp-pipeline-spec.
@@ -562,7 +863,8 @@ def _get_command_and_args_for_lightweight_component(
                 archive_b64, file_basename)
 
     helper_block = f'\n\n{helper_source}\n' if helper_source else ''
-    source = textwrap.dedent('''
+    source = textwrap.dedent(\
+                             '''
         {imports_source}{additional_funcs_source}{helper_block}
 
         {func_source}\n''').format(
@@ -648,6 +950,7 @@ def create_notebook_component_from_func(
     pip_trusted_hosts: Optional[List[str]] = None,
     use_venv: bool = False,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
+    use_local_pip_config: bool = False,
 ) -> python_component.PythonComponent:
     """Builds a notebook-based component by delegating to
     create_component_from_func.
@@ -657,7 +960,6 @@ def create_notebook_component_from_func(
     component-building logic is reused by passing the template and the
     notebook path as an embedded artifact.
     """
-
     # Resolve default packages for notebooks when not specified
     if packages_to_install is None:
         packages_to_install = [
@@ -713,6 +1015,7 @@ def create_notebook_component_from_func(
         use_venv=use_venv,
         additional_funcs=None,
         task_config_passthroughs=task_config_passthroughs,
+        use_local_pip_config=use_local_pip_config,
     )
 
 
@@ -742,6 +1045,7 @@ def create_component_from_func(
     use_venv: bool = False,
     additional_funcs: Optional[List[Callable]] = None,
     task_config_passthroughs: Optional[List[TaskConfigPassthrough]] = None,
+    use_local_pip_config: bool = False,
     _helper_source_template: Optional[str] = None,
 ) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
@@ -749,7 +1053,6 @@ def create_component_from_func(
     The decorator is defined under component_decorator.py. See the
     decorator for the canonical documentation for this function.
     """
-
     packages_to_install_command = _get_packages_to_install_command(
         install_kfp_package=install_kfp_package,
         target_image=target_image,
@@ -758,6 +1061,7 @@ def create_component_from_func(
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
         use_venv=use_venv,
+        use_local_pip_config=use_local_pip_config,
     )
 
     command = []
@@ -812,7 +1116,8 @@ def create_component_from_func(
         packages_to_install=packages_to_install,
         pip_index_urls=pip_index_urls,
         pip_trusted_hosts=pip_trusted_hosts,
-        task_config_passthroughs=task_config_passthroughs)
+        task_config_passthroughs=task_config_passthroughs,
+        use_local_pip_config=use_local_pip_config)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
@@ -872,7 +1177,6 @@ def create_container_component_from_func(
     The decorator is defined under container_component_decorator.py. See
     the decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(func, containerized=True)
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
@@ -905,7 +1209,6 @@ def create_graph_component_from_func(
     The decorator is defined under pipeline_context.py. See the
     decorator for the canonical documentation for this function.
     """
-
     component_spec = extract_component_interface(
         func,
         description=description,
