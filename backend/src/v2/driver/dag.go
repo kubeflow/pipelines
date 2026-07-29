@@ -164,10 +164,21 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		}
 	}()
 	glog.Infof("Creating task: %+v", taskToCreate)
+	attemptLocalFields := &gc.PipelineTask{
+		Pods:             taskToCreate.GetPods(),
+		Inputs:           taskToCreate.GetInputs(),
+		CacheFingerprint: taskToCreate.GetCacheFingerprint(),
+		State:            taskToCreate.GetState(),
+		EndTime:          taskToCreate.GetEndTime(),
+	}
 	createdTask, err := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
 		Task:  taskToCreate,
 		RunId: taskToCreate.GetRunId(),
 	})
+	if err != nil {
+		return execution, err
+	}
+	createdTask, err = updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
 	if err != nil {
 		return execution, err
 	}

@@ -1166,6 +1166,12 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
 		return err
 	}
+	// Input links are also attempt-local: leaving them in place causes
+	// CreateArtifactTasks UniqueLink conflicts when the retried driver recreates
+	// the same (artifact, task, key, type) input rows.
+	if err := r.artifactTaskStore.DeleteInputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
 
 	// Output parameters and output artifact links are attempt-local. Resetting
 	// them here prevents a retried task from exposing stale failed-attempt

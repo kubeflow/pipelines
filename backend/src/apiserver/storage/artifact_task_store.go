@@ -60,6 +60,10 @@ type ArtifactTaskStoreInterface interface {
 
 	// DeleteOutputArtifactTasksByTaskIDs deletes attempt-local output links for the given tasks.
 	DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error
+
+	// DeleteInputArtifactTasksByTaskIDs deletes attempt-local input links for the given tasks.
+	// Required on retry so CreateArtifactTasks can recreate UniqueLink rows for the new attempt.
+	DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error
 }
 
 type ArtifactTaskStore struct {
@@ -437,6 +441,33 @@ func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string)
 	}
 	if _, err := s.db.Exec(sql, args...); err != nil {
 		return util.NewInternalServerError(err, "Failed to delete output artifact-tasks: %v", err.Error())
+	}
+	return nil
+}
+
+func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error {
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	inputLinkTypes := []model.IOType{
+		model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		model.IOType(apiv2beta1.IOType_COLLECTED_INPUTS),
+		model.IOType(apiv2beta1.IOType_TASK_OUTPUT_INPUT),
+		model.IOType(apiv2beta1.IOType_RUNTIME_VALUE_INPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT_RAW),
+		model.IOType(apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT),
+	}
+	sql, args, err := sq.
+		Delete(artifactTaskTableName).
+		Where(sq.Eq{"TaskID": taskIDs}).
+		Where(sq.Eq{"Type": inputLinkTypes}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete input artifact-tasks: %v", err.Error())
+	}
+	if _, err := s.db.Exec(sql, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete input artifact-tasks: %v", err.Error())
 	}
 	return nil
 }

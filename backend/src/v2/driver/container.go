@@ -365,10 +365,21 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	}
 
 	glog.Infof("Creating task %s in pod %s", opts.TaskName, opts.Namespace)
+	attemptLocalFields := &apiV2beta1.PipelineTask{
+		Pods:             taskToCreate.GetPods(),
+		Inputs:           taskToCreate.GetInputs(),
+		CacheFingerprint: taskToCreate.GetCacheFingerprint(),
+		State:            taskToCreate.GetState(),
+		EndTime:          taskToCreate.GetEndTime(),
+	}
 	createdTask, driverErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task:  taskToCreate,
 		RunId: taskToCreate.GetRunId(),
 	})
+	if driverErr != nil {
+		return execution, driverErr
+	}
+	createdTask, driverErr = updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
 	if driverErr != nil {
 		return execution, driverErr
 	}

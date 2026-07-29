@@ -2654,6 +2654,15 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 		ArtifactKey: "result",
 	})
 	require.NoError(t, err)
+	_, err = store.ArtifactTaskStore().CreateArtifactTask(&model.ArtifactTask{
+		ArtifactID:  artifact.UUID,
+		TaskID:      failedTask.UUID,
+		RunUUID:     runDetail.UUID,
+		Type:        model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		Producer:    producer,
+		ArtifactKey: "dataset",
+	})
+	require.NoError(t, err)
 
 	succeededOutputs, err := model.ProtoSliceToJSONSlice([]*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
 		ParameterKey: "result",
@@ -2695,6 +2704,17 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	assert.Empty(t, retriedFailedTask.OutputParameters)
 	assert.Empty(t, retriedFailedTask.OutputArtifactsHydrated)
 	require.NotEmpty(t, retriedFailedTask.StateHistory)
+
+	opts, err := list.NewOptions(&model.ArtifactTask{}, 20, "", nil)
+	require.NoError(t, err)
+	links, total, _, err := store.ArtifactTaskStore().ListArtifactTasks(
+		[]*model.FilterContext{{ReferenceKey: &model.ReferenceKey{Type: model.TaskResourceType, ID: failedTask.UUID}}},
+		nil,
+		opts,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 0, total)
+	assert.Empty(t, links)
 
 	preservedSucceededTask := tasksByName[succeededTask.Name]
 	require.NotNil(t, preservedSucceededTask)

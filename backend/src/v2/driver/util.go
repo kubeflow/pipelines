@@ -382,6 +382,35 @@ func handleInputTaskParametersCreation(
 	return task, nil
 }
 
+// updateTaskAttemptLocalFieldsAfterCreate re-applies attempt-local fields that
+// CreateTask may drop when it returns an existing logical-identity row (retries
+// and duplicate delivery). Mirrors the cache-hit UpdateTask path for pods,
+// inputs, fingerprint, and state.
+func updateTaskAttemptLocalFieldsAfterCreate(
+	ctx context.Context,
+	kfpAPI kfpapi.API,
+	createdTask *apiV2beta1.PipelineTask,
+	attemptTask *apiV2beta1.PipelineTask,
+) (*apiV2beta1.PipelineTask, error) {
+	if createdTask == nil || attemptTask == nil {
+		return nil, fmt.Errorf("created task and attempt task are required")
+	}
+	createdTask.Pods = attemptTask.GetPods()
+	createdTask.Inputs = attemptTask.GetInputs()
+	createdTask.CacheFingerprint = attemptTask.GetCacheFingerprint()
+	createdTask.State = attemptTask.GetState()
+	createdTask.EndTime = attemptTask.GetEndTime()
+	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+		TaskId: createdTask.GetTaskId(),
+		Task:   createdTask,
+		RunId:  createdTask.GetRunId(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update attempt-local task fields after create: %w", err)
+	}
+	return updatedTask, nil
+}
+
 // handleInputTaskArtifactsCreation creates a new ArtifactTask for each input artifact.
 // The artifactsTasks are created as input artifacts. This allows KFP backend to
 // list input artifacts for this task. Parameters do not require this additional overhead
