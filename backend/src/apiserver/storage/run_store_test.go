@@ -1086,21 +1086,22 @@ func TestTerminateRun_AppendsCancellingToStateHistory(t *testing.T) {
 	// Run "1" is seeded as RUNNING with a single StateHistory entry.
 	before, err := runStore.GetRun("1")
 	assert.Nil(t, err)
-	assert.Equal(t, model.RuntimeStateRunning, before.RunDetails.State)
-	assert.Len(t, before.RunDetails.StateHistory, 1)
+	assert.Equal(t, model.RuntimeStateRunning, before.State)
+	assert.Len(t, before.StateHistory, 1)
 
 	err = runStore.TerminateRun("1")
 	assert.Nil(t, err)
 
 	after, err := runStore.GetRun("1")
 	assert.Nil(t, err)
-	// State moves to CANCELLING and the transition is recorded in StateHistory,
+	// State moves to RuntimeStateCancelling and the transition is recorded in
+	// StateHistory,
 	// consistent with CreateRun/UpdateRun (regression test for the missing
 	// TerminateRun StateHistory append).
-	assert.Equal(t, model.RuntimeStateCancelling, after.RunDetails.State)
-	assert.Len(t, after.RunDetails.StateHistory, 2)
-	assert.Equal(t, model.RuntimeStateRunning, after.RunDetails.StateHistory[0].State)
-	assert.Equal(t, model.RuntimeStateCancelling, after.RunDetails.StateHistory[1].State)
+	assert.Equal(t, model.RuntimeStateCancelling, after.State)
+	assert.Len(t, after.StateHistory, 2)
+	assert.Equal(t, model.RuntimeStateRunning, after.StateHistory[0].State)
+	assert.Equal(t, model.RuntimeStateCancelling, after.StateHistory[1].State)
 }
 
 func TestCreateMetric_Success(t *testing.T) {

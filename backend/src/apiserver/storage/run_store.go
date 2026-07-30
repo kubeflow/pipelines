@@ -611,7 +611,7 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
-	tx, err := s.db.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
@@ -827,7 +827,7 @@ func (s *RunStore) TerminateRun(runId string) error {
 	}
 
 	// Load the current state history inside the transaction so we can append the
-	// CANCELLING transition, mirroring CreateRun/UpdateRun which record every
+	// RuntimeStateCancelling transition, mirroring CreateRun/UpdateRun which record every
 	// state change in StateHistory. The state guard matches the UPDATE below so a
 	// run that is not in a terminable state (or does not exist) yields no row.
 	//
