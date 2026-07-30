@@ -41,22 +41,12 @@ import (
 // page of results), with the two values pointing to the first record in the
 // next set of results.
 type token struct {
-	// SortByFieldName is the SQL-safe column name used in ORDER BY and WHERE
-	// clauses. For regular fields it equals the model field name. For metric
-	// sorts it is always the fixed constant model.MetricSortSQLAlias
-	// ("sort_metric_value"), never the user-supplied metric name.
+	// SQL-safe column name: a real column, or the fixed alias for metric sorts.
 	SortByFieldName string
-	// SortByMetricName is the original metric name supplied by the user when
-	// sorting by a run metric (e.g. "log-loss"). It is used only as a bind
-	// parameter value in CASE WHEN / JOIN queries, never as a SQL identifier.
-	// Empty for non-metric sorts.
+	// Raw metric name for metric sorts, used only as a bind parameter. Empty for regular sorts.
 	SortByMetricName string
-	// SortBySQLColumn holds the SQL-safe column name for backward compatibility
-	// with version B (2.17) servers during rolling upgrades. nextPageToken()
-	// writes it so that B servers can read C tokens correctly. unmarshal()
-	// uses it to restore SortByFieldName when reading a compatibility-window
-	// token, then clears it. Also used to detect and migrate legacy B tokens.
-	// Remove after 2.19. See PAGE_TOKEN_SORT_DESIGN.md.
+	// Backward-compat field for version-B (2.17) rolling upgrades; written by
+	// nextPageToken(), consumed and cleared by unmarshal(). Remove after 2.19.
 	SortBySQLColumn string
 	// SortByFieldValue is the value of the sorted field of the next row to be
 	// returned.
@@ -125,9 +115,7 @@ const (
 	tokenVersionA                     // neither marker present (oldest layout)
 )
 
-// detectTokenVersion classifies a decoded token by its explicit version
-// markers. C and B both have unambiguous markers; A is whatever is left
-// over (absence of marker, not a positive signal).
+// detectTokenVersion classifies a decoded token by its version markers (see PAGE_TOKEN_SORT_DESIGN.
 func detectTokenVersion(t *token) tokenVersion {
 	if t.SortByMetricName != "" {
 		return tokenVersionC
@@ -156,12 +144,7 @@ func (t *token) unmarshal(listable Listable, pageToken string) error {
 	// history.
 	switch detectTokenVersion(t) {
 	case tokenVersionB:
-		// upgrade B to C: B stored the raw metric name in SortByFieldName and
-		// the alias in SortBySQLColumn. Confirm the listable actually
-		// supports metric sorting via GetField (the same check NewOptions
-		// uses on page 1) before promoting; a B-shaped token decoded against
-		// a listable with no metric support is forged or stale and must be
-		// rejected, not silently turned into a metric-sort token.
+		// B stored the raw metric name in SortByFieldName; confirm metric support before promoting.
 		if n, sqlCol, ok := listable.GetField("metric:" + t.SortByFieldName); ok && n != sqlCol {
 			t.SortByMetricName = n
 			t.SortByFieldName = sqlCol
@@ -169,18 +152,7 @@ func (t *token) unmarshal(listable Listable, pageToken string) error {
 			return util.NewInvalidInputError("Invalid sort field name: %q", t.SortByFieldName)
 		}
 	case tokenVersionA:
-		// upgrade A to C: A has no marker field at all. First ask the
-		// listable whether SortByFieldName is one of its real columns; if
-		// so it's a regular sort, not a metric one. Otherwise confirm via
-		// GetField that the listable supports metric sorting on this name
-		// before promoting it — IsRegularField returning false is only
-		// "not a real column," not a positive signal that this is a
-		// legacy metric name (see "Two independent checks" in
-		// PAGE_TOKEN_SORT_DESIGN.md). This is a precise check (not a
-		// shape-based guess), so identifier-safe legacy metric names like
-		// "accuracy" are migrated correctly too, while names that aren't
-		// columns on this listable and aren't valid metrics either are
-		// rejected outright.
+		// No version marker; check IsRegularField first, then fall back to a metric-name check.
 		if t.SortByFieldName != "" && !listable.IsRegularField(t.SortByFieldName) {
 			if n, sqlCol, ok := listable.GetField("metric:" + t.SortByFieldName); ok && n != sqlCol {
 				t.SortByMetricName = n
@@ -190,11 +162,7 @@ func (t *token) unmarshal(listable Listable, pageToken string) error {
 			}
 		}
 	case tokenVersionC:
-		// During the 2.18 backward-compatibility window, nextPageToken() writes
-		// the metric name into SortByFieldName (for Pod B compat) and the SQL
-		// alias into SortBySQLColumn. Restore SortByFieldName to the SQL-safe
-		// column name. Remove after 2.19 when nextPageToken() stops writing
-		// SortBySQLColumn.
+		// Compat-window token: restore SortByFieldName from SortBySQLColumn, then clear it.
 		if t.SortBySQLColumn != "" {
 			t.SortByFieldName = t.SortBySQLColumn
 		}

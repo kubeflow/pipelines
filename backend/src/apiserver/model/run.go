@@ -409,11 +409,7 @@ func (r *Run) GetField(name string) (string, string, bool) {
 	}
 	if strings.HasPrefix(name, "metric:") {
 		metricName := name[7:]
-		// Reject a metric literally named after the fixed SQL alias used for
-		// metric sorts. Without this guard, a metric named "sort_metric_value"
-		// would make n == sqlCol in the caller's promotion check, causing the
-		// metric-sort branch to be skipped and the token to be silently
-		// misclassified as a regular column sort on a nonexistent column. 
+		// Reject a metric literally named after MetricSortSQLAlias to avoid collision.
 		if metricName == MetricSortSQLAlias {
 			return "", "", false
 		}

@@ -52,11 +52,8 @@ func TestIsRegularField(t *testing.T) {
 		})
 	}
 }
-// GetField's metric branch should reject a metric literally named after the
-// fixed SQL alias (MetricSortSQLAlias). Without this guard, GetField would
-// return n == sqlCol == "sort_metric_value" for such a metric, causing the
-// caller's promotion check (n != sqlCol) to treat it as a regular column
-// sort on a nonexistent column instead of a metric sort.
+
+// GetField must reject a metric named after MetricSortSQLAlias.
 func TestRun_GetField_RejectsMetricNamedAfterSortAlias(t *testing.T) {
 	r := &Run{}
 	if _, _, ok := r.GetField("metric:" + MetricSortSQLAlias); ok {
