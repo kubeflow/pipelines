@@ -555,6 +555,10 @@ func extendPodSpecPatch(
 			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
 			storageClassName = &_storageClassName
 		}
+		sizeQuantity, err := k8sres.ParseQuantity(ephemeralVolumeSpec.GetSize())
+		if err != nil {
+			return fmt.Errorf("failed to parse generic ephemeral volume size %q for volume %q: %w", ephemeralVolumeSpec.GetSize(), ephemeralVolumeSpec.GetVolumeName(), err)
+		}
 		ephemeralVolume := k8score.Volume{
 			Name: ephemeralVolumeSpec.GetVolumeName(),
 			VolumeSource: k8score.VolumeSource{
@@ -568,7 +572,7 @@ func extendPodSpecPatch(
 							AccessModes: accessModes,
 							Resources: k8score.VolumeResourceRequirements{
 								Requests: k8score.ResourceList{
-									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+									k8score.ResourceStorage: sizeQuantity,
 								},
 							},
 							StorageClassName: storageClassName,
@@ -591,7 +595,10 @@ func extendPodSpecPatch(
 	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
 		var sizeLimitResource *k8sres.Quantity
 		if emptyDirVolumeSpec.GetSizeLimit() != "" {
-			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			r, err := k8sres.ParseQuantity(emptyDirVolumeSpec.GetSizeLimit())
+			if err != nil {
+				return fmt.Errorf("failed to parse size limit %q for emptyDir volume %q: %w", emptyDirVolumeSpec.GetSizeLimit(), emptyDirVolumeSpec.GetVolumeName(), err)
+			}
 			sizeLimitResource = &r
 		}
 
@@ -1055,6 +1062,10 @@ func createPVC(
 	}
 
 	// Create a PersistentVolumeClaim object
+	pvcStorageQuantity, err := k8sres.ParseQuantity(volumeSizeInput.GetStringValue())
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to parse pvc size %q: %w", volumeSizeInput.GetStringValue(), err)
+	}
 	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pvcName,
@@ -1064,7 +1075,7 @@ func createPVC(
 			AccessModes: accessModes,
 			Resources: k8score.VolumeResourceRequirements{
 				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
+					k8score.ResourceStorage: pvcStorageQuantity,
 				},
 			},
 			StorageClassName: &storageClassName,
