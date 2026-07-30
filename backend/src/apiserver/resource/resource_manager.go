@@ -2453,7 +2453,8 @@ func (r *ResourceManager) ListArtifacts(filterContexts []*model.FilterContext, o
 }
 
 // GetArtifactsByURI fetches artifacts with exact Namespace + URI equality using
-// a dedicated store lookup (no pagination / COUNT loop).
+// a dedicated store lookup (no pagination / COUNT loop). An empty namespace is
+// valid in single-user mode where persisted namespaces are cleared.
 func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
 	artifacts, err := r.artifactStore.GetArtifactsByURI(namespace, uri)
 	if err != nil {

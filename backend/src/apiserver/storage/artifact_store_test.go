@@ -140,6 +140,39 @@ func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
 	assert.Equal(t, artifactURIHash(sharedURI), matched[0].URIHash)
 }
 
+func TestGetArtifactsByURI_EmptyNamespaceSingleUser(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/path/to/artifact"
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "single-user-match",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "namespaced-same-uri",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("", sharedURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "single-user-match", matched[0].Name)
+	assert.Equal(t, "", matched[0].Namespace)
+	assert.Equal(t, sharedURI, *matched[0].URI)
+}
+
 func TestGetArtifactsByURI_FiltersHashCollisions(t *testing.T) {
 	db, store := initializeArtifactStore()
 	defer db.Close()

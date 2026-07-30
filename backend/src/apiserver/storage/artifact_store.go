@@ -430,10 +430,11 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 // hash collisions. URIHash is populated on every write; migration backfill
 // covers any pre-existing rows, so empty-hash fallbacks are intentionally
 // omitted.
+//
+// An empty namespace is valid and required in single-user mode, where
+// ReplaceNamespace clears namespaces before persistence. Multi-user callers
+// must still supply a non-empty namespace at the API authorization layer.
 func (s *ArtifactStore) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
-	if namespace == "" {
-		return nil, util.NewInvalidInputError("namespace is required for GetArtifactsByURI")
-	}
 	if uri == "" {
 		return nil, util.NewInvalidInputError("uri is required for GetArtifactsByURI")
 	}
