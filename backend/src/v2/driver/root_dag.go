@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -75,6 +76,14 @@ func RootDAG(ctx context.Context, opts common.Options, clientManager client_mana
 	})
 	if err != nil {
 		return nil, err
+	}
+	if err := component.RepublishPreservedChildOutputsToDAG(ctx, component.DAGOutputRepublishOptions{
+		Run:          opts.Run,
+		ParentTask:   task,
+		ParentScope:  opts.ScopePath,
+		PipelineSpec: opts.ScopePath.GetPipelineSpecStruct(),
+	}, clientManager); err != nil {
+		return nil, fmt.Errorf("failed to republish preserved child outputs for root DAG: %w", err)
 	}
 	execution = &Execution{
 		TaskID: task.TaskId,

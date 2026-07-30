@@ -18,6 +18,8 @@ package kfpapi
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -257,25 +259,17 @@ func (m *MockAPI) ListTasks(_ context.Context, req *apiv2beta1.ListTasksRequest)
 		predicates = filter.GetPredicates()
 	}
 
-	// Filter by run ID if specified
-	if runID := req.GetRunId(); runID != "" {
-		for _, task := range m.tasks {
-			if task.RunId == runID {
-				tasks = append(tasks, task)
-			}
+	// Filter by run ID and optional parent task ID. When both are set, require both.
+	runID := req.GetRunId()
+	parentID := req.GetParentId()
+	for _, task := range m.tasks {
+		if runID != "" && task.RunId != runID {
+			continue
 		}
-	} else if parentID := req.GetParentId(); parentID != "" {
-		// Filter by parent task ID
-		for _, task := range m.tasks {
-			if task.ParentTaskId != nil && *task.ParentTaskId == parentID {
-				tasks = append(tasks, task)
-			}
+		if parentID != "" && (task.ParentTaskId == nil || *task.ParentTaskId != parentID) {
+			continue
 		}
-	} else {
-		// Return all tasks
-		for _, task := range m.tasks {
-			tasks = append(tasks, task)
-		}
+		tasks = append(tasks, task)
 	}
 
 	// Just handle cache case for now
@@ -306,14 +300,50 @@ func (m *MockAPI) ListTasks(_ context.Context, req *apiv2beta1.ListTasksRequest)
 		tasks = filtered
 	}
 
+	sort.SliceStable(tasks, func(i, j int) bool {
+		return tasks[i].GetTaskId() < tasks[j].GetTaskId()
+	})
+
+	totalSize := int32(len(tasks))
+	start := 0
+	if req.GetPageToken() != "" {
+		tokenIndex, err := strconv.Atoi(req.GetPageToken())
+		if err != nil {
+			return nil, fmt.Errorf("invalid page token %q: %w", req.GetPageToken(), err)
+		}
+		start = tokenIndex
+		if start < 0 {
+			start = 0
+		}
+		if start > len(tasks) {
+			start = len(tasks)
+		}
+	}
+
+	pageSize := int(req.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = len(tasks) - start
+	}
+	end := start + pageSize
+	if end > len(tasks) {
+		end = len(tasks)
+	}
+
+	page := tasks[start:end]
 	var hydratedTasks []*apiv2beta1.PipelineTask
-	for _, task := range tasks {
+	for _, task := range page {
 		hydratedTasks = append(hydratedTasks, m.hydrateTask(task))
 	}
 
+	nextPageToken := ""
+	if end < len(tasks) {
+		nextPageToken = strconv.Itoa(end)
+	}
+
 	return &apiv2beta1.ListTasksResponse{
-		Tasks:     hydratedTasks,
-		TotalSize: int32(len(tasks)),
+		Tasks:         hydratedTasks,
+		TotalSize:     totalSize,
+		NextPageToken: nextPageToken,
 	}, nil
 }
 

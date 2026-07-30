@@ -179,6 +179,72 @@ func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) 
 	b.queuedArtifacts++
 }
 
+// OmitArtifactTasksAlreadyPresentOnTasks drops queued OUTPUT artifact-task
+// links whose (task_id, key) already exists on the target task's hydrated
+// outputs. Used by DAG output republish so a partial prior flush (artifact
+// links durable for the immediate parent and/or ancestors, params missing)
+// can repair parameters without re-creating UniqueLink-constrained rows.
+func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
+	ctx context.Context,
+	apiClient kfpapi.API,
+	runID string,
+) error {
+	if b == nil || apiClient == nil || len(b.artifactTasks) == 0 {
+		return nil
+	}
+
+	taskIDs := make(map[string]struct{})
+	for _, artifactTask := range b.artifactTasks {
+		if artifactTask == nil || artifactTask.GetTaskId() == "" {
+			continue
+		}
+		taskIDs[artifactTask.GetTaskId()] = struct{}{}
+	}
+	if len(taskIDs) == 0 {
+		return nil
+	}
+
+	existingKeysByTask := make(map[string]map[string]struct{}, len(taskIDs))
+	for taskID := range taskIDs {
+		task, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: taskID,
+			RunId:  runID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to refresh task %s before omitting existing artifact links: %w", taskID, err)
+		}
+		keys := make(map[string]struct{})
+		if outputs := task.GetOutputs(); outputs != nil {
+			for _, artifactIO := range outputs.GetArtifacts() {
+				if key := artifactIO.GetArtifactKey(); key != "" {
+					keys[key] = struct{}{}
+				}
+			}
+		}
+		if len(keys) > 0 {
+			existingKeysByTask[taskID] = keys
+		}
+	}
+	if len(existingKeysByTask) == 0 {
+		return nil
+	}
+
+	filtered := make([]*apiV2beta1.ArtifactTask, 0, len(b.artifactTasks))
+	for _, artifactTask := range b.artifactTasks {
+		if artifactTask == nil {
+			continue
+		}
+		if keys, ok := existingKeysByTask[artifactTask.GetTaskId()]; ok {
+			if _, exists := keys[artifactTask.GetKey()]; exists {
+				continue
+			}
+		}
+		filtered = append(filtered, artifactTask)
+	}
+	b.artifactTasks = filtered
+	return nil
+}
+
 // Flush executes all queued updates in batches
 // Order of operations:
 // 1. Create artifacts (they need to exist before artifact-tasks can reference them)

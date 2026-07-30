@@ -26,6 +26,7 @@ import (
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/kubeflow/pipelines/backend/src/v2/expression"
@@ -191,6 +192,16 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	if err != nil {
 		return execution, err
 	}
+
+	// After retry reset, failed DAG parents lose propagated outputs while
+	// successful children are preserved and will not re-propagate. Rebuild
+	// those parent outputs before children are (re)driven.
+	if !isTerminalWithoutChildren {
+		if err := republishPreservedChildOutputsIfNeeded(ctx, opts, createdTask, clientManager); err != nil {
+			return execution, err
+		}
+	}
+
 	if isTerminalWithoutChildren {
 		fullView := gc.GetRunRequest_FULL
 		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &gc.GetRunRequest{
@@ -211,6 +222,30 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	}
 
 	return execution, nil
+}
+
+func republishPreservedChildOutputsIfNeeded(
+	ctx context.Context,
+	opts common.Options,
+	parentTask *gc.PipelineTask,
+	clientManager client_manager.ClientManagerInterface,
+) error {
+	if parentTask == nil || parentTask.GetTaskId() == "" {
+		return nil
+	}
+	pipelineSpecStruct := opts.ScopePath.GetPipelineSpecStruct()
+	if pipelineSpecStruct == nil {
+		return nil
+	}
+	if err := component.RepublishPreservedChildOutputsToDAG(ctx, component.DAGOutputRepublishOptions{
+		Run:          opts.Run,
+		ParentTask:   parentTask,
+		ParentScope:  opts.ScopePath,
+		PipelineSpec: pipelineSpecStruct,
+	}, clientManager); err != nil {
+		return fmt.Errorf("failed to republish preserved child outputs: %w", err)
+	}
+	return nil
 }
 
 func terminalDAGState(
