@@ -830,10 +830,15 @@ func (s *RunStore) TerminateRun(runId string) error {
 	// CANCELLING transition, mirroring CreateRun/UpdateRun which record every
 	// state change in StateHistory. The state guard matches the UPDATE below so a
 	// run that is not in a terminable state (or does not exist) yields no row.
+	//
+	// The row is locked for the read: opening a transaction alone does not stop a
+	// concurrent writer, so without the lock the persistence path could commit a
+	// state change between this SELECT and the UPDATE and have its history entry
+	// overwritten by the stale JSON read here.
 	var stateHistoryString sql.NullString
-	err = tx.QueryRow(`
+	err = tx.QueryRow(s.db.SelectForUpdate(`
 		SELECT StateHistory FROM run_details
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
+		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`),
 		runId,
 		model.RuntimeStatePaused.ToString(),
 		model.RuntimeStatePending.ToString(),
