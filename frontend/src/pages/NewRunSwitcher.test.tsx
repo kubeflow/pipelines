@@ -304,7 +304,7 @@ describe('NewRunSwitcher', () => {
       const sdkRun: V2beta1Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
-        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
         pipeline_version_reference: {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
@@ -346,7 +346,7 @@ describe('NewRunSwitcher', () => {
       const sdkRecurringRun: V2beta1RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
-        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
         pipeline_version_reference: {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
@@ -392,7 +392,7 @@ describe('NewRunSwitcher', () => {
       const sdkRun: V2beta1Run = {
         run_id: TEST_RUN_ID,
         display_name: 'SDK run',
-        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
         pipeline_version_reference: {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,
@@ -436,7 +436,7 @@ describe('NewRunSwitcher', () => {
       const sdkRecurringRun: V2beta1RecurringRun = {
         recurring_run_id: TEST_RECURRING_RUN_ID,
         display_name: 'SDK recurring run',
-        pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+        pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
         pipeline_version_reference: {
           pipeline_id: ORIGINAL_TEST_PIPELINE_ID,
           pipeline_version_id: ORIGINAL_TEST_PIPELINE_VERSION_ID,

@@ -416,7 +416,7 @@ function NewRunV2(props: NewRunV2Props) {
       experiment_id: selectedExperiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
-        ? JsYaml.safeLoad(templateString || '')
+        ? JsYaml.load(templateString || '')
         : undefined,
       pipeline_version_reference: useLatestVersion
         ? { pipeline_id: existingPipeline?.pipeline_id }

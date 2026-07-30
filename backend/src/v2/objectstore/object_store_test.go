@@ -16,13 +16,14 @@ package objectstore
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gocloud.dev/blob"
@@ -534,6 +535,22 @@ func Test_createS3BucketSession(t *testing.T) {
 			expectValidClient: false,
 		},
 		{
+			msg: "Bucket with env-based credentials",
+			ns:  "testnamespace",
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"region":         "us-east-1",
+					"endpoint":       "s3.amazonaws.com",
+					"disableSSL":     "false",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+				},
+			},
+			sessionSecret:     nil,
+			expectValidClient: true,
+		},
+		{
 			msg: "Bucket with session but secret doesn't exist",
 			ns:  "testnamespace",
 			sessionInfo: &SessionInfo{
@@ -583,12 +600,11 @@ func Test_createS3BucketSession(t *testing.T) {
 			ctx := context.Background()
 
 			if test.sessionSecret != nil {
-				testersecret, err := fakeKubernetesClientset.CoreV1().Secrets(test.ns).Create(
+				_, err := fakeKubernetesClientset.CoreV1().Secrets(test.ns).Create(
 					ctx,
 					test.sessionSecret,
 					metav1.CreateOptions{})
-				assert.Nil(t, err)
-				fmt.Printf("%s", testersecret.Namespace)
+				require.NoError(t, err)
 			}
 
 			actualSession, err := createS3BucketSession(ctx, test.ns, test.sessionInfo, fakeKubernetesClientset)
@@ -608,6 +624,182 @@ func Test_createS3BucketSession(t *testing.T) {
 			} else {
 				assert.Nil(t, actualSession)
 			}
+		})
+	}
+}
+
+func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	tests := []struct {
+		name                 string
+		config               *Config
+		expectedRegion       string
+		expectedBaseEndpoint *string
+		expectedPathStyle    bool
+		expectedDisableHTTPS bool
+	}{
+		{
+			name: "Plain S3 URL without session info",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Plain Minio URL without session info",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based S3 session info",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "s3",
+					Params: map[string]string{
+						"region":         "us-east-1",
+						"endpoint":       "s3.amazonaws.com",
+						"disableSSL":     "false",
+						"fromEnv":        "true",
+						"forcePathStyle": "true",
+						"maxRetries":     "5",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based S3 session info without structured params",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "s3",
+					Params: map[string]string{
+						"fromEnv": "true",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+		{
+			name: "Env-based Minio session info",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "minio",
+					Params: map[string]string{
+						"region":         "minio",
+						"endpoint":       "minio.example:9000",
+						"disableSSL":     "true",
+						"fromEnv":        "true",
+						"forcePathStyle": "true",
+						"maxRetries":     "5",
+					},
+				},
+			},
+			expectedRegion:       "minio",
+			expectedBaseEndpoint: aws.String("http://minio.example:9000"),
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: true,
+		},
+		{
+			name: "Env-based Minio session info without structured params",
+			config: &Config{
+				Scheme:     "minio://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+				SessionInfo: &SessionInfo{
+					Provider: "minio",
+					Params: map[string]string{
+						"fromEnv": "true",
+					},
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: nil,
+			expectedPathStyle:    false,
+			expectedDisableHTTPS: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bucket, err := OpenBucket(context.Background(), nil, "", tt.config)
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, bucket.Close())
+			})
+
+			var client *s3.Client
+			require.True(t, bucket.As(&client))
+			require.NotNil(t, client)
+			assert.Equal(t, tt.expectedRegion, client.Options().Region)
+			assert.Equal(t, tt.expectedBaseEndpoint, client.Options().BaseEndpoint)
+			assert.Equal(t, tt.expectedPathStyle, client.Options().UsePathStyle)
+			assert.Equal(t, tt.expectedDisableHTTPS, client.Options().EndpointOptions.DisableHTTPS)
+			assert.Equal(t, aws.RequestChecksumCalculationWhenRequired, client.Options().RequestChecksumCalculation)
+			assert.Equal(t, aws.ResponseChecksumValidationWhenRequired, client.Options().ResponseChecksumValidation)
+		})
+	}
+}
+
+func TestNewS3ClientRetryAttempts(t *testing.T) {
+	tests := []struct {
+		name                string
+		params              *S3Params
+		expectedMaxAttempts int
+	}{
+		{
+			name: "Structured params without maxRetries keep default retry cap",
+			params: &S3Params{
+				FromEnv:    true,
+				Region:     "us-east-1",
+				MaxRetries: 0,
+			},
+			expectedMaxAttempts: retry.NewStandard().MaxAttempts(),
+		},
+		{
+			name: "Structured params with maxRetries use configured retry cap",
+			params: &S3Params{
+				FromEnv:    true,
+				Region:     "us-east-1",
+				MaxRetries: 5,
+			},
+			expectedMaxAttempts: 5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := newS3Client(context.Background(), tt.params, nil)
+			require.NoError(t, err)
+			require.NotNil(t, client)
+			assert.Equal(t, tt.expectedMaxAttempts, client.Options().Retryer.MaxAttempts())
 		})
 	}
 }

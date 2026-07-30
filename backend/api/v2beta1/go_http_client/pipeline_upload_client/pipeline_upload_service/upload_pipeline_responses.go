@@ -127,7 +127,7 @@ UploadPipelineDefault upload pipeline default
 type UploadPipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_upload_model.GooglerpcStatus
+	Payload *pipeline_upload_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this upload pipeline default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *UploadPipelineDefault) String() string {
 	return fmt.Sprintf("[POST /apis/v2beta1/pipelines/upload][%d] UploadPipeline default %s", o._statusCode, payload)
 }
 
-func (o *UploadPipelineDefault) GetPayload() *pipeline_upload_model.GooglerpcStatus {
+func (o *UploadPipelineDefault) GetPayload() *pipeline_upload_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *UploadPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_upload_model.GooglerpcStatus)
+	o.Payload = new(pipeline_upload_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

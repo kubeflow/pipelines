@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
+import {
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 import type { V2beta1PipelineVersionReference } from './V2beta1PipelineVersionReference';
 import {
   V2beta1PipelineVersionReferenceFromJSON,
@@ -34,13 +41,6 @@ import {
   V2beta1RuntimeConfigToJSON,
   V2beta1RuntimeConfigToJSONTyped,
 } from './V2beta1RuntimeConfig';
-import type { GooglerpcStatus } from './GooglerpcStatus';
-import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
 import type { V2beta1RuntimeStatus } from './V2beta1RuntimeStatus';
 import {
   V2beta1RuntimeStatusFromJSON,
@@ -166,10 +166,10 @@ export interface V2beta1Run {
   state?: V2beta1RuntimeState;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1Run
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
   /**
    *
    * @type {V2beta1RunDetails}
@@ -245,7 +245,7 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
     scheduled_at: json['scheduled_at'] == null ? undefined : new Date(json['scheduled_at']),
     finished_at: json['finished_at'] == null ? undefined : new Date(json['finished_at']),
     state: json['state'] == null ? undefined : V2beta1RuntimeStateFromJSON(json['state']),
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
     run_details:
       json['run_details'] == null ? undefined : V2beta1RunDetailsFromJSON(json['run_details']),
     recurring_run_id: json['recurring_run_id'] == null ? undefined : json['recurring_run_id'],
@@ -293,7 +293,7 @@ export function V2beta1RunToJSONTyped(
     finished_at:
       value['finished_at'] == null ? value['finished_at'] : value['finished_at'].toISOString(),
     state: V2beta1RuntimeStateToJSON(value['state']),
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
     run_details: V2beta1RunDetailsToJSON(value['run_details']),
     recurring_run_id: value['recurring_run_id'],
     state_history:

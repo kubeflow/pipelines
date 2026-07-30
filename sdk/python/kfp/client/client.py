@@ -302,7 +302,13 @@ class Client:
         in_cluster = True
         try:
             k8s.config.load_incluster_config()
-        except:
+        except Exception as e:
+            # Running outside of a cluster is the expected case here, so this is
+            # logged at debug level to avoid a misleading warning. The local kube
+            # config is loaded below instead.
+            logging.debug(
+                'Not running in-cluster (%s). Falling back to the '
+                'local kube config.', e)
             in_cluster = False
 
         if in_cluster:
@@ -313,8 +319,11 @@ class Client:
         try:
             k8s.config.load_kube_config(
                 client_configuration=config, context=kube_context)
-        except:
-            print('Failed to load kube config.')
+        except Exception as e:
+            logging.warning(
+                'Failed to load kube config: %s. Proceeding without it; '
+                'subsequent requests to the Kubeflow Pipelines API may fail.',
+                e)
             return config
 
         if config.host:
@@ -710,8 +719,10 @@ class Client:
                 is ``True`` for all tasks by default. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
+            cache_key (optional): Customized cache key for tasks.
+                The customized cache key is combined with component reference identity
+                to prevent cross-component cache collisions, overriding automatic
+                task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
 
@@ -855,8 +866,10 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
+            cache_key (optional): Customized cache key for tasks.
+                The customized cache key is combined with component reference identity
+                to prevent cross-component cache collisions, overriding automatic
+                task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account this recurring run uses.
         Returns:
@@ -937,8 +950,10 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
+            cache_key (optional): Customized cache key for tasks.
+                The customized cache key is combined with component reference identity
+                to prevent cross-component cache collisions, overriding automatic
+                task fingerprinting.
             pipeline_root: Root path of the pipeline outputs.
 
         Returns:
@@ -1016,8 +1031,10 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
+            cache_key (optional): Customized cache key for tasks.
+                The customized cache key is combined with component reference identity
+                to prevent cross-component cache collisions, overriding automatic
+                task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.
@@ -1081,8 +1098,10 @@ class Client:
                 different caching options for individual tasks. If set, the
                 setting applies to all tasks in the pipeline (overrides the
                 compile time settings).
-            cache_key (optional): Customized cache key for this task.
-                If set, the cache_key will be used as the key for the task's cache.
+            cache_key (optional): Customized cache key for tasks.
+                The customized cache key is combined with component reference identity
+                to prevent cross-component cache collisions, overriding automatic
+                task fingerprinting.
             service_account: Specifies which Kubernetes service
                 account to use for this run.
             experiment_id: ID of the experiment to add the run to. You cannot specify both experiment_id and experiment_name.

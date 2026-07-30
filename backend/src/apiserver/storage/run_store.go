@@ -352,7 +352,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		)
 		if err != nil {
 			glog.Errorf("Failed to scan row into a run: %v", err)
-			return runs, nil
+			return nil, err
 		}
 		metrics, err := parseMetrics(metricsInString)
 		if err != nil {

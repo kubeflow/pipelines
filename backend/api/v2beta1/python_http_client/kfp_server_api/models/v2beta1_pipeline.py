@@ -39,7 +39,7 @@ class V2beta1Pipeline(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'error': 'GooglerpcStatus',
+        'error': 'GoogleRpcStatus',
         'tags': 'dict(str, str)'
     }
 
@@ -231,7 +231,7 @@ class V2beta1Pipeline(object):
 
 
         :return: The error of this V2beta1Pipeline.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -241,7 +241,7 @@ class V2beta1Pipeline(object):
 
 
         :param error: The error of this V2beta1Pipeline.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

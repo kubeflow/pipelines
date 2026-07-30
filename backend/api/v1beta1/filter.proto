@@ -17,6 +17,7 @@ syntax = "proto3";
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
 package api;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 // Predicate captures individual conditions that must be true for a resource
@@ -124,5 +125,9 @@ message Filter {
 // since Filter itself is not used in any of the RPC calls - only a serialized
 // encoded version of it is used.
 service DummyFilterService {
-  rpc GetFilter(Filter) returns (Filter) {}
+  rpc GetFilter(Filter) returns (Filter) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/filters"
+    };
+  }
 }

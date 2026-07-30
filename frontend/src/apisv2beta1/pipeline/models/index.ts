@@ -1,10 +1,10 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
+export * from './PipelineServiceUpdatePipelineRequest';
+export * from './PipelineServiceUpdatePipelineVersionRequest';
 export * from './ProtobufAny';
 export * from './ProtobufNullValue';
-export * from './RequiredInputPipelineObjectWithUpdatedFieldsPipelineIdIsRequiredToIdentifyThePipelineMutableFieldsDisplayNameTags';
-export * from './RequiredInputPipelineVersionObjectWithUpdatedFieldsPipelineIdAndPipelineVersionIdAreRequiredToIdentifyTheVersionMutableFieldsDisplayNameTags';
 export * from './V2beta1CreatePipelineAndVersionRequest';
 export * from './V2beta1ListPipelineVersionsResponse';
 export * from './V2beta1ListPipelinesResponse';

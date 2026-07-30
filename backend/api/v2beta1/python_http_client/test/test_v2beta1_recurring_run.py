@@ -64,7 +64,7 @@ class TestV2beta1RecurringRun(unittest.TestCase):
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 status = 'STATUS_UNSPECIFIED', 
-                error = kfp_server_api.models.googlerpc_status.googlerpcStatus(
+                error = kfp_server_api.models.google_rpc_status.googleRpcStatus(
                     code = 56, 
                     message = '0', 
                     details = [

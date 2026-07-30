@@ -90,7 +90,7 @@ describe('RecurringRunDetailsV2', () => {
       display_name: 'test_pipeline_version',
       pipeline_id: 'test_pipeline_id',
       pipeline_version_id: 'test_pipeline_version_id',
-      pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+      pipeline_spec: JsYaml.load(v2YamlTemplateString),
     };
 
     vi.clearAllMocks();

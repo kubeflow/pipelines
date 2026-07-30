@@ -46,18 +46,13 @@ import {
 import { CircularProgress } from '@mui/material';
 
 const css = stylesheet({
-  leftCell: {
-    borderRight: `3px solid ${color.divider}`,
+  table: {
+    borderCollapse: 'collapse',
   },
-  rightCell: {
+  divider: {
     borderLeft: `3px solid ${color.divider}`,
-  },
-  middleCell: {
-    borderLeft: `3px solid ${color.divider}`,
-    borderRight: `3px solid ${color.divider}`,
   },
   cell: {
-    borderCollapse: 'collapse',
     padding: '1rem',
     verticalAlign: 'top',
   },
@@ -124,19 +119,11 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   return (
-    <table>
+    <table className={css.table}>
       <tbody>
         <tr>
           {selectedArtifacts.map((selectedArtifact, panelIndex) => (
-            <td
-              key={panelIndex}
-              className={classes(
-                css.cell,
-                panelIndex === 0 && css.leftCell,
-                panelIndex === selectedArtifacts.length - 1 && css.rightCell,
-                panelIndex > 0 && panelIndex < selectedArtifacts.length - 1 && css.middleCell,
-              )}
-            >
+            <td key={panelIndex} className={classes(css.cell, panelIndex > 0 && css.divider)}>
               <TwoLevelDropdown
                 title={`Choose a ${panelIndex === 0 ? 'first' : panelIndex === 1 ? 'second' : `panel ${panelIndex + 1}`} ${metricsTabText} artifact`}
                 items={dropdownItems}

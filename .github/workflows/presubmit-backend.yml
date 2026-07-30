@@ -7,6 +7,13 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+      - 'test/cache-deployer/**'
+      - 'test/presubmit-backend-test.sh'
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-tests:

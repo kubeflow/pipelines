@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/google/go-cmp/cmp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -5313,6 +5313,35 @@ func TestToApiPipelineVersionsV1_MultipleVersions(t *testing.T) {
 	assert.Equal(t, 2, len(result))
 	assert.Equal(t, "version-1", result[0].Id)
 	assert.Equal(t, "version-2", result[1].Id)
+}
+
+func TestToApiPipelineVersion_OnlyPipelineSpecURI(t *testing.T) {
+	pv := &model.PipelineVersion{
+		UUID:            "version-1",
+		Name:            "v1",
+		DisplayName:     "v1",
+		CreatedAtInSec:  100,
+		PipelineId:      "pipeline-1",
+		PipelineSpecURI: "http://package/v1",
+	}
+	result := toApiPipelineVersion(pv)
+	assert.Empty(t, result.CodeSourceUrl)
+	assert.NotNil(t, result.PackageUrl)
+	assert.Equal(t, "http://package/v1", result.PackageUrl.PipelineUrl)
+}
+
+func TestToApiPipelineVersion_OnlyCodeSourceUrl(t *testing.T) {
+	pv := &model.PipelineVersion{
+		UUID:           "version-1",
+		Name:           "v1",
+		DisplayName:    "v1",
+		CreatedAtInSec: 100,
+		PipelineId:     "pipeline-1",
+		CodeSourceUrl:  "http://repo/v1",
+	}
+	result := toApiPipelineVersion(pv)
+	assert.Equal(t, "http://repo/v1", result.CodeSourceUrl)
+	assert.Nil(t, result.PackageUrl)
 }
 
 func TestToApiPipelineVersions_Empty(t *testing.T) {

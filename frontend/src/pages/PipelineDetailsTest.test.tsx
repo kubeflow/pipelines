@@ -28,7 +28,11 @@ import { V2beta1Run } from 'src/apisv2beta1/run';
 import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
-import TestUtils, { mockResizeObserver, testBestPractices } from 'src/TestUtils';
+import TestUtils, {
+  flushPromisesInAct,
+  mockResizeObserver,
+  testBestPractices,
+} from 'src/TestUtils';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
@@ -176,7 +180,7 @@ spec:
       pipeline_id: 'test-v2-pipeline-id',
       pipeline_version_id: 'test-v2-pipeline-version-id',
       name: 'test-v2-pipeline-version',
-      pipeline_spec: JsYaml.safeLoad(v2YamlTemplateString),
+      pipeline_spec: JsYaml.load(v2YamlTemplateString),
     };
 
     testV2Run = {
@@ -227,7 +231,7 @@ spec:
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
 
     renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
@@ -284,9 +288,7 @@ spec:
       display_name: 'test-pipeline-version',
       pipeline_id: 'test-pipeline-id',
       pipeline_version_id: 'test-pipeline-version-id',
-      pipeline_spec: JsYaml.safeLoad(
-        'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-      ),
+      pipeline_spec: JsYaml.load('spec:\n  arguments:\n    parameters:\n      - name: output\n'),
     });
     const createGraphSpy = vi.spyOn(StaticGraphParser, 'createGraph');
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
@@ -328,7 +330,7 @@ spec:
     });
 
     renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
@@ -352,7 +354,7 @@ spec:
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
     renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v1');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));
@@ -370,7 +372,7 @@ spec:
     createGraphSpy.mockImplementation(() => new graphlib.Graph());
 
     renderPipelineDetailsPage(<PipelineDetails {...generateProps()} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
 
     screen.getByTestId('pipeline-detail-v2');
     expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({}));

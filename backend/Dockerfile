@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.26.3-bookworm@sha256:386d475a660466863d9f8c766fec64d7fdad3edac2c6a05020c09534d71edb4b AS builder
+FROM golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -21,6 +21,10 @@ COPY ./go.sum ./
 COPY ./kubernetes_platform/go.mod ./kubernetes_platform/go.mod
 COPY ./api/go.mod ./api/go.mod
 
+# Fall back to fetching modules directly from source on any module proxy
+# error (the default comma separator only falls back on 404/410), so a
+# transient proxy.golang.org failure cannot fail the build.
+ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
 
 COPY . .
@@ -37,7 +41,7 @@ ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION=v3.7.3
+ENV ARGO_VERSION=v4.0.8
 RUN curl -sL -H "Accept: application/octet-stream" \
         https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
     -o argo-linux-$TARGETARCH.gz && \

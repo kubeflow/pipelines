@@ -3,6 +3,8 @@ package plugins
 
 import (
 	"context"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 // TaskStartResult stores the handler-specific start results keyed by handler name.
@@ -29,7 +31,7 @@ type TaskPluginHandler interface {
 	OnTaskEnd(ctx context.Context, taskInfo *TaskInfo) error
 	// RetrieveUserContainerEnvVars returns the user-specified environment variables to be set in the task user container.
 	// Handlers recover per-task state from internal fields set during OnTaskStart or ApplyCustomProperties.
-	RetrieveUserContainerEnvVars() (injectVars map[string]string, err error)
+	RetrieveUserContainerEnvVars() (injectVars []corev1.EnvVar, err error)
 	// GenerateCustomProperties returns key-value pairs to persist as MLMD
 	// execution custom properties. The driver relays these generically without
 	// knowing which plugin produced them.

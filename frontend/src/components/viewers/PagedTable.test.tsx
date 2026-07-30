@@ -17,7 +17,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import PagedTable from './PagedTable';
 import { PlotType } from './Viewer';
-import TestUtils from '../../TestUtils';
+import { invokeAndFlush } from '../../TestUtils';
 import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 describe('PagedTable', () => {
@@ -57,8 +57,9 @@ describe('PagedTable', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
     );
-    fireEvent.click(screen.getByText(labels[0]));
-    await TestUtils.flushPromises();
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByText(labels[0]));
+    });
     expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
@@ -67,10 +68,13 @@ describe('PagedTable', () => {
       <PagedTable configs={[{ data, labels, type: PlotType.TABLE }]} />,
     );
     // Once for descending.
-    fireEvent.click(screen.getByText(labels[0]));
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByText(labels[0]));
+    });
     // Once for ascending.
-    fireEvent.click(screen.getByText(labels[0]));
-    await TestUtils.flushPromises();
+    await invokeAndFlush(() => {
+      fireEvent.click(screen.getByText(labels[0]));
+    });
     expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 

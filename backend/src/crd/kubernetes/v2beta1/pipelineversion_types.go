@@ -23,6 +23,7 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +36,10 @@ type PipelineVersionSpec struct {
 	Description   string `json:"description,omitempty"`
 	CodeSourceURL string `json:"codeSourceURL,omitempty"`
 	PipelineName  string `json:"pipelineName,omitempty"`
-	DisplayName   string `json:"displayName,omitempty"`
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$`
+	VersionName string `json:"versionName,omitempty"`
+	DisplayName string `json:"displayName,omitempty"`
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Schemaless
 	// +kubebuilder:pruning:PreserveUnknownFields
@@ -95,6 +99,19 @@ type PipelineVersionList struct {
 }
 
 func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.PipelineVersion) (*PipelineVersion, error) {
+	if pipelineVersion.Name == "" {
+		return nil, util.NewInvalidInputError("pipeline version name must not be empty")
+	}
+
+	pipelineName := pipeline.Name
+	if pipelineName == pipelineVersion.Name {
+		pipelineName = ""
+	}
+	pvName, err := NewPipelineVersionName(pipelineName, pipelineVersion.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	v2Spec, err := template.NewV2SpecTemplate([]byte(string(pipelineVersion.PipelineSpec)), template.TemplateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse the pipeline spec: %w", err)
@@ -137,7 +154,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 
 	return &PipelineVersion{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      pipelineVersion.Name,
+			Name:      pvName.Name(),
 			Namespace: pipeline.Namespace,
 			UID:       types.UID(pipelineVersion.UUID),
 			Labels: map[string]string{
@@ -158,6 +175,7 @@ func FromPipelineVersionModel(pipeline model.Pipeline, pipelineVersion model.Pip
 			PipelineSpec:    pipelineSpec,
 			PlatformSpec:    platformSpec,
 			PipelineName:    pipeline.Name,
+			VersionName:     pipelineVersion.Name,
 			CodeSourceURL:   pipelineVersion.CodeSourceUrl,
 			PipelineSpecURI: string(pipelineVersion.PipelineSpecURI),
 			Tags:            pipelineVersion.Tags,
@@ -210,15 +228,20 @@ func (p *PipelineVersion) ToModel() (*model.PipelineVersion, error) {
 		}
 	}
 
+	versionName := p.Spec.VersionName
+	if versionName == "" {
+		versionName = p.Name
+	}
+
 	displayName := p.Spec.DisplayName
 	if displayName == "" {
-		displayName = p.Name
+		displayName = versionName
 	}
 
 	return &model.PipelineVersion{
 		UUID:            string(p.UID),
 		CreatedAtInSec:  p.CreationTimestamp.Unix(),
-		Name:            p.Name,
+		Name:            versionName,
 		DisplayName:     displayName,
 		Parameters:      "",
 		PipelineId:      string(pipelineID),
@@ -292,6 +315,9 @@ func (p *PipelineVersion) GetField(name string) interface{} {
 	case "pipeline_versions.pipeline_version_id":
 		return p.UID
 	case "pipeline_versions.Name":
+		if p.Spec.VersionName != "" {
+			return p.Spec.VersionName
+		}
 		return p.Name
 	case "pipeline_versions.Status":
 		if len(p.Status.Conditions) > 0 {

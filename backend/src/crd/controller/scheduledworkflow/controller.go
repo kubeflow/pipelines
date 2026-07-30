@@ -18,11 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
+	"regexp"
 	"strings"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
@@ -36,7 +36,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -113,6 +112,34 @@ type Controller struct {
 	// tokenSrc provides a way to get the latest refreshed token when authentication to the REST API server is enabled.
 	// This will be nil when authentication is not enabled.
 	tokenSrc transport.ResettableTokenSource
+
+	// userIdentityHeader is the outgoing gRPC metadata key for user identity in multi-user mode
+	// (e.g. "kubeflow-userid"). It is normalized to lowercase and validated when the controller is created.
+	userIdentityHeader string
+	// userIdentityValue is the value to set for the user identity gRPC metadata key.
+	userIdentityValue string
+}
+
+// gRPC metadata keys are limited to lowercase ASCII letters, digits, and the
+// characters '-', '_', and '.'. See google.golang.org/grpc/metadata and the
+// HTTP/2 header field rules. Keys outside this set can cause outgoing requests
+// to fail at the transport layer, so we validate the configured key up front.
+var validGRPCMetadataKey = regexp.MustCompile(`^[a-z0-9._-]+$`)
+
+// normalizeAndValidateMetadataKey lowercases the given gRPC metadata key (matching
+// grpc-go's own normalization) and verifies it only contains characters allowed in
+// a gRPC metadata key. It returns the normalized key or an error describing why the
+// key is invalid, allowing callers to fail fast at startup instead of risking failed
+// requests during reconciliation.
+func normalizeAndValidateMetadataKey(key string) (string, error) {
+	normalized := strings.ToLower(key)
+	if !validGRPCMetadataKey.MatchString(normalized) {
+		return "", fmt.Errorf("must match %s (lowercase letters, digits, '-', '_', '.')", validGRPCMetadataKey.String())
+	}
+	if strings.HasPrefix(normalized, "grpc-") {
+		return "", fmt.Errorf("keys beginning with \"grpc-\" are reserved by the gRPC runtime and will be silently dropped")
+	}
+	return normalized, nil
 }
 
 // NewController returns a new sample controller
@@ -126,7 +153,20 @@ func NewController(
 	time commonutil.TimeInterface,
 	location *time.Location,
 	tokenSrc transport.ResettableTokenSource,
+	userIdentityHeader string,
+	userIdentityValue string,
 ) (*Controller, error) {
+	// Normalize and validate the user identity metadata key up front so the
+	// controller fails fast at startup rather than risking failed requests
+	// during reconciliation when an invalid key reaches the gRPC transport.
+	if userIdentityHeader != "" {
+		normalizedHeader, err := normalizeAndValidateMetadataKey(userIdentityHeader)
+		if err != nil {
+			return nil, fmt.Errorf("invalid userIdentityHeader %q: %w", userIdentityHeader, err)
+		}
+		userIdentityHeader = normalizedHeader
+	}
+
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
 
@@ -148,9 +188,11 @@ func NewController(
 		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
-		time:     time,
-		location: location,
-		tokenSrc: tokenSrc,
+		time:               time,
+		location:           location,
+		tokenSrc:           tokenSrc,
+		userIdentityHeader: userIdentityHeader,
+		userIdentityValue:  userIdentityValue,
 	}
 
 	log.Info("Setting up event handlers")
@@ -498,7 +540,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 		processNextItemOperationDuration.WithLabelValues("swfsubmit", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
-	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
+	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch)
 	if err != nil {
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
@@ -610,6 +652,11 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 		ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token.AccessToken)
 	}
 
+	// Inject user identity header for multi-user mode authorization.
+	if c.userIdentityHeader != "" && c.userIdentityValue != "" {
+		ctx = metadata.AppendToOutgoingContext(ctx, c.userIdentityHeader, c.userIdentityValue)
+	}
+
 	var runtimeConfig *api.RuntimeConfig
 
 	if swf.Spec.Workflow != nil {
@@ -673,13 +720,12 @@ func (c *Controller) updateStatus(
 	submitted bool,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
-	nextScheduledEpoch int64,
-	nowEpoch int64) error {
+	nextScheduledEpoch int64) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
+	swfCopy.UpdateStatus(submitted, nextScheduledEpoch, active, completed, c.location)
 
 	// Pre-update check: determine if the Workflow (wf) object has actually changed
 	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
@@ -713,37 +759,10 @@ func (c *Controller) updateStatus(
 	return nil
 }
 
-// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
-// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
-func isV1PipelineBlocked(namespace string) bool {
-	blockV1Value := viper.GetString(util.BlockV1Pipelines)
-	blockV1, err := strconv.ParseBool(blockV1Value)
-	if err != nil {
-		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
-		blockV1 = false
-	}
-	if !blockV1 {
-		return false
-	}
-
-	allowedNamespaces := viper.GetString(util.AllowedNamespaces)
-	if allowedNamespaces == "" {
-		return true
-	}
-
-	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
-	for _, n := range strings.Split(allowedNamespaces, ",") {
-		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
-			return false
-		}
-	}
-	return true
-}
-
 // shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
 // are present on the pod metadata. Returns false if the workflow is v1.
 func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
-	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
+	if swf == nil || !commonutil.IsV1PipelinesBlocked(swf.Namespace) {
 		return false
 	}
 

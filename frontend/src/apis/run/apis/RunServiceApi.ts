@@ -18,7 +18,7 @@ import type {
   ApiReportRunMetricsResponse,
   ApiRun,
   ApiRunDetail,
-  GooglerpcStatus,
+  GoogleRpcStatus,
   RunServiceReportRunMetricsV1Body,
 } from '../models/index';
 import {
@@ -30,8 +30,8 @@ import {
   ApiRunToJSON,
   ApiRunDetailFromJSON,
   ApiRunDetailToJSON,
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusToJSON,
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusToJSON,
   RunServiceReportRunMetricsV1BodyFromJSON,
   RunServiceReportRunMetricsV1BodyToJSON,
 } from '../models/index';

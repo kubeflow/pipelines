@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GooglerpcStatus } from './GooglerpcStatus';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 import type { V2beta1Url } from './V2beta1Url';
 import {
   V2beta1UrlFromJSON,
@@ -97,10 +97,10 @@ export interface V2beta1PipelineVersion {
   pipeline_spec?: object;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1PipelineVersion
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
   /**
    * Optional input field. User-defined tags (key-value pairs) for the pipeline version.
    * Constraints:
@@ -143,7 +143,7 @@ export function V2beta1PipelineVersionFromJSONTyped(
     package_url: json['package_url'] == null ? undefined : V2beta1UrlFromJSON(json['package_url']),
     code_source_url: json['code_source_url'] == null ? undefined : json['code_source_url'],
     pipeline_spec: json['pipeline_spec'] == null ? undefined : json['pipeline_spec'],
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
     tags: json['tags'] == null ? undefined : json['tags'],
   };
 }
@@ -171,7 +171,7 @@ export function V2beta1PipelineVersionToJSONTyped(
     package_url: V2beta1UrlToJSON(value['package_url']),
     code_source_url: value['code_source_url'],
     pipeline_spec: value['pipeline_spec'],
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
     tags: value['tags'],
   };
 }

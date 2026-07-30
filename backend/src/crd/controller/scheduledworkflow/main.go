@@ -53,6 +53,8 @@ var (
 	caCertPath                        string
 	metricsPort                       string
 	recurringRunResyncIntervalSeconds int
+	userIdentityHeader                string
+	userIdentityValue                 string
 )
 
 const (
@@ -150,6 +152,8 @@ func main() {
 		commonutil.NewRealTime(),
 		location,
 		tokenSrc,
+		userIdentityHeader,
+		userIdentityValue,
 	)
 	if err != nil {
 		log.Fatalf("Failed to instantiate the controller: %v", err)
@@ -207,6 +211,8 @@ func init() {
 	flag.StringVar(&caCertPath, caCertPathFlagName, "", "CA cert to connect to the ML pipeline API server.")
 	flag.IntVar(&clientBurst, "clientBurst", 10, "Maximum burst for throttle from this client.")
 	flag.IntVar(&recurringRunResyncIntervalSeconds, "recurringRunResyncIntervalSeconds", 30, "The full resync interval in seconds for recurring run reconciliations.")
+	flag.StringVar(&userIdentityHeader, "userIdentityHeader", "", "User identity metadata key for multi-user mode (e.g. kubeflow-userid). If set, the controller injects this key into the outgoing gRPC metadata when calling the API server. The key is normalized to lowercase and must be a valid gRPC metadata key.")
+	flag.StringVar(&userIdentityValue, "userIdentityValue", "", "Value for the user identity gRPC metadata key (e.g. system:serviceaccount:kubeflow:ml-pipeline-scheduledworkflow).")
 	var err error
 	location, err = util.GetLocation()
 	if err != nil {

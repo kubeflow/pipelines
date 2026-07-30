@@ -21,7 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,12 +72,10 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
-					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
-					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled.",
+					Type:    swfapi.ScheduledWorkflowEnabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowEnabled),
+					Message: "The schedule is enabled.",
 				},
 			},
 		},
@@ -89,19 +87,15 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
-					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
-					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled.",
+					Type:    swfapi.ScheduledWorkflowEnabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowEnabled),
+					Message: "The schedule is enabled.",
 				}, {
-					Type:               swfapi.ScheduledWorkflowDisabled,
-					Status:             corev1.ConditionTrue,
-					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled.",
+					Type:    swfapi.ScheduledWorkflowDisabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowDisabled),
+					Message: "The schedule is disabled.",
 				},
 			},
 		},

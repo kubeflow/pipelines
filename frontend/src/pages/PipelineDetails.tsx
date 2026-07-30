@@ -272,15 +272,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         pipelineVersionId,
       );
       const pipelineSpecFromVersion = pipelineVersion.pipeline_spec;
-      templateStrFromOrigin = pipelineSpecFromVersion
-        ? JsYaml.safeDump(pipelineSpecFromVersion)
-        : '';
+      templateStrFromOrigin = pipelineSpecFromVersion ? JsYaml.dump(pipelineSpecFromVersion) : '';
     }
 
     // 2. Pipeline_spec
     let pipelineManifest: string | undefined;
     if (existingObj.pipeline_spec) {
-      pipelineManifest = JsYaml.safeDump(existingObj.pipeline_spec);
+      pipelineManifest = JsYaml.dump(existingObj.pipeline_spec);
     }
 
     return pipelineManifest ?? templateStrFromOrigin;
@@ -385,7 +383,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             try {
               templateString = WorkflowUtils.isPipelineSpec(workflowManifestString)
                 ? workflowManifestString
-                : JsYaml.safeDump(workflowManifest);
+                : JsYaml.dump(workflowManifest);
             } catch (err) {
               this.setStateSafe({ graphIsLoading: false });
               await this.showPageError(
@@ -629,7 +627,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
   private async _getTemplateString(pipelineVersion?: V2beta1PipelineVersion): Promise<string> {
     if (pipelineVersion?.pipeline_spec) {
-      return JsYaml.safeDump(pipelineVersion.pipeline_spec);
+      return JsYaml.dump(pipelineVersion.pipeline_spec);
     }
 
     // Handle v1 pipelines created by v1 API (no pipeline_spec field)
@@ -658,7 +656,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.safeLoad(templateString);
+        const template = JsYaml.load(templateString);
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
           graph = StaticGraphParser.createGraph(template!);
 

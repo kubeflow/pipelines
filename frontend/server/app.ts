@@ -168,6 +168,7 @@ function createUIServer(options: UIConfigs) {
     authorizeFn,
     options.auth.enabled,
     options.auth.kubeflowUserIdHeader,
+    envoyServiceAddress,
   );
 
   /** Artifact */

@@ -260,7 +260,7 @@ import type { ProtobufAny } from './ProtobufAny';
 /**
  *
  */
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   /**
    *
    */
@@ -281,7 +281,7 @@ import type { ProtobufAny } from './ProtobufAny';
 /**
  * Richer status docs in v2beta1.
  */
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   /**
    * The status code.
    */
@@ -295,7 +295,7 @@ export interface GooglerpcStatus {
       expect(normalizedV1).toEqual(normalizedV2);
       expect(normalizedV1).not.toContain('backend/api/');
       expect(normalizedV1).not.toContain('/**');
-      expect(normalizedV1).toContain('export interface GooglerpcStatus');
+      expect(normalizedV1).toContain('export interface GoogleRpcStatus');
     });
 
     it('rewrites generated client and server support files to shared re-export shims', () => {
@@ -337,7 +337,7 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/run/models/GooglerpcStatus.ts',
+          'frontend/src/apis/run/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
@@ -350,7 +350,7 @@ import type { ProtobufAny } from './ProtobufAny';
 /**
  * Status docs.
  */
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   code?: number;
   details?: Array<ProtobufAny>;
 }
@@ -383,7 +383,7 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/server/src/generated/apis/auth/models/GooglerpcStatus.ts',
+          'frontend/server/src/generated/apis/auth/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
 /**
@@ -393,7 +393,7 @@ export interface ProtobufAny {
 import { mapValues } from '../runtime.js';
 import type { ProtobufAny } from './ProtobufAny.js';
 
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   code?: number;
   details?: Array<ProtobufAny>;
 }
@@ -422,11 +422,11 @@ export interface GooglerpcStatus {
           fs.readFileSync(
             path.join(
               tempRepoRoot,
-              'frontend/server/src/generated/apis/auth/models/GooglerpcStatus.ts',
+              'frontend/server/src/generated/apis/auth/models/GoogleRpcStatus.ts',
             ),
             'utf8',
           ),
-        ).toContain("export * from '../../../openapi/models/GooglerpcStatus.js';");
+        ).toContain("export * from '../../../openapi/models/GoogleRpcStatus.js';");
 
         const clientSharedRuntime = fs.readFileSync(
           path.join(tempRepoRoot, 'frontend/src/generated/openapi/runtime.ts'),
@@ -437,7 +437,7 @@ export interface GooglerpcStatus {
         expect(clientSharedRuntime).not.toContain('/**');
 
         const serverSharedStatus = fs.readFileSync(
-          path.join(tempRepoRoot, 'frontend/server/src/generated/openapi/models/GooglerpcStatus.ts'),
+          path.join(tempRepoRoot, 'frontend/server/src/generated/openapi/models/GoogleRpcStatus.ts'),
           'utf8',
         );
         expect(serverSharedStatus).toContain("import type { ProtobufAny } from './ProtobufAny.js';");
@@ -473,10 +473,10 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/run/models/GooglerpcStatus.ts',
+          'frontend/src/apis/run/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   code?: number;
 }
 `,
@@ -498,10 +498,10 @@ export interface ProtobufAny {
 `,
         );
         write(
-          'frontend/src/apis/pipeline/models/GooglerpcStatus.ts',
+          'frontend/src/apis/pipeline/models/GoogleRpcStatus.ts',
           `/* tslint:disable */
 /* eslint-disable */
-export interface GooglerpcStatus {
+export interface GoogleRpcStatus {
   code?: number;
 }
 `,

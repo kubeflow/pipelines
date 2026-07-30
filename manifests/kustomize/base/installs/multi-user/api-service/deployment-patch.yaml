@@ -12,6 +12,14 @@ spec:
             name: pipeline-api-server-config
         env:
         - name: KUBEFLOW_USERID_HEADER
-          value: kubeflow-userid
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: USERID_HEADER
+              optional: true
         - name: KUBEFLOW_USERID_PREFIX
-          value: ""
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: USERID_PREFIX
+              optional: true

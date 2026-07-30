@@ -18,22 +18,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -76,22 +72,22 @@ func TestResolveMLflowPluginInput(t *testing.T) {
 		{
 			name:  "nil input defaults",
 			input: nil,
-			want:  &MLflowPluginInput{ExperimentName: DefaultExperimentName},
+			want:  &MLflowPluginInput{},
 		},
 		{
 			name:  "empty string defaults",
 			input: strPtr(""),
-			want:  &MLflowPluginInput{ExperimentName: DefaultExperimentName},
+			want:  &MLflowPluginInput{},
 		},
 		{
 			name:  "missing mlflow block defaults",
 			input: strPtr(`{"other":{"x":"y"}}`),
-			want:  &MLflowPluginInput{ExperimentName: DefaultExperimentName},
+			want:  &MLflowPluginInput{},
 		},
 		{
 			name:  "missing experiment_name defaults",
 			input: strPtr(`{"mlflow":{"disabled":false}}`),
-			want:  &MLflowPluginInput{ExperimentName: DefaultExperimentName},
+			want:  &MLflowPluginInput{},
 		},
 		{
 			name:  "valid experiment_name is used",
@@ -240,10 +236,105 @@ func TestGetGlobalMLflowConfig(t *testing.T) {
 	require.NotNil(t, cfg.Settings)
 }
 
+func TestGetGlobalMLflowConfig_NotSet(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", nil)
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	cfg, ok, err := GetGlobalMLflowConfig()
+	require.NoError(t, err)
+	assert.False(t, ok)
+	assert.Equal(t, commonmlflow.MLflowPluginConfig{}, cfg)
+}
+
+func TestApplyMLflowSettingsDefaults_NilInput(t *testing.T) {
+	settings := ApplyMLflowSettingsDefaults(nil)
+	require.NotNil(t, settings)
+	assert.Equal(t, commonmlflow.AuthTypeKubernetes, settings.AuthType)
+	require.NotNil(t, settings.WorkspacesEnabled)
+	assert.True(t, *settings.WorkspacesEnabled)
+	assert.Equal(t, DefaultExperimentName, settings.DefaultExperimentName)
+	require.NotNil(t, settings.ExperimentDescription)
+	assert.Equal(t, DefaultExperimentDescription, *settings.ExperimentDescription)
+}
+
+func TestApplyMLflowSettingsDefaults_EmptySettings(t *testing.T) {
+	settings := ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{})
+	require.NotNil(t, settings)
+	assert.Equal(t, commonmlflow.AuthTypeKubernetes, settings.AuthType)
+	require.NotNil(t, settings.WorkspacesEnabled)
+	assert.True(t, *settings.WorkspacesEnabled)
+	assert.Equal(t, DefaultExperimentName, settings.DefaultExperimentName)
+	require.NotNil(t, settings.ExperimentDescription)
+	assert.Equal(t, DefaultExperimentDescription, *settings.ExperimentDescription)
+}
+
+func TestApplyMLflowSettingsDefaults_PreservesExistingValues(t *testing.T) {
+	customDesc := "Custom Description"
+	wsEnabled := false
+	settings := ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+		AuthType:              commonmlflow.AuthTypeBearer,
+		WorkspacesEnabled:     &wsEnabled,
+		DefaultExperimentName: "CustomDefault",
+		ExperimentDescription: &customDesc,
+	})
+	require.NotNil(t, settings)
+	assert.Equal(t, commonmlflow.AuthTypeBearer, settings.AuthType)
+	require.NotNil(t, settings.WorkspacesEnabled)
+	assert.False(t, *settings.WorkspacesEnabled)
+	assert.Equal(t, "CustomDefault", settings.DefaultExperimentName)
+	require.NotNil(t, settings.ExperimentDescription)
+	assert.Equal(t, "Custom Description", *settings.ExperimentDescription)
+}
+
+func TestResolveMLflowPluginInput_TrailingJSON(t *testing.T) {
+	input := strPtr(`{"mlflow":{"experiment_name":"test"}} {"extra":"data"}`)
+	_, err := ResolveMLflowPluginInput(input)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "plugins_input must be a valid JSON object")
+}
+
+func TestResolveMLflowPluginInput_CaseSensitiveKey(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         string
+		resolvedInput *MLflowPluginInput
+	}{
+		{"lowercase", `{"mlflow":{"experiment_name":"test"}}`, &MLflowPluginInput{ExperimentName: "test"}},
+		{"uppercase", `{"MLFLOW":{"experiment_name":"test"}}`, &MLflowPluginInput{}},
+		{"mixedcase", `{"MLflow":{"experiment_name":"test"}}`, &MLflowPluginInput{}},
+		{"MiXeDcAsE", `{"mLfLoW":{"experiment_name":"test"}}`, &MLflowPluginInput{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ResolveMLflowPluginInput(new(tt.input))
+			require.NoError(t, err)
+			assert.Equal(t, tt.resolvedInput, got)
+		})
+	}
+}
+
+func TestGetLauncherNamespaceMLflowConfig_InvalidJSON(t *testing.T) {
+	cfg, err := GetLauncherNamespaceMLflowConfig("ns1", `{invalid json`)
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "failed to parse MLflow config")
+}
+
+func TestGetLauncherNamespaceMLflowConfig_EmptyString(t *testing.T) {
+	cfg, err := GetLauncherNamespaceMLflowConfig("ns1", `{}`)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Nil(t, cfg.Settings)
+}
+
 func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 	globalDesc := "Global desc"
 	wsDisabled := false
-	global := commonmlflow.PluginConfig{
+	global := commonmlflow.MLflowPluginConfig{
 		Endpoint: "https://global-mlflow.example.com",
 		Timeout:  "30s",
 		Settings: &commonmlflow.MLflowPluginSettings{
@@ -254,7 +345,7 @@ func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 			MLflowUIPathPrefix:    "/global-mlflow",
 		},
 	}
-	namespace := &commonmlflow.PluginConfig{
+	namespace := &commonmlflow.MLflowPluginConfig{
 		Endpoint: "https://ns-mlflow.example.com",
 		Settings: &commonmlflow.MLflowPluginSettings{
 			WorkspacesEnabled:     &wsDisabled,
@@ -268,7 +359,7 @@ func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 	assert.Equal(t, "https://ns-mlflow.example.com", merged.Endpoint)
 	assert.Equal(t, "30s", merged.Timeout)
 
-	settings := ApplySettingsDefaults(merged.Settings)
+	settings := ApplyMLflowSettingsDefaults(merged.Settings)
 	require.NotNil(t, settings)
 	require.NotNil(t, settings.WorkspacesEnabled)
 	assert.False(t, *settings.WorkspacesEnabled)
@@ -280,192 +371,39 @@ func TestMergePluginConfigAndSettingsDefaults(t *testing.T) {
 	assert.Equal(t, "/ns-mlflow", settings.MLflowUIPathPrefix)
 }
 
+func TestApplySettingsDefaults_NonKubernetesAuthDefaults(t *testing.T) {
+	settings := ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	require.NotNil(t, settings.WorkspacesEnabled)
+	assert.False(t, *settings.WorkspacesEnabled)
+	assert.Equal(t, commonmlflow.AuthTypeNone, settings.AuthType)
+}
+
 func TestBuildMLflowRequestContextKubernetesAuth(t *testing.T) {
 	setupFakeKubernetesConfig(t, "sa-token-value")
 
 	workspacesEnabled := true
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "https://mlflow.example.com",
-			Timeout:  "12s",
+	mlflowPluginCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "12s",
+		TLS: &commonplugins.TLSConfig{
+			InsecureSkipVerify: false,
 		},
-		Settings: &commonmlflow.MLflowPluginSettings{
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
 			WorkspacesEnabled: &workspacesEnabled,
-		},
-	}
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType:    commonmlflow.AuthTypeKubernetes,
+		BearerToken: "sa-token-value",
+	})
 
-	mlflowCtx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+	mlflowCtx, err := BuildMLflowRunRequestContext("ns1", mlflowPluginCfg)
 	require.NoError(t, err)
 	require.NotNil(t, mlflowCtx)
 	assert.Equal(t, "https://mlflow.example.com", mlflowCtx.BaseURL.String())
 	assert.True(t, mlflowCtx.WorkspacesEnabled)
 	assert.NotNil(t, mlflowCtx.Client)
-}
-
-func TestEnsureExperimentExists(t *testing.T) {
-	t.Run("returns existing experiment from get-by-name", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "Bearer bearer-secret", r.Header.Get("Authorization"))
-			assert.Equal(t, "ns1", r.Header.Get("X-MLflow-Workspace"))
-			assert.Equal(t, "/api/2.0/mlflow/experiments/get-by-name", r.URL.Path)
-			assert.Equal(t, "my-exp", r.URL.Query().Get("experiment_name"))
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"42","name":"my-exp"}}`))
-		}))
-		defer server.Close()
-
-		mlflowCtx := newTestMLflowRequestContext(t, server.URL)
-		defaultDesc := DefaultExperimentDescription
-		exp, err := EnsureExperimentExists(context.Background(), mlflowCtx, "", "my-exp", &defaultDesc)
-		require.NoError(t, err)
-		require.NotNil(t, exp)
-		assert.Equal(t, "42", exp.ID)
-		assert.Equal(t, "my-exp", exp.Name)
-	})
-
-	t.Run("creates experiment when get-by-name returns not found", func(t *testing.T) {
-		var callCount int
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "Bearer bearer-secret", r.Header.Get("Authorization"))
-			assert.Equal(t, "ns1", r.Header.Get("X-MLflow-Workspace"))
-			switch r.URL.Path {
-			case "/api/2.0/mlflow/experiments/get-by-name":
-				callCount++
-				w.WriteHeader(http.StatusNotFound)
-				_, _ = w.Write([]byte(`{"error_code":"RESOURCE_DOES_NOT_EXIST","message":"not found"}`))
-			case "/api/2.0/mlflow/experiments/create":
-				bodyBytes, _ := io.ReadAll(r.Body)
-				assert.Contains(t, string(bodyBytes), `"name":"my-exp"`)
-				assert.Contains(t, string(bodyBytes), `"description":"Created by Kubeflow Pipelines"`)
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(`{"experiment_id":"99"}`))
-			default:
-				t.Fatalf("unexpected path %s", r.URL.Path)
-			}
-		}))
-		defer server.Close()
-
-		defaultDesc := DefaultExperimentDescription
-		mlflowCtx := newTestMLflowRequestContext(t, server.URL)
-		exp, err := EnsureExperimentExists(context.Background(), mlflowCtx, "", "my-exp", &defaultDesc)
-		require.NoError(t, err)
-		require.NotNil(t, exp)
-		assert.Equal(t, "99", exp.ID)
-		assert.Equal(t, "my-exp", exp.Name)
-		assert.Equal(t, 1, callCount)
-	})
-}
-
-func TestBuildKFPTags(t *testing.T) {
-	run := &apiserverPlugins.PendingRun{
-		RunID:             "kfp-run-1",
-		Namespace:         "ns-1",
-		PipelineID:        "pipeline-1",
-		PipelineVersionID: "pipeline-version-1",
-	}
-	tags := BuildKFPTags(run, "", "")
-	require.Len(t, tags, 4)
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunID, Value: "kfp-run-1"})
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPRunURL, Value: ""})
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineID, Value: "pipeline-1"})
-	assert.Contains(t, tags, commonmlflow.Tag{Key: TagKFPPipelineVersionID, Value: "pipeline-version-1"})
-}
-
-func TestBuildKFPTags_WithBaseURL(t *testing.T) {
-	run := &apiserverPlugins.PendingRun{
-		RunID:     "run-1",
-		Namespace: "ns-1",
-	}
-	tags := BuildKFPTags(run, "https://kfp.example.com", "")
-	require.Len(t, tags, 2)
-	assert.Contains(t, tags, commonmlflow.Tag{
-		Key:   TagKFPRunURL,
-		Value: "https://kfp.example.com/#/runs/details/run-1",
-	})
-}
-
-func TestBuildKFPTags_WithCustomPathTemplate(t *testing.T) {
-	run := &apiserverPlugins.PendingRun{
-		RunID:     "run-b",
-		Namespace: "proj-1",
-	}
-	tmpl := "/demo/console/pipelines/{namespace}/runs/{run_id}"
-	tags := BuildKFPTags(run, "https://console.example.com", tmpl)
-	require.Len(t, tags, 2)
-	assert.Contains(t, tags, commonmlflow.Tag{
-		Key:   TagKFPRunURL,
-		Value: "https://console.example.com/demo/console/pipelines/proj-1/runs/run-b",
-	})
-}
-
-func TestBuildKFPTags_NilRun(t *testing.T) {
-	assert.Nil(t, BuildKFPTags(nil, "", ""))
-}
-
-func TestCreateRunWithKFPTags(t *testing.T) {
-	var receivedBody map[string]interface{}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "Bearer bearer-secret", r.Header.Get("Authorization"))
-		assert.Equal(t, "ns1", r.Header.Get("X-MLflow-Workspace"))
-		switch r.URL.Path {
-		case "/api/2.0/mlflow/runs/create":
-			body, _ := io.ReadAll(r.Body)
-			require.NoError(t, json.Unmarshal(body, &receivedBody))
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"mlflow-parent-run-1"}}}`))
-		default:
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-	}))
-	defer server.Close()
-
-	mlflowCtx := newTestMLflowRequestContext(t, server.URL)
-
-	run := &apiserverPlugins.PendingRun{
-		RunID:             "kfp-run-1",
-		PipelineID:        "pipeline-1",
-		PipelineVersionID: "pipeline-version-1",
-	}
-	tags := BuildKFPTags(run, "", "")
-	mlflowRunID, err := mlflowCtx.Client.CreateRun(context.Background(), "exp-1", "sample-run", tags)
-	require.NoError(t, err)
-	assert.Equal(t, "mlflow-parent-run-1", mlflowRunID)
-
-	// Verify tags were included in the CreateRun request body.
-	rawTags, ok := receivedBody["tags"].([]interface{})
-	require.True(t, ok, "tags should be present in CreateRun body")
-	assert.Len(t, rawTags, 4)
-}
-
-func TestBuildPluginOutput(t *testing.T) {
-	output := SuccessfulPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example/runs/run-1", "https://mlflow.example")
-	require.NotNil(t, output)
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
-	require.Contains(t, output.Entries, "run_url")
-	require.NotNil(t, output.Entries["run_url"].RenderType)
-	assert.Equal(t, apiv2beta1.MetadataValue_URL, *output.Entries["run_url"].RenderType)
-}
-
-func TestSetPendingRunPluginOutput(t *testing.T) {
-	// Start with a PendingRun that already has another plugin's output.
-	existing := `{"other":{"state":"PLUGIN_SUCCEEDED"}}`
-	run := &apiserverPlugins.PendingRun{
-		RunID:         "run-1",
-		PluginsOutput: &existing,
-	}
-	mlflowOutput := SuccessfulPluginOutput("exp-1", "my-exp", "run-1", "https://mlflow.example/runs/run-1", "https://mlflow.example")
-	err := SetPendingRunPluginOutput(run, "mlflow", mlflowOutput)
-	require.NoError(t, err)
-	require.NotNil(t, run.PluginsOutput)
-
-	var envelope pluginsOutputEnvelope
-	require.NoError(t, json.Unmarshal([]byte(*run.PluginsOutput), &envelope))
-	assert.NotNil(t, envelope.others["other"], "pre-existing 'other' entry should be preserved")
-	assert.NotEmpty(t, envelope.MLflow, "mlflow entry should be set")
-	var parsed apiv2beta1.PluginOutput
-	require.NoError(t, protojson.Unmarshal(envelope.MLflow, &parsed))
-	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, parsed.State)
-	assert.Contains(t, parsed.Entries, "experiment_id")
 }
 
 func TestToMLflowTerminalStatus(t *testing.T) {
@@ -514,16 +452,17 @@ func TestResolveMLflowRequestConfig_NamespaceOnlyIsDisabled(t *testing.T) {
 			},
 			Data: map[string]string{
 				LauncherConfigKey: `{
-					"endpoint": "https://ns-mlflow.example.com",
-					"timeout": "15s",
-					"settings": {"workspacesEnabled": true}
+					"settings": {
+						"defaultExperimentName": "NamespaceDefault",
+						"injectUserEnvVars": true
+					}
 				}`,
 			},
 		},
 	)
 	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
 
-	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients, "ns-only")
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), "", "ns-only")
 	require.NoError(t, err)
 	require.Nil(t, resolved, "namespace-only config should NOT enable MLflow without global opt-in")
 }
@@ -540,9 +479,319 @@ func TestResolveMLflowRequestConfig_NeitherGlobalNorNamespace(t *testing.T) {
 	clientSet := k8sfake.NewClientset() // no ConfigMap
 	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
 
-	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients, "empty-ns")
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), "", "empty-ns")
 	require.NoError(t, err)
 	assert.Nil(t, resolved, "MLflow should be disabled when neither global nor namespace config exists")
+}
+
+func TestResolveMLflowRequestConfig_StandaloneIgnoresNamespaceLayers(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"timeout":  "10s",
+			"settings": map[string]interface{}{
+				"authType":              "none",
+				"defaultExperimentName": "GlobalDefault",
+			},
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"endpoint": "https://server-side-override.example.com",
+					"settings": map[string]interface{}{
+						"defaultExperimentName": "ServerDefault",
+					},
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+	viper.Set(common.MultiUserMode, false)
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, nil)
+	})
+
+	clientSet := k8sfake.NewClientset(
+		&corev1.ConfigMap{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      LauncherConfigMapName,
+				Namespace: "ns1",
+			},
+			Data: map[string]string{
+				LauncherConfigKey: `{
+					"settings": {
+						"defaultExperimentName": "StandaloneIgnored"
+					}
+				}`,
+			},
+		},
+	)
+	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), "", "ns1")
+	require.NoError(t, err)
+	require.NotNil(t, resolved)
+	require.NotNil(t, resolved.Config)
+	require.NotNil(t, resolved.Config.Settings)
+	assert.Equal(t, "https://global-mlflow.example.com", resolved.Config.Endpoint)
+	assert.Equal(t, "GlobalDefault", resolved.Config.Settings.DefaultExperimentName)
+	assert.Equal(t, commonmlflow.AuthTypeNone, resolved.Credentials.AuthType)
+}
+
+func TestResolveMLflowRequestConfig_MultiUserAppliesServerAndLauncherOverrides(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"timeout":  "10s",
+			"settings": map[string]interface{}{
+				"authType":          "none",
+				"workspacesEnabled": true,
+				"kfpBaseURL":        "https://global-kfp.example.com",
+			},
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"endpoint": "https://server-side-override.example.com",
+					"timeout":  "25s",
+					"settings": map[string]interface{}{
+						"workspacesEnabled": false,
+						"kfpBaseURL":        "https://server-kfp.example.com",
+					},
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, nil)
+	})
+
+	launcherCfgOverride := `{
+		"settings": {
+			"experimentDescription": "LauncherDescription",
+			"defaultExperimentName": "LauncherDefault",
+			"injectUserEnvVars": true
+		}
+	}`
+
+	kubeClients := &fakeKubeClientProvider{clientSet: k8sfake.NewClientset()}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), launcherCfgOverride, "ns1")
+	require.NoError(t, err)
+	require.NotNil(t, resolved)
+	require.NotNil(t, resolved.Config)
+	require.NotNil(t, resolved.Config.Settings)
+	assert.Equal(t, "https://server-side-override.example.com", resolved.Config.Endpoint)
+	assert.Equal(t, "25s", resolved.Config.Timeout)
+	require.NotNil(t, resolved.Config.Settings.WorkspacesEnabled)
+	assert.False(t, *resolved.Config.Settings.WorkspacesEnabled)
+	assert.Equal(t, "https://server-kfp.example.com", resolved.Config.Settings.KFPBaseURL)
+	require.NotNil(t, resolved.Config.Settings.ExperimentDescription)
+	assert.Equal(t, "LauncherDescription", *resolved.Config.Settings.ExperimentDescription)
+	assert.Equal(t, "LauncherDefault", resolved.Config.Settings.DefaultExperimentName)
+	require.NotNil(t, resolved.Config.Settings.InjectUserEnvVars)
+	assert.True(t, *resolved.Config.Settings.InjectUserEnvVars)
+	assert.Equal(t, commonmlflow.AuthTypeNone, resolved.Credentials.AuthType)
+}
+
+func TestResolveMLflowRequestConfig_GlobalCredentialSecretRefDefaultUsed(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"timeout":  "10s",
+			"settings": map[string]interface{}{
+				"authType": "bearer",
+				"credentialSecretRef": map[string]interface{}{
+					"tokenKey": "global-token",
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns-defaults",
+		},
+		Data: map[string][]byte{
+			"global-token": []byte("global-secret"),
+		},
+	})
+	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), "", "ns-defaults")
+	require.NoError(t, err)
+	require.NotNil(t, resolved)
+	require.NotNil(t, resolved.Config.Settings)
+	require.NotNil(t, resolved.Config.Settings.CredentialSecretRef)
+	assert.Equal(t, "global-token", resolved.Config.Settings.CredentialSecretRef.TokenKey)
+	assert.Equal(t, commonmlflow.AuthTypeBearer, resolved.Credentials.AuthType)
+	assert.Equal(t, "global-secret", resolved.Credentials.BearerToken)
+}
+
+func TestResolveMLflowRequestConfig_MultiUserRejectsInheritedCredentialSecretRefWithoutLauncherOverride(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"timeout":  "10s",
+			"settings": map[string]interface{}{
+				"authType": "basic-auth",
+			},
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"settings": map[string]interface{}{
+						"credentialSecretRef": map[string]interface{}{
+							"usernameKey": "server-username",
+							"passwordKey": "server-password",
+						},
+					},
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, nil)
+	})
+
+	clientSet := k8sfake.NewClientset()
+	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), "", "ns1")
+	require.Error(t, err)
+	assert.Nil(t, resolved)
+	assert.Contains(t, err.Error(), "credentialSecretRef is required")
+	assert.Contains(t, err.Error(), commonmlflow.AuthTypeBasicAuth)
+}
+
+func TestResolveMLflowRequestConfig_MultiUserLauncherCredentialSecretRefWinsOverServerSide(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"timeout":  "10s",
+			"settings": map[string]interface{}{
+				"authType": "bearer",
+				"credentialSecretRef": map[string]interface{}{
+					"tokenKey": "global-token",
+				},
+			},
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"settings": map[string]interface{}{
+						"credentialSecretRef": map[string]interface{}{
+							"tokenKey": "server-token",
+						},
+					},
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, nil)
+	})
+	launcherCfgOverride := `{
+		"settings": {
+			"credentialSecretRef": {
+				"tokenKey": "launcher-token"
+			}
+		}
+	}`
+	clientSet := k8sfake.NewClientset(
+		&corev1.Secret{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      commonmlflow.CredentialSecretName,
+				Namespace: "ns1",
+			},
+			Data: map[string][]byte{
+				"global-token":   []byte("global-secret"),
+				"server-token":   []byte("server-secret"),
+				"launcher-token": []byte("launcher-secret"),
+			},
+		},
+	)
+	kubeClients := &fakeKubeClientProvider{clientSet: clientSet}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), launcherCfgOverride, "ns1")
+	require.NoError(t, err)
+	require.NotNil(t, resolved)
+	require.NotNil(t, resolved.Config.Settings)
+	require.NotNil(t, resolved.Config.Settings.CredentialSecretRef)
+	assert.Equal(t, "launcher-token", resolved.Config.Settings.CredentialSecretRef.TokenKey)
+	assert.Equal(t, commonmlflow.AuthTypeBearer, resolved.Credentials.AuthType)
+	assert.Equal(t, "launcher-secret", resolved.Credentials.BearerToken)
+}
+
+func TestResolveMLflowRequestConfig_MultiUserRejectsForbiddenLauncherFields(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+	viper.Set(common.MultiUserMode, true)
+	t.Cleanup(func() {
+		viper.Set(common.MultiUserMode, nil)
+	})
+
+	launcherCfgOverride := `{
+					"endpoint": "https://forbidden-launcher-endpoint.example.com"
+				}`
+
+	kubeClients := &fakeKubeClientProvider{clientSet: k8sfake.NewClientset()}
+
+	resolved, err := ResolveMLflowRequestConfig(context.Background(), kubeClients.GetClientSet(), launcherCfgOverride, "ns1")
+	require.Error(t, err)
+	assert.Nil(t, resolved)
+	assert.Contains(t, err.Error(), `unknown field "endpoint"`)
+}
+
+func TestGetLauncherNamespaceMLflowConfig_RejectsTrailingJSON(t *testing.T) {
+	cfg, err := GetLauncherNamespaceMLflowConfig("ns1", `{"settings":{"defaultExperimentName":"LauncherDefault"}} true`)
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "failed to parse MLflow config")
+}
+
+func TestGetServerSideNamespaceMLflowConfig_RejectsUnknownFields(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"bogusField": true,
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	cfg, err := GetServerSideNamespaceMLflowConfig("ns1")
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), `unknown field "bogusfield"`)
 }
 
 func TestResolveMLflowCredentials_EmptySAToken(t *testing.T) {
@@ -553,31 +802,83 @@ func TestResolveMLflowCredentials_EmptySAToken(t *testing.T) {
 	assert.Contains(t, err.Error(), "bearer token is empty")
 }
 
-func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "not-a-valid-url",
-			Timeout:  "10s",
+func TestResolveBearerSecretCredentials(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
 		},
-		Settings: &commonmlflow.MLflowPluginSettings{},
-	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+		Data: map[string][]byte{
+			"token": []byte("custom-token"),
+		},
+	})
+
+	credentials, err := resolveBearerSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{
+			TokenKey: "token",
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, commonmlflow.AuthTypeBearer, credentials.AuthType)
+	assert.Equal(t, "custom-token", credentials.BearerToken)
+}
+
+func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+		},
+	})
+
+	_, err := resolveBasicAuthSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{
+			UsernameKey: "username",
+			PasswordKey: "password",
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `does not contain key "password"`)
+}
+
+func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "not-a-valid-url",
+		Timeout:  "10s",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			AuthType: commonmlflow.AuthTypeNone,
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
-	assert.Contains(t, err.Error(), "invalid plugins.mlflow endpoint")
+	assert.Contains(t, err.Error(), "plugins.mlflow.endpoint")
+	assert.Contains(t, err.Error(), "must be an absolute URL with a host")
 }
 
 func TestBuildMLflowRequestContext_ZeroTimeout(t *testing.T) {
 	setupFakeKubernetesConfig(t, "valid-token")
 
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: "https://mlflow.example.com",
-			Timeout:  "0s",
-		},
-		Settings: &commonmlflow.MLflowPluginSettings{},
-	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "0s",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType:    commonmlflow.AuthTypeKubernetes,
+		BearerToken: "valid-token",
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
 	require.Error(t, err)
 	assert.Nil(t, ctx)
 	assert.Contains(t, err.Error(), "timeout must be > 0")
@@ -612,13 +913,14 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 		},
 	})
 
-	env := map[string]string{
-		commonmlflow.EnvMLflowConfig: `{"endpoint":"https://mlflow.example.com","parentRunId":"abc"}`,
-	}
+	env := []corev1.EnvVar{{
+		Name:  commonmlflow.EnvMLflowConfig,
+		Value: `{"endpoint":"https://mlflow.example.com","parentRunId":"abc"}`,
+	}}
 	err := InjectMLflowRuntimeEnv(workflow, env)
 	require.NoError(t, err)
 
-	expectedEnv := corev1.EnvVar{Name: commonmlflow.EnvMLflowConfig, Value: env[commonmlflow.EnvMLflowConfig]}
+	expectedEnv := env[0]
 
 	// Driver container gets the env var.
 	assert.Contains(t, workflow.Spec.Templates[0].Container.Env, expectedEnv)
@@ -631,13 +933,13 @@ func TestInjectMLflowRuntimeEnv(t *testing.T) {
 }
 
 func TestInjectMLflowRuntimeEnv_NilSpec(t *testing.T) {
-	err := InjectMLflowRuntimeEnv(nil, map[string]string{"key": "val"})
+	err := InjectMLflowRuntimeEnv(nil, []corev1.EnvVar{{Name: "key", Value: "val"}})
 	require.NoError(t, err, "nil spec should be a no-op")
 }
 
 func TestInjectMLflowRuntimeEnv_EmptyEnv(t *testing.T) {
 	workflow := util.NewWorkflow(&workflowapi.Workflow{})
-	err := InjectMLflowRuntimeEnv(workflow, map[string]string{})
+	err := InjectMLflowRuntimeEnv(workflow, []corev1.EnvVar{})
 	require.NoError(t, err, "empty env should be a no-op")
 }
 
@@ -648,17 +950,587 @@ func newTestMLflowRequestContext(t *testing.T, serverURL string) *commonmlflow.R
 	setupFakeKubernetesConfig(t, "bearer-secret")
 
 	enabled := true
-	requestCfg := &ResolvedConfig{
-		Config: &commonmlflow.PluginConfig{
-			Endpoint: serverURL,
-			Timeout:  "10s",
-		},
-		Settings: &commonmlflow.MLflowPluginSettings{
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: serverURL,
+		Timeout:  "10s",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
 			WorkspacesEnabled: &enabled,
-		},
-	}
-	ctx, err := BuildMLflowRunRequestContext(context.Background(), "ns1", requestCfg)
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType:    commonmlflow.AuthTypeKubernetes,
+		BearerToken: "bearer-secret",
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
 	require.NoError(t, err)
 	require.NotNil(t, ctx)
 	return ctx
+}
+
+func TestIsEnabled(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func()
+		cleanup func()
+		want    bool
+	}{
+		{
+			name: "enabled when plugins.mlflow is set",
+			setup: func() {
+				viper.Set("plugins.mlflow", map[string]interface{}{
+					"endpoint": "https://mlflow.example.com",
+				})
+			},
+			cleanup: func() {
+				viper.Set("plugins", nil)
+			},
+			want: true,
+		},
+		{
+			name: "disabled when plugins.mlflow is not set",
+			setup: func() {
+				viper.Set("plugins", nil)
+			},
+			cleanup: func() {},
+			want:    false,
+		},
+		{
+			name: "disabled when plugins is nil",
+			setup: func() {
+				viper.Set("plugins", nil)
+			},
+			cleanup: func() {},
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setup()
+			defer tt.cleanup()
+			got := IsEnabled()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestGetServerSideNamespaceMLflowConfig_EmptyNamespace(t *testing.T) {
+	cfg, err := GetServerSideNamespaceMLflowConfig("")
+	require.NoError(t, err)
+	assert.Nil(t, cfg)
+}
+
+func TestGetServerSideNamespaceMLflowConfig_MissingNamespace(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+			"namespaces": map[string]interface{}{
+				"ns1": map[string]interface{}{
+					"endpoint": "https://ns1-mlflow.example.com",
+				},
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	cfg, err := GetServerSideNamespaceMLflowConfig("ns2")
+	require.NoError(t, err)
+	assert.Nil(t, cfg, "non-existent namespace should return nil")
+}
+
+func TestGetServerSideNamespaceMLflowConfig_NoNamespacesConfigured(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"endpoint": "https://global-mlflow.example.com",
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	cfg, err := GetServerSideNamespaceMLflowConfig("ns1")
+	require.NoError(t, err)
+	assert.Nil(t, cfg)
+}
+
+func TestGetServerSideNamespaceMLflowConfig_TrailingJSON(t *testing.T) {
+	originalPlugins := viper.Get("plugins")
+	viper.Set("plugins", map[string]interface{}{
+		"mlflow": map[string]interface{}{
+			"namespaces": map[string]interface{}{
+				"ns1": json.RawMessage(`{"endpoint":"https://ns1.example.com"} true`),
+			},
+		},
+	})
+	t.Cleanup(func() {
+		viper.Set("plugins", originalPlugins)
+	})
+
+	cfg, err := GetServerSideNamespaceMLflowConfig("ns1")
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "failed to marshal")
+}
+
+func TestApplyLauncherNamespaceOverrides_NilLauncher(t *testing.T) {
+	base := commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://base.example.com",
+		Settings: &commonmlflow.MLflowPluginSettings{
+			DefaultExperimentName: "Base",
+		},
+	}
+	result := applyLauncherNamespaceOverrides(base, nil)
+	assert.Equal(t, base, result)
+}
+
+func TestApplyLauncherNamespaceOverrides_WithOverrides(t *testing.T) {
+	desc := "Base Description"
+	base := commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://base.example.com",
+		Settings: &commonmlflow.MLflowPluginSettings{
+			DefaultExperimentName: "Base",
+			ExperimentDescription: &desc,
+		},
+	}
+	launcherDesc := "Launcher Description"
+	injectVars := true
+	launcher := &LauncherNamespaceMLflowConfig{
+		Settings: &LauncherNamespaceMLflowSettings{
+			ExperimentDescription: &launcherDesc,
+			DefaultExperimentName: "LauncherExp",
+			InjectUserEnvVars:     &injectVars,
+		},
+	}
+	result := applyLauncherNamespaceOverrides(base, launcher)
+	require.NotNil(t, result.Settings)
+	assert.Equal(t, "LauncherExp", result.Settings.DefaultExperimentName)
+	require.NotNil(t, result.Settings.ExperimentDescription)
+	assert.Equal(t, "Launcher Description", *result.Settings.ExperimentDescription)
+	require.NotNil(t, result.Settings.InjectUserEnvVars)
+	assert.True(t, *result.Settings.InjectUserEnvVars)
+}
+
+func TestMergeLauncherNamespaceSettings_NilOverrides(t *testing.T) {
+	base := &commonmlflow.MLflowPluginSettings{
+		DefaultExperimentName: "Base",
+	}
+	result := mergeLauncherNamespaceSettings(base, nil)
+	assert.Equal(t, base, result)
+}
+
+func TestMergeLauncherNamespaceSettings_NilBase(t *testing.T) {
+	desc := "Override Description"
+	overrides := &LauncherNamespaceMLflowSettings{
+		ExperimentDescription: &desc,
+		DefaultExperimentName: "Override",
+	}
+	result := mergeLauncherNamespaceSettings(nil, overrides)
+	require.NotNil(t, result)
+	assert.Equal(t, "Override", result.DefaultExperimentName)
+	require.NotNil(t, result.ExperimentDescription)
+	assert.Equal(t, "Override Description", *result.ExperimentDescription)
+}
+
+func TestMergeLauncherNamespaceSettings_PartialOverrides(t *testing.T) {
+	baseDesc := "Base Description"
+	base := &commonmlflow.MLflowPluginSettings{
+		DefaultExperimentName: "Base",
+		ExperimentDescription: &baseDesc,
+		AuthType:              commonmlflow.AuthTypeNone,
+	}
+	injectVars := true
+	overrides := &LauncherNamespaceMLflowSettings{
+		InjectUserEnvVars: &injectVars,
+	}
+	result := mergeLauncherNamespaceSettings(base, overrides)
+	require.NotNil(t, result)
+	assert.Equal(t, "Base", result.DefaultExperimentName)
+	assert.Equal(t, &baseDesc, result.ExperimentDescription)
+	assert.Equal(t, commonmlflow.AuthTypeNone, result.AuthType)
+	require.NotNil(t, result.InjectUserEnvVars)
+	assert.True(t, *result.InjectUserEnvVars)
+}
+
+func TestMergeLauncherNamespaceSettings_CredentialSecretRef(t *testing.T) {
+	base := &commonmlflow.MLflowPluginSettings{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
+			TokenKey: "base-token",
+		},
+	}
+	overrides := &LauncherNamespaceMLflowSettings{
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
+			TokenKey: "override-token",
+		},
+	}
+	result := mergeLauncherNamespaceSettings(base, overrides)
+	require.NotNil(t, result)
+	require.NotNil(t, result.CredentialSecretRef)
+	assert.Equal(t, "override-token", result.CredentialSecretRef.TokenKey)
+}
+
+func TestBuildMLflowRunRequestContext_NilConfig(t *testing.T) {
+	ctx, err := BuildMLflowRunRequestContext("ns1", nil)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "MLflow config is nil")
+}
+
+func TestBuildMLflowRunRequestContext_NilSettings(t *testing.T) {
+	requestCfg := &ResolvedMLflowConfig{
+		Config: &commonmlflow.MLflowPluginConfig{
+			Endpoint: "https://mlflow.example.com",
+			Settings: nil,
+		},
+	}
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "MLflow plugin settings are nil")
+}
+
+func TestBuildMLflowRunRequestContext_EmptyEndpoint(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "endpoint must be set")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidKFPBaseURL_WithQuery(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			KFPBaseURL: "https://kfp.example.com?tenant=a",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.kfpBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a query string")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidKFPBaseURL_WithFragment(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			KFPBaseURL: "https://kfp.example.com/#/tenant",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.kfpBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a fragment")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidKFPBaseURL_WithPath(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			KFPBaseURL: "https://kfp.example.com/prefix",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.kfpBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a path")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidMLflowBaseURL_WithQuery(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			MLflowBaseURL: "https://mlflow-ui.example.com?tenant=a",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.mlflowBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a query string")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidMLflowBaseURL_WithFragment(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			MLflowBaseURL: "https://mlflow-ui.example.com/#/tenant",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.mlflowBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a fragment")
+}
+
+func TestBuildMLflowRunRequestContext_InvalidMLflowBaseURL_WithPath(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			MLflowBaseURL: "https://mlflow-ui.example.com/prefix",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.Error(t, err)
+	assert.Nil(t, ctx)
+	assert.Contains(t, err.Error(), "plugins.mlflow.settings.mlflowBaseURL")
+	assert.Contains(t, err.Error(), "must not contain a path")
+}
+
+func TestBuildMLflowRunRequestContext_ValidBaseURLs(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "30s",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			KFPBaseURL:    "https://kfp.example.com",
+			MLflowBaseURL: "https://mlflow-ui.example.com",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.NoError(t, err)
+	assert.NotNil(t, ctx)
+}
+
+func TestBuildMLflowRunRequestContext_EmptyBaseURLsAreAllowed(t *testing.T) {
+	requestCfg := mustResolvedConfig(t, &commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Timeout:  "30s",
+		Settings: ApplyMLflowSettingsDefaults(&commonmlflow.MLflowPluginSettings{
+			KFPBaseURL:    "",
+			MLflowBaseURL: "",
+		}),
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	ctx, err := BuildMLflowRunRequestContext("ns1", requestCfg)
+	require.NoError(t, err)
+	assert.NotNil(t, ctx)
+}
+
+func TestNewResolvedMLflowConfig_NilConfig(t *testing.T) {
+	cfg, err := newResolvedMLflowConfig(nil, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "MLflow config is nil")
+}
+
+func TestNewResolvedMLflowConfig_NilSettings(t *testing.T) {
+	cfg, err := newResolvedMLflowConfig(&commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: nil,
+	}, commonmlflow.MLflowCredentials{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "MLflow plugin settings are nil")
+}
+
+func TestNewResolvedMLflowConfig_EmptyAuthType(t *testing.T) {
+	cfg, err := newResolvedMLflowConfig(&commonmlflow.MLflowPluginConfig{
+		Endpoint: "https://mlflow.example.com",
+		Settings: &commonmlflow.MLflowPluginSettings{
+			AuthType: commonmlflow.AuthTypeBearer,
+		},
+	}, commonmlflow.MLflowCredentials{
+		AuthType: "",
+	})
+	require.Error(t, err)
+	assert.Nil(t, cfg)
+	assert.Contains(t, err.Error(), "missing resolved credentials")
+}
+
+func TestResolveConfiguredCredentials_NilSettings(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "settings are nil")
+}
+
+func TestResolveConfiguredCredentials_UnsupportedAuthType(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", &commonmlflow.MLflowPluginSettings{
+		AuthType: "unsupported-auth-type",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported plugins.mlflow.settings.authType")
+}
+
+func TestResolveConfiguredCredentials_KubernetesAuth(t *testing.T) {
+	setupFakeKubernetesConfig(t, "k8s-token")
+	clientSet := k8sfake.NewClientset()
+	creds, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", &commonmlflow.MLflowPluginSettings{
+		AuthType: commonmlflow.AuthTypeKubernetes,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, commonmlflow.AuthTypeKubernetes, creds.AuthType)
+	assert.Equal(t, "k8s-token", creds.BearerToken)
+}
+
+func TestResolveConfiguredCredentials_NoneAuth(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	creds, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", &commonmlflow.MLflowPluginSettings{
+		AuthType: commonmlflow.AuthTypeNone,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, commonmlflow.AuthTypeNone, creds.AuthType)
+}
+
+func TestResolveConfiguredCredentials_BearerMissingRef(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", &commonmlflow.MLflowPluginSettings{
+		AuthType:            commonmlflow.AuthTypeBearer,
+		CredentialSecretRef: nil,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "credentialSecretRef is required")
+}
+
+func TestResolveConfiguredCredentials_BasicAuthMissingRef(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveConfiguredCredentials(context.Background(), clientSet, "ns1", &commonmlflow.MLflowPluginSettings{
+		AuthType:            commonmlflow.AuthTypeBasicAuth,
+		CredentialSecretRef: nil,
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "credentialSecretRef is required")
+}
+
+func TestResolveBearerSecretCredentials_NilRef(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveBearerSecretCredentials(context.Background(), clientSet, "ns1", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "bearer auth requires credentialSecretRef")
+}
+
+func TestResolveBearerSecretCredentials_MissingTokenKey(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveBearerSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
+		TokenKey: "",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tokenKey is required")
+}
+
+func TestResolveBasicAuthSecretCredentials_NilRef(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "basic auth requires credentialSecretRef")
+}
+
+func TestResolveBasicAuthSecretCredentials_MissingUsernameKey(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
+		UsernameKey: "",
+		PasswordKey: "password",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "usernameKey is required")
+}
+
+func TestResolveBasicAuthSecretCredentials_Success(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"username": []byte("test-user"),
+			"password": []byte("test-pass"),
+		},
+	})
+
+	creds, err := resolveBasicAuthSecretCredentials(context.Background(), clientSet, "ns1", &commonplugins.CredentialSecretRef{
+		UsernameKey: "username",
+		PasswordKey: "password",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, commonmlflow.AuthTypeBasicAuth, creds.AuthType)
+	assert.Equal(t, "test-user", creds.Username)
+	assert.Equal(t, "test-pass", creds.Password)
+}
+
+func TestGetMLflowCredentialSecret_NilClientSet(t *testing.T) {
+	_, err := getMLflowCredentialSecret(context.Background(), nil, "ns1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "clientSet is nil")
+}
+
+func TestGetMLflowCredentialSecret_SecretNotFound(t *testing.T) {
+	clientSet := k8sfake.NewClientset()
+	_, err := getMLflowCredentialSecret(context.Background(), clientSet, "ns1")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to read MLflow credentials secret")
+}
+
+func TestReadRequiredSecretKey_MissingKey(t *testing.T) {
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"other-key": []byte("value"),
+		},
+	}
+	_, err := readRequiredSecretKey(secret, "ns1", "missing-key")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `does not contain key "missing-key"`)
+}
+
+func TestReadRequiredSecretKey_EmptyValue(t *testing.T) {
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"empty-key": []byte(""),
+		},
+	}
+	_, err := readRequiredSecretKey(secret, "ns1", "empty-key")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "has an empty value")
+}
+
+func TestReadRequiredSecretKey_WhitespaceValue(t *testing.T) {
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"whitespace-key": []byte("   \n\t   "),
+		},
+	}
+	_, err := readRequiredSecretKey(secret, "ns1", "whitespace-key")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "has an empty value")
+}
+
+func TestReadRequiredSecretKey_Success(t *testing.T) {
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"valid-key": []byte("  valid-value  \n"),
+		},
+	}
+	value, err := readRequiredSecretKey(secret, "ns1", "valid-key")
+	require.NoError(t, err)
+	assert.Equal(t, "valid-value", value)
 }

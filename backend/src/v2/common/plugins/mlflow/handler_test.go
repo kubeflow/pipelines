@@ -10,10 +10,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var taskInfoStart = &plugins.TaskInfo{
@@ -467,12 +469,12 @@ func TestRetrieveUserContainerEnvVars_WorkspacesEnabled_InjectVars_Success(t *te
 		InjectUserEnvVars: true,
 	}
 
-	expectedEnvVars := map[string]string{
-		"MLFLOW_RUN_ID":        "test-run-id",
-		"MLFLOW_TRACKING_URI":  "http://localhost",
-		"MLFLOW_EXPERIMENT_ID": "test-exp",
-		"MLFLOW_WORKSPACE":     "test-workspace",
-		"MLFLOW_TRACKING_AUTH": "kubernetes-namespaced",
+	expectedEnvVars := []corev1.EnvVar{
+		{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
+		{Name: "MLFLOW_TRACKING_URI", Value: "http://localhost"},
+		{Name: "MLFLOW_EXPERIMENT_ID", Value: "test-exp"},
+		{Name: "MLFLOW_WORKSPACE", Value: "test-workspace"},
+		{Name: "MLFLOW_TRACKING_AUTH", Value: "kubernetes-namespaced"},
 	}
 
 	handler, _ := NewMLflowTaskHandler(runtimeCfg)
@@ -495,11 +497,99 @@ func TestRetrieveUserContainerEnvVars_WorkspacesDisabled_InjectVars_Success(t *t
 		InjectUserEnvVars:  true,
 	}
 
-	expectedEnvVars := map[string]string{
-		"MLFLOW_RUN_ID":        "test-run-id",
-		"MLFLOW_TRACKING_URI":  "http://localhost",
-		"MLFLOW_EXPERIMENT_ID": "test-exp",
-		"MLFLOW_TRACKING_AUTH": "kubernetes",
+	expectedEnvVars := []corev1.EnvVar{
+		{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
+		{Name: "MLFLOW_TRACKING_URI", Value: "http://localhost"},
+		{Name: "MLFLOW_EXPERIMENT_ID", Value: "test-exp"},
+		{Name: "MLFLOW_TRACKING_AUTH", Value: "kubernetes"},
+	}
+
+	handler, _ := NewMLflowTaskHandler(runtimeCfg)
+	handler.nestedRunID = "test-run-id"
+	envVars, err := handler.RetrieveUserContainerEnvVars()
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedEnvVars, envVars)
+}
+
+func TestRetrieveUserContainerEnvVars_BasicAuth_InjectsCredentialSecretRefs(t *testing.T) {
+	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
+		Endpoint:          "http://localhost",
+		Workspace:         "test-workspace",
+		WorkspacesEnabled: true,
+		ParentRunID:       "test-parent-run-id",
+		ExperimentID:      "test-exp",
+		AuthType:          commonmlflow.AuthTypeBasicAuth,
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
+			UsernameKey: "username",
+			PasswordKey: "password",
+		},
+		Timeout:           "10s",
+		InjectUserEnvVars: true,
+	}
+
+	expectedEnvVars := []corev1.EnvVar{
+		{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
+		{Name: "MLFLOW_TRACKING_URI", Value: "http://localhost"},
+		{Name: "MLFLOW_EXPERIMENT_ID", Value: "test-exp"},
+		{Name: "MLFLOW_WORKSPACE", Value: "test-workspace"},
+		{
+			Name: commonmlflow.EnvMLflowTrackingUsername,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: commonmlflow.CredentialSecretName},
+					Key:                  "username",
+				},
+			},
+		},
+		{
+			Name: commonmlflow.EnvMLflowTrackingPassword,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: commonmlflow.CredentialSecretName},
+					Key:                  "password",
+				},
+			},
+		},
+	}
+
+	handler, _ := NewMLflowTaskHandler(runtimeCfg)
+	handler.nestedRunID = "test-run-id"
+	envVars, err := handler.RetrieveUserContainerEnvVars()
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedEnvVars, envVars)
+	for _, envVar := range envVars {
+		assert.NotEqual(t, commonmlflow.EnvMLflowTrackingAuth, envVar.Name)
+	}
+}
+
+func TestRetrieveUserContainerEnvVars_BearerAuth_InjectsCredentialSecretRef(t *testing.T) {
+	runtimeCfg := &commonmlflow.MLflowRuntimeConfig{
+		Endpoint:     "http://localhost",
+		ParentRunID:  "test-parent-run-id",
+		ExperimentID: "test-exp",
+		AuthType:     commonmlflow.AuthTypeBearer,
+		CredentialSecretRef: &commonplugins.CredentialSecretRef{
+			TokenKey: "token",
+		},
+		Timeout:           "10s",
+		InjectUserEnvVars: true,
+	}
+
+	expectedEnvVars := []corev1.EnvVar{
+		{Name: "MLFLOW_RUN_ID", Value: "test-run-id"},
+		{Name: "MLFLOW_TRACKING_URI", Value: "http://localhost"},
+		{Name: "MLFLOW_EXPERIMENT_ID", Value: "test-exp"},
+		{
+			Name: commonmlflow.EnvMLflowTrackingToken,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{Name: commonmlflow.CredentialSecretName},
+					Key:                  "token",
+				},
+			},
+		},
 	}
 
 	handler, _ := NewMLflowTaskHandler(runtimeCfg)

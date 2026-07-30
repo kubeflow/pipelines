@@ -18,7 +18,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/go-openapi/strfmt"
 	params "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_client/pipeline_service"
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"

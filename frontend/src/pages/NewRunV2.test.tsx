@@ -959,7 +959,7 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+            pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
             runtime_config: {
               parameters: { intParam: 123 },
               pipeline_root: 'gs://dummy_pipeline_root',
@@ -1038,7 +1038,7 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             display_name: 'Clone of Run of v2-xgboost-ilbo',
-            pipeline_spec: JsYaml.safeLoad(v2XGYamlTemplateString),
+            pipeline_spec: JsYaml.load(v2XGYamlTemplateString),
             runtime_config: {
               parameters: { intParam: 123 },
               pipeline_root: 'gs://dummy_pipeline_root',

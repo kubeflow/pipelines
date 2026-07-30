@@ -13,7 +13,13 @@
 // limitations under the License.
 import { PassThrough, Stream } from 'stream';
 import { ClientOptions as MinioClientOptions } from 'minio';
-import { getK8sSecret, getArgoWorkflow, getPodLogs, getConfigMap } from './k8s-helper.js';
+import {
+  getK8sSecret,
+  getArgoWorkflow,
+  getPodLogs,
+  getConfigMap,
+  getServerNamespace,
+} from './k8s-helper.js';
 import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
 import * as JsYaml from 'js-yaml';
 
@@ -285,13 +291,15 @@ export function createPodLogsMinioRequestConfig(
  */
 export async function getPodLogsMinioRequestConfigfromWorkflow(
   podName: string,
+  _createdAt?: string,
+  namespace?: string,
 ): Promise<MinioRequestConfig> {
   let workflow: PartialArgoWorkflow;
   // We should probably parameterize this replace statement. It's brittle to
   // changes in implementation. But brittle is better than completely broken.
   let workflowName = podName.replace(/-system-container-impl-.*/, '');
   try {
-    workflow = await getArgoWorkflow(workflowName);
+    workflow = await getArgoWorkflow(workflowName, namespace);
   } catch (err) {
     throw new Error(`Unable to retrieve workflow status: ${err}.`);
   }
@@ -326,7 +334,45 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   }
 
   const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
-  const { accessKey, secretKey } = await getMinioClientSecrets(s3Artifact);
+  // Security: Only read the object-store credential Secret from the server's own
+  // namespace. In multi-user deployments the run namespace is a customer/user
+  // namespace, and the ml-pipeline-ui service account may not read Secrets there;
+  // for those runs we instead use the frontend server's own configured
+  // object-store credentials (MINIO_ACCESS_KEY / MINIO_SECRET_KEY, with the same
+  // defaults as configs.ts). Those credentials own the shared bucket (SeaweedFS
+  // in the kubeflow namespace), so the workflow-status log path works for user
+  // namespaces against the shared store instead of building a doomed anonymous
+  // client. See: https://github.com/kubeflow/pipelines/pull/12860
+  //
+  // Multi-user mode always supplies an explicit namespace (the pod-logs handler
+  // rejects requests without one), so an omitted namespace only occurs in
+  // standalone mode, where the run is effectively in the server namespace. We
+  // therefore treat a missing namespace as the server namespace and read the
+  // workflow-referenced Secret so custom object-store credentials are honored,
+  // while still refusing to read Secrets from any user namespace.
+  const serverNamespace = getServerNamespace();
+  let accessKey: string | undefined;
+  let secretKey: string | undefined;
+  if (namespace && namespace === serverNamespace) {
+    // Explicit server-namespace run (including multi-user runs whose namespace is
+    // the server namespace): read the Secret and use whatever it yields, exactly
+    // as before.
+    ({ accessKey, secretKey } = await getMinioClientSecrets(s3Artifact, namespace));
+  } else if (!namespace && serverNamespace) {
+    // Standalone run with an omitted namespace: read the workflow-referenced
+    // Secret from the server namespace, falling back to the frontend's configured
+    // env credentials only when the artifact repository does not reference a
+    // Secret (getMinioClientSecrets returns no credentials).
+    const { accessKey: readAccessKey = undefined, secretKey: readSecretKey = undefined } =
+      await getMinioClientSecrets(s3Artifact, serverNamespace);
+    accessKey = readAccessKey || process.env.MINIO_ACCESS_KEY || 'minio';
+    secretKey = readSecretKey || process.env.MINIO_SECRET_KEY || 'minio123';
+  } else {
+    // Cross-namespace (user-namespace) run, or an unknown server namespace: never
+    // read a user-namespace Secret; use the frontend's own configured credentials.
+    accessKey = process.env.MINIO_ACCESS_KEY || 'minio';
+    secretKey = process.env.MINIO_SECRET_KEY || 'minio123';
+  }
 
   const client = await createMinioClient(
     {
@@ -353,12 +399,15 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
  * Returns the k8s access key and secret used to connect to the s3 artifactory.
  * @param s3artifact s3artifact object describing the s3 artifactory config for argo workflow.
  */
-async function getMinioClientSecrets({ accessKeySecret, secretKeySecret }: S3Artifact) {
+async function getMinioClientSecrets(
+  { accessKeySecret, secretKeySecret }: S3Artifact,
+  namespace?: string,
+) {
   if (!accessKeySecret || !secretKeySecret) {
     return {};
   }
-  const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key);
-  const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key);
+  const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key, namespace);
+  const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key, namespace);
   return { accessKey, secretKey };
 }
 

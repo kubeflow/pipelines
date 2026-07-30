@@ -15,6 +15,7 @@
 package resource
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -28,14 +29,16 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/util/file"
+	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/util/file"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	apiserverPlugins "github.com/kubeflow/pipelines/backend/src/apiserver/plugins"
 	apiservermlflow "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
@@ -48,9 +51,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+// v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
+const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
 
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
@@ -116,10 +124,6 @@ func (m *FakeBadObjectStore) DeleteFile(ctx context.Context, filePath string) er
 	return errors.New("Not implemented")
 }
 
-func (m *FakeBadObjectStore) GetFile(ctx context.Context, filePath string) ([]byte, error) {
-	return []byte(""), nil
-}
-
 func (m *FakeBadObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
 	return util.NewInternalServerError(errors.New("Error"), "bad object store")
 }
@@ -130,6 +134,45 @@ func (m *FakeBadObjectStore) GetFromYamlFile(ctx context.Context, o interface{},
 
 func (m *FakeBadObjectStore) GetFileReader(context.Context, string) (io.ReadCloser, error) {
 	return nil, util.NewInternalServerError(errors.New("Error"), "bad object store")
+}
+
+type readerOnlyObjectStore struct {
+	files              map[string][]byte
+	getFileReaderPaths []string
+}
+
+func (m *readerOnlyObjectStore) GetPipelineKey(pipelineID string) string {
+	return "pipelines/" + pipelineID
+}
+
+func (m *readerOnlyObjectStore) AddFile(ctx context.Context, template []byte, filePath string) error {
+	if m.files == nil {
+		m.files = map[string][]byte{}
+	}
+	m.files[filePath] = template
+	return nil
+}
+
+func (m *readerOnlyObjectStore) DeleteFile(ctx context.Context, filePath string) error {
+	delete(m.files, filePath)
+	return nil
+}
+
+func (m *readerOnlyObjectStore) AddAsYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFromYamlFile(ctx context.Context, o interface{}, filePath string) error {
+	return nil
+}
+
+func (m *readerOnlyObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	m.getFileReaderPaths = append(m.getFileReaderPaths, filePath)
+	content, ok := m.files[filePath]
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("not found"), "file not found")
+	}
+	return io.NopCloser(bytes.NewReader(content)), nil
 }
 
 func createPipelineV1(name string) *model.Pipeline {
@@ -190,6 +233,105 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	},
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
+
+type retryDuringTerminalReportDispatcher struct {
+	manager  *ResourceManager
+	runID    string
+	retryErr error
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunEnd(ctx context.Context, _ *apiserverPlugins.PersistedRun) bool {
+	d.retryErr = d.manager.RetryRun(ctx, d.runID)
+	return true
+}
+
+func (d *retryDuringTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *retryDuringTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+type countingTerminalReportDispatcher struct {
+	onRunEndCalls int
+}
+
+func (d *countingTerminalReportDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) OnRunEnd(context.Context, *apiserverPlugins.PersistedRun) bool {
+	d.onRunEndCalls++
+	return true
+}
+
+func (d *countingTerminalReportDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	return nil
+}
+
+func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			logPath: []byte("archived log line\n"),
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n"),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	pipelineSpec, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+	assert.Equal(t, "apiVersion: argoproj.io/v1alpha1\nkind: Workflow\n", string(pipelineSpec))
+}
+
+func TestReadPipelineSpecFromObjectStoreRejectsOversizedFile(t *testing.T) {
+	objectStore := &readerOnlyObjectStore{
+		files: map[string][]byte{
+			"pipeline-spec.yaml": bytes.Repeat([]byte("x"), common.MaxFileLength+1),
+		},
+	}
+	manager := &ResourceManager{objectStore: objectStore}
+
+	_, err := manager.readPipelineSpecFromObjectStore(context.Background(), "pipeline-spec.yaml")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Pipeline spec file size too large")
+	assert.Equal(t, []string{"pipeline-spec.yaml"}, objectStore.getFileReaderPaths)
+}
 
 // Util function to create an initial state with pipeline uploaded
 func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
@@ -389,7 +531,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
-	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(string(nodeData))
+	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -415,6 +557,140 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
+}
+
+type retryWorkflowExecClient struct {
+	workflowClient util.ExecutionInterface
+}
+
+func (c *retryWorkflowExecClient) Execution(namespace string) util.ExecutionInterface {
+	return c.workflowClient
+}
+
+func (c *retryWorkflowExecClient) Compare(old, new interface{}) bool {
+	return false
+}
+
+type updateConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateConflictsRemaining int
+	createCalls              int
+}
+
+func (c *updateConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateConflictsRemaining > 0 {
+		c.updateConflictsRemaining--
+		return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *updateConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+type persistentConflictWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateCalls int
+	createCalls int
+}
+
+func (c *persistentConflictWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	c.updateCalls++
+	return nil, apierrors.NewConflict(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName(), errors.New("stale workflow"))
+}
+
+func (c *persistentConflictWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type createAlreadyExistsWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateNotFoundRemaining      int
+	createAlreadyExistsRemaining int
+}
+
+func (c *createAlreadyExistsWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateNotFoundRemaining > 0 {
+		c.updateNotFoundRemaining--
+		return nil, apierrors.NewNotFound(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *createAlreadyExistsWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	if c.createAlreadyExistsRemaining > 0 {
+		c.createAlreadyExistsRemaining--
+		return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+	}
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableGetFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getFailuresRemaining int
+	createCalls          int
+}
+
+func (c *retryableGetFailureWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	if c.getFailuresRemaining > 0 {
+		c.getFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+func (c *retryableGetFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type retryableUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	updateFailuresRemaining int
+	createCalls             int
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	if c.updateFailuresRemaining > 0 {
+		c.updateFailuresRemaining--
+		return nil, apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Update(ctx, execSpec, opts)
+}
+
+func (c *retryableUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return c.FakeWorkflowClient.Create(ctx, execSpec, opts)
+}
+
+type genericUpdateFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	createCalls int
+}
+
+func (c *genericUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+	return nil, errors.New("transient update failure")
+}
+
+func (c *genericUpdateFailureWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
+	c.createCalls++
+	return nil, apierrors.NewAlreadyExists(schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, execSpec.ExecutionName())
+}
+
+func seedRetryWorkflow(t *testing.T, manager *ResourceManager, runID string, workflowClient util.ExecutionInterface) {
+	t.Helper()
+	run, err := manager.GetRun(runID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
 }
 
 // Tests CreatePipeline and CreatePipelineVersion
@@ -575,7 +851,7 @@ func TestCreatePipelineVersion(t *testing.T) {
 			model: &model.PipelineVersion{
 				Name:         "complex",
 				Parameters:   "[{\"name\":\"output\"},{\"name\":\"project\"},{\"name\":\"schema\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/schema.json\"},{\"name\":\"train\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/train.csv\"},{\"name\":\"evaluation\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/eval.csv\"},{\"name\":\"preprocess-mode\",\"value\":\"local\"},{\"name\":\"preprocess-module\",\"value\":\"gs://ml-pipeline-playground/tfma/taxi-cab-classification/preprocessing.py\"},{\"name\":\"target\",\"value\":\"tips\"},{\"name\":\"learning-rate\",\"value\":\"0.1\"},{\"name\":\"hidden-layer-size\",\"value\":\"1500\"},{\"name\":\"steps\",\"value\":\"3000\"},{\"name\":\"workers\",\"value\":\"0\"},{\"name\":\"pss\",\"value\":\"0\"},{\"name\":\"predict-mode\",\"value\":\"local\"},{\"name\":\"analyze-mode\",\"value\":\"local\"},{\"name\":\"analyze-slice-column\",\"value\":\"trip_start_hour\"}]",
-				PipelineSpec: model.LargeText(complexPipeline),
+				PipelineSpec: complexPipeline,
 			},
 		},
 		{
@@ -897,6 +1173,82 @@ func TestResourceManager_CreatePipelineAndPipelineVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCreatePipelineAndPipelineVersion_V1Blocked(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "ns1")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	_, _, err := manager.CreatePipelineAndPipelineVersion(
+		&model.Pipeline{Name: "v1-pipeline", Namespace: "blocked-ns"},
+		&model.PipelineVersion{
+			Name:         "v1-version",
+			PipelineSpec: complexPipeline,
+		},
+	)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+}
+
+func TestCreatePipelineAndPipelineVersion_V1Blocked_PodNamespaceFallback(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "other-ns")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	_, _, err := manager.CreatePipelineAndPipelineVersion(
+		&model.Pipeline{Name: "v1-pipeline"},
+		&model.PipelineVersion{
+			Name:         "v1-version",
+			PipelineSpec: complexPipeline,
+		},
+	)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
+}
+
+func TestCreatePipelineVersion_V1Blocked(t *testing.T) {
+	viper.Set(util.BlockV1Pipelines, "true")
+	viper.Set(v1AllowedNamespaces, "ns1")
+	viper.Set(common.PodNamespace, "ns1")
+	defer func() {
+		viper.Set(util.BlockV1Pipelines, nil)
+		viper.Set(v1AllowedNamespaces, nil)
+		viper.Set(common.PodNamespace, nil)
+	}()
+
+	store := NewFakeClientManagerOrFatalV2()
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	p, err := manager.CreatePipeline(&model.Pipeline{Name: "test-pipeline", Namespace: "blocked-ns"})
+	require.Nil(t, err)
+
+	_, err = manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "v1-version",
+		PipelineId:   p.UUID,
+		PipelineSpec: complexPipeline,
+	})
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "V1 pipeline specs are not allowed")
 }
 
 // Tests GetPipelineByNameAndNamespace
@@ -1768,94 +2120,6 @@ func TestDeletePipeline(t *testing.T) {
 	assert.Contains(t, err.Error(), fmt.Sprintf("as it has existing pipeline versions (e.g. %v)", FakeUUIDOne))
 }
 
-func TestIsNamespaceAllowed(t *testing.T) {
-	tt := []struct {
-		msg               string
-		namespace         string
-		allowedNamespaces string
-		expected          bool
-	}{
-		{
-			msg:               "EmptyAllowedNamespaces",
-			namespace:         "ns1",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "NamespaceInList",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          true,
-		},
-		{
-			msg:               "NamespaceNotInList",
-			namespace:         "ns4",
-			allowedNamespaces: "ns1,ns2,ns3",
-			expected:          false,
-		},
-		{
-			msg:               "SingleAllowedNamespace_Match",
-			namespace:         "ns1",
-			allowedNamespaces: "ns1",
-			expected:          true,
-		},
-		{
-			msg:               "SingleAllowedNamespace_NoMatch",
-			namespace:         "ns2",
-			allowedNamespaces: "ns1",
-			expected:          false,
-		},
-		{
-			msg:               "CaseInsensitiveNamespace",
-			namespace:         "NS1",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "CaseInsensitiveAllowedList",
-			namespace:         "ns1",
-			allowedNamespaces: "NS1,NS2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundNamespace",
-			namespace:         "  ns1  ",
-			allowedNamespaces: "ns1,ns2",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAroundAllowedEntries",
-			namespace:         "ns1",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "WhitespaceAndCaseInsensitive",
-			namespace:         "  NS1  ",
-			allowedNamespaces: "  ns1  ,  ns2  ",
-			expected:          true,
-		},
-		{
-			msg:               "EmptyNamespace_EmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "",
-			expected:          false,
-		},
-		{
-			msg:               "EmptyNamespace_NonEmptyAllowed",
-			namespace:         "",
-			allowedNamespaces: "ns1,ns2",
-			expected:          false,
-		},
-	}
-	for _, test := range tt {
-		t.Run(test.msg, func(t *testing.T) {
-			result := isNamespaceAllowed(test.namespace, test.allowedNamespaces)
-			assert.Equal(t, test.expected, result)
-		})
-	}
-}
-
 func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 	tt := []struct {
 		msg               string
@@ -1923,11 +2187,11 @@ func TestCreateRun_BlockV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -2549,14 +2813,14 @@ func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	assert.Contains(t, string(*storedRun.PluginsOutputString), "mlflow-exp-1")
 
 	// Parse and verify the plugin output structure.
-	outputs, err := apiservermlflow.DeserializePluginsOutput(storedRun.PluginsOutputString)
+	outputs, err := apiserverPlugins.DeserializePluginsOutput(storedRun.PluginsOutputString)
 	require.NoError(t, err)
-	output := outputs[apiservermlflow.PluginName]
+	output := outputs["mlflow"]
 	require.NotNil(t, output)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, output.State)
-	assert.Equal(t, "mlflow-exp-1", output.Entries[apiservermlflow.EntryExperimentID].Value.GetStringValue())
-	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiservermlflow.EntryRootRunID].Value.GetStringValue())
-	assert.Contains(t, output.Entries[apiservermlflow.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
+	assert.Equal(t, "mlflow-exp-1", output.Entries["experiment_id"].Value.GetStringValue())
+	assert.Equal(t, "mlflow-parent-run-1", output.Entries[apiserverPlugins.EntryRootRunID].Value.GetStringValue())
+	assert.Contains(t, output.Entries[apiserverPlugins.EntryRunURL].Value.GetStringValue(), "mlflow-parent-run-1")
 
 }
 
@@ -2745,6 +3009,118 @@ func TestRetryRun(t *testing.T) {
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
 }
 
+func TestRetryRun_RetriesWorkflowUpdateConflict(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &updateConflictWorkflowClient{
+		FakeWorkflowClient:       workflowClient,
+		updateConflictsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, conflictWorkflowClient.updateConflictsRemaining)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_ReturnsUnavailableWhenWorkflowUpdateConflictPersists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	conflictWorkflowClient := &persistentConflictWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "expected retryable error after persistent workflow update conflict, got: %v", err)
+	assert.Greater(t, conflictWorkflowClient.updateCalls, 1)
+	assert.Equal(t, 0, conflictWorkflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesWorkflowUpdateAfterCreateAlreadyExists(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	alreadyExistsWorkflowClient := &createAlreadyExistsWorkflowClient{
+		FakeWorkflowClient:           workflowClient,
+		updateNotFoundRemaining:      1,
+		createAlreadyExistsRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: alreadyExistsWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.updateNotFoundRemaining)
+	assert.Equal(t, 0, alreadyExistsWorkflowClient.createAlreadyExistsRemaining)
+}
+
+func TestRetryRun_CreatesWorkflowAfterRetryableGetFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := &retryableGetFailureWorkflowClient{
+		FakeWorkflowClient:   client.NewWorkflowClientFake(),
+		getFailuresRemaining: 10,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 9, workflowClient.getFailuresRemaining)
+	assert.Equal(t, 1, workflowClient.createCalls)
+}
+
+func TestRetryRun_RetriesRetryableWorkflowUpdateFailure(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	retryableFailureWorkflowClient := &retryableUpdateFailureWorkflowClient{
+		FakeWorkflowClient:      workflowClient,
+		updateFailuresRemaining: 1,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: retryableFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.NoError(t, err)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.updateFailuresRemaining)
+	assert.Equal(t, 0, retryableFailureWorkflowClient.createCalls)
+}
+
+func TestRetryRun_GenericWorkflowUpdateFailureDoesNotCreate(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	workflowClient := client.NewWorkflowClientFake()
+	seedRetryWorkflow(t, manager, runDetail.UUID, workflowClient)
+	genericFailureWorkflowClient := &genericUpdateFailureWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: genericFailureWorkflowClient}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "error updating workflow")
+	assert.Equal(t, 0, genericFailureWorkflowClient.createCalls)
+}
+
 func TestRetryRun_PreservesRunFields(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -2786,6 +3162,12 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 	var updateCalls []updateCall
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case "/api/2.0/mlflow/experiments/get-by-name":
+			// Return experiment for initial run creation
+			_, _ = w.Write([]byte(`{"experiment":{"experiment_id":"exp-1","name":"Default"}}`))
+		case "/api/2.0/mlflow/runs/create":
+			// Return a temporary parent run ID for initial run creation
+			_, _ = w.Write([]byte(`{"run":{"info":{"run_id":"temp-parent-run"}}}`))
 		case "/api/2.0/mlflow/runs/update":
 			defer r.Body.Close()
 			var payload struct {
@@ -2823,8 +3205,8 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	runWithPluginOutput, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1", server.URL)
-	lt, err := apiservermlflow.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", server.URL+"/runs/parent-run-1")
+	lt, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
 	require.NoError(t, err)
 	runWithPluginOutput.PluginsOutputString = lt
 	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
@@ -2839,9 +3221,9 @@ func TestRetryRun_ReopensMLflowParentAndFailedNestedRuns(t *testing.T) {
 
 	updatedRun, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
-	updatedOutputs, err := apiservermlflow.DeserializePluginsOutput(updatedRun.PluginsOutputString)
+	updatedOutputs, err := apiserverPlugins.DeserializePluginsOutput(updatedRun.PluginsOutputString)
 	require.NoError(t, err)
-	updatedOutput := updatedOutputs[apiservermlflow.PluginName]
+	updatedOutput := updatedOutputs["mlflow"]
 	require.NotNil(t, updatedOutput)
 	assert.Equal(t, apiv2beta1.PluginState_PLUGIN_SUCCEEDED, updatedOutput.State)
 	assert.Equal(t, "", updatedOutput.StateMessage)
@@ -2893,7 +3275,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "error updating and creating a workflow")
+	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
 func TestUnarchiveRun_OK(t *testing.T) {
@@ -2990,11 +3372,11 @@ func TestCreateJob_BlocksV1Pipelines(t *testing.T) {
 
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			viper.Set(common.BlockV1Pipelines, test.blockV1)
-			viper.Set(common.V1NamespaceWhitelist, test.allowedNamespaces)
+			viper.Set(util.BlockV1Pipelines, test.blockV1)
+			viper.Set(v1AllowedNamespaces, test.allowedNamespaces)
 			defer func() {
-				viper.Set(common.BlockV1Pipelines, false)
-				viper.Set(common.V1NamespaceWhitelist, "")
+				viper.Set(util.BlockV1Pipelines, nil)
+				viper.Set(v1AllowedNamespaces, nil)
 			}()
 
 			store, manager, exp := initWithExperiment(t)
@@ -3668,11 +4050,14 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
 	ctx := context.Background()
 	defer store.Close()
+	// Set CreationTimestamp far in the past so the workflow is beyond the GC grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "obsolete",
-			Namespace: "kubeflow",
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			Name:              "obsolete",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
@@ -3680,6 +4065,39 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+}
+
+func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
+	// When a workflow is young (within the GC grace period) and its run is not
+	// found in the DB, it should NOT be deleted. Instead, a retryable
+	// UNAVAILABLE error should be returned so the persistence agent retries.
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	// Set CreationTimestamp to a recent time so the workflow is within the grace period.
+	// Use the injected fake time to ensure consistency with manager's time.
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "young-workflow",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
+		},
+	})
+	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
+	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NotNil(t, err)
+	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
+		"Expected Unavailable error for young workflow within grace period, got: %v", err)
+	assert.Contains(t, err.Error(), "GC grace period")
+
+	// Verify the workflow was NOT deleted by checking it's still accessible.
+	wf, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, "young-workflow", v1.GetOptions{})
+	assert.Nil(t, getErr, "Workflow should still exist after grace period skip")
+	assert.NotNil(t, wf)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
@@ -3702,6 +4120,177 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	wf, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err)
 	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+}
+
+func TestAddWorkflowLabelIfWorkflowUnchanged_SkipsWhenWorkflowWasRetried(t *testing.T) {
+	wfClient := client.NewWorkflowClientFake()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "workflow-name",
+			Namespace:       "ns1",
+			ResourceVersion: "retry-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: "run-id"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := wfClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	labelAdded, err := addWorkflowLabelIfWorkflowUnchanged(
+		ctx,
+		wfClient,
+		"workflow-name",
+		"terminal-version",
+		util.LabelKeyWorkflowPersistedFinalState,
+		"true",
+	)
+	require.NoError(t, err)
+	assert.False(t, labelAdded)
+
+	updatedWorkflow, err := wfClient.Get(ctx, "workflow-name", v1.GetOptions{})
+	require.NoError(t, err)
+	_, hasFinalStateLabel := updatedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
+}
+
+func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsStale(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.State = model.RuntimeStateRunning
+	runWithPluginOutput.Conditions = string(model.RuntimeStateRunning.ToV1())
+	runWithPluginOutput.FinishedAtInSec = 0
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &countingTerminalReportDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	currentWorkflow, err := store.ExecClientFake.Execution(namespace).Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	currentWorkflow.SetVersion("retry-version")
+	_, err = store.ExecClientFake.Execution(namespace).Update(ctx, currentWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	staleTerminalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	assert.Equal(t, 0, dispatcher.onRunEndCalls)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, currentRun.State)
+	assert.Equal(t, int64(0), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+
+	// Report a terminal workflow whose CR no longer exists, simulating a
+	// deletion between the persistence agent's read and this report. The run
+	// row must still be finalized before the caller receives the NotFound
+	// signal that stops further retries.
+	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName + "-deleted",
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"caller should receive the NotFound signal so the persistence agent stops retrying")
+	assert.Nil(t, reportedWorkflow)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
+	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	defer store.Close()
+
+	runWithPluginOutput, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	mlflowOutput := apiservermlflow.SuccessfulPluginOutput("exp-1", "exp-1", "parent-run-1", "https://mlflow.example/runs/parent-run-1")
+	pluginsOutput, err := apiserverPlugins.SerializePluginsOutput(map[string]*apiv2beta1.PluginOutput{apiservermlflow.PluginName: mlflowOutput})
+	require.NoError(t, err)
+	runWithPluginOutput.PluginsOutputString = pluginsOutput
+	require.NoError(t, manager.runStore.UpdateRun(runWithPluginOutput))
+
+	dispatcher := &retryDuringTerminalReportDispatcher{
+		manager: manager,
+		runID:   run.UUID,
+	}
+	manager.pluginDispatcher = dispatcher
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Nil(t, reportedWorkflow)
+	require.NoError(t, dispatcher.retryErr)
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(0), retriedRun.FinishedAtInSec)
+
+	retriedWorkflow, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(retriedWorkflow.ExecutionStatus().Condition()))
+	_, hasFinalStateLabel := retriedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel)
 }
 
 // TestReportWorkflow_WithMLflowOnRunEnd verifies that when a run has PluginsOutputString
@@ -3757,15 +4346,18 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
-	require.NoError(t, err)
+	require.NoError(t, err,
+		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
 
 	// After terminal report, the plugin dispatcher's OnRunEnd should have fired.
-	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED.
+	// Without MLflow config in Viper, the handler sets PLUGIN_FAILED, and the
+	// run still reaches its terminal state.
 	updatedRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, updatedRun.PluginsOutputString, "PluginsOutputString should be updated after terminal report")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "PLUGIN_FAILED")
 	assert.Contains(t, string(*updatedRun.PluginsOutputString), "config unavailable")
+	assert.Equal(t, model.RuntimeStateFailed, updatedRun.State)
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
@@ -5217,7 +5809,7 @@ func TestValidateTags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTags(tt.tags)
+			err := model.ValidateTags(tt.tags)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)

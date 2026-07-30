@@ -775,12 +775,10 @@ func TestUpdateJob_Success(t *testing.T) {
 		Status: swfapi.ScheduledWorkflowStatus{
 			Conditions: []swfapi.ScheduledWorkflowCondition{
 				{
-					Type:               swfapi.ScheduledWorkflowEnabled,
-					Status:             corev1.ConditionTrue,
-					LastProbeTime:      metav1.NewTime(time.Unix(10, 0).UTC()),
-					LastTransitionTime: metav1.NewTime(time.Unix(20, 0).UTC()),
-					Reason:             string(swfapi.ScheduledWorkflowEnabled),
-					Message:            "The schedule is enabled",
+					Type:    swfapi.ScheduledWorkflowEnabled,
+					Status:  corev1.ConditionTrue,
+					Reason:  string(swfapi.ScheduledWorkflowEnabled),
+					Message: "The schedule is enabled",
 				},
 			},
 		},

@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GooglerpcStatus } from './GooglerpcStatus';
+import type { GoogleRpcStatus } from './GoogleRpcStatus';
 import {
-  GooglerpcStatusFromJSON,
-  GooglerpcStatusFromJSONTyped,
-  GooglerpcStatusToJSON,
-  GooglerpcStatusToJSONTyped,
-} from './GooglerpcStatus';
+  GoogleRpcStatusFromJSON,
+  GoogleRpcStatusFromJSONTyped,
+  GoogleRpcStatusToJSON,
+  GoogleRpcStatusToJSONTyped,
+} from './GoogleRpcStatus';
 import type { PipelineTaskDetailChildTask } from './PipelineTaskDetailChildTask';
 import {
   PipelineTaskDetailChildTaskFromJSON,
@@ -119,10 +119,10 @@ export interface V2beta1PipelineTaskDetail {
   execution_id?: string;
   /**
    *
-   * @type {GooglerpcStatus}
+   * @type {GoogleRpcStatus}
    * @memberof V2beta1PipelineTaskDetail
    */
-  error?: GooglerpcStatus;
+  error?: GoogleRpcStatus;
   /**
    * Input artifacts of the task.
    * @type {{ [key: string]: V2beta1ArtifactList; }}
@@ -197,7 +197,7 @@ export function V2beta1PipelineTaskDetailFromJSONTyped(
         : V2beta1PipelineTaskExecutorDetailFromJSON(json['executor_detail']),
     state: json['state'] == null ? undefined : V2beta1RuntimeStateFromJSON(json['state']),
     execution_id: json['execution_id'] == null ? undefined : json['execution_id'],
-    error: json['error'] == null ? undefined : GooglerpcStatusFromJSON(json['error']),
+    error: json['error'] == null ? undefined : GoogleRpcStatusFromJSON(json['error']),
     inputs:
       json['inputs'] == null ? undefined : mapValues(json['inputs'], V2beta1ArtifactListFromJSON),
     outputs:
@@ -239,7 +239,7 @@ export function V2beta1PipelineTaskDetailToJSONTyped(
     executor_detail: V2beta1PipelineTaskExecutorDetailToJSON(value['executor_detail']),
     state: V2beta1RuntimeStateToJSON(value['state']),
     execution_id: value['execution_id'],
-    error: GooglerpcStatusToJSON(value['error']),
+    error: GoogleRpcStatusToJSON(value['error']),
     inputs:
       value['inputs'] == null ? undefined : mapValues(value['inputs'], V2beta1ArtifactListToJSON),
     outputs:

@@ -17,7 +17,7 @@
 import { render } from '@testing-library/react';
 import HTMLViewer, { HTMLViewerConfig } from './HTMLViewer';
 import { PlotType } from './Viewer';
-import TestUtils from '../../TestUtils';
+import { flushPromisesInAct } from '../../TestUtils';
 
 describe('HTMLViewer', () => {
   it('does not break on empty data', () => {
@@ -43,7 +43,7 @@ describe('HTMLViewer', () => {
 
   it('uses srcdoc to insert HTML into the iframe', async () => {
     const { container } = render(<HTMLViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const iframe = container.querySelector('iframe') as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect(iframe?.srcdoc).toEqual(html);
@@ -52,7 +52,7 @@ describe('HTMLViewer', () => {
 
   it('cannot be accessed from main frame of the other way around (no allow-same-origin)', async () => {
     const { container } = render(<HTMLViewer configs={[config]} />);
-    await TestUtils.flushPromises();
+    await flushPromisesInAct();
     const iframe = container.querySelector('iframe') as HTMLIFrameElement | null;
     expect(iframe).not.toBeNull();
     expect((iframe as any)?.window).toBeUndefined();

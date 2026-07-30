@@ -72,12 +72,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbHost
+                  key: mysqlHost
             - name: MYSQL_PORT
               valueFrom:
                 configMapKeyRef:
                   name: pipeline-install-config
-                  key: dbPort
+                  key: mysqlPort
           volumeMounts:
             - name: tls-certs
               mountPath: /etc/pki/tls/certs

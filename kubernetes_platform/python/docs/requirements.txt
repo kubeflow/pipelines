@@ -1,4 +1,5 @@
 autodocsumm==0.2.9
+setuptools<81
 sphinx==5.0.2
 sphinx-click==4.3.0
 sphinx-immaterial==0.9.0

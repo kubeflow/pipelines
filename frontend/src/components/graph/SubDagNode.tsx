@@ -16,9 +16,9 @@
 
 import CropFreeIcon from '@mui/icons-material/CropFree';
 import React from 'react';
-import { Handle, Position } from '@xyflow/react';
 import { SubDagFlowElementData } from './Constants';
 import { getExecutionIcon, getIcon } from './ExecutionNode';
+import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
 // import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 // import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
@@ -77,20 +77,7 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
           </div>
         </div>
       </button>
-      <Handle
-        type='target'
-        position={Position.Top}
-        isValidConnection={(connection) => connection.source === 'some-id'}
-        onConnect={(params) => console.log('handle onConnect', params)}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
-      <Handle
-        type='source'
-        position={Position.Bottom}
-        isValidConnection={(connection) => connection.source === 'some-id'}
-        onConnect={(params) => console.log('handle onConnect', params)}
-        style={{ background: '#000', height: '1px', width: '1px', border: 0 }}
-      />
+      <ReadOnlyNodeHandles />
     </>
   );
 }

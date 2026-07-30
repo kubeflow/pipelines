@@ -48,13 +48,35 @@ export const defaultPodTemplateSpec = {
 
 // The file path contains pod namespace when in Kubernetes cluster.
 if (fs.existsSync(namespaceFilePath)) {
-  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8');
+  serverNamespace = fs.readFileSync(namespaceFilePath, 'utf-8').trim();
 }
 const kc = new KubeConfig();
 // This loads kubectl config when not in cluster.
 kc.loadFromDefault();
 const k8sV1Client = kc.makeApiClient(CoreV1Api);
 const k8sV1CustomObjectClient = kc.makeApiClient(CustomObjectsApi);
+
+function getConfiguredServerNamespace(): string | undefined {
+  return serverNamespace || process.env.FRONTEND_SERVER_NAMESPACE?.trim() || undefined;
+}
+
+/**
+ * Returns the namespace the frontend server itself runs in (read from the
+ * mounted service account when in-cluster, or from FRONTEND_SERVER_NAMESPACE
+ * otherwise).
+ *
+ * Security: This is the only namespace the ml-pipeline-ui service account is
+ * permitted to read Secrets from. Callers use it to ensure the UI never reads
+ * Secrets from a customer/user namespace. See:
+ * https://github.com/kubeflow/pipelines/pull/12860
+ */
+export function getServerNamespace(): string | undefined {
+  return getConfiguredServerNamespace();
+}
+
+function resolveNamespace(providedNamespace?: string): string | undefined {
+  return providedNamespace || getConfiguredServerNamespace();
+}
 
 function getNameOfViewerResource(logdir: string): string {
   // TODO: find some hash function with shorter resulting message.
@@ -259,7 +281,7 @@ export function getPodLogs(
   podNamespace?: string,
   containerName: string = 'main',
 ): Promise<string> {
-  podNamespace = podNamespace || serverNamespace;
+  podNamespace = resolveNamespace(podNamespace);
   if (!podNamespace) {
     throw new Error(
       `podNamespace is not specified and cannot get namespace from ${namespaceFilePath}.`,
@@ -340,16 +362,21 @@ export async function listPodEvents(podName: string, podNamespace: string): Prom
 /**
  * Retrieves the argo workflow CRD.
  * @param workflowName name of the argo workflow
+ * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
-export async function getArgoWorkflow(workflowName: string): Promise<PartialArgoWorkflow> {
-  if (!serverNamespace) {
+export async function getArgoWorkflow(
+  workflowName: string,
+  providedNamespace?: string,
+): Promise<PartialArgoWorkflow> {
+  const namespace = resolveNamespace(providedNamespace);
+  if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
   }
 
   const res = await k8sV1CustomObjectClient.getNamespacedCustomObject({
     group: workflowGroup,
     version: workflowVersion,
-    namespace: serverNamespace,
+    namespace,
     plural: workflowPlural,
     name: workflowName,
   });
@@ -364,11 +391,7 @@ export async function getArgoWorkflow(workflowName: string): Promise<PartialArgo
  * @param providedNamespace use this namespace when provided, otherwise default to server's namespace
  */
 export async function getK8sSecret(name: string, key: string, providedNamespace?: string) {
-  let namespace = serverNamespace;
-
-  if (providedNamespace) {
-    namespace = providedNamespace;
-  }
+  const namespace = resolveNamespace(providedNamespace);
 
   if (!namespace) {
     throw new Error(`Cannot get namespace from ${namespaceFilePath}`);
@@ -384,4 +407,5 @@ export const TEST_ONLY = {
   k8sV1Client,
   k8sV1CustomObjectClient,
   parseTensorboardLogDir,
+  resolveNamespace,
 };

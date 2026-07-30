@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"testing"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	client "github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -28,14 +28,30 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type FakeResourceEventHandlerRegistration struct{}
+type FakeResourceEventHandlerRegistration struct {
+	synced chan struct{}
+}
 
 func (h *FakeResourceEventHandlerRegistration) HasSynced() bool {
 	return true
 }
 
+func (h *FakeResourceEventHandlerRegistration) HasSyncedChecker() cache.DoneChecker {
+	return h
+}
+
+func (h *FakeResourceEventHandlerRegistration) Name() string {
+	return "fake resource event handler registration"
+}
+
+func (h *FakeResourceEventHandlerRegistration) Done() <-chan struct{} {
+	return h.synced
+}
+
 func NewFakeResourceEventHandlerRegistration() *FakeResourceEventHandlerRegistration {
-	return &FakeResourceEventHandlerRegistration{}
+	synced := make(chan struct{})
+	close(synced)
+	return &FakeResourceEventHandlerRegistration{synced: synced}
 }
 
 type FakeEventHandler struct {
@@ -44,6 +60,13 @@ type FakeEventHandler struct {
 
 func NewFakeEventHandler() *FakeEventHandler {
 	return &FakeEventHandler{}
+}
+
+func TestFakeResourceEventHandlerRegistration_HasSyncedChecker(t *testing.T) {
+	registration := NewFakeResourceEventHandlerRegistration()
+
+	assert.True(t, registration.HasSynced())
+	assert.True(t, cache.IsDone(registration.HasSyncedChecker()))
 }
 
 func (h *FakeEventHandler) AddEventHandler(handler cache.ResourceEventHandler) (cache.ResourceEventHandlerRegistration, error) {

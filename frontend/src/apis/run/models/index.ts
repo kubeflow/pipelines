@@ -13,7 +13,7 @@ export * from './ApiRun';
 export * from './ApiRunDetail';
 export * from './ApiRunMetric';
 export * from './ApiRunStorageState';
-export * from './GooglerpcStatus';
+export * from './GoogleRpcStatus';
 export * from './PipelineSpecRuntimeConfig';
 export * from './ProtobufAny';
 export * from './ProtobufNullValue';
