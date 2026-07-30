@@ -36,6 +36,34 @@ const (
 	PodFailureCategoryNone PodFailureCategory = ""
 )
 
+// PodFailureSignalSource identifies where a PodFailureSignal's Reason came
+// from.
+//
+// ImagePullBackOff, CrashLoopBackOff, OOMKilled and the other reasons below
+// are all readable from the pod's own status (containerStatuses[].state).
+// Unschedulable is not: there is no container yet, so Argo leaves the pod
+// Pending with no message, and the only signal is a FailedScheduling Event
+// recorded against the pod. Carrying Source alongside Reason means a future
+// caller that watches pod Events can classify through this same function
+// without another signature change (see #12843).
+type PodFailureSignalSource string
+
+const (
+	// PodFailureSignalSourcePodStatus means Reason was read from the pod's
+	// own status (e.g. a container waiting/terminated reason).
+	PodFailureSignalSourcePodStatus PodFailureSignalSource = "PodStatus"
+	// PodFailureSignalSourcePodEvent means Reason was read from a
+	// Kubernetes Event recorded against the pod (e.g. FailedScheduling).
+	PodFailureSignalSourcePodEvent PodFailureSignalSource = "PodEvent"
+)
+
+// PodFailureSignal is the input to ClassifyPodFailure: a raw failure reason
+// or status message, and where it was read from.
+type PodFailureSignal struct {
+	Reason string
+	Source PodFailureSignalSource
+}
+
 type podFailurePattern struct {
 	substring string
 	category  PodFailureCategory
@@ -60,16 +88,22 @@ var podFailurePatterns = []podFailurePattern{
 	{"Evicted", PodFailureCategoryNode},
 }
 
-// ClassifyPodFailure inspects a raw Kubernetes/Argo failure reason or status
-// message and classifies it into a PodFailureCategory, along with the
-// specific substring that matched. It returns PodFailureCategoryNone and an
-// empty reason if the message does not match any known pattern.
-func ClassifyPodFailure(message string) (category PodFailureCategory, matchedReason string) {
-	if message == "" {
+// ClassifyPodFailure inspects a pod lifecycle failure signal and classifies
+// it into a PodFailureCategory, along with the specific substring that
+// matched. It returns PodFailureCategoryNone and an empty reason if the
+// signal does not match any known pattern.
+//
+// Matching is currently substring-based against signal.Reason regardless of
+// signal.Source; no pattern here is sourced from a pod Event yet, since
+// nothing in this codebase watches pod Events today. Source is carried so
+// that whoever adds that watch (see #12843) can pass a PodEvent-sourced
+// signal, such as a FailedScheduling reason, through this same function.
+func ClassifyPodFailure(signal PodFailureSignal) (category PodFailureCategory, matchedReason string) {
+	if signal.Reason == "" {
 		return PodFailureCategoryNone, ""
 	}
 	for _, pattern := range podFailurePatterns {
-		if strings.Contains(message, pattern.substring) {
+		if strings.Contains(signal.Reason, pattern.substring) {
 			return pattern.category, pattern.substring
 		}
 	}
