@@ -182,36 +182,6 @@ func TestGetArtifactsByURI_FiltersHashCollisions(t *testing.T) {
 	assert.Equal(t, lookupURI, *matched[0].URI)
 }
 
-func TestGetArtifactsByURI_LegacyEmptyURIHashFallback(t *testing.T) {
-	db, store := initializeArtifactStore()
-	defer db.Close()
-
-	legacyURI := "s3://bucket/legacy-artifact"
-	_, err := db.Exec(
-		`INSERT INTO artifacts (UUID, Namespace, Type, URI, URIHash, Name, Description, CreatedAtInSec, LastUpdateInSec, Metadata, NumberValue)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		artifactUUID1,
-		"ns1",
-		1,
-		legacyURI,
-		"",
-		"legacy-row",
-		"",
-		1,
-		1,
-		"{}",
-		nil,
-	)
-	require.NoError(t, err)
-
-	matched, err := store.GetArtifactsByURI("ns1", legacyURI)
-	assert.NoError(t, err)
-	assert.Len(t, matched, 1)
-	assert.Equal(t, "legacy-row", matched[0].Name)
-	assert.Equal(t, legacyURI, *matched[0].URI)
-	assert.Equal(t, "", matched[0].URIHash)
-}
-
 func TestArtifactURIHash_EmptyURI(t *testing.T) {
 	assert.Equal(t, "", artifactURIHash(""))
 }

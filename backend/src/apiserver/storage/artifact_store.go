@@ -425,9 +425,11 @@ func (s *ArtifactStore) GetArtifact(id string) (*model.Artifact, error) {
 
 // GetArtifactsByURI returns artifacts matching Namespace and URI exactly.
 // Unlike ListArtifacts, this path issues a single equality query and does not
-// run a COUNT(*) or pagination loop. Lookups use the indexed URIHash column,
-// with a legacy fallback for rows that predate URIHash population. Exact URI
-// equality is re-checked in Go to protect against hash collisions.
+// run a COUNT(*) or pagination loop. Lookups use the indexed (Namespace,
+// URIHash) columns. Exact URI equality is re-checked in Go to protect against
+// hash collisions. URIHash is populated on every write; migration backfill
+// covers any pre-existing rows, so empty-hash fallbacks are intentionally
+// omitted.
 func (s *ArtifactStore) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
 	if namespace == "" {
 		return nil, util.NewInvalidInputError("namespace is required for GetArtifactsByURI")
@@ -440,15 +442,9 @@ func (s *ArtifactStore) GetArtifactsByURI(namespace, uri string) ([]*model.Artif
 	sql, args, err := sq.
 		Select(artifactColumns...).
 		From(artifactTableName).
-		Where(sq.Or{
-			sq.Eq{"Namespace": namespace, "URIHash": uriHash},
-			sq.And{
-				sq.Eq{"Namespace": namespace, "URI": uri},
-				sq.Or{
-					sq.Eq{"URIHash": ""},
-					sq.Eq{"URIHash": nil},
-				},
-			},
+		Where(sq.Eq{
+			"Namespace": namespace,
+			"URIHash":   uriHash,
 		}).
 		ToSql()
 	if err != nil {
