@@ -7,17 +7,29 @@ permissions:
 on:
   pull_request_target:
     types:
+      - opened
       - labeled
       - synchronize
       - reopened
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
-  cancel-in-progress: true
-
 jobs:
   ok-to-test:
-    if: contains(github.event.pull_request.labels.*.name, 'ok-to-test') || github.event_name == 'pull_request_target'
+    # Run immediately for trusted authors and when an external contributor is
+    # approved. Other labels do not affect workflow-run approval.
+    if: >-
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'ok-to-test'
+    concurrency:
+      # Label and reopen events use a unique group because cancelling a run for
+      # the same head SHA would make that commit's check rollup red.
+      group: >-
+        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
+          (github.event.action == 'opened' || github.event.action == 'synchronize')
+          && 'head-update' || github.run_id
+        }}
+      # A synchronize event moves the PR to a new head SHA, so cancelling the
+      # prior run cannot make the current commit's check rollup red.
+      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
     runs-on: ubuntu-latest
     continue-on-error: true
 
@@ -63,32 +75,49 @@ jobs:
               head_sha: headSha,
             };
 
-            let runs = [];
+            const approvedRunIds = new Set();
+            let totalApproved = 0;
+
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               core.info(`[Attempt ${attempt}/${maxAttempts}] Querying action_required runs for ${headSha}`);
-              runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
 
-              if (runs.length > 0) {
-                core.info(`Found ${runs.length} workflow run(s) to approve.`);
-                break;
+              let newRunsFound = false;
+              for (const run of runs) {
+                if (!approvedRunIds.has(run.id)) {
+                  core.info(`Approving workflow run ${run.id} (${run.name})`);
+                  try {
+                    await github.rest.actions.approveWorkflowRun({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      run_id: run.id,
+                    });
+                    approvedRunIds.add(run.id);
+                    totalApproved++;
+                    newRunsFound = true;
+                  } catch (err) {
+                    core.error(`Failed to approve run ${run.id}: ${err.message}`);
+                  }
+                }
               }
 
               if (attempt < maxAttempts) {
-                core.info(`No runs found yet. Waiting ${intervalMs / 1000}s before retry...`);
+                core.info(`Waiting ${intervalMs / 1000}s for any additional runs to register...`);
                 await new Promise(r => setTimeout(r, intervalMs));
               }
             }
 
-            if (runs.length === 0) {
+            // Check if there are any remaining unresolved runs
+            const finalRuns = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, listRequest);
+            const unresolvedRuns = finalRuns.filter(run => !approvedRunIds.has(run.id));
+
+            if (unresolvedRuns.length > 0) {
+              core.setFailed(
+                `Failed to approve ${unresolvedRuns.length} workflow run(s): ` +
+                unresolvedRuns.map(r => `${r.id} (${r.name})`).join(', ')
+              );
+            } else if (totalApproved === 0) {
               core.warning(`No action_required workflow runs found for ${headSha} after ${maxAttempts} attempts.`);
             } else {
-              for (const run of runs) {
-                core.info(`Approving workflow run ${run.id} (${run.name})`);
-                await github.rest.actions.approveWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id: run.id,
-                });
-              }
-              core.info(`Approved ${runs.length} workflow run(s).`);
+              core.info(`Successfully approved ${totalApproved} workflow run(s) in total.`);
             }

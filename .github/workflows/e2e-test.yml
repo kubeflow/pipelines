@@ -74,7 +74,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.14", "v4.0.5" ]
+        argo_version: [ "v3.7.17", "v4.0.8" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
@@ -83,7 +83,7 @@ jobs:
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "false"
-            argo_version: "v3.7.14"
+            argo_version: "v3.7.17"
             test_label: "E2ECritical"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
@@ -171,9 +171,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report
@@ -259,9 +262,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
@@ -307,7 +313,7 @@ jobs:
       matrix:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
-        argo_version: [ "v3.7.3" ]
+        argo_version: [ "v3.7.17" ]
         proxy: [ "false" ]
         test_label: [ "MLflow" ]
         pod_to_pod_tls_enabled: [ "false" ]
@@ -326,7 +332,7 @@ jobs:
     name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -350,7 +356,7 @@ jobs:
           image_registry: kind-registry:5000
 
       - name: Deploy MLflow with Kubernetes auth
-        id: deploy-mlflow        
+        id: deploy-mlflow
         uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b55bcb6aa528ccecf8904745bb0218350b1ff453
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
@@ -428,9 +434,12 @@ jobs:
         id: build-sample-modelcar-image
         if: ${{ steps.deploy.outcome == 'success' }}
         run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
+          source ./.github/resources/scripts/helper-functions.sh
+          retry 3 20 env DOCKER_BUILDKIT=1 docker build \
+            --file ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
           kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

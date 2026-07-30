@@ -21,7 +21,9 @@ set -euo pipefail
 
 # Many matrix jobs can reach this barrier together. Poll slowly enough to keep
 # their shared GITHUB_TOKEN comfortably below the repository API rate limit.
-WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-20}"
+# Forty attempts at the default interval allow roughly 20 minutes for image
+# builders delayed by GitHub-hosted runner availability.
+WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2

@@ -1278,14 +1278,13 @@ var _ = Describe("List Pipelines Versions API Tests >", Label(constants.POSITIVE
 
 			// Filter by both tag and name
 			filter := fmt.Sprintf(`{"predicates":[{"key":"tags.env","operation":"EQUALS","string_value":"combined-test"},{"key":"name","operation":"EQUALS","string_value":"%s"}]}`, vName)
-			versions, totalSize, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+			result, pollVersions := eventuallyListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
 				PipelineID: createdPipeline.PipelineID,
 				Filter:     &filter,
 			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(totalSize).To(Equal(1))
-			Expect(versions[0].Name).To(Equal(vName))
-			Expect(versions[0].Tags).To(HaveKeyWithValue("env", "combined-test"))
+			Eventually(pollVersions, informerSyncTimeout, informerSyncInterval).Should(Equal(1), "Expected the version matching both tag and name filters to appear")
+			Expect(result.Versions[0].Name).To(Equal(vName))
+			Expect(result.Versions[0].Tags).To(HaveKeyWithValue("env", "combined-test"))
 		})
 	})
 })
