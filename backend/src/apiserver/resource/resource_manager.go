@@ -1112,6 +1112,13 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
+	// Reset attempt-local task state before resuming Argo so a failed DB reset
+	// cannot leave a live workflow against stale task/link rows. Reset is
+	// idempotent if the subsequent workflow write fails.
+	if err := r.resetRetriedTaskState(run); err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
+	}
+
 	// First try to update workflow
 	// If fail to get the workflow, return error.
 	latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
@@ -1131,9 +1138,6 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			return util.NewInternalServerError(createError, "Failed to retry run %s due to error updating and creating a workflow. Update error: %s", runId, updateError.Error())
 		}
 		newExecSpec = newCreatedWorkflow
-	}
-	if err := r.resetRetriedTaskState(run); err != nil {
-		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
 	}
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	err = r.runStore.UpdateRun(&model.Run{UUID: runId, RunDetails: model.RunDetails{Conditions: condition, FinishedAtInSec: 0, WorkflowRuntimeManifest: model.LargeText(newExecSpec.ToStringForStore()), State: model.RuntimeState(condition).ToV2()}})
@@ -1160,9 +1164,9 @@ func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
 	}
 
 	// Logical task identity stays stable within a run so duplicate CreateTask
-	// delivery still resolves to the existing row. Before Argo recreates nodes
-	// for a real retry attempt, clear only the previous attempt's transient task
-	// state so those rows can safely represent the new attempt.
+	// delivery still resolves to the existing row. Clear only the previous
+	// attempt's transient task state before Argo resumes so those rows can
+	// safely represent the new attempt.
 	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
 		return err
 	}
