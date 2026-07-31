@@ -6,4 +6,4 @@ The pipeline must:
 3. Train a simple model.
 4. Evaluate the model metrics.
 
-Make sure to include a compilation block at the bottom of the script. Once you generate the Python file, you MUST execute our local evaluation script on it to guarantee it compiles into a flawless KFP v2 YAML specification before finishing.
+Make sure to include a compilation block at the bottom of the script. Run our local evaluation script with --run --host http://localhost:8080 on it to guarantee a valid KFP v2 YAML specification and verify live backend execution.
