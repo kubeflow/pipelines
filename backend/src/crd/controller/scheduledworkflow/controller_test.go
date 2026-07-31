@@ -331,6 +331,8 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *test
 			Workflow: &swfapi.WorkflowResource{
 				Parameters: []swfapi.Parameter{
 					{Name: "text", Value: `"world"`},
+					{Name: "macros", Value: `"run-[[Index]]-scheduled-[[ScheduledTime]]-now-[[CurrentTime]]-uuid-[[RunUUID]]"`},
+					{Name: "number", Value: `42`},
 				},
 				PipelineRoot: "gs://my-bucket/root",
 			},
@@ -358,6 +360,17 @@ func TestSubmitNewWorkflowIfNotAlreadySubmitted_PipelineVersionReference(t *test
 	require.NotNil(t, request.Run.RuntimeConfig)
 	assert.Equal(t, "gs://my-bucket/root", request.Run.RuntimeConfig.PipelineRoot)
 	assert.Equal(t, "world", request.Run.RuntimeConfig.Parameters["text"].GetStringValue())
+	// Recurring-run macros are expanded with the trigger's scheduled epoch (100), the
+	// current epoch (200) and the next index (1), matching the embedded-workflow path.
+	// [[RunUUID]] is left intact for the API server, which knows the run ID.
+	assert.Equal(t,
+		"run-1-scheduled-19700101000140-now-19700101000320-uuid-[[RunUUID]]",
+		request.Run.RuntimeConfig.Parameters["macros"].GetStringValue())
+	// Non-string parameters pass through unchanged.
+	assert.Equal(t, float64(42), request.Run.RuntimeConfig.Parameters["number"].GetNumberValue())
+	// The trigger's scheduled time is recorded on the run.
+	require.NotNil(t, request.Run.ScheduledAt)
+	assert.Equal(t, int64(100), request.Run.ScheduledAt.GetSeconds())
 }
 
 type fakeRunClient struct {

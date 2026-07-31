@@ -796,20 +796,28 @@ func (r *ResourceManager) ReconcileSwfCrs(ctx context.Context) error {
 		default:
 		}
 
-		// If the pipeline isn't pinned, skip it. The runs API is used directly by the ScheduledWorkflow controller
-		// in this case with just the pipeline ID and optionally the pipeline version ID.
-		if jobs[i].PipelineSpec.PipelineSpecManifest == "" && jobs[i].PipelineSpec.WorkflowSpecManifest == "" {
-			continue
-		}
+		// Mirror the ScheduledWorkflow shape CreateJob would produce for this job today:
+		// jobs without a persisted manifest are reference-based (pinned version or
+		// "always latest") and jobs created while plugins are registered go through the
+		// CreateRun API, so both carry only the pipeline reference plus runtime inputs;
+		// only manifest-backed jobs re-embed a freshly compiled workflow.
+		var newScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+		if (jobs[i].PipelineSpec.PipelineSpecManifest == "" && jobs[i].PipelineSpec.WorkflowSpecManifest == "") ||
+			r.pluginDispatcher.PluginsRegistered() {
+			newScheduledWorkflow, err = template.NewReferenceScheduledWorkflow(jobs[i])
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
+		} else {
+			tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
 
-		tmpl, _, err := r.fetchTemplateFromPipelineSpec(&jobs[i].PipelineSpec)
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
-		}
-
-		newScheduledWorkflow, err := tmpl.ScheduledWorkflow(jobs[i])
-		if err != nil {
-			return failedToReconcileSwfCrsError(err)
+			newScheduledWorkflow, err = tmpl.ScheduledWorkflow(jobs[i])
+			if err != nil {
+				return failedToReconcileSwfCrsError(err)
+			}
 		}
 
 		for {
@@ -1378,7 +1386,13 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			if err := v2Tmpl.ValidateJobInputs(job); err != nil {
 				return nil, util.Wrap(err, "Failed to validate the input parameters on the pinned pipeline version")
 			}
-			scheduledWorkflow, err = referenceScheduledWorkflow(job)
+			// The pinned version never changes, so a compilation failure would repeat on
+			// every trigger. Compile once here to surface such errors at creation time;
+			// the compiled workflow itself is intentionally discarded.
+			if _, err := v2Tmpl.ScheduledWorkflow(job); err != nil {
+				return nil, util.Wrap(err, "Failed to compile the pinned pipeline version")
+			}
+			scheduledWorkflow, err = template.NewReferenceScheduledWorkflow(job)
 			if err != nil {
 				return nil, err
 			}
@@ -1387,9 +1401,11 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			// When plugins are enabled, the SWF controller must call the CreateRun API
 			// so that per-run plugin logic executes.
 			if r.pluginDispatcher.PluginsRegistered() {
-				// Plugin-enabled: create a lightweight SWF without inline workflow spec
-				// so the SWF controller calls the CreateRun API for per-run plugin logic.
-				scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
+				// Plugin-enabled: create a SWF without inline workflow spec so the SWF
+				// controller calls the CreateRun API for per-run plugin logic. The
+				// reference SWF still carries the runtime parameters and pipeline root
+				// so they reach the CreateRun request.
+				scheduledWorkflow, err = template.NewReferenceScheduledWorkflow(job)
 			} else {
 				// TODO(gkcalat): consider changing the flow. Other resource UUIDs are assigned by their respective stores (DB).
 				// Convert modelJob into scheduledWorkflow.
@@ -1433,7 +1449,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
 		}
 
-		scheduledWorkflow, err = referenceScheduledWorkflow(job)
+		scheduledWorkflow, err = template.NewReferenceScheduledWorkflow(job)
 		if err != nil {
 			return nil, err
 		}
@@ -1482,26 +1498,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		job.PipelineSpecManifest = model.LargeText(manifest)
 	}
 	return r.jobStore.CreateJob(job)
-}
-
-// referenceScheduledWorkflow builds a ScheduledWorkflow that references a pipeline
-// (version) instead of embedding a compiled workflow. The ScheduledWorkflow controller
-// resolves the referenced pipeline through the CreateRun API at trigger time.
-func referenceScheduledWorkflow(job *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
-	scheduledWorkflow, err := template.NewGenericScheduledWorkflow(job)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
-	}
-
-	parameters, err := template.StringMapToCRDParameters(string(job.RuntimeConfig.Parameters))
-	if err != nil {
-		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
-	}
-
-	scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
-		Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
-	}
-	return scheduledWorkflow, nil
 }
 
 // Enables or disables a recurring run with given id.
