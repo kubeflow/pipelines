@@ -33,6 +33,14 @@ type V2beta1CreateArtifactRequest struct {
 	// Note that IOProducer.task_name is the same as task_name.
 	ProducerKey string `json:"producer_key,omitempty"`
 
+	// When true, create the artifact only if no existing artifact in the same
+	// namespace matches the stable reuse identity (type, URI, name, description,
+	// and metadata). Concurrent callers race-safely share one row and each still
+	// receive their own artifact-task link. When false (default), always insert a
+	// new artifact row so reimport=true and ordinary outputs may intentionally
+	// create duplicates.
+	ReuseIfExists bool `json:"reuse_if_exists,omitempty"`
+
 	// An artifact is always created in the context of a
 	// run.
 	RunID string `json:"run_id,omitempty"`

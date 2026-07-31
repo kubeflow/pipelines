@@ -37,7 +37,8 @@ class V2beta1CreateArtifactRequest(object):
         'run_id': 'str',
         'task_id': 'str',
         'producer_key': 'str',
-        'iteration_index': 'str'
+        'iteration_index': 'str',
+        'reuse_if_exists': 'bool'
     }
 
     attribute_map = {
@@ -45,10 +46,11 @@ class V2beta1CreateArtifactRequest(object):
         'run_id': 'run_id',
         'task_id': 'task_id',
         'producer_key': 'producer_key',
-        'iteration_index': 'iteration_index'
+        'iteration_index': 'iteration_index',
+        'reuse_if_exists': 'reuse_if_exists'
     }
 
-    def __init__(self, artifact=None, run_id=None, task_id=None, producer_key=None, iteration_index=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, artifact=None, run_id=None, task_id=None, producer_key=None, iteration_index=None, reuse_if_exists=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1CreateArtifactRequest - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -59,6 +61,7 @@ class V2beta1CreateArtifactRequest(object):
         self._task_id = None
         self._producer_key = None
         self._iteration_index = None
+        self._reuse_if_exists = None
         self.discriminator = None
 
         if artifact is not None:
@@ -71,6 +74,8 @@ class V2beta1CreateArtifactRequest(object):
             self.producer_key = producer_key
         if iteration_index is not None:
             self.iteration_index = iteration_index
+        if reuse_if_exists is not None:
+            self.reuse_if_exists = reuse_if_exists
 
     @property
     def artifact(self):
@@ -182,6 +187,29 @@ class V2beta1CreateArtifactRequest(object):
         """
 
         self._iteration_index = iteration_index
+
+    @property
+    def reuse_if_exists(self):
+        """Gets the reuse_if_exists of this V2beta1CreateArtifactRequest.  # noqa: E501
+
+        When true, create the artifact only if no existing artifact in the same namespace matches the stable reuse identity (type, URI, name, description, and metadata). Concurrent callers race-safely share one row and each still receive their own artifact-task link. When false (default), always insert a new artifact row so reimport=true and ordinary outputs may intentionally create duplicates.  # noqa: E501
+
+        :return: The reuse_if_exists of this V2beta1CreateArtifactRequest.  # noqa: E501
+        :rtype: bool
+        """
+        return self._reuse_if_exists
+
+    @reuse_if_exists.setter
+    def reuse_if_exists(self, reuse_if_exists):
+        """Sets the reuse_if_exists of this V2beta1CreateArtifactRequest.
+
+        When true, create the artifact only if no existing artifact in the same namespace matches the stable reuse identity (type, URI, name, description, and metadata). Concurrent callers race-safely share one row and each still receive their own artifact-task link. When false (default), always insert a new artifact row so reimport=true and ordinary outputs may intentionally create duplicates.  # noqa: E501
+
+        :param reuse_if_exists: The reuse_if_exists of this V2beta1CreateArtifactRequest.  # noqa: E501
+        :type reuse_if_exists: bool
+        """
+
+        self._reuse_if_exists = reuse_if_exists
 
     def to_dict(self):
         """Returns the model properties as a dict"""

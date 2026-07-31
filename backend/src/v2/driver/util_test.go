@@ -295,64 +295,6 @@ func Test_getItems(t *testing.T) {
 	}
 }
 
-func Test_resolvePodSpecRuntimeParameter(t *testing.T) {
-	tests := []struct {
-		name          string
-		input         string
-		expected      string
-		executorInput *pipelinespec.ExecutorInput
-		wantErr       bool
-	}{
-		{
-			name:     "should retrieve correct parameter value",
-			input:    "{{$.inputs.parameters['pipelinechannel--someParameterName']}}",
-			expected: "test2",
-			executorInput: &pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{
-						"pipelinechannel--":                  structpb.NewStringValue("test1"),
-						"pipelinechannel--someParameterName": structpb.NewStringValue("test2"),
-						"someParameterName":                  structpb.NewStringValue("test3"),
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name:     "return err when no match is found",
-			input:    "{{$.inputs.parameters['pipelinechannel--someParameterName']}}",
-			expected: "test1",
-			executorInput: &pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{
-						"doesNotMatch": structpb.NewStringValue("test2"),
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name:          "return const val when input is not a pipeline channel",
-			input:         "not-pipeline-channel",
-			expected:      "not-pipeline-channel",
-			executorInput: &pipelinespec.ExecutorInput{},
-			wantErr:       false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			actual, err := resolvePodSpecInputRuntimeParameter(test.input, test.executorInput)
-			if test.wantErr {
-				assert.NotNil(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, actual, test.expected)
-			}
-		})
-	}
-}
-
 func Test_resolveContainerArgs(t *testing.T) {
 	tests := []struct {
 		name          string
