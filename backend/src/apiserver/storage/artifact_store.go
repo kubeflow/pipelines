@@ -16,11 +16,15 @@
 package storage
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -43,6 +47,7 @@ var artifactColumns = []string{
 	"LastUpdateInSec",
 	"Metadata",
 	"NumberValue",
+	"IdentityKey",
 }
 
 // artifactURIHash returns the SHA-256 hex digest of uri, or "" when uri is empty.
@@ -66,6 +71,11 @@ type ArtifactStoreInterface interface {
 
 	// CreateArtifactsWithTasks atomically creates a batch of artifacts and output links.
 	CreateArtifactsWithTasks(artifacts []*model.Artifact, artifactTasks []*model.ArtifactTask) ([]*model.Artifact, []*model.ArtifactTask, error)
+
+	// FindOrCreateArtifactWithTask atomically reuses an existing artifact that matches the
+	// stable reuse identity, or creates one when no match exists. Concurrent callers that
+	// race on the same identity share one artifact row and each still get their own link.
+	FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error)
 
 	// GetArtifact fetches an artifact with a given id.
 	GetArtifact(id string) (*model.Artifact, error)
@@ -145,6 +155,7 @@ func (s *ArtifactStore) createArtifactWithExecutor(exec func(string, ...any) (sq
 				"LastUpdateInSec": newArtifact.LastUpdateInSec,
 				"Metadata":        metadataJSON,
 				"NumberValue":     newArtifact.NumberValue,
+				"IdentityKey":     newArtifact.IdentityKey,
 			},
 		).
 		ToSql()
@@ -237,11 +248,268 @@ func (s *ArtifactStore) CreateArtifactsWithTasks(artifacts []*model.Artifact, ar
 	return createdArtifacts, createdArtifactTasks, nil
 }
 
+// FindOrCreateArtifactWithTask reuses an artifact that matches the stable reuse identity
+// or creates one. IdentityKey uniqueness makes concurrent reimport=false creates share one
+// row while unconditional creates leave IdentityKey NULL and may intentionally duplicate.
+func (s *ArtifactStore) FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	if artifact == nil {
+		return nil, nil, util.NewInvalidInputError("artifact is required")
+	}
+	if artifactTask == nil {
+		return nil, nil, util.NewInvalidInputError("artifactTask is required")
+	}
+
+	identityKey, err := computeArtifactIdentityKey(artifact)
+	if err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to compute artifact identity key")
+	}
+
+	existingArtifact, err := s.getArtifactByIdentityKey(artifact.Namespace, identityKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	if existingArtifact != nil {
+		return s.linkExistingArtifact(existingArtifact, artifactTask)
+	}
+
+	uri := ""
+	if artifact.URI != nil {
+		uri = *artifact.URI
+	}
+	if uri != "" {
+		candidates, err := s.GetArtifactsByURI(artifact.Namespace, uri)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, candidate := range candidates {
+			if modelArtifactsEqualForReuse(artifact, candidate) {
+				return s.linkExistingArtifact(candidate, artifactTask)
+			}
+		}
+	}
+
+	artifactToCreate := *artifact
+	artifactToCreate.IdentityKey = &identityKey
+	createdArtifact, createdArtifactTask, err := s.CreateArtifactWithTask(&artifactToCreate, artifactTask)
+	if err == nil {
+		return createdArtifact, createdArtifactTask, nil
+	}
+
+	// Another concurrent writer may have inserted the same identity key first.
+	existingArtifact, findErr := s.getArtifactByIdentityKey(artifact.Namespace, identityKey)
+	if findErr == nil && existingArtifact != nil {
+		return s.linkExistingArtifact(existingArtifact, artifactTask)
+	}
+	return nil, nil, err
+}
+
+// linkExistingArtifact attaches an artifact-task link to an already-persisted artifact.
+// Duplicate deliveries for the same logical UniqueLink are treated as success so importer
+// retries remain idempotent after TaskStore collapses duplicate task creates.
+func (s *ArtifactStore) linkExistingArtifact(existingArtifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	artifactTaskCopy := *artifactTask
+	artifactTaskCopy.ArtifactID = existingArtifact.UUID
+	if err := artifactTaskCopy.SyncIterationFromProducer(); err != nil {
+		return nil, nil, util.NewInternalServerError(err, "Failed to derive artifact-task iteration: %v", err.Error())
+	}
+
+	existingLink, err := s.getArtifactTaskByUniqueLink(&artifactTaskCopy)
+	if err != nil {
+		return nil, nil, err
+	}
+	if existingLink != nil {
+		return existingArtifact, existingLink, nil
+	}
+
+	createdLink, err := createArtifactTaskWithExecutor(s.db.Exec, s.uuid, &artifactTaskCopy)
+	if err == nil {
+		return existingArtifact, createdLink, nil
+	}
+
+	existingLink, findErr := s.getArtifactTaskByUniqueLink(&artifactTaskCopy)
+	if findErr == nil && existingLink != nil {
+		return existingArtifact, existingLink, nil
+	}
+	return nil, nil, err
+}
+
+func (s *ArtifactStore) getArtifactTaskByUniqueLink(artifactTask *model.ArtifactTask) (*model.ArtifactTask, error) {
+	if artifactTask == nil {
+		return nil, nil
+	}
+	sql, args, err := sq.
+		Select(
+			"UUID",
+			"ArtifactID",
+			"TaskID",
+			"Type",
+			"Iteration",
+			"RunUUID",
+			"Producer",
+			"ArtifactKey",
+		).
+		From(artifactTaskTableName).
+		Where(sq.Eq{
+			"ArtifactID":  artifactTask.ArtifactID,
+			"TaskID":      artifactTask.TaskID,
+			"Type":        artifactTask.Type,
+			"Iteration":   artifactTask.Iteration,
+			"ArtifactKey": artifactTask.ArtifactKey,
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get artifact-task by unique link: %v", err.Error())
+	}
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get artifact-task by unique link: %v", err.Error())
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, nil
+	}
+	var (
+		uuid, artifactID, taskID, runUUID, artifactKey string
+		ioType                                         int32
+		iteration                                      int64
+		producerBytes                                  []byte
+	)
+	if err := rows.Scan(&uuid, &artifactID, &taskID, &ioType, &iteration, &runUUID, &producerBytes, &artifactKey); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan artifact-task by unique link: %v", err.Error())
+	}
+	var producer model.JSONData
+	if producerBytes != nil {
+		if err := producer.Scan(producerBytes); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to parse artifact-task producer: %v", err.Error())
+		}
+	}
+	return &model.ArtifactTask{
+		UUID:        uuid,
+		ArtifactID:  artifactID,
+		TaskID:      taskID,
+		Type:        model.IOType(ioType),
+		Iteration:   iteration,
+		RunUUID:     runUUID,
+		Producer:    producer,
+		ArtifactKey: artifactKey,
+	}, nil
+}
+
+func computeArtifactIdentityKey(artifact *model.Artifact) (string, error) {
+	if artifact == nil {
+		return "", fmt.Errorf("artifact is nil")
+	}
+	uri := ""
+	if artifact.URI != nil {
+		uri = *artifact.URI
+	}
+
+	var identity bytes.Buffer
+	if err := binary.Write(&identity, binary.BigEndian, int32(artifact.Type)); err != nil {
+		return "", err
+	}
+	for _, value := range []string{uri, artifact.Name, artifact.Description} {
+		if err := writeLengthPrefixedString(&identity, value); err != nil {
+			return "", err
+		}
+	}
+	metadataBytes, err := canonicalArtifactMetadataBytes(artifact.Metadata)
+	if err != nil {
+		return "", err
+	}
+	if err := writeLengthPrefixedString(&identity, string(metadataBytes)); err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(identity.Bytes())
+	return hex.EncodeToString(digest[:]), nil
+}
+
+func canonicalArtifactMetadataBytes(metadata model.JSONData) ([]byte, error) {
+	if metadata == nil {
+		return []byte("{}"), nil
+	}
+	keys := make([]string, 0, len(metadata))
+	for key := range metadata {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	ordered := make(map[string]interface{}, len(metadata))
+	for _, key := range keys {
+		ordered[key] = metadata[key]
+	}
+	return json.Marshal(ordered)
+}
+
+func modelArtifactsEqualForReuse(left, right *model.Artifact) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	if left.Type != right.Type {
+		return false
+	}
+	leftURI := ""
+	if left.URI != nil {
+		leftURI = *left.URI
+	}
+	rightURI := ""
+	if right.URI != nil {
+		rightURI = *right.URI
+	}
+	if leftURI != rightURI {
+		return false
+	}
+	if left.Name != right.Name || left.Description != right.Description {
+		return false
+	}
+	leftMetadata, err := canonicalArtifactMetadataBytes(left.Metadata)
+	if err != nil {
+		return false
+	}
+	rightMetadata, err := canonicalArtifactMetadataBytes(right.Metadata)
+	if err != nil {
+		return false
+	}
+	return bytes.Equal(leftMetadata, rightMetadata)
+}
+
+func (s *ArtifactStore) getArtifactByIdentityKey(namespace, identityKey string) (*model.Artifact, error) {
+	if identityKey == "" {
+		return nil, nil
+	}
+	sql, args, err := sq.
+		Select(artifactColumns...).
+		From(artifactTableName).
+		Where(sq.Eq{
+			"Namespace":   namespace,
+			"IdentityKey": identityKey,
+		}).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to create query to get artifact by identity key: %v", err.Error())
+	}
+	rows, err := s.db.Query(sql, args...)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to get artifact by identity key: %v", err.Error())
+	}
+	defer rows.Close()
+	artifacts, err := s.scanRows(rows)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to scan artifact by identity key: %v", err.Error())
+	}
+	if len(artifacts) == 0 {
+		return nil, nil
+	}
+	return artifacts[0], nil
+}
+
 func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 	var artifacts []*model.Artifact
 	for rows.Next() {
 		var uuid, namespace string
-		var name, uri, uriHash, description sql.NullString
+		var name, uri, uriHash, description, identityKey sql.NullString
 		var artifactType int32
 		var createdAtInSec, lastUpdateInSec int64
 		var metadataBytes []byte
@@ -259,6 +527,7 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 			&lastUpdateInSec,
 			&metadataBytes,
 			&numberValue,
+			&identityKey,
 		)
 		if err != nil {
 			return nil, err
@@ -286,6 +555,9 @@ func (s *ArtifactStore) scanRows(rows *sql.Rows) ([]*model.Artifact, error) {
 		}
 		if numberValue.Valid {
 			artifact.NumberValue = &numberValue.Float64
+		}
+		if identityKey.Valid {
+			artifact.IdentityKey = &identityKey.String
 		}
 
 		if uri.Valid {

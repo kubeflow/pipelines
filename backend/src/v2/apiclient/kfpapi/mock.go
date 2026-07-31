@@ -368,9 +368,39 @@ func (m *MockAPI) FindCachedTask(_ context.Context, req *apiv2beta1.FindCachedTa
 
 func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifactRequest) (*apiv2beta1.Artifact, error) {
 	artifact := req.Artifact
+	if req.GetReuseIfExists() {
+		for _, existing := range m.artifacts {
+			if mockArtifactsEqualForReuse(artifact, existing) {
+				taskName := ""
+				if task, exists := m.tasks[req.TaskId]; exists && task != nil {
+					taskName = task.Name
+				}
+				artifactTask := &apiv2beta1.ArtifactTask{
+					ArtifactId: existing.ArtifactId,
+					TaskId:     req.TaskId,
+					RunId:      req.RunId,
+					Type:       apiv2beta1.IOType_OUTPUT,
+					Key:        req.ProducerKey,
+					Producer: &apiv2beta1.IOProducer{
+						TaskName: taskName,
+					},
+				}
+				if req.IterationIndex != nil {
+					artifactTask.Producer.Iteration = req.IterationIndex
+				}
+				if artifactTask.Id == "" {
+					id, _ := uuid.NewRandom()
+					artifactTask.Id = id.String()
+				}
+				m.artifactTasks[artifactTask.Id] = artifactTask
+				return existing, nil
+			}
+		}
+	}
+
 	if artifact.ArtifactId == "" {
-		uuid, _ := uuid.NewRandom()
-		artifact.ArtifactId = uuid.String()
+		id, _ := uuid.NewRandom()
+		artifact.ArtifactId = id.String()
 	}
 	m.artifacts[artifact.ArtifactId] = artifact
 
@@ -392,12 +422,45 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 		artifactTask.Producer.Iteration = req.IterationIndex
 	}
 	if artifactTask.Id == "" {
-		uuid, _ := uuid.NewRandom()
-		artifactTask.Id = uuid.String()
+		id, _ := uuid.NewRandom()
+		artifactTask.Id = id.String()
 	}
 	m.artifactTasks[artifactTask.Id] = artifactTask
 
 	return artifact, nil
+}
+
+func mockArtifactsEqualForReuse(left, right *apiv2beta1.Artifact) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	if left.GetNamespace() != right.GetNamespace() {
+		return false
+	}
+	if left.GetType() != right.GetType() {
+		return false
+	}
+	if left.GetUri() != right.GetUri() {
+		return false
+	}
+	if left.GetName() != right.GetName() {
+		return false
+	}
+	if left.GetDescription() != right.GetDescription() {
+		return false
+	}
+	leftMetadata := left.GetMetadata()
+	rightMetadata := right.GetMetadata()
+	if len(leftMetadata) != len(rightMetadata) {
+		return false
+	}
+	for key, leftValue := range leftMetadata {
+		rightValue, exists := rightMetadata[key]
+		if !exists || !proto.Equal(leftValue, rightValue) {
+			return false
+		}
+	}
+	return true
 }
 
 func (m *MockAPI) CreateArtifactsBulk(_ context.Context, req *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {

@@ -131,9 +131,11 @@ type TaskType apiv2beta1.PipelineTask_TaskType
 type TaskStatus apiv2beta1.PipelineTask_TaskState
 
 type Task struct {
-	UUID             string     `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
+	// idx_tasks_uuid_run is a composite candidate key so artifact_tasks can enforce
+	// (TaskID, RunUUID) consistency against the owning task row.
+	UUID             string     `gorm:"column:UUID; not null; primaryKey; type:varchar(191); uniqueIndex:idx_tasks_uuid_run,priority:1;"`
 	Namespace        string     `gorm:"column:Namespace; not null; type:varchar(63); index:idx_task_cache_lookup,priority:3;"`
-	RunUUID          string     `gorm:"column:RunUUID; type:varchar(191); not null; index:idx_parent_run,priority:1;"`
+	RunUUID          string     `gorm:"column:RunUUID; type:varchar(191); not null; index:idx_parent_run,priority:1; uniqueIndex:idx_tasks_uuid_run,priority:2;"`
 	Run              Run        `gorm:"foreignKey:RunUUID;references:UUID;constraint:tasks_RunUUID_run_details_UUID_foreign,OnDelete:CASCADE,OnUpdate:CASCADE;"`
 	Pods             JSONSlice  `gorm:"column:pods; not null; type:json;"`
 	CreatedAtInSec   int64      `gorm:"column:CreatedAtInSec; not null; index:idx_task_created_timestamp; index:idx_task_cache_lookup,priority:4,sort:desc;"`

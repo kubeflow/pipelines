@@ -8,18 +8,17 @@ import (
 	"path"
 	"strings"
 
+	"github.com/golang/glog"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/golang/glog"
 )
 
 type ImportLauncher struct {
@@ -181,23 +180,15 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		return executionErr
 	}
 
-	// Determine if the Artifact already exists. Skip the lookup when reimport
-	// is requested so we never pay for an unbounded URI scan that we will ignore.
-	var preExistingArtifact *apiV2beta1.Artifact
-	if !l.opts.ImporterSpec.GetReimport() {
-		preExistingArtifact, executionErr = l.findMatchedArtifact(ctx, artifactToImport)
-		if executionErr != nil {
-			return executionErr
-		}
-	}
-
 	// Get the output artifact name from the component spec.
 	artifactOutputKey, executionErr := l.getArtifactOutputKey()
 	if executionErr != nil {
 		return executionErr
 	}
 
-	// If reimport is true or the artifact does not already exist we create a new artifact
+	// CreateArtifactWith reuse_if_exists=true atomically finds-or-creates by stable
+	// identity so concurrent reimport=false importers cannot permanently duplicate rows.
+	// reimport=true leaves reuse_if_exists=false and always inserts a new artifact.
 	outputIO := &apiV2beta1.PipelineTask_InputOutputs_IOArtifact{
 		ArtifactKey: artifactOutputKey,
 		Type:        apiV2beta1.IOType_OUTPUT,
@@ -210,38 +201,19 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		outputIO.Type = apiV2beta1.IOType_ITERATOR_OUTPUT
 		outputIO.Producer.Iteration = l.opts.IterationIndex
 	}
-	if l.opts.ImporterSpec.GetReimport() || preExistingArtifact == nil {
-		glog.Infof("Creating new artifact for importer task %s", l.opts.TaskSpec.GetTaskInfo().GetName())
-		createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
-			Artifact:       artifactToImport,
-			RunId:          l.opts.Run.RunId,
-			TaskId:         createdTask.TaskId,
-			ProducerKey:    artifactOutputKey,
-			IterationIndex: l.opts.IterationIndex,
-		})
-		if executionErr != nil {
-			return executionErr
-		}
-		outputIO.Artifacts = []*apiV2beta1.Artifact{createdArtifact}
-	} else {
-		glog.Infof("Reusing existing artifact %s for importer task %s", preExistingArtifact.GetArtifactId(), l.opts.TaskSpec.GetTaskInfo().GetName())
-		// If reimporting then we just need to create a new link to this Importer task via
-		// and ArtifactTask entry.
-		_, executionErr = kfpAPI.CreateArtifactTask(ctx, &apiV2beta1.CreateArtifactTaskRequest{
-			ArtifactTask: &apiV2beta1.ArtifactTask{
-				ArtifactId: preExistingArtifact.GetArtifactId(),
-				TaskId:     createdTask.TaskId,
-				RunId:      l.opts.Run.RunId,
-				Key:        artifactOutputKey,
-				Type:       outputIO.GetType(),
-				Producer:   outputIO.GetProducer(),
-			},
-		})
-		if executionErr != nil {
-			return executionErr
-		}
-		outputIO.Artifacts = []*apiV2beta1.Artifact{preExistingArtifact}
+	glog.Infof("Creating artifact for importer task %s (reimport=%v)", l.opts.TaskSpec.GetTaskInfo().GetName(), l.opts.ImporterSpec.GetReimport())
+	createdArtifact, executionErr := kfpAPI.CreateArtifact(ctx, &apiV2beta1.CreateArtifactRequest{
+		Artifact:       artifactToImport,
+		RunId:          l.opts.Run.RunId,
+		TaskId:         createdTask.TaskId,
+		ProducerKey:    artifactOutputKey,
+		IterationIndex: l.opts.IterationIndex,
+		ReuseIfExists:  !l.opts.ImporterSpec.GetReimport(),
+	})
+	if executionErr != nil {
+		return executionErr
 	}
+	outputIO.Artifacts = []*apiV2beta1.Artifact{createdArtifact}
 
 	createdTask.Outputs = &apiV2beta1.PipelineTask_InputOutputs{
 		Artifacts: []*apiV2beta1.PipelineTask_InputOutputs_IOArtifact{outputIO},
@@ -258,47 +230,6 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	}
 
 	return nil
-}
-
-func (l *ImportLauncher) findMatchedArtifact(ctx context.Context, artifactToMatch *apiV2beta1.Artifact) (matchedArtifact *apiV2beta1.Artifact, err error) {
-	artifacts, err := l.clientManager.KFPAPIClient().ListArtifactsByURI(ctx, artifactToMatch.GetUri(), l.opts.Namespace)
-	if err != nil {
-		return nil, err
-	}
-	for _, candidateArtifact := range artifacts {
-		if artifactsAreEqual(artifactToMatch, candidateArtifact) {
-			return candidateArtifact, nil
-		}
-	}
-	// No match found
-	return nil, nil
-}
-
-func artifactsAreEqual(artifact1, artifact2 *apiV2beta1.Artifact) bool {
-	if artifact1.GetType() != artifact2.GetType() {
-		return false
-	}
-	if artifact1.GetUri() != artifact2.GetUri() {
-		return false
-	}
-	if artifact1.GetName() != artifact2.GetName() {
-		return false
-	}
-	if artifact1.GetDescription() != artifact2.GetDescription() {
-		return false
-	}
-	// Compare metadata fields
-	metadata1 := artifact1.GetMetadata()
-	metadata2 := artifact2.GetMetadata()
-	if len(metadata1) != len(metadata2) {
-		return false
-	}
-	for k, v1 := range metadata1 {
-		if v2, exists := metadata2[k]; !exists || !proto.Equal(v1, v2) {
-			return false
-		}
-	}
-	return true
 }
 
 func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, err error) {

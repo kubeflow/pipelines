@@ -94,7 +94,12 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		return nil, util.Wrap(err, "Failed to convert artifact_task")
 	}
 
-	artifact, _, err := s.resourceManager.CreateArtifactWithTask(modelArtifact, modelAT)
+	var artifact *model.Artifact
+	if request.GetReuseIfExists() {
+		artifact, _, err = s.resourceManager.FindOrCreateArtifactWithTask(modelArtifact, modelAT)
+	} else {
+		artifact, _, err = s.resourceManager.CreateArtifactWithTask(modelArtifact, modelAT)
+	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create artifact and artifact-task")
 	}
@@ -157,6 +162,12 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 
 	// Validate and create each artifact
 	for i, artifactReq := range request.GetArtifacts() {
+		if artifactReq.GetReuseIfExists() {
+			return nil, util.NewInvalidInputError(
+				"CreateArtifactsBulk does not support reuse_if_exists; use CreateArtifact for find-or-create",
+			)
+		}
+
 		// Extract namespace for authorization
 		namespace := s.resourceManager.ReplaceNamespace(artifactReq.GetArtifact().GetNamespace())
 

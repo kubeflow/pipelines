@@ -2430,6 +2430,16 @@ func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artif
 	return newArtifact, newArtifactTask, nil
 }
 
+// FindOrCreateArtifactWithTask reuses a matching artifact or creates one, then links it.
+// Used by CreateArtifact when reuse_if_exists is set so concurrent importers share one row.
+func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	newArtifact, newArtifactTask, err := r.artifactStore.FindOrCreateArtifactWithTask(artifact, artifactTask)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to find or create artifact and artifact-task")
+	}
+	return newArtifact, newArtifactTask, nil
+}
+
 // CreateArtifactsWithTasks atomically creates a bulk set of artifacts and output links.
 // The slices are index-aligned, and the method is intentionally all-or-nothing so a
 // later artifact_task failure cannot leave earlier artifacts committed without links.

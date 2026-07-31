@@ -32,92 +32,109 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
-func TestImportLauncher_FindMatchedArtifactUsesFullArtifactEquality(t *testing.T) {
+func TestImportLauncher_CreateArtifactReusesMatchingIdentity(t *testing.T) {
 	mockAPI := kfpapi.NewMockAPI()
-	clientManager := clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI)
-	launcher := &ImportLauncher{
-		opts: LauncherV2Options{
-			Namespace: "test-namespace",
-		},
-		clientManager: clientManager,
-	}
-
 	sharedURI := "gs://bucket/model"
 	firstArtifact, err := mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
 		Artifact: &apiv2beta1.Artifact{
-			Name:      "first",
+			Name:      "model",
 			Namespace: "test-namespace",
 			Uri:       &sharedURI,
 			Type:      apiv2beta1.Artifact_Dataset,
 			Metadata: map[string]*structpb.Value{
-				"source": structpb.NewStringValue("first"),
+				"source": structpb.NewStringValue("shared"),
 			},
 		},
 	})
-	if err != nil {
-		t.Fatalf("failed to create first artifact: %v", err)
-	}
-	secondArtifact, err := mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+	require.NoError(t, err)
+
+	reusedArtifact, err := mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		ReuseIfExists: true,
 		Artifact: &apiv2beta1.Artifact{
-			Name:      "second",
+			Name:      "model",
 			Namespace: "test-namespace",
 			Uri:       &sharedURI,
 			Type:      apiv2beta1.Artifact_Dataset,
 			Metadata: map[string]*structpb.Value{
-				"source": structpb.NewStringValue("second"),
+				"source": structpb.NewStringValue("shared"),
 			},
 		},
+		TaskId:      "task-2",
+		RunId:       "run-2",
+		ProducerKey: "artifact",
 	})
-	if err != nil {
-		t.Fatalf("failed to create second artifact: %v", err)
-	}
-
-	matchedArtifact, err := launcher.findMatchedArtifact(context.Background(), proto.Clone(secondArtifact).(*apiv2beta1.Artifact))
-	if err != nil {
-		t.Fatalf("findMatchedArtifact returned error: %v", err)
-	}
-	if matchedArtifact == nil {
-		t.Fatal("expected matched artifact")
-	}
-	if matchedArtifact.GetArtifactId() != secondArtifact.GetArtifactId() {
-		t.Fatalf(
-			"expected artifact %q, got %q (first artifact was %q)",
-			secondArtifact.GetArtifactId(),
-			matchedArtifact.GetArtifactId(),
-			firstArtifact.GetArtifactId(),
-		)
-	}
+	require.NoError(t, err)
+	require.Equal(t, firstArtifact.GetArtifactId(), reusedArtifact.GetArtifactId())
 }
 
-type countingListByURIAPI struct {
-	*kfpapi.MockAPI
-	listByURICalls int
-}
-
-func (api *countingListByURIAPI) ListArtifactsByURI(ctx context.Context, uri, namespace string) ([]*apiv2beta1.Artifact, error) {
-	api.listByURICalls++
-	return api.MockAPI.ListArtifactsByURI(ctx, uri, namespace)
-}
-
-func TestImportLauncher_ReimportSkipsFindMatchedArtifact(t *testing.T) {
-	mockAPI := &countingListByURIAPI{MockAPI: kfpapi.NewMockAPI()}
-	launcher := &ImportLauncher{
-		opts: LauncherV2Options{
-			Namespace: "test-namespace",
-			ImporterSpec: &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
-				Reimport: true,
+func TestImportLauncher_ReimportDisablesReuseIfExists(t *testing.T) {
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "importer"},
+		ComponentRef: &pipelinespec.ComponentRef{Name: "comp-importer"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+				"artifact": {
+					ArtifactType: &pipelinespec.ArtifactTypeSchema{
+						Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+					},
+				},
 			},
 		},
-		clientManager: clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI),
 	}
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "pipeline-with-importer"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{"importer": taskSpec},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{"comp-importer": componentSpec},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "importer")
+	require.NoError(t, err)
+	runID := uuid.NewString()
+	rootTask := &apiv2beta1.PipelineTask{TaskId: uuid.NewString(), RunId: runID, Name: "root", State: apiv2beta1.PipelineTask_RUNNING, Type: apiv2beta1.PipelineTask_DAG, ScopePath: "root"}
+	mockAPI := &importerTestAPI{
+		MockAPI: kfpapi.NewMockAPI(),
+		runs:    map[string]*apiv2beta1.Run{runID: {RunId: runID}},
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: runID, Task: rootTask})
+	require.NoError(t, err)
+	clientManager := clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI)
+	importerLauncher, err := NewImporterLauncher(&LauncherV2Options{
+		Namespace:     "test-namespace",
+		PodName:       "test-pod",
+		PodUID:        "test-pod-uid",
+		PipelineName:  pipelineSpec.GetPipelineInfo().GetName(),
+		ComponentSpec: componentSpec,
+		ImporterSpec: &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
+			Reimport: true,
+			ArtifactUri: &pipelinespec.ValueOrRuntimeParameter{
+				Value: &pipelinespec.ValueOrRuntimeParameter_Constant{
+					Constant: structpb.NewStringValue("gs://bucket/model"),
+				},
+			},
+			TypeSchema: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			},
+		},
+		PipelineSpec: pipelineSpecStruct,
+		TaskSpec:     taskSpec,
+		ScopePath:    scopePath,
+		Run:          &apiv2beta1.Run{RunId: runID, Tasks: []*apiv2beta1.PipelineTask{rootTask}},
+		ParentTask:   rootTask,
+	}, clientManager)
+	require.NoError(t, err)
 
-	require.True(t, launcher.opts.ImporterSpec.GetReimport())
-	// Execute gates findMatchedArtifact behind !Reimport; assert the gate holds.
-	if !launcher.opts.ImporterSpec.GetReimport() {
-		_, err := launcher.findMatchedArtifact(context.Background(), &apiv2beta1.Artifact{})
-		require.NoError(t, err)
-	}
-	require.Equal(t, 0, mockAPI.listByURICalls)
+	require.NoError(t, importerLauncher.Execute(context.Background()))
+	require.Len(t, mockAPI.createArtifactRequests, 1)
+	require.False(t, mockAPI.createArtifactRequests[0].GetReuseIfExists())
 }
 
 func TestImportLauncher_RefreshesRunBeforeUpdatingStatuses(t *testing.T) {
@@ -561,6 +578,7 @@ func TestImportLauncher_PassesIterationIndexToCreateArtifact(t *testing.T) {
 	require.Len(t, mockAPI.createArtifactRequests, 1)
 	require.NotNil(t, mockAPI.createArtifactRequests[0].IterationIndex)
 	require.EqualValues(t, iterationIndex, *mockAPI.createArtifactRequests[0].IterationIndex)
+	require.True(t, mockAPI.createArtifactRequests[0].GetReuseIfExists())
 }
 
 func TestImportLauncher_PropagatesStatusRefreshFailures(t *testing.T) {

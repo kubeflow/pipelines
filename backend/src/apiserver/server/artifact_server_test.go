@@ -1476,6 +1476,31 @@ func TestArtifactServer_CreateArtifactsBulk_EmptyRequest(t *testing.T) {
 	assert.Contains(t, err.Error(), "must contain at least one artifact")
 }
 
+func TestArtifactServer_CreateArtifactsBulk_RejectsReuseIfExists(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatalV2()
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	s := createArtifactServer(resourceManager)
+
+	_, err := s.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				ReuseIfExists: true,
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: "ns1",
+					Name:      "model",
+					Type:      apiv2beta1.Artifact_Model,
+				},
+				RunId:       "run-1",
+				TaskId:      "task-1",
+				ProducerKey: "artifact",
+			},
+		},
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "reuse_if_exists")
+}
+
 func TestArtifactServer_CreateArtifactsBulk_ValidationErrors(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")

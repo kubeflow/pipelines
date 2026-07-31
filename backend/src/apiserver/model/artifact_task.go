@@ -29,17 +29,18 @@ const ArtifactTaskNoIteration int64 = -1
 type ArtifactTask struct {
 	UUID        string   `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
 	ArtifactID  string   `gorm:"column:ArtifactID; not null; type:varchar(191); index:idx_link_artifact_id; uniqueIndex:UniqueLink,priority:1;"`
-	TaskID      string   `gorm:"column:TaskID; not null; type:varchar(191); index:idx_link_task_id; uniqueIndex:UniqueLink,priority:2;"`
+	TaskID      string   `gorm:"column:TaskID; not null; type:varchar(191); index:idx_link_task_run,priority:1; uniqueIndex:UniqueLink,priority:2;"`
 	Type        IOType   `gorm:"column:Type; not null; uniqueIndex:UniqueLink,priority:3;"`
 	Iteration   int64    `gorm:"column:Iteration; not null; default:-1; uniqueIndex:UniqueLink,priority:4;"`
-	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id;"`
+	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id; index:idx_link_task_run,priority:2;"`
 	Producer    JSONData `gorm:"column:Producer; type:json; default:null;"`
 	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:''; uniqueIndex:UniqueLink,priority:5;"`
 
 	// Relationships
 	Artifact Artifact `gorm:"foreignKey:ArtifactID;references:UUID;constraint:fk_artifact_tasks_artifacts,OnDelete:CASCADE,OnUpdate:CASCADE;"`
-	Task     Task     `gorm:"foreignKey:TaskID;references:UUID;constraint:fk_artifact_tasks_tasks,OnDelete:CASCADE,OnUpdate:CASCADE;"`
-	Run      Run      `gorm:"foreignKey:RunUUID;references:UUID;constraint:fk_artifact_tasks_runs,OnDelete:CASCADE,OnUpdate:CASCADE;"`
+	// Composite FK enforces artifact_tasks.RunUUID == tasks.RunUUID for the referenced TaskID.
+	Task Task `gorm:"foreignKey:TaskID,RunUUID;references:UUID,RunUUID;constraint:fk_artifact_tasks_task_run,OnDelete:CASCADE,OnUpdate:CASCADE;"`
+	Run  Run  `gorm:"foreignKey:RunUUID;references:UUID;constraint:fk_artifact_tasks_runs,OnDelete:CASCADE,OnUpdate:CASCADE;"`
 }
 
 func (at ArtifactTask) PrimaryKeyColumnName() string {
