@@ -43,9 +43,6 @@ const (
 // CredentialSecretName is the fixed Kubernetes Secret name for secret-based MLflow auth.
 const CredentialSecretName = "kfp-mlflow-credentials"
 
-// TagNestedRunParentRunID is the MLflow tag used for nested run parent linkage.
-const TagNestedRunParentRunID = "mlflow.parentRunId"
-
 // MLflowRuntimeConfig is the JSON payload marshaled into KFP_MLFLOW_CONFIG.
 type MLflowRuntimeConfig struct {
 	Endpoint            string                             `json:"endpoint"`
