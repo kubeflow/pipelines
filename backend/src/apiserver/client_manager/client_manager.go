@@ -387,7 +387,8 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	var mysqlConfig *mysqlStd.Config
 	switch driverName {
 	case "mysql":
-		mysqlConfig = client.CreateMySQLConfig(
+		var err error
+		mysqlConfig, err = client.CreateMySQLConfig(
 			common.GetStringConfigWithDefault(mysqlUser, "root"),
 			common.GetStringConfigWithDefault(mysqlPassword, ""),
 			common.GetStringConfigWithDefault(mysqlServiceHost, "mysql"),
@@ -396,6 +397,9 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 			common.GetStringConfigWithDefault(mysqlGroupConcatMaxLen, "1024"),
 			common.GetMapConfig(mysqlExtraParams),
 		)
+		if err != nil {
+			glog.Fatal(err)
+		}
 		sqlConfig = mysqlConfig.FormatDSN()
 		dbName = common.GetStringConfig(mysqlDBName)
 	case "pgx":

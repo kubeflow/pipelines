@@ -48,3 +48,6 @@ spec:
                 configMapKeyRef:
                   name: dns-config
                   key: dbHost
+            # CI explicitly opts into unencrypted MySQL for local Kind clusters.
+            - name: DBCONFIG_MYSQLCONFIG_EXTRAPARAMS
+              value: '{"tls":"false"}'
