@@ -158,10 +158,6 @@ The `--run` step:
 
 If validation fails, read the traceback, fix the generated pipeline, and re-run until it passes.
 
-For SDK changes (not typical pipeline generation), run targeted tests:
-
-```bash
-pytest -v sdk/python/kfp/dsl/<relevant>_test.py
 ```
 
 ## Generation checklist
