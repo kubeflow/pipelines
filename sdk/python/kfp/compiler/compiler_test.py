@@ -3407,7 +3407,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         @dsl.pipeline
         def my_pipeline():
             with dsl.ParallelFor(
-                    items=["a", "b"], name="My custom Loop") as item:
+                    items=['a', 'b'], name='My custom Loop') as item:
                 work = echo(item=item)
             collect(items=dsl.Collected(work.output))
 
@@ -3420,7 +3420,7 @@ class TestCrossTasksGroupFanInCollection(unittest.TestCase):
         self.assertEqual(
             loop_task_info_name,
             consumer_producer_task,
-            msg="ParallelFor task_info.name must match downstream producer_task reference."
+            msg='ParallelFor task_info.name must match downstream producer_task reference.'
         )
         self.assertEqual(loop_task_info_name, 'for-loop-2')
 
