@@ -18,6 +18,7 @@ import (
 	"context"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -640,6 +641,7 @@ func (s *ArtifactServer) canAccessRun(ctx context.Context, runID string, resourc
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}
+		ctx = auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runID)})
 	}
 
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {

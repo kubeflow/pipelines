@@ -50,23 +50,40 @@ func (tra *TokenReviewAuthenticator) GetUserIdentity(ctx context.Context) (strin
 		return "", err
 	}
 
-	userInfo, err := tra.doTokenReview(ctx, token)
+	// Prefer request-scoped audiences (for example run-scoped projected tokens)
+	// when the caller attached them. Fall back to the configured base audience
+	// so non-runtime SA tokens continue to work under RBAC.
+	if expectedAudiences, ok := ExpectedTokenAudiences(ctx); ok {
+		userInfo, reviewErr := tra.doTokenReview(ctx, token, expectedAudiences)
+		if reviewErr == nil {
+			return userInfo.Username, nil
+		}
+		if !audiencesEqual(expectedAudiences, tra.audiences) {
+			userInfo, fallbackErr := tra.doTokenReview(ctx, token, tra.audiences)
+			if fallbackErr == nil {
+				return userInfo.Username, nil
+			}
+		}
+		return "", util.Wrap(reviewErr, "Authentication failure")
+	}
+
+	userInfo, err := tra.doTokenReview(ctx, token, tra.audiences)
 	if err != nil {
 		return "", util.Wrap(err, "Authentication failure")
 	}
-	return userInfo.Username, err
+	return userInfo.Username, nil
 }
 
 // ensureAudience makes sure all audience of the authenticator is found in the provided audience list.
-func (tra *TokenReviewAuthenticator) ensureAudience(audience []string) bool {
+func (tra *TokenReviewAuthenticator) ensureAudience(expected []string, audience []string) bool {
 	// Create a set (map) to check fast whether something is part of the list
 	audienceSet := make(map[string]struct{}, len(audience))
 	for _, a := range audience {
 		audienceSet[a] = struct{}{}
 	}
 
-	// Iterate through the audiences of the authenticator and check if they are part of the provided list
-	for _, a := range tra.audiences {
+	// Iterate through the expected audiences and check if they are part of the provided list
+	for _, a := range expected {
 		if _, ok := audienceSet[a]; !ok {
 			return false
 		}
@@ -74,13 +91,13 @@ func (tra *TokenReviewAuthenticator) ensureAudience(audience []string) bool {
 	return true
 }
 
-func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIdentity string) (*authv1.UserInfo, error) {
+func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIdentity string, audiences []string) (*authv1.UserInfo, error) {
 	review, err := tra.client.Create(
 		ctx,
 		&authv1.TokenReview{
 			Spec: authv1.TokenReviewSpec{
 				Token:     userIdentity,
-				Audiences: tra.audiences,
+				Audiences: audiences,
 			},
 		},
 		v1.CreateOptions{},
@@ -96,14 +113,26 @@ func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIden
 			review.Status.Error,
 		)
 	}
-	if !tra.ensureAudience(review.Status.Audiences) {
+	if !tra.ensureAudience(audiences, review.Status.Audiences) {
 		return nil, util.NewUnauthenticatedError(
 			errors.New("Failed to authenticate token review"),
 			"Failed to find all of '%v' in audience: %v",
-			tra.audiences,
+			audiences,
 			review.Status.Audiences,
 		)
 	}
 
 	return &review.Status.User, nil
+}
+
+func audiencesEqual(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }

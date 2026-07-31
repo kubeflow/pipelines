@@ -172,6 +172,10 @@ func (k *clientAdapter) FetchPipelineSpecFromRun(ctx context.Context, run *gc.Ru
 	if run.GetPipelineSpec() != nil {
 		pipelineSpecStruct = run.GetPipelineSpec()
 	} else if run.GetPipelineVersionReference() != nil {
+		// Runtime pods authenticate with run-scoped tokens and cannot call
+		// GetPipelineVersion. GetRun(FULL) prefers an embedded pipeline_spec
+		// when the run stores a manifest; this fallback remains for non-runtime
+		// callers that still receive a version reference only.
 		pvr := run.GetPipelineVersionReference()
 		pipeline, err := k.GetPipelineVersion(ctx, &gc.GetPipelineVersionRequest{
 			PipelineId:        pvr.GetPipelineId(),

@@ -164,6 +164,27 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
+// TokenAudienceForRun returns the projected-token audience bound to a single
+// in-flight run. Runtime pods authenticate with this audience so a stolen
+// launcher token cannot authorize API calls against other runs.
+func TokenAudienceForRun(runID string) string {
+	return GetTokenReviewAudience() + TokenAudienceRunPrefix + runID
+}
+
+// ParseRunIDFromTokenAudience extracts a run ID from a run-scoped token
+// audience. ok is false when the audience is not run-scoped.
+func ParseRunIDFromTokenAudience(audience string) (runID string, ok bool) {
+	base := GetTokenReviewAudience() + TokenAudienceRunPrefix
+	if audience == "" || len(audience) <= len(base) || audience[:len(base)] != base {
+		return "", false
+	}
+	runID = audience[len(base):]
+	if runID == "" {
+		return "", false
+	}
+	return runID, true
+}
+
 func GetMLPipelineGRPCBackoffBaseDelay() string {
 	return GetStringConfigWithDefault(MLPipelineGRPCBackoffBaseDelay, "")
 }

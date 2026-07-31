@@ -623,7 +623,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 							{
 								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
 									Path:              "token",
-									Audience:          kfpTokenAudience,
+									Audience:          kfpTokenAudienceForRun(runID()),
 									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
 								},
 							},

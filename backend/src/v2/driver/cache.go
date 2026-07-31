@@ -22,9 +22,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"google.golang.org/grpc/metadata"
 )
 
 // getFingerPrint generates a fingerprint for caching. The PVC names are included in the fingerprint since it's assumed
@@ -97,6 +99,11 @@ func getFingerPrintsAndID(
 		return "", nil, fmt.Errorf("failure while getting fingerPrint: %w", err)
 	}
 
+	if opts.Run != nil && opts.Run.GetRunId() != "" {
+		// Bind this namespace-scoped cache lookup to the in-flight run so the
+		// API server can TokenReview the run-scoped projected token.
+		ctx = metadata.AppendToOutgoingContext(ctx, auth.BoundRunIDMetadataKey, opts.Run.GetRunId())
+	}
 	cachedTaskResponse, err := kfpAPI.FindCachedTask(ctx, &apiv2beta1.FindCachedTaskRequest{
 		Namespace:        opts.Namespace,
 		CacheFingerprint: fingerPrint,

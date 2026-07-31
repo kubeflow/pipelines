@@ -496,6 +496,13 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 			expected: "custom.audience.org",
 		},
 		{
+			name:     "TokenAudienceForRun appends run ID to custom audience",
+			envKey:   TokenReviewAudience,
+			envValue: "custom.audience.org",
+			getter:   func() interface{} { return TokenAudienceForRun("run-abc") },
+			expected: "custom.audience.org/runs/run-abc",
+		},
+		{
 			name:     "GetMLPipelineGRPCBackoffBaseDelay with custom value",
 			envKey:   MLPipelineGRPCBackoffBaseDelay,
 			envValue: "2s",

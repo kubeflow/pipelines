@@ -188,6 +188,21 @@ func TestAddContainerExecutorTemplate_MountsProjectedTokenInUserContainer(t *tes
 	}
 	assert.True(t, foundUserTokenMount, "user container should mount the projected KFP token volume directly")
 
+	foundRunScopedAudience := false
+	for _, volume := range tmpl.Volumes {
+		if volume.Name != kfpTokenVolumeName || volume.Projected == nil {
+			continue
+		}
+		for _, source := range volume.Projected.Sources {
+			if source.ServiceAccountToken == nil {
+				continue
+			}
+			assert.Equal(t, kfpTokenAudienceForRun(runID()), source.ServiceAccountToken.Audience)
+			foundRunScopedAudience = true
+		}
+	}
+	assert.True(t, foundRunScopedAudience, "projected token should use a run-scoped audience")
+
 	for _, env := range tmpl.Container.Env {
 		assert.NotEqual(t, "KFP_TOKEN_PATH", env.Name, "user container should not rely on a staged token path")
 	}

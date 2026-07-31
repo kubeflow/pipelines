@@ -24,6 +24,7 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -547,7 +548,10 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 		return nil, util.Wrap(err, "Failed to get a run")
 	}
 
-	return toApiRun(run), nil
+	// FULL view is used by runtime driver/launcher pods. Prefer an embedded
+	// pipeline_spec when the run stores a manifest so run-scoped tokens do not
+	// need a follow-up GetPipelineVersion call.
+	return toApiRunWithPipelineSourcePreference(run, hydrateTasks), nil
 }
 
 func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
@@ -976,8 +980,26 @@ func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.Find
 		Namespace: namespace,
 		Verb:      common.RbacResourceVerbList,
 	}
-	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
+	// Runtime clients bind cache lookup auth to the in-flight run via metadata so
+	// run-scoped projected tokens authorize this namespace-scoped RPC without
+	// granting cross-run API access. Non-runtime callers still use namespace RBAC.
+	boundRunID := auth.BoundRunIDFromIncomingContext(ctx)
+	if err := s.canAccessRun(ctx, boundRunID, resourceAttributes); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+	}
+	if boundRunID != "" && namespace != "" {
+		run, err := s.resourceManager.GetRun(boundRunID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+		}
+		if run.Namespace != "" && run.Namespace != namespace {
+			return nil, util.NewPermissionDeniedError(
+				nil,
+				"bound run %s is not in namespace %s",
+				boundRunID,
+				namespace,
+			)
+		}
 	}
 
 	task, err := s.resourceManager.FindLatestCachedTask(namespace, request.GetCacheFingerprint())
@@ -1054,6 +1076,10 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}
+		// Bind TokenReview to this run so a projected runtime token for another
+		// run cannot authorize mutations here. Header-authenticated users are
+		// unaffected; base-audience SA tokens still fall back in the authenticator.
+		ctx = auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runId)})
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")

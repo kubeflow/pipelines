@@ -48,9 +48,16 @@ const (
 	kfpTokenVolumeName = "kfp-launcher-token"
 	// kfpTokenMountPath is the path where the KFP token is mounted
 	kfpTokenMountPath = "/var/run/secrets/kfp"
-	// kfpTokenAudience is the audience for the projected service account token
+	// kfpTokenAudience is the base audience for projected service account tokens.
+	// Runtime pods use a run-scoped audience derived from this base.
 	kfpTokenAudience = "pipelines.kubeflow.org"
 )
+
+// kfpTokenAudienceForRun returns the projected SA token audience bound to a
+// single in-flight run. Must stay aligned with common.TokenAudienceForRun.
+func kfpTokenAudienceForRun(runID string) string {
+	return kfpTokenAudience + "/runs/" + runID
+}
 
 // kfpTokenExpirationSecondsPtr returns a pointer to the KFP token expiration seconds constant.
 // This is used for the ServiceAccountTokenProjection ExpirationSeconds field which requires *int64.

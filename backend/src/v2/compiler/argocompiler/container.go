@@ -263,7 +263,7 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 							{
 								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
 									Path:              "token",
-									Audience:          kfpTokenAudience,
+									Audience:          kfpTokenAudienceForRun(runID()),
 									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
 								},
 							},
@@ -481,7 +481,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 							{
 								ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
 									Path:              "token",
-									Audience:          kfpTokenAudience,
+									Audience:          kfpTokenAudienceForRun(runID()),
 									ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
 								},
 							},
