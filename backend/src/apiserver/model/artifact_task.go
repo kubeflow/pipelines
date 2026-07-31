@@ -14,25 +14,33 @@
 
 package model
 
-import apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+import (
+	"fmt"
+
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+)
 
 // IOType represents the I/O relationship type
 type IOType apiv2beta1.IOType
+
+const ArtifactTaskNoIteration int64 = -1
 
 // ArtifactTask represents the relationship between artifacts and tasks
 type ArtifactTask struct {
 	UUID        string   `gorm:"column:UUID; not null; primaryKey; type:varchar(191);"`
 	ArtifactID  string   `gorm:"column:ArtifactID; not null; type:varchar(191); index:idx_link_artifact_id; uniqueIndex:UniqueLink,priority:1;"`
-	TaskID      string   `gorm:"column:TaskID; not null; type:varchar(191); index:idx_link_task_id; uniqueIndex:UniqueLink,priority:2;"`
+	TaskID      string   `gorm:"column:TaskID; not null; type:varchar(191); index:idx_link_task_run,priority:1; uniqueIndex:UniqueLink,priority:2;"`
 	Type        IOType   `gorm:"column:Type; not null; uniqueIndex:UniqueLink,priority:3;"`
-	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id;"`
+	Iteration   int64    `gorm:"column:Iteration; not null; default:-1; uniqueIndex:UniqueLink,priority:4;"`
+	RunUUID     string   `gorm:"column:RunUUID; not null; type:varchar(191); index:idx_link_run_id; index:idx_link_task_run,priority:2;"`
 	Producer    JSONData `gorm:"column:Producer; type:json; default:null;"`
-	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:'';"`
+	ArtifactKey string   `gorm:"column:ArtifactKey; not null; type:varchar(191); default:''; uniqueIndex:UniqueLink,priority:5;"`
 
 	// Relationships
 	Artifact Artifact `gorm:"foreignKey:ArtifactID;references:UUID;constraint:fk_artifact_tasks_artifacts,OnDelete:CASCADE,OnUpdate:CASCADE;"`
-	Task     Task     `gorm:"foreignKey:TaskID;references:UUID;constraint:fk_artifact_tasks_tasks,OnDelete:CASCADE,OnUpdate:CASCADE;"`
-	Run      Run      `gorm:"foreignKey:RunUUID;references:UUID;constraint:fk_artifact_tasks_runs,OnDelete:CASCADE,OnUpdate:CASCADE;"`
+	// Composite FK enforces artifact_tasks.RunUUID == tasks.RunUUID for the referenced TaskID.
+	Task Task `gorm:"foreignKey:TaskID,RunUUID;references:UUID,RunUUID;constraint:fk_artifact_tasks_task_run,OnDelete:CASCADE,OnUpdate:CASCADE;"`
+	Run  Run  `gorm:"foreignKey:RunUUID;references:UUID;constraint:fk_artifact_tasks_runs,OnDelete:CASCADE,OnUpdate:CASCADE;"`
 }
 
 func (at ArtifactTask) PrimaryKeyColumnName() string {
@@ -86,6 +94,8 @@ func (at ArtifactTask) GetFieldValue(name string) interface{} {
 		return at.TaskID
 	case "Type":
 		return at.Type
+	case "Iteration":
+		return at.Iteration
 	case "RunUUID":
 		return at.RunUUID
 	case "Producer":
@@ -95,4 +105,28 @@ func (at ArtifactTask) GetFieldValue(name string) interface{} {
 	default:
 		return nil
 	}
+}
+
+// SyncIterationFromProducer derives the persisted iteration identity from producer metadata.
+func (at *ArtifactTask) SyncIterationFromProducer() error {
+	if at == nil {
+		return nil
+	}
+	at.Iteration = ArtifactTaskNoIteration
+	if at.Producer == nil {
+		return nil
+	}
+	producer, err := JSONDataToProtoMessage(
+		at.Producer,
+		func() *apiv2beta1.IOProducer {
+			return &apiv2beta1.IOProducer{}
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to decode artifact-task producer: %w", err)
+	}
+	if producer != nil && producer.Iteration != nil {
+		at.Iteration = producer.GetIteration()
+	}
+	return nil
 }

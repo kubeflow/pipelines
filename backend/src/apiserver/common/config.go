@@ -34,6 +34,11 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MLPipelineGRPCBackoffBaseDelay          string = "ML_PIPELINE_GRPC_BACKOFF_BASE_DELAY"
+	MLPipelineGRPCBackoffMultiplier         string = "ML_PIPELINE_GRPC_BACKOFF_MULTIPLIER"
+	MLPipelineGRPCBackoffJitter             string = "ML_PIPELINE_GRPC_BACKOFF_JITTER"
+	MLPipelineGRPCBackoffMaxDelay           string = "ML_PIPELINE_GRPC_BACKOFF_MAX_DELAY"
+	MLPipelineGRPCMinConnectTimeout         string = "ML_PIPELINE_GRPC_MIN_CONNECT_TIMEOUT"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
@@ -203,6 +208,33 @@ func GetKubeflowUserIDPrefix() string {
 
 func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
+}
+
+// TokenAudienceForRun returns the projected-token audience bound to a single
+// in-flight run. Runtime pods authenticate with this audience so a stolen
+// launcher token cannot authorize API calls against other runs.
+func TokenAudienceForRun(runID string) string {
+	return GetTokenReviewAudience() + TokenAudienceRunPrefix + runID
+}
+
+func GetMLPipelineGRPCBackoffBaseDelay() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffBaseDelay, "")
+}
+
+func GetMLPipelineGRPCBackoffMultiplier() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffMultiplier, "")
+}
+
+func GetMLPipelineGRPCBackoffJitter() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffJitter, "")
+}
+
+func GetMLPipelineGRPCBackoffMaxDelay() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffMaxDelay, "")
+}
+
+func GetMLPipelineGRPCMinConnectTimeout() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCMinConnectTimeout, "")
 }
 
 // Keep this getter during the PR 1 extraction so packages that still depend on

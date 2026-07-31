@@ -16,32 +16,29 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"time"
-
 	argoclient "github.com/argoproj/argo-workflows/v4/pkg/client/clientset/versioned"
+	"github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	drivercommon "github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
-
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
-	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
 	_ "github.com/kubeflow/pipelines/backend/src/v2/common/plugins/all"
@@ -61,31 +58,26 @@ const (
 
 var (
 	// inputs
-	driverType                  = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName                = flag.String("pipeline_name", "", "pipeline context name")
-	runID                       = flag.String("run_id", "", "pipeline run uid")
-	runName                     = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
-	runDisplayName              = flag.String("run_display_name", "", "pipeline run display name")
-	pipelineJobCreateTimeUTCArg = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
-	componentSpecJSON           = flag.String("component", "{}", "component spec")
-	taskSpecJSON                = flag.String("task", "", "task spec")
-	runtimeConfigJSON           = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex              = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	taskName                    = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
+	runID             = flag.String("run_id", "", "pipeline run uid")
+	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
+	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
+	runtimeConfigJSON = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	namespaceFlag     = flag.String("namespace", "", "Kubernetes namespace for runtime operations.")
 
 	// container inputs
-	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
-	containerSpecJson = flag.String("container", "{}", "container spec")
+	parentTaskID      = flag.String("parent_task_id", "", "Parent PipelineTask ID")
 	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
 
 	// config
 	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
 	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
-	mlmdServerAddress       = flag.String("mlmd_server_address", "", "MLMD server address")
-	mlmdServerPort          = flag.String("mlmd_server_port", "", "MLMD server port")
 
 	// output paths
-	executionIDPath    = flag.String("execution_id_path", "", "Exeucution ID output path")
+	parentTaskIDPath   = flag.String("parent_task_id_path", "", "Parent Task ID output path")
 	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
 	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
 	// the value stored in the paths will be either 'true' or 'false'
@@ -100,15 +92,12 @@ var (
 	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
-	metadataTLSEnabled   = flag.Bool("metadata_tls_enabled", false, "Set to true if MLMD serves over TLS.")
 	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
 	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
 	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
 	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
 	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
 )
-
-// func RootDAG(pipelineName string, runID string, component *pipelinespec.ComponentSpec, task *pipelinespec.PipelineTaskSpec, mlmd *metadata.Client) (*Execution, error) {
 
 func main() {
 	flag.Parse()
@@ -123,7 +112,7 @@ func main() {
 
 	err = drive()
 	if err != nil {
-		glog.Exitf("%v", err)
+		glog.Exitf("Failed to execute driver: %v", err)
 	}
 }
 
@@ -147,17 +136,15 @@ var (
 		"run_id",
 		"run_name",
 		"run_display_name",
-		"pipeline_job_create_time_utc",
-		"component",
+		"namespace",
+		"parent_task_id",
+		"task_name",
 		"ml_pipeline_server_address",
 		"ml_pipeline_server_port",
-		"mlmd_server_address",
-		"mlmd_server_port",
 		"log_level",
 		"publish_logs",
 		"cache_disabled",
 		"ml_pipeline_tls_enabled",
-		"metadata_tls_enabled",
 		"ca_cert_path",
 		"condition_path",
 		"iteration_index",
@@ -165,15 +152,9 @@ var (
 		"https_proxy",
 		"no_proxy",
 	}
-	nonRootRequiredDriverFlags = []string{
-		"task",
-		"dag_execution_id",
-		"task_name",
-	}
-	dagOutputPathDriverFlags     = []string{"execution_id_path", "iteration_count_path"}
+	dagOutputPathDriverFlags     = []string{"parent_task_id_path", "iteration_count_path"}
 	rootDAGRequiredDriverFlags   = []string{"runtime_config"}
 	containerRequiredDriverFlags = []string{
-		"container",
 		"kubernetes_config",
 		"cached_decision_path",
 		"pod_spec_patch_path",
@@ -201,9 +182,8 @@ func requiredDriverFlags(driverType string) ([]string, error) {
 		required = append(required, rootDAGRequiredDriverFlags...)
 	case DAG:
 		required = append(required, dagOutputPathDriverFlags...)
-		required = append(required, nonRootRequiredDriverFlags...)
+		required = append(required, rootDAGRequiredDriverFlags...)
 	case CONTAINER:
-		required = append(required, nonRootRequiredDriverFlags...)
 		required = append(required, containerRequiredDriverFlags...)
 	default:
 		return nil, fmt.Errorf("unknown driver type %q, must be one of %s, %s, %s", driverType, ROOT_DAG, DAG, CONTAINER)
@@ -308,10 +288,11 @@ func getWorkflowMetadataForPipelineJobTimes(
 	workflowName string,
 	placeholderUsage pipelineJobTimePlaceholderUsage,
 	createTimeUTC string,
+	scheduleTimeEpochSeconds string,
 	getMetadata workflowMetadataGetter,
 ) (*metav1.ObjectMeta, error) {
 	needsCreateTimeMetadata := placeholderUsage.needsCreateTime && createTimeUTC == ""
-	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime
+	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime && scheduleTimeEpochSeconds == ""
 	if !needsCreateTimeMetadata && !needsScheduleTimeMetadata {
 		return nil, nil
 	}
@@ -356,60 +337,47 @@ func resolvePipelineJobScheduleTimeUTCFromWorkflow(
 }
 
 // resolvePipelineJobTimes normalizes the placeholder inputs into the UTC values
-// consumed by driver.Options. Schedule time is resolved from workflow metadata,
-// falling back to create time when there is no workflowEpoch label (manual runs).
+// consumed by driver.Options. Schedule time may come from the Run API when
+// explicitly provided, or from workflow metadata when manual runs would
+// otherwise have no workflowEpoch label to resolve.
 func resolvePipelineJobTimes(
 	createTimeUTC string,
+	scheduleTimeEpochSeconds string,
 	workflowMeta *metav1.ObjectMeta,
-) (string, string) {
+) (string, string, error) {
 	if createTimeUTC == "" && workflowMeta != nil {
 		createTimeUTC = workflowMeta.CreationTimestamp.Time.UTC().Format(time.RFC3339)
 	}
-	return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC)
+	if scheduleTimeEpochSeconds == "" {
+		return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC), nil
+	}
+	scheduleTimeEpoch, err := strconv.ParseInt(scheduleTimeEpochSeconds, 10, 64)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q: %w", scheduleTimeEpochSeconds, err)
+	}
+	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
 }
 
 func drive() (err error) {
-	defer func() {
-		if err != nil {
-			err = fmt.Errorf("KFP driver: %w", err)
-		}
-	}()
 	ctx := context.Background()
 	if err = validateRequiredFlags(providedFlags, *driverType); err != nil {
 		return err
 	}
 
-	// Support reading component spec from a file if value starts with @
-	// This bypasses exec() argument size limits for large workflows
-	if strings.HasPrefix(*componentSpecJSON, "@") {
-		filePath := (*componentSpecJSON)[1:] // Remove the "@" prefix
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return fmt.Errorf("failed to read component spec from file %s: %w", filePath, err)
-		}
-		*componentSpecJSON = string(data)
-		glog.Infof("Read component spec from file: %s (%d bytes)", filePath, len(data))
+	// Initialize connection to the KFP API server
+	clientManagerOptions := &client_manager.Options{
+		MLPipelineTLSEnabled:    *mlPipelineTLSEnabled,
+		CaCertPath:              *caCertPath,
+		MLPipelineServerAddress: *mlPipelineServerAddress,
+		MLPipelineServerPort:    *mlPipelineServerPort,
 	}
+	clientManager, err := client_manager.NewClientManager(clientManagerOptions)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Initialized Client Manager.")
 
 	proxy.InitializeConfig(*httpProxy, *httpsProxy, *noProxy)
-	glog.Infof("input ComponentSpec:%s\n", prettyPrint(*componentSpecJSON))
-	componentSpec := &pipelinespec.ComponentSpec{}
-	if err := util.UnmarshalString(*componentSpecJSON, componentSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal component spec, error: %w\ncomponentSpec: %v", err, prettyPrint(*componentSpecJSON))
-	}
-	var taskSpec *pipelinespec.PipelineTaskSpec
-	if *taskSpecJSON != "" {
-		glog.Infof("input TaskSpec:%s\n", prettyPrint(*taskSpecJSON))
-		taskSpec = &pipelinespec.PipelineTaskSpec{}
-		if err := util.UnmarshalString(*taskSpecJSON, taskSpec); err != nil {
-			return fmt.Errorf("failed to unmarshal task spec, error: %w\ntask: %v", err, prettyPrint(*taskSpecJSON))
-		}
-	}
-	glog.Infof("input ContainerSpec:%s\n", prettyPrint(*containerSpecJson))
-	containerSpec := &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{}
-	if err := util.UnmarshalString(*containerSpecJson, containerSpec); err != nil {
-		return fmt.Errorf("failed to unmarshal container spec, error: %w\ncontainerSpec: %v", err, containerSpecJson)
-	}
 	var runtimeConfig *pipelinespec.PipelineJob_RuntimeConfig
 	if *runtimeConfigJSON != "" {
 		glog.Infof("input RuntimeConfig:%s\n", prettyPrint(*runtimeConfigJSON))
@@ -418,84 +386,126 @@ func drive() (err error) {
 			return fmt.Errorf("failed to unmarshal runtime config, error: %w\nruntimeConfig: %v", err, runtimeConfigJSON)
 		}
 	}
+
 	k8sExecCfg, err := parseExecConfigJson(k8sExecConfigJson)
 	if err != nil {
 		return err
 	}
-	namespace, err := config.InPodNamespace()
+
+	namespace, err := resolveNamespace(*namespaceFlag)
 	if err != nil {
 		return err
 	}
-	var tlsCfg *tls.Config
-	if *metadataTLSEnabled {
-		tlsCfg, err = util.GetTLSConfig(*caCertPath)
+
+	podName := os.Getenv("KFP_POD_NAME")
+	podUID := os.Getenv("KFP_POD_UID")
+	if podUID == "" || podName == "" {
+		return fmt.Errorf("KFP_POD_UID and KFP_POD_NAME environment variables must be set")
+	}
+
+	if runID == nil {
+		return fmt.Errorf("argument --run_id must be specified")
+	}
+	fullView := go_client.GetRunRequest_FULL
+	run, err := clientManager.KFPAPIClient().GetRun(ctx, &go_client.GetRunRequest{RunId: *runID, View: &fullView})
+	if err != nil {
+		return err
+	}
+
+	var parentTask *go_client.PipelineTask
+	if *parentTaskID != "" {
+		parentTask, err = clientManager.KFPAPIClient().GetTask(ctx, &go_client.GetTaskRequest{
+			TaskId: *parentTaskID,
+			RunId:  *runID,
+		})
 		if err != nil {
 			return err
 		}
 	}
-	client, err := newMlmdClient(*mlmdServerAddress, *mlmdServerPort, tlsCfg)
-	if err != nil {
-		return err
+
+	// The driver now resolves component and task specs from the run's pipeline spec
+	// plus the current scope path. We still require an explicit task name here for
+	// non-root executions so the scope path can be extended to the active task.
+	var resolvedTaskName string
+	if *driverType != ROOT_DAG {
+		if *taskName != "" {
+			resolvedTaskName = *taskName
+		} else {
+			return fmt.Errorf("task name for non Root dag could not be resolved")
+		}
 	}
-	cacheClient, err := cacheutils.NewClient(*mlPipelineServerAddress, *mlPipelineServerPort, *cacheDisabledFlag, tlsCfg)
-	if err != nil {
-		return err
+
+	scopePath, err := buildScopePath(ctx, run, parentTask, resolvedTaskName, clientManager.KFPAPIClient())
+	if err != nil || scopePath == nil {
+		return fmt.Errorf("failed to build scope path: %w", err)
 	}
-	// pluginDispatcher executes task-level plugin lifecycle hooks
-	pluginDispatcher, err := plugins.GetPluginDispatcher()
+	componentSpec, taskSpec, containerSpec, err := resolveDriverSpecs(scopePath, *driverType)
 	if err != nil {
-		glog.Errorf("Failed to initialize plugin dispatcher: %v", err)
+		return fmt.Errorf("failed to resolve specs from scope path: %w", err)
 	}
+
+	createTimeUTC := ""
+	if createdAt := run.GetCreatedAt(); createdAt != nil {
+		createTimeUTC = createdAt.AsTime().UTC().Format(time.RFC3339)
+	}
+	scheduleTimeEpochSeconds := ""
+	if scheduledAt := run.GetScheduledAt(); scheduledAt != nil {
+		scheduleTimeEpochSeconds = strconv.FormatInt(scheduledAt.AsTime().Unix(), 10)
+	}
+
 	placeholderUsage := getPipelineJobTimePlaceholderUsage(*driverType, taskSpec)
 	workflowMeta, err := getWorkflowMetadataForPipelineJobTimes(
 		ctx,
 		namespace,
 		*runName,
 		placeholderUsage,
-		*pipelineJobCreateTimeUTCArg,
+		createTimeUTC,
+		scheduleTimeEpochSeconds,
 		getCurrentWorkflowMetadata,
 	)
 	if err != nil {
 		return err
 	}
-	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC := resolvePipelineJobTimes(
-		*pipelineJobCreateTimeUTCArg,
+	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC, err := resolvePipelineJobTimes(
+		createTimeUTC,
+		scheduleTimeEpochSeconds,
 		workflowMeta,
 	)
-	options := driver.Options{
+	if err != nil {
+		return err
+	}
+	options := drivercommon.Options{
 		PipelineName:               *pipelineName,
-		RunID:                      *runID,
+		Run:                        run,
 		RunName:                    *runName,
 		RunDisplayName:             *runDisplayName,
-		PipelineJobCreateTimeUTC:   resolvedPipelineJobCreateTimeUTC,
-		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
 		Namespace:                  namespace,
 		Component:                  componentSpec,
 		Task:                       taskSpec,
-		DAGExecutionID:             *dagExecutionID,
 		IterationIndex:             *iterationIndex,
 		PipelineLogLevel:           *logLevel,
 		PublishLogs:                *publishLogs,
 		CacheDisabled:              *cacheDisabledFlag,
 		DriverType:                 *driverType,
-		TaskName:                   *taskName,
+		TaskName:                   resolvedTaskName,
+		ParentTask:                 parentTask,
+		PodName:                    podName,
+		PodUID:                     podUID,
+		ScopePath:                  *scopePath,
 		MLPipelineServerAddress:    *mlPipelineServerAddress,
 		MLPipelineServerPort:       *mlPipelineServerPort,
-		MLMDServerAddress:          *mlmdServerAddress,
-		MLMDServerPort:             *mlmdServerPort,
 		MLPipelineTLSEnabled:       *mlPipelineTLSEnabled,
-		MLMDTLSEnabled:             *metadataTLSEnabled,
+		PipelineJobCreateTimeUTC:   resolvedPipelineJobCreateTimeUTC,
+		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
 		CaCertPath:                 *caCertPath,
-		PluginDispatcher:           pluginDispatcher,
 	}
 	var execution *driver.Execution
-	var driverErr error
 	switch *driverType {
 	case ROOT_DAG:
 		options.RuntimeConfig = runtimeConfig
-		execution, driverErr = driver.RootDAG(ctx, options, client)
+		execution, err = driver.RootDAG(ctx, options, clientManager)
 	case DAG:
-		execution, driverErr = driver.DAG(ctx, options, client)
+		execution, err = driver.DAG(ctx, options, clientManager)
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
@@ -522,24 +532,19 @@ func drive() (err error) {
 			}
 			options.DefaultHostUsers = &v
 		}
-		execution, driverErr = driver.Container(ctx, options, client, cacheClient)
+		execution, err = driver.Container(ctx, options, clientManager)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
 	}
-	if driverErr != nil {
-		if execution == nil {
-			return driverErr
-		}
-		defer func() {
-			// Override error with driver error, because driver error is more important.
-			// However, we continue running, because the following code prints debug info that
-			// may be helpful for figuring out why this failed.
-			err = driverErr
-		}()
+	if err != nil {
+		return fmt.Errorf("failed to execute driver: %w", err)
+	}
+	if execution == nil {
+		return fmt.Errorf("driver execution is nil")
 	}
 
-	executionPaths := &ExecutionPaths{
-		ExecutionID:    *executionIDPath,
+	executionPaths := &TaskPaths{
+		TaskID:         *parentTaskIDPath,
 		IterationCount: *iterationCountPath,
 		CachedDecision: *cachedDecisionPath,
 		Condition:      *conditionPath,
@@ -547,6 +552,13 @@ func drive() (err error) {
 	}
 
 	return handleExecution(execution, *driverType, executionPaths)
+}
+
+func resolveNamespace(explicitNamespace string) (string, error) {
+	if explicitNamespace == "" {
+		return "", fmt.Errorf("argument --namespace must be specified")
+	}
+	return explicitNamespace, nil
 }
 
 func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
@@ -561,15 +573,17 @@ func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.Kuberne
 	return k8sExecCfg, nil
 }
 
-func handleExecution(execution *driver.Execution, driverType string, executionPaths *ExecutionPaths) error {
-	if execution.ID != 0 {
-		glog.Infof("output execution.ID=%v", execution.ID)
-		if executionPaths.ExecutionID != "" {
-			if err := writeFile(executionPaths.ExecutionID, []byte(fmt.Sprint(execution.ID))); err != nil {
-				return fmt.Errorf("failed to write execution ID to file: %w", err)
-			}
+func handleExecution(execution *driver.Execution, driverType string, executionPaths *TaskPaths) error {
+	if execution.TaskID == "" {
+		return fmt.Errorf("execution.TaskID is empty")
+	}
+	glog.Infof("output execution.ID=%v", execution.TaskID)
+	if executionPaths.TaskID != "" {
+		if err := writeFile(executionPaths.TaskID, []byte(fmt.Sprint(execution.TaskID))); err != nil {
+			return fmt.Errorf("failed to write execution ID to file: %w", err)
 		}
 	}
+
 	if execution.IterationCount != nil {
 		if err := writeFile(executionPaths.IterationCount, []byte(fmt.Sprintf("%v", *execution.IterationCount))); err != nil {
 			return fmt.Errorf("failed to write iteration count to file: %w", err)
@@ -642,8 +656,156 @@ func writeFile(path string, data []byte) (err error) {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func newMlmdClient(mlmdServerAddress string, mlmdServerPort string, tlsCfg *tls.Config) (*metadata.Client, error) {
-	return metadata.NewClient(mlmdServerAddress, mlmdServerPort, tlsCfg)
+// buildScopePath builds a ScopePath from the run, parentTask and taskName.
+func buildScopePath(
+	ctx context.Context,
+	run *go_client.Run,
+	parentTask *go_client.PipelineTask,
+	taskName string,
+	kfpAPI kfpapi.API) (*util.ScopePath, error) {
+	pipelineSpecStruct, err := kfpAPI.FetchPipelineSpecFromRun(ctx, run)
+	if err != nil {
+		return nil, err
+	}
+	var scopePath util.ScopePath
+	if driverType == nil {
+		return nil, fmt.Errorf("argument --%s must be specified", driverTypeArg)
+	}
+	if *driverType == ROOT_DAG {
+		scopePath, err = util.NewScopePathFromStruct(pipelineSpecStruct)
+		if err != nil {
+			return nil, err
+		}
+		err = scopePath.Push("root")
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		if taskName == "" {
+			return nil, fmt.Errorf("task name must be specified for non-root drivers")
+		}
+		scopePath, err = util.ScopePathFromStringPathWithNewTask(
+			pipelineSpecStruct,
+			parentTask.GetScopePath(),
+			taskName,
+		)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &scopePath, nil
+}
+
+func resolveDriverSpecs(
+	scopePath *util.ScopePath,
+	driverType string,
+) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
+	return resolveDriverSpecsFromScopePath(scopePath, driverType)
+}
+
+type specSourceUnavailableError struct {
+	message string
+}
+
+func (e specSourceUnavailableError) Error() string {
+	return e.message
+}
+
+func unavailableSpec(message string) error {
+	return specSourceUnavailableError{message: message}
+}
+
+func resolveDriverSpecsFromScopePath(
+	scopePath *util.ScopePath,
+	driverType string,
+) (*pipelinespec.ComponentSpec, *pipelinespec.PipelineTaskSpec, *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
+	if scopePath == nil || scopePath.GetLast() == nil {
+		return nil, nil, nil, unavailableSpec("scope path is empty")
+	}
+
+	componentSpec := scopePath.GetLast().GetComponentSpec()
+	if componentSpec == nil {
+		return nil, nil, nil, unavailableSpec("component spec not found")
+	}
+
+	var taskSpec *pipelinespec.PipelineTaskSpec
+	if driverType != ROOT_DAG {
+		taskSpec = scopePath.GetLast().GetTaskSpec()
+		if taskSpec == nil {
+			return nil, nil, nil, unavailableSpec("task spec not found")
+		}
+	}
+
+	if err := validateDriverComponentKinds(driverType, componentSpec); err != nil {
+		return nil, nil, nil, err
+	}
+
+	var containerSpec *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+	if driverType == CONTAINER {
+		var err error
+		containerSpec, err = loadContainerSpec(componentSpec, scopePath.GetPipelineSpec())
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	return componentSpec, taskSpec, containerSpec, nil
+}
+
+func validateDriverComponentKinds(driverType string, componentSpec *pipelinespec.ComponentSpec) error {
+	switch driverType {
+	case ROOT_DAG:
+		if componentSpec.GetDag() == nil {
+			return fmt.Errorf("root driver requires a DAG root component")
+		}
+	case DAG:
+		if componentSpec.GetDag() == nil {
+			return fmt.Errorf("dag driver requires a DAG component")
+		}
+	case CONTAINER:
+		if componentSpec.GetExecutorLabel() == "" {
+			return fmt.Errorf("container driver requires an executor-label component")
+		}
+	default:
+		return fmt.Errorf("unknown driver type %q", driverType)
+	}
+	return nil
+}
+
+func loadContainerSpec(
+	componentSpec *pipelinespec.ComponentSpec,
+	pipelineSpec *pipelinespec.PipelineSpec,
+) (*pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec, error) {
+	if componentSpec == nil {
+		return nil, unavailableSpec("component spec is nil")
+	}
+	if pipelineSpec == nil {
+		return nil, unavailableSpec("pipeline spec is nil")
+	}
+
+	executorLabel := componentSpec.GetExecutorLabel()
+	if executorLabel == "" {
+		return nil, fmt.Errorf("component executor label is empty")
+	}
+
+	if pipelineSpec.GetDeploymentSpec() == nil {
+		return nil, unavailableSpec("pipeline deployment spec is missing")
+	}
+
+	deploymentConfig, err := compiler.GetDeploymentConfig(pipelineSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal deployment spec: %w", err)
+	}
+
+	executor, ok := deploymentConfig.GetExecutors()[executorLabel]
+	if !ok || executor == nil {
+		return nil, unavailableSpec(fmt.Sprintf("container executor %q not found in deployment spec", executorLabel))
+	}
+	containerSpec := executor.GetContainer()
+	if containerSpec == nil {
+		return nil, fmt.Errorf("executor %q does not contain a container spec", executorLabel)
+	}
+	return containerSpec, nil
 }
 
 func initConfig() {
