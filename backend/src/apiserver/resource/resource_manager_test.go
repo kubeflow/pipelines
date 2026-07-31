@@ -3697,6 +3697,113 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Equal(t, expectedJob.ToV1(), newJob.ToV1())
 }
 
+func TestCreateJob_ThroughPipelineVersionV2(t *testing.T) {
+	// Create experiment, pipeline and a V2 pipeline version.
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pv := createPipelineVersion(
+		pipeline.UUID,
+		"version_for_job",
+		"",
+		"",
+		v2SpecHelloWorld,
+		"",
+		"",
+	)
+	version, err := manager.CreatePipelineVersion(pv)
+	assert.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName:  "j1",
+		Enabled:      true,
+		ExperimentId: experiment.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	newJob, err := manager.CreateJob(context.Background(), job)
+	assert.Nil(t, err)
+	expectedJob := &model.Job{
+		UUID:        "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName: "j1",
+		K8SName:     "job-",
+		Namespace:   "ns1",
+		// The compiled workflow is not embedded for a pinned V2 pipeline version, so the
+		// API server selects the service account when compiling the run at trigger time.
+		ServiceAccount: "",
+		Enabled:        true,
+		CreatedAtInSec: 5,
+		UpdatedAtInSec: 5,
+		Conditions:     "STATUS_UNSPECIFIED",
+		ExperimentId:   experiment.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:        version.PipelineId,
+			PipelineName:      version.Name,
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	assert.Equal(t, expectedJob.ToV1(), newJob.ToV1())
+
+	// The ScheduledWorkflow references the pinned pipeline version instead of embedding
+	// the compiled workflow, so the controller creates runs through the CreateRun API.
+	swf, err := store.SwfClient().ScheduledWorkflow("ns1").Get(context.Background(), "job-", v1.GetOptions{})
+	require.Nil(t, err)
+	assert.Equal(t, version.PipelineId, swf.Spec.PipelineId)
+	assert.Equal(t, version.UUID, swf.Spec.PipelineVersionId)
+	require.NotNil(t, swf.Spec.Workflow)
+	assert.Nil(t, swf.Spec.Workflow.Spec)
+	require.Len(t, swf.Spec.Workflow.Parameters, 1)
+	assert.Equal(t, "text", swf.Spec.Workflow.Parameters[0].Name)
+	assert.Equal(t, "\"world\"", swf.Spec.Workflow.Parameters[0].Value)
+	assert.Equal(t, "job-1-root", swf.Spec.Workflow.PipelineRoot)
+}
+
+func TestCreateJob_ThroughPipelineVersionV2_InvalidParams(t *testing.T) {
+	// Create experiment, pipeline and a V2 pipeline version.
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pv := createPipelineVersion(
+		pipeline.UUID,
+		"version_for_job",
+		"",
+		"",
+		v2SpecHelloWorld,
+		"",
+		"",
+	)
+	version, err := manager.CreatePipelineVersion(pv)
+	assert.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName:  "j1",
+		Enabled:      true,
+		ExperimentId: experiment.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\",\"param2\":\"extra\"}",
+			},
+		},
+	}
+	_, err = manager.CreateJob(context.Background(), job)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "parameter(s) provided are not required by pipeline: param2")
+}
+
 func TestCreateJob_EmptyPipelineSpec(t *testing.T) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
