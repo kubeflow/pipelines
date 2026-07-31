@@ -1013,6 +1013,14 @@ func (r *ResourceManager) ListTasks(runID, parentID, namespace string, opts *lis
 	return tasks, totalSize, nextPageToken, nil
 }
 
+func (r *ResourceManager) FindLatestCachedTask(namespace, fingerprint string) (*model.Task, error) {
+	task, err := r.taskStore.FindLatestCachedTask(namespace, fingerprint)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find latest cached task")
+	}
+	return task, nil
+}
+
 // Fetches recurring runs with given filtering and listing options.
 func (r *ResourceManager) ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
 	return r.jobStore.ListJobs(filterContext, opts)
@@ -1104,6 +1112,13 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
+	// Reset attempt-local task state before resuming Argo so a failed DB reset
+	// cannot leave a live workflow against stale task/link rows. Reset is
+	// idempotent if the subsequent workflow write fails.
+	if err := r.resetRetriedTaskState(run); err != nil {
+		return util.NewInternalServerError(err, "Failed to retry run %s due to error resetting task attempt state", runId)
+	}
+
 	// First try to update workflow
 	// If fail to get the workflow, return error.
 	latestWorkflow, updateError := r.getWorkflowClient(namespace).Get(ctx, newExecSpec.ExecutionName(), v1.GetOptions{})
@@ -1130,6 +1145,53 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error updating entry", runId)
 	}
 	return nil
+}
+
+func (r *ResourceManager) resetRetriedTaskState(run *model.Run) error {
+	if run == nil || len(run.Tasks) == 0 {
+		return nil
+	}
+
+	taskIDsToReset := make([]string, 0, len(run.Tasks))
+	for _, task := range run.Tasks {
+		if task == nil || task.UUID == "" || shouldPreserveTaskAcrossRetry(task) {
+			continue
+		}
+		taskIDsToReset = append(taskIDsToReset, task.UUID)
+	}
+	if len(taskIDsToReset) == 0 {
+		return nil
+	}
+
+	// Logical task identity stays stable within a run so duplicate CreateTask
+	// delivery still resolves to the existing row. Clear only the previous
+	// attempt's transient task state before Argo resumes so those rows can
+	// safely represent the new attempt.
+	if err := r.artifactTaskStore.DeleteOutputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
+	// Input links are also attempt-local: leaving them in place causes
+	// CreateArtifactTasks UniqueLink conflicts when the retried driver recreates
+	// the same (artifact, task, key, type) input rows.
+	if err := r.artifactTaskStore.DeleteInputArtifactTasksByTaskIDs(taskIDsToReset); err != nil {
+		return err
+	}
+
+	// Output parameters and output artifact links are attempt-local. Resetting
+	// them here prevents a retried task from exposing stale failed-attempt
+	// outputs while leaving successful sibling results intact.
+	return r.taskStore.ResetTasksForRetry(taskIDsToReset)
+}
+
+func shouldPreserveTaskAcrossRetry(task *model.Task) bool {
+	switch task.State {
+	case model.TaskStatus(apiv2beta1.PipelineTask_SUCCEEDED),
+		model.TaskStatus(apiv2beta1.PipelineTask_CACHED),
+		model.TaskStatus(apiv2beta1.PipelineTask_SKIPPED):
+		return true
+	default:
+		return false
+	}
 }
 
 // Fetches execution logs and writes to the destination.
@@ -2368,6 +2430,16 @@ func (r *ResourceManager) CreateArtifactWithTask(artifact *model.Artifact, artif
 	return newArtifact, newArtifactTask, nil
 }
 
+// FindOrCreateArtifactWithTask reuses a matching artifact or creates one, then links it.
+// Used by CreateArtifact when reuse_if_exists is set so concurrent importers share one row.
+func (r *ResourceManager) FindOrCreateArtifactWithTask(artifact *model.Artifact, artifactTask *model.ArtifactTask) (*model.Artifact, *model.ArtifactTask, error) {
+	newArtifact, newArtifactTask, err := r.artifactStore.FindOrCreateArtifactWithTask(artifact, artifactTask)
+	if err != nil {
+		return nil, nil, util.Wrap(err, "Failed to find or create artifact and artifact-task")
+	}
+	return newArtifact, newArtifactTask, nil
+}
+
 // CreateArtifactsWithTasks atomically creates a bulk set of artifacts and output links.
 // The slices are index-aligned, and the method is intentionally all-or-nothing so a
 // later artifact_task failure cannot leave earlier artifacts committed without links.
@@ -2392,4 +2464,15 @@ func (r *ResourceManager) ListArtifacts(filterContexts []*model.FilterContext, o
 		return nil, 0, "", util.Wrap(err, "Failed to list artifacts")
 	}
 	return artifacts, totalSize, nextPageToken, nil
+}
+
+// GetArtifactsByURI fetches artifacts with exact Namespace + URI equality using
+// a dedicated store lookup (no pagination / COUNT loop). An empty namespace is
+// valid in single-user mode where persisted namespaces are cleared.
+func (r *ResourceManager) GetArtifactsByURI(namespace, uri string) ([]*model.Artifact, error) {
+	artifacts, err := r.artifactStore.GetArtifactsByURI(namespace, uri)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to get artifacts by URI")
+	}
+	return artifacts, nil
 }

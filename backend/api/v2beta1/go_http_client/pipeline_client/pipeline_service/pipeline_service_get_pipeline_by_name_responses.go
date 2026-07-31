@@ -127,7 +127,7 @@ An unexpected error response.
 type PipelineServiceGetPipelineByNameDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.GooglerpcStatus
+	Payload *pipeline_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this pipeline service get pipeline by name default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *PipelineServiceGetPipelineByNameDefault) String() string {
 	return fmt.Sprintf("[GET /apis/v2beta1/pipelines/names/{name}][%d] PipelineService_GetPipelineByName default %s", o._statusCode, payload)
 }
 
-func (o *PipelineServiceGetPipelineByNameDefault) GetPayload() *pipeline_model.GooglerpcStatus {
+func (o *PipelineServiceGetPipelineByNameDefault) GetPayload() *pipeline_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *PipelineServiceGetPipelineByNameDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.GooglerpcStatus)
+	o.Payload = new(pipeline_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

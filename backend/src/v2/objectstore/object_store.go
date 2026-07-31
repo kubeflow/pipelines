@@ -21,7 +21,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -32,7 +31,6 @@ import (
 	"github.com/golang/glog"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/gcsblob"
-	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/s3blob"
 	"gocloud.dev/gcp"
 	"golang.org/x/oauth2/google"
@@ -40,18 +38,24 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *Config) (bucket *blob.Bucket, err error) {
+func OpenBucket(
+	ctx context.Context,
+	k8sClient kubernetes.Interface,
+	namespace string,
+	config *Config,
+	sessionInfo *SessionInfo,
+) (bucket *blob.Bucket, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("Failed to open bucket %q: %w", config.BucketName, err)
 		}
 	}()
-	if config.SessionInfo != nil {
-		switch config.SessionInfo.Provider {
+	if sessionInfo != nil {
+		switch sessionInfo.Provider {
 		case "minio", "s3":
-			s3Client, err1 := createS3BucketSession(ctx, namespace, config.SessionInfo, k8sClient)
+			s3Client, err1 := createS3BucketSession(ctx, namespace, sessionInfo, k8sClient)
 			if err1 != nil {
-				return nil, fmt.Errorf("Failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
+				return nil, fmt.Errorf("failed to retrieve credentials for bucket %s: %w", config.BucketName, err1)
 			}
 			if s3Client != nil {
 				// Use s3blob.OpenBucketV2 with the configured S3 client to leverage retry logic
@@ -64,7 +68,7 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 				return blob.PrefixedBucket(openedBucket, config.Prefix), nil
 			}
 		case "gs":
-			client, err1 := getGCSTokenClient(ctx, namespace, config.SessionInfo, k8sClient)
+			client, err1 := getGCSTokenClient(ctx, namespace, sessionInfo, k8sClient)
 			if err1 != nil {
 				return nil, err1
 			}
@@ -78,16 +82,19 @@ func OpenBucket(ctx context.Context, k8sClient kubernetes.Interface, namespace s
 		}
 	}
 
-	bucketURL := config.bucketURL()
-	// Since query parameters are only supported for s3:// paths
-	// if we detect minio scheme in pipeline root, replace it with s3:// scheme
-	// ref: https://gocloud.dev/howto/blob/#s3-compatible
-	if len(config.QueryString) > 0 && strings.HasPrefix(bucketURL, "minio://") {
-		bucketURL = strings.Replace(bucketURL, "minio://", "s3://", 1)
-	}
+	bucketURL := normalizeBucketURLForBlobOpen(config.bucketURL())
 
 	// When no provider config is provided, or "FromEnv" is specified, use default credentials from the environment
 	return blob.OpenBucket(ctx, bucketURL)
+}
+
+func normalizeBucketURLForBlobOpen(bucketURL string) string {
+	// Go CDK uses the S3 driver for MinIO-compatible bucket URLs in the fallback
+	// blob.OpenBucket path, so normalize minio:// URLs before opening them.
+	if strings.HasPrefix(bucketURL, "minio://") {
+		return strings.Replace(bucketURL, "minio://", "s3://", 1)
+	}
+	return bucketURL
 }
 
 func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath string) error {
@@ -125,38 +132,12 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 	return nil
 }
 
-func sanitizeDownloadPath(localDir, blobDir, objKey string) (string, error) {
-	if slices.Contains(strings.Split(objKey, "/"), "..") {
-		return "", fmt.Errorf("path traversal detected: blob key %q contains '..' component", objKey)
-	}
-
-	relativePath, err := filepath.Rel(blobDir, objKey)
-	if err != nil {
-		return "", fmt.Errorf("unexpected object key %q when listing %q: %w", objKey, blobDir, err)
-	}
-	localPath := filepath.Join(localDir, relativePath)
-
-	absLocal, err := filepath.Abs(localPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localPath, err)
-	}
-	absDir, err := filepath.Abs(localDir)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve absolute path for %q: %w", localDir, err)
-	}
-	if absLocal != absDir && !strings.HasPrefix(absLocal, absDir+string(os.PathSeparator)) {
-		return "", fmt.Errorf("path traversal detected: blob key %q resolves to %q which is outside target directory %q", objKey, absLocal, absDir)
-	}
-	return localPath, nil
-}
-
-func isBlobKeyUnderPrefix(objKey, blobDir string) bool {
-	blobDir = strings.TrimRight(blobDir, "/")
-	return objKey == blobDir || strings.HasPrefix(objKey, blobDir+"/")
-}
-
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
+	normalizedBlobDir := strings.TrimSuffix(blobDir, "/")
+	var exactPrefixObject *blob.ListObject
+	hasNestedObjects := false
+
 	for {
 		obj, err := iter.Next(ctx)
 		if err != nil {
@@ -166,24 +147,52 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			return fmt.Errorf("failed to list objects in remote storage %q: %w", blobDir, err)
 		}
 		if obj.IsDir {
-			// TODO: is this branch possible?
-
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.
 			continue
-		} else if isBlobKeyUnderPrefix(obj.Key, blobDir) {
-			localPath, err := sanitizeDownloadPath(localDir, blobDir, obj.Key)
-			if err != nil {
-				return err
-			}
-			if err := downloadFile(ctx, bucket, obj.Key, localPath); err != nil {
-				return err
-			}
-		} else {
-			glog.V(4).Infof("DownloadBlob: skipping blob key %q not under expected prefix %q", obj.Key, blobDir)
+		}
+
+		normalizedKey := strings.TrimSuffix(obj.Key, "/")
+		if normalizedKey != normalizedBlobDir && !strings.HasPrefix(normalizedKey, normalizedBlobDir+"/") {
+			continue
+		}
+		// Hold the exact-prefix object until listing finishes. Nested objects
+		// prove it is only a directory marker and should be discarded; otherwise
+		// download it as a single-file artifact.
+		if normalizedKey == normalizedBlobDir {
+			exactPrefixObject = obj
+			continue
+		}
+
+		hasNestedObjects = true
+		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, obj); err != nil {
+			return err
+		}
+	}
+
+	if exactPrefixObject != nil && !hasNestedObjects {
+		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, exactPrefixObject); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+func downloadListedObject(
+	ctx context.Context,
+	bucket *blob.Bucket,
+	localDir, normalizedBlobDir string,
+	obj *blob.ListObject,
+) error {
+	normalizedKey := strings.TrimSuffix(obj.Key, "/")
+	relativePath, err := filepath.Rel(normalizedBlobDir, normalizedKey)
+	if err != nil {
+		return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, normalizedBlobDir, err)
+	}
+	if relativePath == ".." || strings.HasPrefix(relativePath, "../") || filepath.IsAbs(relativePath) {
+		return fmt.Errorf("unexpected object key %q when listing %q", obj.Key, normalizedBlobDir)
+	}
+	return downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath))
 }
 
 func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFilePath string) error {
@@ -261,11 +270,11 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if err != nil {
 		return nil, err
 	}
-	tokenJson, ok := secret.Data[params.TokenKey]
-	if !ok || len(tokenJson) == 0 {
+	tokenJSON, ok := secret.Data[params.TokenKey]
+	if !ok || len(tokenJSON) == 0 {
 		return nil, fmt.Errorf("key '%s' not found or is empty", params.TokenKey)
 	}
-	creds, err := google.CredentialsFromJSON(ctx, tokenJson, "https://www.googleapis.com/auth/devstorage.read_write")
+	creds, err := google.CredentialsFromJSON(ctx, tokenJSON, "https://www.googleapis.com/auth/devstorage.read_write")
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +341,7 @@ func createS3BucketSession(ctx context.Context, namespace string, sessionInfo *S
 	}
 	s3Client := s3.NewFromConfig(s3Config, s3Options)
 	if s3Client == nil {
-		return nil, fmt.Errorf("Failed to create object store session, %v", err)
+		return nil, fmt.Errorf("failed to create object store session, %v", err)
 	}
 	return s3Client, nil
 }
@@ -348,7 +357,7 @@ func getS3BucketCredential(
 	defer func() {
 		if err != nil {
 			// wrap error before returning
-			err = fmt.Errorf("Failed to get Bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
+			err = fmt.Errorf("failed to get bucket credentials from secret name=%q namespace=%q: %w", secretName, namespace, err)
 		}
 	}()
 	secret, err := clientSet.CoreV1().Secrets(namespace).Get(

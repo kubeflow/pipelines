@@ -181,7 +181,7 @@ func (c *PipelineUploadClientKubernetes) Upload(parameters *params.UploadPipelin
 		Description: pipeline.Spec.Description,
 		DisplayName: pipeline.Spec.DisplayName,
 		Name:        pipeline.Name,
-		PipelineID:  string(pipeline.ObjectMeta.UID),
+		PipelineID:  string(pipeline.UID),
 		Namespace:   pipeline.Namespace,
 	}
 
@@ -226,7 +226,7 @@ func (c *PipelineUploadClientKubernetes) UploadPipelineVersion(filePath string, 
 	var pipeline *k8sapi.Pipeline
 
 	for _, listedPipeline := range pipelineList.Items {
-		if string(listedPipeline.ObjectMeta.UID) == *parameters.Pipelineid {
+		if string(listedPipeline.UID) == *parameters.Pipelineid {
 			pipeline = &listedPipeline
 			break
 		}

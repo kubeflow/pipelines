@@ -127,7 +127,7 @@ An unexpected error response.
 type ListArtifactTasksDefault struct {
 	_statusCode int
 
-	Payload *artifact_model.GooglerpcStatus
+	Payload *artifact_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this list artifact tasks default response has a 2xx status code
@@ -170,13 +170,13 @@ func (o *ListArtifactTasksDefault) String() string {
 	return fmt.Sprintf("[GET /apis/v2beta1/artifact_tasks][%d] list_artifact_tasks default %s", o._statusCode, payload)
 }
 
-func (o *ListArtifactTasksDefault) GetPayload() *artifact_model.GooglerpcStatus {
+func (o *ListArtifactTasksDefault) GetPayload() *artifact_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *ListArtifactTasksDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(artifact_model.GooglerpcStatus)
+	o.Payload = new(artifact_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

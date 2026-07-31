@@ -125,7 +125,7 @@ An unexpected error response.
 type ExperimentServiceDeleteExperimentV1Default struct {
 	_statusCode int
 
-	Payload *experiment_model.GooglerpcStatus
+	Payload *experiment_model.GoogleRPCStatus
 }
 
 // IsSuccess returns true when this experiment service delete experiment v1 default response has a 2xx status code
@@ -168,13 +168,13 @@ func (o *ExperimentServiceDeleteExperimentV1Default) String() string {
 	return fmt.Sprintf("[DELETE /apis/v1beta1/experiments/{id}][%d] ExperimentService_DeleteExperimentV1 default %s", o._statusCode, payload)
 }
 
-func (o *ExperimentServiceDeleteExperimentV1Default) GetPayload() *experiment_model.GooglerpcStatus {
+func (o *ExperimentServiceDeleteExperimentV1Default) GetPayload() *experiment_model.GoogleRPCStatus {
 	return o.Payload
 }
 
 func (o *ExperimentServiceDeleteExperimentV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.GooglerpcStatus)
+	o.Payload = new(experiment_model.GoogleRPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
