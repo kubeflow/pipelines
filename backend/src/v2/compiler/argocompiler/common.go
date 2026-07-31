@@ -20,6 +20,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -57,6 +58,42 @@ const (
 // single in-flight run. Must stay aligned with common.TokenAudienceForRun.
 func kfpTokenAudienceForRun(runID string) string {
 	return kfpTokenAudience + "/runs/" + runID
+}
+
+const (
+	launcherConfigVolumeName = "kfp-launcher-config"
+	launcherConfigMapName    = "kfp-launcher"
+)
+
+var launcherConfigOptional = true
+
+// mountLauncherConfigMap optionally mounts the kfp-launcher ConfigMap so runtime
+// pods can read launcher config from disk instead of querying the API.
+func mountLauncherConfigMap(tmpl *wfapi.Template) {
+	if tmpl == nil || tmpl.Container == nil {
+		return
+	}
+	for _, volume := range tmpl.Volumes {
+		if volume.Name == launcherConfigVolumeName {
+			return
+		}
+	}
+	tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+		Name: launcherConfigVolumeName,
+		VolumeSource: k8score.VolumeSource{
+			ConfigMap: &k8score.ConfigMapVolumeSource{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: launcherConfigMapName,
+				},
+				Optional: &launcherConfigOptional,
+			},
+		},
+	})
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+		Name:      launcherConfigVolumeName,
+		MountPath: config.LauncherConfigMountPath,
+		ReadOnly:  true,
+	})
 }
 
 // kfpTokenExpirationSecondsPtr returns a pointer to the KFP token expiration seconds constant.

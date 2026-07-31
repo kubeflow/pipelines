@@ -22,6 +22,7 @@ import (
 	backendcommon "github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -202,6 +203,15 @@ func TestAddContainerExecutorTemplate_MountsProjectedTokenInUserContainer(t *tes
 		}
 	}
 	assert.True(t, foundRunScopedAudience, "projected token should use a run-scoped audience")
+
+	foundLauncherConfigMount := false
+	for _, volumeMount := range tmpl.Container.VolumeMounts {
+		if volumeMount.Name == launcherConfigVolumeName && volumeMount.MountPath == config.LauncherConfigMountPath {
+			foundLauncherConfigMount = true
+			break
+		}
+	}
+	assert.True(t, foundLauncherConfigMount, "user container should optionally mount kfp-launcher config")
 
 	for _, env := range tmpl.Container.Env {
 		assert.NotEqual(t, "KFP_TOKEN_PATH", env.Name, "user container should not rely on a staged token path")

@@ -166,6 +166,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 	if setCABundle {
 		ConfigureCustomCABundle(importerTemplate)
 	}
+	mountLauncherConfigMap(importerTemplate)
 	applySecurityContextToTemplate(importerTemplate)
 	addSystemPodMetadata(importerTemplate, "importer", name)
 	c.templates[name] = importerTemplate

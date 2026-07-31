@@ -15,13 +15,18 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -640,6 +645,51 @@ func TestInPodName_ErrorsWhenBothMissing(t *testing.T) {
 	_, err = InPodName()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get pod name in Pod")
+}
+
+func TestLoadLauncherConfigFromPath_PrefersMountedFiles(t *testing.T) {
+	mountPath := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(mountPath, "defaultPipelineRoot"), []byte("s3://mounted/root"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(mountPath, "providers"), []byte("minio: {}"), 0o600))
+
+	cfg, err := LoadLauncherConfigFromPath(context.Background(), nil, "kubeflow", mountPath)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "s3://mounted/root", cfg.DefaultPipelineRoot())
+}
+
+func TestLoadLauncherConfigFromPath_FallsBackWhenMountMissing(t *testing.T) {
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "minio://from-api/root",
+		},
+	})
+
+	cfg, err := LoadLauncherConfigFromPath(context.Background(), clientSet, "kubeflow", filepath.Join(t.TempDir(), "missing"))
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "minio://from-api/root", cfg.DefaultPipelineRoot())
+}
+
+func TestLoadLauncherConfigFromPath_EmptyMountFallsBack(t *testing.T) {
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kfp-launcher",
+			Namespace: "kubeflow",
+		},
+		Data: map[string]string{
+			"defaultPipelineRoot": "minio://from-api/empty-mount",
+		},
+	})
+
+	cfg, err := LoadLauncherConfigFromPath(context.Background(), clientSet, "kubeflow", t.TempDir())
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "minio://from-api/empty-mount", cfg.DefaultPipelineRoot())
 }
 
 func fetchProviderFromData(cases TestcaseData, name string) string {

@@ -19,6 +19,7 @@ import (
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -56,4 +57,13 @@ func TestAddImporterTemplate_PropagatesIterationIndex(t *testing.T) {
 		}
 	}
 	assert.True(t, foundIterationInput, "importer template should declare the iteration index input")
+
+	foundLauncherConfigMount := false
+	for _, volumeMount := range tmpl.Container.VolumeMounts {
+		if volumeMount.Name == launcherConfigVolumeName && volumeMount.MountPath == config.LauncherConfigMountPath {
+			foundLauncherConfigMount = true
+			break
+		}
+	}
+	assert.True(t, foundLauncherConfigMount, "importer should optionally mount kfp-launcher config")
 }

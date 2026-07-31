@@ -274,7 +274,8 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		},
 	}
 	applySecurityContextToTemplate(template)
-	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
+	mountLauncherConfigMap(template)
+	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
 	}
@@ -593,6 +594,7 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
 		ConfigureCustomCABundle(executor)
 	}
+	mountLauncherConfigMap(executor)
 	applySecurityContextToExecutorTemplate(executor, c.defaultRunAsUser, c.defaultRunAsGroup, c.defaultRunAsNonRoot)
 	addSystemPodMetadata(executor, "container-executor", nameContainerImpl)
 

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -42,6 +43,9 @@ const (
 	// The k8s secret "Key" for "Artifact SecretKey" and "Artifact AccessKey"
 	minioArtifactSecretKeyKey = "secretkey"
 	minioArtifactAccessKeyKey = "accesskey"
+	// LauncherConfigMountPath is where runtime pods optionally mount the
+	// kfp-launcher ConfigMap. Keys in the ConfigMap appear as files here.
+	LauncherConfigMountPath = "/etc/kfp/launcher-config"
 )
 
 const (
@@ -200,6 +204,76 @@ func FetchLauncherConfigMap(ctx context.Context, clientSet kubernetes.Interface,
 	return &Config{data: config.Data}, nil
 }
 
+// LoadLauncherConfig loads launcher config from an optional mounted ConfigMap
+// directory first, then falls back to a Kubernetes API Get. Missing config is
+// still treated as optional and returns (nil, nil).
+func LoadLauncherConfig(ctx context.Context, clientSet kubernetes.Interface, namespace string) (*Config, error) {
+	return LoadLauncherConfigFromPath(ctx, clientSet, namespace, LauncherConfigMountPath)
+}
+
+// LoadLauncherConfigFromPath is the testable form of LoadLauncherConfig.
+func LoadLauncherConfigFromPath(
+	ctx context.Context,
+	clientSet kubernetes.Interface,
+	namespace string,
+	mountPath string,
+) (*Config, error) {
+	if cfg, ok, err := loadLauncherConfigFromMount(mountPath); err != nil {
+		return nil, err
+	} else if ok {
+		glog.Infof("loaded launcher config from mounted path %q", mountPath)
+		return cfg, nil
+	}
+	return FetchLauncherConfigMap(ctx, clientSet, namespace)
+}
+
+func loadLauncherConfigFromMount(mountPath string) (*Config, bool, error) {
+	if mountPath == "" {
+		return nil, false, nil
+	}
+	info, err := os.Stat(mountPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to stat launcher config mount %q: %w", mountPath, err)
+	}
+	if !info.IsDir() {
+		return nil, false, nil
+	}
+
+	entries, err := os.ReadDir(mountPath)
+	if err != nil {
+		return nil, false, fmt.Errorf("failed to read launcher config mount %q: %w", mountPath, err)
+	}
+	if len(entries) == 0 {
+		// Optional ConfigMap mounts can exist as an empty directory when the
+		// ConfigMap is absent. Fall back to the API path in that case.
+		return nil, false, nil
+	}
+
+	data := make(map[string]string, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		// Skip Kubernetes projected/.. data and hidden files.
+		name := entry.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		contents, readErr := os.ReadFile(filepath.Join(mountPath, name))
+		if readErr != nil {
+			return nil, false, fmt.Errorf("failed to read launcher config key %q: %w", name, readErr)
+		}
+		data[name] = string(contents)
+	}
+	if len(data) == 0 {
+		return nil, false, nil
+	}
+	return &Config{data: data}, true, nil
+}
+
 // GetPipelineRootWithPipelineRunContext gets the pipeline root for a run.
 // The returned Pipeline Root appends the pipeline name and run id.
 func GetPipelineRootWithPipelineRunContext(
@@ -212,7 +286,7 @@ func GetPipelineRootWithPipelineRunContext(
 		pipelineRoot = run.RuntimeConfig.PipelineRoot
 		glog.Infof("PipelineRoot=%q from runtime config will be used.", pipelineRoot)
 	} else {
-		cfg, err := FetchLauncherConfigMap(ctx, k8sClient, namespace)
+		cfg, err := LoadLauncherConfig(ctx, k8sClient, namespace)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch launcher configmap: %w", err)
 		}

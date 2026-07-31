@@ -231,7 +231,7 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 
 	// Fetch Launcher config and initialize KFP API client if not already set (testing mode)
 	// Production path: fetch real config and create real client
-	launcherConfig, executionErr := config.FetchLauncherConfigMap(ctx, l.clientManager.K8sClient(), l.options.Namespace)
+	launcherConfig, executionErr := config.LoadLauncherConfig(ctx, l.clientManager.K8sClient(), l.options.Namespace)
 	if executionErr != nil {
 		return fmt.Errorf("failed to get launcher configmap: %w", executionErr)
 	}
