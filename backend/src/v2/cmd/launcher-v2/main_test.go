@@ -16,10 +16,10 @@ func allProvided(flags []string) map[string]bool {
 
 func TestRequiredLauncherFlags(t *testing.T) {
 	common := []string{
-		"executor_type", "pipeline_name", "run_id", "component_spec",
-		"pod_name", "pod_uid", "mlmd_server_address", "mlmd_server_port",
+		"executor_type", "pipeline_name", "run_id", "namespace",
+		"pod_name", "pod_uid",
 		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
-		"metadata_tls_enabled", "ca_cert_path",
+		"ca_cert_path",
 	}
 	withCommon := func(extra ...string) []string {
 		return append(append([]string{}, common...), extra...)
@@ -28,8 +28,8 @@ func TestRequiredLauncherFlags(t *testing.T) {
 		executorType string
 		want         []string
 	}{
-		{executorType: "container", want: withCommon("execution_id", "executor_input", "ml_pipeline_server_address", "ml_pipeline_server_port")},
-		{executorType: "importer", want: withCommon("task_spec", "importer_spec", "parent_dag_id")},
+		{executorType: "container", want: withCommon("task_id", "parent_task_id", "executor_input", "ml_pipeline_server_address", "ml_pipeline_server_port", "fingerprint", "task_name")},
+		{executorType: "importer", want: withCommon("task_name", "importer_spec", "parent_task_id", "iteration_index")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.executorType, func(t *testing.T) {
@@ -59,9 +59,9 @@ func TestValidateLauncherFlags(t *testing.T) {
 			executorType: "importer",
 		},
 		{
-			name:         "container missing execution_id",
+			name:         "container missing task_id",
 			executorType: "container",
-			omit:         []string{"execution_id"},
+			omit:         []string{"task_id"},
 			wantErr:      true,
 		},
 		{
@@ -117,4 +117,28 @@ func TestValidateLauncherFlags(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err != nil, "unexpected error state: %v", err)
 		})
 	}
+}
+
+func TestResolveNamespace(t *testing.T) {
+	t.Run("requires explicit namespace flag", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "ignored")
+		t.Setenv("POD_NAMESPACE", "ignored-too")
+
+		got, err := resolveNamespace("flag-namespace")
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "flag-namespace" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "flag-namespace")
+		}
+	})
+
+	t.Run("fails when namespace flag is missing", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+
+		got, err := resolveNamespace("")
+		if err == nil {
+			t.Fatalf("resolveNamespace() = %q, want error", got)
+		}
+	})
 }

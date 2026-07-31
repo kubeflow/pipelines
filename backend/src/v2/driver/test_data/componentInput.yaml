@@ -1,0 +1,172 @@
+# PIPELINE DEFINITION
+# Name: primary-pipeline
+# Inputs:
+#    active_in: bool [Default: True]
+#    name_in: str [Default: 'default_name']
+#    number_in: int [Default: 42.0]
+#    threshold_in: float [Default: 0.5]
+components:
+  comp-analyze-inputs:
+    executorLabel: exec-analyze-inputs
+    inputDefinitions:
+      artifacts:
+        input_text:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-process-inputs:
+    executorLabel: exec-process-inputs
+    inputDefinitions:
+      parameters:
+        a_runtime_bool:
+          parameterType: BOOLEAN
+        a_runtime_number:
+          parameterType: NUMBER_INTEGER
+        a_runtime_string:
+          parameterType: STRING
+        active:
+          parameterType: BOOLEAN
+        name:
+          parameterType: STRING
+        number:
+          parameterType: NUMBER_INTEGER
+        threshold:
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        output_text:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-analyze-inputs:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - analyze_inputs
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef analyze_inputs(input_text: Input[Dataset]):\n    with open(input_text.path,\
+          \ 'r') as f:\n        data = f.read()\n    assert data == \"[default_name,\
+          \ 42, 0.5, True]\"\n\n"
+        image: python:3.11
+    exec-process-inputs:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - process_inputs
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.14.6'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef process_inputs(\n        name: str,\n        number: int,\n \
+          \       threshold: float,\n        active: bool,\n        a_runtime_string:\
+          \ str,\n        a_runtime_number: int,\n        a_runtime_bool: bool,\n\
+          \        output_text: Output[Dataset]\n) -> None:\n    with open(output_text.path,\
+          \ 'w') as f:\n        f.write(f\"[{name}, {number}, {threshold}, {active}]\"\
+          )\n\n    assert name == \"default_name\"\n    assert number == 42\n    assert\
+          \ threshold == 0.5\n    assert active == True\n    assert a_runtime_string\
+          \ == \"foo\"\n    assert a_runtime_number == 10\n    assert a_runtime_bool\
+          \ == True\n\n"
+        image: python:3.11
+pipelineInfo:
+  name: primary-pipeline
+root:
+  dag:
+    tasks:
+      analyze-inputs:
+        cachingOptions: {}
+        componentRef:
+          name: comp-analyze-inputs
+        dependentTasks:
+        - process-inputs
+        inputs:
+          artifacts:
+            input_text:
+              taskOutputArtifact:
+                outputArtifactKey: output_text
+                producerTask: process-inputs
+        taskInfo:
+          name: analyze-inputs
+      process-inputs:
+        cachingOptions: {}
+        componentRef:
+          name: comp-process-inputs
+        inputs:
+          parameters:
+            a_runtime_bool:
+              runtimeValue:
+                constant: true
+            a_runtime_number:
+              runtimeValue:
+                constant: 10.0
+            a_runtime_string:
+              runtimeValue:
+                constant: foo
+            active:
+              componentInputParameter: active_in
+            name:
+              componentInputParameter: name_in
+            number:
+              componentInputParameter: number_in
+            threshold:
+              componentInputParameter: threshold_in
+        taskInfo:
+          name: process-inputs
+  inputDefinitions:
+    parameters:
+      active_in:
+        defaultValue: true
+        isOptional: true
+        parameterType: BOOLEAN
+      name_in:
+        defaultValue: default_name
+        isOptional: true
+        parameterType: STRING
+      number_in:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      threshold_in:
+        defaultValue: 0.5
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6

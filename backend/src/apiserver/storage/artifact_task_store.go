@@ -22,6 +22,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -35,6 +36,7 @@ var artifactTaskColumns = []string{
 	"ArtifactID",
 	"TaskID",
 	"Type",
+	"Iteration",
 	"RunUUID",
 	"Producer",
 	"ArtifactKey",
@@ -56,6 +58,13 @@ type ArtifactTaskStoreInterface interface {
 	// It returns the current page of artifact-task rows, the total count across all pages,
 	// the next page token, and an error.
 	ListArtifactTasks(filterContexts []*model.FilterContext, ioType *model.IOType, opts *list.Options) ([]*model.ArtifactTask, int, string, error)
+
+	// DeleteOutputArtifactTasksByTaskIDs deletes attempt-local output links for the given tasks.
+	DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error
+
+	// DeleteInputArtifactTasksByTaskIDs deletes attempt-local input links for the given tasks.
+	// Required on retry so CreateArtifactTasks can recreate UniqueLink rows for the new attempt.
+	DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error
 }
 
 type ArtifactTaskStore struct {
@@ -82,6 +91,9 @@ func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error
 	qb := d.QueryBuilder()
 	// Set up UUID for artifact-task relationship.
 	newArtifactTask := *artifactTask
+	if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
+		return nil, util.NewInternalServerError(err, "Failed to derive artifact-task iteration: %v", err.Error())
+	}
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create an artifact-task id")
@@ -102,6 +114,7 @@ func createArtifactTaskWithExecutor(exec func(string, ...any) (sql.Result, error
 				q("ArtifactID"):  newArtifactTask.ArtifactID,
 				q("TaskID"):      newArtifactTask.TaskID,
 				q("Type"):        newArtifactTask.Type,
+				q("Iteration"):   newArtifactTask.Iteration,
 				q("RunUUID"):     newArtifactTask.RunUUID,
 				q("Producer"):    producerValue,
 				q("ArtifactKey"): newArtifactTask.ArtifactKey,
@@ -142,6 +155,9 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 	var newArtifactTasks []*model.ArtifactTask
 	for _, artifactTask := range artifactTasks {
 		newArtifactTask := *artifactTask
+		if err := newArtifactTask.SyncIterationFromProducer(); err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to derive artifact-task iteration: %v", err.Error())
+		}
 		id, err := s.uuid.NewRandom()
 		if err != nil {
 			return nil, util.NewInternalServerError(err, "Failed to create an artifact-task id")
@@ -162,6 +178,7 @@ func (s *ArtifactTaskStore) CreateArtifactTasks(artifactTasks []*model.ArtifactT
 					q("ArtifactID"):  newArtifactTask.ArtifactID,
 					q("TaskID"):      newArtifactTask.TaskID,
 					q("Type"):        newArtifactTask.Type,
+					q("Iteration"):   newArtifactTask.Iteration,
 					q("RunUUID"):     newArtifactTask.RunUUID,
 					q("Producer"):    producerValue,
 					q("ArtifactKey"): newArtifactTask.ArtifactKey,
@@ -194,6 +211,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 		var uuid, artifactID, taskID string
 		var runUUID, key string
 		var ioType int32
+		var iteration int64
 		var producer model.JSONData
 
 		err := rows.Scan(
@@ -201,6 +219,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 			&artifactID,
 			&taskID,
 			&ioType,
+			&iteration,
 			&runUUID,
 			&producer,
 			&key,
@@ -214,6 +233,7 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 			ArtifactID:  artifactID,
 			TaskID:      taskID,
 			Type:        model.IOType(ioType),
+			Iteration:   iteration,
 			RunUUID:     runUUID,
 			Producer:    producer,
 			ArtifactKey: key,
@@ -225,9 +245,8 @@ func (s *ArtifactTaskStore) scanRows(rows *sql.Rows) ([]*model.ArtifactTask, err
 
 // applyFilterContextsToQuery applies multiple filter contexts to the query builder
 // Supports filtering by multiple artifact_ids, task_ids, and run_ids simultaneously
-func (s *ArtifactTaskStore) applyFilterContextsToQuery(sqlBuilder qb.SelectBuilder, filterContexts []*model.FilterContext) (qb.SelectBuilder, error) {
+func (s *ArtifactTaskStore) applyFilterContextsToQuery(sqlBuilder sq.SelectBuilder, filterContexts []*model.FilterContext) (sq.SelectBuilder, error) {
 	q := s.dbDialect.QuoteIdentifier
-	qb := s.dbDialect.QueryBuilder()
 	var artifactIDs []string
 	var taskIDs []string
 	var runIDs []string
@@ -412,4 +431,59 @@ func (s *ArtifactTaskStore) GetArtifactTask(id string) (*model.ArtifactTask, err
 	}
 
 	return artifactTasks[0], nil
+}
+
+func (s *ArtifactTaskStore) DeleteOutputArtifactTasksByTaskIDs(taskIDs []string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	outputLinkTypes := []model.IOType{
+		model.IOType(apiv2beta1.IOType_OUTPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_OUTPUT),
+		model.IOType(apiv2beta1.IOType_ONE_OF_OUTPUT),
+		model.IOType(apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT),
+	}
+	sql, args, err := qb.
+		Delete(q(artifactTaskTableName)).
+		Where(sq.Eq{q("TaskID"): taskIDs}).
+		Where(sq.Eq{q("Type"): outputLinkTypes}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete output artifact-tasks: %v", err.Error())
+	}
+	if _, err := s.db.Exec(sql, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete output artifact-tasks: %v", err.Error())
+	}
+	return nil
+}
+
+func (s *ArtifactTaskStore) DeleteInputArtifactTasksByTaskIDs(taskIDs []string) error {
+	q := s.dbDialect.QuoteIdentifier
+	qb := s.dbDialect.QueryBuilder()
+	if len(taskIDs) == 0 {
+		return nil
+	}
+	inputLinkTypes := []model.IOType{
+		model.IOType(apiv2beta1.IOType_COMPONENT_INPUT),
+		model.IOType(apiv2beta1.IOType_COLLECTED_INPUTS),
+		model.IOType(apiv2beta1.IOType_TASK_OUTPUT_INPUT),
+		model.IOType(apiv2beta1.IOType_RUNTIME_VALUE_INPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT),
+		model.IOType(apiv2beta1.IOType_ITERATOR_INPUT_RAW),
+		model.IOType(apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT),
+	}
+	sql, args, err := qb.
+		Delete(q(artifactTaskTableName)).
+		Where(sq.Eq{q("TaskID"): taskIDs}).
+		Where(sq.Eq{q("Type"): inputLinkTypes}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to create query to delete input artifact-tasks: %v", err.Error())
+	}
+	if _, err := s.db.Exec(sql, args...); err != nil {
+		return util.NewInternalServerError(err, "Failed to delete input artifact-tasks: %v", err.Error())
+	}
+	return nil
 }

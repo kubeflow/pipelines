@@ -19,7 +19,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -39,21 +41,95 @@ var metadataEnvFrom = k8score.EnvFromSource{
 	},
 }
 
-var commonEnvs = []k8score.EnvVar{{
-	Name: "KFP_POD_NAME",
-	ValueFrom: &k8score.EnvVarSource{
-		FieldRef: &k8score.ObjectFieldSelector{
-			FieldPath: "metadata.name",
+// KFP service account token configuration for authentication with API server
+const (
+	// kfpTokenExpirationSeconds is the expiration time for the projected service account token.
+	// Set to 7200 seconds (2 hours) to provide enough buffer while kubelet auto-rotates tokens.
+	kfpTokenExpirationSeconds = 7200
+	// kfpTokenVolumeName is the name of the volume containing the KFP service account token
+	kfpTokenVolumeName = "kfp-launcher-token"
+	// kfpTokenMountPath is the path where the KFP token is mounted
+	kfpTokenMountPath = "/var/run/secrets/kfp"
+	// kfpTokenAudience is the base audience for projected service account tokens.
+	// Runtime pods use a run-scoped audience derived from this base.
+	kfpTokenAudience = "pipelines.kubeflow.org"
+)
+
+// kfpTokenAudienceForRun returns the projected SA token audience bound to a
+// single in-flight run. Must stay aligned with common.TokenAudienceForRun.
+func kfpTokenAudienceForRun(runID string) string {
+	return kfpTokenAudience + "/runs/" + runID
+}
+
+const (
+	launcherConfigVolumeName = "kfp-launcher-config"
+	launcherConfigMapName    = "kfp-launcher"
+)
+
+var launcherConfigOptional = true
+
+// mountLauncherConfigMap optionally mounts the kfp-launcher ConfigMap so runtime
+// pods can read launcher config from disk instead of querying the API.
+func mountLauncherConfigMap(tmpl *wfapi.Template) {
+	if tmpl == nil || tmpl.Container == nil {
+		return
+	}
+	for _, volume := range tmpl.Volumes {
+		if volume.Name == launcherConfigVolumeName {
+			return
+		}
+	}
+	tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+		Name: launcherConfigVolumeName,
+		VolumeSource: k8score.VolumeSource{
+			ConfigMap: &k8score.ConfigMapVolumeSource{
+				LocalObjectReference: k8score.LocalObjectReference{
+					Name: launcherConfigMapName,
+				},
+				Optional: &launcherConfigOptional,
+			},
+		},
+	})
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+		Name:      launcherConfigVolumeName,
+		MountPath: config.LauncherConfigMountPath,
+		ReadOnly:  true,
+	})
+}
+
+// kfpTokenExpirationSecondsPtr returns a pointer to the KFP token expiration seconds constant.
+// This is used for the ServiceAccountTokenProjection ExpirationSeconds field which requires *int64.
+func kfpTokenExpirationSecondsPtr() *int64 {
+	seconds := int64(kfpTokenExpirationSeconds)
+	return &seconds
+}
+
+var commonEnvs = []k8score.EnvVar{
+	{
+		Name: "KFP_POD_NAME",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.name",
+			},
 		},
 	},
-}, {
-	Name: "KFP_POD_UID",
-	ValueFrom: &k8score.EnvVarSource{
-		FieldRef: &k8score.ObjectFieldSelector{
-			FieldPath: "metadata.uid",
+	{
+		Name: "KFP_POD_UID",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.uid",
+			},
 		},
 	},
-}}
+	{
+		Name: "NAMESPACE",
+		ValueFrom: &k8score.EnvVarSource{
+			FieldRef: &k8score.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	},
+}
 
 // retryIndexEnv injects the Argo retry attempt index into the executor
 // container. Argo substitutes {{retries}} with the 0-based attempt index at
@@ -73,6 +149,25 @@ func setRuntimeRole(tmpl *wfapi.Template, role util.ExecutionRuntimeRole) {
 		tmpl.Metadata.Annotations = make(map[string]string)
 	}
 	tmpl.Metadata.Annotations[util.AnnotationKeyRuntimeRole] = string(role)
+}
+
+func mlPipelineAPIClientEnvVars() []k8score.EnvVar {
+	envVars := []k8score.EnvVar{}
+	for _, entry := range []struct {
+		name  string
+		value string
+	}{
+		{name: apiclient.KFPAPIGRPCBackoffBaseDelayEnvVar, value: common.GetMLPipelineGRPCBackoffBaseDelay()},
+		{name: apiclient.KFPAPIGRPCBackoffMultiplierEnvVar, value: common.GetMLPipelineGRPCBackoffMultiplier()},
+		{name: apiclient.KFPAPIGRPCBackoffJitterEnvVar, value: common.GetMLPipelineGRPCBackoffJitter()},
+		{name: apiclient.KFPAPIGRPCBackoffMaxDelayEnvVar, value: common.GetMLPipelineGRPCBackoffMaxDelay()},
+		{name: apiclient.KFPAPIGRPCMinConnectTimeoutEnvVar, value: common.GetMLPipelineGRPCMinConnectTimeout()},
+	} {
+		if entry.value != "" {
+			envVars = append(envVars, k8score.EnvVar{Name: entry.name, Value: entry.value})
+		}
+	}
+	return envVars
 }
 
 // ConfigureCustomCABundle adds CABundle environment variables and volume mounts if CABUNDLE_SECRET_NAME is set.
@@ -132,7 +227,7 @@ func addExitTask(task *wfapi.DAGTask, exitTemplate string, parentDagID string) {
 		wfapi.ExitLifecycleEvent: wfapi.LifecycleHook{
 			Template: exitTemplate,
 			Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{
-				{Name: paramParentDagID, Value: wfapi.AnyStringPtr(parentDagID)},
+				{Name: paramParentDagTaskID, Value: wfapi.AnyStringPtr(parentDagID)},
 			}},
 		},
 	}

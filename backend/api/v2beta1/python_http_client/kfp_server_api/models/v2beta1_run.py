@@ -47,7 +47,7 @@ class V2beta1Run(object):
         'scheduled_at': 'datetime',
         'finished_at': 'datetime',
         'state': 'V2beta1RuntimeState',
-        'error': 'GooglerpcStatus',
+        'error': 'GoogleRpcStatus',
         'run_details': 'V2beta1RunDetails',
         'recurring_run_id': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]',
@@ -472,7 +472,7 @@ class V2beta1Run(object):
 
 
         :return: The error of this V2beta1Run.  # noqa: E501
-        :rtype: GooglerpcStatus
+        :rtype: GoogleRpcStatus
         """
         return self._error
 
@@ -482,7 +482,7 @@ class V2beta1Run(object):
 
 
         :param error: The error of this V2beta1Run.  # noqa: E501
-        :type error: GooglerpcStatus
+        :type error: GoogleRpcStatus
         """
 
         self._error = error

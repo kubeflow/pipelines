@@ -66,12 +66,21 @@ rules:
   - archive
   - create
   - delete
+  - update
   - retry
   - terminate
   - unarchive
   - reportMetrics
   - readArtifact
   - readLog
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - artifacts
+  verbs:
+  - create
+  - get
+  - list
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
@@ -135,6 +144,13 @@ rules:
   - list
   - readArtifact
   - readLog
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - artifacts
+  verbs:
+  - get
+  - list
 - apiGroups:
   - kubeflow.org
   resources:

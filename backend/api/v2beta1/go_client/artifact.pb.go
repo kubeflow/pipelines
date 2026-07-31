@@ -240,8 +240,15 @@ type CreateArtifactRequest struct {
 	// If the producing task is in a parallelFor iteration
 	// this field designates the iteration index
 	IterationIndex *int64 `protobuf:"varint,6,opt,name=iteration_index,json=iterationIndex,proto3,oneof" json:"iteration_index,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// When true, create the artifact only if no existing artifact in the same
+	// namespace matches the stable reuse identity (type, URI, name, description,
+	// and metadata). Concurrent callers race-safely share one row and each still
+	// receive their own artifact-task link. When false (default), always insert a
+	// new artifact row so reimport=true and ordinary outputs may intentionally
+	// create duplicates.
+	ReuseIfExists bool `protobuf:"varint,7,opt,name=reuse_if_exists,json=reuseIfExists,proto3" json:"reuse_if_exists,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateArtifactRequest) Reset() {
@@ -307,6 +314,13 @@ func (x *CreateArtifactRequest) GetIterationIndex() int64 {
 		return *x.IterationIndex
 	}
 	return 0
+}
+
+func (x *CreateArtifactRequest) GetReuseIfExists() bool {
+	if x != nil {
+		return x.ReuseIfExists
+	}
+	return false
 }
 
 type CreateArtifactsBulkRequest struct {
@@ -1169,13 +1183,14 @@ var File_backend_api_v2beta1_artifact_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_artifact_proto_rawDesc = "" +
 	"\n" +
-	"\"backend/api/v2beta1/artifact.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xfa\x01\n" +
+	"\"backend/api/v2beta1/artifact.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\xa2\x02\n" +
 	"\x15CreateArtifactRequest\x12L\n" +
 	"\bartifact\x18\x01 \x01(\v20.kubeflow.pipelines.backend.api.v2beta1.ArtifactR\bartifact\x12\x15\n" +
 	"\x06run_id\x18\x02 \x01(\tR\x05runId\x12\x17\n" +
 	"\atask_id\x18\x03 \x01(\tR\x06taskId\x12!\n" +
 	"\fproducer_key\x18\x05 \x01(\tR\vproducerKey\x12,\n" +
-	"\x0fiteration_index\x18\x06 \x01(\x03H\x00R\x0eiterationIndex\x88\x01\x01B\x12\n" +
+	"\x0fiteration_index\x18\x06 \x01(\x03H\x00R\x0eiterationIndex\x88\x01\x01\x12&\n" +
+	"\x0freuse_if_exists\x18\a \x01(\bR\rreuseIfExistsB\x12\n" +
 	"\x10_iteration_index\"y\n" +
 	"\x1aCreateArtifactsBulkRequest\x12[\n" +
 	"\tartifacts\x18\x01 \x03(\v2=.kubeflow.pipelines.backend.api.v2beta1.CreateArtifactRequestR\tartifacts\"m\n" +

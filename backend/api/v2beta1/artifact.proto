@@ -164,6 +164,14 @@ message CreateArtifactRequest {
   // If the producing task is in a parallelFor iteration
   // this field designates the iteration index
   optional int64 iteration_index = 6;
+
+  // When true, create the artifact only if no existing artifact in the same
+  // namespace matches the stable reuse identity (type, URI, name, description,
+  // and metadata). Concurrent callers race-safely share one row and each still
+  // receive their own artifact-task link. When false (default), always insert a
+  // new artifact row so reimport=true and ordinary outputs may intentionally
+  // create duplicates.
+  bool reuse_if_exists = 7;
 }
 
 message CreateArtifactsBulkRequest {

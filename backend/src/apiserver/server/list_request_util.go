@@ -245,49 +245,62 @@ func validateFilterV2Beta1Artifact(namespace string) (*model.FilterContext, erro
 	return filterContext, nil
 }
 
-// validateFilterV2Beta1ArtifactTask creates filter contexts for artifact-task relationships
+// validateNonEmptyIDFilters rejects empty-string elements in ID filter lists.
+// Returns the input unchanged when every element is non-empty.
+func validateNonEmptyIDFilters(ids []string, fieldName string) error {
+	for _, id := range ids {
+		if id == "" {
+			return util.NewInvalidInputError("%s must not contain empty values", fieldName)
+		}
+	}
+	return nil
+}
+
+// validateFilterV2Beta1ArtifactTask creates filter contexts for artifact-task relationships.
+// Empty-string IDs are rejected. At least one real ID filter is required; an empty
+// FilterContext is never emitted because that would produce an unscoped store query.
 func validateFilterV2Beta1ArtifactTask(taskIds, runIds, artifactIds []string) ([]*model.FilterContext, error) {
+	if err := validateNonEmptyIDFilters(taskIds, "task_ids"); err != nil {
+		return nil, err
+	}
+	if err := validateNonEmptyIDFilters(runIds, "run_ids"); err != nil {
+		return nil, err
+	}
+	if err := validateNonEmptyIDFilters(artifactIds, "artifact_ids"); err != nil {
+		return nil, err
+	}
+
 	var filterContexts []*model.FilterContext
 
-	// Add task ID filters
 	for _, taskID := range taskIds {
-		if taskID != "" {
-			filterContexts = append(filterContexts, &model.FilterContext{
-				ReferenceKey: &model.ReferenceKey{
-					Type: model.TaskResourceType,
-					ID:   taskID,
-				},
-			})
-		}
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.TaskResourceType,
+				ID:   taskID,
+			},
+		})
 	}
 
-	// Add run ID filters
 	for _, runID := range runIds {
-		if runID != "" {
-			filterContexts = append(filterContexts, &model.FilterContext{
-				ReferenceKey: &model.ReferenceKey{
-					Type: model.RunResourceType,
-					ID:   runID,
-				},
-			})
-		}
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.RunResourceType,
+				ID:   runID,
+			},
+		})
 	}
 
-	// Add artifact ID filters
 	for _, artifactID := range artifactIds {
-		if artifactID != "" {
-			filterContexts = append(filterContexts, &model.FilterContext{
-				ReferenceKey: &model.ReferenceKey{
-					Type: model.ArtifactResourceType,
-					ID:   artifactID,
-				},
-			})
-		}
+		filterContexts = append(filterContexts, &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{
+				Type: model.ArtifactResourceType,
+				ID:   artifactID,
+			},
+		})
 	}
 
-	// If no filters specified, return empty filter context
 	if len(filterContexts) == 0 {
-		filterContexts = append(filterContexts, &model.FilterContext{})
+		return nil, util.NewInvalidInputError("At least one filter (task_ids, run_ids, or artifact_ids) is required")
 	}
 
 	return filterContexts, nil

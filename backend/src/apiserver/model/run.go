@@ -304,10 +304,11 @@ func (r *Run) ToV2() *Run {
 			r.RecurringRunId = ref.ReferenceUUID
 		}
 	}
-	if r.Conditions != "" && r.State == "" {
-		r.State = RuntimeState(r.Conditions)
+	state := r.State.ToV2()
+	if r.Conditions != "" && state == RuntimeStateUnspecified {
+		state = RuntimeState(r.Conditions).ToV2()
 	}
-	r.State = r.State.ToV2()
+	r.State = state
 	r.StorageState = r.StorageState.ToV2()
 	return r
 }
