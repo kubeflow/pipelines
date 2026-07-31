@@ -39,6 +39,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -665,12 +666,22 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			PipelineRoot: swf.Spec.Workflow.PipelineRoot,
 		}
 
+		// Expand recurring-run macros such as [[ScheduledTime]], [[Index]] and
+		// [[CurrentTime]] with the trigger's epochs and index, matching the
+		// substitution the embedded-workflow path performs in NewWorkflow. The run
+		// UUID is not known yet, so [[RunUUID]] is left for the API server to expand.
+		formatter := commonutil.NewSWFParameterFormatter("", nextScheduledEpoch, nowEpoch, swf.NextIndex())
+
 		for _, param := range swf.Spec.Workflow.Parameters {
 			val := &structpb.Value{}
 
 			err := val.UnmarshalJSON([]byte(param.Value))
 			if err != nil {
 				return false, "", err
+			}
+
+			if stringValue, ok := val.GetKind().(*structpb.Value_StringValue); ok {
+				val = structpb.NewStringValue(formatter.Format(stringValue.StringValue))
 			}
 
 			runtimeConfig.Parameters[param.Name] = val
@@ -695,6 +706,10 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			RecurringRunId: string(swf.UID),
 			RuntimeConfig:  runtimeConfig,
 			PluginsInput:   pluginsInput,
+			// Record the trigger's scheduled time on the run so the stored run reflects
+			// the schedule (rather than the creation time) and server-side macro
+			// expansion of [[ScheduledTime]] uses the correct epoch.
+			ScheduledAt: timestamppb.New(time.Unix(nextScheduledEpoch, 0)),
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,

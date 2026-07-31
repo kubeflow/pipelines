@@ -4738,6 +4738,69 @@ func TestReconcileSwfCrs(t *testing.T) {
 	require.NotNil(t, swf.Spec.Workflow.Spec)
 }
 
+func TestReconcileSwfCrs_PinnedPipelineVersionReference(t *testing.T) {
+	// Create experiment, pipeline and a V2 pipeline version.
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
+	defer store.Close()
+	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
+	assert.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pv := createPipelineVersion(
+		pipeline.UUID,
+		"version_for_job",
+		"",
+		"",
+		v2SpecHelloWorld,
+		"",
+		"",
+	)
+	version, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName:  "j1",
+		Enabled:      true,
+		ExperimentId: experiment.UUID,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	_, err = manager.CreateJob(context.Background(), job)
+	require.Nil(t, err)
+
+	swfClient := store.SwfClient().ScheduledWorkflow("ns1")
+	ctx := context.Background()
+
+	swf, err := swfClient.Get(ctx, "job-", v1.GetOptions{})
+	require.Nil(t, err)
+
+	// Emulate CR drift, e.g. after a database restore or a manual edit of the CR.
+	swf.Spec.PipelineVersionId = "some-other-version"
+	swf.Spec.Workflow = nil
+	_, err = swfClient.Update(ctx, swf)
+	require.Nil(t, err)
+
+	err = manager.ReconcileSwfCrs(ctx)
+	require.Nil(t, err)
+
+	// The reference-based ScheduledWorkflow is rebuilt from the stored recurring run:
+	// the pinned pipeline version reference and runtime inputs are restored, and no
+	// compiled workflow is embedded.
+	swf, err = swfClient.Get(ctx, "job-", v1.GetOptions{})
+	require.Nil(t, err)
+	assert.Equal(t, version.UUID, swf.Spec.PipelineVersionId)
+	require.NotNil(t, swf.Spec.Workflow)
+	assert.Nil(t, swf.Spec.Workflow.Spec)
+	require.Len(t, swf.Spec.Workflow.Parameters, 1)
+	assert.Equal(t, "text", swf.Spec.Workflow.Parameters[0].Name)
+	assert.Equal(t, "\"world\"", swf.Spec.Workflow.Parameters[0].Value)
+	assert.Equal(t, "job-1-root", swf.Spec.Workflow.PipelineRoot)
+}
+
 func TestReportScheduledWorkflowResource_Error(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
