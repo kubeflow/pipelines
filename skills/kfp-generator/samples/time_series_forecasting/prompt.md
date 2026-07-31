@@ -5,4 +5,4 @@ The pipeline must string together these explicit tasks:
 2. train_regressor: Trains a Ridge Regression or Gradient Boosting model to forecast future data steps based on the engineered lag sequences.
 3. evaluate_forecast: Computes Mean Absolute Error (MAE) and R-squared ($R^2$) metrics, mapping them into a clean KFP Metrics component structure, and outputs a string-formatted text summary report.
 
-The python script must enforce strict v2 syntax rules (no legacy v1 components), include proper Apache 2.0 licenses, and append the core compiler execution block. Run the local evaluation runner script to guarantee the pipeline compiles flawlessly to a valid YAML target on disk.
+The python script must enforce strict v2 syntax rules (no legacy v1 components), include proper Apache 2.0 licenses, and append the core compiler execution block. Run our local evaluation script with --run --host http://localhost:8080 on it to guarantee a valid KFP v2 YAML specification and verify live backend execution.

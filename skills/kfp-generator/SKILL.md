@@ -131,18 +131,30 @@ with dsl.ExitHandler(cleanup_task):
 
 ## Compile and verify
 
-After generating a `.py` pipeline, run the skill evaluation script:
+After generating a `.py` pipeline, run the skill evaluation script to validate compilation and execution:
 
+### 1. Static Compilation Verification
 ```bash
-python .cursor/skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
+python skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py
 ```
 
 The script:
-
 - Uses the repo `.venv` Python when available
 - Executes the pipeline file to trigger KFP v2 YAML compilation
 - Confirms the companion `.yaml` pipeline spec was written
 - Prints compiler tracebacks to stderr on failure so the agent can fix and re-run
+
+### 2. Live Backend Execution Verification (E2E)
+When a live KFP backend cluster is running (e.g., via `make -C backend kind-cluster-agnostic`), execute the pipeline on the real backend to capture evidence of success:
+
+```bash
+python skills/kfp-generator/scripts/eval_output.py path/to/pipeline.py --run --host http://localhost:8080
+```
+
+The `--run` step:
+- Passes the decorated pipeline function (`pipeline_func`) to `client.create_run_from_pipeline_func()` to submit a real run to the KFP backend API.
+- Waits for task container execution on the cluster via `client.wait_for_run_completion()`.
+- Captures final status evidence using `client.get_run(run_id)` to verify that the run state transitioned to `SUCCEEDED`.
 
 If validation fails, read the traceback, fix the generated pipeline, and re-run until it passes.
 
@@ -158,7 +170,8 @@ pytest -v sdk/python/kfp/dsl/<relevant>_test.py
 - [ ] Pipeline and components have docstrings
 - [ ] Pipeline parameters have sensible defaults where appropriate
 - [ ] `if __name__ == '__main__'` compiles to YAML
-- [ ] `scripts/eval_output.py` passes for the generated `.py`
+- [ ] `scripts/eval_output.py` passes static YAML compilation check for the generated `.py`
+- [ ] (When backend is available) `scripts/eval_output.py --run` succeeds and `get_run` confirms `SUCCEEDED` state
 - [ ] Matches an existing sample pattern when the feature already exists in `samples/core/`
 - [ ] No SDK-only imports inside component function bodies (runtime installs `kfp` with `--no-deps`)
 
