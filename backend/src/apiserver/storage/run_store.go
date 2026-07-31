@@ -821,7 +821,7 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	tx, err := s.db.DB.Begin()
+	tx, err := s.db.DB.Begin() //nolint:staticcheck // QF1008
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
