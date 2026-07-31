@@ -1091,8 +1091,9 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		}
 		// Bind TokenReview to this run so a projected runtime token for another
 		// run cannot authorize mutations here. Header-authenticated users are
-		// unaffected; base-audience SA tokens still fall back in the authenticator.
-		ctx = auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runId)})
+		// unaffected; base-audience SA tokens still authenticate as broad via
+		// a single multi-audience TokenReview.
+		ctx = auth.WithRequestedRunID(ctx, runId)
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
@@ -1104,6 +1105,9 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access run %s. Check if you have access to namespace %s", runId, resourceAttributes.Namespace)
+	}
+	if err := auth.EnforceAuthenticatedRunScope(ctx, runId); err != nil {
+		return util.Wrapf(err, "Failed to access run %s", runId)
 	}
 	return nil
 }

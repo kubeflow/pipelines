@@ -623,14 +623,11 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 
 // Authorization helper functions
 
-// withRunScopedTokenAudience attaches the expected run-scoped TokenReview
-// audience when a request run ID is known. This lets namespace-scoped artifact
-// authorization succeed for projected runtime tokens before canAccessRun runs.
+// withRunScopedTokenAudience attaches the requested run ID for TokenReview when
+// a request run ID is known. This lets namespace-scoped artifact authorization
+// succeed for projected runtime tokens before canAccessRun runs.
 func withRunScopedTokenAudience(ctx context.Context, runID string) context.Context {
-	if runID == "" {
-		return ctx
-	}
-	return auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runID)})
+	return auth.WithRequestedRunID(ctx, runID)
 }
 
 func singleRunIDFromCreateArtifactRequests(requests []*apiv2beta1.CreateArtifactRequest) string {
@@ -671,7 +668,7 @@ func (s *ArtifactServer) canAccessRun(ctx context.Context, runID string, resourc
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}
-		ctx = auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runID)})
+		ctx = auth.WithRequestedRunID(ctx, runID)
 	}
 
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
@@ -684,6 +681,9 @@ func (s *ArtifactServer) canAccessRun(ctx context.Context, runID string, resourc
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access resource. Check if you have access to namespace %s", resourceAttributes.Namespace)
+	}
+	if err := auth.EnforceAuthenticatedRunScope(ctx, runID); err != nil {
+		return util.Wrapf(err, "Failed to access run %s", runID)
 	}
 	return nil
 }
@@ -715,6 +715,11 @@ func (s *ArtifactServer) canAccessArtifacts(ctx context.Context, artifactID stri
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access resource. Check if you have access to namespace %s", resourceAttributes.Namespace)
+	}
+	if runID, ok := auth.RequestedRunIDFromContext(ctx); ok {
+		if err := auth.EnforceAuthenticatedRunScope(ctx, runID); err != nil {
+			return util.Wrapf(err, "Failed to access artifacts for run %s", runID)
+		}
 	}
 	return nil
 }

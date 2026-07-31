@@ -16,41 +16,130 @@ package auth
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/grpc/metadata"
 )
-
-type expectedTokenAudiencesKey struct{}
 
 // BoundRunIDMetadataKey is the outgoing/incoming gRPC metadata key used by
 // runtime clients to declare the in-flight run ID for namespace-scoped RPCs
 // such as FindCachedTask.
 const BoundRunIDMetadataKey = "x-kfp-bound-run-id"
 
-// WithExpectedTokenAudiences returns a child context that tells
-// TokenReviewAuthenticator which audiences to validate against first.
-func WithExpectedTokenAudiences(ctx context.Context, audiences []string) context.Context {
+// AuthMethodTokenReview identifies principals authenticated via TokenReview.
+const AuthMethodTokenReview = "tokenreview"
+
+// TokenScope describes how a TokenReview principal is bound.
+type TokenScope int
+
+const (
+	// TokenScopeUnspecified means no TokenReview principal was recorded
+	// (for example HTTP-header identity).
+	TokenScopeUnspecified TokenScope = iota
+	// TokenScopeBroad means the token matched the configured base audience
+	// and authorizes through normal RBAC.
+	TokenScopeBroad
+	// TokenScopeRun means the token matched only a run-scoped audience and
+	// may access that single run.
+	TokenScopeRun
+)
+
+// AuthenticatedPrincipal is the TokenReview classification stored on the
+// request context for authorization decisions.
+type AuthenticatedPrincipal struct {
+	Username   string
+	AuthMethod string
+	Scope      TokenScope
+	RunID      string
+}
+
+type requestedRunIDKey struct{}
+type principalCollectorKey struct{}
+
+// principalCollector is a mutable slot attached to context so authenticators
+// can record the classified principal without changing GetUserIdentity's
+// return type.
+type principalCollector struct {
+	principal *AuthenticatedPrincipal
+}
+
+// WithRequestedRunID marks the request as targeting a specific run for
+// TokenReview. The authenticator reviews the run audience together with the
+// configured base audience in a single call and records the resulting
+// principal scope on this context.
+func WithRequestedRunID(ctx context.Context, runID string) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	if len(audiences) == 0 {
+	if runID == "" {
 		return ctx
 	}
-	copied := append([]string(nil), audiences...)
-	return context.WithValue(ctx, expectedTokenAudiencesKey{}, copied)
+	ctx = context.WithValue(ctx, requestedRunIDKey{}, runID)
+	if principalCollectorFromContext(ctx) == nil {
+		ctx = context.WithValue(ctx, principalCollectorKey{}, &principalCollector{})
+	}
+	return ctx
 }
 
-// ExpectedTokenAudiences returns audiences previously attached with
-// WithExpectedTokenAudiences.
-func ExpectedTokenAudiences(ctx context.Context) ([]string, bool) {
+// RequestedRunIDFromContext returns the run ID attached with WithRequestedRunID.
+func RequestedRunIDFromContext(ctx context.Context) (string, bool) {
 	if ctx == nil {
+		return "", false
+	}
+	runID, ok := ctx.Value(requestedRunIDKey{}).(string)
+	if !ok || runID == "" {
+		return "", false
+	}
+	return runID, true
+}
+
+func principalCollectorFromContext(ctx context.Context) *principalCollector {
+	if ctx == nil {
+		return nil
+	}
+	collector, _ := ctx.Value(principalCollectorKey{}).(*principalCollector)
+	return collector
+}
+
+func storeAuthenticatedPrincipal(ctx context.Context, principal AuthenticatedPrincipal) {
+	collector := principalCollectorFromContext(ctx)
+	if collector == nil {
+		return
+	}
+	copied := principal
+	collector.principal = &copied
+}
+
+// AuthenticatedPrincipalFromContext returns the TokenReview principal recorded
+// during authentication, if any.
+func AuthenticatedPrincipalFromContext(ctx context.Context) (*AuthenticatedPrincipal, bool) {
+	collector := principalCollectorFromContext(ctx)
+	if collector == nil || collector.principal == nil {
 		return nil, false
 	}
-	audiences, ok := ctx.Value(expectedTokenAudiencesKey{}).([]string)
-	if !ok || len(audiences) == 0 {
-		return nil, false
+	copied := *collector.principal
+	return &copied, true
+}
+
+// EnforceAuthenticatedRunScope rejects run-scoped TokenReview principals that
+// are bound to a different run than requestedRunID. Broad / header identities
+// are unaffected.
+func EnforceAuthenticatedRunScope(ctx context.Context, requestedRunID string) error {
+	if requestedRunID == "" {
+		return nil
 	}
-	return audiences, true
+	principal, ok := AuthenticatedPrincipalFromContext(ctx)
+	if !ok || principal.Scope != TokenScopeRun {
+		return nil
+	}
+	if principal.RunID == requestedRunID {
+		return nil
+	}
+	return util.NewPermissionDeniedError(
+		fmt.Errorf("run-scoped token for run %q cannot access run %q", principal.RunID, requestedRunID),
+		"The runtime token is bound to a different pipeline run",
+	)
 }
 
 // BoundRunIDFromIncomingContext reads the runtime-bound run ID from incoming

@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	authv1 "k8s.io/api/authentication/v1"
@@ -50,48 +51,30 @@ func (tra *TokenReviewAuthenticator) GetUserIdentity(ctx context.Context) (strin
 		return "", err
 	}
 
-	// Prefer request-scoped audiences (for example run-scoped projected tokens)
-	// when the caller attached them. Fall back to the configured base audience
-	// so non-runtime SA tokens continue to work under RBAC.
-	if expectedAudiences, ok := ExpectedTokenAudiences(ctx); ok {
-		userInfo, reviewErr := tra.doTokenReview(ctx, token, expectedAudiences)
-		if reviewErr == nil {
-			return userInfo.Username, nil
-		}
-		if !audiencesEqual(expectedAudiences, tra.audiences) {
-			userInfo, fallbackErr := tra.doTokenReview(ctx, token, tra.audiences)
-			if fallbackErr == nil {
-				return userInfo.Username, nil
-			}
-		}
-		return "", util.Wrap(reviewErr, "Authentication failure")
+	requestedAudiences := append([]string(nil), tra.audiences...)
+	requestedRunID := ""
+	if runID, ok := RequestedRunIDFromContext(ctx); ok {
+		requestedRunID = runID
+		requestedAudiences = uniqueAudiences(append(requestedAudiences, common.TokenAudienceForRun(runID)))
 	}
 
-	userInfo, err := tra.doTokenReview(ctx, token, tra.audiences)
+	userInfo, matchedAudiences, err := tra.doTokenReview(ctx, token, requestedAudiences)
 	if err != nil {
 		return "", util.Wrap(err, "Authentication failure")
 	}
-	return userInfo.Username, nil
+
+	principal := classifyTokenReviewPrincipal(userInfo.Username, tra.audiences, matchedAudiences, requestedRunID)
+	storeAuthenticatedPrincipal(ctx, principal)
+	return principal.Username, nil
 }
 
-// ensureAudience makes sure all audience of the authenticator is found in the provided audience list.
-func (tra *TokenReviewAuthenticator) ensureAudience(expected []string, audience []string) bool {
-	// Create a set (map) to check fast whether something is part of the list
-	audienceSet := make(map[string]struct{}, len(audience))
-	for _, a := range audience {
-		audienceSet[a] = struct{}{}
-	}
-
-	// Iterate through the expected audiences and check if they are part of the provided list
-	for _, a := range expected {
-		if _, ok := audienceSet[a]; !ok {
-			return false
-		}
-	}
-	return true
+// ensureAudience reports whether any requested audience appears in the TokenReview
+// status audiences (Kubernetes any-match semantics).
+func (tra *TokenReviewAuthenticator) ensureAudience(requested []string, statusAudiences []string) bool {
+	return len(intersectAudiences(requested, statusAudiences)) > 0
 }
 
-func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIdentity string, audiences []string) (*authv1.UserInfo, error) {
+func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIdentity string, audiences []string) (*authv1.UserInfo, []string, error) {
 	review, err := tra.client.Create(
 		ctx,
 		&authv1.TokenReview{
@@ -103,36 +86,95 @@ func (tra *TokenReviewAuthenticator) doTokenReview(ctx context.Context, userIden
 		v1.CreateOptions{},
 	)
 	if err != nil {
-		return nil, util.NewUnauthenticatedError(err, "Request header error: Failed to review the token provided")
+		return nil, nil, util.NewUnauthenticatedError(err, "Request header error: Failed to review the token provided")
 	}
 
 	if !review.Status.Authenticated {
-		return nil, util.NewUnauthenticatedError(
+		return nil, nil, util.NewUnauthenticatedError(
 			errors.New("Failed to authenticate token review"),
 			"Review.Status.Authenticated is false. Error %s",
 			review.Status.Error,
 		)
 	}
-	if !tra.ensureAudience(audiences, review.Status.Audiences) {
-		return nil, util.NewUnauthenticatedError(
+	matchedAudiences := intersectAudiences(audiences, review.Status.Audiences)
+	if len(matchedAudiences) == 0 {
+		return nil, nil, util.NewUnauthenticatedError(
 			errors.New("Failed to authenticate token review"),
-			"Failed to find all of '%v' in audience: %v",
+			"Failed to find any of '%v' in audience: %v",
 			audiences,
 			review.Status.Audiences,
 		)
 	}
 
-	return &review.Status.User, nil
+	return &review.Status.User, matchedAudiences, nil
 }
 
-func audiencesEqual(left, right []string) bool {
-	if len(left) != len(right) {
-		return false
+func classifyTokenReviewPrincipal(
+	username string,
+	baseAudiences []string,
+	matchedAudiences []string,
+	requestedRunID string,
+) AuthenticatedPrincipal {
+	principal := AuthenticatedPrincipal{
+		Username:   username,
+		AuthMethod: AuthMethodTokenReview,
+		Scope:      TokenScopeBroad,
 	}
-	for i := range left {
-		if left[i] != right[i] {
-			return false
+	if len(intersectAudiences(baseAudiences, matchedAudiences)) > 0 {
+		return principal
+	}
+	if requestedRunID == "" {
+		return principal
+	}
+	runAudience := common.TokenAudienceForRun(requestedRunID)
+	for _, audience := range matchedAudiences {
+		if audience == runAudience {
+			principal.Scope = TokenScopeRun
+			principal.RunID = requestedRunID
+			return principal
 		}
 	}
-	return true
+	return principal
+}
+
+func uniqueAudiences(audiences []string) []string {
+	if len(audiences) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(audiences))
+	result := make([]string, 0, len(audiences))
+	for _, audience := range audiences {
+		if audience == "" {
+			continue
+		}
+		if _, ok := seen[audience]; ok {
+			continue
+		}
+		seen[audience] = struct{}{}
+		result = append(result, audience)
+	}
+	return result
+}
+
+func intersectAudiences(left, right []string) []string {
+	if len(left) == 0 || len(right) == 0 {
+		return nil
+	}
+	rightSet := make(map[string]struct{}, len(right))
+	for _, audience := range right {
+		rightSet[audience] = struct{}{}
+	}
+	result := make([]string, 0, len(left))
+	seen := make(map[string]struct{}, len(left))
+	for _, audience := range left {
+		if _, ok := rightSet[audience]; !ok {
+			continue
+		}
+		if _, ok := seen[audience]; ok {
+			continue
+		}
+		seen[audience] = struct{}{}
+		result = append(result, audience)
+	}
+	return result
 }
