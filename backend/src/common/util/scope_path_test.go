@@ -140,6 +140,23 @@ func TestBuildFromStringPath(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "", scopePath3.DotNotation())
 	require.Equal(t, 0, scopePath3.GetSize())
+
+	// Reusing a parsed ScopePath must not re-require the struct form.
+	parsedOnce, err := NewScopePathFromStruct(&st)
+	require.NoError(t, err)
+	reused, err := parsedOnce.WithDotNotation("root.secondary-pipeline.for-loop-2")
+	require.NoError(t, err)
+	require.Equal(t, "root.secondary-pipeline.for-loop-2", reused.DotNotation())
+	require.Equal(t, parsedOnce.GetPipelineSpec(), reused.GetPipelineSpec())
+
+	reusedWithTask, err := ScopePathFromStringPathWithNewTaskParsed(
+		pipelineSpec,
+		&st,
+		"root.secondary-pipeline",
+		"for-loop-2",
+	)
+	require.NoError(t, err)
+	require.Equal(t, "root.secondary-pipeline.for-loop-2", reusedWithTask.DotNotation())
 }
 
 func TestScopePathPush_LeafComponentReturnsValidationError(t *testing.T) {

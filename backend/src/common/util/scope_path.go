@@ -81,7 +81,17 @@ func NewScopePathFromStruct(spec *structpb.Struct) (ScopePath, error) {
 	if err := protojson.Unmarshal(b, pipelineSpec); err != nil {
 		return ScopePath{}, fmt.Errorf("failed to unmarshal spec: %w", err)
 	}
-	return newScopePath(pipelineSpec, spec), nil
+	return NewScopePath(pipelineSpec, spec), nil
+}
+
+// NewScopePath builds a ScopePath from an already-parsed PipelineSpec.
+// Prefer this when the typed spec is available so callers can avoid repeated
+// JSON marshal/unmarshal of large pipeline specs.
+func NewScopePath(
+	pipelineSpec *pipelinespec.PipelineSpec,
+	pipelineSpecStruct *structpb.Struct,
+) ScopePath {
+	return newScopePath(pipelineSpec, pipelineSpecStruct)
 }
 
 // ScopePathFromStringPathWithNewTask builds a ScopePath from a dot notation path and pushes the newTask to the end of the path.
@@ -102,6 +112,24 @@ func ScopePathFromStringPathWithNewTask(rawPipelineSpec *structpb.Struct, dotNot
 	return scopePath, nil
 }
 
+// ScopePathFromStringPathWithNewTaskParsed is like ScopePathFromStringPathWithNewTask
+// but reuses an already-parsed PipelineSpec.
+func ScopePathFromStringPathWithNewTaskParsed(
+	pipelineSpec *pipelinespec.PipelineSpec,
+	pipelineSpecStruct *structpb.Struct,
+	dotNotationPath string,
+	newTask string,
+) (ScopePath, error) {
+	scopePath, err := ScopePathFromDotNotationParsed(pipelineSpec, pipelineSpecStruct, dotNotationPath)
+	if err != nil {
+		return ScopePath{}, fmt.Errorf("failed to build scope path: %w", err)
+	}
+	if err := scopePath.Push(newTask); err != nil {
+		return ScopePath{}, err
+	}
+	return scopePath, nil
+}
+
 // ScopePathFromDotNotation builds a ScopePath from a dot notation string.
 // Example: ScopePathFromDotNotation(spec, "root.pipeline.task") creates a scope path with three entries.
 // An empty string creates an empty scope path (useful for root).
@@ -113,10 +141,30 @@ func ScopePathFromDotNotation(rawPipelineSpec *structpb.Struct, dotNotationPath 
 	if err != nil {
 		return ScopePath{}, fmt.Errorf("failed to build scope path: %w", err)
 	}
+	return scopePath.WithDotNotation(dotNotationPath)
+}
 
-	// Convert dot notation to string array
-	pathArray := DotNotationToStringPath(dotNotationPath)
-	for _, taskName := range pathArray {
+// ScopePathFromDotNotationParsed builds a ScopePath from a dot notation string
+// using an already-parsed PipelineSpec (no JSON round-trip).
+func ScopePathFromDotNotationParsed(
+	pipelineSpec *pipelinespec.PipelineSpec,
+	pipelineSpecStruct *structpb.Struct,
+	dotNotationPath string,
+) (ScopePath, error) {
+	if pipelineSpec == nil {
+		return ScopePath{}, fmt.Errorf("PipelineSpec is nil")
+	}
+	return NewScopePath(pipelineSpec, pipelineSpecStruct).WithDotNotation(dotNotationPath)
+}
+
+// WithDotNotation returns a new ScopePath for the given dot-notation path that
+// reuses this ScopePath's already-parsed pipeline spec.
+func (s ScopePath) WithDotNotation(dotNotationPath string) (ScopePath, error) {
+	if s.pipelineSpec == nil {
+		return ScopePath{}, fmt.Errorf("PipelineSpec is nil")
+	}
+	scopePath := newScopePath(s.pipelineSpec, s.pipelineSpecStruct)
+	for _, taskName := range DotNotationToStringPath(dotNotationPath) {
 		if err := scopePath.Push(taskName); err != nil {
 			return ScopePath{}, fmt.Errorf("failed to build scope path at task %q: %w", taskName, err)
 		}

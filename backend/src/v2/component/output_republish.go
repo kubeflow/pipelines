@@ -80,6 +80,48 @@ func ParentNeedsOutputRepublish(
 	return false
 }
 
+// ancestryNeedsOutputRepublish reports whether the immediate parent or any of
+// its ancestors is missing declared outputs. A prior partial UpdateTasksBulk
+// can leave an ancestor incomplete while the immediate parent looks complete;
+// republish must still run in that case so preserved children can repair the
+// ancestor chain.
+func ancestryNeedsOutputRepublish(
+	ctx context.Context,
+	apiClient kfpapi.API,
+	runID string,
+	parentTask *apiV2beta1.PipelineTask,
+	parentScope util.ScopePath,
+	parentOutputDefs *pipelinespec.ComponentOutputsSpec,
+) (bool, error) {
+	if ParentNeedsOutputRepublish(parentTask, parentOutputDefs) {
+		return true, nil
+	}
+
+	current := parentTask
+	baseScope := parentScope
+	for current.GetParentTaskId() != "" {
+		ancestor, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
+			TaskId: current.GetParentTaskId(),
+			RunId:  runID,
+		})
+		if err != nil {
+			return false, fmt.Errorf("failed to load ancestor task %s while checking output republish: %w", current.GetParentTaskId(), err)
+		}
+		ancestorScope, err := baseScope.WithDotNotation(ancestor.GetScopePath())
+		if err != nil {
+			return false, fmt.Errorf("failed to resolve scope path for ancestor task %s: %w", ancestor.GetTaskId(), err)
+		}
+		if ancestorScope.GetLast() == nil || ancestorScope.GetLast().GetComponentSpec() == nil {
+			return false, nil
+		}
+		if ParentNeedsOutputRepublish(ancestor, ancestorScope.GetLast().GetComponentSpec().GetOutputDefinitions()) {
+			return true, nil
+		}
+		current = ancestor
+	}
+	return false, nil
+}
+
 func isPreservedTaskStateForRetry(state apiV2beta1.PipelineTask_TaskState) bool {
 	switch state {
 	case apiV2beta1.PipelineTask_SUCCEEDED,
@@ -132,12 +174,14 @@ func listAllChildTasks(
 
 // RepublishPreservedChildOutputsToDAG re-drives first-level (and upward)
 // output propagation from preserved children into parent. It is a no-op when
-// the parent already has all declared outputs, has no output definitions, or
-// has no preserved children with outputs.
+// the parent and all ancestors already have all declared outputs, the parent
+// has no output definitions, or there are no preserved children with outputs.
 //
 // This repairs the retry case where resetRetriedTaskState clears a failed
 // parent's outputs while successful siblings are preserved and will not rerun
-// (and therefore will not propagate again).
+// (and therefore will not propagate again). It also repairs the partial-flush
+// case where an immediate parent looks complete but an ancestor is still
+// missing declared outputs.
 func RepublishPreservedChildOutputsToDAG(
 	ctx context.Context,
 	opts DAGOutputRepublishOptions,
@@ -180,7 +224,18 @@ func RepublishPreservedChildOutputsToDAG(
 		return nil
 	}
 	parentOutputDefs := parentComponentSpec.GetOutputDefinitions()
-	if !ParentNeedsOutputRepublish(parentTask, parentOutputDefs) {
+	needsRepublish, err := ancestryNeedsOutputRepublish(
+		ctx,
+		apiClient,
+		opts.Run.GetRunId(),
+		parentTask,
+		parentScope,
+		parentOutputDefs,
+	)
+	if err != nil {
+		return err
+	}
+	if !needsRepublish {
 		return nil
 	}
 
@@ -194,8 +249,9 @@ func RepublishPreservedChildOutputsToDAG(
 		if child == nil || !isPreservedTaskStateForRetry(child.GetState()) || !childHasPropagatableOutputs(child) {
 			continue
 		}
-		childScope, err := util.ScopePathFromStringPathWithNewTask(
-			opts.PipelineSpec,
+		childScope, err := util.ScopePathFromStringPathWithNewTaskParsed(
+			parentScope.GetPipelineSpec(),
+			parentScope.GetPipelineSpecStruct(),
 			parentTask.GetScopePath(),
 			child.GetName(),
 		)

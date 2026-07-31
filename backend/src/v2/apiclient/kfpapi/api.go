@@ -215,6 +215,11 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 	// Create a map of task IDs to tasks for quick lookup
 	taskMap := taskMapByID(run)
 
+	baseScope, err := util.NewScopePathFromStruct(pipelineSpec)
+	if err != nil {
+		return fmt.Errorf("failed to parse pipeline spec for status updates: %w", err)
+	}
+
 	// Start with the current task and traverse up
 	for {
 		// If current task has no parent, we've reached the root
@@ -236,7 +241,7 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// task count within it's component spec.
 		// We need to use the parent task's scope path, not the current task's scope path
 		// Note this doesn't factor in the number of iterations of these child tasks when in a loop.
-		getScopePath, err := util.ScopePathFromDotNotation(pipelineSpec, parentTask.GetScopePath())
+		getScopePath, err := baseScope.WithDotNotation(parentTask.GetScopePath())
 		if err != nil {
 			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
 		}

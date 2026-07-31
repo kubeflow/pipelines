@@ -16,11 +16,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -215,18 +213,10 @@ func run() error {
 }
 
 func resolveNamespace(explicitNamespace string) (string, error) {
-	if explicitNamespace != "" {
-		return explicitNamespace, nil
+	if explicitNamespace == "" {
+		return "", fmt.Errorf("argument --namespace must be specified")
 	}
-	if namespace := os.Getenv("NAMESPACE"); namespace != "" {
-		return namespace, nil
-	}
-	const serviceAccountNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-	namespaceBytes, err := os.ReadFile(serviceAccountNamespacePath)
-	if err != nil {
-		return "", fmt.Errorf("NAMESPACE environment variable must be set")
-	}
-	return string(bytes.TrimSpace(namespaceBytes)), nil
+	return explicitNamespace, nil
 }
 
 // Use WARNING default logging level to facilitate troubleshooting.

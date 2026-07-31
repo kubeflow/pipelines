@@ -134,7 +134,10 @@ func UploadBlob(ctx context.Context, bucket *blob.Bucket, localPath, blobPath st
 
 func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir string) error {
 	iter := bucket.List(&blob.ListOptions{Prefix: blobDir})
-	objects := make([]*blob.ListObject, 0)
+	normalizedBlobDir := strings.TrimSuffix(blobDir, "/")
+	var exactPrefixObject *blob.ListObject
+	hasNestedObjects := false
+
 	for {
 		obj, err := iter.Next(ctx)
 		if err != nil {
@@ -144,51 +147,52 @@ func DownloadBlob(ctx context.Context, bucket *blob.Bucket, localDir, blobDir st
 			return fmt.Errorf("failed to list objects in remote storage %q: %w", blobDir, err)
 		}
 		if obj.IsDir {
-			// TODO: is this branch possible?
-
 			// Object stores list all files with the same prefix,
 			// there is no need to recursively list each folder.
 			continue
 		}
-		objects = append(objects, obj)
-	}
 
-	if len(objects) == 0 {
-		return nil
-	}
-
-	normalizedBlobDir := strings.TrimSuffix(blobDir, "/")
-	hasNestedObjects := false
-	for _, obj := range objects {
-		if strings.TrimSuffix(obj.Key, "/") != normalizedBlobDir {
-			hasNestedObjects = true
-			break
-		}
-	}
-
-	for _, obj := range objects {
 		normalizedKey := strings.TrimSuffix(obj.Key, "/")
 		if normalizedKey != normalizedBlobDir && !strings.HasPrefix(normalizedKey, normalizedBlobDir+"/") {
 			continue
 		}
-		// Some object stores may expose a zero-byte object for the directory prefix itself
-		// alongside the actual nested files. Skip that marker when downloading a directory tree.
-		if hasNestedObjects && normalizedKey == normalizedBlobDir {
+		// Hold the exact-prefix object until listing finishes. Nested objects
+		// prove it is only a directory marker and should be discarded; otherwise
+		// download it as a single-file artifact.
+		if normalizedKey == normalizedBlobDir {
+			exactPrefixObject = obj
 			continue
 		}
 
-		relativePath, err := filepath.Rel(normalizedBlobDir, normalizedKey)
-		if err != nil {
-			return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, blobDir, err)
+		hasNestedObjects = true
+		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, obj); err != nil {
+			return err
 		}
-		if relativePath == ".." || strings.HasPrefix(relativePath, "../") || filepath.IsAbs(relativePath) {
-			return fmt.Errorf("unexpected object key %q when listing %q", obj.Key, blobDir)
-		}
-		if err := downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath)); err != nil {
+	}
+
+	if exactPrefixObject != nil && !hasNestedObjects {
+		if err := downloadListedObject(ctx, bucket, localDir, normalizedBlobDir, exactPrefixObject); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func downloadListedObject(
+	ctx context.Context,
+	bucket *blob.Bucket,
+	localDir, normalizedBlobDir string,
+	obj *blob.ListObject,
+) error {
+	normalizedKey := strings.TrimSuffix(obj.Key, "/")
+	relativePath, err := filepath.Rel(normalizedBlobDir, normalizedKey)
+	if err != nil {
+		return fmt.Errorf("unexpected object key %q when listing %q: %w", obj.Key, normalizedBlobDir, err)
+	}
+	if relativePath == ".." || strings.HasPrefix(relativePath, "../") || filepath.IsAbs(relativePath) {
+		return fmt.Errorf("unexpected object key %q when listing %q", obj.Key, normalizedBlobDir)
+	}
+	return downloadFile(ctx, bucket, obj.Key, filepath.Join(localDir, relativePath))
 }
 
 func uploadFile(ctx context.Context, bucket *blob.Bucket, localFilePath, blobFilePath string) error {

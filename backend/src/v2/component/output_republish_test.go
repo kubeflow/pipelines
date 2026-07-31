@@ -784,6 +784,224 @@ func TestRepublishPreservedChildOutputsToDAG_OmitsAncestorArtifactLinks(t *testi
 	assert.Equal(t, "root-model", updatedRoot.GetOutputs().GetArtifacts()[0].GetArtifactKey())
 }
 
+// Regression: a prior partial UpdateTasksBulk can leave the immediate nested DAG
+// complete while the root ancestor is still missing declared outputs. Republish
+// must continue in that case so preserved children can repair the root.
+func TestRepublishPreservedChildOutputsToDAG_RepairsIncompleteAncestorWhenNestedComplete(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"nested": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "nested"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "nested-comp"},
+						},
+					},
+					Outputs: &pipelinespec.DagOutputsSpec{
+						Parameters: map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec{
+							"root-out": {
+								Kind: &pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter{
+									ValueFromParameter: &pipelinespec.DagOutputsSpec_ParameterSelectorSpec{
+										ProducerSubtask:    "nested",
+										OutputParameterKey: "nested-out",
+									},
+								},
+							},
+						},
+						Artifacts: map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+							"root-model": {
+								ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{{
+									ProducerSubtask:   "nested",
+									OutputArtifactKey: "nested-model",
+								}},
+							},
+						},
+					},
+				},
+			},
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"root-out": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+				Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+					"root-model": {},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"nested-comp": {
+				Implementation: &pipelinespec.ComponentSpec_Dag{
+					Dag: &pipelinespec.DagSpec{
+						Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+							"worker": {
+								TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "worker"},
+								ComponentRef: &pipelinespec.ComponentRef{Name: "worker-comp"},
+							},
+						},
+						Outputs: &pipelinespec.DagOutputsSpec{
+							Parameters: map[string]*pipelinespec.DagOutputsSpec_DagOutputParameterSpec{
+								"nested-out": {
+									Kind: &pipelinespec.DagOutputsSpec_DagOutputParameterSpec_ValueFromParameter{
+										ValueFromParameter: &pipelinespec.DagOutputsSpec_ParameterSelectorSpec{
+											ProducerSubtask:    "worker",
+											OutputParameterKey: "result",
+										},
+									},
+								},
+							},
+							Artifacts: map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+								"nested-model": {
+									ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{{
+										ProducerSubtask:   "worker",
+										OutputArtifactKey: "model",
+									}},
+								},
+							},
+						},
+					},
+				},
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+						"nested-out": {ParameterType: pipelinespec.ParameterType_STRING},
+					},
+					Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+						"nested-model": {},
+					},
+				},
+			},
+			"worker-comp": {
+				Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "worker"},
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+						"result": {ParameterType: pipelinespec.ParameterType_STRING},
+					},
+					Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+						"model": {},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+
+	run := &apiv2beta1.Run{RunId: "run-nested-complete-root-incomplete"}
+	rootID := "root-task"
+	nestedID := "nested-task"
+	workerID := "worker-task"
+	artifactID := "art-ancestor-repair"
+	rootIDPtr := util.StringPointer(rootID)
+	nestedIDPtr := util.StringPointer(nestedID)
+
+	rootTask := &apiv2beta1.PipelineTask{
+		TaskId:    rootID,
+		RunId:     run.GetRunId(),
+		Name:      "root",
+		State:     apiv2beta1.PipelineTask_RUNNING,
+		Type:      apiv2beta1.PipelineTask_DAG,
+		ScopePath: "root",
+		Outputs:   &apiv2beta1.PipelineTask_InputOutputs{},
+	}
+	// Immediate parent already has all declared outputs from a prior partial flush.
+	nestedTask := &apiv2beta1.PipelineTask{
+		TaskId:       nestedID,
+		RunId:        run.GetRunId(),
+		Name:         "nested",
+		State:        apiv2beta1.PipelineTask_RUNNING,
+		Type:         apiv2beta1.PipelineTask_DAG,
+		ScopePath:    "root.nested",
+		ParentTaskId: rootIDPtr,
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+				ParameterKey: "nested-out",
+				Value:        structpb.NewStringValue("nested-complete"),
+				Type:         apiv2beta1.IOType_OUTPUT,
+				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+			}},
+			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+				ArtifactKey: "nested-model",
+				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2beta1.IOType_OUTPUT,
+				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+			}},
+		},
+	}
+	workerTask := &apiv2beta1.PipelineTask{
+		TaskId:       workerID,
+		RunId:        run.GetRunId(),
+		Name:         "worker",
+		State:        apiv2beta1.PipelineTask_SUCCEEDED,
+		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		ScopePath:    "root.nested.worker",
+		ParentTaskId: nestedIDPtr,
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+				ParameterKey: "result",
+				Value:        structpb.NewStringValue("nested-complete"),
+				Type:         apiv2beta1.IOType_OUTPUT,
+				Producer:     &apiv2beta1.IOProducer{TaskName: "worker"},
+			}},
+			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+				ArtifactKey: "model",
+				Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: artifactID, Name: "model"}},
+				Type:        apiv2beta1.IOType_OUTPUT,
+				Producer:    &apiv2beta1.IOProducer{TaskName: "worker"},
+			}},
+		},
+	}
+
+	baseMock := kfpapi.NewMockAPI()
+	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseMock, seen: map[string]struct{}{}}
+	mockAPI.AddRun(run)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: rootTask})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: nestedTask})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: run.GetRunId(), Task: workerTask})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact:    &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("gs://bucket/model")},
+		TaskId:      workerID,
+		RunId:       run.GetRunId(),
+		ProducerKey: "model",
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{{
+			ArtifactId: artifactID,
+			TaskId:     nestedID,
+			RunId:      run.GetRunId(),
+			Key:        "nested-model",
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+		}},
+	})
+	require.NoError(t, err)
+
+	nestedScope, err := util.ScopePathFromDotNotation(pipelineSpecStruct, "root.nested")
+	require.NoError(t, err)
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+
+	err = RepublishPreservedChildOutputsToDAG(context.Background(), DAGOutputRepublishOptions{
+		Run:          run,
+		ParentTask:   nestedTask,
+		ParentScope:  nestedScope,
+		PipelineSpec: pipelineSpecStruct,
+	}, clientManager)
+	require.NoError(t, err)
+
+	updatedRoot, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: rootID,
+		RunId:  run.GetRunId(),
+	})
+	require.NoError(t, err)
+	require.Len(t, updatedRoot.GetOutputs().GetParameters(), 1)
+	assert.Equal(t, "nested-complete", updatedRoot.GetOutputs().GetParameters()[0].GetValue().GetStringValue())
+	require.Len(t, updatedRoot.GetOutputs().GetArtifacts(), 1)
+	assert.Equal(t, "root-model", updatedRoot.GetOutputs().GetArtifacts()[0].GetArtifactKey())
+}
+
 // uniqueLinkEnforcingMockAPI rejects duplicate artifact-task rows that would
 // violate UniqueLink in production storage.
 type uniqueLinkEnforcingMockAPI struct {

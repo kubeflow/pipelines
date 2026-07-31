@@ -1087,6 +1087,21 @@ func propagateOutputsUpDAG(
 	currentScopePath := opts.ScopePath
 	isFirstLevel := true // Track if this is first-level propagation (from producing task to immediate parent)
 
+	// Parse the pipeline spec once for this invocation and reuse it while walking
+	// ancestors. ScopePath reconstructions previously JSON round-tripped the full
+	// spec on every hop.
+	baseScope := opts.ScopePath
+	if baseScope.GetPipelineSpec() == nil {
+		if opts.PipelineSpec == nil {
+			return fmt.Errorf("pipeline spec is required for output propagation")
+		}
+		parsedScope, parseErr := util.NewScopePathFromStruct(opts.PipelineSpec)
+		if parseErr != nil {
+			return fmt.Errorf("failed to parse pipeline spec for output propagation: %w", parseErr)
+		}
+		baseScope = parsedScope
+	}
+
 	// Track propagated outputs (artifacts and parameters) for next level
 	type propagatedInfo struct {
 		key      string
@@ -1114,8 +1129,10 @@ func propagateOutputsUpDAG(
 			parentTask = refreshedParentTask
 		}
 
-		// Get the parent's component spec to check outputDefinitions
-		parentScopePath, err := util.ScopePathFromDotNotation(opts.PipelineSpec, parentTask.GetScopePath())
+		// Get the parent's component spec to check outputDefinitions.
+		// Reuse the already-parsed pipeline spec from the current ScopePath to
+		// avoid JSON round-tripping the full spec on every ancestor hop.
+		parentScopePath, err := baseScope.WithDotNotation(parentTask.GetScopePath())
 		if err != nil {
 			return fmt.Errorf("failed to get scope path for parent task %s: %w", parentTask.GetTaskId(), err)
 		}
