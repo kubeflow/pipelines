@@ -55,6 +55,13 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
+// TokenAudienceRunPrefix is appended to the token-review audience base when
+// minting and validating run-scoped projected service-account tokens used by
+// driver/launcher/importer pods. The resulting audience is:
+//
+//	<base>/runs/<runID>
+const TokenAudienceRunPrefix string = "/runs/"
+
 const DefaultMetadataTLSEnabled = false
 
 const (

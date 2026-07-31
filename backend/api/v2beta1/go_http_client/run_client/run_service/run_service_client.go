@@ -74,6 +74,8 @@ type ClientService interface {
 
 	CreateTask(params *CreateTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*CreateTaskOK, error)
 
+	FindCachedTask(params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error)
+
 	GetTask(params *GetTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*GetTaskOK, error)
 
 	ListTasks(params *ListTasksParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*ListTasksOK, error)
@@ -460,6 +462,44 @@ func (a *Client) CreateTask(params *CreateTaskParams, authInfo runtime.ClientAut
 	}
 	// unexpected success response
 	unexpectedSuccess := result.(*CreateTaskDefault)
+	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
+}
+
+/*
+FindCachedTask finds a cached successful task by namespace and fingerprint
+*/
+func (a *Client) FindCachedTask(params *FindCachedTaskParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*FindCachedTaskOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewFindCachedTaskParams()
+	}
+	op := &runtime.ClientOperation{
+		ID:                 "find_cached_task",
+		Method:             "POST",
+		PathPattern:        "/apis/v2beta1/tasks:findCached",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &FindCachedTaskReader{formats: a.formats},
+		AuthInfo:           authInfo,
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	}
+	for _, opt := range opts {
+		opt(op)
+	}
+
+	result, err := a.transport.Submit(op)
+	if err != nil {
+		return nil, err
+	}
+	success, ok := result.(*FindCachedTaskOK)
+	if ok {
+		return success, nil
+	}
+	// unexpected success response
+	unexpectedSuccess := result.(*FindCachedTaskDefault)
 	return nil, runtime.NewAPIError("unexpected success response: content available as default response in error", unexpectedSuccess, unexpectedSuccess.Code())
 }
 
