@@ -423,34 +423,6 @@ func taskIterationIndex(typeAttrs model.JSONData) (*int64, error) {
 	}
 }
 
-func sameLogicalTaskIdentity(existingTask, candidateTask *model.Task) (bool, error) {
-	if existingTask == nil || candidateTask == nil {
-		return false, nil
-	}
-	if existingTask.RunUUID != candidateTask.RunUUID ||
-		normalizedParentTaskUUID(existingTask.ParentTaskUUID) != normalizedParentTaskUUID(candidateTask.ParentTaskUUID) ||
-		existingTask.ScopePath != candidateTask.ScopePath ||
-		existingTask.Name != candidateTask.Name ||
-		existingTask.Type != candidateTask.Type {
-		return false, nil
-	}
-	existingIterationIndex, err := taskIterationIndex(existingTask.TypeAttrs)
-	if err != nil {
-		return false, err
-	}
-	candidateIterationIndex, err := taskIterationIndex(candidateTask.TypeAttrs)
-	if err != nil {
-		return false, err
-	}
-	if existingIterationIndex == nil && candidateIterationIndex == nil {
-		return true, nil
-	}
-	if existingIterationIndex == nil || candidateIterationIndex == nil {
-		return false, nil
-	}
-	return *existingIterationIndex == *candidateIterationIndex, nil
-}
-
 func normalizedParentTaskUUID(parentTaskUUID *string) string {
 	if parentTaskUUID == nil {
 		return ""
@@ -533,51 +505,7 @@ func (s *TaskStore) FindTaskByLogicalIdentity(task *model.Task) (*model.Task, er
 	if logicalKey == nil {
 		return nil, nil
 	}
-	existingTask, err := s.findTaskByLogicalKey(*logicalKey)
-	if err != nil || existingTask != nil {
-		return existingTask, err
-	}
-
-	// TODO: Remove this legacy LogicalKey fallback once the planned migration
-	// backfill has populated existing task rows. This bridge is only needed for
-	// pre-backfill tasks that still have NULL LogicalKey values during rollout.
-	rowsSQL, rowsArgs, err := sq.
-		Select(taskColumns...).
-		From(tableName).
-		Where(sq.Eq{
-			"RunUUID":   task.RunUUID,
-			"ScopePath": task.ScopePath,
-			"Name":      task.Name,
-			"Type":      task.Type,
-		}).
-		Where("LogicalKey IS NULL").
-		OrderBy("CreatedAtInSec DESC", "UUID DESC").
-		ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create logical task identity query: %v", err.Error())
-	}
-
-	rows, err := s.db.Query(rowsSQL, rowsArgs...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to look up logical task identity: %v", err.Error())
-	}
-	defer rows.Close()
-
-	tasks, err := s.scanRows(rows)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to scan logical task identity results: %v", err.Error())
-	}
-
-	for _, existingTask := range tasks {
-		match, err := sameLogicalTaskIdentity(existingTask, task)
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Failed to compare logical task identity")
-		}
-		if match {
-			return existingTask, nil
-		}
-	}
-	return nil, nil
+	return s.findTaskByLogicalKey(*logicalKey)
 }
 
 func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
