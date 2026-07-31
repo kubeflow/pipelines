@@ -92,6 +92,9 @@ spec:
       - mountPath: /var/run/secrets/kfp
         name: kfp-launcher-token
         readOnly: true
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
     inputs:
       parameters:
       - name: task-name
@@ -130,9 +133,13 @@ spec:
       projected:
         sources:
         - serviceAccountToken:
-            audience: pipelines.kubeflow.org
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
             expirationSeconds: 7200
             path: token
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
@@ -200,6 +207,9 @@ spec:
         name: dot-cache-scratch
       - mountPath: /.config
         name: dot-config-scratch
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
     initContainers:
     - args:
       - --copy
@@ -246,7 +256,7 @@ spec:
       projected:
         sources:
         - serviceAccountToken:
-            audience: pipelines.kubeflow.org
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
             expirationSeconds: 7200
             path: token
     - emptyDir: {}
@@ -261,6 +271,10 @@ spec:
       name: dot-cache-scratch
     - emptyDir: {}
       name: dot-config-scratch
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
@@ -393,6 +407,9 @@ spec:
       - mountPath: /var/run/secrets/kfp
         name: kfp-launcher-token
         readOnly: true
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
     inputs:
       parameters:
       - default: ""
@@ -433,9 +450,13 @@ spec:
       projected:
         sources:
         - serviceAccountToken:
-            audience: pipelines.kubeflow.org
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
             expirationSeconds: 7200
             path: token
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
   - dag:
       tasks:
       - arguments:
