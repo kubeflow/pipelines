@@ -25,6 +25,7 @@ import (
 
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -556,7 +557,10 @@ func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunReques
 		return nil, util.Wrap(err, "Failed to get a run")
 	}
 
-	return toApiRun(run), nil
+	// FULL view is used by runtime driver/launcher pods. Prefer an embedded
+	// pipeline_spec when the run stores a manifest so run-scoped tokens do not
+	// need a follow-up GetPipelineVersion call.
+	return toApiRunWithPipelineSourcePreference(run, hydrateTasks), nil
 }
 
 func (s *BaseRunServer) getRunWithHydration(ctx context.Context, runID string, hydrateTasks bool) (*model.Run, error) {
@@ -968,6 +972,73 @@ func (s *RunServer) ListTasks(ctx context.Context, request *apiv2beta1.ListTasks
 	}, nil
 }
 
+func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
+	if request == nil {
+		return nil, util.NewInvalidInputError("FindCachedTaskRequest is required")
+	}
+	if request.GetCacheFingerprint() == "" {
+		return nil, util.NewInvalidInputError("cache_fingerprint is required")
+	}
+
+	namespace := s.resourceManager.ReplaceNamespace(request.GetNamespace())
+	if common.IsMultiUserMode() && namespace == "" {
+		return nil, util.NewInvalidInputError("namespace is required in multi-user mode")
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbList,
+	}
+	// Runtime clients bind cache lookup auth to the in-flight run via metadata so
+	// run-scoped projected tokens authorize this namespace-scoped RPC without
+	// granting cross-run API access. Non-runtime callers still use namespace RBAC.
+	boundRunID := auth.BoundRunIDFromIncomingContext(ctx)
+	if err := s.canAccessRun(ctx, boundRunID, resourceAttributes); err != nil {
+		return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+	}
+	if boundRunID != "" && namespace != "" {
+		run, err := s.resourceManager.GetRun(boundRunID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize cached task lookup")
+		}
+		effectiveNamespace := run.Namespace
+		if s.resourceManager.IsEmptyNamespace(effectiveNamespace) {
+			experiment, experimentErr := s.resourceManager.GetExperiment(run.ExperimentId)
+			if experimentErr != nil {
+				return nil, util.NewInvalidInputError(
+					"bound run %s has an empty namespace and the parent experiment %s could not be fetched: %s",
+					boundRunID,
+					run.ExperimentId,
+					experimentErr.Error(),
+				)
+			}
+			effectiveNamespace = experiment.Namespace
+		}
+		if effectiveNamespace != "" && effectiveNamespace != namespace {
+			return nil, util.NewPermissionDeniedError(
+				nil,
+				"bound run %s is not in namespace %s",
+				boundRunID,
+				namespace,
+			)
+		}
+	}
+
+	task, err := s.resourceManager.FindLatestCachedTask(namespace, request.GetCacheFingerprint())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to find cached task")
+	}
+	if task == nil {
+		return &apiv2beta1.FindCachedTaskResponse{}, nil
+	}
+
+	apiTask, err := toAPITask(task, nil)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert cached task to API")
+	}
+	return &apiv2beta1.FindCachedTaskResponse{Task: apiTask}, nil
+}
+
 func (s *RunServer) validateParentTaskOwnership(parentTaskID *string, runID string) error {
 	if parentTaskID == nil || *parentTaskID == "" {
 		return nil
@@ -1027,6 +1098,11 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 		if resourceAttributes.Name == "" {
 			resourceAttributes.Name = run.K8SName
 		}
+		// Bind TokenReview to this run so a projected runtime token for another
+		// run cannot authorize mutations here. Header-authenticated users are
+		// unaffected; base-audience SA tokens still authenticate as broad via
+		// a single multi-audience TokenReview.
+		ctx = auth.WithRequestedRunID(ctx, runId)
 	}
 	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
 		return util.NewInvalidInputError("A run cannot have an empty namespace in multi-user mode")
@@ -1038,6 +1114,9 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access run %s. Check if you have access to namespace %s", runId, resourceAttributes.Namespace)
+	}
+	if err := auth.EnforceAuthenticatedRunScope(ctx, runId); err != nil {
+		return util.Wrapf(err, "Failed to access run %s", runId)
 	}
 	return nil
 }

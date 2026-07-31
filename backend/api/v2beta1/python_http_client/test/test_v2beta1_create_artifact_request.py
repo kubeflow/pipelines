@@ -51,7 +51,8 @@ class TestV2beta1CreateArtifactRequest(unittest.TestCase):
                 run_id = '0', 
                 task_id = '0', 
                 producer_key = '0', 
-                iteration_index = '0'
+                iteration_index = '0', 
+                reuse_if_exists = True
             )
         else :
             return V2beta1CreateArtifactRequest(

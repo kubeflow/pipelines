@@ -168,6 +168,12 @@ func (f *FakeClientManager) ArtifactTaskStore() storage.ArtifactTaskStoreInterfa
 	return f.artifactTaskStore
 }
 
+// SetArtifactTaskStore replaces the artifact-task store. Intended for tests that
+// need to assert storage is not reached.
+func (f *FakeClientManager) SetArtifactTaskStore(store storage.ArtifactTaskStoreInterface) {
+	f.artifactTaskStore = store
+}
+
 func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
 	return f.resourceReferenceStore
 }

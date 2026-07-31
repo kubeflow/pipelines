@@ -1514,16 +1514,22 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 // Supports v2beta1 API.
 // Note: adds error details to the message if a parsing error occurs.
 func toApiRun(r *model.Run) *apiv2beta1.Run {
+	return toApiRunWithPipelineSourcePreference(r, false)
+}
+
+// toApiRunWithPipelineSourcePreference converts a run to its API form.
+// When preferEmbeddedPipelineSpec is true and the run stores a pipeline
+// manifest, the response embeds pipeline_spec even if a pipeline version
+// reference is also present. Runtime clients authenticate with run-scoped
+// tokens and cannot call GetPipelineVersion.
+func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2beta1.Run {
 	r = r.ToV2()
 	runtimeConfig := toApiRuntimeConfig(r.PipelineSpec.RuntimeConfig)
+	var apiRunErr error
 	if runtimeConfig == nil {
-		return &apiv2beta1.Run{
-			RunId:        r.UUID,
-			ExperimentId: r.ExperimentId,
-			Error:        util.ToRpcStatus(util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")),
-		}
+		apiRunErr = util.Wrap(errors.New("Failed to parse runtime config"), "Failed to convert internal run representation to its API counterpart")
 	}
-	if len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
+	if runtimeConfig != nil && len(runtimeConfig.GetParameters()) == 0 && len(runtimeConfig.GetPipelineRoot()) == 0 {
 		if params := toMapProtoStructParameters(string(r.Parameters)); len(params) > 0 {
 			runtimeConfig.Parameters = params
 		} else {
@@ -1532,11 +1538,10 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 	}
 	apiTasks, err := generateAPITasks(r.Tasks)
 	if err != nil {
-		return &apiv2beta1.Run{
-			RunId:        r.UUID,
-			ExperimentId: r.ExperimentId,
-			Error:        util.ToRpcStatus(err),
+		if apiRunErr == nil {
+			apiRunErr = err
 		}
+		apiTasks = nil
 	}
 	if len(apiTasks) == 0 {
 		apiTasks = nil
@@ -1605,39 +1610,53 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 			Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart: invalid plugins_output")),
 		}
 	}
-	err = util.NewInvalidInputError("Failed to parse the pipeline source")
-	if r.PipelineSpec.PipelineVersionId != "" {
+
+	pipelineSourceErr := util.NewInvalidInputError("Failed to parse the pipeline source")
+	if preferEmbeddedPipelineSpec && r.PipelineSpec.PipelineSpecManifest != "" {
+		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
+		if err1 == nil {
+			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
+				PipelineSpec: spec,
+			}
+		} else if apiRunErr == nil {
+			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
+		}
+	}
+	if apiRunV2.PipelineSource == nil && r.PipelineSpec.PipelineVersionId != "" {
 		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
 			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
 				PipelineId:        r.PipelineSpec.PipelineId,
 				PipelineVersionId: r.PipelineSpec.PipelineVersionId,
 			},
 		}
-		return apiRunV2
-	} else if r.PipelineSpec.PipelineSpecManifest != "" {
+	} else if apiRunV2.PipelineSource == nil && r.PipelineSpec.PipelineSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
-			return apiRunV2
+		} else if apiRunErr == nil {
+			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
 		}
-		err = util.Wrap(err1, err.Error()).(*util.UserError)
-	} else if r.PipelineSpec.WorkflowSpecManifest != "" {
+	} else if apiRunV2.PipelineSource == nil && r.PipelineSpec.WorkflowSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
 				PipelineSpec: spec,
 			}
-			return apiRunV2
+		} else if apiRunErr == nil {
+			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
 		}
-		err = util.Wrap(err1, err.Error()).(*util.UserError)
 	}
-	return &apiv2beta1.Run{
-		RunId:        r.UUID,
-		ExperimentId: r.ExperimentId,
-		Error:        util.ToRpcStatus(util.Wrap(err, "Failed to convert internal run representation to its API counterpart due to missing pipeline source")),
+
+	if apiRunV2.GetPipelineSource() == nil && apiRunErr == nil {
+		apiRunErr = util.Wrap(pipelineSourceErr, "Failed to convert internal run representation to its API counterpart due to missing pipeline source")
 	}
+
+	if apiRunErr != nil {
+		apiRunV2.Error = util.ToRpcStatus(apiRunErr)
+	}
+	return apiRunV2
 }
 
 func generateAPITasks(tasks []*model.Task) ([]*apiv2beta1.PipelineTask, error) {
@@ -2808,6 +2827,9 @@ func toModelArtifactTask(apiAT *apiv2beta1.ArtifactTask) (*model.ArtifactTask, e
 			return nil, util.Wrap(err, "Failed to convert producer to JSONData")
 		}
 		modelAT.Producer = producer
+	}
+	if err := modelAT.SyncIterationFromProducer(); err != nil {
+		return nil, util.Wrap(err, "Failed to derive artifact-task iteration")
 	}
 
 	return modelAT, nil

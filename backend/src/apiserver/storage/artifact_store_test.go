@@ -16,6 +16,8 @@ package storage
 
 import (
 	"database/sql"
+	"fmt"
+	"sync"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -71,6 +73,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 	assert.Equal(t, "ns1", created.Namespace)
 	assert.Equal(t, model.ArtifactType(apiv2beta1.Artifact_Artifact), created.Type)
 	assert.Equal(t, "s3://bucket/path/file", *created.URI)
+	assert.Equal(t, artifactURIHash("s3://bucket/path/file"), created.URIHash)
 	assert.Equal(t, "model.pt", created.Name)
 	assert.Equal(t, "v", created.Metadata["k"])
 
@@ -83,6 +86,7 @@ func TestCreateArtifact_Success(t *testing.T) {
 	assert.Equal(t, created.Namespace, fetched.Namespace)
 	assert.Equal(t, created.Type, fetched.Type)
 	assert.Equal(t, created.URI, fetched.URI)
+	assert.Equal(t, created.URIHash, fetched.URIHash)
 	assert.Equal(t, created.Name, fetched.Name)
 	assert.Equal(t, created.Metadata, fetched.Metadata)
 }
@@ -92,6 +96,129 @@ func TestGetArtifact_NotFound(t *testing.T) {
 	defer db.Close()
 	_, err := store.GetArtifact(artifactUUID1)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestGetArtifactsByURI_ExactNamespaceAndURIMatch(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/path/to/artifact"
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "match-1",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR("s3://bucket/other"),
+		Name:      "other-uri",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID3, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns2",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "other-ns",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("ns1", sharedURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "match-1", matched[0].Name)
+	assert.Equal(t, "ns1", matched[0].Namespace)
+	assert.Equal(t, sharedURI, *matched[0].URI)
+	assert.Equal(t, artifactURIHash(sharedURI), matched[0].URIHash)
+}
+
+func TestGetArtifactsByURI_EmptyNamespaceSingleUser(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/path/to/artifact"
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "single-user-match",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	_, err = store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(sharedURI),
+		Name:      "namespaced-same-uri",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("", sharedURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "single-user-match", matched[0].Name)
+	assert.Equal(t, "", matched[0].Namespace)
+	assert.Equal(t, sharedURI, *matched[0].URI)
+}
+
+func TestGetArtifactsByURI_FiltersHashCollisions(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	lookupURI := "s3://bucket/path/to/artifact"
+	lookupHash := artifactURIHash(lookupURI)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil)
+	_, err := store.CreateArtifact(&model.Artifact{
+		Namespace: "ns1",
+		Type:      1,
+		URI:       strPTR(lookupURI),
+		Name:      "real-match",
+		Metadata:  map[string]interface{}{},
+	})
+	assert.NoError(t, err)
+
+	// Simulate a hash collision: same URIHash, different URI.
+	_, err = db.Exec(
+		`INSERT INTO artifacts (UUID, Namespace, Type, URI, URIHash, Name, Description, CreatedAtInSec, LastUpdateInSec, Metadata, NumberValue)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		artifactUUID2,
+		"ns1",
+		1,
+		"s3://bucket/different-uri",
+		lookupHash,
+		"collision",
+		"",
+		1,
+		1,
+		"{}",
+		nil,
+	)
+	require.NoError(t, err)
+
+	matched, err := store.GetArtifactsByURI("ns1", lookupURI)
+	assert.NoError(t, err)
+	assert.Len(t, matched, 1)
+	assert.Equal(t, "real-match", matched[0].Name)
+	assert.Equal(t, lookupURI, *matched[0].URI)
+}
+
+func TestArtifactURIHash_EmptyURI(t *testing.T) {
+	assert.Equal(t, "", artifactURIHash(""))
 }
 
 func TestListArtifacts_BasicFiltersAndPagination(t *testing.T) {
@@ -259,4 +386,210 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 	row := db.QueryRow("SELECT count(*) FROM artifacts")
 	require.NoError(t, row.Scan(&artifactCount))
 	assert.Equal(t, 0, artifactCount)
+}
+
+func TestFindOrCreateArtifactWithTask_ConcurrentReuseCreatesOneArtifact(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	firstStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil))
+	secondStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil))
+	stores := []*ArtifactStore{firstStore, secondStore}
+
+	sharedURI := "s3://bucket/shared-model"
+	start := make(chan struct{})
+	results := make(chan *model.Artifact, len(stores))
+	errors := make(chan error, len(stores))
+	var waitGroup sync.WaitGroup
+	for index, store := range stores {
+		waitGroup.Add(1)
+		go func(taskStore *ArtifactStore, taskIndex int) {
+			defer waitGroup.Done()
+			<-start
+			createdArtifact, _, err := taskStore.FindOrCreateArtifactWithTask(
+				&model.Artifact{
+					Namespace: "ns1",
+					Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+					URI:       strPTR(sharedURI),
+					Name:      "shared-model",
+					Metadata:  model.JSONData{"source": "importer"},
+				},
+				&model.ArtifactTask{
+					TaskID:      fmt.Sprintf("task-%d", taskIndex),
+					RunUUID:     fmt.Sprintf("run-%d", taskIndex),
+					Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+					ArtifactKey: "artifact",
+					Producer: model.JSONData{
+						"taskName": fmt.Sprintf("importer-%d", taskIndex),
+					},
+				},
+			)
+			results <- createdArtifact
+			errors <- err
+		}(store, index)
+	}
+	close(start)
+	waitGroup.Wait()
+	close(results)
+	close(errors)
+
+	for err := range errors {
+		require.NoError(t, err)
+	}
+	var artifactID string
+	for createdArtifact := range results {
+		require.NotNil(t, createdArtifact)
+		if artifactID == "" {
+			artifactID = createdArtifact.UUID
+		} else {
+			assert.Equal(t, artifactID, createdArtifact.UUID)
+		}
+	}
+
+	var artifactCount int
+	row := db.QueryRow("SELECT count(*) FROM artifacts")
+	require.NoError(t, row.Scan(&artifactCount))
+	assert.Equal(t, 1, artifactCount)
+
+	var linkCount int
+	row = db.QueryRow("SELECT count(*) FROM artifact_tasks")
+	require.NoError(t, row.Scan(&linkCount))
+	assert.Equal(t, 2, linkCount)
+}
+
+func TestFindOrCreateArtifactWithTask_UnconditionalCreateAllowsDuplicates(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/shared-model"
+	first, _, err := store.CreateArtifactWithTask(
+		&model.Artifact{
+			Namespace: "ns1",
+			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			URI:       strPTR(sharedURI),
+			Name:      "shared-model",
+		},
+		&model.ArtifactTask{
+			TaskID:      "task-1",
+			RunUUID:     "run-1",
+			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			ArtifactKey: "artifact",
+			Producer:    model.JSONData{"taskName": "importer-1"},
+		},
+	)
+	require.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	second, _, err := store.CreateArtifactWithTask(
+		&model.Artifact{
+			Namespace: "ns1",
+			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			URI:       strPTR(sharedURI),
+			Name:      "shared-model",
+		},
+		&model.ArtifactTask{
+			TaskID:      "task-2",
+			RunUUID:     "run-2",
+			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			ArtifactKey: "artifact",
+			Producer:    model.JSONData{"taskName": "importer-2"},
+		},
+	)
+	require.NoError(t, err)
+	assert.NotEqual(t, first.UUID, second.UUID)
+
+	var artifactCount int
+	row := db.QueryRow("SELECT count(*) FROM artifacts")
+	require.NoError(t, row.Scan(&artifactCount))
+	assert.Equal(t, 2, artifactCount)
+}
+
+func TestFindOrCreateArtifactWithTask_ReplaysSameTaskLinkIdempotently(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/shared-model"
+	artifact := &model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		URI:       strPTR(sharedURI),
+		Name:      "shared-model",
+		Metadata:  model.JSONData{"source": "importer"},
+	}
+	link := &model.ArtifactTask{
+		TaskID:      "task-1",
+		RunUUID:     "run-1",
+		Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+		ArtifactKey: "artifact",
+		Producer:    model.JSONData{"taskName": "importer"},
+	}
+
+	firstArtifact, firstLink, err := store.FindOrCreateArtifactWithTask(artifact, link)
+	require.NoError(t, err)
+
+	secondArtifact, secondLink, err := store.FindOrCreateArtifactWithTask(artifact, link)
+	require.NoError(t, err)
+	assert.Equal(t, firstArtifact.UUID, secondArtifact.UUID)
+	assert.Equal(t, firstLink.UUID, secondLink.UUID)
+
+	var linkCount int
+	row := db.QueryRow("SELECT count(*) FROM artifact_tasks")
+	require.NoError(t, row.Scan(&linkCount))
+	assert.Equal(t, 1, linkCount)
+}
+
+func TestFindOrCreateArtifactWithTask_RecoversAfterIdentityKeyConflict(t *testing.T) {
+	db, store := initializeArtifactStore()
+	defer db.Close()
+
+	sharedURI := "s3://bucket/shared-model"
+	artifact := &model.Artifact{
+		Namespace: "ns1",
+		Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+		URI:       strPTR(sharedURI),
+		Name:      "shared-model",
+		Metadata:  model.JSONData{"source": "importer"},
+	}
+	identityKey, err := computeArtifactIdentityKey(artifact)
+	require.NoError(t, err)
+	artifact.IdentityKey = &identityKey
+
+	existing, _, err := store.CreateArtifactWithTask(
+		artifact,
+		&model.ArtifactTask{
+			TaskID:      "task-1",
+			RunUUID:     "run-1",
+			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			ArtifactKey: "artifact",
+			Producer:    model.JSONData{"taskName": "importer-1"},
+		},
+	)
+	require.NoError(t, err)
+
+	store.uuid = util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil)
+	reused, reusedLink, err := store.FindOrCreateArtifactWithTask(
+		&model.Artifact{
+			Namespace: "ns1",
+			Type:      model.ArtifactType(apiv2beta1.Artifact_Model),
+			URI:       strPTR(sharedURI),
+			Name:      "shared-model",
+			Metadata:  model.JSONData{"source": "importer"},
+		},
+		&model.ArtifactTask{
+			TaskID:      "task-2",
+			RunUUID:     "run-2",
+			Type:        model.IOType(apiv2beta1.IOType_OUTPUT),
+			ArtifactKey: "artifact",
+			Producer:    model.JSONData{"taskName": "importer-2"},
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, existing.UUID, reused.UUID)
+	assert.Equal(t, existing.UUID, reusedLink.ArtifactID)
+
+	var artifactCount int
+	row := db.QueryRow("SELECT count(*) FROM artifacts")
+	require.NoError(t, row.Scan(&artifactCount))
+	assert.Equal(t, 1, artifactCount)
 }

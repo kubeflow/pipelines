@@ -42,6 +42,13 @@ class TestRunServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_find_cached_task(self):
+        """Test case for find_cached_task
+
+        Finds a cached successful task by namespace and fingerprint.  # noqa: E501
+        """
+        pass
+
     def test_get_task(self):
         """Test case for get_task
 

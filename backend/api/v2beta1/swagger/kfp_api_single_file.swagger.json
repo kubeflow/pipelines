@@ -2313,6 +2313,39 @@
         ]
       }
     },
+    "/apis/v2beta1/tasks:findCached": {
+      "post": {
+        "summary": "Finds a cached successful task by namespace and fingerprint.",
+        "operationId": "find_cached_task",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googleRpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1FindCachedTaskRequest"
+            }
+          }
+        ],
+        "tags": [
+          "RunService"
+        ]
+      }
+    },
     "/apis/v2beta1/visualizations/{namespace}": {
       "post": {
         "operationId": "VisualizationService_CreateVisualizationV1",
@@ -2517,6 +2550,10 @@
           "type": "string",
           "format": "int64",
           "title": "If the producing task is in a parallelFor iteration\nthis field designates the iteration index"
+        },
+        "reuse_if_exists": {
+          "type": "boolean",
+          "description": "When true, create the artifact only if no existing artifact in the same\nnamespace matches the stable reuse identity (type, URI, name, description,\nand metadata). Concurrent callers race-safely share one row and each still\nreceive their own artifact-task link. When false (default), always insert a\nnew artifact row so reimport=true and ordinary outputs may intentionally\ncreate duplicates."
         }
       }
     },
@@ -3440,6 +3477,25 @@
             "$ref": "#/definitions/v2beta1PipelineTask"
           },
           "title": "Required. Map of task ID to task detail for bulk update.\nKey: task_id, Value: PipelineTask to update"
+        }
+      }
+    },
+    "v2beta1FindCachedTaskRequest": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "cache_fingerprint": {
+          "type": "string"
+        }
+      }
+    },
+    "v2beta1FindCachedTaskResponse": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/definitions/v2beta1PipelineTask"
         }
       }
     },
