@@ -47,6 +47,10 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 	// Extract namespace for authorization
 	namespace := s.resourceManager.ReplaceNamespace(request.GetArtifact().GetNamespace())
 
+	// Bind TokenReview to the request run before namespace-scoped artifact auth so
+	// run-scoped projected runtime tokens can create artifacts for their run.
+	ctx = withRunScopedTokenAudience(ctx, request.GetRunId())
+
 	// Check authorization - artifacts are accessible if user can access runs in the namespace
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
@@ -139,6 +143,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		Namespace: bulkNamespace,
 		Verb:      common.RbacResourceVerbCreate,
 	}
+	ctx = withRunScopedTokenAudience(ctx, singleRunIDFromCreateArtifactRequests(request.GetArtifacts()))
 	if err := s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
@@ -448,6 +453,7 @@ func (s *ArtifactServer) CreateArtifactTask(ctx context.Context, request *apiv2b
 		Namespace: taskNamespace,
 		Verb:      common.RbacResourceVerbCreate,
 	}
+	ctx = withRunScopedTokenAudience(ctx, at.GetRunId())
 	if err = s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
@@ -596,6 +602,7 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 		Namespace: bulkNamespace,
 		Verb:      common.RbacResourceVerbCreate,
 	}
+	ctx = withRunScopedTokenAudience(ctx, bulkRunID)
 	if err := s.canAccessArtifacts(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
@@ -615,6 +622,29 @@ func (s *ArtifactServer) CreateArtifactTasksBulk(ctx context.Context, request *a
 }
 
 // Authorization helper functions
+
+// withRunScopedTokenAudience attaches the expected run-scoped TokenReview
+// audience when a request run ID is known. This lets namespace-scoped artifact
+// authorization succeed for projected runtime tokens before canAccessRun runs.
+func withRunScopedTokenAudience(ctx context.Context, runID string) context.Context {
+	if runID == "" {
+		return ctx
+	}
+	return auth.WithExpectedTokenAudiences(ctx, []string{common.TokenAudienceForRun(runID)})
+}
+
+func singleRunIDFromCreateArtifactRequests(requests []*apiv2beta1.CreateArtifactRequest) string {
+	if len(requests) == 0 {
+		return ""
+	}
+	runID := requests[0].GetRunId()
+	for _, request := range requests[1:] {
+		if request.GetRunId() != runID {
+			return ""
+		}
+	}
+	return runID
+}
 
 // canAccessRun checks if the user can access runs in the given namespace
 // Following the same pattern as BaseRunServer.canAccessRun

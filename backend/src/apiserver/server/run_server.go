@@ -992,7 +992,20 @@ func (s *RunServer) FindCachedTask(ctx context.Context, request *apiv2beta1.Find
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to authorize cached task lookup")
 		}
-		if run.Namespace != "" && run.Namespace != namespace {
+		effectiveNamespace := run.Namespace
+		if s.resourceManager.IsEmptyNamespace(effectiveNamespace) {
+			experiment, experimentErr := s.resourceManager.GetExperiment(run.ExperimentId)
+			if experimentErr != nil {
+				return nil, util.NewInvalidInputError(
+					"bound run %s has an empty namespace and the parent experiment %s could not be fetched: %s",
+					boundRunID,
+					run.ExperimentId,
+					experimentErr.Error(),
+				)
+			}
+			effectiveNamespace = experiment.Namespace
+		}
+		if effectiveNamespace != "" && effectiveNamespace != namespace {
 			return nil, util.NewPermissionDeniedError(
 				nil,
 				"bound run %s is not in namespace %s",
