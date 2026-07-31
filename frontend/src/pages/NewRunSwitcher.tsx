@@ -160,7 +160,6 @@ function NewRunSwitcher(props: PageProps) {
   const v1TemplateStr = v1Template || '';
 
   const {
-    isFetching: experimentIsFetching,
     isError: experimentIsError,
     error: experimentError,
     data: experiment,
