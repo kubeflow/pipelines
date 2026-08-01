@@ -278,6 +278,31 @@ func TestRetrieveUserContainerEnvVars_Success(t *testing.T) {
 	assert.Equal(t, expectedVars, vars)
 }
 
+func TestRetrieveUserContainerEnvVars_SkipsFailedHandler(t *testing.T) {
+	expectedVars := []corev1.EnvVar{
+		{Name: "PLUGIN_RUN_ID", Value: "fake-run-1"},
+	}
+	failedHandler := &fakeHandler{
+		name:     "FailedPlugin",
+		startErr: fmt.Errorf("plugin startup failed"),
+		envErr:   fmt.Errorf("env var retrieval should be skipped"),
+	}
+	successfulHandler := &fakeHandler{
+		name:    "SuccessfulPlugin",
+		envVars: expectedVars,
+	}
+	dispatcher, _ := NewTaskPluginDispatcherImpl(
+		[]TaskPluginHandler{failedHandler, successfulHandler},
+	)
+
+	_, err := dispatcher.OnTaskStart(context.Background(), taskInfoStart)
+	require.NoError(t, err)
+	vars, err := dispatcher.RetrieveUserContainerEnvVars(taskInfoEnd)
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedVars, vars)
+}
+
 func TestRetrieveUserContainerEnvVars_HandlerError_Propagated(t *testing.T) {
 	handler := &fakeHandler{
 		name:   "FakePlugin",
