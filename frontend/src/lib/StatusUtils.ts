@@ -18,6 +18,14 @@ import { logger } from 'src/lib/Utils';
 import { NodeStatus } from 'src/third_party/mlmd/argo_template';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
+// Buckets a pod lifecycle failure by where in the pod's life it happened.
+// Mirrors PodFailureCategory in backend/src/common/util/pod_failure_classifier.go.
+export enum PodFailureCategory {
+  PROVISIONING = 'Provisioning',
+  RUNTIME = 'Runtime',
+  NODE = 'Node',
+}
+
 export const statusBgColors = {
   error: '#fce8e6',
   notStarted: '#f7f7f7',
@@ -26,6 +34,17 @@ export const statusBgColors = {
   cached: '#e6f4ea',
   terminatedOrSkipped: '#f1f3f4',
   warning: '#fef7f0',
+};
+
+// Distinct background colors per pod failure category, so a user can tell at a
+// glance whether a failed step is something they can fix themselves
+// (Provisioning/Runtime) or purely infrastructure-caused (Node), without
+// opening the side panel. Falls back to statusBgColors.error for failures that
+// aren't a recognized pod lifecycle pattern (i.e. the user's own pipeline code).
+export const podFailureCategoryBgColors: Record<PodFailureCategory, string> = {
+  [PodFailureCategory.PROVISIONING]: '#fdecd2',
+  [PodFailureCategory.RUNTIME]: '#fce8e6',
+  [PodFailureCategory.NODE]: '#ece3f7',
 };
 
 export enum NodePhase {
@@ -79,8 +98,12 @@ export function statusToBgColor(status?: NodePhase, nodeMessage?: string): strin
   switch (status) {
     case NodePhase.ERROR:
     // fall through
-    case NodePhase.FAILED:
-      return statusBgColors.error;
+    case NodePhase.FAILED: {
+      const classification = classifyPodFailure(nodeMessage);
+      return classification
+        ? podFailureCategoryBgColors[classification.category]
+        : statusBgColors.error;
+    }
     case NodePhase.PENDING:
       return statusBgColors.notStarted;
     case NodePhase.OMITTED:
@@ -114,38 +137,158 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
   return status;
 }
 
-// Substrings that indicate a Kubernetes pod lifecycle failure (the platform
-// couldn't run the step) rather than a failure in the user's own pipeline code.
-// Mirrors podFailurePatterns in backend/src/common/util/pod_failure_classifier.go;
-// keep the two in sync.
-const POD_LIFECYCLE_FAILURE_PATTERNS = [
-  'ImagePullBackOff',
-  'ErrImagePull',
-  'ErrImageNeverPull',
-  'InvalidImageName',
-  'Unschedulable',
-  'CrashLoopBackOff',
-  'OOMKilled',
-  'DeadlineExceeded',
-  'ContainerCannotRun',
-  'CreateContainerConfigError',
-  'CreateContainerError',
-  'RunContainerError',
-  'NodeLost',
-  'Preempted',
-  'PreemptionByScheduler',
-  'Evicted',
-  'TerminationByKubelet',
+interface PodFailurePattern {
+  substring: string;
+  category: PodFailureCategory;
+  cause: string;
+  fix: string;
+}
+
+// Mirrors podFailurePatterns in backend/src/common/util/pod_failure_classifier.go.
+// Kept as a parallel list rather than a shared import, since the frontend can't
+// depend on backend Go code; order matters; first matching substring wins.
+// Each entry's cause/fix is written for someone with no Kubernetes background,
+// per the "educational hover tooltips" deliverable in #12843.
+const POD_FAILURE_PATTERNS: PodFailurePattern[] = [
+  {
+    substring: 'ImagePullBackOff',
+    category: PodFailureCategory.PROVISIONING,
+    cause: "Kubernetes can't download your container image — wrong name/tag, a private registry, or the registry is down.",
+    fix: 'Check the image name/tag on this component for typos, and confirm the image is public or the cluster has registry credentials.',
+  },
+  {
+    substring: 'ErrImagePull',
+    category: PodFailureCategory.PROVISIONING,
+    cause: 'Same as above, but this is the first failed attempt rather than the repeated backoff.',
+    fix: 'Same fix as ImagePullBackOff; this can also resolve itself on retry if it was a transient network blip.',
+  },
+  {
+    substring: 'ErrImageNeverPull',
+    category: PodFailureCategory.PROVISIONING,
+    cause: 'The pod is set to never download the image and expects it to already exist on the machine.',
+    fix: "Remove any imagePullPolicy: Never setting unless the image is pre-loaded on every node.",
+  },
+  {
+    substring: 'InvalidImageName',
+    category: PodFailureCategory.PROVISIONING,
+    cause: 'The image reference itself is malformed, not a pull failure.',
+    fix: 'Check base_image on the component for invalid characters or syntax.',
+  },
+  {
+    substring: 'Unschedulable',
+    category: PodFailureCategory.PROVISIONING,
+    cause: 'No machine in the cluster currently has enough free CPU/memory/GPU for this task, or a placement rule excludes all of them.',
+    fix: "Lower the component's requested cpu/memory/accelerator count, or ask a cluster admin for more capacity.",
+  },
+  {
+    substring: 'CrashLoopBackOff',
+    category: PodFailureCategory.RUNTIME,
+    cause: 'Your container starts and then exits, repeatedly — almost always a bug that fires immediately on startup.',
+    fix: 'Read the container logs for the exception/stack trace at startup; this is a code bug, not infrastructure.',
+  },
+  {
+    substring: 'OOMKilled',
+    category: PodFailureCategory.RUNTIME,
+    cause: 'Your code used more memory than the task was allowed.',
+    fix: "Increase the component's memory request/limit, or reduce memory usage (smaller batch size, stream instead of loading everything at once).",
+  },
+  {
+    substring: 'DeadlineExceeded',
+    category: PodFailureCategory.RUNTIME,
+    cause: 'The task ran longer than its configured time limit.',
+    fix: 'Increase the task/pipeline timeout, or investigate why this step is slower than expected.',
+  },
+  {
+    substring: 'ContainerCannotRun',
+    category: PodFailureCategory.RUNTIME,
+    cause: "The container runtime couldn't even start the container — a bad entrypoint/command or a permissions problem.",
+    fix: "Verify the entrypoint/command in the component definition, and confirm the image's executable has run permissions.",
+  },
+  {
+    substring: 'CreateContainerConfigError',
+    category: PodFailureCategory.RUNTIME,
+    cause: "Usually means a referenced Kubernetes Secret or ConfigMap doesn't exist, or is missing an expected key.",
+    fix: 'Check that any secret/configmap this task references actually exists in the target namespace.',
+  },
+  {
+    substring: 'CreateContainerError',
+    category: PodFailureCategory.RUNTIME,
+    cause: 'Low-level container setup failure — often a bad volume mount or security setting.',
+    fix: "Check any custom pod-spec patches applied via kfp-kubernetes (volumes, security context).",
+  },
+  {
+    substring: 'RunContainerError',
+    category: PodFailureCategory.RUNTIME,
+    cause: 'The container was created but the runtime failed to execute it.',
+    fix: 'Usually an image build problem (missing shared library, wrong CPU architecture) — check the image build, not the component code.',
+  },
+  {
+    substring: 'NodeLost',
+    category: PodFailureCategory.NODE,
+    cause: 'The machine running your task disappeared from the cluster (crashed, or was reclaimed).',
+    fix: 'Nothing to fix in your code — just retry. If this happens often, ask a cluster admin whether nodes are being reclaimed too aggressively (e.g. spot/preemptible policy).',
+  },
+  {
+    substring: 'Preempted',
+    category: PodFailureCategory.NODE,
+    cause: 'A higher-priority workload needed the resources your task was using.',
+    fix: 'Nothing wrong with your code; retry, or request a higher priority class for critical runs.',
+  },
+  {
+    // Raw Kubernetes condition/status Reason value for the same event
+    // "Preempted" describes from Argo's rendered node message.
+    substring: 'PreemptionByScheduler',
+    category: PodFailureCategory.NODE,
+    cause: 'A higher-priority workload needed the resources your task was using.',
+    fix: 'Nothing wrong with your code; retry, or request a higher priority class for critical runs.',
+  },
+  {
+    substring: 'Evicted',
+    category: PodFailureCategory.NODE,
+    cause: 'The machine was low on memory/disk and Kubernetes removed your task to protect it.',
+    fix: "Reduce the task's memory/disk footprint, or ask a cluster admin about node capacity.",
+  },
+  {
+    // Raw Kubernetes condition/status Reason value for the same event
+    // "Evicted" describes from Argo's rendered node message.
+    substring: 'TerminationByKubelet',
+    category: PodFailureCategory.NODE,
+    cause: 'The machine was low on memory/disk and Kubernetes removed your task to protect it.',
+    fix: "Reduce the task's memory/disk footprint, or ask a cluster admin about node capacity.",
+  },
 ];
+
+export interface PodFailureClassification {
+  category: PodFailureCategory;
+  reason: string;
+  cause: string;
+  fix: string;
+}
+
+// classifyPodFailure inspects a raw Argo node message and classifies it into a
+// PodFailureCategory with a plain-English cause and fix, or undefined if the
+// message doesn't match a known pod lifecycle failure pattern.
+export function classifyPodFailure(nodeMessage?: string): PodFailureClassification | undefined {
+  if (!nodeMessage) {
+    return undefined;
+  }
+  const pattern = POD_FAILURE_PATTERNS.find((p) => nodeMessage.includes(p.substring));
+  if (!pattern) {
+    return undefined;
+  }
+  return {
+    category: pattern.category,
+    reason: pattern.substring,
+    cause: pattern.cause,
+    fix: pattern.fix,
+  };
+}
 
 // isPodLifecycleFailure returns true if nodeMessage looks like it was caused by
 // a Kubernetes pod lifecycle issue rather than an error in the user's own
 // pipeline code.
 export function isPodLifecycleFailure(nodeMessage?: string): boolean {
-  if (!nodeMessage) {
-    return false;
-  }
-  return POD_LIFECYCLE_FAILURE_PATTERNS.some((pattern) => nodeMessage.includes(pattern));
+  return classifyPodFailure(nodeMessage) !== undefined;
 }
 
 export function parseNodePhase(node: NodeStatus): NodePhase {

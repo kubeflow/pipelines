@@ -20,6 +20,7 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
 import { Tooltip } from '@mui/material';
+import { classifyPodFailure } from '../lib/StatusUtils';
 
 interface Segment {
   angle: number;
@@ -48,6 +49,13 @@ const css = stylesheet({
   },
   icon: {
     padding: '5px 7px 0px 7px',
+  },
+  nodeTooltip: {
+    maxWidth: 260,
+  },
+  nodeTooltipTitle: {
+    fontWeight: 600,
+    marginBottom: 4,
   },
   label: {
     color: color.strong,
@@ -298,7 +306,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
               }}
             >
               {!node.isPlaceholder && (
-                <Tooltip title={node.label} enterDelay={300}>
+                <Tooltip title={this._getNodeTooltipContent(node)} enterDelay={300}>
                   <div className={css.label}>{node.label}</div>
                 </Tooltip>
               )}
@@ -409,6 +417,28 @@ export class Graph extends React.Component<GraphProps, GraphState> {
       return color.weak;
     }
     return color.grey;
+  }
+
+  // Returns richer tooltip content for a node whose message matches a known
+  // pod lifecycle failure pattern (cause + fix, see StatusUtils.classifyPodFailure),
+  // or just the plain label otherwise.
+  private _getNodeTooltipContent(node: any): React.ReactNode {
+    const classification = classifyPodFailure(node.message);
+    if (!classification) {
+      return node.label;
+    }
+    return (
+      <div className={css.nodeTooltip}>
+        <div className={css.nodeTooltipTitle}>{node.label}</div>
+        <div>
+          {classification.category} failure: {classification.reason}
+        </div>
+        <div>{classification.cause}</div>
+        <div>
+          <strong>Fix:</strong> {classification.fix}
+        </div>
+      </div>
+    );
   }
 }
 
