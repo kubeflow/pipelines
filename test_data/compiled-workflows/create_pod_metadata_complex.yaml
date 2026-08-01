@@ -124,10 +124,15 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
+      - --cache_disabled=false
       - --log_level
       - "1"
       - --publish_logs
       - "true"
+      - --ml_pipeline_tls_enabled=false
+      - --metadata_tls_enabled=false
+      - --ca_cert_path
+      - ""
       command:
       - driver
       env:
@@ -252,6 +257,7 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -380,6 +386,7 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -512,6 +519,7 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
+      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -716,10 +724,15 @@ spec:
       - metadata-grpc-service.kubeflow.svc.cluster.local
       - --mlmd_server_port
       - "8080"
+      - --cache_disabled=false
       - --log_level
       - "1"
       - --publish_logs
       - "true"
+      - --ml_pipeline_tls_enabled=false
+      - --metadata_tls_enabled=false
+      - --ca_cert_path
+      - ""
       command:
       - driver
       image: ghcr.io/kubeflow/kfp-driver:latest
