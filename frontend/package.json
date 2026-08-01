@@ -31,7 +31,6 @@
     "lodash.isfunction": "^3.0.9",
     "markdown-to-jsx": "^7.0.0",
     "pako": "^2.0.4",
-
     "proto3-json-serializer": "^3.0.4",
     "protobufjs": "~8.6.6",
     "re-resizable": "^6.11.2",
@@ -114,7 +113,6 @@
     "build:storybook": "storybook build"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
     "@storybook/addon-links": "^10.2.0",
     "@storybook/react-vite": "^10.4.6",
     "@testing-library/dom": "^10.4.1",

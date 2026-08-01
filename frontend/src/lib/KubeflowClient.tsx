@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import { logger } from './Utils';
 
 declare global {
@@ -65,16 +65,14 @@ export class NamespaceContextProvider extends React.Component {
 }
 
 function usePrevious<T>(value: T) {
-  const [values, setValues] = useState<{ current: T; previous?: T }>({
-    current: value,
-  });
+  const previousValue = useRef<T | undefined>(undefined);
+  useEffect(() => {
+    previousValue.current = value;
+  }, [value]);
 
-  if (value !== values.current) {
-    setValues({ current: value, previous: values.current });
-    return values.current;
-  }
-
-  return values.previous;
+  // This hook intentionally compares against the previous committed render.
+  // eslint-disable-next-line react-hooks/refs -- the ref is advanced after every commit
+  return previousValue.current;
 }
 
 export function useNamespaceChangeEvent(): boolean {

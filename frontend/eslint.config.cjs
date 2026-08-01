@@ -24,9 +24,6 @@ module.exports = [
   },
   {
     files: sourceFiles,
-    linterOptions: {
-      reportUnusedDisableDirectives: false,
-    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
@@ -64,20 +61,11 @@ module.exports = [
       ...eslint.configs.recommended.rules,
       ...importX.flatConfigs.recommended.rules,
       ...importX.flatConfigs.typescript.rules,
-      // React Hooks 7 adds React Compiler diagnostics to its recommended preset.
-      // Enable correctness rules independently of compiler adoption.
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
-      'react-hooks/static-components': 'error',
-      'react-hooks/use-memo': 'error',
+      ...reactHooks.configs.flat.recommended.rules,
+      // Enable correctness rules independently of compiler adoption while
+      // keeping compiler rollout diagnostics at intentional severities.
       'react-hooks/incompatible-library': 'warn',
-      'react-hooks/immutability': 'error',
-      'react-hooks/globals': 'error',
-      'react-hooks/refs': 'error',
       'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/error-boundaries': 'error',
-      'react-hooks/purity': 'error',
-      'react-hooks/set-state-in-render': 'error',
       'react-hooks/unsupported-syntax': 'warn',
       'react-hooks/preserve-manual-memoization': 'warn',
       // These rules only become actionable when React Compiler is configured.
