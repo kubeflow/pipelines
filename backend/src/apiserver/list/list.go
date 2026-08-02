@@ -188,13 +188,18 @@ func (t *token) marshal() (string, error) {
 // of results as well as subsequent pages of results.
 type Options struct {
 	PageSize int
+	// SkipCount, if true, tells the store to skip computing the total
+	// count of matching rows and avoid the extra query it requires.
+	// Defaults to false, preserving the existing behavior of always
+	// computing an accurate count.
+	SkipCount bool
 	*token
 }
 
 func EmptyOptions() *Options {
 	return &Options{
-		math.MaxInt32,
-		&token{},
+		PageSize: math.MaxInt32,
+		token:    &token{},
 	}
 }
 

@@ -483,6 +483,32 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	assert.Equal(t, 2, total_size)
 }
 
+func TestListRuns_SkipCount(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
+	opts.SkipCount = true
+
+	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, -1, total_size)
+}
+
+func TestListRuns_DoesNotSkipCountByDefault(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// SkipCount left unset (false), matching every caller before this option existed.
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
+
+	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, 3, total_size)
+}
+
 func TestListRuns_Pagination_Descend(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()

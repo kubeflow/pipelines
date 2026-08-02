@@ -41,6 +41,7 @@ describe('RunList', () => {
   let listRunsSpy: ReturnType<typeof vi.spyOn>;
   let getRunSpy: ReturnType<typeof vi.spyOn>;
   let getPipelineVersionSpy: ReturnType<typeof vi.spyOn>;
+  let listPipelineVersionsSpy: ReturnType<typeof vi.spyOn>;
   let listExperimentsSpy: ReturnType<typeof vi.spyOn>;
   let formatDateStringSpy: ReturnType<typeof vi.spyOn>;
 
@@ -167,6 +168,9 @@ describe('RunList', () => {
         pipeline_id: 'pipeline-id',
         pipeline_version_id: 'pipeline-version-id',
       } as any);
+    listPipelineVersionsSpy = vi
+      .spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions')
+      .mockRejectedValue(new Error('not mocked for this test'));
     listExperimentsSpy = vi
       .spyOn(Apis.experimentServiceApiV2, 'listExperiments')
       .mockResolvedValue({ experiments: [] } as any);
@@ -222,6 +226,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
 
@@ -252,6 +257,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
 
@@ -292,6 +298,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
   });
@@ -327,6 +334,7 @@ describe('RunList', () => {
       10,
       RunSortKeys.CREATED_AT + ' desc',
       '',
+      true,
     );
     expect(props.onError).not.toHaveBeenCalled();
   });
@@ -424,6 +432,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       undefined,
+      true,
     );
   });
 
@@ -445,6 +454,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       undefined,
+      true,
     );
   });
 
@@ -549,6 +559,63 @@ describe('RunList', () => {
     });
 
     await screen.findByText('some pipeline version');
+  });
+
+  it('batches pipeline version lookups by unique pipeline id instead of one call per run', async () => {
+    const sharedPipelineId = 'shared-pipeline';
+    listRunsSpy.mockResolvedValue({
+      runs: [
+        {
+          run_id: 'run1',
+          display_name: 'run with id: run1',
+          pipeline_version_reference: {
+            pipeline_id: sharedPipelineId,
+            pipeline_version_id: 'version1',
+          },
+          state: V2beta1RuntimeState.SUCCEEDED,
+        },
+        {
+          run_id: 'run2',
+          display_name: 'run with id: run2',
+          pipeline_version_reference: {
+            pipeline_id: sharedPipelineId,
+            pipeline_version_id: 'version2',
+          },
+          state: V2beta1RuntimeState.SUCCEEDED,
+        },
+      ] as V2beta1Run[],
+    });
+    listPipelineVersionsSpy.mockResolvedValue({
+      pipeline_versions: [
+        {
+          pipeline_id: sharedPipelineId,
+          pipeline_version_id: 'version1',
+          display_name: 'pipeline version one',
+        },
+        {
+          pipeline_id: sharedPipelineId,
+          pipeline_version_id: 'version2',
+          display_name: 'pipeline version two',
+        },
+      ],
+    } as any);
+
+    const props = generateProps();
+    await renderRunList(props);
+    await waitForRunListLoad();
+
+    await screen.findByText('pipeline version one');
+    await screen.findByText('pipeline version two');
+
+    // CustomTable's reload() overlaps under React Strict Mode in tests (see the
+    // isBusy comment in CustomTable.tsx), so the list loads twice here, one
+    // listPipelineVersions call per load. The property under test is that it's
+    // one call per load per unique pipeline, not one call per run: two runs
+    // sharing a pipeline never produce more calls than two loads' worth of
+    // pipelines, and the per-run getPipelineVersion fallback never fires.
+    expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(2);
+    expect(listPipelineVersionsSpy).toHaveBeenCalledWith(sharedPipelineId, undefined, 1000);
+    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
   });
 
   // TODO(jlyaoyuli): add back this test (show recurring run config)

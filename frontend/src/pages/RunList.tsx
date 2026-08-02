@@ -20,6 +20,7 @@ import Metric from 'src/components/Metric';
 import { MetricMetadata, ExperimentInfo } from 'src/lib/RunUtils';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1ListExperimentsResponse } from 'src/apisv2beta1/experiment';
+import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
@@ -394,6 +395,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           request.pageSize,
           request.sortBy,
           request.filter,
+          /* skip_count */ true, // this page never displays the total run count
         );
 
         displayRuns = (response.runs || []).map((r) => ({ run: r }));
@@ -442,11 +444,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
     }
 
+    const pipelineVersionsByPipelineId = await this._getPipelineVersionsByPipelineId(displayRuns);
+
     return Promise.all(
       displayRuns.map(async (displayRun) => {
         this._setRecurringRun(displayRun);
 
-        await this._getAndSetPipelineVersionNames(displayRun);
+        await this._setPipelineVersionName(displayRun, pipelineVersionsByPipelineId);
 
         if (!this.props.hideExperimentColumn) {
           const experimentId = displayRun.run.experiment_id;
@@ -499,15 +503,69 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   /**
-   * For the given DisplayRun, get its ApiRun and retrieve that ApiRun's Pipeline ID if it has one,
-   * then use that Pipeline ID to fetch its associated Pipeline and attach that Pipeline's name to
-   * the DisplayRun. If the ApiRun has no Pipeline ID, then the corresponding DisplayRun will show
-   * '-'.
+   * Fetches each unique pipeline_id referenced by the given runs exactly once, instead of
+   * fetching a pipeline version per run. Most runs on a page share only a handful of distinct
+   * pipelines, so this turns what used to be one API call per run into one call per unique
+   * pipeline.
    */
-  private async _getAndSetPipelineVersionNames(displayRun: DisplayRun): Promise<void> {
+  private async _getPipelineVersionsByPipelineId(
+    displayRuns: DisplayRun[],
+  ): Promise<Map<string, V2beta1PipelineVersion[]>> {
+    const uniquePipelineIds = Array.from(
+      new Set(
+        displayRuns
+          .map((displayRun) => displayRun.run.pipeline_version_reference?.pipeline_id)
+          .filter((pipelineId): pipelineId is string => !!pipelineId),
+      ),
+    );
+
+    const versionsByPipelineId = new Map<string, V2beta1PipelineVersion[]>();
+    await Promise.all(
+      uniquePipelineIds.map(async (pipelineId) => {
+        try {
+          const response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+            pipelineId,
+            undefined,
+            // Large enough to cover the vast majority of pipelines in one call. Runs whose
+            // version isn't found here (a pipeline with more versions than this covers) fall
+            // back to a direct per-run lookup in _setPipelineVersionName.
+            1000,
+          );
+          versionsByPipelineId.set(pipelineId, response.pipeline_versions || []);
+        } catch (err) {
+          logger.error(`Failed to list pipeline versions for pipeline ${pipelineId}`, err);
+        }
+      }),
+    );
+    return versionsByPipelineId;
+  }
+
+  /**
+   * For the given DisplayRun, get its ApiRun and retrieve that ApiRun's Pipeline ID if it has one,
+   * then look up its associated pipeline version's name from the already-fetched
+   * pipelineVersionsByPipelineId batch and attach it to the DisplayRun. Falls back to a direct,
+   * single-run lookup if the version isn't present in the batch. If the ApiRun has no Pipeline ID,
+   * then the corresponding DisplayRun will show '-'.
+   */
+  private async _setPipelineVersionName(
+    displayRun: DisplayRun,
+    pipelineVersionsByPipelineId: Map<string, V2beta1PipelineVersion[]>,
+  ): Promise<void> {
     const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
     const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
     if (pipelineId && pipelineVersionId) {
+      const cachedVersion = pipelineVersionsByPipelineId
+        .get(pipelineId)
+        ?.find((version) => version.pipeline_version_id === pipelineVersionId);
+      if (cachedVersion) {
+        displayRun.pipelineVersion = {
+          displayName: cachedVersion.display_name,
+          pipelineId: cachedVersion.pipeline_id,
+          usePlaceholder: false,
+          versionId: cachedVersion.pipeline_version_id,
+        };
+        return;
+      }
       try {
         const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
           pipelineId,
