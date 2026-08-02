@@ -20,6 +20,7 @@ from time import sleep
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
 from ipaddress import ip_address, IPv4Address 
+from ml_metadata.errors import AlreadyExistsError
 
 def value_to_mlmd_value(value) -> metadata_store_pb2.Value:
     if value is None:
@@ -209,14 +210,30 @@ def get_or_create_context_with_type(
     try:
         context = get_context_by_name(store, context_name)
     except:
-        context = create_context_with_type(
+        # Resolve/create the context type first. Errors here (e.g. an
+        # incompatible existing type schema) are a different failure mode
+        # than the duplicate-context race below, so let them propagate
+        # instead of being swallowed by the recovery path.
+        context_type = get_or_create_context_type(
             store=store,
-            context_name=context_name,
             type_name=type_name,
+            properties=type_properties,
+        )
+        context = metadata_store_pb2.Context(
+            name=context_name,
+            type_id=context_type.id,
             properties=properties,
-            type_properties=type_properties,
             custom_properties=custom_properties,
         )
+        try:
+            context.id = store.put_contexts([context])[0]
+        except AlreadyExistsError:
+            # Lost a race: some other event/process created this context
+            # between our lookup and our create attempt. get_context_by_name
+            # is lru_cache'd, but lru_cache never caches the earlier
+            # "not found" exception, so calling it again picks up the new
+            # entry without needing to clear the cache.
+            context = get_context_by_name(store, context_name)
         return context
 
     # Verifying that the context has the expected type name
