@@ -717,17 +717,6 @@ func initConfig() error {
 		glog.Fatalf("Invalid plugin limits configuration: %v", err)
 	}
 
-	// Watch for configuration change
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		if err := viper.ReadInConfig(); err != nil {
-			glog.Errorf("Failed to reload config: %v", err)
-		}
-		if _, err := common.GetPluginLimitsConfig(); err != nil {
-			glog.Fatalf("Invalid plugin limits configuration: %v", err)
-		}
-	})
-
 	proxy.InitializeConfigWithEnv()
 
 	// Initialize driver pod configuration after Viper config is loaded.
@@ -737,6 +726,17 @@ func initConfig() error {
 	if err := common.InitDriverPodConfig(); err != nil {
 		return fmt.Errorf("driver pod config: %w", err)
 	}
+
+	// Start the watcher after all startup reads. Viper's watcher reloads on its own goroutine
+	// and is not safe for concurrent reads, so starting it earlier races with the reads above.
+	// Register the callback first — WatchConfig blocks until the watcher is live.
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		if _, err := common.GetPluginLimitsConfig(); err != nil {
+			glog.Fatalf("Invalid plugin limits configuration: %v", err)
+		}
+	})
+	viper.WatchConfig()
+
 	return nil
 }
 
