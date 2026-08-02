@@ -302,7 +302,13 @@ class Client:
         in_cluster = True
         try:
             k8s.config.load_incluster_config()
-        except:
+        except Exception as e:
+            # Running outside of a cluster is the expected case here, so this is
+            # logged at debug level to avoid a misleading warning. The local kube
+            # config is loaded below instead.
+            logging.debug(
+                'Not running in-cluster (%s). Falling back to the '
+                'local kube config.', e)
             in_cluster = False
 
         if in_cluster:
@@ -313,8 +319,11 @@ class Client:
         try:
             k8s.config.load_kube_config(
                 client_configuration=config, context=kube_context)
-        except:
-            print('Failed to load kube config.')
+        except Exception as e:
+            logging.warning(
+                'Failed to load kube config: %s. Proceeding without it; '
+                'subsequent requests to the Kubeflow Pipelines API may fail.',
+                e)
             return config
 
         if config.host:
