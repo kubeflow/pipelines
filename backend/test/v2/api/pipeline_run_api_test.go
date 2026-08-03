@@ -80,7 +80,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 					createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 					pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(configuredPipelineSpecFile)
 					createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+					createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipelineVersion.PipelineSpec)
 				})
 			}
 		}
@@ -91,7 +91,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipelineVersion.PipelineSpec)
 		})
 	})
 
@@ -103,10 +103,10 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun1 := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun1, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun1, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipelineVersion.PipelineSpec)
 
 			createdPipelineRun2 := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun2, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun2, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipelineVersion.PipelineSpec)
 		})
 		It("Create an experiment and associate it pipeline runs of different pipelines", func() {
 
@@ -118,10 +118,10 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 			createdPipeline2Version := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline2.PipelineID)
 			pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(pipelineFile)
 			createdPipelineRun1 := createPipelineRun(&createdPipeline1.PipelineID, &createdPipeline1Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun1, &createdPipeline1.PipelineID, &createdPipeline1Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun1, &createdPipeline1.PipelineID, &createdPipeline1Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipeline1Version.PipelineSpec)
 
 			createdPipelineRun2 := createPipelineRun(&createdPipeline2.PipelineID, &createdPipeline2Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun2, &createdPipeline2.PipelineID, &createdPipeline2Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun2, &createdPipeline2.PipelineID, &createdPipeline2Version.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipeline2Version.PipelineSpec)
 		})
 	})
 
@@ -135,7 +135,7 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 				"env_var": "http_proxy",
 			}
 			createdPipelineRun := createPipelineRun(&createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
-			createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs)
+			createdExpectedRunAndVerify(createdPipelineRun, &createdPipeline.PipelineID, &createdPipelineVersion.PipelineVersionID, &createdExperiment.ExperimentID, pipelineRuntimeInputs, createdPipelineVersion.PipelineSpec)
 		})
 	})
 
@@ -378,13 +378,23 @@ func createExperiment(experimentName string) *experiment_model.V2beta1Experiment
 	return createdExperiment
 }
 
-func createdExpectedRunAndVerify(createdPipelineRun *run_model.V2beta1Run, pipelineID *string, pipelineVersionID *string, experimentID *string, pipelineInputMap map[string]interface{}) {
+func createdExpectedRunAndVerify(
+	createdPipelineRun *run_model.V2beta1Run,
+	pipelineID *string,
+	pipelineVersionID *string,
+	experimentID *string,
+	pipelineInputMap map[string]interface{},
+	compiledPipelineSpec interface{},
+) {
 	expectedPipelineRun := createExpectedPipelineRun(pipelineID, pipelineVersionID, experimentID, pipelineInputMap, false)
 	matcher.MatchPipelineRuns(createdPipelineRun, expectedPipelineRun)
 	createdPipelineRunFromDB := testutil.GetPipelineRun(runClient, &createdPipelineRun.RunID)
 
-	// Making the fields that can be different but we don't care about equal to stabilize tests
-	matcher.MatchPipelineRuns(createdPipelineRun, createdPipelineRunFromDB)
+	// FULL Get embeds the stored pipeline manifest. Compare against the
+	// already-fetched pipeline version spec so mixed Create/FULL forms cannot
+	// accept an unrelated embedded map.
+	expectedPipelineRun.PipelineSpec = compiledPipelineSpec
+	matcher.MatchPipelineRuns(createdPipelineRunFromDB, expectedPipelineRun)
 }
 
 func createPipelineRun(pipelineID *string, pipelineVersionID *string, experimentID *string, inputParams map[string]interface{}) *run_model.V2beta1Run {

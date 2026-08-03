@@ -26,7 +26,7 @@ import (
 	"strings"
 )
 
-// DefaultMinioEndpointInMultiUserMode uses Kubernetes service DNS name with namespace:
+// DefaultEndpointInMultiUserMode uses Kubernetes service DNS name with namespace:
 // https://kubernetes.io/docs/concepts/services-networking/service/#dns
 const DefaultEndpointInMultiUserMode = "seaweedfs.kubeflow:9000"
 
@@ -116,13 +116,13 @@ func (b *Config) PrefixedBucket() string {
 
 func (b *Config) Hash() string {
 	h := sha256.New()
-	h.Write([]byte(fmt.Sprintf(
+	fmt.Fprintf(h,
 		"%d:%s|%d:%s|%d:%s|%d:%s",
 		len(b.Scheme), b.Scheme,
 		len(b.BucketName), b.BucketName,
 		len(b.Prefix), b.Prefix,
 		len(b.QueryString), b.QueryString,
-	)))
+	)
 	return hex.EncodeToString(h.Sum(nil))
 }
 

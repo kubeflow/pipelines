@@ -160,7 +160,7 @@ func (c *Config) HasExplicitBucketOverride(path string) (bool, error) {
 		}
 		return bucketProviders.GCS.HasExplicitOverride(path)
 	default:
-		return false, fmt.Errorf("Encountered unsupported provider in provider config %s", provider)
+		return false, fmt.Errorf("encountered unsupported provider in provider config %s", provider)
 	}
 }
 

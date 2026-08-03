@@ -68,6 +68,10 @@ type Options struct {
 	// configuration and passes it in, so callers that compile outside the API server,
 	// such as the standalone compiler, simply leave it nil and get no extra metadata.
 	DriverPodConfig *common.DriverPodConfig
+	// Optional: base audience for projected service-account tokens used by runtime
+	// pods. Empty means DefaultTokenReviewAudience. The API server passes
+	// TOKEN_REVIEW_AUDIENCE so minted audiences match TokenReview.
+	TokenReviewAudience string
 }
 
 const (
@@ -239,6 +243,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
 		c.driverPodConfig = opts.DriverPodConfig
+		c.tokenReviewAudience = opts.TokenReviewAudience
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
@@ -346,6 +351,7 @@ type workflowCompiler struct {
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
 	driverPodConfig      *common.DriverPodConfig
+	tokenReviewAudience  string
 	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
@@ -570,10 +576,6 @@ func runID() string {
 func runResourceName() string {
 	// This translates to the Argo Workflow object name.
 	return "{{workflow.name}}"
-}
-
-func runCreationTimeUTC() string {
-	return "{{workflow.creationTimestamp}}"
 }
 
 func workflowParameter(name string) string {

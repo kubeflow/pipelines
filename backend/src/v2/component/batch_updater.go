@@ -180,10 +180,10 @@ func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) 
 }
 
 // OmitArtifactTasksAlreadyPresentOnTasks drops queued OUTPUT artifact-task
-// links whose (task_id, key) already exists on the target task's hydrated
-// outputs. Used by DAG output republish so a partial prior flush (artifact
-// links durable for the immediate parent and/or ancestors, params missing)
-// can repair parameters without re-creating UniqueLink-constrained rows.
+// links whose full UniqueLink identity already exists on the target task's
+// hydrated outputs. Identity includes artifact ID, I/O type, iteration, and
+// key so multi-artifact outputs and iterator iterations are not incorrectly
+// treated as duplicates of a single same-key link.
 func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 	ctx context.Context,
 	apiClient kfpapi.API,
@@ -204,7 +204,7 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 		return nil
 	}
 
-	existingKeysByTask := make(map[string]map[string]struct{}, len(taskIDs))
+	existingLinksByTask := make(map[string]map[string]struct{}, len(taskIDs))
 	for taskID := range taskIDs {
 		task, err := apiClient.GetTask(ctx, &apiV2beta1.GetTaskRequest{
 			TaskId: taskID,
@@ -213,19 +213,27 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 		if err != nil {
 			return fmt.Errorf("failed to refresh task %s before omitting existing artifact links: %w", taskID, err)
 		}
-		keys := make(map[string]struct{})
+		links := make(map[string]struct{})
 		if outputs := task.GetOutputs(); outputs != nil {
 			for _, artifactIO := range outputs.GetArtifacts() {
-				if key := artifactIO.GetArtifactKey(); key != "" {
-					keys[key] = struct{}{}
+				for _, artifact := range artifactIO.GetArtifacts() {
+					linkKey := fmt.Sprintf(
+						"%s|%s|%d|%d|%s",
+						artifact.GetArtifactId(),
+						taskID,
+						artifactIO.GetType(),
+						artifactIOIterationIdentity(artifactIO),
+						artifactIO.GetArtifactKey(),
+					)
+					links[linkKey] = struct{}{}
 				}
 			}
 		}
-		if len(keys) > 0 {
-			existingKeysByTask[taskID] = keys
+		if len(links) > 0 {
+			existingLinksByTask[taskID] = links
 		}
 	}
-	if len(existingKeysByTask) == 0 {
+	if len(existingLinksByTask) == 0 {
 		return nil
 	}
 
@@ -234,8 +242,16 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 		if artifactTask == nil {
 			continue
 		}
-		if keys, ok := existingKeysByTask[artifactTask.GetTaskId()]; ok {
-			if _, exists := keys[artifactTask.GetKey()]; exists {
+		if links, ok := existingLinksByTask[artifactTask.GetTaskId()]; ok {
+			linkKey := fmt.Sprintf(
+				"%s|%s|%d|%d|%s",
+				artifactTask.GetArtifactId(),
+				artifactTask.GetTaskId(),
+				artifactTask.GetType(),
+				artifactTaskIterationIdentity(artifactTask),
+				artifactTask.GetKey(),
+			)
+			if _, exists := links[linkKey]; exists {
 				continue
 			}
 		}
@@ -243,6 +259,13 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 	}
 	b.artifactTasks = filtered
 	return nil
+}
+
+func artifactIOIterationIdentity(artifactIO *apiV2beta1.PipelineTask_InputOutputs_IOArtifact) int64 {
+	if artifactIO == nil || artifactIO.GetProducer() == nil || artifactIO.GetProducer().Iteration == nil {
+		return -1
+	}
+	return artifactIO.GetProducer().GetIteration()
 }
 
 // Flush executes all queued updates in batches

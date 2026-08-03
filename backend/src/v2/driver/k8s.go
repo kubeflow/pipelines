@@ -27,12 +27,13 @@ import (
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -60,9 +61,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
 	}
-	if parentProperties := opts.ParentTask.GetStatusMetadata().GetCustomProperties(); len(parentProperties) > 0 {
-		dispatcher.ApplyCustomProperties(structValuesToStringMap(parentProperties))
-	}
+	applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
@@ -78,13 +77,17 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 
 	var finalizedTask *apiV2beta1.PipelineTask
 	defer func() {
-		status := "COMPLETE"
+		state := apiV2beta1.PipelineTask_SUCCEEDED
 		if err != nil {
-			status = "FAILED"
+			state = apiV2beta1.PipelineTask_FAILED
 		} else if finalizedTask != nil && finalizedTask.GetState() == apiV2beta1.PipelineTask_CACHED {
-			status = "CACHED"
+			state = apiV2beta1.PipelineTask_CACHED
 		}
-		taskPluginInfo.UpdateTaskInfoWithMetadata(status, nil, nil)
+		taskPluginInfo.UpdateTaskInfoWithMetadata(
+			state,
+			nil,
+			parameterValuesToInterfaces(execution.ExecutorInput.GetInputs().GetParameterValues()),
+		)
 		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
 			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
 		}
@@ -131,6 +134,12 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 		if getTaskErr != nil {
 			return fmt.Errorf("failed to load finalized Kubernetes platform task: %w", getTaskErr)
 		}
+	}
+	// Copy finalized state onto the caller's task pointer so Container's
+	// deferred UpdateStatuses sees a terminal leaf (create/delete PVC paths
+	// must not rebind their local taskToCreate away from this pointer).
+	if finalizedTask != nil {
+		overwritePipelineTask(taskToCreate, finalizedTask)
 	}
 	return nil
 }
@@ -1080,6 +1089,10 @@ func createPVCTask(
 
 	// Create Initial Task. We will update the status later if
 	// anything fails, or the task successfully completes.
+	attemptPods := taskToCreate.GetPods()
+	attemptOutputs := taskToCreate.GetOutputs()
+	attemptInputs := taskToCreate.GetInputs()
+	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
 	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task:  taskToCreate,
@@ -1092,15 +1105,32 @@ func createPVCTask(
 	glog.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
-	taskToCreate = task
-	if persistedPVCName, ok := taskOutputParameterValue(task, "name"); ok && persistedPVCName != pvcName {
+	if isSuccessfulTerminalTask(task) {
+		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		overwritePipelineTask(taskToCreate, task)
+		return nil
+	}
+	updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+		ctx,
+		clientManager.KFPAPIClient(),
+		task,
+		&apiV2beta1.PipelineTask{
+			Pods:           attemptPods,
+			Outputs:        attemptOutputs,
+			Inputs:         attemptInputs,
+			State:          apiV2beta1.PipelineTask_RUNNING,
+			StatusMetadata: attemptStatusMetadata,
+		},
+	)
+	if updateErr != nil {
+		err = updateErr
+		return err
+	}
+	overwritePipelineTask(taskToCreate, updatedTask)
+	if persistedPVCName, ok := taskOutputParameterValue(taskToCreate, "name"); ok && persistedPVCName != pvcName {
 		delete(execution.ExecutorInput.Inputs.ParameterValues, pvcName)
 		pvcName = persistedPVCName
 		execution.ExecutorInput.Inputs.ParameterValues[pvcName] = structpb.NewStringValue(pvcName)
-	}
-	if isSuccessfulTerminalTask(task) {
-		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
-		return nil
 	}
 	if !execution.WillTrigger() {
 		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
@@ -1140,7 +1170,7 @@ func createPVCTask(
 	// Create a PersistentVolumeClaim object
 	pvcStorageQuantity, err := k8sres.ParseQuantity(volumeSizeInput.GetStringValue())
 	if err != nil {
-		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to parse pvc size %q: %w", volumeSizeInput.GetStringValue(), err)
+		return fmt.Errorf("failed to parse pvc size %q: %w", volumeSizeInput.GetStringValue(), err)
 	}
 	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1250,6 +1280,9 @@ func deletePVCTask(
 
 	// Create Initial Task. We will update the status later if
 	// anything fails, or the task successfully completes.
+	attemptPods := taskToCreate.GetPods()
+	attemptInputs := taskToCreate.GetInputs()
+	attemptStatusMetadata := taskToCreate.GetStatusMetadata()
 	taskToCreate.State = apiV2beta1.PipelineTask_RUNNING
 	task, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		Task:  taskToCreate,
@@ -1262,11 +1295,27 @@ func deletePVCTask(
 	glog.Infof("Created Task: %s", task.TaskId)
 	taskCreated = true
 	execution.TaskID = task.TaskId
-	taskToCreate = task
 	if isSuccessfulTerminalTask(task) {
 		execution.Cached = util.BoolPointer(task.GetState() == apiV2beta1.PipelineTask_CACHED)
+		overwritePipelineTask(taskToCreate, task)
 		return nil
 	}
+	updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+		ctx,
+		clientManager.KFPAPIClient(),
+		task,
+		&apiV2beta1.PipelineTask{
+			Pods:           attemptPods,
+			Inputs:         attemptInputs,
+			State:          apiV2beta1.PipelineTask_RUNNING,
+			StatusMetadata: attemptStatusMetadata,
+		},
+	)
+	if updateErr != nil {
+		err = updateErr
+		return err
+	}
+	overwritePipelineTask(taskToCreate, updatedTask)
 	if !execution.WillTrigger() {
 		taskToCreate.State = apiV2beta1.PipelineTask_SKIPPED
 		glog.Infof("Condition not met, skipping task %s", task.TaskId)
@@ -1324,6 +1373,16 @@ func isSuccessfulTerminalTask(task *apiV2beta1.PipelineTask) bool {
 	}
 }
 
+// overwritePipelineTask replaces dst with src without copying protobuf internal
+// locks (govet copylocks).
+func overwritePipelineTask(dst, src *apiV2beta1.PipelineTask) {
+	if dst == nil || src == nil {
+		return
+	}
+	proto.Reset(dst)
+	proto.Merge(dst, src)
+}
+
 func taskOutputParameterValue(task *apiV2beta1.PipelineTask, key string) (string, bool) {
 	for _, parameter := range task.GetOutputs().GetParameters() {
 		if parameter.GetParameterKey() == key {
@@ -1348,16 +1407,17 @@ func makeVolumeMountPatch(
 		if pvcMount.PvcNameParameter != nil {
 			pvcNameParameter = pvcMount.PvcNameParameter
 		} else { // Support deprecated fields
-			if pvcMount.GetConstant() != "" {
-				pvcNameParameter = common.InputParamConstant(pvcMount.GetConstant())
-			} else if pvcMount.GetTaskOutputParameter() != nil {
+			switch {
+			case pvcMount.GetConstant() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamConstant(pvcMount.GetConstant()) //nolint:staticcheck // SA1019
+			case pvcMount.GetTaskOutputParameter() != nil: //nolint:staticcheck // SA1019: still support deprecated pvc name fields
 				pvcNameParameter = common.InputParamTaskOutput(
-					pvcMount.GetTaskOutputParameter().GetProducerTask(),
-					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(),
+					pvcMount.GetTaskOutputParameter().GetProducerTask(),       //nolint:staticcheck // SA1019
+					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(), //nolint:staticcheck // SA1019
 				)
-			} else if pvcMount.GetComponentInputParameter() != "" {
-				pvcNameParameter = common.InputParamComponent(pvcMount.GetComponentInputParameter())
-			} else {
+			case pvcMount.GetComponentInputParameter() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamComponent(pvcMount.GetComponentInputParameter()) //nolint:staticcheck // SA1019
+			default:
 				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
 			}
 		}

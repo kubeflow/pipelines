@@ -171,8 +171,9 @@ type RunStoreInterface interface {
 	// DeleteRun deletes a run.
 	DeleteRun(runId string) error
 
-	// CreateV1Metric Creates a new metric entry.
-	// Deprecated: use CreateMetric instead.
+	// CreateV1Metric creates a new metric entry.
+	//
+	// Prefer CreateMetric for new code; this remains for v1 compatibility.
 	CreateV1Metric(metric *model.RunMetricV1) (err error)
 
 	// TerminateRun terminates a run.

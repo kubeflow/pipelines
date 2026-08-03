@@ -28,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	drivercommon "github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/driverflags"
 	"github.com/spf13/viper"
 	"google.golang.org/protobuf/encoding/protojson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +40,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
@@ -46,10 +48,7 @@ import (
 )
 
 const (
-	driverTypeArg                         = "type"
-	httpProxyArg                          = "http_proxy"
-	httpsProxyArg                         = "https_proxy"
-	noProxyArg                            = "no_proxy"
+	driverTypeArg                         = driverflags.DriverTypeArg
 	ROOT_DAG                              = "ROOT_DAG" //nolint
 	DAG                                   = "DAG"
 	CONTAINER                             = "CONTAINER"
@@ -57,47 +56,49 @@ const (
 	pipelineJobScheduleTimeUTCPlaceholder = "{{$.pipeline_job_schedule_time_utc}}"
 )
 
+var driverFlagValues = driverflags.RegisterDriverFlags(flag.CommandLine)
+
 var (
 	// inputs
-	driverType        = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName      = flag.String("pipeline_name", "", "pipeline context name")
-	runID             = flag.String("run_id", "", "pipeline run uid")
-	runName           = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
-	runDisplayName    = flag.String("run_display_name", "", "pipeline run display name")
-	runtimeConfigJSON = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex    = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	taskName          = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
-	namespaceFlag     = flag.String("namespace", "", "Kubernetes namespace for runtime operations.")
+	driverType        = driverFlagValues.DriverType
+	pipelineName      = driverFlagValues.PipelineName
+	runID             = driverFlagValues.RunID
+	runName           = driverFlagValues.RunName
+	runDisplayName    = driverFlagValues.RunDisplayName
+	runtimeConfigJSON = driverFlagValues.RuntimeConfigJSON
+	iterationIndex    = driverFlagValues.IterationIndex
+	taskName          = driverFlagValues.TaskName
+	namespaceFlag     = driverFlagValues.Namespace
 
 	// container inputs
-	parentTaskID      = flag.String("parent_task_id", "", "Parent PipelineTask ID")
-	k8sExecConfigJson = flag.String("kubernetes_config", "{}", "kubernetes executor config")
+	parentTaskID      = driverFlagValues.ParentTaskID
+	k8sExecConfigJSON = driverFlagValues.KubernetesConfigJSON
 
 	// config
-	mlPipelineServerAddress = flag.String("ml_pipeline_server_address", "ml-pipeline", "The name of the ML pipeline API server address.")
-	mlPipelineServerPort    = flag.String("ml_pipeline_server_port", "8887", "The port of the ML pipeline API server.")
+	mlPipelineServerAddress = driverFlagValues.MLPipelineServerAddress
+	mlPipelineServerPort    = driverFlagValues.MLPipelineServerPort
 
 	// output paths
-	parentTaskIDPath   = flag.String("parent_task_id_path", "", "Parent Task ID output path")
-	iterationCountPath = flag.String("iteration_count_path", "", "Iteration Count output path")
-	podSpecPatchPath   = flag.String("pod_spec_patch_path", "", "Pod Spec Patch output path")
+	parentTaskIDPath   = driverFlagValues.ParentTaskIDPath
+	iterationCountPath = driverFlagValues.IterationCountPath
+	podSpecPatchPath   = driverFlagValues.PodSpecPatchPath
 	// the value stored in the paths will be either 'true' or 'false'
-	cachedDecisionPath = flag.String("cached_decision_path", "", "Cached Decision output path")
-	conditionPath      = flag.String("condition_path", "", "Condition output path")
-	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
+	cachedDecisionPath = driverFlagValues.CachedDecisionPath
+	conditionPath      = driverFlagValues.ConditionPath
+	logLevel           = driverFlagValues.LogLevel
 
 	// proxy
-	httpProxy            = flag.String(httpProxyArg, "", "The proxy for HTTP connections.")
-	httpsProxy           = flag.String(httpsProxyArg, "", "The proxy for HTTPS connections.")
-	noProxy              = flag.String(noProxyArg, "", "Addresses that should ignore the proxy.")
-	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
-	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
-	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
-	caCertPath           = flag.String("ca_cert_path", "", "The path to the CA certificate to trust on connections to the ML pipeline API server and metadata server.")
-	defaultRunAsUser     = flag.Int64("default_run_as_user", -1, "Admin-configured default runAsUser for user containers. -1 means not set.")
-	defaultRunAsGroup    = flag.Int64("default_run_as_group", -1, "Admin-configured default runAsGroup for user containers. -1 means not set.")
-	defaultRunAsNonRoot  = flag.String("default_run_as_non_root", "", "Admin-configured default runAsNonRoot for user containers. Empty means not set.")
-	defaultHostUsers     = flag.String("default_host_users", "", "Administrator-configured default hostUsers for user workload pods. Empty means not set. Set to false to run pods in a dedicated Linux user namespace.")
+	httpProxy            = driverFlagValues.HTTPProxy
+	httpsProxy           = driverFlagValues.HTTPSProxy
+	noProxy              = driverFlagValues.NoProxy
+	publishLogs          = driverFlagValues.PublishLogs
+	cacheDisabledFlag    = driverFlagValues.CacheDisabled
+	mlPipelineTLSEnabled = driverFlagValues.MLPipelineTLSEnabled
+	caCertPath           = driverFlagValues.CACertPath
+	defaultRunAsUser     = driverFlagValues.DefaultRunAsUser
+	defaultRunAsGroup    = driverFlagValues.DefaultRunAsGroup
+	defaultRunAsNonRoot  = driverFlagValues.DefaultRunAsNonRoot
+	defaultHostUsers     = driverFlagValues.DefaultHostUsers
 )
 
 func main() {
@@ -388,7 +389,7 @@ func drive() (err error) {
 		}
 	}
 
-	k8sExecCfg, err := parseExecConfigJson(k8sExecConfigJson)
+	k8sExecCfg, err := parseExecConfigJSON(k8sExecConfigJSON)
 	if err != nil {
 		return err
 	}
@@ -475,6 +476,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	pluginDispatcher := newPluginDispatcher()
 	options := drivercommon.Options{
 		PipelineName:               *pipelineName,
 		Run:                        run,
@@ -499,6 +501,7 @@ func drive() (err error) {
 		PipelineJobCreateTimeUTC:   resolvedPipelineJobCreateTimeUTC,
 		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
 		CaCertPath:                 *caCertPath,
+		PluginDispatcher:           pluginDispatcher,
 	}
 	var execution *driver.Execution
 	switch *driverType {
@@ -555,6 +558,30 @@ func drive() (err error) {
 	return handleExecution(execution, *driverType, executionPaths)
 }
 
+// parseOptionalBoolFlag parses an optional boolean CLI flag.
+// Empty value means unset (nil). Invalid values return an error.
+func parseOptionalBoolFlag(flagName, value string) (*bool, error) {
+	if value == "" {
+		return nil, nil
+	}
+	v, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s value %q: %w", flagName, value, err)
+	}
+	return &v, nil
+}
+
+// newPluginDispatcher initializes the task plugin dispatcher, falling back to
+// NoOpDispatcher when initialization fails or no plugins are enabled.
+func newPluginDispatcher() plugins.TaskPluginDispatcher {
+	dispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		glog.Errorf("Failed to get plugin dispatcher: %v", err)
+		return plugins.NoOpDispatcher{}
+	}
+	return dispatcher
+}
+
 func resolveNamespace(explicitNamespace string) (string, error) {
 	if explicitNamespace == "" {
 		return "", fmt.Errorf("argument --namespace must be specified")
@@ -562,12 +589,12 @@ func resolveNamespace(explicitNamespace string) (string, error) {
 	return explicitNamespace, nil
 }
 
-func parseExecConfigJson(k8sExecConfigJson *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
+func parseExecConfigJSON(k8sExecConfigJSON *string) (*kubernetesplatform.KubernetesExecutorConfig, error) {
 	var k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
-	if *k8sExecConfigJson != "" {
-		glog.Info(kubernetesConfigLogMessage(*k8sExecConfigJson))
+	if *k8sExecConfigJSON != "" {
+		glog.Info(kubernetesConfigLogMessage(*k8sExecConfigJSON))
 		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
-		if err := util.UnmarshalString(*k8sExecConfigJson, k8sExecCfg); err != nil {
+		if err := util.UnmarshalString(*k8sExecConfigJSON, k8sExecCfg); err != nil {
 			// protojson errors can quote raw input tokens, including secret refs.
 			return nil, errors.New("failed to unmarshal Kubernetes config")
 		}

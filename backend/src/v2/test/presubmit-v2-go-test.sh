@@ -35,18 +35,9 @@ go mod download
 go mod tidy
 git diff --exit-code -- go.mod go.sum || (echo "go modules are not tidy, run 'go mod tidy'." && exit 1)
 
-# Note, for tests that use metadata grpc api, port-forward it locally in a separate terminal by:
 if [[ ! -z "${GOOGLE_APPLICATION_CREDENTIALS}" ]]; then
   gcloud auth activate-service-account --key-file="${GOOGLE_APPLICATION_CREDENTIALS}"
 fi
 gcloud container clusters get-credentials "$TEST_CLUSTER" --region "$REGION" --project "$PROJECT"
 
-function cleanup() {
-  echo "killing kubectl port forward before exit"
-  kill "$PORT_FORWARD_PID"
-}
-trap cleanup EXIT
-kubectl port-forward svc/metadata-grpc-service 8080:8080 -n "$NAMESPACE" & PORT_FORWARD_PID=$!
-# wait for kubectl port forward
-sleep 10
 go test -v -cover ./...
