@@ -89,21 +89,15 @@ jobs:
           kubectl get secret kfp-api-tls-cert -n kubeflow -o jsonpath='{.data.ca\.crt}' | base64 -d > "${{ github.workspace }}/ca.crt"
           echo "CA_CERT_PATH=${{ github.workspace }}/ca.crt" >> "$GITHUB_ENV"
 
-      - name: Forward MLMD port
-        id: forward-mlmd-port
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: kubectl -n kubeflow port-forward svc/metadata-grpc-service 8080:8080 &
-        continue-on-error: true
-
       - name: Start network observability
         id: network-observability
-        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         run: ./.github/resources/scripts/network-observability.sh start kubeflow /tmp/tmp-network-observability
         continue-on-error: true
 
       - name: API integration tests v2
         id: tests
-        if: ${{ steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' }}
         working-directory: ./backend/test/v2/integration
         # The PVC cache scenario runs in its own matrix job; the main group
         # skips only that subtest. The union is the original suite, while each
@@ -133,7 +127,7 @@ jobs:
         continue-on-error: true
 
       - name: Report network observability
-        if: ${{ always() && steps.forward-mlmd-port.outcome == 'success' }}
+        if: ${{ always() && steps.network-observability.outcome == 'success' }}
         shell: bash
         run: |
           ./.github/resources/scripts/network-observability.sh stop kubeflow /tmp/tmp-network-observability || true
@@ -170,7 +164,7 @@ jobs:
           echo "::error title=Legacy V2 suite exceeded its ${BUDGET} test budget::The sharded go test group was killed by -timeout (${BUDGET}), discarding its results. See the job summary for timing and cluster-state guidance."
 
       - name: Collect failed logs
-        if: ${{ steps.deploy.outcome != 'success' || steps.forward-mlmd-port.outcome != 'success' || steps.tests.outcome != 'success' }}
+        if: ${{ steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
