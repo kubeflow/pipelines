@@ -80,7 +80,9 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 	producer := &apiv2beta1.IOProducer{
 		TaskName: task.Name,
 	}
-	// Add iteration index if provided
+	outputType := util.OutputIOTypeForIteration(request.IterationIndex)
+	// Add iteration index if provided. Iteration outputs must use
+	// ITERATOR_OUTPUT so hydration groups them by iteration.
 	if request.IterationIndex != nil {
 		producer.Iteration = request.IterationIndex
 	}
@@ -89,7 +91,7 @@ func (s *ArtifactServer) CreateArtifact(ctx context.Context, request *apiv2beta1
 		TaskId: task.UUID,
 		RunId:  task.RunUUID,
 		// An artifact at creation is an output of the associated task.
-		Type:     apiv2beta1.IOType_OUTPUT,
+		Type:     outputType,
 		Producer: producer,
 		Key:      request.GetProducerKey(),
 	}
@@ -197,7 +199,9 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 		producer := &apiv2beta1.IOProducer{
 			TaskName: task.Name,
 		}
-		// Add iteration index if provided
+		outputType := util.OutputIOTypeForIteration(artifactReq.IterationIndex)
+		// Add iteration index if provided. Iteration outputs must use
+		// ITERATOR_OUTPUT so hydration groups them by iteration.
 		if artifactReq.IterationIndex != nil {
 			producer.Iteration = artifactReq.IterationIndex
 		}
@@ -206,7 +210,7 @@ func (s *ArtifactServer) CreateArtifactsBulk(ctx context.Context, request *apiv2
 			TaskId: task.UUID,
 			RunId:  task.RunUUID,
 			// An artifact at creation is an output of the associated task.
-			Type:     apiv2beta1.IOType_OUTPUT,
+			Type:     outputType,
 			Producer: producer,
 			Key:      artifactReq.GetProducerKey(),
 		}

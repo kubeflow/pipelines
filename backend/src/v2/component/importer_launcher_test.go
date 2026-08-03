@@ -338,6 +338,33 @@ func TestImportLauncher_RetryReusesExistingTask(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, importerLauncher.Execute(context.Background()))
+
+	firstTasks, err := mockAPI.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID})
+	require.NoError(t, err)
+	var firstImporter *apiv2beta1.PipelineTask
+	for _, task := range firstTasks.GetTasks() {
+		if task.GetType() == apiv2beta1.PipelineTask_IMPORTER {
+			firstImporter = task
+			break
+		}
+	}
+	require.NotNil(t, firstImporter)
+	require.Len(t, firstImporter.GetPods(), 1)
+	require.Equal(t, "test-pod", firstImporter.GetPods()[0].GetName())
+
+	// Simulate retry reset: clear attempt-local pods and reopen the task.
+	firstImporter.State = apiv2beta1.PipelineTask_RUNNING
+	firstImporter.Pods = []*apiv2beta1.PipelineTask_TaskPod{}
+	firstImporter.EndTime = nil
+	_, err = mockAPI.UpdateTask(context.Background(), &apiv2beta1.UpdateTaskRequest{
+		TaskId: firstImporter.GetTaskId(),
+		Task:   firstImporter,
+		RunId:  runID,
+	})
+	require.NoError(t, err)
+
+	importerLauncher.opts.PodName = "retry-pod"
+	importerLauncher.opts.PodUID = "retry-pod-uid"
 	require.NoError(t, importerLauncher.Execute(context.Background()))
 
 	refreshedRun, err := mockAPI.GetRun(context.Background(), &apiv2beta1.GetRunRequest{RunId: runID})
@@ -349,6 +376,9 @@ func TestImportLauncher_RetryReusesExistingTask(t *testing.T) {
 		}
 	}
 	require.Len(t, importerTasks, 1)
+	require.Len(t, importerTasks[0].GetPods(), 1)
+	require.Equal(t, "retry-pod", importerTasks[0].GetPods()[0].GetName())
+	require.Equal(t, "retry-pod-uid", importerTasks[0].GetPods()[0].GetUid())
 }
 
 func TestImportLauncher_UsesCanonicalTaskNameNotDisplayName(t *testing.T) {
@@ -468,6 +498,9 @@ type importerTestAPI struct {
 	createArtifactRequests []*apiv2beta1.CreateArtifactRequest
 	updateStatusesErr      error
 	getRunErr              error
+	failNextUpdateTask     error
+	updateTaskCalls        int
+	updateStatusesCalls    int
 }
 
 func (m *importerTestAPI) GetRun(ctx context.Context, req *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
@@ -487,7 +520,18 @@ func (m *importerTestAPI) GetRun(ctx context.Context, req *apiv2beta1.GetRunRequ
 	return populatedRun, nil
 }
 
+func (m *importerTestAPI) UpdateTask(ctx context.Context, req *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	m.updateTaskCalls++
+	if m.failNextUpdateTask != nil {
+		err := m.failNextUpdateTask
+		m.failNextUpdateTask = nil
+		return nil, err
+	}
+	return m.MockAPI.UpdateTask(ctx, req)
+}
+
 func (m *importerTestAPI) UpdateStatuses(ctx context.Context, run *apiv2beta1.Run, pipelineSpec *structpb.Struct, currentTask *apiv2beta1.PipelineTask) error {
+	m.updateStatusesCalls++
 	if m.updateStatusesErr != nil {
 		return m.updateStatusesErr
 	}
@@ -496,8 +540,8 @@ func (m *importerTestAPI) UpdateStatuses(ctx context.Context, run *apiv2beta1.Ru
 		if err != nil {
 			return err
 		}
-		parentTask.State = apiv2beta1.PipelineTask_SUCCEEDED
-		_, err = m.UpdateTask(ctx, &apiv2beta1.UpdateTaskRequest{TaskId: parentTask.GetTaskId(), Task: parentTask, RunId: parentTask.GetRunId()})
+		parentTask.State = currentTask.GetState()
+		_, err = m.MockAPI.UpdateTask(ctx, &apiv2beta1.UpdateTaskRequest{TaskId: parentTask.GetTaskId(), Task: parentTask, RunId: parentTask.GetRunId()})
 		return err
 	}
 	return nil
@@ -649,6 +693,203 @@ func TestImportLauncher_PropagatesStatusRefreshFailures(t *testing.T) {
 	err = importerLauncher.Execute(context.Background())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "failed to refresh run")
+
+	tasks, listErr := mockAPI.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID})
+	require.NoError(t, listErr)
+	var importerTask *apiv2beta1.PipelineTask
+	var parentTask *apiv2beta1.PipelineTask
+	for _, task := range tasks.GetTasks() {
+		switch {
+		case task.GetType() == apiv2beta1.PipelineTask_IMPORTER:
+			importerTask = task
+		case task.GetTaskId() == rootTask.GetTaskId():
+			parentTask = task
+		}
+	}
+	require.NotNil(t, importerTask, "importer task should be persisted")
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, importerTask.GetState(),
+		"importer must not remain SUCCEEDED after post-success finalization failure")
+	require.NotNil(t, parentTask)
+	// GetRun fails permanently, so ancestor propagation cannot complete; leaf
+	// reconciliation still must leave the importer FAILED.
+	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, parentTask.GetState())
+}
+
+func TestImportLauncher_PropagatesOrdinaryExecutionFailures(t *testing.T) {
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "importer"},
+		ComponentRef: &pipelinespec.ComponentRef{Name: "comp-importer"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+				"artifact": {
+					ArtifactType: &pipelinespec.ArtifactTypeSchema{
+						Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "pipeline-with-importer"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{"importer": taskSpec},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{"comp-importer": componentSpec},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "importer")
+	require.NoError(t, err)
+	runID := uuid.NewString()
+	rootTask := &apiv2beta1.PipelineTask{TaskId: uuid.NewString(), RunId: runID, Name: "root", State: apiv2beta1.PipelineTask_RUNNING, Type: apiv2beta1.PipelineTask_DAG, ScopePath: "root"}
+	mockAPI := &importerTestAPI{
+		MockAPI: kfpapi.NewMockAPI(),
+		runs:    map[string]*apiv2beta1.Run{runID: {RunId: runID}},
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: runID, Task: rootTask})
+	require.NoError(t, err)
+	clientManager := clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI)
+	importerLauncher, err := NewImporterLauncher(&LauncherV2Options{
+		Namespace:     "test-namespace",
+		PodName:       "test-pod",
+		PodUID:        "test-pod-uid",
+		PipelineName:  pipelineSpec.GetPipelineInfo().GetName(),
+		ComponentSpec: componentSpec,
+		ImporterSpec: &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
+			ArtifactUri: &pipelinespec.ValueOrRuntimeParameter{
+				Value: &pipelinespec.ValueOrRuntimeParameter_Constant{
+					Constant: structpb.NewStringValue(""),
+				},
+			},
+			TypeSchema: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			},
+		},
+		PipelineSpec: pipelineSpecStruct,
+		TaskSpec:     taskSpec,
+		ScopePath:    scopePath,
+		Run:          &apiv2beta1.Run{RunId: runID, Tasks: []*apiv2beta1.PipelineTask{rootTask}},
+		ParentTask:   rootTask,
+	}, clientManager)
+	require.NoError(t, err)
+
+	err = importerLauncher.Execute(context.Background())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "empty Artifact URI")
+	require.GreaterOrEqual(t, mockAPI.updateStatusesCalls, 1)
+
+	tasks, listErr := mockAPI.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID})
+	require.NoError(t, listErr)
+	var importerTask *apiv2beta1.PipelineTask
+	var parentTask *apiv2beta1.PipelineTask
+	for _, task := range tasks.GetTasks() {
+		switch {
+		case task.GetType() == apiv2beta1.PipelineTask_IMPORTER:
+			importerTask = task
+		case task.GetTaskId() == rootTask.GetTaskId():
+			parentTask = task
+		}
+	}
+	require.NotNil(t, importerTask)
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, importerTask.GetState())
+	require.NotNil(t, parentTask)
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, parentTask.GetState(),
+		"ordinary importer execution failures must propagate to ancestors")
+}
+
+func TestImportLauncher_PodUpdateFailureFinalizesAndPropagates(t *testing.T) {
+	taskSpec := &pipelinespec.PipelineTaskSpec{
+		TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "importer"},
+		ComponentRef: &pipelinespec.ComponentRef{Name: "comp-importer"},
+	}
+	componentSpec := &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+				"artifact": {
+					ArtifactType: &pipelinespec.ArtifactTypeSchema{
+						Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "pipeline-with-importer"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{"importer": taskSpec},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{"comp-importer": componentSpec},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "importer")
+	require.NoError(t, err)
+	runID := uuid.NewString()
+	rootTask := &apiv2beta1.PipelineTask{TaskId: uuid.NewString(), RunId: runID, Name: "root", State: apiv2beta1.PipelineTask_RUNNING, Type: apiv2beta1.PipelineTask_DAG, ScopePath: "root"}
+	mockAPI := &importerTestAPI{
+		MockAPI:            kfpapi.NewMockAPI(),
+		runs:               map[string]*apiv2beta1.Run{runID: {RunId: runID}},
+		failNextUpdateTask: fmt.Errorf("pod reattach failed"),
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{RunId: runID, Task: rootTask})
+	require.NoError(t, err)
+	clientManager := clientmanager.NewFakeClientManager(k8sfake.NewClientset(), mockAPI)
+	importerLauncher, err := NewImporterLauncher(&LauncherV2Options{
+		Namespace:     "test-namespace",
+		PodName:       "test-pod",
+		PodUID:        "test-pod-uid",
+		PipelineName:  pipelineSpec.GetPipelineInfo().GetName(),
+		ComponentSpec: componentSpec,
+		ImporterSpec: &pipelinespec.PipelineDeploymentConfig_ImporterSpec{
+			ArtifactUri: &pipelinespec.ValueOrRuntimeParameter{
+				Value: &pipelinespec.ValueOrRuntimeParameter_Constant{
+					Constant: structpb.NewStringValue("gs://bucket/model"),
+				},
+			},
+			TypeSchema: &pipelinespec.ArtifactTypeSchema{
+				Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Dataset"},
+			},
+		},
+		PipelineSpec: pipelineSpecStruct,
+		TaskSpec:     taskSpec,
+		ScopePath:    scopePath,
+		Run:          &apiv2beta1.Run{RunId: runID, Tasks: []*apiv2beta1.PipelineTask{rootTask}},
+		ParentTask:   rootTask,
+	}, clientManager)
+	require.NoError(t, err)
+
+	err = importerLauncher.Execute(context.Background())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to update importer attempt-local pods after create")
+	require.GreaterOrEqual(t, mockAPI.updateStatusesCalls, 1)
+
+	tasks, listErr := mockAPI.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID})
+	require.NoError(t, listErr)
+	var importerTask *apiv2beta1.PipelineTask
+	var parentTask *apiv2beta1.PipelineTask
+	for _, task := range tasks.GetTasks() {
+		switch {
+		case task.GetType() == apiv2beta1.PipelineTask_IMPORTER:
+			importerTask = task
+		case task.GetTaskId() == rootTask.GetTaskId():
+			parentTask = task
+		}
+	}
+	require.NotNil(t, importerTask)
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, importerTask.GetState(),
+		"pod UpdateTask failure must not leave importer RUNNING")
+	require.NotNil(t, parentTask)
+	require.Equal(t, apiv2beta1.PipelineTask_FAILED, parentTask.GetState())
 }
 
 func pipelineSpecToStruct(t *testing.T, pipelineSpec *pipelinespec.PipelineSpec) (*structpb.Struct, error) {

@@ -24,6 +24,7 @@ import (
 
 	"github.com/google/uuid"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
@@ -104,45 +105,109 @@ func (m *MockAPI) hydrateTask(task *apiv2beta1.PipelineTask) *apiv2beta1.Pipelin
 		populatedTask.Outputs.Parameters = task.Outputs.Parameters
 	}
 
-	// Find artifacts associated with this task
-	var inputArtifacts []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
-	var outputArtifacts []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact
-
-	for _, artifactTask := range m.artifactTasks {
-		if artifactTask.TaskId == task.TaskId {
-			// Get the associated artifact
-			if artifact, exists := m.artifacts[artifactTask.ArtifactId]; exists {
-				ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
-					Artifacts: []*apiv2beta1.Artifact{artifact},
-					Type:      artifactTask.Type,
-				}
-
-				ioArtifact.ArtifactKey = artifactTask.Key
-				ioArtifact.Producer = artifactTask.Producer
-
-				// Determine if this is an input or output artifact based on ArtifactTaskType
-				switch artifactTask.Type {
-				case apiv2beta1.IOType_COMPONENT_INPUT,
-					apiv2beta1.IOType_ITERATOR_INPUT,
-					apiv2beta1.IOType_RUNTIME_VALUE_INPUT,
-					apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
-					apiv2beta1.IOType_TASK_OUTPUT_INPUT,
-					apiv2beta1.IOType_COLLECTED_INPUTS,
-					apiv2beta1.IOType_ITERATOR_INPUT_RAW:
-					inputArtifacts = append(inputArtifacts, ioArtifact)
-				case apiv2beta1.IOType_OUTPUT,
-					apiv2beta1.IOType_ITERATOR_OUTPUT,
-					apiv2beta1.IOType_ONE_OF_OUTPUT,
-					apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT:
-					outputArtifacts = append(outputArtifacts, ioArtifact)
-				}
+	type hydratedArtifact struct {
+		artifact *apiv2beta1.Artifact
+		task     *apiv2beta1.ArtifactTask
+	}
+	type groupKey struct {
+		artifactKey  string
+		ioType       apiv2beta1.IOType
+		producerTask string
+		hasIteration bool
+		iterationVal int64
+	}
+	makeKey := func(artifactTask *apiv2beta1.ArtifactTask) groupKey {
+		key := groupKey{
+			artifactKey: artifactTask.GetKey(),
+			ioType:      artifactTask.GetType(),
+		}
+		if producer := artifactTask.GetProducer(); producer != nil {
+			key.producerTask = producer.GetTaskName()
+			// Only split by iteration for ITERATOR_OUTPUT; ordinary outputs
+			// consolidate all same-key artifacts into a single IOArtifact.
+			if artifactTask.GetType() == apiv2beta1.IOType_ITERATOR_OUTPUT && producer.Iteration != nil {
+				key.hasIteration = true
+				key.iterationVal = producer.GetIteration()
 			}
+		}
+		return key
+	}
+
+	inputGrouped := make(map[groupKey][]hydratedArtifact)
+	outputGrouped := make(map[groupKey][]hydratedArtifact)
+	for _, artifactTask := range m.artifactTasks {
+		if artifactTask.TaskId != task.TaskId {
+			continue
+		}
+		artifact, exists := m.artifacts[artifactTask.ArtifactId]
+		if !exists {
+			continue
+		}
+		entry := hydratedArtifact{artifact: artifact, task: artifactTask}
+		key := makeKey(artifactTask)
+		switch artifactTask.Type {
+		case apiv2beta1.IOType_COMPONENT_INPUT,
+			apiv2beta1.IOType_ITERATOR_INPUT,
+			apiv2beta1.IOType_RUNTIME_VALUE_INPUT,
+			apiv2beta1.IOType_COMPONENT_DEFAULT_INPUT,
+			apiv2beta1.IOType_TASK_OUTPUT_INPUT,
+			apiv2beta1.IOType_COLLECTED_INPUTS,
+			apiv2beta1.IOType_ITERATOR_INPUT_RAW:
+			inputGrouped[key] = append(inputGrouped[key], entry)
+		case apiv2beta1.IOType_OUTPUT,
+			apiv2beta1.IOType_ITERATOR_OUTPUT,
+			apiv2beta1.IOType_ONE_OF_OUTPUT,
+			apiv2beta1.IOType_TASK_FINAL_STATUS_OUTPUT:
+			outputGrouped[key] = append(outputGrouped[key], entry)
 		}
 	}
 
-	// Set the artifacts on the task
-	populatedTask.Inputs.Artifacts = inputArtifacts
-	populatedTask.Outputs.Artifacts = outputArtifacts
+	groupToIOArtifacts := func(grouped map[groupKey][]hydratedArtifact) []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact {
+		if len(grouped) == 0 {
+			return nil
+		}
+		keys := make([]groupKey, 0, len(grouped))
+		for key := range grouped {
+			keys = append(keys, key)
+		}
+		sort.Slice(keys, func(i, j int) bool {
+			left := keys[i]
+			right := keys[j]
+			if left.artifactKey != right.artifactKey {
+				return left.artifactKey < right.artifactKey
+			}
+			if left.ioType != right.ioType {
+				return left.ioType < right.ioType
+			}
+			if left.producerTask != right.producerTask {
+				return left.producerTask < right.producerTask
+			}
+			if left.hasIteration != right.hasIteration {
+				return !left.hasIteration && right.hasIteration
+			}
+			return left.iterationVal < right.iterationVal
+		})
+		out := make([]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, 0, len(keys))
+		for _, key := range keys {
+			entries := grouped[key]
+			artifacts := make([]*apiv2beta1.Artifact, 0, len(entries))
+			for _, entry := range entries {
+				artifacts = append(artifacts, entry.artifact)
+			}
+			first := entries[0].task
+			ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+				Artifacts:   artifacts,
+				ArtifactKey: first.GetKey(),
+				Type:        first.GetType(),
+				Producer:    first.GetProducer(),
+			}
+			out = append(out, ioArtifact)
+		}
+		return out
+	}
+
+	populatedTask.Inputs.Artifacts = groupToIOArtifacts(inputGrouped)
+	populatedTask.Outputs.Artifacts = groupToIOArtifacts(outputGrouped)
 
 	return populatedTask
 }
@@ -375,11 +440,21 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 				if task, exists := m.tasks[req.TaskId]; exists && task != nil {
 					taskName = task.Name
 				}
+				outputType := util.OutputIOTypeForIteration(req.IterationIndex)
+				for _, existingLink := range m.artifactTasks {
+					if existingLink.GetArtifactId() == existing.ArtifactId &&
+						existingLink.GetTaskId() == req.TaskId &&
+						existingLink.GetKey() == req.ProducerKey &&
+						existingLink.GetType() == outputType &&
+						mockIterationEqual(existingLink.GetProducer(), req.IterationIndex) {
+						return existing, nil
+					}
+				}
 				artifactTask := &apiv2beta1.ArtifactTask{
 					ArtifactId: existing.ArtifactId,
 					TaskId:     req.TaskId,
 					RunId:      req.RunId,
-					Type:       apiv2beta1.IOType_OUTPUT,
+					Type:       outputType,
 					Key:        req.ProducerKey,
 					Producer: &apiv2beta1.IOProducer{
 						TaskName: taskName,
@@ -412,7 +487,7 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 		ArtifactId: artifact.ArtifactId,
 		TaskId:     req.TaskId,
 		RunId:      req.RunId,
-		Type:       apiv2beta1.IOType_OUTPUT,
+		Type:       util.OutputIOTypeForIteration(req.IterationIndex),
 		Key:        req.ProducerKey,
 		Producer: &apiv2beta1.IOProducer{
 			TaskName: taskName,
@@ -428,6 +503,20 @@ func (m *MockAPI) CreateArtifact(_ context.Context, req *apiv2beta1.CreateArtifa
 	m.artifactTasks[artifactTask.Id] = artifactTask
 
 	return artifact, nil
+}
+
+func mockIterationEqual(producer *apiv2beta1.IOProducer, iterationIndex *int64) bool {
+	var existing *int64
+	if producer != nil {
+		existing = producer.Iteration
+	}
+	if existing == nil && iterationIndex == nil {
+		return true
+	}
+	if existing == nil || iterationIndex == nil {
+		return false
+	}
+	return *existing == *iterationIndex
 }
 
 func mockArtifactsEqualForReuse(left, right *apiv2beta1.Artifact) bool {
@@ -484,7 +573,7 @@ func (m *MockAPI) CreateArtifactsBulk(_ context.Context, req *apiv2beta1.CreateA
 			ArtifactId: artifact.ArtifactId,
 			TaskId:     artifactReq.TaskId,
 			RunId:      artifactReq.RunId,
-			Type:       apiv2beta1.IOType_OUTPUT,
+			Type:       util.OutputIOTypeForIteration(artifactReq.IterationIndex),
 			Key:        artifactReq.ProducerKey,
 			Producer: &apiv2beta1.IOProducer{
 				TaskName: taskName,

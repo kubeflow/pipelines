@@ -1,75 +1,75 @@
 {
-  "name":  "trainer-task",
-  "display_name":  "Trainer Task",
-  "task_id":  "task-123",
-  "run_id":  "run-456",
-  "pods":  [
+  "name": "trainer-task",
+  "display_name": "Trainer Task",
+  "task_id": "task-123",
+  "run_id": "run-456",
+  "pods": [
     {
-      "name":  "trainer-driver",
-      "uid":  "pod-uid-1",
-      "type":  "DRIVER"
+      "name": "trainer-driver",
+      "uid": "pod-uid-1",
+      "type": "DRIVER"
     },
     {
-      "name":  "trainer-executor",
-      "uid":  "pod-uid-2",
-      "type":  "EXECUTOR"
+      "name": "trainer-executor",
+      "uid": "pod-uid-2",
+      "type": "EXECUTOR"
     }
   ],
-  "cache_fingerprint":  "cache-abc123",
-  "create_time":  "2024-01-01T12:00:00Z",
-  "end_time":  "2024-01-01T12:00:00Z",
-  "state":  "SUCCEEDED",
-  "status_metadata":  {
-    "message":  "Task completed successfully",
-    "custom_properties":  {
-      "attempt":  1
+  "cache_fingerprint": "cache-abc123",
+  "create_time": "2024-01-01T12:00:00Z",
+  "end_time": "2024-01-01T12:00:00Z",
+  "state": "SUCCEEDED",
+  "status_metadata": {
+    "message": "Task completed successfully",
+    "custom_properties": {
+      "attempt": 1
     }
   },
-  "state_history":  [
+  "state_history": [
     {
-      "update_time":  "2024-01-01T12:00:00Z",
-      "state":  "RUNNING",
-      "error":  null
+      "update_time": "2024-01-01T12:00:00Z",
+      "state": "RUNNING",
+      "error": null
     },
     {
-      "update_time":  "2024-01-01T12:00:00Z",
-      "state":  "SUCCEEDED",
-      "error":  null
+      "update_time": "2024-01-01T12:00:00Z",
+      "state": "SUCCEEDED",
+      "error": null
     }
   ],
-  "type":  "RUNTIME",
-  "type_attributes":  {
-    "iteration_index":  "3"
+  "type": "RUNTIME",
+  "type_attributes": {
+    "iteration_index": "3"
   },
-  "parent_task_id":  "parent-task-001",
-  "child_tasks":  [
+  "parent_task_id": "parent-task-001",
+  "child_tasks": [
     {
-      "task_id":  "task-124",
-      "name":  "evaluator-task"
+      "task_id": "task-124",
+      "name": "evaluator-task"
     }
   ],
-  "inputs":  {
-    "parameters":  [
+  "inputs": {
+    "parameters": [
       {
-        "value":  0.1,
-        "type":  "COMPONENT_INPUT",
-        "parameter_key":  "learning_rate"
+        "value": 0.1,
+        "type": "COMPONENT_INPUT",
+        "parameter_key": "learning_rate"
       }
     ],
-    "artifacts":  []
+    "artifacts": []
   },
-  "outputs":  {
-    "parameters":  [
+  "outputs": {
+    "parameters": [
       {
-        "value":  "gs://bucket/model",
-        "type":  "OUTPUT",
-        "parameter_key":  "model_path",
-        "producer":  {
-          "task_name":  "trainer-task"
+        "value": "gs://bucket/model",
+        "type": "OUTPUT",
+        "parameter_key": "model_path",
+        "producer": {
+          "task_name": "trainer-task"
         }
       }
     ],
-    "artifacts":  []
+    "artifacts": []
   },
-  "scope_path":  "root.trainer-task"
+  "scope_path": "root.trainer-task"
 }

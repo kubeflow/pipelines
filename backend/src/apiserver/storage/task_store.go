@@ -258,11 +258,13 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 			q("artifact_tasks")+"."+q("Type"),
 			q("artifact_tasks")+"."+q("Producer"),
 			q("artifact_tasks")+"."+q("ArtifactKey"),
+			q("artifact_tasks")+"."+q("Iteration"),
 			q("artifacts")+"."+q("UUID"),
 			q("artifacts")+"."+q("Namespace"),
 			q("artifacts")+"."+q("Type"),
 			q("artifacts")+"."+q("URI"),
 			q("artifacts")+"."+q("Name"),
+			q("artifacts")+"."+q("Description"),
 			q("artifacts")+"."+q("CreatedAtInSec"),
 			q("artifacts")+"."+q("LastUpdateInSec"),
 			q("artifacts")+"."+q("Metadata"),
@@ -275,6 +277,7 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 			q("artifact_tasks")+"."+q("TaskID")+" ASC",
 			q("artifact_tasks")+"."+q("Type")+" ASC",
 			q("artifact_tasks")+"."+q("ArtifactKey")+" ASC",
+			q("artifact_tasks")+"."+q("Iteration")+" ASC",
 			q("artifact_tasks")+"."+q("ArtifactID")+" ASC",
 		).
 		ToSql()
@@ -293,14 +296,16 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 		var linkType sql.NullInt32
 		var producer sql.NullString
 		var key string
+		var iteration int64
 		var artUUID, artNamespace, artName string
+		var artDescription sql.NullString
 		var artType sql.NullInt32
 		var createdAt, updatedAt sql.NullInt64
 		var metadata, artURI sql.NullString
 		var numberValue sql.NullFloat64
 
-		if err := rows.Scan(&taskID, &linkType, &producer, &key,
-			&artUUID, &artNamespace, &artType, &artURI, &artName, &createdAt, &updatedAt, &metadata, &numberValue); err != nil {
+		if err := rows.Scan(&taskID, &linkType, &producer, &key, &iteration,
+			&artUUID, &artNamespace, &artType, &artURI, &artName, &artDescription, &createdAt, &updatedAt, &metadata, &numberValue); err != nil {
 			return err
 		}
 
@@ -327,24 +332,46 @@ func hydrateArtifactsForTasks(db *sql.DB, tasks []*model.Task, d dialect.DBDiale
 		if artURI.Valid {
 			mArtifact.URI = &artURI.String
 		}
+		if artDescription.Valid {
+			mArtifact.Description = artDescription.String
+		}
 		if numberValue.Valid {
 			mArtifact.NumberValue = &numberValue.Float64
 		}
 
-		// Parse producer JSON to IOProducer
+		// Parse producer JSON to IOProducer using protobuf-aware decoding
 		var producerProto *model.IOProducer
 		if producer.Valid && producer.String != "" {
 			var producerData model.JSONData
 			if err := json.Unmarshal([]byte(producer.String), &producerData); err == nil {
-				producerProto = &model.IOProducer{}
-				if taskName, ok := producerData["taskName"].(string); ok {
-					producerProto.TaskName = taskName
-				}
-				if iteration, ok := producerData["iteration"].(float64); ok {
-					iterInt := int64(iteration)
-					producerProto.Iteration = &iterInt
+				apiProducer, decodeErr := model.JSONDataToProtoMessage(producerData, func() *apiv2beta1.IOProducer {
+					return &apiv2beta1.IOProducer{}
+				})
+				if decodeErr == nil && apiProducer != nil {
+					producerProto = &model.IOProducer{
+						TaskName:  apiProducer.GetTaskName(),
+						Iteration: apiProducer.Iteration,
+					}
+				} else {
+					// Fallback: extract manually for backward compatibility
+					producerProto = &model.IOProducer{}
+					if taskName, ok := producerData["taskName"].(string); ok {
+						producerProto.TaskName = taskName
+					}
+					if iterVal, ok := producerData["iteration"].(float64); ok {
+						iterInt := int64(iterVal)
+						producerProto.Iteration = &iterInt
+					}
 				}
 			}
+		}
+
+		// The artifact_tasks.Iteration column is authoritative when set.
+		if iteration != model.ArtifactTaskNoIteration {
+			if producerProto == nil {
+				producerProto = &model.IOProducer{}
+			}
+			producerProto.Iteration = &iteration
 		}
 
 		h := model.TaskArtifactHydrated{
@@ -916,7 +943,7 @@ func (s *TaskStore) FindLatestCachedTask(namespace, fingerprint string) (*model.
 	if len(tasks) == 0 {
 		return nil, nil
 	}
-	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}); err != nil {
+	if err := hydrateArtifactsForTasks(s.db, []*model.Task{tasks[0]}, s.dbDialect); err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to hydrate latest cached task artifacts")
 	}
 	return tasks[0], nil

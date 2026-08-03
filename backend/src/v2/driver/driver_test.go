@@ -19,8 +19,12 @@ import (
 	"fmt"
 	"testing"
 
-	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -30,9 +34,13 @@ import (
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func Test_resolveContainerCommandAndArgs_OptionalParameterDefault(t *testing.T) {
@@ -652,7 +660,8 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 		containerSpec,
 		componentSpec,
 		executorInput,
-		27,
+		"27",
+		"",
 		"test",
 		"0254beba-0be4-4065-8d97-7dc5e3adf300",
 		"my-run-name",
@@ -660,13 +669,13 @@ func Test_initPodSpecPatch_modelcarDoesNotInheritMLflowCredentialEnvVars(t *test
 		"false",
 		"false",
 		taskConfig,
-		false,
+		"",
+		nil,
+		"",
 		false,
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
-		"metadata-grpc-service.kubeflow.svc.local",
-		"8080",
 		pluginEnvVars,
 	)
 	require.NoError(t, err)
@@ -1406,7 +1415,7 @@ func Test_initPodSpecPatch_TaskConfig_Env_Passthrough_CaptureOnly(t *testing.T) 
 	}
 	executorInput := &pipelinespec.ExecutorInput{}
 	taskCfg := &TaskConfig{}
-	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887")
+	podSpec, err := initPodSpecPatch(containerSpec, componentSpec, executorInput, "27", "", "test", "run", "my-run-name", "1", "false", "false", taskCfg, "", nil, "", false, "", "ml-pipeline.kubeflow", "8887", nil)
 	assert.Nil(t, err)
 
 	// User-defined env should be captured to TaskConfig only, not applied to pod
@@ -1490,6 +1499,7 @@ func Test_extendPodSpecPatch_RejectsReservedSecretEnvVar(t *testing.T) {
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -1536,6 +1546,7 @@ func Test_extendPodSpecPatch_RejectsReservedConfigMapAndFieldPathEnvVar(t *testi
 		"",
 		"ml-pipeline.kubeflow",
 		"8887",
+		nil,
 	)
 	require.NoError(t, err)
 
@@ -2082,4 +2093,333 @@ func Test_provisionOutputs(t *testing.T) {
 			}
 		})
 	}
+}
+
+// recordingDispatcher records plugin lifecycle calls for test assertions.
+type recordingDispatcher struct {
+	plugins.NoOpDispatcher
+	appliedProperties map[string]string
+	startCount        int
+	endCount          int
+	endStates         []apiv2beta1.PipelineTask_TaskState
+	endErr            error
+	envErr            error
+}
+
+func (r *recordingDispatcher) ApplyCustomProperties(properties map[string]string) {
+	r.appliedProperties = properties
+}
+
+func (r *recordingDispatcher) OnTaskStart(_ context.Context, _ *plugins.TaskInfo) (*plugins.TaskStartResult, error) {
+	r.startCount++
+	return &plugins.TaskStartResult{
+		CustomProperties: map[string]string{"plugins.test": "1"},
+	}, nil
+}
+
+func (r *recordingDispatcher) OnTaskEnd(_ context.Context, taskInfo *plugins.TaskInfo) error {
+	r.endCount++
+	if taskInfo != nil {
+		r.endStates = append(r.endStates, taskInfo.RunStatus)
+	}
+	return r.endErr
+}
+
+func (r *recordingDispatcher) RetrieveUserContainerEnvVars(_ *plugins.TaskInfo) ([]k8score.EnvVar, error) {
+	if r.envErr != nil {
+		return nil, r.envErr
+	}
+	return nil, nil
+}
+
+func TestApplyParentPluginCustomProperties_WithProperties(t *testing.T) {
+	parentTask := &apiv2beta1.PipelineTask{
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("nested-run-123"),
+			},
+		},
+	}
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, parentTask)
+
+	require.NotNil(t, recorder.appliedProperties)
+	assert.Equal(t, "nested-run-123", recorder.appliedProperties["plugins.mlflow.run_id"])
+}
+
+func TestApplyParentPluginCustomProperties_NilParentTask(t *testing.T) {
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, nil)
+
+	assert.Nil(t, recorder.appliedProperties)
+}
+
+func TestApplyParentPluginCustomProperties_NoCustomProperties(t *testing.T) {
+	parentTask := &apiv2beta1.PipelineTask{}
+	recorder := &recordingDispatcher{}
+	applyParentPluginCustomProperties(recorder, parentTask)
+
+	assert.Nil(t, recorder.appliedProperties)
+}
+
+func TestContainer_PluginLifecycle_PostStartErrorEndsOnce(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{envErr: fmt.Errorf("env inject failed")}
+	opts.PluginDispatcher = recorder
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "env inject failed")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
+}
+
+func TestContainer_PluginLifecycle_SuccessfulHandoffLeavesOpen(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 0, recorder.endCount, "launcher handoff must leave plugin task open")
+}
+
+func TestContainer_PluginLifecycle_OnTaskEndErrorDoesNotPanic(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{
+		envErr: fmt.Errorf("env inject failed"),
+		endErr: fmt.Errorf("plugin end failed"),
+	}
+	opts.PluginDispatcher = recorder
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "env inject failed", "original execution error must be preserved when end hook also fails")
+	assert.NotContains(t, err.Error(), "plugin end failed")
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+}
+
+func TestContainer_PluginLifecycle_CacheHitEndsOnceCached(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.CachingOptions = &pipelinespec.PipelineTaskSpec_CachingOptions{EnableCache: true}
+
+	cachedTask := &apiv2beta1.PipelineTask{
+		TaskId: "prior-cached-task",
+		RunId:  "prior-run",
+		Name:   "create-dataset",
+		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+		Outputs: &apiv2beta1.PipelineTask_InputOutputs{
+			Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{},
+		},
+	}
+	tc.ClientManager = clientmanager.NewFakeClientManager(
+		tc.ClientManager.K8sClient(),
+		&forceCacheHitAPI{API: tc.MockAPI, cachedTask: cachedTask},
+	)
+
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Cached)
+	assert.True(t, *execution.Cached)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_CACHED, recorder.endStates[0])
+}
+
+// forceCacheHitAPI returns a fixed cached task for every FindCachedTask lookup.
+type forceCacheHitAPI struct {
+	kfpapi.API
+	cachedTask *apiv2beta1.PipelineTask
+}
+
+func (f *forceCacheHitAPI) FindCachedTask(
+	_ context.Context,
+	_ *apiv2beta1.FindCachedTaskRequest,
+) (*apiv2beta1.FindCachedTaskResponse, error) {
+	return &apiv2beta1.FindCachedTaskResponse{Task: f.cachedTask}, nil
+}
+
+func TestContainer_PluginLifecycle_SkippedEndsOnce(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	opts.Task = proto.Clone(taskSpec).(*pipelinespec.PipelineTaskSpec)
+	opts.Task.TriggerPolicy = &pipelinespec.PipelineTaskSpec_TriggerPolicy{
+		Condition: "false",
+	}
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotNil(t, execution)
+	require.NotNil(t, execution.Condition)
+	assert.False(t, *execution.Condition)
+	assert.Equal(t, 1, recorder.startCount)
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, recorder.endStates[0])
+}
+
+func TestContainer_PluginLifecycle_PreStartFailureDoesNotCallEnd(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	k8sClient := k8sfake.NewClientset()
+	k8sClient.PrependReactor("get", "configmaps", func(_ clienttesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated configmap failure")
+	})
+	tc.ClientManager = clientmanager.NewFakeClientManager(k8sClient, tc.MockAPI)
+
+	_, err = Container(context.Background(), opts, tc.ClientManager)
+	require.Error(t, err)
+	assert.Equal(t, 0, recorder.startCount, "OnTaskStart should not run before plugin start")
+	assert.Equal(t, 0, recorder.endCount, "OnTaskEnd should not run when start never ran")
+}
+
+func TestContainer_PluginLifecycle_CustomPropertiesSetOnTask(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/cache_test.yaml")
+	require.NoError(t, tc.Push("create-dataset"))
+	defer func() {
+		_, ok := tc.Pop()
+		require.True(t, ok)
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	require.NoError(t, err)
+	opts := tc.setupContainerOptions(tc.RootTask, taskSpec, kubernetesExecutorConfig)
+	recorder := &recordingDispatcher{}
+	opts.PluginDispatcher = recorder
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	require.NoError(t, err)
+	require.NotEmpty(t, execution.TaskID)
+
+	task, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: execution.TaskID,
+		RunId:  tc.Run.GetRunId(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, task.GetStatusMetadata())
+	require.NotNil(t, task.GetStatusMetadata().GetCustomProperties())
+	assert.Equal(t, "1", task.GetStatusMetadata().GetCustomProperties()["plugins.test"].GetStringValue())
+}
+
+func TestUpdateTaskAttemptLocalFieldsAfterCreate_PreservesStatusMetadata(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{RunId: "run-retry"}
+	mockAPI.AddRun(run)
+
+	existingTask := &apiv2beta1.PipelineTask{
+		TaskId:    "task-1",
+		RunId:     run.GetRunId(),
+		Name:      "train",
+		Type:      apiv2beta1.PipelineTask_RUNTIME,
+		State:     apiv2beta1.PipelineTask_FAILED,
+		ScopePath: "root",
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("old-run"),
+			},
+		},
+	}
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task:  existingTask,
+		RunId: run.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	attemptFields := &apiv2beta1.PipelineTask{
+		State: apiv2beta1.PipelineTask_RUNNING,
+		StatusMetadata: &apiv2beta1.PipelineTask_StatusMetadata{
+			CustomProperties: map[string]*structpb.Value{
+				"plugins.mlflow.run_id": structpb.NewStringValue("new-run"),
+			},
+		},
+	}
+	updated, err := updateTaskAttemptLocalFieldsAfterCreate(
+		context.Background(),
+		mockAPI,
+		existingTask,
+		attemptFields,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, updated.GetStatusMetadata())
+	require.Equal(
+		t,
+		"new-run",
+		updated.GetStatusMetadata().GetCustomProperties()["plugins.mlflow.run_id"].GetStringValue(),
+	)
+	require.Equal(t, apiv2beta1.PipelineTask_RUNNING, updated.GetState())
 }

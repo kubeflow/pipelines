@@ -292,7 +292,7 @@ func getGCSTokenClient(ctx context.Context, namespace string, sessionInfo *Sessi
 	if !ok || len(tokenJSON) == 0 {
 		return nil, fmt.Errorf("key '%s' not found or is empty", params.TokenKey)
 	}
-	creds, err := google.CredentialsFromJSON(ctx, tokenJSON, "https://www.googleapis.com/auth/devstorage.read_write")
+	creds, err := google.CredentialsFromJSON(ctx, tokenJSON, "https://www.googleapis.com/auth/devstorage.read_write") //nolint:staticcheck // SA1019: CredentialsFromJSON still required for secret-mounted service account JSON tokens
 	if err != nil {
 		return nil, err
 	}

@@ -158,6 +158,165 @@ func TestOmitArtifactTasksAlreadyPresentOnTasks(t *testing.T) {
 	assert.Equal(t, "missing-model", batchUpdater.artifactTasks[0].GetKey())
 }
 
+func TestOmitArtifactTasksAlreadyPresentOnTasks_KeepsDistinctSameKeyArtifacts(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{RunId: "run-omit-multi"}
+	mockAPI.AddRun(run)
+
+	parentID := "parent"
+	existingArtifactID := "art-existing"
+	missingArtifactID := "art-missing"
+
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task: &apiv2beta1.PipelineTask{
+			TaskId: parentID,
+			RunId:  run.GetRunId(),
+			Name:   "producer",
+			State:  apiv2beta1.PipelineTask_RUNNING,
+			Type:   apiv2beta1.PipelineTask_RUNTIME,
+		},
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact: &apiv2beta1.Artifact{ArtifactId: existingArtifactID, Name: "model-a", Uri: util.StringPointer("gs://bucket/a")},
+		TaskId:   parentID,
+		RunId:    run.GetRunId(),
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{
+			{ArtifactId: existingArtifactID, TaskId: parentID, RunId: run.GetRunId(), Key: "models", Type: apiv2beta1.IOType_OUTPUT},
+		},
+	})
+	require.NoError(t, err)
+
+	batchUpdater := NewBatchUpdater()
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: existingArtifactID,
+		TaskId:     parentID,
+		Key:        "models",
+		Type:       apiv2beta1.IOType_OUTPUT,
+	})
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: missingArtifactID,
+		TaskId:     parentID,
+		Key:        "models",
+		Type:       apiv2beta1.IOType_OUTPUT,
+	})
+	iter0 := int64(0)
+	iter1 := int64(1)
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: "art-iter-0",
+		TaskId:     parentID,
+		Key:        "loop-out",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+	})
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: "art-iter-1",
+		TaskId:     parentID,
+		Key:        "loop-out",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter1},
+	})
+
+	require.NoError(t, batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(
+		context.Background(), mockAPI, run.GetRunId(),
+	))
+	require.Len(t, batchUpdater.artifactTasks, 3)
+	keys := make([]string, 0, len(batchUpdater.artifactTasks))
+	for _, artifactTask := range batchUpdater.artifactTasks {
+		keys = append(keys, artifactTask.GetArtifactId())
+	}
+	assert.ElementsMatch(t, []string{missingArtifactID, "art-iter-0", "art-iter-1"}, keys)
+}
+
+func TestOmitArtifactTasksAlreadyPresentOnTasks_IteratorPartialRepair(t *testing.T) {
+	mockAPI := kfpapi.NewMockAPI()
+	run := &apiv2beta1.Run{RunId: "run-omit-iter"}
+	mockAPI.AddRun(run)
+
+	parentID := "parent"
+	sharedArtifactID := "art-shared"
+	iter0 := int64(0)
+	iter1 := int64(1)
+
+	_, err := mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task: &apiv2beta1.PipelineTask{
+			TaskId: parentID,
+			RunId:  run.GetRunId(),
+			Name:   "producer",
+			State:  apiv2beta1.PipelineTask_RUNNING,
+			Type:   apiv2beta1.PipelineTask_RUNTIME,
+		},
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact:       &apiv2beta1.Artifact{ArtifactId: sharedArtifactID, Name: "loop-0", Uri: util.StringPointer("gs://bucket/0")},
+		TaskId:         parentID,
+		RunId:          run.GetRunId(),
+		ProducerKey:    "loop-out",
+		IterationIndex: &iter0,
+	})
+	require.NoError(t, err)
+
+	batchUpdater := NewBatchUpdater()
+	// Exact duplicate of the seeded (artifact, task, type, iteration, key) — must be omitted.
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: sharedArtifactID,
+		TaskId:     parentID,
+		Key:        "loop-out",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+	})
+	// Same artifact/task/type/key, different iteration — must be kept.
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: sharedArtifactID,
+		TaskId:     parentID,
+		Key:        "loop-out",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter1},
+	})
+	// Same artifact/task/iteration/key, different I/O type — must be kept.
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: sharedArtifactID,
+		TaskId:     parentID,
+		Key:        "loop-out",
+		Type:       apiv2beta1.IOType_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+	})
+	// Same artifact/task/type/iteration, different key — must be kept.
+	batchUpdater.QueueArtifactTask(&apiv2beta1.ArtifactTask{
+		ArtifactId: sharedArtifactID,
+		TaskId:     parentID,
+		Key:        "other-out",
+		Type:       apiv2beta1.IOType_ITERATOR_OUTPUT,
+		Producer:   &apiv2beta1.IOProducer{TaskName: "producer", Iteration: &iter0},
+	})
+
+	require.NoError(t, batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(
+		context.Background(), mockAPI, run.GetRunId(),
+	))
+	require.Len(t, batchUpdater.artifactTasks, 3)
+	keptKeys := make([]string, 0, len(batchUpdater.artifactTasks))
+	for _, artifactTask := range batchUpdater.artifactTasks {
+		require.Equal(t, sharedArtifactID, artifactTask.GetArtifactId())
+		require.Equal(t, parentID, artifactTask.GetTaskId())
+		keptKeys = append(keptKeys, fmt.Sprintf("%v|%d|%s",
+			artifactTask.GetType(),
+			artifactTaskIterationIdentity(artifactTask),
+			artifactTask.GetKey(),
+		))
+	}
+	assert.ElementsMatch(t, []string{
+		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_ITERATOR_OUTPUT, iter1, "loop-out"),
+		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_OUTPUT, iter0, "loop-out"),
+		fmt.Sprintf("%v|%d|%s", apiv2beta1.IOType_ITERATOR_OUTPUT, iter0, "other-out"),
+	}, keptKeys)
+}
+
 func TestRepublishPreservedChildOutputsToDAG_RestoresParentParamsFromSucceededSibling(t *testing.T) {
 	pipelineSpec := &pipelinespec.PipelineSpec{
 		Root: &pipelinespec.ComponentSpec{
