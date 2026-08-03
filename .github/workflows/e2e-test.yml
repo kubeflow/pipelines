@@ -23,6 +23,7 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/install-fgo-fake/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
@@ -96,6 +97,13 @@ jobs:
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
+          # Schedule-only NVIDIA GPU lane (Kind + Fake GPU Operator fake backend).
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v3.7.17"
+            proxy: "false"
+            test_label: "gpu-scheduling-check"
+            pod_to_pod_tls_enabled: "false"
       fail-fast: false
     name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
@@ -122,6 +130,11 @@ jobs:
           image_tag: latest
           image_registry: kind-registry:5000
 
+      - name: Install Fake GPU Operator (fake backend)
+        uses: ./.github/actions/install-fgo-fake
+        id: install-fgo-fake
+        if: ${{ matrix.test_label == 'gpu-scheduling-check' && steps.deploy.outcome == 'success' }}
+
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
@@ -131,7 +144,7 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' }}
         env:
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
