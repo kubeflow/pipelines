@@ -10,12 +10,6 @@ spec:
           env:
             - name: ML_PIPELINE_SERVICE_SCHEME
               value: "https"
-            - name: METADATA_ENVOY_SERVICE_SERVICE_HOST
-              value: "metadata-envoy-service"
-            - name: METADATA_ENVOY_SERVICE_SERVICE_PORT
-              value: "9090"
-            - name: METADATA_ENVOY_SERVICE_SERVICE_SCHEME
-              value: "https"
             - name: NODE_EXTRA_CA_CERTS
               value: "/etc/pki/tls/certs/ca.crt"
             - name: ML_PIPELINE_SERVICE_HOST

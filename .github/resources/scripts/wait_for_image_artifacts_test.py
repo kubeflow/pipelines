@@ -49,7 +49,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         attempts: Optional[int] = 2,
         producer_jobs: tuple[tuple[str, str, str], ...] = (),
         jobs_api_fails: bool = False,
-        missing_artifact: str = 'metadata-envoy',
+        missing_artifact: str = 'frontend',
         publication_grace_attempts: Optional[int] = None,
         producer_state_unavailable_extensions: Optional[int] = None,
     ) -> tuple[subprocess.CompletedProcess[str], int]:
@@ -160,7 +160,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn('Missing branch image artifacts after producer completion grace',
                       result.stderr)
-        self.assertIn('metadata-envoy', result.stderr)
+        self.assertIn('frontend', result.stderr)
         self.assertEqual(attempts, 5)
 
     def test_extends_wait_while_missing_producer_is_active(self):
@@ -168,8 +168,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             ready_after=3,
             attempts=2,
             producer_jobs=((
-                'build / image-build (metadata-envoy, '
-                'third_party/metadata_envoy/Dockerfile, .)',
+                'build / image-build (frontend, frontend/Dockerfile, .)',
                 'in_progress',
                 '',
             ),),
@@ -177,7 +176,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(
-            'Extending image artifact wait; active producers: metadata-envoy',
+            'Extending image artifact wait; active producers: frontend',
             result.stdout)
         self.assertEqual(attempts, 3)
 
@@ -201,15 +200,14 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             ready_after=99,
             attempts=2,
             producer_jobs=((
-                'build / image-build (metadata-envoy, '
-                'third_party/metadata_envoy/Dockerfile, .)',
+                'build / image-build (frontend, frontend/Dockerfile, .)',
                 'completed',
                 'failure',
             ),),
         )
 
         self.assertEqual(result.returncode, 1)
-        self.assertIn('metadata-envoy:failure', result.stderr)
+        self.assertIn('frontend:failure', result.stderr)
         self.assertEqual(attempts, 2)
 
     def test_allows_publication_grace_after_successful_producer(self):
@@ -217,8 +215,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             ready_after=4,
             attempts=2,
             producer_jobs=((
-                'build / image-build (metadata-envoy, '
-                'third_party/metadata_envoy/Dockerfile, .)',
+                'build / image-build (frontend, frontend/Dockerfile, .)',
                 'completed',
                 'success',
             ),),
@@ -267,7 +264,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
 
         self.assertEqual(result.returncode, 1)
         self.assertIn('producer state remains unavailable', result.stderr)
-        self.assertIn('metadata-envoy', result.stderr)
+        self.assertIn('frontend', result.stderr)
         self.assertEqual(attempts, 2)
 
 
