@@ -17,10 +17,8 @@ FROM gcr.io/inverting-proxy/agent@sha256:432f609b1e98793723807f62a0a5b900deec491
 
 # We need --allow-releaseinfo-change, because of https://github.com/kubeflow/pipelines/issues/6311#issuecomment-899224137.
 RUN apt update --allow-releaseinfo-change && apt-get install -y curl jq python3-pip
-COPY requirements.txt .
-RUN python3 -m pip install -r \
-    requirements.txt --quiet --no-cache-dir \
-    && rm -f requirements.txt
+RUN python3 -m pip install uv \
+    && uv pip install --system requests --quiet --no-cache-dir
 
 # Install gcloud SDK (pinned)
 ARG GCLOUD_VERSION=557.0.0

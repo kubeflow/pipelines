@@ -5,12 +5,14 @@ on:
     branches: [ master ]
   pull_request:
     paths:
+      - '**/pyproject.toml'
+      - 'uv.lock'
       - api/**
       - sdk/**
       - kubernetes_platform/**
       - release/**
       - .github/workflows/readthedocs-builds.yml
-      - .github/actions/setup-python-pip-cache/**
+      - .github/actions/setup-python/**
       - .readthedocs.yml
 
 
@@ -25,46 +27,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: ./.github/actions/setup-python-pip-cache
+      - name: Setup Python with uv
+        uses: ./.github/actions/setup-python
         with:
           python-version: "3.10"
-          cache-scope: readthedocs-builds
-          cache-dependency-hash: ${{ hashFiles('docs/sdk/requirements.txt', 'sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
 
-      - name: Install protobuf dependencies & kfp-pipeline-spec
-        id: install-protobuf-deps
+      - name: Install protobuf dependencies & generate proto files
         uses: ./.github/actions/protobuf
 
       - name: Install kfp & kfp-kubernetes from source
-        id: install-kfp-k8s-deps
         uses: ./.github/actions/kfp-k8s
 
-      - name: Install Dependencies
+      - name: Install release automation package
         run: |
-          pip install -e release
-          pip install -r docs/sdk/requirements.txt
-          pip install --upgrade 'typer>=0.16,<1.0'
+          uv pip install -e release
+          uv pip install --upgrade 'typer>=0.16,<1.0'
 
       - name: Test release automation
-        run: python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
+        run: uv run python -m unittest release.kfpr.cli_test release.kfpr.steps_test release.kfpr.rtd_test release.kfpr.core_test
 
       - name: Build KFP SDK Docs
         working-directory: docs/sdk
         run: |
-          sphinx-build -b html . _build/html
+          uv run sphinx-build -b html . _build/html
 
       - name: Build KFP Kubernetes SDK Docs
         working-directory: kubernetes_platform/python/docs
         run: |
-          sphinx-build -b html . _build/html
+          uv run sphinx-build -b html . _build/html
 
       - name: Test K8s platform docs release step
         run: |
-          KFP_KUBERNETES_VERSION="$(python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
+          KFP_KUBERNETES_VERSION="$(uv run python -c 'from kfp.kubernetes.__init__ import __version__; print(__version__)')"
           RELEASE_TYPE=patch
           case "$KFP_KUBERNETES_VERSION" in *.0) RELEASE_TYPE=minor ;; esac
-          kfpr run create-kfp-kubernetes-docs-branch \
+          uv run kfpr run create-kfp-kubernetes-docs-branch \
             --release-type "$RELEASE_TYPE" \
             --version "$KFP_KUBERNETES_VERSION" \
             --fork-remote upstream \

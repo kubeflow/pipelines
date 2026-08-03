@@ -26,6 +26,7 @@ endif
 endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
+UV_VERSION=0.10.3
 
 .PHONY: all
 all: golang python
@@ -72,10 +73,12 @@ ifeq ($(USE_PREBUILT_IMAGE),true)
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
+		    cd api/v2alpha1/python && \
 		    python3 generate_proto.py && \
-            python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    cd /go/src/github.com/kubeflow/pipelines && \
+		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
 else
 	$(MAKE) python-from-source
 endif
@@ -88,10 +91,12 @@ python-from-source: ensure-api-generator-image fetch-protos
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/api/v2alpha1/python && \
-		    python3 -m pip install --user --break-system-packages -r requirements.txt && \
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+		    pip install --user --break-system-packages uv==$(UV_VERSION) && \
+		    cd api/v2alpha1/python && \
 		    python3 generate_proto.py && \
-            python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		    cd /go/src/github.com/kubeflow/pipelines && \
+		    ~/.local/bin/uv build --package kfp-pipeline-spec --out-dir api/v2alpha1/python/dist'
 
 # Build and locally install Python package using editable mode for development.
 .PHONY: python-dev

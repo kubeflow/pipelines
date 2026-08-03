@@ -1,0 +1,23 @@
+[project]
+name = "kfp-pipeline-spec"
+version = "2.15.2"
+description = "Kubeflow Pipelines pipeline spec"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.9"
+authors = [
+  { name = "The Kubeflow Authors" }
+]
+keywords = ["Kubeflow", "Pipelines", "Pipeline Spec"]
+dependencies = [
+  "protobuf>=6.31.1,<7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kubeflow/pipelines"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["kfp"]

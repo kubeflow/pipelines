@@ -15,12 +15,11 @@
 # install requirements
 
 pushd ../..
-pip install -r docs/sdk/requirements.txt
-pip install sdk/python
+uv sync --frozen --extra docs
 popd
 
 # build docs
-make clean html
+uv run make clean html
 
 # serve docs
 pushd _build/html

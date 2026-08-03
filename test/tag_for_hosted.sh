@@ -95,7 +95,7 @@ docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA:$MM_VER
 
 # 3rd-party images
 # ! Sync to the same MLMD version:
-# * backend/metadata_writer/requirements.in and requirements.txt
+# * backend/metadata_writer/Dockerfile
 # * frontend/src/mlmd/generated
 # * .cloudbuild.yaml and .release.cloudbuild.yaml
 # * manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml

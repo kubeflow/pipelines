@@ -1,0 +1,9 @@
+absl-py
+sklearn
+wget
+pandas
+minio
+mock
+pytorch-lightning
+torchmetrics
+kfp

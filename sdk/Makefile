@@ -26,6 +26,7 @@ endif
 endif
 PREBUILT_REMOTE_IMAGE=ghcr.io/kubeflow/kfp-api-generator:master
 IMAGE_TAG=kfp-api-generator
+UV_VERSION=0.10.3
 
 # Build Python package using either pre-built image (fast) or source build (accurate).
 # Use USE_PREBUILT_IMAGE=false to build from source for guaranteed accuracy.
@@ -37,8 +38,9 @@ ifeq ($(USE_PREBUILT_IMAGE),true)
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(PREBUILT_REMOTE_IMAGE) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+			pip install --user --break-system-packages uv==$(UV_VERSION) && \
+			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
 else
 	$(MAKE) python-from-source
 endif
@@ -51,8 +53,9 @@ python-from-source: ensure-api-generator-image
 		-e HOME=/tmp \
 		-v "$$(pwd)/..":"/go/src/github.com/kubeflow/pipelines":z \
 		$(IMAGE_TAG) \
-		sh -c 'cd /go/src/github.com/kubeflow/pipelines/sdk/python && \
-			python3 setup.py sdist && pip wheel --no-deps dist/*.tar.gz -w dist'
+		sh -c 'cd /go/src/github.com/kubeflow/pipelines && \
+			pip install --user --break-system-packages uv==$(UV_VERSION) && \
+			~/.local/bin/uv build --package kfp --out-dir sdk/python/dist'
 
 .PHONY: clean-python
 clean-python:
