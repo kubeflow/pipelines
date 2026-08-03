@@ -316,7 +316,7 @@ func parameterNames(parameters []wfapi.Parameter) []string {
 	return names
 }
 
-func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
+func TestDAGDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 
 	c := &workflowCompiler{
@@ -346,7 +346,9 @@ func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
 	}
 	require.NotNil(t, tmpl, "system-dag-driver template should exist")
 	require.NotNil(t, tmpl.Container, "template should have a container")
-	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
+	// Driver resolves create time from Run.created_at; emitting an unknown flag
+	// would cause flag.Parse() to exit before driver execution.
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
 	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
+	assertRegisteredDriverArgs(t, tmpl.Container.Args)
 }

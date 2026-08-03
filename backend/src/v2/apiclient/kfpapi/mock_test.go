@@ -83,3 +83,85 @@ func TestSameLogicalTaskIdentity_NormalizesEmptyParent(t *testing.T) {
 	}
 	require.False(t, sameLogicalTaskIdentity(existing, candidateWithParent, "run-1"))
 }
+
+func TestMockAPI_CreateArtifact_IteratorCreateHydrateParity(t *testing.T) {
+	api := NewMockAPI()
+	run := &apiv2beta1.Run{RunId: "run-iter"}
+	api.AddRun(run)
+
+	task, err := api.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task: &apiv2beta1.PipelineTask{
+			TaskId:    "loop-body",
+			RunId:     run.GetRunId(),
+			Name:      "loop-body",
+			Type:      apiv2beta1.PipelineTask_RUNTIME,
+			ScopePath: "root.loop-body",
+		},
+	})
+	require.NoError(t, err)
+
+	iter0 := int64(0)
+	iter1 := int64(1)
+	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-0a", Name: "out-0a", Uri: strPtr("gs://b/0a")},
+		TaskId:         task.GetTaskId(),
+		RunId:          run.GetRunId(),
+		ProducerKey:    "models",
+		IterationIndex: &iter0,
+	})
+	require.NoError(t, err)
+	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-0b", Name: "out-0b", Uri: strPtr("gs://b/0b")},
+		TaskId:         task.GetTaskId(),
+		RunId:          run.GetRunId(),
+		ProducerKey:    "models",
+		IterationIndex: &iter0,
+	})
+	require.NoError(t, err)
+	_, err = api.CreateArtifactsBulk(context.Background(), &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				Artifact:       &apiv2beta1.Artifact{ArtifactId: "art-1a", Name: "out-1a", Uri: strPtr("gs://b/1a")},
+				TaskId:         task.GetTaskId(),
+				RunId:          run.GetRunId(),
+				ProducerKey:    "models",
+				IterationIndex: &iter1,
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	// Reuse path should also preserve ITERATOR_OUTPUT.
+	_, err = api.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+		Artifact:       &apiv2beta1.Artifact{Name: "out-0a", Uri: strPtr("gs://b/0a")},
+		TaskId:         task.GetTaskId(),
+		RunId:          run.GetRunId(),
+		ProducerKey:    "models",
+		IterationIndex: &iter0,
+		ReuseIfExists:  true,
+	})
+	require.NoError(t, err)
+
+	hydrated, err := api.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{TaskId: task.GetTaskId(), RunId: run.GetRunId()})
+	require.NoError(t, err)
+	require.NotNil(t, hydrated.GetOutputs())
+	require.Len(t, hydrated.GetOutputs().GetArtifacts(), 2)
+
+	byIteration := map[int64]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{}
+	for _, artifactIO := range hydrated.GetOutputs().GetArtifacts() {
+		require.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, artifactIO.GetType())
+		require.Equal(t, "models", artifactIO.GetArtifactKey())
+		require.NotNil(t, artifactIO.GetProducer())
+		require.NotNil(t, artifactIO.GetProducer().Iteration)
+		byIteration[artifactIO.GetProducer().GetIteration()] = artifactIO
+	}
+	require.Contains(t, byIteration, int64(0))
+	require.Contains(t, byIteration, int64(1))
+	require.Len(t, byIteration[0].GetArtifacts(), 2)
+	require.Len(t, byIteration[1].GetArtifacts(), 1)
+}
+
+func strPtr(value string) *string {
+	return &value
+}

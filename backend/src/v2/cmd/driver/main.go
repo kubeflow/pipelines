@@ -38,6 +38,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 
@@ -411,6 +412,7 @@ func drive() (err error) {
 	if err != nil {
 		return err
 	}
+	pluginDispatcher := newPluginDispatcher()
 	options := drivercommon.Options{
 		PipelineName:               *pipelineName,
 		Run:                        run,
@@ -435,6 +437,7 @@ func drive() (err error) {
 		PipelineJobCreateTimeUTC:   resolvedPipelineJobCreateTimeUTC,
 		PipelineJobScheduleTimeUTC: resolvedPipelineJobScheduleTimeUTC,
 		CaCertPath:                 *caCertPath,
+		PluginDispatcher:           pluginDispatcher,
 	}
 	var execution *driver.Execution
 	switch *driverType {
@@ -458,11 +461,11 @@ func drive() (err error) {
 				options.DefaultRunAsNonRoot = &v
 			}
 		}
-		if *defaultHostUsers != "" {
-			if _, err := strconv.ParseBool(*defaultHostUsers); err != nil {
-				return fmt.Errorf("invalid --default_host_users value %q: %w", *defaultHostUsers, err)
-			}
+		hostUsers, hostUsersErr := parseOptionalBoolFlag("--default_host_users", *defaultHostUsers)
+		if hostUsersErr != nil {
+			return hostUsersErr
 		}
+		options.DefaultHostUsers = hostUsers
 		execution, err = driver.Container(ctx, options, clientManager)
 	default:
 		err = fmt.Errorf("unknown driverType %s", *driverType)
@@ -483,6 +486,30 @@ func drive() (err error) {
 	}
 
 	return handleExecution(execution, *driverType, executionPaths)
+}
+
+// parseOptionalBoolFlag parses an optional boolean CLI flag.
+// Empty value means unset (nil). Invalid values return an error.
+func parseOptionalBoolFlag(flagName, value string) (*bool, error) {
+	if value == "" {
+		return nil, nil
+	}
+	v, err := strconv.ParseBool(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid %s value %q: %w", flagName, value, err)
+	}
+	return &v, nil
+}
+
+// newPluginDispatcher initializes the task plugin dispatcher, falling back to
+// NoOpDispatcher when initialization fails or no plugins are enabled.
+func newPluginDispatcher() plugins.TaskPluginDispatcher {
+	dispatcher, err := plugins.GetPluginDispatcher()
+	if err != nil {
+		glog.Errorf("Failed to get plugin dispatcher: %v", err)
+		return plugins.NoOpDispatcher{}
+	}
+	return dispatcher
 }
 
 func resolveNamespace(explicitNamespace string) (string, error) {

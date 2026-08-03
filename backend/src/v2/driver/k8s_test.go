@@ -3532,11 +3532,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3555,11 +3554,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInHostNamespace,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3574,11 +3572,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: nil,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3602,7 +3599,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
@@ -3610,8 +3607,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 				},
 			},
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3643,11 +3639,10 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &adminFalse,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3996,11 +3991,8 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			err := extendPodSpecPatch(
 				context.Background(),
 				got,
-				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				nil,
-				nil,
-				nil,
-				map[string]*structpb.Value{},
 				nil,
 			)
 			if tt.expectedErr != "" {
@@ -4027,7 +4019,7 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{
+		common.Options{
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				InitContainers: []*kubernetesplatform.InitContainer{
 					{Name: "fetch-config", Image: "busybox:1.36"},
@@ -4039,9 +4031,6 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 			DefaultHostUsers:    &hostUsers,
 		},
 		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
 		nil,
 	)
 	assert.Nil(t, err)

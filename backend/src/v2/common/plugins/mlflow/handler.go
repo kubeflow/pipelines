@@ -117,7 +117,10 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 		}
 	}
 
-	resolvedStatus := ExecutionStateToMLflowTerminalStatus(info.RunStatus)
+	resolvedStatus, statusErr := TaskStateToMLflowTerminalStatus(info.RunStatus)
+	if statusErr != nil {
+		return fmt.Errorf("failed to resolve MLflow terminal status: %w", statusErr)
+	}
 	runEndTime := info.RunEndTime
 	err = requestCtx.Client.UpdateRun(ctx, resolvedRunID, resolvedStatus, &runEndTime)
 	if err != nil {

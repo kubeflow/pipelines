@@ -23,10 +23,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
@@ -97,8 +97,17 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 			},
 		},
 	}
+	// Set iteration identity before fallible resolution so retry cleanup
+	// CreateTask matches the existing logical task key.
+	if iterationIndex != nil {
+		taskToCreate.TypeAttributes = &apiV2beta1.PipelineTask_TypeAttributes{
+			IterationIndex: util.Int64Pointer(int64(*iterationIndex)),
+		}
+	}
 
-	// Ensure we capture and propagate any errors.
+	// Ensure we capture and propagate any errors. Successful handoff to the
+	// launcher leaves the task RUNNING; parent status cannot complete yet, so
+	// skip the expensive full-run refresh until a driver-terminal state.
 	defer func() {
 		if driverErr != nil {
 			taskIDToUpdate := taskToCreate.GetTaskId()
@@ -115,33 +124,58 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				}
 				taskToCreate.TaskId = taskIDToUpdate
 			}
-			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
-			taskToCreate.EndTime = timestamppb.Now()
+			failedEndTime := timestamppb.Now()
 			statusMetadata := taskToCreate.GetStatusMetadata()
 			if statusMetadata == nil {
 				statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
 			}
 			statusMetadata.Message = driverErr.Error()
+			failedAttemptFields := &apiV2beta1.PipelineTask{
+				Pods:           taskToCreate.GetPods(),
+				State:          apiV2beta1.PipelineTask_FAILED,
+				EndTime:        failedEndTime,
+				StatusMetadata: statusMetadata,
+			}
+			taskToCreate.State = apiV2beta1.PipelineTask_FAILED
+			taskToCreate.EndTime = failedEndTime
 			taskToCreate.StatusMetadata = statusMetadata
 			// We encountered an error in driver before we got the chance to create the task.
 			if taskIDToUpdate == "" {
-				_, err := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
+				createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 					Task:  taskToCreate,
 					RunId: taskToCreate.GetRunId(),
 				})
-				if err != nil {
-					glog.Errorf("Failed to Create task %s: %v", taskToCreate.Name, err)
-				}
-			} else {
-				_, err := clientManager.KFPAPIClient().UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
-					TaskId: taskIDToUpdate,
-					Task:   taskToCreate,
-					RunId:  taskToCreate.GetRunId(),
-				})
-				if err != nil {
-					glog.Errorf("Failed to update task %s: %v", taskToCreate.Name, err)
+				if createErr != nil {
+					glog.Errorf("Failed to Create task %s: %v", taskToCreate.Name, createErr)
+				} else {
+					taskToCreate = createdTask
+					taskIDToUpdate = createdTask.GetTaskId()
 				}
 			}
+			// Always UpdateTask after CreateTask: on retry, CreateTask returns the
+			// existing RUNNING row unchanged and must be finalized to FAILED.
+			if taskIDToUpdate != "" {
+				updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+					ctx,
+					clientManager.KFPAPIClient(),
+					taskToCreate,
+					failedAttemptFields,
+				)
+				if updateErr != nil {
+					glog.Errorf("Failed to update task %s: %v", taskToCreate.Name, updateErr)
+				} else {
+					taskToCreate = updatedTask
+				}
+			}
+		}
+
+		driverTerminal := driverErr != nil ||
+			taskToCreate.GetState() == apiV2beta1.PipelineTask_CACHED ||
+			taskToCreate.GetState() == apiV2beta1.PipelineTask_SKIPPED ||
+			taskToCreate.GetState() == apiV2beta1.PipelineTask_FAILED ||
+			taskToCreate.GetState() == apiV2beta1.PipelineTask_SUCCEEDED
+		if !driverTerminal {
+			return
 		}
 
 		fullView := apiV2beta1.GetRunRequest_FULL
@@ -202,11 +236,6 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 		// kubernetesPlatformOps, we set publishLogs to "false". We can amend
 		// this when we update the driver to publish logs directly.
 		opts.PublishLogs = "false"
-	}
-
-	// If this is an iteration runtime task, set the iteration index.
-	if iterationIndex != nil {
-		taskToCreate.TypeAttributes = &apiV2beta1.PipelineTask_TypeAttributes{IterationIndex: util.Int64Pointer(int64(*iterationIndex))}
 	}
 
 	// Handle Kubernetes-specific tasks such as pvc-creation or pvc-deletion
@@ -279,21 +308,40 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
 	}
-	if parentProperties := opts.ParentTask.GetStatusMetadata().GetCustomProperties(); len(parentProperties) > 0 {
-		dispatcher.ApplyCustomProperties(structValuesToStringMap(parentProperties))
-	}
+	applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
+	pluginStarted := false
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
 		glog.Errorf("Failed to dispatch task start: %v", dispatchErr)
-	} else if pluginStartResult != nil {
-		statusMetadata := taskToCreate.GetStatusMetadata()
-		if statusMetadata == nil {
-			statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+	} else {
+		pluginStarted = true
+		if pluginStartResult != nil {
+			statusMetadata := taskToCreate.GetStatusMetadata()
+			if statusMetadata == nil {
+				statusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{}
+			}
+			statusMetadata.CustomProperties = stringMapToStructValues(pluginStartResult.CustomProperties)
+			taskToCreate.StatusMetadata = statusMetadata
 		}
-		statusMetadata.CustomProperties = stringMapToStructValues(pluginStartResult.CustomProperties)
-		taskToCreate.StatusMetadata = statusMetadata
 	}
+	endPluginTask := func(state apiV2beta1.PipelineTask_TaskState) {
+		if !pluginStarted {
+			return
+		}
+		pluginStarted = false
+		taskPluginInfo.UpdateTaskInfoWithMetadata(state, nil, nil)
+		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		}
+	}
+	// Driver-terminal paths must close the plugin task. Launcher-bound paths
+	// leave pluginStarted true so the launcher owns OnTaskEnd.
+	defer func() {
+		if driverErr != nil {
+			endPluginTask(apiV2beta1.PipelineTask_FAILED)
+		}
+	}()
 	// Use cache and skip launcher if all conditions met:
 	// (1) Cache is enabled globally
 	// (2) Cache is enabled for the task
@@ -373,10 +421,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				return execution, fmt.Errorf("failed to propagate cached task outputs: %w", err)
 			}
 			execution.TaskID = createdTask.TaskId
-			taskPluginInfo.UpdateTaskInfoWithMetadata("CACHED", nil, nil)
-			if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
-			}
+			endPluginTask(apiV2beta1.PipelineTask_CACHED)
 			glog.Infof("Cache hit for task %s", opts.TaskName)
 			return execution, nil
 		}
@@ -424,6 +469,7 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 
 	// If this Task is a condition branch and the condition was not met, skip it.
 	if !execution.WillTrigger() {
+		endPluginTask(apiV2beta1.PipelineTask_SKIPPED)
 		return execution, nil
 	}
 

@@ -221,7 +221,7 @@ func TestArtifactServer_CreateArtifact_WithIterationIndex(t *testing.T) {
 	at := artifactTasks.GetArtifactTasks()[0]
 	assert.Equal(t, created.GetArtifactId(), at.GetArtifactId())
 	assert.Equal(t, task.UUID, at.GetTaskId())
-	assert.Equal(t, apiv2beta1.IOType_OUTPUT, at.GetType())
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, at.GetType())
 	assert.Equal(t, "output-artifact", at.GetKey())
 	assert.NotNil(t, at.GetProducer())
 	assert.Equal(t, task.Name, at.GetProducer().GetTaskName())
@@ -1448,6 +1448,7 @@ func TestArtifactServer_CreateArtifactsBulk_WithIterationIndex(t *testing.T) {
 		assert.Equal(t, int32(1), artifactTasks.GetTotalSize())
 
 		at := artifactTasks.GetArtifactTasks()[0]
+		assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, at.GetType())
 		assert.NotNil(t, at.GetProducer())
 		assert.NotNil(t, at.GetProducer().Iteration)
 		assert.Equal(t, int64(i), *at.GetProducer().Iteration)

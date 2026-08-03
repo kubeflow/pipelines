@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -1703,4 +1704,128 @@ func Test_retrieve_artifact_path(t *testing.T) {
 			assert.Equal(t, path, test.expectedPath)
 		})
 	}
+}
+
+// recordingPluginDispatcher records OnTaskEnd calls for launcher lifecycle tests.
+type recordingPluginDispatcher struct {
+	plugins.NoOpDispatcher
+	endCount  int
+	endStates []apiv2beta1.PipelineTask_TaskState
+	endErr    error
+}
+
+func (r *recordingPluginDispatcher) OnTaskEnd(_ context.Context, taskInfo *plugins.TaskInfo) error {
+	r.endCount++
+	if taskInfo != nil {
+		r.endStates = append(r.endStates, taskInfo.RunStatus)
+	}
+	return r.endErr
+}
+
+func pipelineSpecStructForLauncherPluginTest(t *testing.T) *structpb.Struct {
+	t.Helper()
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "plugin-lifecycle"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{},
+				},
+			},
+		},
+		SchemaVersion: "2.1.0",
+	}
+	pipelineSpecJSON, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(pipelineSpecJSON, pipelineSpecStruct))
+	return pipelineSpecStruct
+}
+
+func newLauncherForPluginLifecycleTest(
+	t *testing.T,
+	recorder *recordingPluginDispatcher,
+	cmdErr error,
+) *LauncherV2 {
+	t.Helper()
+
+	executorInput := &pipelinespec.ExecutorInput{
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+		},
+	}
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	require.NoError(t, err)
+
+	mockAPI := kfpapi.NewMockAPI()
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+
+	run := &apiv2beta1.Run{
+		RunId: "plugin-run",
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: pipelineSpecStructForLauncherPluginTest(t),
+		},
+	}
+	mockAPI.AddRun(run)
+
+	task := &apiv2beta1.PipelineTask{
+		TaskId: "plugin-task",
+		RunId:  run.GetRunId(),
+		Name:   "plugin-task",
+		State:  apiv2beta1.PipelineTask_RUNNING,
+		Type:   apiv2beta1.PipelineTask_RUNTIME,
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task: task, RunId: task.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	opts := &LauncherV2Options{
+		Namespace:        "default",
+		PodName:          "plugin-pod",
+		PodUID:           "plugin-pod-uid",
+		PipelineName:     "plugin-lifecycle",
+		ComponentSpec:    &pipelinespec.ComponentSpec{},
+		TaskSpec:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "plugin-task"}},
+		Run:              run,
+		Task:             task,
+		PipelineSpec:     pipelineSpecStructForLauncherPluginTest(t),
+		PluginDispatcher: recorder,
+	}
+
+	launcher, err := NewLauncherV2(string(executorInputJSON), []string{"sh", "-c", "true"}, opts, clientManager)
+	require.NoError(t, err)
+
+	mockFS := NewMockFileSystem()
+	mockFS.SetFileContent("/tmp/kfp_outputs/output_metadata.json", []byte("{}"))
+	mockCmd := NewMockCommandExecutor()
+	mockCmd.RunError = cmdErr
+	launcher.WithFileSystem(mockFS).
+		WithCommandExecutor(mockCmd).
+		WithObjectStore(NewMockObjectStoreClient())
+	return launcher
+}
+
+func TestLauncherV2_PluginLifecycle_SuccessfulExecuteEndsOnceSucceeded(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	err := launcher.Execute(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, recorder.endCount, "launcher must close the plugin task exactly once after driver handoff")
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, recorder.endStates[0])
+}
+
+func TestLauncherV2_PluginLifecycle_OnTaskEndErrorPreservesExecutionError(t *testing.T) {
+	recorder := &recordingPluginDispatcher{endErr: errors.New("plugin end failed")}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, errors.New("component crashed"))
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "component crashed", "original execution error must be preserved when end hook also fails")
+	assert.NotContains(t, err.Error(), "plugin end failed")
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
 }

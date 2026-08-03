@@ -385,7 +385,7 @@ func handleInputTaskParametersCreation(
 // updateTaskAttemptLocalFieldsAfterCreate re-applies attempt-local fields that
 // CreateTask may drop when it returns an existing logical-identity row (retries
 // and duplicate delivery). Mirrors the cache-hit UpdateTask path for pods,
-// inputs, fingerprint, and state.
+// inputs, fingerprint, state, end time, and plugin status metadata.
 func updateTaskAttemptLocalFieldsAfterCreate(
 	ctx context.Context,
 	kfpAPI kfpapi.API,
@@ -400,6 +400,7 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	createdTask.CacheFingerprint = attemptTask.GetCacheFingerprint()
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
+	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
 	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,

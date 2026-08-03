@@ -27,8 +27,8 @@ import (
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
@@ -60,9 +60,7 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 	if dispatcher == nil {
 		dispatcher = plugins.NoOpDispatcher{}
 	}
-	if parentProperties := opts.ParentTask.GetStatusMetadata().GetCustomProperties(); len(parentProperties) > 0 {
-		dispatcher.ApplyCustomProperties(structValuesToStringMap(parentProperties))
-	}
+	applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 	taskPluginInfo := &plugins.TaskInfo{Name: opts.TaskName}
 	pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 	if dispatchErr != nil {
@@ -78,13 +76,13 @@ func kubernetesPlatformOps(ctx context.Context, clientManager client_manager.Cli
 
 	var finalizedTask *apiV2beta1.PipelineTask
 	defer func() {
-		status := "COMPLETE"
+		state := apiV2beta1.PipelineTask_SUCCEEDED
 		if err != nil {
-			status = "FAILED"
+			state = apiV2beta1.PipelineTask_FAILED
 		} else if finalizedTask != nil && finalizedTask.GetState() == apiV2beta1.PipelineTask_CACHED {
-			status = "CACHED"
+			state = apiV2beta1.PipelineTask_CACHED
 		}
-		taskPluginInfo.UpdateTaskInfoWithMetadata(status, nil, nil)
+		taskPluginInfo.UpdateTaskInfoWithMetadata(state, nil, nil)
 		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
 			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
 		}

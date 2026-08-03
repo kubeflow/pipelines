@@ -156,7 +156,6 @@ Class | Method | HTTP request | Description
  - [AuthorizeRequestResources](docs/AuthorizeRequestResources.md)
  - [AuthorizeRequestVerb](docs/AuthorizeRequestVerb.md)
  - [GoogleRpcStatus](docs/GoogleRpcStatus.md)
- - [GooglerpcStatus](docs/GooglerpcStatus.md)
  - [InlineObject](docs/InlineObject.md)
  - [InlineObject1](docs/InlineObject1.md)
  - [InputOutputsIOArtifact](docs/InputOutputsIOArtifact.md)

@@ -283,7 +283,7 @@ func TestAddContainerExecutorTemplate_PropagatesGRPCBackoffEnv(t *testing.T) {
 	assert.True(t, found, "expected container executor to include configured gRPC backoff env")
 }
 
-func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
+func TestContainerDriverTemplate_OmitsUnsupportedPipelineJobCreateTimeArg(t *testing.T) {
 	proxy.InitializeConfigWithEmptyForTests()
 	c := &workflowCompiler{
 		templates: make(map[string]*wfapi.Template),
@@ -302,9 +302,11 @@ func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) 
 	tmpl, exists := c.templates[name]
 	require.True(t, exists, "system-container-driver template should exist")
 	require.NotNil(t, tmpl.Container, "template should have a container")
-	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
-	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
+	// Driver resolves create time from Run.created_at; emitting an unknown flag
+	// would cause flag.Parse() to exit before driver execution.
+	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
 	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
+	assertRegisteredDriverArgs(t, tmpl.Container.Args)
 }
 
 func Test_extendPodMetadata(t *testing.T) {

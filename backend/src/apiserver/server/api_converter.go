@@ -1070,6 +1070,22 @@ func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) *apiv2beta1.RuntimeCon
 	return &apiRuntimeConfig
 }
 
+// Converts internal runtime config representation to PipelineSpec's runtime config.
+// Note: returns nil if a parsing error occurs.
+func toPipelineSpecRuntimeConfig(cfg *model.RuntimeConfig) *pipelinespec.PipelineJob_RuntimeConfig {
+	if cfg == nil {
+		return &pipelinespec.PipelineJob_RuntimeConfig{}
+	}
+	runtimeParams := toMapProtoStructParameters(string(cfg.Parameters))
+	if runtimeParams == nil {
+		return nil
+	}
+	return &pipelinespec.PipelineJob_RuntimeConfig{
+		ParameterValues:    runtimeParams,
+		GcsOutputDirectory: string(cfg.PipelineRoot),
+	}
+}
+
 // Converts API run metric to its internal representation.
 // Supports both v1beta1 and v2beta1 API.
 func toModelRunMetricV1(m interface{}, runID string) (*model.RunMetricV1, error) {
@@ -2253,6 +2269,59 @@ func toApiRunStorageState(s *model.StorageState) apiv2beta1.Run_StorageState {
 	}
 }
 
+// Converts internal storage state representation to its API run's counterpart.
+// Support v1beta1 API.
+// Note, default to STORAGESTATE_AVAILABLE.
+func toApiRunStorageStateV1(s *model.StorageState) apiv1beta1.Run_StorageState {
+	if string(*s) == "" {
+		return apiv1beta1.Run_STORAGESTATE_AVAILABLE
+	}
+	switch string(*s) {
+	case string(model.StorageStateArchived), string(model.StorageStateArchived.ToV1()):
+		return apiv1beta1.Run_STORAGESTATE_ARCHIVED
+	case string(model.StorageStateAvailable), string(model.StorageStateAvailable.ToV1()):
+		return apiv1beta1.Run_STORAGESTATE_AVAILABLE
+	default:
+		return apiv1beta1.Run_STORAGESTATE_AVAILABLE
+	}
+}
+
+// Converts internal storage state representation to its API experiment's counterpart.
+// Support v2beta1 API.
+func toApiExperimentStorageState(s *model.StorageState) apiv2beta1.Experiment_StorageState {
+	if string(*s) == "" {
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+	}
+	switch string(*s) {
+	case string(model.StorageStateArchived), string(model.StorageStateArchived.ToV1()):
+		return apiv2beta1.Experiment_ARCHIVED
+	case string(model.StorageStateAvailable), string(model.StorageStateAvailable.ToV1()):
+		return apiv2beta1.Experiment_AVAILABLE
+	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecified.ToV1()):
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+	default:
+		return apiv2beta1.Experiment_STORAGE_STATE_UNSPECIFIED
+	}
+}
+
+// Converts internal storage state representation to its API experiment's counterpart.
+// Support v1beta1 API.
+func toApiExperimentStorageStateV1(s *model.StorageState) apiv1beta1.Experiment_StorageState {
+	if string(*s) == "" {
+		return apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED
+	}
+	switch string(*s) {
+	case string(model.StorageStateArchived), string(model.StorageStateArchived.ToV1()):
+		return apiv1beta1.Experiment_STORAGESTATE_ARCHIVED
+	case string(model.StorageStateAvailable), string(model.StorageStateAvailable.ToV1()):
+		return apiv1beta1.Experiment_STORAGESTATE_AVAILABLE
+	case string(model.StorageStateUnspecified), string(model.StorageStateUnspecified.ToV1()):
+		return apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED
+	default:
+		return apiv1beta1.Experiment_STORAGESTATE_UNSPECIFIED
+	}
+}
+
 // Converts API runtime state to its internal representation.
 // Supports both v1beta1 and v2beta1 API.
 func toModelRuntimeState(s interface{}) (model.RuntimeState, error) {
@@ -3040,7 +3109,9 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 			return nil, nil
 		}
 
-		// Group artifacts by (ArtifactKey, Type, Producer) to consolidate metrics
+		// Group artifacts by (ArtifactKey, Type, Producer iteration for ITERATOR_OUTPUT).
+		// For non-ITERATOR_OUTPUT types, all same-key artifacts are consolidated into one IOArtifact.
+		// For ITERATOR_OUTPUT, each distinct iteration gets its own IOArtifact.
 		type groupKey struct {
 			artifactKey  string
 			ioType       apiv2beta1.IOType
@@ -3056,7 +3127,9 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 			}
 			if h.Producer != nil {
 				key.producerTask = h.Producer.TaskName
-				if h.Producer.Iteration != nil {
+				// Only split by iteration for ITERATOR_OUTPUT; ordinary outputs
+				// consolidate all same-key artifacts into a single IOArtifact.
+				if h.Type == apiv2beta1.IOType_ITERATOR_OUTPUT && h.Producer.Iteration != nil {
 					key.hasIteration = true
 					key.iterationVal = *h.Producer.Iteration
 				}
@@ -3096,67 +3169,31 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 		out := make([]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact, 0, len(grouped))
 		for _, key := range keys {
 			hydratedGroup := grouped[key]
-			// Check if all artifacts in this group are metrics
-			allMetrics := true
+
+			apiArtifacts := make([]*apiv2beta1.Artifact, 0, len(hydratedGroup))
 			for _, h := range hydratedGroup {
-				if h.Value == nil || h.Value.Type != model.ArtifactType(apiv2beta1.Artifact_Metric) {
-					allMetrics = false
-					break
+				if h.Value != nil {
+					apiArt, err := toAPIArtifact(h.Value)
+					if err != nil {
+						return nil, err
+					}
+					apiArtifacts = append(apiArtifacts, apiArt)
 				}
 			}
 
-			if allMetrics && len(hydratedGroup) > 1 {
-				// Multiple metrics with same key - consolidate into ONE IOArtifact with multiple artifacts
-				apiArtifacts := make([]*apiv2beta1.Artifact, 0, len(hydratedGroup))
-				for _, h := range hydratedGroup {
-					if h.Value != nil {
-						apiArt, err := toAPIArtifact(h.Value)
-						if err != nil {
-							return nil, err
-						}
-						apiArtifacts = append(apiArtifacts, apiArt)
-					}
-				}
-
-				// Use first hydrated entry for common fields
-				firstHydrated := hydratedGroup[0]
-				ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
-					Artifacts:   apiArtifacts,
-					ArtifactKey: firstHydrated.Key,
-					Type:        firstHydrated.Type,
-				}
-				if firstHydrated.Producer != nil {
-					ioArtifact.Producer = &apiv2beta1.IOProducer{
-						TaskName:  firstHydrated.Producer.TaskName,
-						Iteration: firstHydrated.Producer.Iteration,
-					}
-				}
-				out = append(out, ioArtifact)
-			} else {
-				// Non-metrics or single artifact - one IOArtifact per artifact
-				for _, h := range hydratedGroup {
-					var apiArt *apiv2beta1.Artifact
-					if h.Value != nil {
-						apiArtConv, err := toAPIArtifact(h.Value)
-						if err != nil {
-							return nil, err
-						}
-						apiArt = apiArtConv
-					}
-					ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
-						Artifacts:   []*apiv2beta1.Artifact{apiArt},
-						ArtifactKey: h.Key,
-						Type:        h.Type,
-					}
-					if h.Producer != nil {
-						ioArtifact.Producer = &apiv2beta1.IOProducer{
-							TaskName:  h.Producer.TaskName,
-							Iteration: h.Producer.Iteration,
-						}
-					}
-					out = append(out, ioArtifact)
+			firstHydrated := hydratedGroup[0]
+			ioArtifact := &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+				Artifacts:   apiArtifacts,
+				ArtifactKey: firstHydrated.Key,
+				Type:        firstHydrated.Type,
+			}
+			if firstHydrated.Producer != nil {
+				ioArtifact.Producer = &apiv2beta1.IOProducer{
+					TaskName:  firstHydrated.Producer.TaskName,
+					Iteration: firstHydrated.Producer.Iteration,
 				}
 			}
+			out = append(out, ioArtifact)
 		}
 		return out, nil
 	}
@@ -3202,4 +3239,5 @@ func toAPITask(modelTask *model.Task, childTasks []*model.Task) (*apiv2beta1.Pip
 		apiTask.ScopePath = modelTask.ScopePath
 	}
 
-	return apiTask, nil}
+	return apiTask, nil
+}

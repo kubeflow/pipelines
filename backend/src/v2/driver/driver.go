@@ -20,8 +20,10 @@ import (
 	"slices"
 	"strings"
 
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 
@@ -75,6 +77,20 @@ func structValuesToStringMap(properties map[string]*structpb.Value) map[string]s
 		values[key] = pbValueToString(value)
 	}
 	return values
+}
+
+// applyParentPluginCustomProperties propagates the parent task's plugin custom
+// properties to the dispatcher so handlers can recover state (e.g. nested run IDs).
+// This is a no-op when parentTask is nil or has no custom properties.
+func applyParentPluginCustomProperties(dispatcher plugins.TaskPluginDispatcher, parentTask *apiV2beta1.PipelineTask) {
+	if parentTask == nil {
+		return
+	}
+	parentProperties := parentTask.GetStatusMetadata().GetCustomProperties()
+	if len(parentProperties) == 0 {
+		return
+	}
+	dispatcher.ApplyCustomProperties(structValuesToStringMap(parentProperties))
 }
 
 type Execution struct {

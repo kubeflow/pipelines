@@ -23,10 +23,10 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	gc "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
@@ -61,6 +61,106 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return nil, err
 	}
 
+	// Build a skeleton task early so pre-CreateTask failures still produce a
+	// FAILED task row and can propagate status to ancestors.
+	taskName := opts.TaskName
+	if taskName == "" {
+		taskName = opts.Task.GetTaskInfo().GetName()
+	}
+	taskToCreate := &gc.PipelineTask{
+		Name:        taskName,
+		DisplayName: opts.Task.GetTaskInfo().GetName(),
+		RunId:       opts.Run.GetRunId(),
+		// Default to DAG
+		Type:       gc.PipelineTask_DAG,
+		State:      gc.PipelineTask_RUNNING,
+		ScopePath:  opts.ScopePath.DotNotation(),
+		CreateTime: timestamppb.Now(),
+		Pods: []*gc.PipelineTask_TaskPod{
+			{
+				Name: opts.PodName,
+				Uid:  opts.PodUID,
+				Type: gc.PipelineTask_DRIVER,
+			},
+		},
+	}
+	if opts.ParentTask.GetTaskId() != "" {
+		taskToCreate.ParentTaskId = util.StringPointer(opts.ParentTask.GetTaskId())
+	}
+	if opts.IterationIndex >= 0 {
+		taskToCreate.TypeAttributes = &gc.PipelineTask_TypeAttributes{
+			IterationIndex: util.Int64Pointer(int64(opts.IterationIndex)),
+		}
+	}
+	// Infer stable type before fallible resolution so retry cleanup CreateTask
+	// shares logical identity with the eventual successful create (Type is part
+	// of the logical key).
+	applyInferredDAGTaskType(opts, taskToCreate)
+
+	taskCreated := false
+	defer func() {
+		if err == nil {
+			return
+		}
+		failedEndTime := timestamppb.New(time.Now())
+		statusMetadata := taskToCreate.GetStatusMetadata()
+		if statusMetadata == nil {
+			statusMetadata = &gc.PipelineTask_StatusMetadata{}
+		}
+		statusMetadata.Message = err.Error()
+		failedAttemptFields := &gc.PipelineTask{
+			Pods:           taskToCreate.GetPods(),
+			State:          gc.PipelineTask_FAILED,
+			EndTime:        failedEndTime,
+			StatusMetadata: statusMetadata,
+		}
+		taskToCreate.State = gc.PipelineTask_FAILED
+		taskToCreate.EndTime = failedEndTime
+		taskToCreate.StatusMetadata = statusMetadata
+		if !taskCreated {
+			createdTask, createErr := clientManager.KFPAPIClient().CreateTask(ctx, &gc.CreateTaskRequest{
+				Task:  taskToCreate,
+				RunId: taskToCreate.GetRunId(),
+			})
+			if createErr != nil {
+				err = fmt.Errorf("%w: failed to create failed DAG task: %v", err, createErr)
+				return
+			}
+			taskToCreate = createdTask
+			taskCreated = true
+		}
+		// Always UpdateTask after CreateTask: on retry, CreateTask returns the
+		// existing RUNNING row unchanged and must be finalized to FAILED.
+		updatedTask, updateErr := updateTaskAttemptLocalFieldsAfterCreate(
+			ctx,
+			clientManager.KFPAPIClient(),
+			taskToCreate,
+			failedAttemptFields,
+		)
+		if updateErr != nil {
+			err = fmt.Errorf("%w: failed to update task after DAG error: %v", err, updateErr)
+			return
+		}
+		taskToCreate = updatedTask
+		fullView := gc.GetRunRequest_FULL
+		refreshedRun, getRunErr := clientManager.KFPAPIClient().GetRun(ctx, &gc.GetRunRequest{
+			RunId: opts.Run.GetRunId(),
+			View:  &fullView,
+		})
+		if getRunErr != nil {
+			err = fmt.Errorf("%w: failed to refresh run after DAG failure: %v", err, getRunErr)
+			return
+		}
+		if updateStatusErr := clientManager.KFPAPIClient().UpdateStatuses(
+			ctx,
+			refreshedRun,
+			opts.ScopePath.GetPipelineSpecStruct(),
+			taskToCreate,
+		); updateStatusErr != nil {
+			err = fmt.Errorf("%w: failed to propagate DAG failure status: %v", err, updateStatusErr)
+		}
+	}()
+
 	inputs, iterationCount, err := resolver.ResolveInputs(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -78,62 +178,27 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {
-		willTrigger, err := expr.Condition(executorInput, condition)
-		if err != nil {
+		willTrigger, conditionErr := expr.Condition(executorInput, condition)
+		if conditionErr != nil {
+			err = conditionErr
 			return execution, err
 		}
 		execution.Condition = &willTrigger
 	}
 
-	taskToCreate := &gc.PipelineTask{
-		Name:        opts.TaskName,
-		DisplayName: opts.Task.GetTaskInfo().GetName(),
-		RunId:       opts.Run.GetRunId(),
-		// Default to DAG
-		Type:       gc.PipelineTask_DAG,
-		State:      gc.PipelineTask_RUNNING,
-		ScopePath:  opts.ScopePath.DotNotation(),
-		CreateTime: timestamppb.Now(),
-		Pods: []*gc.PipelineTask_TaskPod{
-			{
-				Name: opts.PodName,
-				Uid:  opts.PodUID,
-				Type: gc.PipelineTask_DRIVER,
-			},
-		},
-	}
-
-	// Determine type of DAG task.
-	// In the future the KFP Sdk should add a Task Type enum to the task Info proto
-	// to assist with inferring type. For now, we infer the type based on attribute
-	// heuristics.
-	switch {
-	case iterationCount != nil:
+	// Re-apply inferred type and attach resolved iteration count when present.
+	// Type was already set before ResolveInputs for retry-safe logical identity;
+	// this keeps DisplayName / IterationCount in sync with resolved inputs.
+	applyInferredDAGTaskType(opts, taskToCreate)
+	if iterationCount != nil {
 		count := int64(*iterationCount)
-		taskToCreate.TypeAttributes = &gc.PipelineTask_TypeAttributes{IterationCount: &count}
-		taskToCreate.Type = gc.PipelineTask_LOOP
-		taskToCreate.DisplayName = "Loop"
-		execution.IterationCount = util.IntPointer(int(count))
-	case condition != "":
-		taskToCreate.Type = gc.PipelineTask_CONDITION_BRANCH
-		taskToCreate.DisplayName = "Condition Branch"
-	case strings.HasPrefix(opts.TaskName, "condition") && !strings.HasPrefix(opts.TaskName, "condition-branch"):
-		taskToCreate.Type = gc.PipelineTask_CONDITION
-		taskToCreate.DisplayName = "Condition"
-	default:
-		taskToCreate.Type = gc.PipelineTask_DAG
-	}
-
-	if opts.IterationIndex >= 0 {
 		if taskToCreate.TypeAttributes == nil {
 			taskToCreate.TypeAttributes = &gc.PipelineTask_TypeAttributes{}
 		}
-		taskToCreate.TypeAttributes.IterationIndex = util.Int64Pointer(int64(opts.IterationIndex))
+		taskToCreate.TypeAttributes.IterationCount = &count
+		execution.IterationCount = util.IntPointer(int(count))
 	}
 
-	if opts.ParentTask.GetTaskId() != "" {
-		taskToCreate.ParentTaskId = util.StringPointer(opts.ParentTask.GetTaskId())
-	}
 	isTerminalWithoutChildren := false
 	if terminalState, terminal := terminalDAGState(execution, iterationCount, opts.Component); terminal {
 		taskToCreate.State = terminalState
@@ -147,18 +212,6 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		return execution, err
 	}
 
-	// Set task name to display name if not specified. This is the case of
-	// specialty tasks such as OneOfs and ParallelFors where there are not
-	// explicit dag tasks defined in the pipeline, but rather generated at
-	// compile time and assigned a display name.
-	taskName := opts.TaskName
-	if taskName == "" {
-		taskName = opts.Task.GetTaskInfo().GetName()
-	}
-	if taskToCreate.Name == "" {
-		taskToCreate.Name = taskName
-	}
-
 	// Dispatch a plugin task for each loop DAG driver, but not the loop's individual iteration DAG drivers.
 	var taskPluginInfo *plugins.TaskInfo
 	dispatcher := opts.PluginDispatcher
@@ -166,6 +219,7 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		dispatcher = plugins.NoOpDispatcher{}
 	}
 	if opts.IterationIndex < 0 {
+		applyParentPluginCustomProperties(dispatcher, opts.ParentTask)
 		taskPluginInfo = &plugins.TaskInfo{Name: taskName}
 		pluginStartResult, dispatchErr := dispatcher.OnTaskStart(ctx, taskPluginInfo)
 		if dispatchErr != nil {
@@ -192,11 +246,11 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	}
 	defer func() {
 		if taskPluginInfo != nil {
-			status := "COMPLETE"
+			state := gc.PipelineTask_SUCCEEDED
 			if err != nil {
-				status = "FAILED"
+				state = gc.PipelineTask_FAILED
 			}
-			taskPluginInfo.UpdateTaskInfoWithMetadata(status, nil, nil)
+			taskPluginInfo.UpdateTaskInfoWithMetadata(state, nil, nil)
 			dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo)
 			if dispatchErr != nil {
 				glog.Errorf("failed to dispatch task end: %v", dispatchErr)
@@ -204,7 +258,8 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		}
 	}()
 	if opts.Task.GetArtifactIterator() != nil {
-		return execution, fmt.Errorf("ArtifactIterator is not implemented")
+		err = fmt.Errorf("ArtifactIterator is not implemented")
+		return execution, err
 	}
 	isIterator := opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0
 	if execution.WillTrigger() && isIterator {
@@ -219,24 +274,29 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 			var ok bool
 			value, ok = executorInput.GetInputs().GetParameterValues()[itemsSpec.GetInputParameter()]
 			if !ok {
-				return execution, report(fmt.Errorf("cannot find input parameter"))
+				err = report(fmt.Errorf("cannot find input parameter"))
+				return execution, err
 			}
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_Raw:
 			var unmarshalledRaw interface{}
 			if err = json.Unmarshal([]byte(itemsSpec.GetRaw()), &unmarshalledRaw); err != nil {
-				return execution, fmt.Errorf("error unmarshall raw string: %q", err)
+				err = fmt.Errorf("error unmarshall raw string: %q", err)
+				return execution, err
 			}
 			value, err = structpb.NewValue(unmarshalledRaw)
 			if err != nil {
-				return execution, fmt.Errorf("error converting unmarshalled raw string into protobuf Value type: %q", err)
+				err = fmt.Errorf("error converting unmarshalled raw string into protobuf Value type: %q", err)
+				return execution, err
 			}
 			execution.ExecutorInput.Inputs.ParameterValues[iterator.GetItemInput()] = value
 		default:
-			return execution, fmt.Errorf("cannot find parameter iterator")
+			err = fmt.Errorf("cannot find parameter iterator")
+			return execution, err
 		}
 		items, itemsErr := getItems(value)
 		if itemsErr != nil {
-			return execution, report(itemsErr)
+			err = report(itemsErr)
+			return execution, err
 		}
 		count := len(items)
 		if taskToCreate.TypeAttributes == nil {
@@ -246,28 +306,6 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 		execution.IterationCount = util.IntPointer(count)
 	}
 
-	taskCreated := false
-	defer func() {
-		if err == nil || !taskCreated {
-			return
-		}
-		taskToCreate.State = gc.PipelineTask_FAILED
-		taskToCreate.EndTime = timestamppb.New(time.Now())
-		statusMetadata := taskToCreate.GetStatusMetadata()
-		if statusMetadata == nil {
-			statusMetadata = &gc.PipelineTask_StatusMetadata{}
-		}
-		statusMetadata.Message = err.Error()
-		taskToCreate.StatusMetadata = statusMetadata
-		_, updateErr := clientManager.KFPAPIClient().UpdateTask(ctx, &gc.UpdateTaskRequest{
-			TaskId: taskToCreate.GetTaskId(),
-			Task:   taskToCreate,
-			RunId:  taskToCreate.GetRunId(),
-		})
-		if updateErr != nil {
-			err = fmt.Errorf("%w: failed to update task after DAG error: %v", err, updateErr)
-		}
-	}()
 	glog.Infof("Creating task: %+v", taskToCreate)
 	attemptLocalFields := &gc.PipelineTask{
 		Pods:             taskToCreate.GetPods(),
@@ -284,14 +322,15 @@ func DAG(ctx context.Context, opts common.Options, clientManager client_manager.
 	if err != nil {
 		return execution, err
 	}
+	taskCreated = true
+	taskToCreate = createdTask
+	execution.TaskID = createdTask.TaskId
 	createdTask, err = updateTaskAttemptLocalFieldsAfterCreate(ctx, clientManager.KFPAPIClient(), createdTask, attemptLocalFields)
 	if err != nil {
 		return execution, err
 	}
-	glog.Infof("Created task: %+v", createdTask)
-	taskCreated = true
 	taskToCreate = createdTask
-	execution.TaskID = createdTask.TaskId
+	glog.Infof("Created task: %+v", createdTask)
 
 	err = handleInputTaskArtifactsCreation(ctx, opts, inputs.Artifacts, createdTask, clientManager.KFPAPIClient())
 	if err != nil {
@@ -351,6 +390,32 @@ func republishPreservedChildOutputsIfNeeded(
 		return fmt.Errorf("failed to republish preserved child outputs: %w", err)
 	}
 	return nil
+}
+
+// applyInferredDAGTaskType sets Type/DisplayName from pipeline structure that is
+// available before ResolveInputs. Type participates in logical task identity, so
+// retry cleanup must use the same type as a successful create.
+func applyInferredDAGTaskType(opts common.Options, task *gc.PipelineTask) {
+	if task == nil {
+		return
+	}
+	condition := ""
+	if opts.Task != nil && opts.Task.GetTriggerPolicy() != nil {
+		condition = opts.Task.GetTriggerPolicy().GetCondition()
+	}
+	switch {
+	case opts.Task != nil && opts.Task.GetParameterIterator() != nil && opts.IterationIndex < 0:
+		task.Type = gc.PipelineTask_LOOP
+		task.DisplayName = "Loop"
+	case condition != "":
+		task.Type = gc.PipelineTask_CONDITION_BRANCH
+		task.DisplayName = "Condition Branch"
+	case strings.HasPrefix(opts.TaskName, "condition") && !strings.HasPrefix(opts.TaskName, "condition-branch"):
+		task.Type = gc.PipelineTask_CONDITION
+		task.DisplayName = "Condition"
+	default:
+		task.Type = gc.PipelineTask_DAG
+	}
 }
 
 func terminalDAGState(

@@ -64,6 +64,10 @@ type LauncherV2Options struct {
 	Run               *apiV2beta1.Run
 	ParentTask        *apiV2beta1.PipelineTask
 	Task              *apiV2beta1.PipelineTask
+	// PluginDispatcher is optional; when nil, Execute falls back to the
+	// globally registered plugin dispatcher. Tests inject a recorder here to
+	// assert the driver→launcher OnTaskEnd ownership handoff.
+	PluginDispatcher plugins.TaskPluginDispatcher
 	// Set to true if apiserver is serving over TLS
 	MLPipelineTLSEnabled bool
 	MLPipelineServerAddress,
@@ -230,10 +234,14 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		}
 	}()
 
-	dispatcher, dispatchErr := plugins.GetPluginDispatcher()
-	if dispatchErr != nil {
-		glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
-		dispatcher = plugins.NoOpDispatcher{}
+	dispatcher := l.options.PluginDispatcher
+	if dispatcher == nil {
+		var dispatchErr error
+		dispatcher, dispatchErr = plugins.GetPluginDispatcher()
+		if dispatchErr != nil {
+			glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
+			dispatcher = plugins.NoOpDispatcher{}
+		}
 	}
 	if taskProps := l.options.Task.GetStatusMetadata().GetCustomProperties(); len(taskProps) > 0 {
 		dispatcher.ApplyCustomProperties(structValuesToStringMap(taskProps))
@@ -242,17 +250,17 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 	var executorOutput *pipelinespec.ExecutorOutput
 	defer func() {
 		taskPluginInfo := &plugins.TaskInfo{Name: l.options.Task.GetName()}
-		status := apiV2beta1.PipelineTask_FAILED.String()
+		state := apiV2beta1.PipelineTask_FAILED
 		if executionErr == nil {
-			status = l.options.Task.GetState().String()
+			state = l.options.Task.GetState()
 		}
 		taskPluginInfo.UpdateTaskInfoWithMetadata(
-			status,
+			state,
 			scalarMetricsFromExecutorOutput(executorOutput),
 			parameterValuesToInterfaces(executorOutput),
 		)
-		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
+		if endErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); endErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", endErr)
 		}
 	}()
 

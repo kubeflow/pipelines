@@ -18,7 +18,6 @@ from kfp_server_api.models.artifact_artifact_type import ArtifactArtifactType
 from kfp_server_api.models.authorize_request_resources import AuthorizeRequestResources
 from kfp_server_api.models.authorize_request_verb import AuthorizeRequestVerb
 from kfp_server_api.models.google_rpc_status import GoogleRpcStatus
-from kfp_server_api.models.googlerpc_status import GooglerpcStatus
 from kfp_server_api.models.inline_object import InlineObject
 from kfp_server_api.models.inline_object1 import InlineObject1
 from kfp_server_api.models.input_outputs_io_artifact import InputOutputsIOArtifact
