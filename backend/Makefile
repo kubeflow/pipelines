@@ -103,7 +103,6 @@ kind-cluster-agnostic:
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
@@ -130,7 +129,7 @@ dev-kind-cluster:
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
 	kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
