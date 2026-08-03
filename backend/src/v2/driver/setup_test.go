@@ -419,11 +419,14 @@ func (tc *TestContext) RunDagDriver(
 // RunContainerDriver runs a container for the given task.
 // If autoUpdateScope is true, the scope path will
 // be popped after the container is completed.
+// expectedNonCachedState defaults to RUNNING (launcher handoff). Pass SUCCEEDED
+// for driver-terminal Kubernetes ops such as createpvc/deletepvc.
 func (tc *TestContext) RunContainerDriver(
 	taskName string,
 	parentTask *apiv2beta1.PipelineTask,
 	iterationIndex *int64,
 	autoUpdateScope bool,
+	expectedNonCachedState ...apiv2beta1.PipelineTask_TaskState,
 ) (*Execution, *apiv2beta1.PipelineTask) {
 	tc.RefreshRun()
 	defer tc.RefreshRun()
@@ -459,14 +462,16 @@ func (tc *TestContext) RunContainerDriver(
 	require.Equal(tc.T, execution.TaskID, task.TaskId)
 	require.Equal(tc.T, taskName, task.GetName())
 	if task.State != apiv2beta1.PipelineTask_CACHED {
-		// In the case of k8s ops like createpvc/deletepvc
-		// There are no launchers, so we mark them success
-		// within driver.
-		require.True(
+		expectedState := apiv2beta1.PipelineTask_RUNNING
+		if len(expectedNonCachedState) > 0 {
+			expectedState = expectedNonCachedState[0]
+		}
+		require.Equal(
 			tc.T,
-			task.State == apiv2beta1.PipelineTask_RUNNING ||
-				task.State == apiv2beta1.PipelineTask_SUCCEEDED,
-			"expected task.Status to be RUNNING or SUCCEEDED, got %v",
+			expectedState,
+			task.State,
+			"expected task.State to be %v, got %v",
+			expectedState,
 			task.State,
 		)
 	}

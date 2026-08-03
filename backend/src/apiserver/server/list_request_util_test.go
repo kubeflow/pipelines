@@ -89,12 +89,12 @@ func TestValidateFilterV2Beta1ArtifactTask_BuildsFilters(t *testing.T) {
 	filters, err := validateFilterV2Beta1ArtifactTask([]string{"task-1"}, []string{"run-1"}, []string{"artifact-1"})
 	require.NoError(t, err)
 	require.Len(t, filters, 3)
-	assert.Equal(t, model.TaskResourceType, filters[0].ReferenceKey.Type)
-	assert.Equal(t, "task-1", filters[0].ReferenceKey.ID)
-	assert.Equal(t, model.RunResourceType, filters[1].ReferenceKey.Type)
-	assert.Equal(t, "run-1", filters[1].ReferenceKey.ID)
-	assert.Equal(t, model.ArtifactResourceType, filters[2].ReferenceKey.Type)
-	assert.Equal(t, "artifact-1", filters[2].ReferenceKey.ID)
+	assert.Equal(t, model.TaskResourceType, filters[0].Type)
+	assert.Equal(t, "task-1", filters[0].ID)
+	assert.Equal(t, model.RunResourceType, filters[1].Type)
+	assert.Equal(t, "run-1", filters[1].ID)
+	assert.Equal(t, model.ArtifactResourceType, filters[2].Type)
+	assert.Equal(t, "artifact-1", filters[2].ID)
 }
 
 func TestValidatePagination(t *testing.T) {

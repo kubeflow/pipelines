@@ -1,3 +1,4 @@
+// Package config provides v2 launcher and driver configuration helpers.
 package config
 
 import "strings"

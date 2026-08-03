@@ -2,6 +2,7 @@ package component
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"net/url"
@@ -16,6 +17,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"gocloud.dev/blob"
@@ -74,10 +76,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 
 	kfpAPI := l.clientManager.KFPAPIClient()
 
-	downloadToWorkspace := false
-	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
-		downloadToWorkspace = true
-	}
+	downloadToWorkspace := l.opts.ImporterSpec.GetDownloadToWorkspace()
 
 	// Create the task, we will continue to update this as needed.
 	parentTaskID := l.opts.ParentTask.GetTaskId()
@@ -86,6 +85,13 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	}
 	if l.opts.IterationIndex != nil {
 		typeAttributes.IterationIndex = l.opts.IterationIndex
+	}
+	attemptPods := []*apiV2beta1.PipelineTask_TaskPod{
+		{
+			Name: l.opts.PodName,
+			Uid:  l.opts.PodUID,
+			Type: apiV2beta1.PipelineTask_EXECUTOR,
+		},
 	}
 	createdTask, executionErr := kfpAPI.CreateTask(ctx, &apiV2beta1.CreateTaskRequest{
 		RunId: l.opts.Run.RunId,
@@ -100,22 +106,23 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 			ScopePath:      l.opts.ScopePath.DotNotation(),
 			CreateTime:     timestamppb.Now(),
 			TypeAttributes: typeAttributes,
-			Pods: []*apiV2beta1.PipelineTask_TaskPod{
-				{
-					Name: l.opts.PodName,
-					Uid:  l.opts.PodUID,
-					Type: apiV2beta1.PipelineTask_EXECUTOR,
-				},
-			},
+			Pods:           attemptPods,
 		},
 	})
 	if executionErr != nil {
 		return executionErr
 	}
+	if createdTask == nil {
+		return fmt.Errorf("failed to create task for importer execution")
+	}
 
-	// The defer statement is used to ensure we propagate any errors
-	// encountered in this task execution.
+	// Register terminalization immediately after create so any later failure
+	// (including attempt-local pod UpdateTask) still marks the leaf FAILED and
+	// propagates status to ancestors.
 	defer func() {
+		if createdTask == nil {
+			return
+		}
 		if executionErr != nil {
 			createdTask.State = apiV2beta1.PipelineTask_FAILED
 			createdTask.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
@@ -132,38 +139,59 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 		})
 		if updateErr != nil {
 			glog.Errorf("failed to update task: %v", updateErr)
-			if executionErr == nil {
-				executionErr = fmt.Errorf("failed to update task: %w", updateErr)
-			}
+			executionErr = errors.Join(executionErr, fmt.Errorf("failed to update task: %w", updateErr))
 			return
 		}
-		fullView := apiV2beta1.GetRunRequest_FULL
-		refreshedRun, getRunErr := l.clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{
-			RunId: l.opts.Run.GetRunId(),
-			View:  &fullView,
-		})
-		if getRunErr != nil {
-			glog.Errorf("failed to refresh run: %v", getRunErr)
-			if executionErr == nil {
-				executionErr = fmt.Errorf("failed to refresh run: %w", getRunErr)
+		l.opts.Task = createdTask
+
+		propagateStatuses := func() error {
+			fullView := apiV2beta1.GetRunRequest_FULL
+			refreshedRun, getRunErr := l.clientManager.KFPAPIClient().GetRun(ctx, &apiV2beta1.GetRunRequest{
+				RunId: l.opts.Run.GetRunId(),
+				View:  &fullView,
+			})
+			if getRunErr != nil {
+				return fmt.Errorf("failed to refresh run: %w", getRunErr)
 			}
-			return
+			l.opts.Run = refreshedRun
+			if updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(ctx, l.opts.Run, l.opts.PipelineSpec, l.opts.Task); updateStatusErr != nil {
+				return fmt.Errorf("failed to update statuses: %w", updateStatusErr)
+			}
+			return nil
 		}
-		l.opts.Run = refreshedRun
-		// Propagate any statuses up the DAG.
-		updateStatusErr := l.clientManager.KFPAPIClient().UpdateStatuses(ctx, l.opts.Run, l.opts.PipelineSpec, l.opts.Task)
-		if updateStatusErr != nil {
-			glog.Errorf("failed to update statuses: %v", updateStatusErr)
+
+		// Always propagate definitive terminal importer state, including ordinary
+		// execution failures. Skipping this leaves parents RUNNING indefinitely.
+		if propErr := propagateStatuses(); propErr != nil {
+			glog.Errorf("failed to propagate importer statuses: %v", propErr)
 			if executionErr == nil {
-				executionErr = fmt.Errorf("failed to update statuses: %w", updateStatusErr)
+				// Post-success finalization failed: reconcile leaf to FAILED, then
+				// attempt another propagation so ancestors see the corrected state.
+				executionErr = l.persistFailedImporterAfterFinalizationError(ctx, kfpAPI, createdTask, propErr)
+				l.opts.Task = createdTask
+				if secondPropErr := propagateStatuses(); secondPropErr != nil {
+					glog.Errorf("failed to propagate reconciled importer failure: %v", secondPropErr)
+					executionErr = errors.Join(executionErr, secondPropErr)
+				}
+			} else {
+				executionErr = errors.Join(executionErr, propErr)
 			}
-			return
 		}
 	}()
 
-	if createdTask == nil {
-		return fmt.Errorf("failed to create task for importer execution")
+	// CreateTask may return an existing retry row with cleared Pods; re-apply
+	// this attempt's pod identity.
+	createdTask.Pods = attemptPods
+	updatedTask, updatePodsErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+		TaskId: createdTask.GetTaskId(),
+		Task:   createdTask,
+		RunId:  createdTask.GetRunId(),
+	})
+	if updatePodsErr != nil {
+		executionErr = fmt.Errorf("failed to update importer attempt-local pods after create: %w", updatePodsErr)
+		return executionErr
 	}
+	createdTask = updatedTask
 	l.opts.Task = createdTask
 
 	if createdTask.Outputs == nil {
@@ -230,6 +258,30 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 	}
 
 	return nil
+}
+
+// persistFailedImporterAfterFinalizationError forces the importer task to FAILED
+// after a post-success finalization step fails so callers do not leave SUCCEEDED
+// state persisted when GetRun/UpdateStatuses cannot complete.
+func (l *ImportLauncher) persistFailedImporterAfterFinalizationError(
+	ctx context.Context,
+	kfpAPI kfpapi.API,
+	task *apiV2beta1.PipelineTask,
+	finalizationErr error,
+) error {
+	task.State = apiV2beta1.PipelineTask_FAILED
+	task.StatusMetadata = &apiV2beta1.PipelineTask_StatusMetadata{
+		Message: finalizationErr.Error(),
+	}
+	_, updateTaskErr := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
+		TaskId: task.GetTaskId(),
+		Task:   task,
+		RunId:  task.GetRunId(),
+	})
+	if updateTaskErr != nil {
+		return errors.Join(finalizationErr, fmt.Errorf("failed to persist importer task after finalization failure: %w", updateTaskErr))
+	}
+	return finalizationErr
 }
 
 func (l *ImportLauncher) ImportSpecToArtifact() (artifact *apiV2beta1.Artifact, err error) {

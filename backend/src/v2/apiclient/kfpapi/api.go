@@ -266,10 +266,11 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// Now count the actual number of child tasks created.
 		var childCount int
 		var anyFailed bool
+		var anyRunning bool
 		for _, task := range run.GetTasks() {
 			if task.ParentTaskId != nil && *task.ParentTaskId == parentTask.GetTaskId() {
 				if task.GetState() == gc.PipelineTask_RUNNING {
-					return nil
+					anyRunning = true
 				}
 				if task.GetState() == gc.PipelineTask_FAILED {
 					anyFailed = true
@@ -280,10 +281,17 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 
 		// Propagate FAILED immediately instead of waiting for every expected child
 		// to exist; in fail-fast/sequential DAGs, downstream siblings may never be
-		// created after the first failure.
+		// created after the first failure. A RUNNING sibling must not block this
+		// propagation — fail-fast means some siblings may never reach a terminal
+		// state after a definitive failure.
 		if anyFailed {
 			if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
 				return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
+			}
+			// Stop traversal after updating a root parent to avoid a redundant
+			// second evaluation in the no-parent branch below.
+			if parentTask.ParentTaskId == nil || *parentTask.ParentTaskId == "" {
+				return nil
 			}
 			refreshedRun, err := refreshRunSnapshot(ctx, kfpAPIClient, run)
 			if err != nil {
@@ -298,6 +306,11 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 			continue
 		}
 
+		// Wait for running children to finish before aggregating terminal states.
+		if anyRunning {
+			return nil
+		}
+
 		// If not all children created yet, exit traversal
 		if childCount < expectedTotalChildTasks {
 			return nil
@@ -306,6 +319,11 @@ func updateStatuses(ctx context.Context, run *gc.Run, kfpAPIClient API, pipeline
 		// Evaluate and update parent's status based on its children
 		if err := evaluateAndUpdateParentStatus(ctx, run, parentTask, kfpAPIClient); err != nil {
 			return fmt.Errorf("failed to evaluate parent task %s status: %w", parentTask.GetTaskId(), err)
+		}
+		// Stop traversal after updating a root parent to avoid a redundant
+		// second evaluation in the no-parent branch below.
+		if parentTask.ParentTaskId == nil || *parentTask.ParentTaskId == "" {
+			return nil
 		}
 		refreshedRun, err := refreshRunSnapshot(ctx, kfpAPIClient, run)
 		if err != nil {

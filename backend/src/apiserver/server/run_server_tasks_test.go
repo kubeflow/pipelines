@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"sort"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -56,8 +55,9 @@ func (c *recordingSubjectAccessReviewClient) Create(_ context.Context, sar *auth
 
 func TestTask_Create_Update_Get_List(t *testing.T) {
 	// Single-user mode by default; keep it to bypass authz.
-	clients, manager, runID := seedOneRun(t)
+	clients, manager, run := initWithOneTimeRunV2(t)
 	defer clients.Close()
+	runID := run.UUID
 
 	runSrv := createRunServer(manager)
 
@@ -79,17 +79,19 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 		},
 	}
 	createReq := &apiv2beta1.CreateTaskRequest{RunId: runID, Task: &apiv2beta1.PipelineTask{
-		Name:    "trainer",
-		State:   apiv2beta1.PipelineTask_RUNNING,
-		Type:    apiv2beta1.PipelineTask_RUNTIME,
-		Inputs:  &apiv2beta1.PipelineTask_InputOutputs{Parameters: inParams},
-		Outputs: &apiv2beta1.PipelineTask_InputOutputs{Parameters: outParams},
+		Name:             "trainer",
+		State:            apiv2beta1.PipelineTask_RUNNING,
+		Type:             apiv2beta1.PipelineTask_RUNTIME,
+		CacheFingerprint: "fp-trainer-1",
+		Inputs:           &apiv2beta1.PipelineTask_InputOutputs{Parameters: inParams},
+		Outputs:          &apiv2beta1.PipelineTask_InputOutputs{Parameters: outParams},
 	}}
 	created, err := runSrv.CreateTask(context.Background(), createReq)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, created.GetTaskId())
 	assert.Equal(t, runID, created.GetRunId())
 	assert.Equal(t, "trainer", created.GetName())
+	assert.Equal(t, "fp-trainer-1", created.GetCacheFingerprint())
 	// Verify inputs/outputs echoed back
 	assert.Len(t, created.GetInputs().GetParameters(), 1)
 	assert.Equal(t, "p1", created.GetInputs().GetParameters()[0].GetParameterKey())
@@ -98,9 +100,10 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 
 	// Update task: change status and outputs
 	updReq := &apiv2beta1.UpdateTaskRequest{RunId: runID, TaskId: created.GetTaskId(), Task: &apiv2beta1.PipelineTask{
-		TaskId: created.GetTaskId(),
-		Name:   "trainer",
-		State:  apiv2beta1.PipelineTask_SUCCEEDED,
+		TaskId:           created.GetTaskId(),
+		Name:             "trainer",
+		State:            apiv2beta1.PipelineTask_SUCCEEDED,
+		CacheFingerprint: "fp-trainer-1",
 		Outputs: &apiv2beta1.PipelineTask_InputOutputs{Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
 			{
 				Value:        func() *structpb.Value { v, _ := structpb.NewValue("done"); return v }(),
@@ -111,6 +114,7 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 	updated, err := runSrv.UpdateTask(context.Background(), updReq)
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, updated.GetState())
+	assert.Equal(t, "fp-trainer-1", updated.GetCacheFingerprint())
 	// Ordinary parameter outputs with the same key later-wins (value is replaced).
 
 	params := updated.GetOutputs().GetParameters()
@@ -123,6 +127,18 @@ func TestTask_Create_Update_Get_List(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, created.GetTaskId(), got.GetTaskId())
 	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, got.GetState())
+	assert.Equal(t, "fp-trainer-1", got.GetCacheFingerprint())
+
+	// FindCachedTask must locate the API-created fingerprint.
+	cached, err := runSrv.FindCachedTask(context.Background(), &apiv2beta1.FindCachedTaskRequest{
+		Namespace:        run.Namespace,
+		CacheFingerprint: "fp-trainer-1",
+	})
+	assert.NoError(t, err)
+	if assert.NotNil(t, cached.GetTask()) {
+		assert.Equal(t, created.GetTaskId(), cached.GetTask().GetTaskId())
+		assert.Equal(t, "fp-trainer-1", cached.GetTask().GetCacheFingerprint())
+	}
 
 	// ListTasks by run ID
 	listResp, err := runSrv.ListTasks(context.Background(), &apiv2beta1.ListTasksRequest{RunId: runID, PageSize: 50})
@@ -329,7 +345,7 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
 
-	clients, manager, run := initWithOneTimeRunV2(t)
+	clients, _, run := initWithOneTimeRunV2(t)
 	defer clients.Close()
 
 	_, err := clients.TaskStore().CreateTask(&model.Task{
@@ -344,7 +360,7 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 
 	recorder := &recordingSubjectAccessReviewClient{}
 	clients.SubjectAccessReviewClientFake = recorder
-	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runSrv := createRunServer(manager)
 
 	_, err = runSrv.FindCachedTask(ctxWithUser(), &apiv2beta1.FindCachedTaskRequest{
@@ -457,14 +473,165 @@ func TestTask_RunHydration_WithInputsOutputs_ArtifactsAndMetrics(t *testing.T) {
 			if assert.NotNil(t, ioArtifact.GetProducer()) {
 				assert.Equal(t, taskFound.Name, ioArtifact.GetProducer().GetTaskName())
 			}
-			if len(ioArtifact.GetArtifacts()) > 0 {
+			if assert.Len(t, ioArtifact.GetArtifacts(), 1, "expected exactly one hydrated artifact") {
 				artifact := ioArtifact.GetArtifacts()[0]
-				assert.Equal(t, "gs://bucket/model", *artifact.Uri)
+				if assert.NotNil(t, artifact.Uri) {
+					assert.Equal(t, "gs://bucket/model", *artifact.Uri)
+				}
 				assert.Equal(t, "m1", artifact.Name)
 			}
 		}
 	}
 
+}
+
+func TestTask_RunHydration_GroupsArtifactsByKeyAndIteration(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	clients, manager, run := initWithOneTimeRunV2(t)
+	defer clients.Close()
+
+	runSrv := createRunServer(manager)
+	artSrv := createArtifactServer(manager)
+
+	created, err := runSrv.CreateTask(ctxWithUser(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.UUID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId: run.UUID,
+			Name:  "trainer",
+			State: apiv2beta1.PipelineTask_RUNNING,
+		},
+	})
+	require.NoError(t, err)
+
+	iter0 := int64(0)
+	iter1 := int64(1)
+	_, err = artSrv.CreateArtifactsBulk(ctxWithUser(), &apiv2beta1.CreateArtifactsBulkRequest{
+		Artifacts: []*apiv2beta1.CreateArtifactRequest{
+			{
+				RunId:       run.UUID,
+				TaskId:      created.GetTaskId(),
+				ProducerKey: "models",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: run.Namespace,
+					Type:      apiv2beta1.Artifact_Model,
+					Uri:       strPTR("gs://bucket/model-1"),
+					Name:      "model-1",
+				},
+			},
+			{
+				RunId:       run.UUID,
+				TaskId:      created.GetTaskId(),
+				ProducerKey: "models",
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: run.Namespace,
+					Type:      apiv2beta1.Artifact_Model,
+					Uri:       strPTR("gs://bucket/model-2"),
+					Name:      "model-2",
+				},
+			},
+			{
+				RunId:          run.UUID,
+				TaskId:         created.GetTaskId(),
+				ProducerKey:    "iteration-output",
+				IterationIndex: &iter0,
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: run.Namespace,
+					Type:      apiv2beta1.Artifact_Dataset,
+					Uri:       strPTR("gs://bucket/iter-0"),
+					Name:      "dataset-iter-0",
+				},
+			},
+			{
+				RunId:          run.UUID,
+				TaskId:         created.GetTaskId(),
+				ProducerKey:    "iteration-output",
+				IterationIndex: &iter1,
+				Artifact: &apiv2beta1.Artifact{
+					Namespace: run.Namespace,
+					Type:      apiv2beta1.Artifact_Dataset,
+					Uri:       strPTR("gs://bucket/iter-1"),
+					Name:      "dataset-iter-1",
+				},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	_, err = runSrv.UpdateTask(ctxWithUser(), &apiv2beta1.UpdateTaskRequest{
+		RunId:  run.UUID,
+		TaskId: created.GetTaskId(),
+		Task: &apiv2beta1.PipelineTask{
+			TaskId:  created.GetTaskId(),
+			RunId:   run.UUID,
+			State:   apiv2beta1.PipelineTask_SUCCEEDED,
+			Outputs: &apiv2beta1.PipelineTask_InputOutputs{},
+		},
+	})
+	require.NoError(t, err)
+
+	fullView := apiv2beta1.GetRunRequest_FULL
+	gr, err := runSrv.GetRun(ctxWithUser(), &apiv2beta1.GetRunRequest{RunId: run.UUID, View: &fullView})
+	require.NoError(t, err)
+
+	var hydratedTask *apiv2beta1.PipelineTask
+	for _, task := range gr.GetTasks() {
+		if task.GetTaskId() == created.GetTaskId() {
+			hydratedTask = task
+			break
+		}
+	}
+	require.NotNil(t, hydratedTask)
+
+	require.Len(t, hydratedTask.GetOutputs().GetArtifacts(), 3)
+
+	var modelGroup *apiv2beta1.PipelineTask_InputOutputs_IOArtifact
+	iterationGroups := make(map[int64]*apiv2beta1.PipelineTask_InputOutputs_IOArtifact)
+	for _, ioArtifact := range hydratedTask.GetOutputs().GetArtifacts() {
+		require.NotNil(t, ioArtifact.GetProducer())
+		assert.Equal(t, hydratedTask.GetName(), ioArtifact.GetProducer().GetTaskName())
+
+		switch ioArtifact.GetArtifactKey() {
+		case "models":
+			modelGroup = ioArtifact
+		case "iteration-output":
+			require.NotNil(t, ioArtifact.GetProducer().Iteration)
+			iterationGroups[*ioArtifact.GetProducer().Iteration] = ioArtifact
+		default:
+			t.Fatalf("unexpected artifact key %q", ioArtifact.GetArtifactKey())
+		}
+	}
+
+	require.NotNil(t, modelGroup, "expected grouped non-iterator artifacts")
+	require.Len(t, modelGroup.GetArtifacts(), 2)
+	assert.Nil(t, modelGroup.GetProducer().Iteration)
+
+	modelURIs := map[string]string{}
+	for _, artifact := range modelGroup.GetArtifacts() {
+		require.NotNil(t, artifact.Uri)
+		modelURIs[artifact.GetName()] = artifact.GetUri()
+	}
+	assert.Equal(t, map[string]string{
+		"model-1": "gs://bucket/model-1",
+		"model-2": "gs://bucket/model-2",
+	}, modelURIs)
+
+	require.Len(t, iterationGroups, 2)
+	for iteration, expected := range map[int64]struct {
+		name string
+		uri  string
+	}{
+		0: {name: "dataset-iter-0", uri: "gs://bucket/iter-0"},
+		1: {name: "dataset-iter-1", uri: "gs://bucket/iter-1"},
+	} {
+		group := iterationGroups[iteration]
+		require.NotNil(t, group, "expected hydrated iteration group %d", iteration)
+		require.Len(t, group.GetArtifacts(), 1)
+		require.NotNil(t, group.GetArtifacts()[0].Uri)
+		assert.Equal(t, expected.name, group.GetArtifacts()[0].GetName())
+		assert.Equal(t, expected.uri, group.GetArtifacts()[0].GetUri())
+	}
 }
 
 func TestListTasks_ByParent(t *testing.T) {
@@ -821,13 +988,6 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	fetched3, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task3.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, fetched3.GetState())
-}
-
-func sortParams(params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) []*apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-	sort.Slice(params, func(i, j int) bool {
-		return params[i].GetValue().GetStringValue() < params[j].GetValue().GetStringValue()
-	})
-	return params
 }
 
 func TestUpdateTasksBulk_EmptyRequest(t *testing.T) {

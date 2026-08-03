@@ -21,6 +21,8 @@ Name | Type | Description | Notes
 **run_details** | [**V2beta1RunDetails**](V2beta1RunDetails.md) |  | [optional] 
 **recurring_run_id** | **str** | ID of the recurring run that triggered this run. | [optional] 
 **state_history** | [**list[V2beta1RuntimeStatus]**](V2beta1RuntimeStatus.md) | Output. A sequence of run statuses. This field keeps a record of state transitions. | [optional] 
+**plugins_input** | **dict(str, object)** | Optional input. Plugin-specific inputs provided by the user at run creation. Each key is a plugin name (e.g., \&quot;mlflow\&quot;) and the value is arbitrary JSON config. | [optional] 
+**plugins_output** | [**dict(str, V2beta1PluginOutput)**](V2beta1PluginOutput.md) | Output. Plugin-specific outputs populated by backend components. Each key is a plugin name and the value contains the plugin&#39;s output entries and state. | [optional] 
 **pipeline_reference** | [**V2beta1PipelineVersionReference**](V2beta1PipelineVersionReference.md) |  | [optional] 
 **task_count** | **int** |  | [optional] 
 **tasks** | [**list[V2beta1PipelineTask]**](V2beta1PipelineTask.md) |  | [optional] 

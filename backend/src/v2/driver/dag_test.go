@@ -220,7 +220,8 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 	require.Equal(t, "nested", nestedTask.GetName())
 	require.Equal(t, "Nested DAG Display", nestedTask.GetDisplayName())
 
-	_, createPVCTask := testContext.RunContainerDriver("createpvc", nestedTask, nil, true)
+	_, createPVCTask := testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, createPVCTask.GetState())
 	require.Len(t, createPVCTask.GetOutputs().GetParameters(), 1)
 	require.Equal(t, "createpvc", createPVCTask.GetName())
 	require.Equal(t, "Create PVC Display", createPVCTask.GetDisplayName())
@@ -236,6 +237,8 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 		&apiv2beta1.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
 	)
 	require.NoError(t, err)
+	require.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, refreshedNestedTask.GetState(),
+		"parent DAG must become terminal after successful create-PVC")
 	require.Len(t, refreshedNestedTask.GetOutputs().GetParameters(), 1)
 	assert.Equal(t, "pvc_name", refreshedNestedTask.GetOutputs().GetParameters()[0].GetParameterKey())
 	assert.Equal(
@@ -249,7 +252,7 @@ func TestCreatePVCPropagatesOutputThroughNestedDAG(t *testing.T) {
 		refreshedNestedTask.GetOutputs().GetParameters()[0].GetProducer().GetTaskName(),
 	)
 
-	_, _ = testContext.RunContainerDriver("createpvc", nestedTask, nil, true)
+	_, _ = testContext.RunContainerDriver("createpvc", nestedTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
 	refreshedNestedTask, err = testContext.ClientManager.KFPAPIClient().GetTask(
 		context.Background(),
 		&apiv2beta1.GetTaskRequest{TaskId: nestedTask.GetTaskId()},
@@ -1020,14 +1023,14 @@ func TestK8SPlatform(t *testing.T) {
 	// parameter to be created by the driver call
 
 	// Create a mock Kubernetes client for PVC operations
-	createPVCExecution, createPvcTask := tc.RunContainerDriver("createpvc", parentTask, nil, true)
+	createPVCExecution, createPvcTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
 	require.NotNil(t, createPvcTask.Outputs)
 	// CreatePvc always has one output, which is the pvc name
 	require.Len(t, createPvcTask.Outputs.GetParameters(), 1)
 	require.Equal(t, createPvcTask.Outputs.GetParameters()[0].ParameterKey, "name")
 	pvcName := createPvcTask.Outputs.GetParameters()[0].GetValue().GetStringValue()
 
-	retriedCreateExecution, retriedCreateTask := tc.RunContainerDriver("createpvc", parentTask, nil, true)
+	retriedCreateExecution, retriedCreateTask := tc.RunContainerDriver("createpvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
 	require.Equal(t, createPVCExecution.TaskID, retriedCreateExecution.TaskID)
 	require.Equal(t, pvcName, retriedCreateTask.Outputs.GetParameters()[0].GetValue().GetStringValue())
 	persistentVolumeClaims, err := tc.ClientManager.K8sClient().CoreV1().
@@ -1259,8 +1262,8 @@ func TestK8SPlatform(t *testing.T) {
 		require.Equal(t, expectedTolerations[i].Effect, toleration.Effect)
 	}
 
-	deletePVCExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true)
-	retriedDeleteExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true)
+	deletePVCExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
+	retriedDeleteExecution, _ := tc.RunContainerDriver("deletepvc", parentTask, nil, true, apiv2beta1.PipelineTask_SUCCEEDED)
 	require.Equal(t, deletePVCExecution.TaskID, retriedDeleteExecution.TaskID)
 	persistentVolumeClaims, err = tc.ClientManager.K8sClient().CoreV1().
 		PersistentVolumeClaims(TestNamespace).

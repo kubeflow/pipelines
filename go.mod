@@ -29,7 +29,6 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.4
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	// Should match GRPC_GATEWAY_VERSION in backend/api/Dockerfile
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
