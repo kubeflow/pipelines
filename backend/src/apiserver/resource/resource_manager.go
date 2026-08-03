@@ -278,7 +278,7 @@ func (r *ResourceManager) UnarchiveExperiment(experimentId string) error {
 	return r.experimentStore.UnarchiveExperiment(experimentId)
 }
 
-// Returns a list of pipelines.
+// ListPipelines returns a list of pipelines.
 func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts *list.Options, tagFilters ...map[string]string) ([]*model.Pipeline, int, string, error) {
 	var resolvedTagFilters map[string]string
 	if len(tagFilters) > 0 {
@@ -1611,11 +1611,11 @@ func (r *ResourceManager) ChangeJobMode(ctx context.Context, jobId string, enabl
 	return nil
 }
 
-// Deletes a recurring run with given id.
-func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
-	job, err := r.GetJob(jobId)
+// DeleteJob deletes a recurring run with given id.
+func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string, propagationPolicy ...apiv2beta1.DeletePropagationPolicy) error {
+	job, err := r.GetJob(jobID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v. Check if exists", jobID)
 	}
 
 	k8sNamespace := job.Namespace
@@ -1631,17 +1631,17 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobId string, propagati
 	err = r.getScheduledWorkflowClient(k8sNamespace).Delete(ctx, job.K8SName, deleteOptions)
 	if err != nil {
 		if !util.IsNotFound(err) {
-			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobId)
+			return util.NewInternalServerError(err, "Failed to delete recurring run %v. Check if the scheduled workflow exists", jobID)
 		}
 		// The ScheduledWorkflow was not found.
-		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' (k8s namespace %v) because it was not found", jobId, job.K8SName, job.Namespace, k8sNamespace)
+		glog.Infof("Deleting recurring run '%v', but skipped deleting ScheduledWorkflow '%v' in namespace '%v' (k8s namespace %v) because it was not found", jobID, job.K8SName, job.Namespace, k8sNamespace)
 		// Continue the execution, because we want to delete the
 		// ScheduledWorkflow. We can skip deleting the ScheduledWorkflow
 		// when it no longer exists.
 	}
-	err = r.jobStore.DeleteJob(jobId)
+	err = r.jobStore.DeleteJob(jobID)
 	if err != nil {
-		return util.Wrapf(err, "Failed to delete recurring run %v", jobId)
+		return util.Wrapf(err, "Failed to delete recurring run %v", jobID)
 	}
 	return nil
 }
@@ -2362,7 +2362,7 @@ func (r *ResourceManager) CreatePipelineVersion(pv *model.PipelineVersion) (*mod
 	return version, nil
 }
 
-// Returns a pipeline version by Id.
+// GetPipelineVersion returns a pipeline version by Id.
 func (r *ResourceManager) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {
 	if pipelineVersion, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId); err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version with id %v", pipelineVersionId)
@@ -2380,7 +2380,7 @@ func (r *ResourceManager) GetPipelineVersionByName(pipelineID, versionName strin
 	return pipelineVersion, nil
 }
 
-// Returns the latest pipeline version for a specified pipeline id.
+// GetLatestPipelineVersion returns the latest pipeline version for a specified pipeline id.
 func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
 	// Verify pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
@@ -2396,15 +2396,15 @@ func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.Pi
 	return latestPipelineVersion, nil
 }
 
-// Returns a list of pipeline versions.
-func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Options, tagFilters ...map[string]string) ([]*model.PipelineVersion, int, string, error) {
+// ListPipelineVersions returns a list of pipeline versions.
+func (r *ResourceManager) ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters ...map[string]string) ([]*model.PipelineVersion, int, string, error) {
 	var resolvedTagFilters map[string]string
 	if len(tagFilters) > 0 {
 		resolvedTagFilters = tagFilters[0]
 	}
-	pipelineVersions, totalSize, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineId, opts, resolvedTagFilters)
+	pipelineVersions, totalSize, nextPageToken, err := r.pipelineStore.ListPipelineVersions(pipelineID, opts, resolvedTagFilters)
 	if err != nil {
-		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineId, opts)
+		err = util.Wrapf(err, "Failed to list pipeline versions with pipeline id %v, options %v", pipelineID, opts)
 	}
 	return pipelineVersions, totalSize, nextPageToken, err
 }

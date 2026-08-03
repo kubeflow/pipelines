@@ -50,15 +50,19 @@ const (
 	kfpTokenVolumeName = "kfp-launcher-token"
 	// kfpTokenMountPath is the path where the KFP token is mounted
 	kfpTokenMountPath = "/var/run/secrets/kfp"
-	// kfpTokenAudience is the base audience for projected service account tokens.
-	// Runtime pods use a run-scoped audience derived from this base.
-	kfpTokenAudience = "pipelines.kubeflow.org"
 )
 
-// kfpTokenAudienceForRun returns the projected SA token audience bound to a
+// tokenAudienceForRun returns the projected SA token audience bound to a
 // single in-flight run. Must stay aligned with common.TokenAudienceForRun.
-func kfpTokenAudienceForRun(runID string) string {
-	return kfpTokenAudience + "/runs/" + runID
+func (c *workflowCompiler) tokenAudienceForRun(runID string) string {
+	base := ""
+	if c != nil {
+		base = c.tokenReviewAudience
+	}
+	if base == "" {
+		base = common.DefaultTokenReviewAudience
+	}
+	return base + common.TokenAudienceRunPrefix + runID
 }
 
 const (

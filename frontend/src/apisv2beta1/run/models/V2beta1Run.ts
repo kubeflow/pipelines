@@ -69,6 +69,13 @@ import {
   V2beta1RunDetailsToJSON,
   V2beta1RunDetailsToJSONTyped,
 } from './V2beta1RunDetails';
+import type { V2beta1PipelineTask } from './V2beta1PipelineTask';
+import {
+  V2beta1PipelineTaskFromJSON,
+  V2beta1PipelineTaskFromJSONTyped,
+  V2beta1PipelineTaskToJSON,
+  V2beta1PipelineTaskToJSONTyped,
+} from './V2beta1PipelineTask';
 
 /**
  *
@@ -203,6 +210,24 @@ export interface V2beta1Run {
    * @memberof V2beta1Run
    */
   plugins_output?: { [key: string]: V2beta1PluginOutput };
+  /**
+   *
+   * @type {V2beta1PipelineVersionReference}
+   * @memberof V2beta1Run
+   */
+  pipeline_reference?: V2beta1PipelineVersionReference;
+  /**
+   *
+   * @type {number}
+   * @memberof V2beta1Run
+   */
+  task_count?: number;
+  /**
+   *
+   * @type {Array<V2beta1PipelineTask>}
+   * @memberof V2beta1Run
+   */
+  tasks?: Array<V2beta1PipelineTask>;
 }
 
 /**
@@ -258,6 +283,15 @@ export function V2beta1RunFromJSONTyped(json: any, ignoreDiscriminator: boolean)
       json['plugins_output'] == null
         ? undefined
         : mapValues(json['plugins_output'], V2beta1PluginOutputFromJSON),
+    pipeline_reference:
+      json['pipeline_reference'] == null
+        ? undefined
+        : V2beta1PipelineVersionReferenceFromJSON(json['pipeline_reference']),
+    task_count: json['task_count'] == null ? undefined : json['task_count'],
+    tasks:
+      json['tasks'] == null
+        ? undefined
+        : (json['tasks'] as Array<any>).map(V2beta1PipelineTaskFromJSON),
   };
 }
 
@@ -305,5 +339,11 @@ export function V2beta1RunToJSONTyped(
       value['plugins_output'] == null
         ? undefined
         : mapValues(value['plugins_output'], V2beta1PluginOutputToJSON),
+    pipeline_reference: V2beta1PipelineVersionReferenceToJSON(value['pipeline_reference']),
+    task_count: value['task_count'],
+    tasks:
+      value['tasks'] == null
+        ? undefined
+        : (value['tasks'] as Array<any>).map(V2beta1PipelineTaskToJSON),
   };
 }

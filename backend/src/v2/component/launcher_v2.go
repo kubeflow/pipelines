@@ -64,6 +64,10 @@ type LauncherV2Options struct {
 	Run               *apiV2beta1.Run
 	ParentTask        *apiV2beta1.PipelineTask
 	Task              *apiV2beta1.PipelineTask
+	// PluginDispatcher is optional; when nil, Execute falls back to the
+	// globally registered plugin dispatcher. Tests inject a recorder here to
+	// assert the driver→launcher OnTaskEnd ownership handoff.
+	PluginDispatcher plugins.TaskPluginDispatcher
 	// Set to true if apiserver is serving over TLS
 	MLPipelineTLSEnabled bool
 	MLPipelineServerAddress,
@@ -218,6 +222,29 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		Type: apiV2beta1.PipelineTask_EXECUTOR,
 	})
 
+	dispatcher := plugins.TaskPluginDispatcher(plugins.NoOpDispatcher{})
+	var executorOutput *pipelinespec.ExecutorOutput
+	// Register OnTaskEnd before finalizeExecution so LIFO runs finalization
+	// first. That way plugin end observes the definitive KFP task state,
+	// including FAILED after persistFailedTaskAfterFinalizationError.
+	defer func() {
+		taskPluginInfo := &plugins.TaskInfo{Name: l.options.Task.GetName()}
+		state := apiV2beta1.PipelineTask_FAILED
+		if executionErr == nil {
+			state = l.options.Task.GetState()
+		}
+		// Metrics use declared ExecutorInput artifact types (SDK runtime payloads
+		// omit schemaTitle). Parameters are task inputs for reproducibility.
+		taskPluginInfo.UpdateTaskInfoWithMetadata(
+			state,
+			scalarMetricsFromExecutorOutput(l.executorInput.GetOutputs(), executorOutput),
+			parameterValuesToInterfaces(l.executorInput.GetInputs().GetParameterValues()),
+		)
+		if endErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); endErr != nil {
+			glog.Errorf("failed to dispatch task end: %v", endErr)
+		}
+	}()
+
 	defer func() {
 		executionErr = l.finalizeExecution(ctx, executionErr)
 	}()
@@ -230,31 +257,19 @@ func (l *LauncherV2) Execute(ctx context.Context) (executionErr error) {
 		}
 	}()
 
-	dispatcher, dispatchErr := plugins.GetPluginDispatcher()
-	if dispatchErr != nil {
-		glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
-		dispatcher = plugins.NoOpDispatcher{}
+	if l.options.PluginDispatcher != nil {
+		dispatcher = l.options.PluginDispatcher
+	} else {
+		var dispatchErr error
+		dispatcher, dispatchErr = plugins.GetPluginDispatcher()
+		if dispatchErr != nil {
+			glog.Errorf("Failed to get plugin dispatcher: %v", dispatchErr)
+			dispatcher = plugins.NoOpDispatcher{}
+		}
 	}
 	if taskProps := l.options.Task.GetStatusMetadata().GetCustomProperties(); len(taskProps) > 0 {
 		dispatcher.ApplyCustomProperties(structValuesToStringMap(taskProps))
 	}
-
-	var executorOutput *pipelinespec.ExecutorOutput
-	defer func() {
-		taskPluginInfo := &plugins.TaskInfo{Name: l.options.Task.GetName()}
-		status := apiV2beta1.PipelineTask_FAILED.String()
-		if executionErr == nil {
-			status = l.options.Task.GetState().String()
-		}
-		taskPluginInfo.UpdateTaskInfoWithMetadata(
-			status,
-			scalarMetricsFromExecutorOutput(executorOutput),
-			parameterValuesToInterfaces(executorOutput),
-		)
-		if dispatchErr := dispatcher.OnTaskEnd(ctx, taskPluginInfo); dispatchErr != nil {
-			glog.Errorf("failed to dispatch task end: %v", dispatchErr)
-		}
-	}()
 
 	// Fetch Launcher config and initialize KFP API client if not already set (testing mode)
 	// Production path: fetch real config and create real client
@@ -692,12 +707,12 @@ func structValuesToStringMap(properties map[string]*structpb.Value) map[string]s
 	return values
 }
 
-func parameterValuesToInterfaces(executorOutput *pipelinespec.ExecutorOutput) map[string]interface{} {
-	if executorOutput == nil || len(executorOutput.GetParameterValues()) == 0 {
+func parameterValuesToInterfaces(parameterValues map[string]*structpb.Value) map[string]interface{} {
+	if len(parameterValues) == 0 {
 		return nil
 	}
-	values := make(map[string]interface{}, len(executorOutput.GetParameterValues()))
-	for key, value := range executorOutput.GetParameterValues() {
+	values := make(map[string]interface{}, len(parameterValues))
+	for key, value := range parameterValues {
 		if value == nil {
 			continue
 		}
@@ -706,17 +721,35 @@ func parameterValuesToInterfaces(executorOutput *pipelinespec.ExecutorOutput) ma
 	return values
 }
 
-func scalarMetricsFromExecutorOutput(executorOutput *pipelinespec.ExecutorOutput) map[string]float64 {
-	if executorOutput == nil {
+// scalarMetricsFromExecutorOutput reads metric values from runtime ExecutorOutput
+// metadata, matching ports by name/index against declared ExecutorInput outputs.
+// Declared types are authoritative because the Python SDK omits schemaTitle in
+// runtime artifact payloads.
+func scalarMetricsFromExecutorOutput(
+	declaredOutputs *pipelinespec.ExecutorInput_Outputs,
+	executorOutput *pipelinespec.ExecutorOutput,
+) map[string]float64 {
+	if declaredOutputs == nil {
 		return nil
 	}
 	metrics := make(map[string]float64)
-	for _, artifactList := range executorOutput.GetArtifacts() {
-		for _, artifact := range artifactList.GetArtifacts() {
-			if artifact == nil || artifact.GetMetadata() == nil || artifact.GetType().GetSchemaTitle() != "system.Metrics" {
+	for artifactKey, artifactList := range declaredOutputs.GetArtifacts() {
+		for index, declared := range artifactList.GetArtifacts() {
+			if declared == nil || declared.GetType().GetSchemaTitle() != "system.Metrics" {
 				continue
 			}
-			for key, value := range artifact.GetMetadata().GetFields() {
+			meta := declared.GetMetadata()
+			if executorOutput != nil {
+				if list, ok := executorOutput.GetArtifacts()[artifactKey]; ok && len(list.GetArtifacts()) > index {
+					if runtimeArtifact := list.GetArtifacts()[index]; runtimeArtifact != nil && runtimeArtifact.GetMetadata() != nil {
+						meta = runtimeArtifact.GetMetadata()
+					}
+				}
+			}
+			if meta == nil {
+				continue
+			}
+			for key, value := range meta.GetFields() {
 				numberValue, ok := value.Kind.(*structpb.Value_NumberValue)
 				if !ok {
 					continue

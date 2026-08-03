@@ -85,9 +85,100 @@ func MatchPipelineRuns(actual *run_model.V2beta1Run, expected *run_model.V2beta1
 	gomega.Expect(actual.DisplayName).To(gomega.Equal(expected.DisplayName), "Run Name is not matching")
 	gomega.Expect(actual.ExperimentID).To(gomega.Equal(expected.ExperimentID), "Experiment Id is not matching")
 	gomega.Expect(actual.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionID), "Pipeline Version Id is not matching")
-	MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
-	gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionReference.PipelineVersionID), "Referred Pipeline Version Idis not matching")
-	gomega.Expect(actual.PipelineVersionReference.PipelineID).To(gomega.Equal(expected.PipelineVersionReference.PipelineID), "Referred Pipeline Id is not matching")
+	matchPipelineRunSource(actual, expected)
 	gomega.Expect(actual.ServiceAccount).To(gomega.Equal(expected.ServiceAccount), "Service Account is not matching")
 	gomega.Expect(actual.StorageState).To(gomega.Equal(expected.StorageState), "Storage State is not matching")
+}
+
+// matchPipelineRunSource compares run pipeline sources.
+// Create/default-view responses keep pipeline_version_reference when the run was
+// created from a version. FULL view prefers an embedded pipeline_spec when a
+// manifest is stored (runtime pods use run-scoped tokens and cannot call
+// GetPipelineVersion), so Create vs FULL Get may legitimately differ in form.
+//
+// Callers that compare against FULL Get should set expected.PipelineSpec to the
+// locally compiled/uploaded pipeline map so mixed-form matching still validates
+// semantic content without a pipeline-version API lookup.
+func matchPipelineRunSource(actual *run_model.V2beta1Run, expected *run_model.V2beta1Run) {
+	ginkgo.GinkgoHelper()
+	actualHasRef := actual.PipelineVersionReference != nil
+	expectedHasRef := expected.PipelineVersionReference != nil
+	actualHasSpec := actual.PipelineSpec != nil
+	expectedHasSpec := expected.PipelineSpec != nil
+
+	switch {
+	case actualHasRef && expectedHasRef:
+		gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineVersionID),
+			"Referred Pipeline Version Id is not matching",
+		)
+		gomega.Expect(actual.PipelineVersionReference.PipelineID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineID),
+			"Referred Pipeline Id is not matching",
+		)
+		// Specs are optional on Create/default view; compare only when both exist.
+		if actualHasSpec && expectedHasSpec {
+			gomega.Expect(pipelineSpecNonEmpty(actual.PipelineSpec)).To(gomega.BeTrue(), "Actual pipeline_spec is empty or malformed")
+			gomega.Expect(pipelineSpecNonEmpty(expected.PipelineSpec)).To(gomega.BeTrue(), "Expected pipeline_spec is empty or malformed")
+			MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+		}
+	case actualHasSpec && expectedHasSpec && !actualHasRef && !expectedHasRef:
+		gomega.Expect(pipelineSpecNonEmpty(actual.PipelineSpec)).To(gomega.BeTrue(), "Actual pipeline_spec is empty or malformed")
+		gomega.Expect(pipelineSpecNonEmpty(expected.PipelineSpec)).To(gomega.BeTrue(), "Expected pipeline_spec is empty or malformed")
+		MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+	case (actualHasRef || actualHasSpec) && (expectedHasRef || expectedHasSpec):
+		// Mixed oneof forms (for example Create vs FULL Get).
+		if actualHasRef && expectedHasRef {
+			gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(
+				gomega.Equal(expected.PipelineVersionReference.PipelineVersionID),
+				"Referred Pipeline Version Id is not matching",
+			)
+			gomega.Expect(actual.PipelineVersionReference.PipelineID).To(
+				gomega.Equal(expected.PipelineVersionReference.PipelineID),
+				"Referred Pipeline Id is not matching",
+			)
+		}
+		// Prefer content comparison whenever the caller supplied an expected
+		// compiled/embedded spec. Otherwise still reject empty/malformed maps.
+		switch {
+		case actualHasSpec && expectedHasSpec:
+			gomega.Expect(pipelineSpecNonEmpty(actual.PipelineSpec)).To(
+				gomega.BeTrue(),
+				"Actual embedded pipeline_spec is empty or malformed",
+			)
+			gomega.Expect(pipelineSpecNonEmpty(expected.PipelineSpec)).To(
+				gomega.BeTrue(),
+				"Expected embedded pipeline_spec is empty or malformed",
+			)
+			MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+		case actualHasSpec:
+			gomega.Expect(pipelineSpecNonEmpty(actual.PipelineSpec)).To(
+				gomega.BeTrue(),
+				"Actual embedded pipeline_spec is empty or malformed",
+			)
+		case expectedHasSpec:
+			gomega.Expect(pipelineSpecNonEmpty(expected.PipelineSpec)).To(
+				gomega.BeTrue(),
+				"Expected embedded pipeline_spec is empty or malformed",
+			)
+		}
+	default:
+		gomega.Expect(actualHasRef || actualHasSpec).To(gomega.BeTrue(), "Actual run is missing pipeline source")
+		gomega.Expect(expectedHasRef || expectedHasSpec).To(gomega.BeTrue(), "Expected run is missing pipeline source")
+	}
+}
+
+func pipelineSpecNonEmpty(spec interface{}) bool {
+	if spec == nil {
+		return false
+	}
+	switch value := spec.(type) {
+	case map[string]interface{}:
+		return len(value) > 0
+	case map[interface{}]interface{}:
+		return len(value) > 0
+	default:
+		// Reject scalars/slices/etc. Embedded pipeline specs are JSON objects.
+		return false
+	}
 }

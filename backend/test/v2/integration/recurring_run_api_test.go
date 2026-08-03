@@ -645,6 +645,84 @@ func (s *RecurringRunApiTestSuite) checkArgParamsRecurringRun(t *testing.T, recu
 	assert.Equal(t, expectedRecurringRun, recurringRun)
 }
 
+func (s *RecurringRunApiTestSuite) TestRecurringRunApis_DisabledCreatesScheduledWorkflow() {
+	t := s.T()
+
+	/* ---------- Upload pipelines YAML ---------- */
+	pipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", upload_params.NewUploadPipelineParams())
+	assert.Nil(t, err)
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.PipelineServiceListPipelineVersionsParams{
+		PipelineID: pipeline.PipelineID,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, totalSize, 1)
+
+	/* ---------- Create a disabled recurring run with cron ---------- */
+	experiment := test.MakeExperiment("test-disabled-swf experiment", "", s.resourceNamespace)
+	disabledExperiment, err := s.experimentClient.Create(&experiment_params.ExperimentServiceCreateExperimentParams{Experiment: experiment})
+	assert.Nil(t, err)
+
+	createRecurringRunRequest := &recurring_run_params.RecurringRunServiceCreateRecurringRunParams{RecurringRun: &recurring_run_model.V2beta1RecurringRun{
+		DisplayName:  "test-disabled-swf",
+		ExperimentID: disabledExperiment.ExperimentID,
+		PipelineVersionReference: &recurring_run_model.V2beta1PipelineVersionReference{
+			PipelineID:        pipelineVersions[0].PipelineID,
+			PipelineVersionID: pipelineVersions[0].PipelineVersionID,
+		},
+		Trigger: &recurring_run_model.V2beta1Trigger{
+			CronSchedule: &recurring_run_model.V2beta1CronSchedule{Cron: "0 0 1 1 *"},
+		},
+		MaxConcurrency: 1,
+		NoCatchup:      true,
+		Mode:           recurring_run_model.RecurringRunModeDISABLE.Pointer(),
+	}}
+
+	recurringRun, err := s.recurringRunClient.Create(createRecurringRunRequest)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, recurringRun.RecurringRunID)
+
+	/* ---------- Get recurring run and verify disable/cron round trip ---------- */
+	storedRecurringRun, err := s.recurringRunClient.Get(&recurring_run_params.RecurringRunServiceGetRecurringRunParams{
+		RecurringRunID: recurringRun.RecurringRunID,
+	})
+	assert.Nil(t, err)
+	assert.Equal(t, recurring_run_model.RecurringRunModeDISABLE.Pointer(), storedRecurringRun.Mode)
+	assert.NotNil(t, storedRecurringRun.Trigger)
+	assert.NotNil(t, storedRecurringRun.Trigger.CronSchedule)
+	assert.Equal(t, "0 0 1 1 *", storedRecurringRun.Trigger.CronSchedule.Cron)
+	assert.Equal(t, pipelineVersions[0].PipelineID, storedRecurringRun.PipelineVersionReference.PipelineID)
+	assert.Equal(t, pipelineVersions[0].PipelineVersionID, storedRecurringRun.PipelineVersionReference.PipelineVersionID)
+
+	/* ---------- Verify matching ScheduledWorkflow CRD ---------- */
+	swfNamespace := s.namespace
+	if s.resourceNamespace != "" {
+		swfNamespace = s.resourceNamespace
+	}
+	assert.Nil(t, retrier.New(retrier.ConstantBackoff(15, time.Second), nil).Run(func() error {
+		scheduledWorkflows, listErr := s.swfClient.ScheduledWorkflow(swfNamespace).List(context.Background(), v1.ListOptions{})
+		if listErr != nil {
+			return listErr
+		}
+		for index := range scheduledWorkflows.Items {
+			scheduledWorkflow := &scheduledWorkflows.Items[index]
+			if string(scheduledWorkflow.UID) != recurringRun.RecurringRunID {
+				continue
+			}
+			if scheduledWorkflow.Spec.Enabled {
+				return fmt.Errorf("expected ScheduledWorkflow %s to be disabled", scheduledWorkflow.Name)
+			}
+			if scheduledWorkflow.Spec.PipelineId != pipelineVersions[0].PipelineID {
+				return fmt.Errorf("expected pipeline id %s, got %s", pipelineVersions[0].PipelineID, scheduledWorkflow.Spec.PipelineId)
+			}
+			if scheduledWorkflow.Spec.PipelineVersionId != pipelineVersions[0].PipelineVersionID {
+				return fmt.Errorf("expected pipeline version id %s, got %s", pipelineVersions[0].PipelineVersionID, scheduledWorkflow.Spec.PipelineVersionId)
+			}
+			return nil
+		}
+		return fmt.Errorf("ScheduledWorkflow with UID %s not found", recurringRun.RecurringRunID)
+	}))
+}
+
 func (s *RecurringRunApiTestSuite) TestRecurringRunApis_SwfNotFound() {
 	t := s.T()
 

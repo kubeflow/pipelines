@@ -235,7 +235,7 @@ func TestToApiTask_MetricsGrouping_WithIterations(t *testing.T) {
 	assert.True(t, iterations[1], "Should have iteration 1")
 }
 
-// TestToApiTask_NonMetrics tests that non-metric artifacts are not grouped
+// TestToApiTask_NonMetrics tests that non-metric same-key artifacts are grouped into one IOArtifact
 func TestToApiTask_NonMetrics(t *testing.T) {
 	uri1 := "s3://bucket/dataset1"
 	uri2 := "s3://bucket/dataset2"
@@ -279,13 +279,12 @@ func TestToApiTask_NonMetrics(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, apiTask)
 
-	// Verify we have TWO IOArtifacts (non-metrics are not grouped)
-	assert.Equal(t, 2, len(apiTask.Outputs.Artifacts), "Non-metric artifacts should not be grouped")
+	// Same-key non-ITERATOR_OUTPUT artifacts are grouped into one IOArtifact
+	assert.Equal(t, 1, len(apiTask.Outputs.Artifacts), "Same-key ordinary artifacts should be grouped into one IOArtifact")
 
-	// Each IOArtifact should have one artifact
-	for _, ioArtifact := range apiTask.Outputs.Artifacts {
-		assert.Equal(t, 1, len(ioArtifact.Artifacts), "Each IOArtifact should have one artifact")
-	}
+	ioArtifact := apiTask.Outputs.Artifacts[0]
+	assert.Equal(t, "datasets", ioArtifact.ArtifactKey)
+	assert.Equal(t, 2, len(ioArtifact.Artifacts), "Should contain both artifacts")
 }
 
 func TestToApiTask_ArtifactsRemainEmptyWithoutHydration(t *testing.T) {
@@ -349,5 +348,187 @@ func TestToApiTask_ArtifactGroupsAreSortedDeterministically(t *testing.T) {
 	if assert.Len(t, apiTask.GetOutputs().GetArtifacts(), 2) {
 		assert.Equal(t, "a-dataset", apiTask.GetOutputs().GetArtifacts()[0].GetArtifactKey())
 		assert.Equal(t, "z-metrics", apiTask.GetOutputs().GetArtifacts()[1].GetArtifactKey())
+	}
+}
+
+// TestToApiTask_IteratorOutputMultipleArtifactsPerIteration tests that ITERATOR_OUTPUT artifacts
+// with multiple artifacts per iteration are grouped correctly
+func TestToApiTask_IteratorOutputMultipleArtifactsPerIteration(t *testing.T) {
+	iter0 := int64(0)
+	iter1 := int64(1)
+	uri1 := "s3://bucket/iter0-part1"
+	uri2 := "s3://bucket/iter0-part2"
+	uri3 := "s3://bucket/iter1-part1"
+
+	modelTask := &model.Task{
+		UUID:      "task-123",
+		RunUUID:   "run-456",
+		Name:      "loop-task",
+		Namespace: "ns1",
+		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "artifact-1",
+					Name: "part1",
+					URI:  &uri1,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter0,
+				},
+			},
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "artifact-2",
+					Name: "part2",
+					URI:  &uri2,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter0,
+				},
+			},
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "artifact-3",
+					Name: "part1",
+					URI:  &uri3,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter1,
+				},
+			},
+		},
+	}
+
+	apiTask, err := toAPITask(modelTask, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, apiTask)
+
+	// Two IOArtifacts: one per iteration
+	if assert.Equal(t, 2, len(apiTask.Outputs.Artifacts), "Should have one IOArtifact per iteration") {
+		// First: iteration 0 with 2 artifacts
+		io0 := apiTask.Outputs.Artifacts[0]
+		assert.NotNil(t, io0.Producer)
+		assert.Equal(t, int64(0), io0.Producer.GetIteration())
+		assert.Equal(t, 2, len(io0.Artifacts), "Iteration 0 should have 2 artifacts")
+
+		// Second: iteration 1 with 1 artifact
+		io1 := apiTask.Outputs.Artifacts[1]
+		assert.NotNil(t, io1.Producer)
+		assert.Equal(t, int64(1), io1.Producer.GetIteration())
+		assert.Equal(t, 1, len(io1.Artifacts), "Iteration 1 should have 1 artifact")
+	}
+}
+
+// TestToApiTask_IterationOrderIndependentOfUUID tests that iteration order is maintained
+// even when UUIDs don't sort in the same order
+func TestToApiTask_IterationOrderIndependentOfUUID(t *testing.T) {
+	iter0 := int64(0)
+	iter1 := int64(1)
+	iter2 := int64(2)
+	uri1 := "s3://bucket/a"
+	uri2 := "s3://bucket/b"
+	uri3 := "s3://bucket/c"
+
+	modelTask := &model.Task{
+		UUID:      "task-123",
+		RunUUID:   "run-456",
+		Name:      "loop-task",
+		Namespace: "ns1",
+		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "zzz-uuid",
+					Name: "out",
+					URI:  &uri3,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter2,
+				},
+			},
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "aaa-uuid",
+					Name: "out",
+					URI:  &uri1,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter0,
+				},
+			},
+			{
+				Key:  "output",
+				Type: apiv2beta1.IOType_ITERATOR_OUTPUT,
+				Value: &model.Artifact{
+					UUID: "mmm-uuid",
+					Name: "out",
+					URI:  &uri2,
+				},
+				Producer: &model.IOProducer{
+					TaskName:  "loop-task",
+					Iteration: &iter1,
+				},
+			},
+		},
+	}
+
+	apiTask, err := toAPITask(modelTask, nil)
+	assert.NoError(t, err)
+	if assert.Equal(t, 3, len(apiTask.Outputs.Artifacts)) {
+		assert.Equal(t, int64(0), apiTask.Outputs.Artifacts[0].Producer.GetIteration())
+		assert.Equal(t, int64(1), apiTask.Outputs.Artifacts[1].Producer.GetIteration())
+		assert.Equal(t, int64(2), apiTask.Outputs.Artifacts[2].Producer.GetIteration())
+	}
+}
+
+// TestToApiTask_DescriptionPreservation tests that artifact Description is preserved through conversion
+func TestToApiTask_DescriptionPreservation(t *testing.T) {
+	uri := "s3://bucket/model"
+
+	modelTask := &model.Task{
+		UUID:      "task-123",
+		RunUUID:   "run-456",
+		Name:      "train-task",
+		Namespace: "ns1",
+		OutputArtifactsHydrated: []model.TaskArtifactHydrated{
+			{
+				Key:  "model",
+				Type: apiv2beta1.IOType_OUTPUT,
+				Value: &model.Artifact{
+					UUID:        "artifact-1",
+					Name:        "trained-model",
+					Description: "A fine-tuned model for classification",
+					URI:         &uri,
+				},
+				Producer: &model.IOProducer{
+					TaskName: "train-task",
+				},
+			},
+		},
+	}
+
+	apiTask, err := toAPITask(modelTask, nil)
+	assert.NoError(t, err)
+	assert.NotNil(t, apiTask)
+
+	if assert.Equal(t, 1, len(apiTask.Outputs.Artifacts)) {
+		ioArt := apiTask.Outputs.Artifacts[0]
+		if assert.Equal(t, 1, len(ioArt.Artifacts)) {
+			assert.Equal(t, "A fine-tuned model for classification", ioArt.Artifacts[0].Description)
+		}
 	}
 }

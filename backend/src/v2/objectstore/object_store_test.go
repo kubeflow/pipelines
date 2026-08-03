@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"gocloud.dev/blob"
 	_ "gocloud.dev/blob/gcsblob"
 	"gocloud.dev/blob/memblob"
 )
@@ -414,6 +415,70 @@ func TestDownloadBlob_EmptyListingIsNoOp(t *testing.T) {
 	localPath := filepath.Join(t.TempDir(), "missing")
 	err := DownloadBlob(ctx, bucket, localPath, "artifacts/missing")
 	require.NoError(t, err)
+}
+
+func TestDownloadBlob_RejectsTraversalKey(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	// Prefix listing for artifacts/step also returns this sibling-escaping key.
+	err := bucket.WriteAll(ctx, "artifacts/step/../../etc/passwd", []byte("secret"), nil)
+	require.NoError(t, err)
+
+	// Nest destRoot under an outer sandbox so the cleaned escape target is
+	// well-defined and observable (Join(out, "../../etc/passwd") leaves destRoot).
+	outer := t.TempDir()
+	destRoot := filepath.Join(outer, "dest")
+	require.NoError(t, os.MkdirAll(destRoot, 0o755))
+	localPath := filepath.Join(destRoot, "out")
+
+	err = DownloadBlob(ctx, bucket, localPath, "artifacts/step")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected object key")
+
+	escaped := filepath.Clean(filepath.Join(localPath, "../../etc/passwd"))
+	require.Equal(t, filepath.Join(outer, "etc", "passwd"), escaped)
+	_, statErr := os.Stat(escaped)
+	assert.Error(t, statErr)
+	assert.True(t, os.IsNotExist(statErr), "traversal key must not write outside destination")
+}
+
+func TestDownloadListedObject_RejectsEscapingKeys(t *testing.T) {
+	ctx := context.Background()
+	bucket := memblob.OpenBucket(nil)
+	defer bucket.Close()
+
+	tests := []struct {
+		name           string
+		normalizedBlob string
+		objKey         string
+	}{
+		{
+			name:           "nested dotdot escape",
+			normalizedBlob: "artifacts/step",
+			objKey:         "artifacts/step/../../etc/passwd",
+		},
+		{
+			name:           "single segment escape",
+			normalizedBlob: "artifacts/step",
+			objKey:         "artifacts/step/../secret",
+		},
+		{
+			name:           "deep nested escape",
+			normalizedBlob: "artifacts/step",
+			objKey:         "artifacts/step/a/b/../../../etc/passwd",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			destRoot := t.TempDir()
+			err := downloadListedObject(ctx, bucket, destRoot, tt.normalizedBlob, &blob.ListObject{Key: tt.objKey})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unexpected object key")
+		})
+	}
 }
 
 func TestNormalizeBucketURLForBlobOpen(t *testing.T) {

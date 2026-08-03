@@ -8,9 +8,11 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +89,7 @@ func TestSpecParsing(t *testing.T) {
 
 	for _, tc := range tt {
 		t.Logf("Running test case: %s", tc.name)
-		cfg, err := parseExecConfigJson(tc.input)
+		cfg, err := parseExecConfigJSON(tc.input)
 		assert.Equal(t, tc.wantErr, err != nil)
 		assert.True(t, proto.Equal(tc.expected, cfg))
 	}
@@ -549,4 +551,44 @@ func verifyFileContent(t *testing.T, filePath string, expectedContent string) {
 	if string(fileContent) != expectedContent {
 		t.Errorf("Expected file fileContent to be %q, got %q", expectedContent, string(fileContent))
 	}
+}
+
+func TestParseOptionalBoolFlag(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantNil bool
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset empty", value: "", wantNil: true},
+		{name: "true", value: "true", want: true},
+		{name: "false", value: "false", want: false},
+		{name: "invalid", value: "maybe", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseOptionalBoolFlag("--default_host_users", tc.value)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+				return
+			}
+			assert.NoError(t, err)
+			if tc.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, tc.want, *got)
+		})
+	}
+}
+
+func TestNewPluginDispatcher_ReturnsNonNil(t *testing.T) {
+	dispatcher := newPluginDispatcher()
+	require.NotNil(t, dispatcher)
+	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
+	_, err := dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
+	assert.NoError(t, err)
 }

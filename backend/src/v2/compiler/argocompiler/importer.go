@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/component"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	k8score "k8s.io/api/core/v1"
 )
 
@@ -69,6 +70,8 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 		"--run_id", runID(),
 		"--parent_task_id", inputValue(paramParentDagTaskID),
 		"--iteration_index", inputValue(paramIterationIndex),
+		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
+		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
 		"--namespace",
 		fmt.Sprintf("$(%s)", component.EnvNamespace),
 		"--pod_name",
@@ -109,7 +112,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 						{
 							ServiceAccountToken: &k8score.ServiceAccountTokenProjection{
 								Path:              "token",
-								Audience:          kfpTokenAudienceForRun(runID()),
+								Audience:          c.tokenAudienceForRun(runID()),
 								ExpirationSeconds: kfpTokenExpirationSecondsPtr(),
 							},
 						},

@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	"github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -1703,4 +1704,290 @@ func Test_retrieve_artifact_path(t *testing.T) {
 			assert.Equal(t, path, test.expectedPath)
 		})
 	}
+}
+
+// recordingPluginDispatcher records OnTaskEnd calls for launcher lifecycle tests.
+type recordingPluginDispatcher struct {
+	plugins.NoOpDispatcher
+	endCount      int
+	endStates     []apiv2beta1.PipelineTask_TaskState
+	endMetrics    []map[string]float64
+	endParameters []map[string]interface{}
+	endErr        error
+}
+
+func (r *recordingPluginDispatcher) OnTaskEnd(_ context.Context, taskInfo *plugins.TaskInfo) error {
+	r.endCount++
+	if taskInfo != nil {
+		r.endStates = append(r.endStates, taskInfo.RunStatus)
+		r.endMetrics = append(r.endMetrics, taskInfo.ScalarMetrics)
+		r.endParameters = append(r.endParameters, taskInfo.Parameters)
+	}
+	return r.endErr
+}
+
+func pipelineSpecStructForLauncherPluginTest(t *testing.T) *structpb.Struct {
+	t.Helper()
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		PipelineInfo: &pipelinespec.PipelineInfo{Name: "plugin-lifecycle"},
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{},
+				},
+			},
+		},
+		SchemaVersion: "2.1.0",
+	}
+	pipelineSpecJSON, err := protojson.Marshal(pipelineSpec)
+	require.NoError(t, err)
+	pipelineSpecStruct := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(pipelineSpecJSON, pipelineSpecStruct))
+	return pipelineSpecStruct
+}
+
+func newLauncherForPluginLifecycleTest(
+	t *testing.T,
+	recorder *recordingPluginDispatcher,
+	cmdErr error,
+) *LauncherV2 {
+	t.Helper()
+	return newLauncherForPluginLifecycleTestWithIO(t, recorder, cmdErr, nil, []byte("{}"))
+}
+
+func newLauncherForPluginLifecycleTestWithIO(
+	t *testing.T,
+	recorder *recordingPluginDispatcher,
+	cmdErr error,
+	executorInput *pipelinespec.ExecutorInput,
+	outputMetadata []byte,
+) *LauncherV2 {
+	t.Helper()
+
+	if executorInput == nil {
+		executorInput = &pipelinespec.ExecutorInput{
+			Outputs: &pipelinespec.ExecutorInput_Outputs{
+				OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+			},
+		}
+	}
+	executorInputJSON, err := protojson.Marshal(executorInput)
+	require.NoError(t, err)
+
+	mockAPI := kfpapi.NewMockAPI()
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+
+	run := &apiv2beta1.Run{
+		RunId: "plugin-run",
+		PipelineSource: &apiv2beta1.Run_PipelineSpec{
+			PipelineSpec: pipelineSpecStructForLauncherPluginTest(t),
+		},
+	}
+	mockAPI.AddRun(run)
+
+	task := &apiv2beta1.PipelineTask{
+		TaskId: "plugin-task",
+		RunId:  run.GetRunId(),
+		Name:   "plugin-task",
+		State:  apiv2beta1.PipelineTask_RUNNING,
+		Type:   apiv2beta1.PipelineTask_RUNTIME,
+	}
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		Task: task, RunId: task.GetRunId(),
+	})
+	require.NoError(t, err)
+
+	opts := &LauncherV2Options{
+		Namespace:        "default",
+		PodName:          "plugin-pod",
+		PodUID:           "plugin-pod-uid",
+		PipelineName:     "plugin-lifecycle",
+		ComponentSpec:    &pipelinespec.ComponentSpec{},
+		TaskSpec:         &pipelinespec.PipelineTaskSpec{TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "plugin-task"}},
+		Run:              run,
+		Task:             task,
+		PipelineSpec:     pipelineSpecStructForLauncherPluginTest(t),
+		PluginDispatcher: recorder,
+	}
+
+	launcher, err := NewLauncherV2(string(executorInputJSON), []string{"sh", "-c", "true"}, opts, clientManager)
+	require.NoError(t, err)
+
+	mockFS := NewMockFileSystem()
+	mockFS.SetFileContent("/tmp/kfp_outputs/output_metadata.json", outputMetadata)
+	mockCmd := NewMockCommandExecutor()
+	mockCmd.RunError = cmdErr
+	launcher.WithFileSystem(mockFS).
+		WithCommandExecutor(mockCmd).
+		WithObjectStore(NewMockObjectStoreClient())
+	return launcher
+}
+
+func TestLauncherV2_PluginLifecycle_SuccessfulExecuteEndsOnceSucceeded(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	err := launcher.Execute(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, recorder.endCount, "launcher must close the plugin task exactly once after driver handoff")
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_SUCCEEDED, recorder.endStates[0])
+}
+
+func TestLauncherV2_PluginLifecycle_OnTaskEndReceivesMetricsAndInputParams(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"learning_rate": structpb.NewNumberValue(0.01),
+				"model_name":    structpb.NewStringValue("resnet"),
+			},
+		},
+		Outputs: &pipelinespec.ExecutorInput_Outputs{
+			OutputFile: "/tmp/kfp_outputs/output_metadata.json",
+			Artifacts: map[string]*pipelinespec.ArtifactList{
+				"metrics": {
+					Artifacts: []*pipelinespec.RuntimeArtifact{
+						{
+							Name: "metrics",
+							Uri:  "s3://bucket/output/metrics",
+							Type: &pipelinespec.ArtifactTypeSchema{
+								Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Metrics"},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	// SDK-shaped runtime payload omits type; declared system.Metrics must still drive extraction.
+	// Output parameter names deliberately differ from input names.
+	outputMetadata := []byte(`{
+		"artifacts": {
+			"metrics": {
+				"artifacts": [{
+					"name": "metrics",
+					"metadata": {"accuracy": 0.97, "loss": 0.03}
+				}]
+			}
+		},
+		"parameterValues": {
+			"accuracy": 0.99
+		}
+	}`)
+
+	launcher := newLauncherForPluginLifecycleTestWithIO(t, recorder, nil, executorInput, outputMetadata)
+	err := launcher.Execute(context.Background())
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endMetrics, 1)
+	require.Len(t, recorder.endParameters, 1)
+	assert.Equal(t, map[string]float64{"accuracy": 0.97, "loss": 0.03}, recorder.endMetrics[0])
+	assert.Equal(t, map[string]interface{}{
+		"learning_rate": 0.01,
+		"model_name":    "resnet",
+	}, recorder.endParameters[0], "OnTaskEnd must receive task input parameters, not executor outputs")
+	assert.NotContains(t, recorder.endParameters[0], "accuracy")
+}
+
+func TestLauncherV2_PluginLifecycle_OnTaskEndErrorPreservesExecutionError(t *testing.T) {
+	recorder := &recordingPluginDispatcher{endErr: errors.New("plugin end failed")}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, errors.New("component crashed"))
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "component crashed", "original execution error must be preserved when end hook also fails")
+	assert.NotContains(t, err.Error(), "plugin end failed")
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0])
+}
+
+func TestLauncherV2_PluginLifecycle_FinalizationFailureEndsPluginAsFailed(t *testing.T) {
+	recorder := &recordingPluginDispatcher{}
+	launcher := newLauncherForPluginLifecycleTest(t, recorder, nil)
+
+	failingAPI := &finalizationFailureAPI{
+		API:               launcher.clientManager.KFPAPIClient(),
+		updateStatusesErr: errors.New("propagation failed"),
+	}
+	launcher.clientManager = client_manager.NewFakeClientManager(
+		launcher.clientManager.K8sClient(),
+		failingAPI,
+	)
+
+	err := launcher.Execute(context.Background())
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update statuses")
+	assert.Equal(t, 1, recorder.endCount)
+	require.Len(t, recorder.endStates, 1)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, recorder.endStates[0],
+		"OnTaskEnd must run after finalization and observe FAILED, not SUCCEEDED")
+
+	persisted, getErr := failingAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: launcher.options.Task.GetTaskId(),
+		RunId:  launcher.options.Task.GetRunId(),
+	})
+	require.NoError(t, getErr)
+	assert.Equal(t, apiv2beta1.PipelineTask_FAILED, persisted.GetState())
+}
+
+func TestScalarMetricsFromExecutorOutput_UsesDeclaredTypeForSDKShapedRuntime(t *testing.T) {
+	declared := &pipelinespec.ExecutorInput_Outputs{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"metrics": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "metrics",
+						Type: &pipelinespec.ArtifactTypeSchema{
+							Kind: &pipelinespec.ArtifactTypeSchema_SchemaTitle{SchemaTitle: "system.Metrics"},
+						},
+					},
+				},
+			},
+		},
+	}
+	// SDK runtime payloads intentionally omit type.
+	runtime := &pipelinespec.ExecutorOutput{
+		Artifacts: map[string]*pipelinespec.ArtifactList{
+			"metrics": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{
+						Name: "metrics",
+						Metadata: &structpb.Struct{Fields: map[string]*structpb.Value{
+							"accuracy": structpb.NewNumberValue(0.97),
+							"loss":     structpb.NewNumberValue(0.03),
+						}},
+					},
+				},
+			},
+		},
+	}
+
+	got := scalarMetricsFromExecutorOutput(declared, runtime)
+	require.Equal(t, map[string]float64{"accuracy": 0.97, "loss": 0.03}, got)
+
+	// Without declared type, metrics must not be extracted from untyped runtime.
+	assert.Nil(t, scalarMetricsFromExecutorOutput(nil, runtime))
+}
+
+func TestParameterValuesToInterfaces_UsesInputMap(t *testing.T) {
+	inputs := map[string]*structpb.Value{
+		"learning_rate": structpb.NewNumberValue(0.01),
+		"model_name":    structpb.NewStringValue("resnet"),
+	}
+	outputs := map[string]*structpb.Value{
+		"accuracy": structpb.NewNumberValue(0.99),
+	}
+
+	gotInputs := parameterValuesToInterfaces(inputs)
+	require.Equal(t, map[string]interface{}{
+		"learning_rate": 0.01,
+		"model_name":    "resnet",
+	}, gotInputs)
+
+	gotOutputs := parameterValuesToInterfaces(outputs)
+	require.Equal(t, map[string]interface{}{"accuracy": 0.99}, gotOutputs)
+	assert.NotEqual(t, gotInputs, gotOutputs)
 }

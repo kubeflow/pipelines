@@ -27,6 +27,49 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestResolveInputParameter_RuntimePipelineJobTimes(t *testing.T) {
+	createTime := "2026-08-10T18:10:00Z"
+	scheduleTime := "2026-08-10T18:40:00Z"
+	parentTask := &apiv2beta1.PipelineTask{
+		TaskId: "parent-task",
+		Name:   "parent",
+	}
+	opts := common.Options{
+		ParentTask:                 parentTask,
+		Run:                        &apiv2beta1.Run{RunId: "run-1"},
+		PipelineJobCreateTimeUTC:   createTime,
+		PipelineJobScheduleTimeUTC: scheduleTime,
+	}
+
+	tests := []struct {
+		name        string
+		placeholder string
+		want        string
+	}{
+		{
+			name:        "create time placeholder",
+			placeholder: "{{$.pipeline_job_create_time_utc}}",
+			want:        createTime,
+		},
+		{
+			name:        "schedule time placeholder",
+			placeholder: "{{$.pipeline_job_schedule_time_utc}}",
+			want:        scheduleTime,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resolved, ioType, err := ResolveInputParameter(opts, common.InputParamConstant(test.placeholder), nil)
+			require.NoError(t, err)
+			require.NotNil(t, resolved)
+			assert.Equal(t, apiv2beta1.IOType_RUNTIME_VALUE_INPUT, ioType)
+			assert.Equal(t, test.want, resolved.GetValue().GetStringValue())
+			assert.Equal(t, parentTask.GetName(), resolved.GetProducer().GetTaskName())
+		})
+	}
+}
+
 func TestResolveTaskOutputParameter_FindsIterationScopedNonRuntimeProducer(t *testing.T) {
 	tests := []struct {
 		name         string

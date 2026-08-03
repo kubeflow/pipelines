@@ -342,7 +342,8 @@ type RunDetails struct {
 }
 
 // RunMetricV1 represents a v1 run metric.
-// Deprecated: remove once v1 is removed.
+//
+// Legacy v1 type — remove once v1 is removed.
 type RunMetricV1 struct {
 	RunUUID     string    `gorm:"column:RunUUID; not null; primaryKey; type:varchar(191);"`
 	NodeID      string    `gorm:"column:NodeID; not null; primaryKey; type:varchar(191);"`

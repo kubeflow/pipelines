@@ -385,7 +385,7 @@ func handleInputTaskParametersCreation(
 // updateTaskAttemptLocalFieldsAfterCreate re-applies attempt-local fields that
 // CreateTask may drop when it returns an existing logical-identity row (retries
 // and duplicate delivery). Mirrors the cache-hit UpdateTask path for pods,
-// inputs, fingerprint, and state.
+// inputs, fingerprint, state, end time, and plugin status metadata.
 func updateTaskAttemptLocalFieldsAfterCreate(
 	ctx context.Context,
 	kfpAPI kfpapi.API,
@@ -397,9 +397,11 @@ func updateTaskAttemptLocalFieldsAfterCreate(
 	}
 	createdTask.Pods = attemptTask.GetPods()
 	createdTask.Inputs = attemptTask.GetInputs()
+	createdTask.Outputs = attemptTask.GetOutputs()
 	createdTask.CacheFingerprint = attemptTask.GetCacheFingerprint()
 	createdTask.State = attemptTask.GetState()
 	createdTask.EndTime = attemptTask.GetEndTime()
+	createdTask.StatusMetadata = attemptTask.GetStatusMetadata()
 	updatedTask, err := kfpAPI.UpdateTask(ctx, &apiV2beta1.UpdateTaskRequest{
 		TaskId: createdTask.GetTaskId(),
 		Task:   createdTask,
@@ -446,4 +448,48 @@ func handleInputTaskArtifactsCreation(
 		}
 	}
 	return nil
+}
+
+func parameterValuesToInterfaces(parameterValues map[string]*structpb.Value) map[string]interface{} {
+	if len(parameterValues) == 0 {
+		return nil
+	}
+	values := make(map[string]interface{}, len(parameterValues))
+	for key, value := range parameterValues {
+		if value == nil {
+			continue
+		}
+		values[key] = value.AsInterface()
+	}
+	return values
+}
+
+// scalarMetricsFromTaskOutputs extracts numeric metric values from task API
+// outputs (including NumberValue-backed Metric artifacts from cache hits).
+func scalarMetricsFromTaskOutputs(outputs *apiV2beta1.PipelineTask_InputOutputs) map[string]float64 {
+	if outputs == nil {
+		return nil
+	}
+	metrics := make(map[string]float64)
+	for _, artifactList := range outputs.GetArtifacts() {
+		for _, artifact := range artifactList.GetArtifacts() {
+			if artifact == nil || artifact.GetType() != apiV2beta1.Artifact_Metric {
+				continue
+			}
+			if artifact.NumberValue != nil && artifact.GetName() != "" {
+				metrics[artifact.GetName()] = *artifact.NumberValue
+			}
+			for key, value := range artifact.GetMetadata() {
+				numberValue, ok := value.Kind.(*structpb.Value_NumberValue)
+				if !ok {
+					continue
+				}
+				metrics[key] = numberValue.NumberValue
+			}
+		}
+	}
+	if len(metrics) == 0 {
+		return nil
+	}
+	return metrics
 }

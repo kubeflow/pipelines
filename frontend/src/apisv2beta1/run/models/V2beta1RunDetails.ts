@@ -12,6 +12,7 @@
  * Do not edit the class manually.
  */
 
+import { mapValues } from '../runtime';
 /**
  * Runtime details of a run.
  * @export
@@ -30,11 +31,11 @@ export interface V2beta1RunDetails {
    * @memberof V2beta1RunDetails
    */
   pipeline_run_context_id?: string;
-  /**
-   * @memberof V2beta1RunDetails
-   */
 }
 
+/**
+ * Check if a given object implements the V2beta1RunDetails interface.
+ */
 export function instanceOfV2beta1RunDetails(value: object): value is V2beta1RunDetails {
   return true;
 }

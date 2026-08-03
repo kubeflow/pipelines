@@ -2454,7 +2454,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootRejectedWhenRunAsNonRootEnforce
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{
+		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2462,8 +2462,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootRejectedWhenRunAsNonRootEnforce
 				},
 			},
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	// runAsUser=0 must be rejected when admin enforces runAsNonRoot=true.
@@ -2481,7 +2480,7 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedWhenRunAsNonRootEnfor
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{
+		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2489,8 +2488,7 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedWhenRunAsNonRootEnfor
 				},
 			},
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	require.Nil(t, err)
@@ -2512,13 +2510,12 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedOnHardenedContainer(t
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
 				RunAsUser: &nonRootUID,
 			},
 		}},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	// Non-root UID is allowed even on hardened containers.
@@ -2536,14 +2533,13 @@ func Test_extendPodSpecPatch_SecurityContext_RootRejectedWithUserRunAsNonRoot(t 
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
 				RunAsUser:    &rootUID,
 				RunAsNonRoot: &userRunAsNonRoot,
 			},
 		}},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	// Component sets runAsNonRoot=true and runAsUser=0 — contradiction must be rejected.
@@ -2562,7 +2558,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootAllowedWhenAdminRunAsNonRootFal
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{
+		common.Options{
 			DefaultRunAsNonRoot: &adminRunAsNonRoot,
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
@@ -2571,8 +2567,7 @@ func Test_extendPodSpecPatch_SecurityContext_RootAllowedWhenAdminRunAsNonRootFal
 				},
 			},
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	// Admin explicitly allows root (runAsNonRoot=false) — user's runAsNonRoot=true
@@ -2592,14 +2587,13 @@ func Test_extendPodSpecPatch_SecurityContext_RootAllowedWithUserRunAsNonRootFals
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+		common.Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 			SecurityContext: &kubernetesplatform.SecurityContext{
 				RunAsUser:    &rootUID,
 				RunAsNonRoot: &userRunAsNonRoot,
 			},
 		}},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	// Component explicitly sets runAsNonRoot=false — root is allowed.
@@ -3532,11 +3526,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersFalse(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3555,11 +3548,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersTrue(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInHostNamespace,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3574,11 +3566,10 @@ func Test_extendPodSpecPatch_DefaultHostUsersNil(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: nil,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3602,7 +3593,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &hostUsersInDedicatedNamespace,
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
@@ -3610,8 +3601,7 @@ func Test_extendPodSpecPatch_RootUserWithHostUsersNamespace(t *testing.T) {
 				},
 			},
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3643,11 +3633,10 @@ func Test_extendPodSpecPatch_HostUsersAdminOverrideProtection(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{
+		common.Options{
 			DefaultHostUsers: &adminFalse,
 		},
-		nil, nil, nil,
-		map[string]*structpb.Value{},
+		nil,
 		nil,
 	)
 	assert.Nil(t, err)
@@ -3996,11 +3985,8 @@ func Test_extendPodSpecPatch_InitContainers(t *testing.T) {
 			err := extendPodSpecPatch(
 				context.Background(),
 				got,
-				Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
 				nil,
-				nil,
-				nil,
-				map[string]*structpb.Value{},
 				nil,
 			)
 			if tt.expectedErr != "" {
@@ -4027,7 +4013,7 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 	err := extendPodSpecPatch(
 		context.Background(),
 		got,
-		Options{
+		common.Options{
 			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
 				InitContainers: []*kubernetesplatform.InitContainer{
 					{Name: "fetch-config", Image: "busybox:1.36"},
@@ -4039,9 +4025,6 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 			DefaultHostUsers:    &hostUsers,
 		},
 		nil,
-		nil,
-		nil,
-		map[string]*structpb.Value{},
 		nil,
 	)
 	assert.Nil(t, err)
