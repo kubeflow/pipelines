@@ -54,7 +54,6 @@ IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
 
 MYSQL_WAIT_TIMEOUT ?= 10m
 CERT_MANAGER_WAIT_TIMEOUT ?= 300s
-METADATA_GRPC_WAIT_TIMEOUT ?= 3m
 ML_PIPELINE_WAIT_TIMEOUT ?= 3m
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
@@ -131,7 +130,6 @@ kind-cluster-agnostic:
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=$(METADATA_GRPC_WAIT_TIMEOUT) deployment/metadata-grpc-deployment
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(ML_PIPELINE_WAIT_TIMEOUT) deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
@@ -167,7 +165,6 @@ dev-kind-cluster:
 		kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml; \
 	fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/$(DB_DEPLOYMENT_NAME)
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl config set-context --current --namespace=kubeflow
 
 .PHONY: install-dra-driver
