@@ -83,7 +83,6 @@ updates:
       - "/.github/resources/scripts/kfp-readiness"
       - "/api/v2alpha1/python"
       - "/backend"
-      - "/backend/metadata_writer"
       - "/backend/src/apiserver/visualization"
       - "/backend/src/v2/test"
       - "/components/google-cloud"

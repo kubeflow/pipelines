@@ -19,12 +19,10 @@ CONTROL_PLANE_IMAGE_ARTIFACTS=(
   "scheduledworkflow"
   "persistenceagent"
   "frontend"
-  "metadata-writer"
   "viewer-crd-controller"
   "visualization-server"
   "cache-deployer"
   "cache-server"
-  "metadata-envoy"
 )
 RUNTIME_IMAGE_ARTIFACTS=("driver" "launcher")
 ALL_CI_IMAGE_ARTIFACTS=(
