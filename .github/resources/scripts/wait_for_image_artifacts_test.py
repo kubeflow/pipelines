@@ -51,6 +51,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         jobs_api_fails: bool = False,
         missing_artifact: str = 'metadata-envoy',
         publication_grace_attempts: Optional[int] = None,
+        producer_state_unavailable_extensions: Optional[int] = None,
     ) -> tuple[subprocess.CompletedProcess[str], int]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -106,6 +107,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             if publication_grace_attempts is not None:
                 environment['PUBLICATION_GRACE_ATTEMPTS'] = str(
                     publication_grace_attempts)
+            if producer_state_unavailable_extensions is not None:
+                environment['PRODUCER_STATE_UNAVAILABLE_EXTENSIONS'] = str(
+                    producer_state_unavailable_extensions)
             result = subprocess.run(
                 ['bash', str(SCRIPT)],
                 capture_output=True,
@@ -251,6 +255,19 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn(
             'Extending image artifact wait because producer state is unavailable',
             result.stdout)
+        self.assertEqual(attempts, 2)
+
+    def test_fails_after_bounded_producer_state_api_fallback(self):
+        result, attempts = self._run(
+            ready_after=99,
+            attempts=1,
+            jobs_api_fails=True,
+            producer_state_unavailable_extensions=1,
+        )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('producer state remains unavailable', result.stderr)
+        self.assertIn('metadata-envoy', result.stderr)
         self.assertEqual(attempts, 2)
 
 

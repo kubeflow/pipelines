@@ -27,6 +27,7 @@ set -euo pipefail
 WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 PUBLICATION_GRACE_ATTEMPTS="${PUBLICATION_GRACE_ATTEMPTS:-3}"
+PRODUCER_STATE_UNAVAILABLE_EXTENSIONS="${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS:-1}"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2
@@ -37,6 +38,10 @@ if ! [[ "$WAIT_INTERVAL_SECONDS" =~ ^[0-9]+$ ]]; then
 fi
 if ! [[ "$PUBLICATION_GRACE_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "PUBLICATION_GRACE_ATTEMPTS must be a positive integer, got: ${PUBLICATION_GRACE_ATTEMPTS}" >&2
+  exit 2
+fi
+if ! [[ "$PRODUCER_STATE_UNAVAILABLE_EXTENSIONS" =~ ^[0-9]+$ ]]; then
+  echo "PRODUCER_STATE_UNAVAILABLE_EXTENSIONS must be a non-negative integer, got: ${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS}" >&2
   exit 2
 fi
 
@@ -90,6 +95,7 @@ classify_missing_producers() {
 missing_artifacts=()
 attempt=0
 publication_grace_remaining=0
+producer_state_unavailable_extensions=0
 while true; do
   attempt=$((attempt + 1))
   window_attempt=$((((attempt - 1) % WAIT_ATTEMPTS) + 1))
@@ -139,7 +145,13 @@ while true; do
           "unknown producers: ${unknown_missing_producers[*]:-none}"
       fi
     else
-      echo "Extending image artifact wait because producer state is unavailable."
+      if (( producer_state_unavailable_extensions >= PRODUCER_STATE_UNAVAILABLE_EXTENSIONS )); then
+        echo "Missing branch image artifacts and producer state remains unavailable: ${missing_artifacts[*]}" >&2
+        exit 1
+      fi
+      producer_state_unavailable_extensions=$((producer_state_unavailable_extensions + 1))
+      echo "Extending image artifact wait because producer state is unavailable" \
+        "(${producer_state_unavailable_extensions}/${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS})."
     fi
   fi
 
