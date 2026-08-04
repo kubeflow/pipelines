@@ -412,6 +412,32 @@ func initPodSpecPatch(
 		res.Requests[k8score.ResourceCPU] = *cpuRequest
 	}
 
+	ephemeralStorageLimit, err := getPodResource(
+		container.GetResources().GetResourceEphemeralStorageLimit(),
+		0,
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if ephemeralStorageLimit != nil {
+		res.Limits[k8score.ResourceEphemeralStorage] = *ephemeralStorageLimit
+	}
+
+	ephemeralStorageRequest, err := getPodResource(
+		container.GetResources().GetResourceEphemeralStorageRequest(),
+		0,
+		executorInput,
+		"%v",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init podSpecPatch: %w", err)
+	}
+	if ephemeralStorageRequest != nil {
+		res.Requests[k8score.ResourceEphemeralStorage] = *ephemeralStorageRequest
+	}
+
 	accelerator := container.GetResources().GetAccelerator()
 	if accelerator != nil {
 		var acceleratorType string

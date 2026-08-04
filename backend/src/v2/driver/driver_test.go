@@ -310,10 +310,12 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 		Args:    []string{"--function_to_execute", "add"},
 		Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
 		Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
-			ResourceCpuRequest:    "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
-			ResourceCpuLimit:      "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
-			ResourceMemoryRequest: "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
-			ResourceMemoryLimit:   "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
+			ResourceCpuRequest:              "{{$.inputs.parameters['pipelinechannel--cpu_request']}}",
+			ResourceCpuLimit:                "{{$.inputs.parameters['pipelinechannel--cpu_limit']}}",
+			ResourceMemoryRequest:           "{{$.inputs.parameters['pipelinechannel--memory_request']}}",
+			ResourceMemoryLimit:             "{{$.inputs.parameters['pipelinechannel--memory_limit']}}",
+			ResourceEphemeralStorageRequest: "{{$.inputs.parameters['pipelinechannel--ephemeral_storage_request']}}",
+			ResourceEphemeralStorageLimit:   "{{$.inputs.parameters['pipelinechannel--ephemeral_storage_limit']}}",
 			Accelerator: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig{
 				ResourceType:  "{{$.inputs.parameters['pipelinechannel--accelerator_type']}}",
 				ResourceCount: "{{$.inputs.parameters['pipelinechannel--accelerator_count']}}",
@@ -362,6 +364,26 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 				"pipelinechannel--memory_limit": {
 					Kind: &structpb.Value_StringValue{
 						StringValue: "500Mi",
+					},
+				},
+				"ephemeral_storage_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--ephemeral_storage_request']}}",
+					},
+				},
+				"pipelinechannel--ephemeral_storage_request": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "1G",
+					},
+				},
+				"ephemeral_storage_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "{{$.inputs.parameters['pipelinechannel--ephemeral_storage_limit']}}",
+					},
+				},
+				"pipelinechannel--ephemeral_storage_limit": {
+					Kind: &structpb.Value_StringValue{
+						StringValue: "2Gi",
 					},
 				},
 				"accelerator_type": {
@@ -419,6 +441,8 @@ func Test_initPodSpecPatch_resource_placeholders(t *testing.T) {
 	assert.Equal(t, k8sres.MustParse("400m"), res.Limits[k8score.ResourceCPU])
 	assert.Equal(t, k8sres.MustParse("100Mi"), res.Requests[k8score.ResourceMemory])
 	assert.Equal(t, k8sres.MustParse("500Mi"), res.Limits[k8score.ResourceMemory])
+	assert.Equal(t, k8sres.MustParse("1G"), res.Requests[k8score.ResourceEphemeralStorage])
+	assert.Equal(t, k8sres.MustParse("2Gi"), res.Limits[k8score.ResourceEphemeralStorage])
 	assert.Equal(t, k8sres.MustParse("1"), res.Limits[k8score.ResourceName("nvidia.com/gpu")])
 
 	assert.Empty(t, taskConfig.Resources.Limits)
@@ -773,6 +797,42 @@ func Test_initPodSpecPatch_resourceRequests(t *testing.T) {
 			},
 			`"resources":{"limits":{"cpu":"2","memory":"1500M"}}`,
 			`"requests"`,
+		},
+		{
+			"Valid - with ephemeral storage",
+			args{
+				&pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+					Image:   "python:3.11",
+					Args:    []string{"--function_to_execute", "add"},
+					Command: []string{"sh", "-ec", "python3 -m kfp.components.executor_main"},
+					Resources: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec{
+						ResourceEphemeralStorageLimit:   "1G",
+						ResourceEphemeralStorageRequest: "500M",
+					},
+				},
+				&pipelinespec.ComponentSpec{
+					Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "addition"},
+					InputDefinitions: &pipelinespec.ComponentInputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+							"a": {Type: pipelinespec.PrimitiveType_DOUBLE},
+							"b": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+							"Output": {Type: pipelinespec.PrimitiveType_DOUBLE},
+						},
+					},
+				},
+				nil,
+				1,
+				"MyPipeline",
+				"a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6",
+				"1",
+				"false",
+			},
+			`"resources":{"limits":{"ephemeral-storage":"1G"},"requests":{"ephemeral-storage":"500M"}}`,
+			"",
 		},
 	}
 	for _, tt := range tests {

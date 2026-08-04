@@ -545,16 +545,36 @@ class PipelineTask:
         Returns:
             The numeric string value of the memory request/limit.
         """
-        if isinstance(memory, pipeline_channel.PipelineChannel):
-            memory = str(memory)
+        return self._validate_resource_amount_request_limit(memory, 'memory')
+
+    def _validate_resource_amount_request_limit(self, resource_amount: str,
+                                                resource_type: str) -> str:
+        """Validates a resource amount (memory/ephemeral storage) request or
+        limit string and returns it unchanged.
+
+        Args:
+            resource_amount: The resource amount request or limit. This string
+                should be a number or a number followed by one of "E", "Ei",
+                "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
+            resource_type: The type of the resource, used in the error message.
+                Should be either 'memory' or 'ephemeral storage'.
+
+        Raises:
+            ValueError if the resource amount string value is invalid.
+
+        Returns:
+            The numeric string value of the resource amount.
+        """
+        if isinstance(resource_amount, pipeline_channel.PipelineChannel):
+            resource_amount = str(resource_amount)
         else:
             if re.match(r'^[0-9]+(E|Ei|P|Pi|T|Ti|G|Gi|M|Mi|K|Ki){0,1}$',
-                        memory) is None:
+                        resource_amount) is None:
                 raise ValueError(
-                    'Invalid memory string. Should be a number or a number '
-                    'followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", '
-                    '"Gi", "M", "Mi", "K", "Ki".')
-        return memory
+                    f'Invalid {resource_type} string. Should be a number or a '
+                    'number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", '
+                    '"G", "Gi", "M", "Mi", "K", "Ki".')
+        return resource_amount
 
     @warn_if_final()
     def set_memory_request(
@@ -607,6 +627,62 @@ class PipelineTask:
         else:
             self.container_spec.resources = structures.ResourceSpec(
                 memory_limit=memory)
+
+        return self
+
+    @warn_if_final()
+    def set_ephemeral_storage_request(
+        self, ephemeral_storage: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
+        """Sets ephemeral storage request (minimum) for the task.
+
+        Args:
+            ephemeral_storage: The minimum ephemeral storage requests required.
+                This string should be a number or a number followed by one of
+                "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or
+                "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        ephemeral_storage = self._validate_resource_amount_request_limit(
+            ephemeral_storage, 'ephemeral storage')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.ephemeral_storage_request = ephemeral_storage
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                ephemeral_storage_request=ephemeral_storage)
+
+        return self
+
+    @warn_if_final()
+    def set_ephemeral_storage_limit(
+        self, ephemeral_storage: Union[str, pipeline_channel.PipelineChannel]
+    ) -> 'PipelineTask':
+        """Sets ephemeral storage limit (maximum) for the task.
+
+        Args:
+            ephemeral_storage: The maximum ephemeral storage requests allowed.
+                This string should be a number or a number followed by one of
+                "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or
+                "Ki".
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self._ensure_container_spec_exists()
+
+        ephemeral_storage = self._validate_resource_amount_request_limit(
+            ephemeral_storage, 'ephemeral storage')
+
+        if self.container_spec.resources is not None:
+            self.container_spec.resources.ephemeral_storage_limit = ephemeral_storage
+        else:
+            self.container_spec.resources = structures.ResourceSpec(
+                ephemeral_storage_limit=ephemeral_storage)
 
         return self
 
