@@ -576,6 +576,7 @@ export class Apis {
       throw new Error(
         `Error parsing response for path: ${path}\n\n` +
           `Response was: ${responseText}\n\nError was: ${JSON.stringify(err)}`,
+        { cause: err },
       );
     }
   }

@@ -654,7 +654,7 @@ async function parseGCSProviderInfo(
     }
     return credentials;
   } catch (err) {
-    throw new Error('Failed to parse GCS Provider config. Error: ' + err);
+    throw new Error('Failed to parse GCS Provider config. Error: ' + err, { cause: err });
   }
 }
 

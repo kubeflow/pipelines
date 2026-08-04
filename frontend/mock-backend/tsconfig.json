@@ -5,7 +5,7 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom", "es2019"],
+    "lib": ["es6", "dom", "es2019", "es2022.error"],
     "sourceMap": true,
     "allowJs": true,
     "resolveJsonModule": true,
