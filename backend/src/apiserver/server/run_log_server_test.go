@@ -115,5 +115,6 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	server.ReadRunLogV1(recorder, req)
 
 	assert.Equal(t, http.StatusForbidden, recorder.Code)
+	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
 	assert.Contains(t, recorder.Body.String(), "Failed to authorize")
 }

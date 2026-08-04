@@ -78,6 +78,7 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 
 func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
 	glog.Errorf("Failed to read run log. Error: %+v", err)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
