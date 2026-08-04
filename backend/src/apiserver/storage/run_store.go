@@ -744,17 +744,17 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 	if err != nil {
 		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
-	stateHistory := run.RunDetails.StateHistory
-	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != run.RunDetails.State {
+	stateHistory := run.StateHistory
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != run.State {
 		newStatus := &model.RuntimeStatus{
 			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
+			State:           run.State,
 		}
 		if expectedState == nil {
 			// Preserve UpdateRun's existing caller-visible mutation, including
 			// when the update later reports that the run does not exist.
-			run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, newStatus)
-			stateHistory = run.RunDetails.StateHistory
+			run.StateHistory = append(run.StateHistory, newStatus)
+			stateHistory = run.StateHistory
 		} else {
 			// A rejected workflow report must not mutate its caller's snapshot.
 			stateHistory = append(append([]*model.RuntimeStatus(nil), stateHistory...), newStatus)
@@ -835,7 +835,7 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 	if err := tx.Commit(); err != nil {
 		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	run.RunDetails.StateHistory = stateHistory
+	run.StateHistory = stateHistory
 	return true, nil
 }
 
