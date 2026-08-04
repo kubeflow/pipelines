@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -53,6 +54,43 @@ func (visitor *TestVisitor) DAG(name string, component *pipelinespec.ComponentSp
 func (visitor *TestVisitor) AddKubernetesSpec(name string, kubernetesSpec *structpb.Struct) error {
 	visitor.visited = append(visitor.visited, fmt.Sprintf("DAG(name=%q)", name))
 	return nil
+}
+
+func makePipelineJob(spec *pipelinespec.PipelineSpec) *pipelinespec.PipelineJob {
+	jsonBytes, err := protojson.Marshal(spec)
+	Expect(err).ToNot(HaveOccurred())
+	pipelineSpecStruct := &structpb.Struct{}
+	Expect(protojson.Unmarshal(jsonBytes, pipelineSpecStruct)).To(Succeed())
+	return &pipelinespec.PipelineJob{PipelineSpec: pipelineSpecStruct}
+}
+
+func makeDeploymentSpec(executors map[string]*pipelinespec.PipelineDeploymentConfig_ExecutorSpec) *structpb.Struct {
+	jsonBytes, err := protojson.Marshal(&pipelinespec.PipelineDeploymentConfig{Executors: executors})
+	Expect(err).ToNot(HaveOccurred())
+	deploymentSpecStruct := &structpb.Struct{}
+	Expect(protojson.Unmarshal(jsonBytes, deploymentSpecStruct)).To(Succeed())
+	return deploymentSpecStruct
+}
+
+func makeDAGComponent(tasks map[string]*pipelinespec.PipelineTaskSpec) *pipelinespec.ComponentSpec {
+	return &pipelinespec.ComponentSpec{
+		Implementation: &pipelinespec.ComponentSpec_Dag{
+			Dag: &pipelinespec.DagSpec{Tasks: tasks},
+		},
+	}
+}
+
+func makeContainerComponent(executorLabel string) *pipelinespec.ComponentSpec {
+	return &pipelinespec.ComponentSpec{
+		Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: executorLabel},
+	}
+}
+
+func makeTask(taskName, componentName string) *pipelinespec.PipelineTaskSpec {
+	return &pipelinespec.PipelineTaskSpec{
+		TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: taskName},
+		ComponentRef: &pipelinespec.ComponentRef{Name: componentName},
+	}
 }
 
 var _ = Describe("Verify iteration over the pipeline components >", Label(POSITIVE, WorkflowCompiler, WorkflowCompilerVisits), func() {
@@ -126,5 +164,84 @@ var _ = Describe("Verify iteration over the pipeline components >", Label(POSITI
 				Expect(actualVisitor.visited).To(Equal(testParam.expectedVisited))
 			})
 		}
+	})
+
+	Context("Validate component graph errors", func() {
+		It("returns an error containing the cycle path for circular component references", func() {
+			pipelineJob := makePipelineJob(&pipelinespec.PipelineSpec{
+				DeploymentSpec: makeDeploymentSpec(nil),
+				Root: makeDAGComponent(map[string]*pipelinespec.PipelineTaskSpec{
+					"task-a": makeTask("task-a", "comp-dag-a"),
+				}),
+				Components: map[string]*pipelinespec.ComponentSpec{
+					"comp-dag-a": makeDAGComponent(map[string]*pipelinespec.PipelineTaskSpec{
+						"task-b": makeTask("task-b", "comp-dag-b"),
+					}),
+					"comp-dag-b": makeDAGComponent(map[string]*pipelinespec.PipelineTaskSpec{
+						"task-a": makeTask("task-a", "comp-dag-a"),
+					}),
+				},
+			})
+
+			err := compiler.Accept(pipelineJob, nil, &TestVisitor{})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("circular component reference detected: root -> comp-dag-a -> comp-dag-b -> comp-dag-a"))
+		})
+
+		It("rejects user-defined components named root", func() {
+			pipelineJob := makePipelineJob(&pipelinespec.PipelineSpec{
+				DeploymentSpec: makeDeploymentSpec(nil),
+				Root:           makeDAGComponent(nil),
+				Components: map[string]*pipelinespec.ComponentSpec{
+					"root": makeDAGComponent(nil),
+				},
+			})
+
+			err := compiler.Accept(pipelineJob, nil, &TestVisitor{})
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("component name \"root\" is reserved"))
+		})
+
+		It("includes parent DAG component and task name in unresolved reference errors", func() {
+			testCases := []struct {
+				name            string
+				pipelineSpec    *pipelinespec.PipelineSpec
+				expectedMessage string
+			}{
+				{
+					name: "component reference",
+					pipelineSpec: &pipelinespec.PipelineSpec{
+						DeploymentSpec: makeDeploymentSpec(nil),
+						Root: makeDAGComponent(map[string]*pipelinespec.PipelineTaskSpec{
+							"task-missing": makeTask("task-missing", "comp-missing"),
+						}),
+					},
+					expectedMessage: "cannot find component ref name=\"comp-missing\" for task name=\"task-missing\" in component name=\"root\"",
+				},
+				{
+					name: "executor reference",
+					pipelineSpec: &pipelinespec.PipelineSpec{
+						DeploymentSpec: makeDeploymentSpec(nil),
+						Root: makeDAGComponent(map[string]*pipelinespec.PipelineTaskSpec{
+							"task-leaf": makeTask("task-leaf", "comp-leaf"),
+						}),
+						Components: map[string]*pipelinespec.ComponentSpec{
+							"comp-leaf": makeContainerComponent("exec-missing"),
+						},
+					},
+					expectedMessage: "referenced by task name=\"task-leaf\" in component name=\"root\": executor(label=\"exec-missing\") not found in deployment config",
+				},
+			}
+
+			for _, testCase := range testCases {
+				By(testCase.name)
+				err := compiler.Accept(makePipelineJob(testCase.pipelineSpec), nil, &TestVisitor{})
+
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring(testCase.expectedMessage))
+			}
+		})
 	})
 })

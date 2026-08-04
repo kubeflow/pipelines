@@ -22,9 +22,9 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -58,10 +58,12 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 	if job == nil {
 		return nil
 	}
-	// TODO(Bobgy): reserve root as a keyword that cannot be user component names
 	spec, err := GetPipelineSpec(job)
 	if err != nil {
 		return err
+	}
+	if _, ok := spec.GetComponents()[RootComponentName]; ok {
+		return fmt.Errorf("component name %q is reserved", RootComponentName)
 	}
 	deploy, err := GetDeploymentConfig(spec)
 	if err != nil {
@@ -73,8 +75,9 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 		kubernetesSpec: kubernetesSpec,
 		visitor:        v,
 		visited:        make(map[string]bool),
+		visiting:       make(map[string]bool),
 	}
-	return state.dfs(RootComponentName, spec.GetRoot(), nil)
+	return state.dfs(RootComponentName, spec.GetRoot(), nil, "")
 }
 
 type pipelineDFS struct {
@@ -84,29 +87,58 @@ type pipelineDFS struct {
 	visitor        Visitor
 	// Records which DAG components are visited, map key is component name.
 	visited map[string]bool
+	// Records the active recursion stack to detect circular component references.
+	visiting map[string]bool
+	path     []string
 }
 
-func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
-	// each component is only visited once
-	// TODO(Bobgy): return an error when circular reference detected
-	if state.visited[name] {
-		return nil
-	}
-	state.visited[name] = true
-	if component == nil {
-		return nil
-	}
+func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec, parentComponentName string) error {
 	if state == nil {
 		return fmt.Errorf("dfs: unexpected value state=nil")
 	}
+	if state.visiting[name] {
+		cyclePath := append([]string{}, name)
+		for index, componentName := range state.path {
+			if componentName == name {
+				cyclePath = append(append([]string{}, state.path[index:]...), name)
+				break
+			}
+		}
+		return fmt.Errorf("circular component reference detected: %s", strings.Join(cyclePath, " -> "))
+	}
+	if state.visited[name] {
+		return nil
+	}
+	if component == nil {
+		state.visited[name] = true
+		return nil
+	}
+	state.visiting[name] = true
+	state.path = append(state.path, name)
+	defer func() {
+		state.path = state.path[:len(state.path)-1]
+		delete(state.visiting, name)
+	}()
 	componentError := func(err error) error {
 		return fmt.Errorf("error processing component name=%q: %w", name, err)
+	}
+	taskName := func() string {
+		if componentTask == nil {
+			return ""
+		}
+		return componentTask.GetTaskInfo().GetName()
+	}
+	componentTaskError := func(err error) error {
+		if componentTask == nil {
+			return componentError(err)
+		}
+		return componentError(fmt.Errorf("referenced by task name=%q in component name=%q: %w", taskName(), parentComponentName, err))
 	}
 	executorLabel := component.GetExecutorLabel()
 	if executorLabel != "" {
 		executor, ok := state.deploy.GetExecutors()[executorLabel]
 		if !ok {
-			return componentError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
+			return componentTaskError(fmt.Errorf("executor(label=%q) not found in deployment config", executorLabel))
 		}
 
 		// Add kubernetes spec to annotation
@@ -124,14 +156,22 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 
 		container := executor.GetContainer()
 		if container != nil {
-			return state.visitor.Container(name, component, container)
+			if err := state.visitor.Container(name, component, container); err != nil {
+				return err
+			}
+			state.visited[name] = true
+			return nil
 		}
 		importer := executor.GetImporter()
 		if importer != nil {
-			return state.visitor.Importer(name, component, importer)
+			if err := state.visitor.Importer(name, component, importer); err != nil {
+				return err
+			}
+			state.visited[name] = true
+			return nil
 		}
 
-		return componentError(fmt.Errorf("executor(label=%q): non-container and non-importer executor not implemented", executorLabel))
+		return componentTaskError(fmt.Errorf("executor(label=%q): non-container and non-importer executor not implemented", executorLabel))
 	}
 	dag := component.GetDag()
 	if dag == nil { // impl can only be executor or dag
@@ -158,19 +198,23 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 		}
 		subComponent, ok := state.spec.Components[refName]
 		if !ok {
-			return componentError(fmt.Errorf("cannot find component ref name=%q", refName))
+			return componentError(fmt.Errorf("cannot find component ref name=%q for task name=%q in component name=%q", refName, task.GetTaskInfo().GetName(), name))
 		}
 		if task.GetRetryPolicy() == nil && componentTask != nil {
 			task.RetryPolicy = componentTask.GetRetryPolicy()
 		}
-		err := state.dfs(refName, subComponent, task)
+		err := state.dfs(refName, subComponent, task, name)
 		if err != nil {
 			return err
 		}
 	}
 	// process tasks before DAG component, so that all sub-tasks are already
 	// ready by the time the DAG component is visited.
-	return state.visitor.DAG(name, component, dag)
+	if err := state.visitor.DAG(name, component, dag); err != nil {
+		return err
+	}
+	state.visited[name] = true
+	return nil
 }
 
 func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.PipelineDeploymentConfig, error) {
@@ -178,28 +222,25 @@ func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.Pipelin
 	if err != nil {
 		return nil, err
 	}
-	buffer := bytes.NewBuffer(jsonBytes)
 	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
 	// Allow unknown '@type' field in the json message.
 	unmarshaler := protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
-	if err := unmarshaler.Unmarshal(buffer.Bytes(), deploymentConfig); err != nil {
+	if err := unmarshaler.Unmarshal(jsonBytes, deploymentConfig); err != nil {
 		return nil, err
 	}
 	return deploymentConfig, nil
 }
 
 func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
-	// TODO(Bobgy): can we avoid this marshal to string step?
 	marshaler := &protojson.MarshalOptions{}
 	jsonBytes, err := marshaler.Marshal(job.GetPipelineSpec())
 	if err != nil {
 		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
-	jsonStr := string(jsonBytes)
 	spec := &pipelinespec.PipelineSpec{}
-	if err := protojson.Unmarshal([]byte(jsonStr), spec); err != nil {
+	if err := protojson.Unmarshal(jsonBytes, spec); err != nil {
 		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
 	}
 	return spec, nil
