@@ -43,15 +43,18 @@ class TrivyWorkflowTest(unittest.TestCase):
         self.assertNotIn('TRIVY_SKIP_DB_UPDATE', self.workflow)
         self.assertNotIn('TRIVY_SKIP_JAVA_DB_UPDATE', self.workflow)
 
-    def test_scan_uses_reviewed_pins_and_vulnerability_scope(self):
+    def test_scan_uses_reviewed_pins_and_reports_all_vulnerabilities(self):
         self.assertIn(
             'aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25',
             self.workflow,
         )
         self.assertIn("version: 'v0.73.0'", self.workflow)
         self.assertIn("scanners: 'vuln'", self.workflow)
-        self.assertIn("severity: 'CRITICAL,HIGH'", self.workflow)
-        self.assertIn('limit-severities-for-sarif: true', self.workflow)
+        self.assertIn(
+            "severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'", self.workflow
+        )
+        self.assertNotIn('ignore-unfixed:', self.workflow)
+        self.assertNotIn('limit-severities-for-sarif:', self.workflow)
 
     def test_scan_has_least_privilege_and_manual_recovery(self):
         self.assertIn('  workflow_dispatch:', self.workflow)

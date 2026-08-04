@@ -25,11 +25,9 @@ jobs:
           version: 'v0.73.0'
           scan-type: 'fs'
           scanners: 'vuln'
-          ignore-unfixed: true
           format: 'sarif'
           output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          limit-severities-for-sarif: true
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
           exit-code: '0'
           skip-dirs: 'components'
         env:
