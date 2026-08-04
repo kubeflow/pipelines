@@ -30,7 +30,11 @@ import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import { V2beta1PipelineVersionReference, V2beta1Run } from 'src/apisv2beta1/run';
+import {
+  V2beta1PipelineVersionReference,
+  V2beta1Run,
+  type V2beta1RuntimeConfig,
+} from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -308,16 +312,27 @@ function NewRunV2(props: NewRunV2Props) {
   );
   const runName = customRunName ?? defaultRunName;
 
-  const clonedRuntimeConfig = cloneOrigin.isRecurring
-    ? cloneOrigin.recurringRun?.runtime_config
-    : cloneOrigin.run?.runtime_config;
+  // Serialize the mutable generated-API runtime config to a primitive string
+  // during render.  Primitives are inherently immutable, so this value is a
+  // safe memoization dependency that React Compiler can reason about without
+  // requiring manual-memoization suppressions.
+  const clonedRuntimeConfigKey = JSON.stringify(
+    (cloneOrigin.isRecurring
+      ? cloneOrigin.recurringRun?.runtime_config
+      : cloneOrigin.run?.runtime_config) ?? null,
+  );
+  // Reconstruct a local value from the serialized form.  The sole dependency
+  // is the primitive key above, so the compiler can prove this memoization is
+  // safe and all downstream hooks that depend on `clonedRuntimeConfig` are
+  // transitively safe as well.
+  const clonedRuntimeConfig = useMemo(
+    (): V2beta1RuntimeConfig | undefined =>
+      JSON.parse(clonedRuntimeConfigKey) ?? undefined,
+    [clonedRuntimeConfigKey],
+  );
   const { defaultPipelineRoot, specParameters } = useMemo(
     () => getTemplateData(templateString),
     [templateString],
-  );
-  const clonedRuntimeConfigKey = useMemo(
-    () => JSON.stringify(clonedRuntimeConfig ?? null),
-    [clonedRuntimeConfig],
   );
   const parameterStateKey = useMemo(
     () =>
