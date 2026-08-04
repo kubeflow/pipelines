@@ -14,6 +14,7 @@
 """Classes and utilities for using and creating artifacts in components."""
 
 import enum
+import math
 import os
 from typing import Dict, List, Optional, Type
 import warnings
@@ -227,6 +228,10 @@ class Metrics(Artifact):
           metric: The metric key.
           value: The metric value.
         """
+        if math.isnan(value):
+            warnings.warn(f'Metric "{metric}" is NaN and will be skipped.', stacklevel=2)
+            return
+
         self.metadata[metric] = value
 
 
