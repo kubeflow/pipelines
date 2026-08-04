@@ -25,6 +25,7 @@ on:
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/workflows/validate-generated-files.yml'
+      - '.github/workflows/osv-scanner.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'

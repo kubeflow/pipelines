@@ -1,0 +1,58 @@
+name: OSV-Scanner Vulnerability Scan
+
+on:
+  schedule:
+    # Every Friday at 19:39
+    - cron: '39 19 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan:
+    name: Scan repository dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Install OSV-Scanner
+        env:
+          OSV_SCANNER_VERSION: '2.3.8'
+          OSV_SCANNER_SHA256: 'bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc'
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            --output osv-scanner
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Scan dependency manifests and lockfiles
+        run: |
+          scan_exit_code=0
+          ./osv-scanner scan source \
+            --recursive \
+            --no-resolve \
+            --format sarif \
+            --output-file osv-results.sarif \
+            . || scan_exit_code=$?
+
+          # Exit code 1 means vulnerabilities were found. Findings are reported
+          # through SARIF and do not make this reporting workflow fail.
+          if [[ "${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code ${scan_exit_code}"
+            exit "${scan_exit_code}"
+          fi
+
+      - name: Upload OSV-Scanner results to GitHub Security
+        if: always() && hashFiles('osv-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: osv-results.sarif
+          category: kubeflow-pipelines-osv-scanner
