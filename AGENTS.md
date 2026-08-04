@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-29
+- Last updated: 2026-08-04
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -544,6 +544,10 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   `backend/api/Dockerfile` and reuses that local image for v1beta1 and v2beta1 generation,
   so generator upgrades and their checked-in outputs can be validated atomically.
 - Frontend workflow (`frontend.yml`) verifies generated API clients are up to date by running `npm run apis:all` and failing on diff.
+- The weekly OSV-Scanner workflow (`osv-scanner.yml`) recursively scans supported dependency manifests and lockfiles,
+  uploads all findings to code scanning, and can be dispatched manually. KFP's requirements files are already compiled,
+  so the scan disables dependency re-resolution to avoid resolving generated constraints as manifests. Dependabot remains
+  responsible for remediation PRs; this workflow has read-only repository access and does not modify dependencies.
 
 ### Test matrices and variants (Kubernetes, stores, proxy, cache)
 
