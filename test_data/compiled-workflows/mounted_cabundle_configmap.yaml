@@ -84,6 +84,10 @@ spec:
         valueFrom:
           fieldRef:
             fieldPath: metadata.uid
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
@@ -345,6 +349,10 @@ spec:
       - /kfp/certs/ca.crt
       command:
       - driver
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
       image: ghcr.io/kubeflow/kfp-driver:latest
       name: ""
       resources:
