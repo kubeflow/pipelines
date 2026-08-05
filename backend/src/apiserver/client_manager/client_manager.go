@@ -376,14 +376,18 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	// Both ArchiveExpiredRuns and DeleteExpiredArchivedRuns filter on
 	// (StorageState, FinishedAtInSec) and ORDER BY FinishedAtInSec ASC.
 	// Without this index, every GC batch scans the full run_details table.
-	if db.Migrator().HasTable("run_details") {
-		if !db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
-			q := dialect.QuoteIdentifier
-			indexSQL := fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
-				q("idx_run_gc_lifecycle"), q("run_details"),
-				q("StorageState"), q("FinishedAtInSec"))
-			if err := db.Exec(indexSQL).Error; err != nil {
-				glog.Warningf("Failed to create GC lifecycle index on run_details: %v", err)
+	// Only created when GC is enabled to avoid blocking writes on large
+	// PostgreSQL tables where CREATE INDEX holds an exclusive lock.
+	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+		if db.Migrator().HasTable("run_details") {
+			if !db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
+				q := dialect.QuoteIdentifier
+				indexSQL := fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
+					q("idx_run_gc_lifecycle"), q("run_details"),
+					q("StorageState"), q("FinishedAtInSec"))
+				if err := db.Exec(indexSQL).Error; err != nil {
+					glog.Warningf("Failed to create GC lifecycle index on run_details: %v", err)
+				}
 			}
 		}
 	}
