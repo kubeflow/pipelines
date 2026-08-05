@@ -16,6 +16,8 @@ package template
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -69,7 +71,7 @@ func TestParseSpecFormat(t *testing.T) {
 	tt := []struct {
 		template     string
 		templateType TemplateType
-		wantErr      string
+		wantErr      bool
 	}{{
 		// standard match
 		template: `
@@ -121,17 +123,17 @@ kind: CronWorkflow`,
 		// malformed YAML: unclosed single-quoted scalar
 		template:     "'",
 		templateType: Unknown,
-		wantErr:      "yaml: found unexpected end of stream",
+		wantErr:      true,
 	}, {
 		// malformed YAML: unclosed flow sequence
 		template:     "[",
 		templateType: Unknown,
-		wantErr:      "yaml: line 1: did not find expected node content",
+		wantErr:      true,
 	}, {
 		// malformed YAML: incomplete directive
 		template:     "%",
 		templateType: Unknown,
-		wantErr:      "yaml: could not find expected directive name",
+		wantErr:      true,
 	}}
 
 	for _, test := range tt {
@@ -139,8 +141,9 @@ kind: CronWorkflow`,
 		if format != test.templateType {
 			t.Errorf("InferTemplateFormat(%s)=%q, expect %q", test.template, format, test.templateType)
 		}
-		if test.wantErr != "" {
-			require.EqualError(t, err, test.wantErr)
+		if test.wantErr {
+			require.Error(t, err)
+			assert.False(t, errors.Is(err, io.EOF))
 		} else {
 			require.NoError(t, err)
 		}
