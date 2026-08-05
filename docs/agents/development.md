@@ -41,5 +41,8 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 | `FRONTEND_SERVER_NAMESPACE` | Namespace used by a local frontend server |
 | `MINIO_ENDPOINT_REWRITE` | Rewrites object-store endpoints in local proxy mode |
 | `MAX_METRICS_FILE_BYTES` | Maximum uncompressed metrics JSON size; defaults to 1 MiB |
+| `DBDRIVERNAME` | API-server database driver: `mysql` or `pgx` |
 
 `TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.
+
+`initConfig()` in `backend/src/apiserver/main.go` binds config keys through `viper.AutomaticEnv()` with a `.` → `_` replacer, so the `DBDriverName` key reads from `DBDRIVERNAME`. A variable named `DB_DRIVER_NAME` does not bind, leaving the `mysql` default in `backend/src/apiserver/config/config.json` in force. The PostgreSQL overlay sets `DBDRIVERNAME` from the `dbType` key of the `pipeline-install-config` ConfigMap.

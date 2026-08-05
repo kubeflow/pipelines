@@ -12,8 +12,8 @@ data:
     namespace: `kubectl rollout restart deployment -n <your-namespace>`.
   appName: pipeline
   appVersion: 2.0.0
-  dbType: postgres
-  postgresHost: postgres
+  dbType: pgx
+  postgresHost: postgres-service
   postgresPort: "5432"
   mlmdDb: metadb
   cacheDb: cachedb
