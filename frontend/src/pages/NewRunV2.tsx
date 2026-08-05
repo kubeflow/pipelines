@@ -315,6 +315,10 @@ function NewRunV2(props: NewRunV2Props) {
     () => getTemplateData(templateString),
     [templateString],
   );
+  /* eslint-disable react-hooks/preserve-manual-memoization --
+   * These memoized clone inputs can be mutated by generated API types. Keep the
+   * existing identity boundaries until React Compiler adoption revisits them.
+   */
   const clonedRuntimeConfigKey = useMemo(
     () => JSON.stringify(clonedRuntimeConfig ?? null),
     [clonedRuntimeConfig],
@@ -330,6 +334,7 @@ function NewRunV2(props: NewRunV2Props) {
     () => getInitialParameterState(specParameters, clonedRuntimeConfig),
     [clonedRuntimeConfig, specParameters],
   );
+  /* eslint-enable react-hooks/preserve-manual-memoization */
   const initialPipelineRoot = clonedRuntimeConfig?.pipeline_root ?? defaultPipelineRoot;
   const [runtimeParameters, handleParameterChange] = useKeyedState<RuntimeParameters>(
     parameterStateKey,

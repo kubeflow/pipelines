@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-27
+- Last updated: 2026-07-29
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -244,10 +244,13 @@ ginkgo -v --label-filter="Smoke" ./backend/test/v2/api
 ginkgo -v ./backend/test/end2end -- -namespace=kubeflow -isDebugMode=true
 ```
 
+Without `--label-filter`, `gpu-scheduling-check`-labeled E2E tests also run (they request `nvidia.com/gpu`) and may pend or fail on CPU-only clusters; pass `--label-filter` to limit what runs (for example `Smoke`, or `gpu-scheduling-check` on clusters with `nvidia.com/gpu` from real GPUs or Fake GPU Operator fake backend).
+
 Test data is centralized under:
 
 - `test_data/pipeline_files/valid/` (inputs) with a `valid/critical/` subset for smoke lanes
 - `test_data/compiled-workflows/` (expected compiled Argo Workflows)
+- `test_data/sdk_compiled_pipelines/valid/gpu-scheduling/` (schedule-only NVIDIA GPU fixture for Kind + FGO fake; label `gpu-scheduling-check`; no CUDA/torch asserts)
 
 ## Local execution
 
@@ -552,6 +555,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - Argo Workflows version matrix for compatibility (where relevant): `e2e-test.yml` exercises `v3.7.17` and `v4.0.8` across the standard cache/test-label matrix, while `api-server-tests.yml` covers standalone and Kubernetes-native Argo compatibility across the standard matrices (with standalone low-Kubernetes spot lanes per supported Argo version).
 - Focused Argo runtime compatibility API tests run only in the canonical standalone `v4.0.8` / Kubernetes `v1.36.1` job via `ARGO_COMPATIBILITY_TESTS`; this covers recurring-run creation, run retry, task metadata/artifacts, and archived logs without adding another E2E lane.
 - Proxy / cache toggles: dedicated jobs run with HTTP proxy enabled and with execution cache disabled to validate those modes.
+- GPU scheduling (Kind): `e2e-test.yml` includes a `gpu-scheduling-check` matrix lane that installs Fake GPU Operator **fake** backend via `.github/actions/install-fgo-fake` (JFrog Helm chart), then runs schedule-only E2E fixtures under `test_data/sdk_compiled_pipelines/valid/gpu-scheduling/`. This does not cover CUDA/`torch.cuda`.
 - Kind concurrency caps: automatic critical, essential, and multi-user E2E lanes use the historical ten Ginkgo nodes, E2EFailure uses two, and nested-pipeline E2E uses three because each spec fans out into child pipelines. Manual workflow dispatches retain their requested concurrency.
 - Standard automatic and multi-user E2E Critical lanes split the 33 pipeline specs into duration-balanced shard A/B jobs on independent Kind runners; low-Kubernetes, TLS, and manual-dispatch compatibility lanes stay unsharded. The cache-enabled multi-user shards exercise the artifact-proxy compatibility path. Pipeline-level Ginkgo labels define the partition, and new Critical pipelines default to shard B so coverage is preserved.
 - Artifacts: failing logs and test outputs are uploaded as workflow artifacts for debugging.
@@ -560,6 +564,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 
 - Kind-based clusters are provisioned via the `kfp-cluster` composite action, parameterized by `k8s_version`, `pipeline_store`, `proxy`, `cache_enabled`, and optional `argo_version`.
 - The `create-cluster` and `deploy` actions are used by newer suites; `kfp-k8s` installs SDK components from source inside jobs that execute Python-based tests.
+- The `install-fgo-fake` composite action labels Kind nodes into the FGO simulated pool and waits for allocatable `nvidia.com/gpu` (single-node Kind already clears the control-plane taint).
 - Kind's `kindnet` DaemonSet keeps its 100m CPU request but has no CPU limit in CI, allowing the NFQUEUE packet-forwarding path to drain bursts instead of being held to a 100m quota.
 - Runner disk cleanup is conditional: `create-cluster` skips the expensive toolchain/package/container cleanup when at least 60 GiB is already free, but retains the cleanup as a fallback on constrained hosted runners.
 - The `deploy` action downloads and loads CI-built images before deploying optional Tinyproxy support, imports control-plane archives two at a time, preloads runtime base images used by test pods and init containers, and waits for Tinyproxy readiness/endpoints in proxy lanes. Artifact downloads use the `download-artifact-with-retry` composite action, which retries one failed download after 20 seconds while preserving name, pattern, merge, and cross-run inputs.
@@ -610,7 +615,11 @@ When changing an effect-heavy frontend component, add or run the smallest releva
   - Single quotes, trailing commas, 100 char line width
   - Format: `npm run format`
   - Check: `npm run format:check`
-- **ESLint** extends `react-app` with custom rules in `.eslintrc.yaml`
+- **ESLint 10** uses flat configuration in `frontend/eslint.config.cjs`, including the
+  `eslint-plugin-import-x` resolver for JavaScript and TypeScript imports. React Hooks 7 correctness
+  diagnostics are enabled independently of React Compiler; compiler compatibility and
+  manual-memoization diagnostics are warnings, while compiler configuration and gating remain
+  deferred until a compiler rollout is planned.
 - **Auto-format on save**: Configure your IDE with the Prettier extension
 
 Notes:
@@ -713,7 +722,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - Run backend unit tests: `go test -v $(go list ./backend/... | grep -v backend/test/)`
 - Run compiler tests: `ginkgo -v ./backend/test/compiler`
 - Run API tests: `ginkgo -v --label-filter="Smoke" ./backend/test/v2/api`
-- Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow`
+- Run E2E tests: `ginkgo -v ./backend/test/end2end -- -namespace=kubeflow` (CPU-only: add `--label-filter`, e.g. `Smoke`, to avoid `gpu-scheduling-check` tests)
 - Check formatting:
   `yapf --recursive --diff sdk/python/ && pycln --check sdk/python && isort --check --profile google sdk/python`
 - Frontend dev server: `cd frontend && npm start`
@@ -731,6 +740,7 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `TENSORBOARD_PROXY_SIGNING_SECRET=...`: Optional shared frontend-server secret for scoped TensorBoard proxy URLs; defaults to `MINIO_SECRET_KEY` when unset
 - `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
 - `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
+- `MAX_METRICS_FILE_BYTES=...`: Maximum uncompressed size of the single metrics JSON file read from an `mlpipeline-metrics` archive; defaults to 1 MiB
 
 ## Troubleshooting and pitfalls
 

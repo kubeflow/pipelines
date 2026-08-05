@@ -189,7 +189,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
         }
         return [];
       } catch (queryError) {
-        throw new Error(await errorToMessage(queryError));
+        throw new Error(await errorToMessage(queryError), { cause: queryError });
       }
     },
 
