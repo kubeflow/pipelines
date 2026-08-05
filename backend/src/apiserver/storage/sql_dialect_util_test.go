@@ -25,7 +25,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type dialectSpec struct {
@@ -70,27 +69,7 @@ func TestIsDuplicateError(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.isDup, isDuplicateError(tc.dialect, tc.err))
-		})
-	}
-}
-
-func TestJoinQuoted(t *testing.T) {
-	quote := func(s string) string { return `"` + s + `"` }
-	testCases := []struct {
-		name string
-		cols []string
-		want string
-	}{
-		{"Multiple Columns", []string{"col1", "col2", "col3"}, `"col1", "col2", "col3"`},
-		{"Single Column", []string{"col1"}, `"col1"`},
-		{"Empty Slice", []string{}, ""},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			got := joinQuoted(quote, tc.cols)
-			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.isDup, tc.dialect.IsDuplicateError(tc.err))
 		})
 	}
 }
@@ -159,9 +138,9 @@ func TestInsertUpsert(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			builder := insertUpsert(tc.dialect, tc.table, tc.keyCols, tc.overwrite, tc.updateCols)
+			builder := tc.dialect.InsertUpsert(tc.table, tc.keyCols, tc.overwrite, tc.updateCols)
 			sql, _, err := builder.Columns("foo").Values("bar").ToSql()
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			normalizedWant := normalizeSQL(tc.wantSQL)
 			normalizedGot := normalizeSQL(sql)

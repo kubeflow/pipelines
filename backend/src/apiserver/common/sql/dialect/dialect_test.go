@@ -185,7 +185,7 @@ func TestQuoteIdentifier_EscapesEmbeddedQuotes(t *testing.T) {
 	}
 }
 
-func TestEscapeSQLString(t *testing.T) {
+func Test_escapeSQLString(t *testing.T) {
 	testCases := []struct {
 		name  string
 		input string
@@ -203,7 +203,7 @@ func TestEscapeSQLString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			assert.Equal(t, tc.want, EscapeSQLString(tc.input))
+			assert.Equal(t, tc.want, escapeSQLString(tc.input))
 		})
 	}
 }

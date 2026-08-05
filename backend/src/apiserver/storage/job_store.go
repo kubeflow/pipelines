@@ -182,10 +182,7 @@ func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
 		sqlBuilder = s.addResourceReferences(sqlBuilder)
 		sqlBuilder = opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
-	if s.dbDialect.Name() == "pgx" {
-		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := sqlBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -198,10 +195,7 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	getJobBuilder := s.addResourceReferences(
 		qb.Select(quoteAll(q, jobColumns)...).From(q("jobs")),
 	).Where(sq.Eq{q("UUID"): id}).Limit(1)
-	if s.dbDialect.Name() == "pgx" {
-		getJobBuilder = getJobBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := getJobBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(getJobBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to get job: %v",
 			err.Error())

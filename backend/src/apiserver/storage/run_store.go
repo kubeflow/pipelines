@@ -224,12 +224,7 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 		sqlBuilder = s.addMetricsResourceReferencesAndTasks(pagedBuilder, opts)
 		sqlBuilder = opts.AddOrderByToSelect(sqlBuilder, q, s.dbDialect.StringCollation())
 	}
-	// Apply correct placeholder format for the final SQL generation
-	if s.dbDialect.Name() == "pgx" {
-		sqlBuilder = sqlBuilder.PlaceholderFormat(sq.Dollar)
-	}
-
-	sql, args, err := sqlBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(sqlBuilder)
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -245,10 +240,7 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runId}).
 			Limit(1), nil)
-	if s.dbDialect.Name() == "pgx" {
-		getRunBuilder = getRunBuilder.PlaceholderFormat(sq.Dollar)
-	}
-	sql, args, err := getRunBuilder.ToSql()
+	sql, args, err := s.dbDialect.FinalizeSelect(getRunBuilder)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
 	}
@@ -320,12 +312,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// format, it replaces its own ?s with $1,$2 before the outer builder runs,
 	// causing duplicate $1 numbering and mismatched args. Question is a no-op,
 	// so the outermost caller can do one unified Dollar replacement on the
-	// complete SQL string.
-	//
-	// sq.SelectBuilder couples query structure with placeholder format (squirrel
-	// design limitation — not separable at the KFP layer), so we enforce the
-	// contract here rather than relying on callers to pass the right format.
-	// Callers MUST apply PlaceholderFormat(sq.Dollar) before ToSql() on pgx.
+	// complete SQL string via dbDialect.FinalizeSelect().
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
 
@@ -731,7 +718,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 		// use a deterministic UUID derived from (RecurringRunId, DisplayName), so the
 		// duplicate insert collides on the primary key. Resolve it idempotently by
 		// returning the already-persisted run instead of surfacing an error.
-		if r.RecurringRunId != "" && isDuplicateError(s.dbDialect, err) {
+		if r.RecurringRunId != "" && s.dbDialect.IsDuplicateError(err) {
 			existingRun, getErr := s.GetRun(r.UUID)
 			if getErr != nil {
 				return nil, util.NewInternalServerError(err, "Failed to fetch existing run %v after duplicate key conflict", r.UUID)
@@ -932,7 +919,7 @@ func (s *RunStore) CreateMetric(metric *model.RunMetric) error {
 	}
 	_, err = s.db.Exec(sql, args...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateError(err) {
 			return util.NewAlreadyExistError(
 				"Failed to create a run metric. Same metric has been reported before: %s/%s", metric.NodeID, metric.Name)
 		}

@@ -726,7 +726,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 
 	_, err = tx.Exec(pipelineSQL, pipelineArgs...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateError(err) {
 			tx.Rollback()
 			return nil, nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exists. Please specify a new name", p.Name)
@@ -814,7 +814,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	}
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateError(err) {
 			tx.Rollback()
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline. The name %v already exist. Please specify a new name", p.Name)
@@ -881,7 +881,7 @@ func insertTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tableName, idColumn
 // The tag tables have a composite primary key on (idColumn, TagKey).
 func (s *PipelineStore) upsertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
 	for key, value := range tags {
-		upsertBuilder := insertUpsert(s.dbDialect, tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
+		upsertBuilder := s.dbDialect.InsertUpsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
 			Values(entityID, key, value)
 		upsertSQL, args, err := upsertBuilder.ToSql()
 		if err != nil {
@@ -1042,7 +1042,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 	_, err = tx.Exec(versionSQL, versionArgs...)
 	if err != nil {
 		tx.Rollback()
-		if isDuplicateError(s.dbDialect, err) {
+		if s.dbDialect.IsDuplicateError(err) {
 			return nil, util.NewAlreadyExistError(
 				"Failed to create a new pipeline version. The name %v already exist. Specify a new name", pv.Name)
 		}

@@ -22,13 +22,12 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // Quoter represents a dialect-aware identifier quoting function (e.g., s.dbDialect.QuoteIdentifier).
-type Quoter = dialect.QuoteFunction
+type Quoter = func(string) string
 
 // selectWithQuotedColumns builds a SELECT ... FROM ... using the provided dialect-aware
 // builder and quoter. It maps all column identifiers through q() and quotes the table name.
