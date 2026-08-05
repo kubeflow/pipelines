@@ -57,6 +57,7 @@ class GraphComponent(base_component.BaseComponent):
                     name=arg_name,
                     channel_type=input_spec.type,
                     is_artifact_list=input_spec.is_artifact_list,
+                    literals=getattr(input_spec, 'literals', None),
                 ))
 
         with pipeline_context.Pipeline(
