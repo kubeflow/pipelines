@@ -25,6 +25,9 @@ RETRY_ACTION = (
 TEST_AND_REPORT_ACTION = (
     REPOSITORY_ROOT / '.github/actions/test-and-report/action.yml'
 )
+PUBLISH_CI_RESULT_ACTION = (
+    REPOSITORY_ROOT / '.github/actions/publish-ci-result/action.yml'
+)
 CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 
 
@@ -68,11 +71,22 @@ class ArtifactUploadRetryTest(unittest.TestCase):
                 )[0]
                 self.assertIn('continue-on-error: true', step)
 
+        self.assertIn('uses: ./.github/actions/publish-ci-result', action)
+        result_action = PUBLISH_CI_RESULT_ACTION.read_text(encoding='utf-8')
+        self.assertEqual(
+            result_action.count(
+                'uses: ./.github/actions/upload-artifact-with-retry'
+            ),
+            1,
+        )
+        self.assertIn('continue-on-error: true', result_action)
+
     def test_ci_runs_when_either_action_changes(self):
         workflow = CI_SCRIPTS_WORKFLOW.read_text(encoding='utf-8')
 
         self.assertIn("'.github/actions/upload-artifact-with-retry/**'", workflow)
         self.assertIn("'.github/actions/test-and-report/**'", workflow)
+        self.assertIn("'.github/actions/publish-ci-result/**'", workflow)
 
 
 if __name__ == '__main__':

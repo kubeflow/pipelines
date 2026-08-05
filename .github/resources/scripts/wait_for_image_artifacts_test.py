@@ -47,7 +47,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         *,
         ready_after: int,
         attempts: Optional[int] = 2,
-    ) -> tuple[subprocess.CompletedProcess[str], int]:
+    ) -> tuple[subprocess.CompletedProcess[str], int, str]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fake_bin = root / 'bin'
@@ -81,6 +81,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
                 'READY_AFTER': str(ready_after),
                 'WAIT_INTERVAL_SECONDS': '0',
+                'CI_SETUP_FAILURE_LOG': str(root / 'setup-failure.log'),
             })
             if attempts is not None:
                 environment['WAIT_ATTEMPTS'] = str(attempts)
@@ -91,39 +92,48 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 check=False,
                 env=environment,
             )
-            return result, int(counter.read_text(encoding='utf-8'))
+            failure_log = root / 'setup-failure.log'
+            return (
+                result,
+                int(counter.read_text(encoding='utf-8')),
+                failure_log.read_text(encoding='utf-8'),
+            )
 
     def test_succeeds_when_all_artifacts_are_available(self):
-        result, attempts = self._run(ready_after=1)
+        result, attempts, failure_log = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('All 13 branch image artifacts are available',
                       result.stdout)
         self.assertEqual(attempts, 1)
+        self.assertEqual(failure_log, '')
 
     def test_retries_until_artifacts_are_available(self):
-        result, attempts = self._run(ready_after=2)
+        result, attempts, failure_log = self._run(ready_after=2)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Waiting for branch image artifacts', result.stdout)
         self.assertEqual(attempts, 2)
+        self.assertEqual(failure_log, '')
 
     @mock.patch.dict(os.environ, {'WAIT_ATTEMPTS': '1'})
     def test_default_wait_exceeds_previous_ten_minute_budget(self):
-        result, attempts = self._run(ready_after=21, attempts=None)
+        result, attempts, failure_log = self._run(ready_after=21, attempts=None)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Waiting for branch image artifacts (20/40)',
                       result.stdout)
         self.assertEqual(attempts, 21)
+        self.assertEqual(failure_log, '')
 
     def test_fails_with_missing_artifact_names(self):
-        result, attempts = self._run(ready_after=3, attempts=2)
+        result, attempts, failure_log = self._run(ready_after=3, attempts=2)
 
         self.assertEqual(result.returncode, 1)
         self.assertIn('Missing branch image artifacts after 2 attempts',
                       result.stderr)
         self.assertIn('runtime-base-images', result.stderr)
+        self.assertEqual(failure_log, result.stderr)
         self.assertEqual(attempts, 2)
 
 

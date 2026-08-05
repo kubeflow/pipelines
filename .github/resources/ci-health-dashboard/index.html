@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Kubeflow Pipelines master-branch CI health trends">
+    <title>KFP CI Signal</title>
+    <style>
+      :root {
+        --ink: #171815;
+        --paper: #f2f0e7;
+        --panel: #e7e4d8;
+        --line: #282a25;
+        --muted: #6c6d64;
+        --green: #2b8a61;
+        --orange: #df6f2d;
+        --red: #c43d38;
+        --blue: #25779b;
+        --yellow: #d6aa32;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(90deg, rgba(23,24,21,.035) 1px, transparent 1px) 0 0 / 24px 24px,
+          linear-gradient(rgba(23,24,21,.035) 1px, transparent 1px) 0 0 / 24px 24px,
+          var(--paper);
+        font-family: Charter, "Bitstream Charter", Georgia, serif;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0 0 auto;
+        height: 5px;
+        background: linear-gradient(90deg, var(--green) 0 42%, var(--orange) 42% 72%, var(--ink) 72%);
+        z-index: 5;
+      }
+      .shell { width: min(1500px, calc(100% - 40px)); margin: 0 auto; padding: 44px 0 72px; }
+      header { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+      .eyebrow, label, th, .metric span, .status, .stamp {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: .09em;
+      }
+      .eyebrow { margin-bottom: 16px; font-size: 12px; color: var(--green); font-weight: 800; }
+      h1 { margin: 0; font: 800 clamp(42px, 7vw, 92px)/.88 Rockwell, "Roboto Slab", Georgia, serif; letter-spacing: -.055em; }
+      .stamp { border: 1px solid var(--line); padding: 10px 14px; background: var(--ink); color: var(--paper); font-size: 11px; }
+      .deck { max-width: 750px; margin: 24px 0 32px; font-size: 18px; line-height: 1.5; color: #41423d; }
+      .controls {
+        display: flex; flex-wrap: wrap; gap: 12px; padding: 14px;
+        border: 1px solid var(--line); border-width: 1px 0; background: rgba(242,240,231,.88);
+        position: sticky; top: 0; z-index: 4; backdrop-filter: blur(8px);
+      }
+      .range-dates { display: flex; align-items: end; gap: 8px; }
+      .range-separator { padding-bottom: 9px; color: var(--muted); font: 12px "SFMono-Regular", Consolas, monospace; }
+      .range-summary { align-self: end; padding: 0 2px 9px; color: var(--muted); font: 11px "SFMono-Regular", Consolas, monospace; }
+      .range-summary[data-loading="true"]::before { content: "↻ "; color: var(--orange); }
+      label { display: grid; gap: 4px; font-size: 9px; color: var(--muted); }
+      select, input {
+        min-width: 170px; border: 1px solid var(--line); border-radius: 0; padding: 8px 10px;
+        color: var(--ink); background: var(--paper); font: 12px "SFMono-Regular", Consolas, monospace;
+      }
+      input[type="search"] { min-width: 280px; }
+      input[type="date"] { min-width: 145px; }
+      .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; margin: 30px 0; background: var(--line); border: 1px solid var(--line); }
+      .metric { position: relative; min-height: 128px; padding: 18px; background: var(--panel); }
+      .metric:hover, .metric:focus-within { z-index: 3; }
+      .metric span { display: block; min-height: 28px; font-size: 10px; color: var(--muted); }
+      .metric strong { display: block; margin-top: 12px; font: 700 34px/1 "SFMono-Regular", Consolas, monospace; }
+      .metric small { display: block; margin-top: 8px; color: var(--muted); }
+      .grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, .75fr); gap: 22px; }
+      .panel { background: rgba(242,240,231,.9); border: 1px solid var(--line); padding: 20px; margin-bottom: 22px; box-shadow: 5px 5px 0 rgba(23,24,21,.12); }
+      .panel h2 { margin: 0; font: 800 23px/1.1 Rockwell, Georgia, serif; letter-spacing: -.02em; }
+      .panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+      .panel-head p { margin: 0; color: var(--muted); font-size: 13px; }
+      .help-tip {
+        position: relative; display: inline-grid; place-items: center; width: 17px; height: 17px;
+        margin-left: 5px; padding: 0; border: 1px solid currentColor; border-radius: 50%;
+        color: var(--muted); background: transparent; font: 800 10px/1 Georgia, serif;
+        vertical-align: 2px; cursor: help;
+      }
+      .help-tip::after {
+        content: attr(data-help); position: absolute; z-index: 20; left: 0; bottom: calc(100% + 9px);
+        width: min(310px, calc(100vw - 48px)); padding: 11px 12px; border: 1px solid var(--paper);
+        background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 rgba(23,24,21,.22);
+        font: 12px/1.45 "SFMono-Regular", Consolas, monospace; letter-spacing: 0;
+        text-align: left; text-transform: none; white-space: normal; pointer-events: none;
+        opacity: 0; visibility: hidden; transform: translateY(4px);
+        transition: opacity .12s ease, transform .12s ease, visibility .12s;
+      }
+      .help-tip.tip-right::after { right: 0; left: auto; }
+      .metric .help-tip::after { top: calc(100% + 9px); bottom: auto; }
+      .table-tip { width: 14px; height: 14px; margin-left: 3px; font-size: 8px; vertical-align: 1px; }
+      .table-tip::after { top: calc(100% + 8px); bottom: auto; text-align: left; }
+      .help-tip:hover::after, .help-tip:focus-visible::after {
+        opacity: 1; visibility: visible; transform: translateY(0);
+      }
+      .help-tip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; color: var(--ink); }
+      svg { width: 100%; height: 300px; overflow: visible; }
+      .axis { stroke: #a8a79e; stroke-width: 1; }
+      .gridline { stroke: #d0cdc1; stroke-width: 1; stroke-dasharray: 3 5; }
+      .failure-line { fill: none; stroke: var(--red); stroke-width: 3; vector-effect: non-scaling-stroke; }
+      .duration-line { fill: none; stroke: var(--blue); stroke-width: 3; vector-effect: non-scaling-stroke; }
+      .dot { stroke: var(--paper); stroke-width: 2; }
+      .chart-label { font: 10px "SFMono-Regular", Consolas, monospace; fill: var(--muted); }
+      .legend { display: flex; gap: 18px; margin-top: 10px; font: 11px "SFMono-Regular", Consolas, monospace; }
+      .legend i { display: inline-block; width: 18px; height: 3px; margin-right: 7px; vertical-align: middle; }
+      .classification { display: grid; gap: 15px; }
+      .bar-label { display: flex; justify-content: space-between; margin-bottom: 5px; font: 11px "SFMono-Regular", Consolas, monospace; }
+      .bar { height: 12px; background: #d6d3c8; }
+      .bar > i { display: block; height: 100%; background: var(--orange); transition: width .5s ease; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th { padding: 9px 8px; border-bottom: 2px solid var(--line); text-align: left; font-size: 9px; white-space: nowrap; }
+      td { padding: 10px 8px; border-bottom: 1px solid #cbc9bd; vertical-align: top; }
+      td.num, th.num { text-align: right; font-family: "SFMono-Regular", Consolas, monospace; }
+      tbody tr:hover { background: #e3e0d4; }
+      .lane { max-width: 520px; overflow-wrap: anywhere; }
+      .status { display: inline-block; padding: 3px 5px; background: var(--ink); color: var(--paper); font-size: 9px; }
+      .empty { padding: 46px 0; color: var(--muted); text-align: center; }
+      footer { margin-top: 30px; display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 12px; }
+      footer a { color: inherit; }
+      @media (max-width: 1000px) {
+        .metrics { grid-template-columns: repeat(2, 1fr); }
+        .grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 620px) {
+        .shell { width: min(100% - 22px, 1500px); padding-top: 28px; }
+        header { grid-template-columns: 1fr; }
+        .metrics { grid-template-columns: 1fr; }
+        .controls { position: static; }
+        input, select { min-width: 100%; width: 100%; }
+        label { flex: 1 1 100%; }
+        .range-dates { width: 100%; align-items: stretch; }
+        .range-dates label { min-width: 0; }
+        .range-separator { align-self: end; }
+        .range-summary { width: 100%; padding-bottom: 0; }
+        .panel-head { display: block; }
+        .panel-head p { margin-top: 7px; }
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        .metric, .panel { animation: arrive .45s both; }
+        .panel { animation-delay: .08s; }
+        @keyframes arrive { from { opacity: 0; transform: translateY(8px); } }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <div class="eyebrow">Kubeflow Pipelines · master branch</div>
+          <h1>CI signal</h1>
+        </div>
+        <div class="stamp" id="generated">Loading durable history…</div>
+      </header>
+      <p class="deck">A long-view instrument panel for distinguishing product regressions from infrastructure noise and seeing whether CI work actually made the system faster and steadier.</p>
+
+      <section class="controls" aria-label="Dashboard filters">
+        <label>Time range
+          <select id="window">
+            <option value="7">Last 7 days</option>
+            <option value="14" selected>Last 14 days</option>
+            <option value="28">Last 28 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="all">All history</option>
+            <option value="custom">Custom range</option>
+          </select>
+        </label>
+        <div class="range-dates" role="group" aria-label="Date range">
+          <label>From
+            <input id="startDate" type="date">
+          </label>
+          <span class="range-separator" aria-hidden="true">→</span>
+          <label>To
+            <input id="endDate" type="date">
+          </label>
+        </div>
+        <output class="range-summary" id="rangeSummary" aria-live="polite"></output>
+        <label>Workflow
+          <select id="workflow"><option value="">All workflows</option></select>
+        </label>
+        <label>Lane search
+          <input id="search" type="search" placeholder="auth, cache, Kubernetes version…" autocomplete="off">
+        </label>
+      </section>
+
+      <section class="metrics" aria-label="Current window totals">
+        <div class="metric"><span>Lane attempts <button class="help-tip" type="button" aria-label="Define lane attempts" data-help="Completed, result-bearing CI job attempts in the selected lanes. Workflow reruns count as separate attempts; ordinary cancellations are excluded.">i</button></span><strong id="attempts">…</strong><small id="sample">No data</small></div>
+        <div class="metric"><span>Failure rate <button class="help-tip" type="button" aria-label="Define failure rate" data-help="Failed lane attempts divided by all completed, result-bearing lane attempts in the selected range.">i</button></span><strong id="failureRate">…</strong><small id="failureDelta">vs prior window</small></div>
+        <div class="metric"><span>p95 wall clock <button class="help-tip" type="button" aria-label="Define p95 wall clock" data-help="The median of the stored daily lane-level 95th-percentile job durations. It highlights long-tail elapsed time rather than the average.">i</button></span><strong id="duration">…</strong><small>daily lane p95 median</small></div>
+        <div class="metric"><span>Infra / unknown <button class="help-tip tip-right" type="button" aria-label="Define infrastructure and unknown failures" data-help="Failed attempts classified as infrastructure failure, runner loss, job timeout, missing result, or not yet classified.">i</button></span><strong id="infra">…</strong><small>classified failed lanes</small></div>
+        <div class="metric"><span>GitHub correlation <button class="help-tip tip-right" type="button" aria-label="Define GitHub correlation" data-help="Failed attempts overlapping, or occurring within 15 minutes before, a relevant GitHub Status incident. Correlation is not causation, and these failures remain in the headline rate.">i</button></span><strong id="githubOverlap">…</strong><small id="githubOverlapRate">failed lanes near reported incidents</small></div>
+        <div class="metric"><span>Rerun rescues <button class="help-tip" type="button" aria-label="Define rerun rescues" data-help="Workflow reruns where an earlier attempt failed and the latest attempt passed, shown over all rerun workflows.">i</button></span><strong id="rescues">…</strong><small id="rescueRate">successful reruns</small></div>
+      </section>
+
+      <div class="grid">
+        <div>
+          <section class="panel">
+            <div class="panel-head"><h2>Rate × wall clock <button class="help-tip" type="button" aria-label="Define rate and wall clock chart" data-help="Daily lane failure rate alongside p95 elapsed job duration for the selected range and filters.">i</button></h2><p>Daily failure rate and p95 duration</p></div>
+            <svg id="trendChart" role="img" aria-label="Daily CI failure rate and p95 lane duration"></svg>
+            <div class="legend"><span><i style="background:var(--red)"></i>Failure rate</span><span><i style="background:var(--blue)"></i>p95 minutes</span></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Critical-path anatomy <button class="help-tip" type="button" aria-label="Define critical-path anatomy" data-help="The median of daily p95 minutes spent in setup, test, report, and other recorded job phases.">i</button></h2><p>Median of daily p95 phase minutes</p></div>
+            <div class="classification" id="phases"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Lane board <button class="help-tip" type="button" aria-label="Define lane board" data-help="Aggregated attempts, failures, GitHub correlations, failure rate, and p95 duration for each matching CI lane.">i</button></h2><p>Highest failure count first</p></div>
+            <div class="table-wrap"><table>
+              <thead><tr>
+                <th>Workflow / lane <button class="help-tip table-tip" type="button" aria-label="Define workflow and lane" data-help="The workflow name and matrix lane label for a completed CI job attempt.">i</button></th>
+                <th class="num">Runs <button class="help-tip table-tip" type="button" aria-label="Define runs" data-help="Completed, result-bearing job attempts for this lane in the selected range. Workflow reruns count as separate attempts.">i</button></th>
+                <th class="num">Failed <button class="help-tip table-tip" type="button" aria-label="Define failed lanes" data-help="Lane attempts with a failing result, including test, infrastructure, reporting, timeout, runner-loss, or missing-result failures.">i</button></th>
+                <th class="num">GitHub <button class="help-tip table-tip" type="button" aria-label="Define GitHub-correlated lanes" data-help="Failed lane attempts correlated with a relevant GitHub Status incident window. They remain included in the failure count.">i</button></th>
+                <th class="num">Rate <button class="help-tip table-tip" type="button" aria-label="Define lane failure rate" data-help="Failed attempts divided by completed, result-bearing attempts for this lane.">i</button></th>
+                <th class="num">p95 min <button class="help-tip table-tip tip-right" type="button" aria-label="Define lane p95 minutes" data-help="The median of the stored daily p95 elapsed durations for this lane, in minutes.">i</button></th>
+              </tr></thead>
+              <tbody id="laneRows"></tbody>
+            </table></div>
+          </section>
+        </div>
+        <aside>
+          <section class="panel">
+            <div class="panel-head"><h2>Failure mix <button class="help-tip" type="button" aria-label="Define failure mix" data-help="Counts of normalized result classes such as test, infrastructure, reporting, runner-loss, timeout, and unclassified failures.">i</button></h2><p>Structured results</p></div>
+            <div class="classification" id="classes"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Flakiest tests <button class="help-tip" type="button" aria-label="Define flakiest tests" data-help="Tests ranked by failed executions divided by total executions, using successful and failed instrumented lanes.">i</button></h2><p>Failures ÷ executions</p></div>
+            <div class="table-wrap"><table>
+              <thead><tr>
+                <th>Test <button class="help-tip table-tip" type="button" aria-label="Define normalized test" data-help="The normalized test identifier aggregated across instrumented lane attempts.">i</button></th>
+                <th class="num">F / N <button class="help-tip table-tip" type="button" aria-label="Define failed and total executions" data-help="Failed executions divided by all observed executions of this test in the selected range.">i</button></th>
+                <th class="num">Rate <button class="help-tip table-tip tip-right" type="button" aria-label="Define test failure rate" data-help="Failed test executions divided by total observed executions, expressed as a percentage.">i</button></th>
+              </tr></thead>
+              <tbody id="testRows"></tbody>
+            </table></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Network signals <button class="help-tip" type="button" aria-label="Define network signals" data-help="Counts of known network failure signatures extracted from failed lane logs and diagnostics.">i</button></h2><p>Observed signature hits</p></div>
+            <div class="classification" id="signatures"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>GitHub service incidents <button class="help-tip tip-right" type="button" aria-label="Define GitHub service incidents" data-help="Failed lane windows correlated with relevant public GitHub Status incidents. This is diagnostic context, not proof of cause.">i</button></h2><p>Correlation, not causation</p></div>
+            <div class="classification" id="githubIncidents"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Infrastructure events <button class="help-tip tip-right" type="button" aria-label="Define infrastructure events" data-help="Shared setup or image-producer failures grouped by root cause. Every affected job remains in the headline failure rate.">i</button></h2><p>One cause, multiple affected lanes</p></div>
+            <div class="classification" id="infrastructureEvents"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>Change markers <button class="help-tip tip-right" type="button" aria-label="Define change markers" data-help="Recent master commits represented in the selected CI observations, useful for locating when a trend changed.">i</button></h2><p>Master SHAs in window</p></div>
+            <div class="classification" id="commits"></div>
+          </section>
+        </aside>
+      </div>
+      <footer>
+        <span>Permanent daily snapshots · selected history loads on demand</span>
+        <a href="https://github.com/kubeflow/pipelines/issues?q=label%3Aci-health">CI health tracking issue</a>
+      </footer>
+    </main>
+    <script>
+      const DATA_ROOT = location.hostname === 'kubeflow.github.io'
+        ? 'https://raw.githubusercontent.com/kubeflow/pipelines/ci-metrics/data'
+        : './data';
+      const state = {
+        index: null,
+        days: new Map(),
+        pendingDays: new Map(),
+        workflows: new Set(),
+        loadVersion: 0,
+      };
+      const $ = id => document.getElementById(id);
+      const sum = (items, fn) => items.reduce((total, item) => total + fn(item), 0);
+      const rate = (failures, total) => total ? 100 * failures / total : 0;
+      const fmt = value => new Intl.NumberFormat().format(value);
+      const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+      document.querySelectorAll('.help-tip').forEach(button => {
+        button.setAttribute('aria-label', button.dataset.help);
+      });
+      const parseDay = value => new Date(`${value}T00:00:00Z`);
+      const formatDay = value => value.toISOString().slice(0, 10);
+      const moveDays = (value, count) => {
+        const moved = new Date(value);
+        moved.setUTCDate(moved.getUTCDate() + count);
+        return moved;
+      };
+      const median = values => {
+        const sorted = values.filter(v => v !== null && v !== undefined).sort((a,b) => a-b);
+        if (!sorted.length) return null;
+        const middle = Math.floor(sorted.length / 2);
+        return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+      };
+      function rangeBounds(offset = 0) {
+        const dates = state.index?.days || [];
+        if (!dates.length) return null;
+        const earliest = parseDay(dates[0]);
+        const latest = parseDay(dates.at(-1));
+        const mode = $('window').value;
+        let start, end;
+        if (mode === 'custom') {
+          start = parseDay($('startDate').value || dates[0]);
+          end = parseDay($('endDate').value || dates.at(-1));
+        } else if (mode === 'all') {
+          start = earliest;
+          end = latest;
+        } else {
+          const count = Number(mode);
+          end = latest;
+          start = moveDays(end, 1 - count);
+        }
+        if (start > end) [start, end] = [end, start];
+        const count = Math.round((end - start) / 86400000) + 1;
+        return {
+          start: moveDays(start, -offset * count),
+          end: moveDays(end, -offset * count),
+          count,
+        };
+      }
+      function syncRangeInputs() {
+        const bounds = rangeBounds();
+        if (!bounds) return;
+        $('startDate').value = formatDay(bounds.start);
+        $('endDate').value = formatDay(bounds.end);
+      }
+      function selection(offset = 0) {
+        const workflow = $('workflow').value;
+        const search = $('search').value.trim().toLowerCase();
+        const bounds = rangeBounds(offset);
+        if (!bounds) return {days: [], workflow, search};
+        const start = formatDay(bounds.start);
+        const end = formatDay(bounds.end);
+        return {
+          days: [...state.days.values()]
+            .filter(day => day.date >= start && day.date <= end)
+            .sort((left, right) => left.date.localeCompare(right.date)),
+          workflow, search
+        };
+      }
+      function datesInRange(bounds) {
+        if (!bounds) return [];
+        const start = formatDay(bounds.start);
+        const end = formatDay(bounds.end);
+        return state.index.days.filter(date => date >= start && date <= end);
+      }
+      function fetchDay(date) {
+        if (state.days.has(date)) return Promise.resolve();
+        if (state.pendingDays.has(date)) return state.pendingDays.get(date);
+        const version = encodeURIComponent(state.index.generated_at || '');
+        const request = fetch(
+          `${DATA_ROOT}/daily/${date}.json?v=${version}`
+        ).then(response => {
+          if (!response.ok) throw new Error(`${date}: HTTP ${response.status}`);
+          return response.json();
+        }).then(day => {
+          state.days.set(date, day);
+          (day.lanes || []).forEach(lane => state.workflows.add(lane.workflow));
+        }).finally(() => state.pendingDays.delete(date));
+        state.pendingDays.set(date, request);
+        return request;
+      }
+      async function loadDays(dates) {
+        const missing = dates.filter(date => !state.days.has(date));
+        for (let offset = 0; offset < missing.length; offset += 16) {
+          await Promise.all(missing.slice(offset, offset + 16).map(fetchDay));
+        }
+      }
+      function refreshWorkflowOptions() {
+        const selected = $('workflow').value;
+        $('workflow').innerHTML = '<option value="">All workflows</option>' +
+          [...state.workflows].sort().map(name=>`<option>${esc(name)}</option>`).join('');
+        if (state.workflows.has(selected)) $('workflow').value = selected;
+      }
+      async function loadAndRender() {
+        const version = ++state.loadVersion;
+        const currentBounds = rangeBounds();
+        const dates = [...new Set([
+          ...datesInRange(currentBounds),
+          ...datesInRange(rangeBounds(1)),
+        ])];
+        $('rangeSummary').dataset.loading = 'true';
+        $('rangeSummary').textContent = `Loading ${dates.length} daily snapshots`;
+        try {
+          await loadDays(dates);
+          if (version !== state.loadVersion) return;
+          refreshWorkflowOptions();
+          render();
+        } catch (error) {
+          if (version !== state.loadVersion) return;
+          $('rangeSummary').textContent = 'DATA UNAVAILABLE';
+          $('laneRows').innerHTML = `<tr><td colspan="6" class="empty">${esc(error.message)}</td></tr>`;
+        } finally {
+          if (version === state.loadVersion) delete $('rangeSummary').dataset.loading;
+        }
+      }
+      function lanesFor({days, workflow, search}) {
+        const map = new Map();
+        days.forEach(day => day.lanes.forEach(lane => {
+          if (workflow && lane.workflow !== workflow) return;
+          if (search && !`${lane.workflow} ${lane.lane}`.toLowerCase().includes(search)) return;
+          const key = `${lane.workflow}\u0000${lane.lane}`;
+          const row = map.get(key) || { workflow: lane.workflow, lane: lane.lane, runs: 0, failures: 0, github: 0, p95: [] };
+          row.runs += lane.runs; row.failures += lane.failures;
+          row.github += lane.github_correlated_failures || 0;
+          if (lane.duration?.p95 != null) row.p95.push(lane.duration.p95);
+          map.set(key, row);
+        }));
+        return [...map.values()];
+      }
+      function windowStats(selected) {
+        const lanes = lanesFor(selected);
+        const total = sum(lanes, lane => lane.runs);
+        const failures = sum(lanes, lane => lane.failures);
+        const result = {
+          total, failures, failureRate: rate(failures, total),
+          p95: median(lanes.flatMap(lane => lane.p95)),
+          infra: sum(selected.days, day => [
+            'infrastructure_failure', 'runner_lost', 'job_timeout',
+            'missing_result', 'unclassified_failure', 'unknown_failure',
+          ].reduce((total, key) => total + (day.failure_classes[key] || 0), 0)),
+          github: sum(lanes, lane => lane.github),
+          reruns: sum(selected.days, day => day.totals.reruns || 0),
+          rescues: sum(selected.days, day => day.totals.rerun_rescues || 0),
+          timeToGreen: median(selected.days.map(day => day.totals.time_to_green?.p50)),
+        };
+        return result;
+      }
+      function renderMetrics() {
+        const bounds = rangeBounds();
+        const current = windowStats(selection());
+        const previous = windowStats(selection(1));
+        const delta = current.failureRate - previous.failureRate;
+        $('attempts').textContent = fmt(current.total);
+        $('rangeSummary').textContent = bounds ? `${formatDay(bounds.start)} → ${formatDay(bounds.end)}` : 'No history';
+        $('sample').textContent = `${selection().days.length} observed days · ${bounds?.count || 0} calendar days selected`;
+        $('failureRate').textContent = `${current.failureRate.toFixed(1)}%`;
+        $('failureDelta').textContent = previous.total
+          ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)} pp vs prior equal period`
+          : 'No prior-period data';
+        $('duration').textContent = current.p95 == null ? 'N/A' : `${current.p95.toFixed(1)}m`;
+        $('infra').textContent = fmt(current.infra);
+        $('githubOverlap').textContent = fmt(current.github);
+        $('githubOverlapRate').textContent = `${rate(current.github, current.total).toFixed(1)}% of attempts · not subtracted`;
+        $('rescues').textContent = `${current.rescues}/${current.reruns}`;
+        $('rescueRate').textContent = `${rate(current.rescues, current.reruns).toFixed(0)}% rescued${current.timeToGreen == null ? '' : ` · ${current.timeToGreen.toFixed(0)}m p50 to green`}`;
+      }
+      function renderTrend() {
+        const selected = selection();
+        const svg = $('trendChart');
+        const width = 900, height = 300, pad = {l:44,r:44,t:18,b:35};
+        const points = selected.days.map(day => {
+          const lanes = lanesFor({days:[day], workflow:selected.workflow, search:selected.search});
+          return {date:day.date, failure:rate(sum(lanes,l=>l.failures),sum(lanes,l=>l.runs)), duration:median(lanes.flatMap(l=>l.p95)) || 0};
+        });
+        if (!points.length) { svg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" class="chart-label">No observations in this window</text>'; return; }
+        const x = i => pad.l + i * (width-pad.l-pad.r) / Math.max(1, points.length-1);
+        const yRate = v => height-pad.b-v*(height-pad.t-pad.b)/Math.max(10,...points.map(p=>p.failure));
+        const yDuration = v => height-pad.b-v*(height-pad.t-pad.b)/Math.max(10,...points.map(p=>p.duration));
+        const path = (field, y) => points.map((p,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(p[field]).toFixed(1)}`).join(' ');
+        const labels = points.filter((_,i)=>i===0 || i===points.length-1 || i%Math.ceil(points.length/6)===0);
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.innerHTML = `
+          ${[0,.25,.5,.75,1].map(f=>`<line class="gridline" x1="${pad.l}" x2="${width-pad.r}" y1="${pad.t+f*(height-pad.t-pad.b)}" y2="${pad.t+f*(height-pad.t-pad.b)}"/>`).join('')}
+          <line class="axis" x1="${pad.l}" x2="${width-pad.r}" y1="${height-pad.b}" y2="${height-pad.b}"/>
+          <path class="failure-line" d="${path('failure',yRate)}"/><path class="duration-line" d="${path('duration',yDuration)}"/>
+          ${points.map((p,i)=>`<circle class="dot" cx="${x(i)}" cy="${yRate(p.failure)}" r="4" fill="var(--red)"><title>${p.date}: ${p.failure.toFixed(1)}% failed</title></circle>`).join('')}
+          ${points.map((p,i)=>`<circle class="dot" cx="${x(i)}" cy="${yDuration(p.duration)}" r="4" fill="var(--blue)"><title>${p.date}: ${p.duration.toFixed(1)}m p95</title></circle>`).join('')}
+          ${labels.map(p=>{const i=points.indexOf(p);return `<text class="chart-label" x="${x(i)}" y="${height-10}" text-anchor="${i===0?'start':i===points.length-1?'end':'middle'}">${p.date.slice(5)}</text>`}).join('')}`;
+      }
+      function renderLanes() {
+        const rows = lanesFor(selection()).sort((a,b)=>b.failures-a.failures || b.runs-a.runs).slice(0,30);
+        $('laneRows').innerHTML = rows.length ? rows.map(row => `<tr><td class="lane"><strong>${esc(row.workflow)}</strong><br>${esc(row.lane)}</td><td class="num">${row.runs}</td><td class="num">${row.failures}</td><td class="num">${row.github}</td><td class="num">${rate(row.failures,row.runs).toFixed(1)}%</td><td class="num">${(median(row.p95)||0).toFixed(1)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No lanes match these filters.</td></tr>';
+      }
+      function renderBars(target, counts, color = 'var(--orange)') {
+        const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+        const max = Math.max(1,...rows.map(row=>row[1]));
+        $(target).innerHTML = rows.length ? rows.map(([name,count])=>`<div><div class="bar-label"><span>${esc(name.replaceAll('_',' '))}</span><strong>${fmt(count)}</strong></div><div class="bar"><i style="width:${100*count/max}%;background:${color}"></i></div></div>`).join('') : '<div class="empty">Structured signals will appear after instrumented lanes run.</div>';
+      }
+      function renderDetails() {
+        const selected = selection();
+        const classes = {}, signatures = {}, tests = new Map(), phases = {}, incidents = new Map(), infrastructureEvents = new Map();
+        selected.days.forEach(day => {
+          Object.entries(day.failure_classes || {}).forEach(([key,value])=>{
+            if (key !== 'success') classes[key]=(classes[key]||0)+value;
+          });
+          Object.entries(day.signatures || {}).forEach(([key,value])=>signatures[key]=(signatures[key]||0)+value);
+          (day.github_incidents || []).forEach(incident => {
+            const value = incidents.get(incident.id) || {...incident, signature_matches: 0, strict_overlaps: 0, nearby_matches: 0};
+            value.signature_matches += incident.signature_matches || 0;
+            value.strict_overlaps += incident.strict_overlaps || 0;
+            value.nearby_matches += incident.nearby_matches || 0;
+            incidents.set(incident.id, value);
+          });
+          (day.infrastructure_events || []).forEach(event => infrastructureEvents.set(event.id, event));
+          (day.tests || []).forEach(test => {
+            const value = tests.get(test.id) || {executions:0, failures:0};
+            value.executions += test.executions; value.failures += test.failures; tests.set(test.id,value);
+          });
+          Object.entries(day.totals.phases || {}).forEach(([name, values]) => {
+            if (values?.p95 != null) (phases[name] ||= []).push(values.p95);
+          });
+        });
+        renderBars('classes', classes);
+        renderBars('signatures', signatures, 'var(--blue)');
+        const incidentRows = [...incidents.values()].sort((a,b) => b.strict_overlaps + b.nearby_matches - a.strict_overlaps - a.nearby_matches);
+        $('githubIncidents').innerHTML = incidentRows.length ? incidentRows.map(item => `<div><div class="bar-label"><span><a href="${esc(item.url)}">${esc(item.name)}</a></span><strong>${fmt(item.strict_overlaps + item.nearby_matches)}</strong></div><small>${esc((item.components || []).join(', '))} · ${item.signature_matches} signature-backed · ${item.strict_overlaps} strict · ${item.nearby_matches} within 15m before status report</small></div>`).join('') : '<div class="empty">No failed lanes correlate with reported GitHub incidents.</div>';
+        const infrastructureRows = [...infrastructureEvents.values()].sort((a,b) => b.impacted_failures - a.impacted_failures);
+        $('infrastructureEvents').innerHTML = infrastructureRows.length ? infrastructureRows.map(item => `<div><div class="bar-label"><span><a href="${esc(item.run_url)}">${esc(item.artifact)} image artifact</a></span><strong>${fmt(item.impacted_failures)}</strong></div><small>${esc(item.registry)} · 1 producer + ${fmt((item.affected_lanes || []).length)} downstream · ${esc((item.status_correlation || 'none_reported').replaceAll('_', ' '))}</small></div>`).join('') : '<div class="empty">No shared infrastructure producer failures in this window.</div>';
+        renderBars('phases', Object.fromEntries(Object.entries(phases).map(([name,values])=>[`${name} · min`, Number((median(values)||0).toFixed(1))])), 'var(--green)');
+        const flaky = [...tests.entries()].filter(([,v])=>v.failures).sort((a,b)=>rate(b[1].failures,b[1].executions)-rate(a[1].failures,a[1].executions) || b[1].failures-a[1].failures).slice(0,15);
+        $('testRows').innerHTML = flaky.length ? flaky.map(([name,v])=>`<tr><td class="lane">${esc(name)}</td><td class="num">${v.failures}/${v.executions}</td><td class="num">${rate(v.failures,v.executions).toFixed(1)}%</td></tr>`).join('') : '<tr><td colspan="3" class="empty">No failed normalized tests in this window.</td></tr>';
+        const commits = selected.days.flatMap(day => (day.commits || []).map(commit => typeof commit === 'string' ? {date:day.date,sha:commit,message:''} : {date:day.date,...commit})).slice(-12).reverse();
+        $('commits').innerHTML = commits.length ? commits.map(item=>`<div><div class="bar-label"><span>${item.date}</span><strong><a href="https://github.com/kubeflow/pipelines/commit/${encodeURIComponent(item.sha)}">${esc(item.sha.slice(0,8))}</a></strong></div>${item.message ? `<small>${esc(item.message)}</small>` : ''}</div>`).join('') : '<div class="empty">No commit markers in this window.</div>';
+      }
+      function render() { renderMetrics(); renderTrend(); renderLanes(); renderDetails(); }
+      fetch(`${DATA_ROOT}/index.json?v=${Date.now()}`, {
+        cache: 'no-store',
+      }).then(response => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      }).then(index => {
+        state.index = index;
+        $('generated').textContent = `Updated ${index.generated_at?.replace('T',' ').slice(0,16) || 'unknown'} UTC`;
+        if (index.days.length) {
+          ['startDate', 'endDate'].forEach(id => {
+            $(id).min = index.days[0];
+            $(id).max = index.days.at(-1);
+          });
+          syncRangeInputs();
+        }
+        $('window').addEventListener('change', () => {
+          if ($('window').value !== 'custom') syncRangeInputs();
+          loadAndRender();
+        });
+        ['startDate', 'endDate'].forEach(id => $(id).addEventListener('change', () => {
+          $('window').value = 'custom';
+          if ($('startDate').value > $('endDate').value) {
+            if (id === 'startDate') $('endDate').value = $('startDate').value;
+            else $('startDate').value = $('endDate').value;
+          }
+          loadAndRender();
+        }));
+        $('workflow').addEventListener('change', render);
+        $('search').addEventListener('input',render);
+        loadAndRender();
+      }).catch(error => {
+        $('generated').textContent = 'DATA UNAVAILABLE';
+        $('laneRows').innerHTML = `<tr><td colspan="6" class="empty">${esc(error.message)}</td></tr>`;
+      });
+    </script>
+  </body>
+</html>

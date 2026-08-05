@@ -25,6 +25,8 @@ set -euo pipefail
 # builders delayed by GitHub-hosted runner availability.
 WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
+CI_SETUP_FAILURE_LOG="${CI_SETUP_FAILURE_LOG:-/tmp/kfp-ci-setup-failure.log}"
+: > "$CI_SETUP_FAILURE_LOG"
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2
@@ -63,5 +65,7 @@ for attempt in $(seq 1 "$WAIT_ATTEMPTS"); do
   fi
 done
 
-echo "Missing branch image artifacts after ${WAIT_ATTEMPTS} attempts: ${missing_artifacts[*]}" >&2
+failure_message="Missing branch image artifacts after ${WAIT_ATTEMPTS} attempts: ${missing_artifacts[*]}"
+printf '%s\n' "$failure_message" > "$CI_SETUP_FAILURE_LOG"
+printf '%s\n' "$failure_message" >&2
 exit 1

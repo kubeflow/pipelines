@@ -25,6 +25,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/actions/install-fgo-fake/**'
       - '.github/actions/test-and-report/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
