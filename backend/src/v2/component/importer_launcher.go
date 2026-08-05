@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -274,6 +277,14 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		return artifact, nil
 	}
 
+	if strings.HasPrefix(artifactUri, "huggingface://") {
+		// HuggingFace artifacts
+		if err := l.handleHuggingFaceImport(ctx, artifactUri, artifact); err != nil {
+			return nil, err
+		}
+		return artifact, nil
+	}
+
 	provider, err := objectstore.ParseProviderFromPath(artifactUri)
 	if err != nil {
 		return nil, fmt.Errorf("no provider scheme found in artifact URI: %s", artifactUri)
@@ -318,6 +329,254 @@ func (l *ImportLauncher) ImportSpecToMLMDArtifact(ctx context.Context) (artifact
 		}
 	}
 	return artifact, nil
+}
+
+func (l *ImportLauncher) handleHuggingFaceImport(ctx context.Context, artifactURI string, artifact *pb.Artifact) error {
+	parts := strings.TrimPrefix(artifactURI, "huggingface://")
+
+	if parts == artifactURI {
+		return fmt.Errorf("invalid artifact URI: %q\n"+
+			"For HuggingFace Hub models and datasets, use the 'huggingface://' URI scheme.\n"+
+			"Examples:\n"+
+			"  huggingface://gpt2\n"+
+			"  huggingface://meta-llama/Llama-2-7b\n"+
+			"  huggingface://wikitext?repo_type=dataset",
+			artifactURI)
+	}
+
+	var queryStr string
+	if idx := strings.Index(parts, "?"); idx != -1 {
+		queryStr = parts[idx+1:]
+		parts = parts[:idx]
+	}
+
+	pathParts := strings.Split(parts, "/")
+	// An empty path ("huggingface://") yields [""] after Split; treat this as invalid.
+	if len(pathParts) < 1 || (len(pathParts) == 1 && pathParts[0] == "") {
+		return fmt.Errorf("invalid HuggingFace URI format: %q, expected huggingface://repo_id[/revision]", artifactURI)
+	}
+
+	repoID := strings.Join(pathParts, "/")
+	revision := "main"
+
+	// Distinguish revisions from file paths:
+	// - Files have extensions (.bin, .safetensors, .json, .txt, etc.)
+	// - Revisions are branch/tag names (main, master, v1.0, develop, etc.)
+	// - Repo names can have slashes (org/repo) and no dots (e.g., meta-llama/Llama-2-7b)
+	//
+	// Heuristic for 2-part paths (repo/X): If X looks like a common revision name, treat it as revision.
+	// Heuristic for 3+ part paths (org/repo/X): If X has no dot, treat it as revision.
+	if len(pathParts) >= 2 && pathParts[len(pathParts)-1] != "" {
+		lastPart := pathParts[len(pathParts)-1]
+		// Files have extensions
+		switch {
+		case strings.Contains(lastPart, "."):
+			// Keep as part of repoID (it's a file path)
+		case len(pathParts) == 2:
+			// For 2-part paths, only treat as revision if it matches common branch/tag patterns
+			commonRevisions := map[string]bool{
+				"main": true, "master": true, "develop": true, "dev": true,
+				"stable": true, "latest": true,
+			}
+			// Also match version patterns like v1.0, v2.1.3, release-1.0
+			lowerLast := strings.ToLower(lastPart)
+			isCommonRevision := commonRevisions[lowerLast]
+			isVersionPattern := strings.HasPrefix(lowerLast, "v") || strings.HasPrefix(lowerLast, "release")
+
+			if isCommonRevision || isVersionPattern {
+				revision = lastPart
+				repoID = pathParts[0]
+			}
+			// Otherwise, treat 2-part as org/repo (no revision extraction)
+		default:
+			// For 3+ parts, assume last part without dot is a revision
+			revision = lastPart
+			repoID = strings.Join(pathParts[:len(pathParts)-1], "/")
+		}
+	}
+
+	repoType := "model"
+	allowPatterns := ""
+	ignorePatterns := ""
+	supportedParams := map[string]bool{
+		"repo_type":       true,
+		"allow_patterns":  true,
+		"ignore_patterns": true,
+	}
+	if queryStr != "" {
+		vals, err := url.ParseQuery(queryStr)
+		if err != nil {
+			return fmt.Errorf("failed to parse query parameters for %q: %w", artifactURI, err)
+		}
+		// Check for unsupported parameters and warn
+		for param := range vals {
+			if !supportedParams[param] {
+				glog.Warningf("Parameter %q is not supported by the KFP HuggingFace importer and will be ignored. "+
+					"Supported parameters: repo_type, allow_patterns, ignore_patterns", param)
+			}
+		}
+		if v := vals.Get("repo_type"); v != "" {
+			repoType = v
+		}
+		if v := vals.Get("allow_patterns"); v != "" {
+			allowPatterns = v
+		}
+		if v := vals.Get("ignore_patterns"); v != "" {
+			ignorePatterns = v
+		}
+	}
+
+	glog.Infof("Downloading HuggingFace repo_id=%q revision=%q repo_type=%q allow_patterns=%q ignore_patterns=%q", repoID, revision, repoType, allowPatterns, ignorePatterns)
+
+	storeSessionInfo := objectstore.SessionInfo{
+		Provider: "huggingface",
+		Params: map[string]string{
+			"fromEnv": "true",
+		},
+	}
+	storeSessionInfoJSON, err := json.Marshal(storeSessionInfo)
+	if err != nil {
+		return err
+	}
+	storeSessionInfoStr := string(storeSessionInfoJSON)
+	artifact.CustomProperties["store_session_info"] = metadata.StringValue(storeSessionInfoStr)
+
+	artifact.CustomProperties["hf_repo_id"] = metadata.StringValue(repoID)
+	artifact.CustomProperties["hf_revision"] = metadata.StringValue(revision)
+	artifact.CustomProperties["hf_repo_type"] = metadata.StringValue(repoType)
+	if allowPatterns != "" {
+		artifact.CustomProperties["hf_allow_patterns"] = metadata.StringValue(allowPatterns)
+	}
+	if ignorePatterns != "" {
+		artifact.CustomProperties["hf_ignore_patterns"] = metadata.StringValue(ignorePatterns)
+	}
+
+	if l.importer.GetDownloadToWorkspace() {
+		if err := l.downloadHuggingFaceModel(ctx, repoID, revision, repoType, allowPatterns, ignorePatterns); err != nil {
+			return fmt.Errorf("failed to download HuggingFace model: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (l *ImportLauncher) downloadHuggingFaceModel(ctx context.Context, repoID, revision, repoType, allowPatterns, ignorePatterns string) error {
+	artifactURI := fmt.Sprintf("huggingface://%s", repoID)
+	if revision != "main" {
+		artifactURI = fmt.Sprintf("huggingface://%s/%s", repoID, revision)
+	}
+
+	bucketConfig, err := l.resolveBucketConfigForURI(ctx, artifactURI)
+	if err != nil {
+		return err
+	}
+
+	localPath, err := LocalWorkspacePathForURI(artifactURI)
+	if err != nil {
+		return fmt.Errorf("failed to get local path for uri %q: %w", artifactURI, err)
+	}
+
+	hfToken := ""
+	if bucketConfig.SessionInfo != nil {
+		token, err := objectstore.GetHuggingFaceTokenFromK8sSecret(ctx, l.k8sClient, l.launcherV2Options.Namespace, bucketConfig.SessionInfo)
+		if err != nil {
+			glog.Warningf("Failed to retrieve HuggingFace token from session info: %v. Proceeding with unauthenticated download (public models only)", err)
+		} else {
+			hfToken = token
+		}
+	}
+
+	if err := os.MkdirAll(localPath, 0755); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", localPath, err)
+	}
+
+	// Detect if repoID points to a specific file: if the last path component contains a dot,
+	// it likely has a file extension (.bin, .safetensors, .json, etc.)
+	isSpecificFile := false
+	if strings.Contains(repoID, "/") {
+		lastSlashIdx := strings.LastIndex(repoID, "/")
+		lastComponent := repoID[lastSlashIdx+1:]
+		isSpecificFile = strings.Contains(lastComponent, ".")
+	}
+
+	if isSpecificFile {
+		lastSlash := strings.LastIndex(repoID, "/")
+		filename := repoID[lastSlash+1:]
+		actualRepoID := repoID[:lastSlash]
+
+		glog.Infof("Downloading specific file from HuggingFace repo_id=%q revision=%q filename=%q repo_type=%q to %q", actualRepoID, revision, filename, repoType, localPath)
+
+		pythonScript := fmt.Sprintf(`
+from huggingface_hub import hf_hub_download
+import inspect
+import os
+repo_id = %q
+revision = %q
+filename = %q
+repo_type = %q
+local_dir = %q
+token = os.environ.get('HF_TOKEN', None)
+sig = inspect.signature(hf_hub_download)
+kwargs = {}
+for param in ['repo_id', 'filename', 'revision', 'repo_type', 'local_dir', 'token']:
+    if param in sig.parameters:
+        kwargs[param] = locals()[param]
+hf_hub_download(**kwargs)
+`, actualRepoID, revision, filename, repoType, localPath)
+
+		cmd := exec.CommandContext(ctx, "python3", "-c", pythonScript)
+		if hfToken != "" {
+			cmd.Env = append(os.Environ(), fmt.Sprintf("HF_TOKEN=%s", hfToken))
+		}
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to download HuggingFace file: %w, output: %s", err, string(output))
+		}
+		glog.Infof("Successfully downloaded HuggingFace file to %q", localPath)
+	} else {
+		glog.Infof("Downloading HuggingFace repo_id=%q revision=%q repo_type=%q to %q", repoID, revision, repoType, localPath)
+
+		pythonScript := fmt.Sprintf(`
+from huggingface_hub import snapshot_download
+import inspect
+import os
+repo_id = %q
+revision = %q
+repo_type = %q
+local_dir = %q
+allow_patterns = %q
+ignore_patterns = %q
+token = os.environ.get('HF_TOKEN', None)
+# Build kwargs dynamically based on what parameters the function accepts
+# This ensures compatibility with current and future versions of huggingface-hub
+sig = inspect.signature(snapshot_download)
+kwargs = {}
+base_params = ['repo_id', 'revision', 'repo_type', 'local_dir', 'token']
+optional_params = {'allow_patterns': allow_patterns, 'ignore_patterns': ignore_patterns}
+for param in base_params:
+    if param in sig.parameters:
+        kwargs[param] = locals()[param]
+for param, value in optional_params.items():
+    if value:
+        if param in sig.parameters:
+            kwargs[param] = value
+        else:
+            import warnings
+            warnings.warn(
+                f"Optional parameter '{param}' was specified but is not supported by the installed version of huggingface-hub; it will be ignored."
+            )
+snapshot_download(**kwargs)
+`, repoID, revision, repoType, localPath, allowPatterns, ignorePatterns)
+
+		cmd := exec.CommandContext(ctx, "python3", "-c", pythonScript)
+		if hfToken != "" {
+			cmd.Env = append(os.Environ(), fmt.Sprintf("HF_TOKEN=%s", hfToken))
+		}
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to download HuggingFace model: %w, output: %s", err, string(output))
+		}
+		glog.Infof("Successfully downloaded HuggingFace repo to %q", localPath)
+	}
+	return nil
 }
 
 // resolveBucketConfigForURI parses bucket configuration for a given artifact URI and
