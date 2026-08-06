@@ -18,7 +18,11 @@ import (
 	"testing"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -253,4 +257,173 @@ func TestApplyWorkflowSpecPatch_ComplexPatch(t *testing.T) {
 	assert.Equal(t, corev1.SeccompProfileTypeRuntimeDefault, wf.Spec.SecurityContext.SeccompProfile.Type)
 	assert.Equal(t, false, *wf.Spec.HostNetwork)
 	assert.Equal(t, corev1.DNSClusterFirst, *wf.Spec.DNSPolicy)
+}
+
+func kubernetesExecutorConfigToStruct(t *testing.T, config *kubernetesplatform.KubernetesExecutorConfig) *structpb.Struct {
+	t.Helper()
+	jsonBytes, err := protojson.Marshal(config)
+	require.NoError(t, err)
+	s := &structpb.Struct{}
+	require.NoError(t, protojson.Unmarshal(jsonBytes, s))
+	return s
+}
+
+func TestKubernetesExecutorConfigRoundTrip(t *testing.T) {
+	original := &kubernetesplatform.KubernetesExecutorConfig{
+		SecurityContext: &kubernetesplatform.SecurityContext{
+			RunAsUser:  int64Ptr(1000),
+			RunAsGroup: int64Ptr(2000),
+		},
+	}
+
+	s := kubernetesExecutorConfigToStruct(t, original)
+	result, err := unmarshalKubernetesExecutorConfig("comp-test", s)
+
+	require.NoError(t, err)
+	assert.Equal(t, int64(1000), *result.GetSecurityContext().RunAsUser)
+	assert.Equal(t, int64(2000), *result.GetSecurityContext().RunAsGroup)
+}
+
+func TestAddKubernetesSpec_RejectsRootRunAsUser(t *testing.T) {
+	tests := []struct {
+		name                string
+		componentName       string
+		defaultRunAsUser    *int64
+		defaultRunAsNonRoot *bool
+		config              *kubernetesplatform.KubernetesExecutorConfig
+		expectError         bool
+		errorContains       string
+	}{
+		{
+			name:          "runAsUser=0 rejected",
+			componentName: "comp-train",
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError:   true,
+			errorContains: "runAsUser=0 (root) is not allowed",
+		},
+		{
+			name:                "runAsUser=0 rejected with admin runAsNonRoot",
+			componentName:       "comp-train",
+			defaultRunAsNonRoot: new(true),
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError:   true,
+			errorContains: "runAsUser=0 (root) is not allowed",
+		},
+		{
+			name:             "runAsUser=0 allowed when admin sets defaultRunAsUser",
+			componentName:    "comp-train",
+			defaultRunAsUser: int64Ptr(1000),
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "non-root runAsUser=1000 allowed",
+			componentName: "comp-train",
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(1000),
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:                "non-root allowed with admin runAsNonRoot",
+			componentName:       "comp-train",
+			defaultRunAsNonRoot: new(true),
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(1000),
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "no security context",
+			componentName: "comp-train",
+			config:        &kubernetesplatform.KubernetesExecutorConfig{},
+			expectError:   false,
+		},
+		{
+			name:          "security context without runAsUser",
+			componentName: "comp-train",
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsGroup: int64Ptr(1000),
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:             "runAsUser=0 allowed when admin defaultRunAsUser is zero",
+			componentName:    "comp-train",
+			defaultRunAsUser: int64Ptr(0),
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError: false,
+		},
+		{
+			name:          "nil kubernetes spec",
+			componentName: "comp-train",
+			config:        nil,
+			expectError:   false,
+		},
+		{
+			name:          "error includes component name",
+			componentName: "my-custom-component",
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError:   true,
+			errorContains: "my-custom-component",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			compiler := &workflowCompiler{
+				wf: &wfapi.Workflow{
+					Spec: wfapi.WorkflowSpec{
+						Arguments: wfapi.Arguments{
+							Parameters: []wfapi.Parameter{},
+						},
+					},
+				},
+				kubernetesConfigs:   make(map[string]*kubernetesplatform.KubernetesExecutorConfig),
+				defaultRunAsUser:    tt.defaultRunAsUser,
+				defaultRunAsNonRoot: tt.defaultRunAsNonRoot,
+			}
+
+			var kubernetesSpec *structpb.Struct
+			if tt.config != nil {
+				kubernetesSpec = kubernetesExecutorConfigToStruct(t, tt.config)
+			}
+			err := compiler.AddKubernetesSpec(tt.componentName, kubernetesSpec)
+
+			if tt.expectError {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errorContains)
+				assert.Empty(t, compiler.kubernetesConfigs, "rejected config must not be cached")
+			} else {
+				require.NoError(t, err)
+				assert.NotNil(t, compiler.kubernetesConfigs[tt.componentName])
+			}
+		})
+	}
 }

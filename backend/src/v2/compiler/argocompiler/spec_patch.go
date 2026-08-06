@@ -19,15 +19,55 @@ import (
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	log "github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
 func (c *workflowCompiler) AddKubernetesSpec(name string, kubernetesSpec *structpb.Struct) error {
-	err := c.saveKubernetesSpec(name, kubernetesSpec)
+	k8sExecConfig, err := unmarshalKubernetesExecutorConfig(name, kubernetesSpec)
 	if err != nil {
 		return err
+	}
+	if err := c.validateKubernetesSecurityContext(name, k8sExecConfig); err != nil {
+		return err
+	}
+	c.kubernetesConfigs[name] = k8sExecConfig
+	return c.saveKubernetesSpec(name, kubernetesSpec)
+}
+
+func unmarshalKubernetesExecutorConfig(name string, kubernetesSpec *structpb.Struct) (*kubernetesplatform.KubernetesExecutorConfig, error) {
+	if kubernetesSpec == nil {
+		return &kubernetesplatform.KubernetesExecutorConfig{}, nil
+	}
+	jsonBytes, err := kubernetesSpec.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal kubernetes spec for component %q: %w", name, err)
+	}
+	config := &kubernetesplatform.KubernetesExecutorConfig{}
+	if err := protojson.Unmarshal(jsonBytes, config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal kubernetes spec for component %q: %w", name, err)
+	}
+	return config, nil
+}
+
+func (c *workflowCompiler) validateKubernetesSecurityContext(name string, config *kubernetesplatform.KubernetesExecutorConfig) error {
+	securityContext := config.GetSecurityContext()
+	if securityContext == nil {
+		return nil
+	}
+	if c.defaultRunAsUser != nil {
+		return nil
+	}
+	if securityContext.RunAsUser != nil && *securityContext.RunAsUser == 0 {
+		return fmt.Errorf(
+			"runAsUser=0 (root) is not allowed for component %q: "+
+				"the container security context enforces non-root execution "+
+				"(allowPrivilegeEscalation=false); use a non-root UID instead",
+			name,
+		)
 	}
 	return nil
 }
