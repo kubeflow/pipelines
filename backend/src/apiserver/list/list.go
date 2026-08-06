@@ -337,13 +337,12 @@ func qualifyColumn(prefix, column string, quote func(string) string) string {
 
 // AddSortingToSelect adds Order By clause.
 // The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
-// If quote is nil, identifiers are not quoted.
 // The collation parameter is appended after LOWER() expressions for string sorting and cursor
 // comparisons to ensure consistent ordering across databases (e.g., `COLLATE "C"` for
 // PostgreSQL byte-order sorting, "" for MySQL/SQLite which use their default collation).
 func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 
 	// lowerWithCollation wraps col in LOWER() and appends the collation clause if non-empty.
@@ -485,7 +484,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 // paged by a subquery and only need to be re-sorted for the final result set.
 func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 	lowerWithCollation := func(col string) string {
 		if collation == "" {

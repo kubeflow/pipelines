@@ -391,7 +391,7 @@ func (f *Filter) matchesFilter(getField func(string) interface{}) (bool, error) 
 // If there is no dot, it simply quotes the key.
 func QualifyIdentifier(q func(string) string, key string) string {
 	if q == nil {
-		return key
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 	if strings.Contains(key, ".") {
 		parts := strings.Split(key, ".")
@@ -407,7 +407,7 @@ func QualifyIdentifier(q func(string) string, key string) string {
 // SelectBuilder object and returns it for use in SQL queries.
 func (f *Filter) AddToSelect(sb squirrel.SelectBuilder, quote func(string) string) squirrel.SelectBuilder {
 	if quote == nil {
-		quote = func(s string) string { return s }
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
 
 	var andExprs []squirrel.Sqlizer

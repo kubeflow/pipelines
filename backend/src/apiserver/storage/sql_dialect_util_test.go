@@ -154,18 +154,16 @@ func TestQualifyIdentifier(t *testing.T) {
 	mysqlQuote := func(s string) string { return "`" + s + "`" }
 	pgQuote := func(s string) string { return `"` + s + `"` }
 
+	t.Run("Nil quoter panics", func(t *testing.T) {
+		assert.Panics(t, func() { qualifyIdentifier(nil, "table.column") })
+	})
+
 	testCases := []struct {
 		name  string
 		quote func(string) string
 		key   string
 		want  string
 	}{
-		{
-			name:  "Nil quoter returns key unchanged",
-			quote: nil,
-			key:   "table.column",
-			want:  "table.column",
-		},
 		{
 			name:  "Simple identifier with MySQL quote",
 			quote: mysqlQuote,
