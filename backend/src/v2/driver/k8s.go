@@ -1335,16 +1335,17 @@ func makeVolumeMountPatch(
 		if pvcMount.PvcNameParameter != nil {
 			pvcNameParameter = pvcMount.PvcNameParameter
 		} else { // Support deprecated fields
-			if pvcMount.GetConstant() != "" {
-				pvcNameParameter = common.InputParamConstant(pvcMount.GetConstant())
-			} else if pvcMount.GetTaskOutputParameter() != nil {
+			switch {
+			case pvcMount.GetConstant() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamConstant(pvcMount.GetConstant()) //nolint:staticcheck // SA1019
+			case pvcMount.GetTaskOutputParameter() != nil: //nolint:staticcheck // SA1019: still support deprecated pvc name fields
 				pvcNameParameter = common.InputParamTaskOutput(
-					pvcMount.GetTaskOutputParameter().GetProducerTask(),
-					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(),
+					pvcMount.GetTaskOutputParameter().GetProducerTask(),       //nolint:staticcheck // SA1019
+					pvcMount.GetTaskOutputParameter().GetOutputParameterKey(), //nolint:staticcheck // SA1019
 				)
-			} else if pvcMount.GetComponentInputParameter() != "" {
-				pvcNameParameter = common.InputParamComponent(pvcMount.GetComponentInputParameter())
-			} else {
+			case pvcMount.GetComponentInputParameter() != "": //nolint:staticcheck // SA1019: still support deprecated pvc name fields
+				pvcNameParameter = common.InputParamComponent(pvcMount.GetComponentInputParameter()) //nolint:staticcheck // SA1019
+			default:
 				return nil, nil, fmt.Errorf("failed to make podSpecPatch: volume mount: volume name not provided")
 			}
 		}

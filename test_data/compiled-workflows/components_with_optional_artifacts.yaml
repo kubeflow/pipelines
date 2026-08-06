@@ -348,6 +348,10 @@ spec:
       - '{{inputs.parameters.parent-dag-task-id}}'
       - --iteration_index
       - '{{inputs.parameters.iteration-index}}'
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
       - --namespace
       - $(NAMESPACE)
       - --pod_name

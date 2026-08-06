@@ -74,10 +74,7 @@ func (l *ImportLauncher) Execute(ctx context.Context) (executionErr error) {
 
 	kfpAPI := l.clientManager.KFPAPIClient()
 
-	downloadToWorkspace := false
-	if l.opts.ImporterSpec.GetDownloadToWorkspace() {
-		downloadToWorkspace = true
-	}
+	downloadToWorkspace := l.opts.ImporterSpec.GetDownloadToWorkspace()
 
 	// Create the task, we will continue to update this as needed.
 	parentTaskID := l.opts.ParentTask.GetTaskId()

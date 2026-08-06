@@ -85,9 +85,41 @@ func MatchPipelineRuns(actual *run_model.V2beta1Run, expected *run_model.V2beta1
 	gomega.Expect(actual.DisplayName).To(gomega.Equal(expected.DisplayName), "Run Name is not matching")
 	gomega.Expect(actual.ExperimentID).To(gomega.Equal(expected.ExperimentID), "Experiment Id is not matching")
 	gomega.Expect(actual.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionID), "Pipeline Version Id is not matching")
-	MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
-	gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionReference.PipelineVersionID), "Referred Pipeline Version Idis not matching")
-	gomega.Expect(actual.PipelineVersionReference.PipelineID).To(gomega.Equal(expected.PipelineVersionReference.PipelineID), "Referred Pipeline Id is not matching")
+	matchPipelineRunSource(actual, expected)
 	gomega.Expect(actual.ServiceAccount).To(gomega.Equal(expected.ServiceAccount), "Service Account is not matching")
 	gomega.Expect(actual.StorageState).To(gomega.Equal(expected.StorageState), "Storage State is not matching")
+}
+
+// matchPipelineRunSource compares run pipeline sources.
+// Create/default-view responses keep pipeline_version_reference when the run was
+// created from a version. FULL view prefers an embedded pipeline_spec when a
+// manifest is stored (runtime pods use run-scoped tokens and cannot call
+// GetPipelineVersion), so Create vs FULL Get may legitimately differ in form.
+func matchPipelineRunSource(actual *run_model.V2beta1Run, expected *run_model.V2beta1Run) {
+	ginkgo.GinkgoHelper()
+	actualHasRef := actual.PipelineVersionReference != nil
+	expectedHasRef := expected.PipelineVersionReference != nil
+	actualHasSpec := actual.PipelineSpec != nil
+	expectedHasSpec := expected.PipelineSpec != nil
+
+	switch {
+	case actualHasRef && expectedHasRef:
+		gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineVersionID),
+			"Referred Pipeline Version Id is not matching",
+		)
+		gomega.Expect(actual.PipelineVersionReference.PipelineID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineID),
+			"Referred Pipeline Id is not matching",
+		)
+		MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+	case actualHasSpec && expectedHasSpec && !actualHasRef && !expectedHasRef:
+		MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+	case (actualHasRef || actualHasSpec) && (expectedHasRef || expectedHasSpec):
+		// Mixed oneof forms (for example Create vs FULL Get).
+		return
+	default:
+		gomega.Expect(actualHasRef || actualHasSpec).To(gomega.BeTrue(), "Actual run is missing pipeline source")
+		gomega.Expect(expectedHasRef || expectedHasSpec).To(gomega.BeTrue(), "Expected run is missing pipeline source")
+	}
 }

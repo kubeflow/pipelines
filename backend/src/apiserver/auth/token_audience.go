@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package auth provides API server authentication helpers, including
+// TokenReview-based identity checks and run-bound token audience validation.
 package auth
 
 import (

@@ -1427,6 +1427,7 @@ func toApiRunV1(r *model.Run) *apiv1beta1.Run {
 	}
 	var metrics []*apiv1beta1.RunMetric
 	if r.Metrics != nil {
+		//nolint:staticcheck // SA1019: Metrics retained for v1 report metrics backwards compatibility
 		metrics = toAPIRunMetricsV1(r.Metrics)
 	}
 	if len(metrics) == 0 {
@@ -1538,6 +1539,8 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 // manifest, the response embeds pipeline_spec even if a pipeline version
 // reference is also present. Runtime clients authenticate with run-scoped
 // tokens and cannot call GetPipelineVersion.
+//
+//nolint:staticcheck // ST1003: matches existing toApi* naming in this package
 func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSpec bool) *apiv2beta1.Run {
 	r = r.ToV2()
 	runtimeConfig := toApiRuntimeConfig(r.PipelineSpec.RuntimeConfig)
@@ -1628,7 +1631,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 	}
 
 	pipelineSourceErr := util.NewInvalidInputError("Failed to parse the pipeline source")
-	if preferEmbeddedPipelineSpec && r.PipelineSpec.PipelineSpecManifest != "" {
+	if preferEmbeddedPipelineSpec && r.PipelineSpecManifest != "" {
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
@@ -1638,14 +1641,15 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
 		}
 	}
-	if apiRunV2.PipelineSource == nil && r.PipelineSpec.PipelineVersionId != "" {
+	switch {
+	case apiRunV2.PipelineSource == nil && r.PipelineVersionId != "":
 		apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineVersionReference{
 			PipelineVersionReference: &apiv2beta1.PipelineVersionReference{
-				PipelineId:        r.PipelineSpec.PipelineId,
-				PipelineVersionId: r.PipelineSpec.PipelineVersionId,
+				PipelineId:        r.PipelineId,
+				PipelineVersionId: r.PipelineVersionId,
 			},
 		}
-	} else if apiRunV2.PipelineSource == nil && r.PipelineSpec.PipelineSpecManifest != "" {
+	case apiRunV2.PipelineSource == nil && r.PipelineSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.PipelineSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{
@@ -1654,7 +1658,7 @@ func toApiRunWithPipelineSourcePreference(r *model.Run, preferEmbeddedPipelineSp
 		} else if apiRunErr == nil {
 			pipelineSourceErr = util.Wrap(err1, pipelineSourceErr.Error()).(*util.UserError)
 		}
-	} else if apiRunV2.PipelineSource == nil && r.PipelineSpec.WorkflowSpecManifest != "" {
+	case apiRunV2.PipelineSource == nil && r.WorkflowSpecManifest != "":
 		spec, err1 := YamlStringToPipelineSpecStruct(string(r.WorkflowSpecManifest))
 		if err1 == nil {
 			apiRunV2.PipelineSource = &apiv2beta1.Run_PipelineSpec{

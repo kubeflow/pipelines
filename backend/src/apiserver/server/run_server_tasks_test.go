@@ -16,7 +16,6 @@ package server
 
 import (
 	"context"
-	"sort"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -329,7 +328,7 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
 
-	clients, manager, run := initWithOneTimeRunV2(t)
+	clients, _, run := initWithOneTimeRunV2(t)
 	defer clients.Close()
 
 	_, err := clients.TaskStore().CreateTask(&model.Task{
@@ -344,7 +343,7 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 
 	recorder := &recordingSubjectAccessReviewClient{}
 	clients.SubjectAccessReviewClientFake = recorder
-	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runSrv := createRunServer(manager)
 
 	_, err = runSrv.FindCachedTask(ctxWithUser(), &apiv2beta1.FindCachedTaskRequest{
@@ -821,13 +820,6 @@ func TestUpdateTasksBulk_Success(t *testing.T) {
 	fetched3, err := runSrv.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{RunId: runID, TaskId: task3.GetTaskId()})
 	assert.NoError(t, err)
 	assert.Equal(t, apiv2beta1.PipelineTask_SKIPPED, fetched3.GetState())
-}
-
-func sortParams(params []*apiv2beta1.PipelineTask_InputOutputs_IOParameter) []*apiv2beta1.PipelineTask_InputOutputs_IOParameter {
-	sort.Slice(params, func(i, j int) bool {
-		return params[i].GetValue().GetStringValue() < params[j].GetValue().GetStringValue()
-	})
-	return params
 }
 
 func TestUpdateTasksBulk_EmptyRequest(t *testing.T) {

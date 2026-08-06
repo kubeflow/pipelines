@@ -73,12 +73,9 @@ func (c *countingSubjectAccessReviewClient) Create(_ context.Context, _ *authzv1
 type selectiveSubjectAccessReviewClient struct{}
 
 func (c *selectiveSubjectAccessReviewClient) Create(_ context.Context, review *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
-	allowed := true
-	if review.Spec.ResourceAttributes != nil &&
-		review.Spec.ResourceAttributes.Resource == common.RbacResourceTypeRuns &&
-		review.Spec.ResourceAttributes.Verb == common.RbacResourceVerbUpdate {
-		allowed = false
-	}
+	allowed := review.Spec.ResourceAttributes == nil ||
+		review.Spec.ResourceAttributes.Resource != common.RbacResourceTypeRuns ||
+		review.Spec.ResourceAttributes.Verb != common.RbacResourceVerbUpdate
 	return &authzv1.SubjectAccessReview{
 		Status: authzv1.SubjectAccessReviewStatus{
 			Allowed: allowed,
