@@ -694,9 +694,9 @@ func TestUnarchiveExperiment_InternalError(t *testing.T) {
 // - PostgreSQL uses $1, $2, $3... in the correct sequential order
 // - Subquery placeholders don't conflict with outer query placeholders
 func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
-	dialects := []dialectSpec{
-		{name: "mysql", d: dialect.NewDBDialect("mysql")},
-		{name: "pgx", d: dialect.NewDBDialect("pgx")},
+	dialects := []dialect.DBDialect{
+		dialect.NewDBDialect("mysql"),
+		dialect.NewDBDialect("pgx"),
 	}
 
 	// Test data
@@ -768,9 +768,9 @@ func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
 	}
 
 	for _, dl := range dialects {
-		t.Run(dl.name, func(t *testing.T) {
-			qb := dl.d.QueryBuilder()
-			q := dl.d.QuoteIdentifier
+		t.Run(dl.Name(), func(t *testing.T) {
+			qb := dl.QueryBuilder()
+			q := dl.QuoteIdentifier
 
 			// Build the subquery template (same pattern as experiment_store.go:343-350)
 			resourceReferenceSubquery := fmt.Sprintf(
@@ -799,7 +799,7 @@ func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
 				require.True(t, strings.HasPrefix(normalized, cases[0].wantBase),
 					"SQL should start with: %s\nGot: %s", cases[0].wantBase, normalized)
 
-				for _, frag := range cases[0].wantFrag[dl.name] {
+				for _, frag := range cases[0].wantFrag[dl.Name()] {
 					require.Containsf(t, normalized, frag,
 						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
 				}
@@ -825,7 +825,7 @@ func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
 				require.True(t, strings.HasPrefix(normalized, cases[1].wantBase),
 					"SQL should start with: %s\nGot: %s", cases[1].wantBase, normalized)
 
-				for _, frag := range cases[1].wantFrag[dl.name] {
+				for _, frag := range cases[1].wantFrag[dl.Name()] {
 					require.Containsf(t, normalized, frag,
 						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
 				}
@@ -854,7 +854,7 @@ func TestArchiveExperiment_PlaceholderNumbering(t *testing.T) {
 				require.True(t, strings.HasPrefix(normalized, cases[2].wantBase),
 					"SQL should start with: %s\nGot: %s", cases[2].wantBase, normalized)
 
-				for _, frag := range cases[2].wantFrag[dl.name] {
+				for _, frag := range cases[2].wantFrag[dl.Name()] {
 					require.Containsf(t, normalized, frag,
 						"SQL should contain fragment: %s\nFull SQL: %s", frag, normalized)
 				}

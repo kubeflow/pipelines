@@ -27,11 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type dialectSpec struct {
-	name string
-	d    dialect.DBDialect
-}
-
 func squeezeSpaces(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 // normalizeSQL normalizes SQL for fragment-based comparison (HasPrefix / Contains).
