@@ -331,14 +331,12 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"filtered." + q("UUID"),
 		resourceRefConcatQuery + " AS " + q("refs"),
 	}
-	subQ := func() sq.SelectBuilder {
-		return qb.
-			Select(columnsAfterJoiningResourceReferences...).
-			FromSelect(filteredSelectBuilder, "filtered").
-			LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
-				q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
-			GroupBy("filtered." + q("UUID"))
-	}()
+	subQ := qb.
+		Select(columnsAfterJoiningResourceReferences...).
+		FromSelect(filteredSelectBuilder, "filtered").
+		LeftJoin(fmt.Sprintf("%s AS rr ON rr.%s='Run' AND filtered.%s=rr.%s",
+			q("resource_references"), q("ResourceType"), q("UUID"), q("ResourceUUID"))).
+		GroupBy("filtered." + q("UUID"))
 
 	// Layer 2: LEFT JOIN tasks
 	tasksConcatQuery := s.dbDialect.ConcatExprs(
@@ -351,14 +349,12 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		"rdref." + q("refs"),
 		tasksConcatQuery + " AS " + q("taskDetails"),
 	}
-	subQ = func() sq.SelectBuilder {
-		return qb.
-			Select(columnsAfterJoiningTasks...).
-			FromSelect(subQ, "rdref").
-			LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
-				q("tasks"), q("UUID"), q("RunUUID"))).
-			GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
-	}()
+	subQ = qb.
+		Select(columnsAfterJoiningTasks...).
+		FromSelect(subQ, "rdref").
+		LeftJoin(fmt.Sprintf("%s AS tasks ON rdref.%s=tasks.%s",
+			q("tasks"), q("UUID"), q("RunUUID"))).
+		GroupBy("rdref."+q("UUID"), "rdref."+q("refs"))
 
 	// Layer 3: LEFT JOIN run_metrics
 	// This layer does two things:
@@ -379,24 +375,17 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// Build the metrics subquery. If sorting by a metric, add the CASE WHEN expression
 	// using a bind parameter for the metric name to prevent SQL injection.
 	// The column alias is always the fixed constant model.MetricSortSQLAlias.
-	subQWithMetrics := func() sq.SelectBuilder {
-		sb := qb.
-			Select(columnsAfterJoiningRunMetrics...).
-			FromSelect(subQ, "subq").
-			LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
-				q("run_metrics"), q("UUID"), q("RunUUID"))).
-			GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
-		if opts != nil && opts.IsMetricSort() {
-			// For metric sorts opts.SortByFieldName holds the raw metric name. It is
-			// validated in token.unmarshal() and passed as a bind parameter value —
-			// never as a SQL identifier — so it is injection-safe.
-			// The alias uses the fixed constant MetricSortSQLAlias, not user input.
-			metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
-				q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
-			sb = sb.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
-		}
-		return sb
-	}()
+	subQWithMetrics := qb.
+		Select(columnsAfterJoiningRunMetrics...).
+		FromSelect(subQ, "subq").
+		LeftJoin(fmt.Sprintf("%s AS rm ON subq.%s=rm.%s",
+			q("run_metrics"), q("UUID"), q("RunUUID"))).
+		GroupBy("subq."+q("UUID"), "subq."+q("refs"), "subq."+q("taskDetails"))
+	if opts != nil && opts.IsMetricSort() {
+		metricValueExtract := fmt.Sprintf("MAX(CASE WHEN rm.%s=? THEN rm.%s END) AS %s",
+			q("Name"), q("NumberValue"), q(model.MetricSortSQLAlias))
+		subQWithMetrics = subQWithMetrics.Column(sq.Expr(metricValueExtract, opts.SortByFieldName))
+	}
 
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
