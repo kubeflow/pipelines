@@ -89,6 +89,17 @@ func NewDBDialect(name string) DBDialect {
 	}
 }
 
+// QuoteAll applies q to each element of cols and returns a new slice.
+// Use this when passing columns into squirrel.Select(...), so each identifier
+// is properly quoted for the current SQL dialect.
+func QuoteAll(q QuoteFunction, cols []string) []string {
+	out := make([]string, len(cols))
+	for i, c := range cols {
+		out[i] = q(c)
+	}
+	return out
+}
+
 // escapeSQLString escapes backslashes and single quotes for use in SQL string literals.
 func escapeSQLString(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)

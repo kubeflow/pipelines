@@ -194,7 +194,7 @@ func (s *JobStore) GetJob(id string) (*model.Job, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	getJobBuilder := s.addResourceReferences(
-		qb.Select(quoteAll(q, jobColumns)...).From(q("jobs")),
+		qb.Select(dialect.QuoteAll(q, jobColumns)...).From(q("jobs")),
 	).Where(sq.Eq{q("UUID"): id}).Limit(1)
 	sql, args, err := s.dbDialect.FinalizeSelect(getJobBuilder)
 	if err != nil {

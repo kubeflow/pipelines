@@ -40,6 +40,15 @@ const (
 	fakeIDFour  = "123e4567-e89b-12d3-a456-426655440003"
 )
 
+func squeezeSpaces(s string) string { return strings.Join(strings.Fields(s), " ") }
+
+func normalizeSQL(s string) string {
+	s = squeezeSpaces(s)
+	s = strings.ReplaceAll(s, "`", "")
+	s = strings.ReplaceAll(s, `"`, "")
+	return strings.ToLower(s)
+}
+
 func createExperiment(name string) *model.Experiment {
 	return createExperimentInNamespace(name, "")
 }

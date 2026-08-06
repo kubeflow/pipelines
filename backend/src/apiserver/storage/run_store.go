@@ -236,7 +236,7 @@ func (s *RunStore) GetRun(runId string) (*model.Run, error) {
 	q := s.dbDialect.QuoteIdentifier
 	qb := s.dbDialect.QueryBuilder()
 	getRunBuilder := s.addMetricsResourceReferencesAndTasks(
-		qb.Select(quoteAll(q, runColumns)...).
+		qb.Select(dialect.QuoteAll(q, runColumns)...).
 			From(q("run_details")).
 			Where(sq.Eq{q("UUID"): runId}).
 			Limit(1), nil)
@@ -390,7 +390,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 	// Final layer: JOIN back to run_details to get all runColumns
 	// We wrap this in a subquery to avoid column ambiguity issues with ORDER BY
 	joinedColumns := append(
-		quoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
+		dialect.QuoteAll(func(column string) string { return fmt.Sprintf("rd.%s", q(column)) }, runColumns),
 		"withmetrics."+q("refs"),
 		"withmetrics."+q("taskDetails"),
 		"withmetrics."+q("metrics"))
@@ -407,7 +407,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 
 	// Wrap in final SELECT to provide clean column names without table prefixes
 	// This avoids ambiguity in ORDER BY clauses added by pagination
-	finalSelectColumns := quoteAll(q, runColumns)
+	finalSelectColumns := dialect.QuoteAll(q, runColumns)
 	finalSelectColumns = append(finalSelectColumns, q("refs"), q("taskDetails"), q("metrics"))
 
 	// Include metric sort column in SELECT when sorting by metric.
