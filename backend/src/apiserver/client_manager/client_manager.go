@@ -212,10 +212,6 @@ func (c *ClientManager) Authenticators() []auth.Authenticator {
 	return c.authenticators
 }
 
-func (c *ClientManager) DBDialect() sqldrv.DBDialect {
-	return c.dbDialect
-}
-
 func (c *ClientManager) init(options *Options) error {
 	// time
 	c.time = util.NewRealTime()

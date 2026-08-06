@@ -23,6 +23,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -112,9 +113,9 @@ func FilterByResourceReference(
 		Select(q("ResourceUUID")).
 		From(q("resource_references") + " AS " + q("rf")).
 		Where(sq.And{
-			sq.Eq{qualifyIdentifier(q, "rf.ResourceType"): resourceType},
-			sq.Eq{qualifyIdentifier(q, "rf.ReferenceUUID"): filterContext.ID},
-			sq.Eq{qualifyIdentifier(q, "rf.ReferenceType"): filterContext.Type},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ResourceType"): resourceType},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ReferenceUUID"): filterContext.ID},
+			sq.Eq{filter.QualifyIdentifier(q, "rf.ReferenceType"): filterContext.Type},
 		}).
 		PlaceholderFormat(sq.Question).ToSql()
 	if err != nil {

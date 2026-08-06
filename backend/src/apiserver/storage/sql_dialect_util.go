@@ -16,7 +16,6 @@ package storage
 
 import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 )
 
 // quoteAll applies the dialect's QuoteIdentifier (q) to each column name and returns a new slice.
@@ -29,6 +28,3 @@ func quoteAll(q dialect.QuoteFunction, cols []string) []string {
 	}
 	return out
 }
-
-// qualifyIdentifier is an alias for filter.QualifyIdentifier for internal use.
-var qualifyIdentifier = filter.QualifyIdentifier

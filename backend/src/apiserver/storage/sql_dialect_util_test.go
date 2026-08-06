@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	sqlite3 "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 )
@@ -150,7 +151,7 @@ func TestQualifyIdentifier(t *testing.T) {
 	pgQuote := func(s string) string { return `"` + s + `"` }
 
 	t.Run("Nil quoter panics", func(t *testing.T) {
-		assert.Panics(t, func() { qualifyIdentifier(nil, "table.column") })
+		assert.Panics(t, func() { filter.QualifyIdentifier(nil, "table.column") })
 	})
 
 	testCases := []struct {
@@ -205,7 +206,7 @@ func TestQualifyIdentifier(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := qualifyIdentifier(tc.quote, tc.key)
+			got := filter.QualifyIdentifier(tc.quote, tc.key)
 			assert.Equal(t, tc.want, got)
 		})
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -220,7 +221,7 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	q := s.dbDialect.QuoteIdentifier
 	qb := sq.StatementBuilder.PlaceholderFormat(sq.Question)
 	filteredSelectBuilder = filteredSelectBuilder.PlaceholderFormat(sq.Question)
-	agg := s.dbDialect.ConcatAgg(false, qualifyIdentifier(q, "r.Payload"), ",")
+	agg := s.dbDialect.ConcatAgg(false, filter.QualifyIdentifier(q, "r.Payload"), ",")
 	// Build correlated subquery. This is a correlated subquery that references
 	// the outer query's jobs.UUID, so we use string concatenation for the structure.
 	// The ResourceType value 'Job' is a constant (model.JobResourceType), not user input.
@@ -229,8 +230,8 @@ func (s *JobStore) addResourceReferences(filteredSelectBuilder sq.SelectBuilder)
 	sub := fmt.Sprintf("SELECT %s FROM %s AS %s WHERE %s='Job' AND %s = %s",
 		agg,
 		q("resource_references"), q("r"),
-		qualifyIdentifier(q, "r.ResourceType"),
-		qualifyIdentifier(q, "r.ResourceUUID"), qualifyIdentifier(q, "jobs.UUID"))
+		filter.QualifyIdentifier(q, "r.ResourceType"),
+		filter.QualifyIdentifier(q, "r.ResourceUUID"), filter.QualifyIdentifier(q, "jobs.UUID"))
 	refsExpr := s.dbDialect.ConcatExprs(
 		[]string{"'['", "COALESCE((" + sub + "), '')", "']'"},
 		"",
