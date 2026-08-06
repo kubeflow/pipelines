@@ -7,7 +7,7 @@
 
 ### Document metadata
 
-- Last updated: 2026-07-29
+- Last updated: 2026-08-04
 - Scope: KFP master branch (v2 engine), backend (Go), SDK (Python), frontend (React 19)
 
 ### Maintenance (agents and contributors)
@@ -582,7 +582,7 @@ When changing an effect-heavy frontend component, add or run the smallest releva
 - The v1 API integration workflow disables pipeline URL validation for its test-only API server and serves URL-import fixtures from the cluster-local `pipeline-test-fixtures` Service, avoiding a runtime dependency on GitHub while preserving URL-import coverage. It establishes the API port-forward only after that configuration rollout replaces the API server pod.
 - Multi-user deploy applies the profile controller before KFP and joins its readiness after the main KFP rollout, overlapping independent startup while preserving the IAM and Profile-creation gates.
 - KFP deployment readiness captures one bounded pod describe/events snapshot when a regular or init container remains in `ContainerCreating` for more than 60 seconds, including when the pod eventually becomes ready.
-- Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images; upgrade tests overlap old-release deployment and preparation behind the same barrier.
+- Workflows that deploy CI-built KFP images start Kind cluster setup concurrently with current-branch image builds. The shared deploy action waits for the complete image-artifact inventory immediately before downloading and loading the images. Its normal wait window extends while a missing artifact's producer is still queued or running, and completed producers receive a short artifact-publication grace; upgrade tests overlap old-release deployment and preparation behind the same barrier.
 - CI Docker-sensitive paths use shell retry wrappers with sleeps for image builds, Buildx bootstrap, and runtime base-image pulls. Build jobs pre-pull their BuildKit image with five-attempt backoff, while registry-only multi-architecture manifest jobs use Buildx's daemon-backed `docker` driver and do not start or pull a BuildKit container. Kind tool downloads use a scoped curl retry policy, Kind node image bootstrap falls back to `gcr.io/k8s-staging-kind/node` when Docker Hub flakes, and Kind cluster creation retries once after an initial setup failure.
 - The `test-and-report` action pins Go via `go.mod` and restores a dedicated `go-test-lanes-*` module/build cache (weekly-rotating key with restore-keys) so Ginkgo test lanes do not cold-compile the suites each run.
 - The `runtime-base-images.yml` workflow is the single registry-pull producer for the runtime base-image archive. The archive includes test-task base images plus MySQL and the supported Argo controller/executor images so Kind deployment does not depend on live Docker Hub or Quay pulls. Trusted master runs explicitly save the daily `actions/cache` entry and prune every superseded runtime-image cache after verifying the current master key exists; reusable image-build callers wait for the producer's generation-fingerprinted artifact and re-upload it into their own run instead of pulling independently.
