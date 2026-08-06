@@ -94,7 +94,7 @@ func TestQuoteAll(t *testing.T) {
 	}
 }
 
-func TestInsertUpsert(t *testing.T) {
+func TestUpsert(t *testing.T) {
 	mysqlDialect := dialect.NewDBDialect("mysql")
 	pgDialect := dialect.NewDBDialect("pgx")
 
@@ -138,7 +138,7 @@ func TestInsertUpsert(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			builder := tc.dialect.InsertUpsert(tc.table, tc.keyCols, tc.overwrite, tc.updateCols)
+			builder := tc.dialect.Upsert(tc.table, tc.keyCols, tc.overwrite, tc.updateCols)
 			sql, _, err := builder.Columns("foo").Values("bar").ToSql()
 			assert.NoError(t, err)
 

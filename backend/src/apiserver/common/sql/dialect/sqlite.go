@@ -76,12 +76,12 @@ func (sqliteDialect) IsDuplicateError(err error) bool {
 	}
 	var se sqlite3.Error
 	if errors.As(err, &se) {
-		return se.Code == sqlite3.ErrConstraint
+		return errors.Is(se.Code, sqlite3.ErrConstraint)
 	}
 	return false
 }
 
-func (d sqliteDialect) InsertUpsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
+func (d sqliteDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
 	sets := make([]string, 0, len(updateCols))

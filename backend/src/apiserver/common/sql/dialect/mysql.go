@@ -84,7 +84,7 @@ func (mysqlDialect) IsDuplicateError(err error) bool {
 	return false
 }
 
-func (d mysqlDialect) InsertUpsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
+func (d mysqlDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
 	sets := make([]string, 0, len(updateCols))

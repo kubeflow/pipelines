@@ -60,9 +60,9 @@ type DBDialect interface {
 	// violation for this dialect.
 	IsDuplicateError(err error) bool
 
-	// InsertUpsert starts an INSERT builder and appends the dialect-specific
+	// Upsert starts an INSERT builder and appends the dialect-specific
 	// upsert clause. Callers continue chaining .Columns(...).Values(...).
-	InsertUpsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder
+	Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder
 
 	// FinalizeSelect applies the dialect's placeholder format to the
 	// outermost SelectBuilder and calls ToSql(). Use this instead of

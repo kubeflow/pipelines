@@ -881,7 +881,7 @@ func insertTagsInTx(tx *sql.Tx, dbDialect dialect.DBDialect, tableName, idColumn
 // The tag tables have a composite primary key on (idColumn, TagKey).
 func (s *PipelineStore) upsertTagsInTx(tx *sql.Tx, tableName, idColumn, entityID string, tags map[string]string) error {
 	for key, value := range tags {
-		upsertBuilder := s.dbDialect.InsertUpsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
+		upsertBuilder := s.dbDialect.Upsert(tableName, []string{idColumn, "TagKey"}, true, []string{"TagValue"}).
 			Values(entityID, key, value)
 		upsertSQL, args, err := upsertBuilder.ToSql()
 		if err != nil {

@@ -85,7 +85,7 @@ func (pgxDialect) IsDuplicateError(err error) bool {
 	return false
 }
 
-func (d pgxDialect) InsertUpsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
+func (d pgxDialect) Upsert(table string, keyCols []string, overwrite bool, updateCols []string) sq.InsertBuilder {
 	q := d.QuoteIdentifier
 	ib := d.QueryBuilder().Insert(q(table))
 	sets := make([]string, 0, len(updateCols))

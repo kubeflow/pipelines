@@ -375,7 +375,7 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		q := s.dbDialect.QuoteIdentifier
 		quotedCols := quoteAll(q, taskColumnsWithPayload)
-		sqlInsert := s.dbDialect.InsertUpsert(table_name, []string{"UUID"}, true, taskColumnsWithPayload)
+		sqlInsert := s.dbDialect.Upsert(table_name, []string{"UUID"}, true, taskColumnsWithPayload)
 		sqlInsert = sqlInsert.Columns(quotedCols...)
 		for _, t := range ts {
 			childrenPodsString := ""
