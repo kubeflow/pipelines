@@ -741,6 +741,10 @@ docformatter --check --recursive sdk/python/ --exclude "compiler_test.py"
 - `FRONTEND_SERVER_NAMESPACE=...`: Sets the namespace used by the local frontend Node server for Kubernetes lookups when it is not running inside a cluster pod. `npm run start:proxy-and-server` derives this from `NAMESPACE`.
 - `MINIO_ENDPOINT_REWRITE=from=to[,from=to]`: Rewrites explicit object-store endpoints for local proxy mode, for example from `seaweedfs.kubeflow:9000` to `localhost:9000`.
 - `MAX_METRICS_FILE_BYTES=...`: Maximum uncompressed size of the single metrics JSON file read from an `mlpipeline-metrics` archive; defaults to 1 MiB
+- `RUNS_RETENTION_TIME`: Auto-archive terminal runs after this Go duration (e.g., `720h` for 30 days). Empty disables (default). Set in `pipeline-install-config` ConfigMap.
+- `ARCHIVED_RUNS_RETENTION_TIME`: Auto-delete archived runs after this Go duration (e.g., `2160h` for 90 days). Empty disables (default). Set in `pipeline-install-config` ConfigMap.
+- `RUNS_GC_INTERVAL`: Poll interval for the run garbage collector (default `6h`). Set in `pipeline-install-config` ConfigMap.
+- `RUNS_GC_BATCH_SIZE`: Maximum rows per GC batch; the collector drains all batches per tick (default `100`). Set in `pipeline-install-config` ConfigMap.
 
 ## Troubleshooting and pitfalls
 

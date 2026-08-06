@@ -546,6 +546,50 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 	}
 }
 
+// TestRunGarbageCollectionConfigEnvVars locks the contract that the apiserver
+// deployment relies on: viper.AutomaticEnv() uppercases the config key to
+// derive the env var name. If these names drift, the GC silently falls back
+// to its disabled/default values.
+func TestRunGarbageCollectionConfigEnvVars(t *testing.T) {
+	t.Run("retention times read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_RETENTION_TIME", "720h")
+		t.Setenv("ARCHIVED_RUNS_RETENTION_TIME", "2160h")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 720*time.Hour, GetRunsRetentionTime())
+		assert.Equal(t, 2160*time.Hour, GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("interval and batch size read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "1h")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "250")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 250, GetRunsGCBatchSize())
+	})
+
+	t.Run("empty retention keeps GC disabled", func(t *testing.T) {
+		viper.Reset()
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Duration(0), GetRunsRetentionTime())
+		assert.Equal(t, time.Duration(0), GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("non-positive interval and batch size fall back to defaults", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "0s")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "0")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 6*time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 100, GetRunsGCBatchSize())
+	})
+}
+
 func TestGetClusterDomain(t *testing.T) {
 	tests := []struct {
 		name           string
