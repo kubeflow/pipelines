@@ -539,7 +539,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			StorageState:   model.StorageState(storageState),
 			Namespace:      namespace,
 			ServiceAccount: serviceAccount,
-			Description:    string(description),
+			Description:    description,
 			RecurringRunId: jID,
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          createdAtInSec.Int64,
