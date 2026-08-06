@@ -41,7 +41,12 @@ type podFailurePattern struct {
 	category  PodFailureCategory
 }
 
-// podFailurePatterns is ordered; the first matching substring wins.
+// podFailurePatterns is ordered; the first matching substring wins. Entries match one of two
+// input shapes: a raw Kubernetes condition/status Reason value (e.g. PodReasonUnschedulable,
+// PodReasonPreemptionByScheduler, PodReasonTerminationByKubelet, or pod.Status.Reason's
+// "Evicted"), or Argo's rendered node message, which uses its own prose wording. Both need an
+// entry for a given failure since callers pass either shape: code reading the pod object
+// directly gets the former, code classifying an Argo node's message gets the latter.
 var podFailurePatterns = []podFailurePattern{
 	{"ImagePullBackOff", PodFailureCategoryProvisioning},
 	{"ErrImagePull", PodFailureCategoryProvisioning},
@@ -57,7 +62,9 @@ var podFailurePatterns = []podFailurePattern{
 	{"RunContainerError", PodFailureCategoryRuntime},
 	{"NodeLost", PodFailureCategoryNode},
 	{"Preempted", PodFailureCategoryNode},
+	{"PreemptionByScheduler", PodFailureCategoryNode},
 	{"Evicted", PodFailureCategoryNode},
+	{"TerminationByKubelet", PodFailureCategoryNode},
 }
 
 // ClassifyPodFailure inspects a raw Kubernetes/Argo failure reason or status
@@ -65,11 +72,12 @@ var podFailurePatterns = []podFailurePattern{
 // specific substring that matched. It returns PodFailureCategoryNone and an
 // empty reason if the message does not match any known pattern.
 //
-// All three categories, including Unschedulable (via the pod's PodScheduled
-// condition) and Node-caused failures like preemption and eviction (via the
-// pod's DisruptionTarget condition), are readable from the pod object
-// itself, so callers do not need a separate Kubernetes Event watch to
-// populate this.
+// Unschedulable is readable directly off the pod's PodScheduled condition
+// Reason, an exact match against PodReasonUnschedulable. Node-caused
+// failures need both a condition-reason pattern (PreemptionByScheduler,
+// TerminationByKubelet, from the pod's DisruptionTarget condition) and a
+// prose pattern (Preempted, Evicted), since the frontend's mirrored table
+// classifies Argo's rendered node message instead of a raw condition Reason.
 func ClassifyPodFailure(reason string) (category PodFailureCategory, matchedReason string) {
 	if reason == "" {
 		return PodFailureCategoryNone, ""

@@ -82,6 +82,18 @@ func TestClassifyPodFailure(t *testing.T) {
 			expectReason:   "Evicted",
 		},
 		{
+			name:           "PreemptionByScheduler condition reason is Node",
+			reason:         "PreemptionByScheduler",
+			expectCategory: PodFailureCategoryNode,
+			expectReason:   "PreemptionByScheduler",
+		},
+		{
+			name:           "TerminationByKubelet condition reason is Node",
+			reason:         "TerminationByKubelet",
+			expectCategory: PodFailureCategoryNode,
+			expectReason:   "TerminationByKubelet",
+		},
+		{
 			name:           "first matching pattern wins when message contains multiple substrings",
 			reason:         "ImagePullBackOff eventually led to OOMKilled during retry",
 			expectCategory: PodFailureCategoryProvisioning,
