@@ -24,6 +24,9 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// QuoteFunction is the signature of a dialect-aware identifier quoting function.
+type QuoteFunction = func(string) string
+
 // DBDialect abstracts SQL dialect differences so that storage-layer code
 // can be written without switching on the backend name.
 type DBDialect interface {

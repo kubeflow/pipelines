@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -314,7 +315,7 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 // If quote is nil, identifiers are not quoted.
 // The collation parameter is appended after LOWER() expressions for string sorting and cursor
 // comparisons (e.g., `COLLATE "C"` for PostgreSQL, "" for MySQL/SQLite).
-func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	sqlBuilder = o.AddSortingToSelect(sqlBuilder, quote, collation)
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
@@ -327,7 +328,7 @@ func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote func(
 // tokens with a trailing dot (e.g. "experiments."), matching the historical
 // token layout; the dot is stripped before quoting so the output is
 // `"experiments"."Name"` rather than `"experiments."."Name"`.
-func qualifyColumn(prefix, column string, quote func(string) string) string {
+func qualifyColumn(prefix, column string, quote dialect.QuoteFunction) string {
 	prefix = strings.TrimSuffix(prefix, ".")
 	if prefix == "" {
 		return quote(column)
@@ -340,7 +341,7 @@ func qualifyColumn(prefix, column string, quote func(string) string) string {
 // The collation parameter is appended after LOWER() expressions for string sorting and cursor
 // comparisons to ensure consistent ordering across databases (e.g., `COLLATE "C"` for
 // PostgreSQL byte-order sorting, "" for MySQL/SQLite which use their default collation).
-func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	if quote == nil {
 		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
@@ -482,7 +483,7 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 // AddOrderByToSelect adds only the ORDER BY clauses from the sorting criteria,
 // without cursor WHERE clauses or LIMIT. Use this when the rows have already been
 // paged by a subquery and only need to be re-sorted for the final result set.
-func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string, collation string) sq.SelectBuilder {
+func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
 	if quote == nil {
 		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
 	}
@@ -523,7 +524,7 @@ func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote func(str
 // containing these.
 // The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
 // If quote is nil, identifiers are not quoted.
-func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote func(string) string) sq.SelectBuilder {
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction) sq.SelectBuilder {
 	if o.Filter != nil {
 		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, quote)
 	}

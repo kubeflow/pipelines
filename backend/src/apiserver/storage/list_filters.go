@@ -22,19 +22,17 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
-
-// Quoter represents a dialect-aware identifier quoting function (e.g., s.dbDialect.QuoteIdentifier).
-type Quoter = func(string) string
 
 // selectWithQuotedColumns builds a SELECT ... FROM ... using the provided dialect-aware
 // builder and quoter. It maps all column identifiers through q() and quotes the table name.
 // When selectCount is true, it selects count(*) instead of the provided columns.
 func selectWithQuotedColumns(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -58,7 +56,7 @@ func selectWithQuotedColumns(
 // and placeholders are correct for the active database.
 func FilterByExperiment(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -73,7 +71,7 @@ func FilterByExperiment(
 // It relies on the injected builder (qb) and quoter (q) for dialect-correct SQL.
 func FilterByNamespace(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	selectCount bool,
@@ -90,7 +88,7 @@ func FilterByNamespace(
 // MySQL/PostgreSQL/SQLite.
 func FilterByResourceReference(
 	qb sq.StatementBuilderType,
-	q Quoter,
+	q dialect.QuoteFunction,
 	table string,
 	columns []string,
 	resourceType model.ResourceType,

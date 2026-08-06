@@ -15,13 +15,14 @@
 package storage
 
 import (
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 )
 
 // quoteAll applies the dialect's QuoteIdentifier (q) to each column name and returns a new slice.
 // Use this when passing columns into squirrel.Select(...), so each identifier is properly quoted
 // for the current SQL dialect (e.g., Postgres requires double quotes to preserve case).
-func quoteAll(q func(string) string, cols []string) []string {
+func quoteAll(q dialect.QuoteFunction, cols []string) []string {
 	out := make([]string, len(cols))
 	for i, c := range cols {
 		out[i] = q(c)
