@@ -47,6 +47,17 @@
 - Never include AI agents (e.g. Claude Code, Copilot, or similar tools) as co-authors on commits. The human author is responsible for the work.
 - See `CONTRIBUTING.md` at the repo root for DCO sign-off requirements and general PR conventions.
 
+### Comment and documentation policy (agents and contributors)
+
+- Default to writing no comments. Only add a comment when the "why" is non-obvious: a hidden constraint, a subtle invariant, a workaround for a known bug, or behavior that would surprise a reader.
+- Do not explain what the code does — well-named identifiers already do that. A comment like `// set x to 5` before `x = 5` adds nothing.
+- Do not narrate the current PR's motivation, callers, or history in code comments (e.g., "added for the Y flow", "see PR #1234", "used by X"). That context belongs in the commit message or PR description and rots as the codebase evolves. Temporary action markers like `// Remove after 2.19` are fine — they document a future obligation, not current-PR context.
+- Keep comments short. One line is almost always enough. Multi-paragraph block comments and multi-line doc comments are rarely justified outside public API surfaces.
+- Test functions should not have doc comments that restate the test name or describe the obvious setup. A well-named test like `TestInitDriverPodConfig_TopLevelNull` does not need a comment explaining that it tests top-level null. Only comment when the test exercises a non-obvious invariant that the name alone cannot convey.
+- Error messages should say what is wrong and what to do, not justify the design decision behind the check.
+- For Go exported functions/methods: write the required GoDoc comment, but keep it to one or two sentences — do not pad it with restatements of what the type signature already conveys. For Python SDK public APIs: keep docstrings user-facing and accurate (they feed Sphinx autodoc).
+- Apply the same discipline to README and documentation sections. Do not inflate a 7-line section to 50 lines with verbose explanations. State facts; omit justifications the reader did not ask for.
+
 ## Baseline architecture
 
 - Start with inspecting the architectural diagram found here `images/kfp-cluster-wide-architecture.drawio.xml` (rendered format can be found here: `images/kfp-cluster-wide-architecture.png`).
