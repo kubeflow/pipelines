@@ -150,17 +150,17 @@ func (s *RunStore) ListRuns(
 	}
 	defer rows.Close()
 
-	// total_size is -1 when the caller opted out of it via opts.SkipCount, since
+	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
 	// computing it requires a second, potentially expensive query that some
 	// callers (e.g. a paginated UI that never displays the total) don't need.
-	total_size := -1
+	totalSize := -1
 	if !opts.SkipCount {
-		sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
+		sizeSQL, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
 		if err != nil {
 			tx.Rollback()
 			return errorF(err)
 		}
-		sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+		sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 		if err != nil {
 			tx.Rollback()
 			return errorF(err)
@@ -169,7 +169,7 @@ func (s *RunStore) ListRuns(
 			tx.Rollback()
 			return errorF(err)
 		}
-		total_size, err = list.ScanRowToTotalSize(sizeRow)
+		totalSize, err = list.ScanRowToTotalSize(sizeRow)
 		if err != nil {
 			tx.Rollback()
 			return errorF(err)
@@ -184,11 +184,11 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
