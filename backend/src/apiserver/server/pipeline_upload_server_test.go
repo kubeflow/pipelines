@@ -328,6 +328,22 @@ func TestUploadPipeline_NameAndNamespaceTooLong(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 			wantErrMsg: "Pipeline.Namespace length cannot exceed 63",
 		},
+		{
+			name:       "v1 version name too long",
+			apiVersion: "v1beta1",
+			uploadFunc: nil,
+			query:      "?version_name=" + url.PathEscape(strings.Repeat("v", 128)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "PipelineVersion.Name length cannot exceed 127",
+		},
+		{
+			name:       "v2 version name too long",
+			apiVersion: "v2beta1",
+			uploadFunc: nil,
+			query:      "?version_name=" + url.PathEscape(strings.Repeat("v", 128)),
+			wantStatus: http.StatusBadRequest,
+			wantErrMsg: "PipelineVersion.Name length cannot exceed 127",
+		},
 	}
 
 	for _, tc := range cases {
@@ -598,6 +614,111 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect2, pkg2)
+}
+
+func TestUploadPipeline_VersionQueryParameters(t *testing.T) {
+	// The pipeline is always uploaded with a display name that differs from its
+	// name, so that each version field can be attributed to the parameter (or
+	// the fallback) it actually came from.
+	const pipelineQuery = "name=my-pipeline&display_name=My%20Pipeline&description=pipeline%20description"
+
+	tests := []struct {
+		name                   string
+		versionQuery           string
+		expectedVersionName    string
+		expectedVersionDisplay string
+		expectedVersionDesc    string
+	}{
+		{
+			name:                   "no version parameters falls back to the pipeline fields",
+			versionQuery:           "",
+			expectedVersionName:    "my-pipeline",
+			expectedVersionDisplay: "My Pipeline",
+			expectedVersionDesc:    "pipeline description",
+		},
+		{
+			name:                   "only version_name overrides the version name",
+			versionQuery:           "&version_name=v1.0.0",
+			expectedVersionName:    "v1.0.0",
+			expectedVersionDisplay: "My Pipeline",
+			expectedVersionDesc:    "pipeline description",
+		},
+		{
+			name:                   "only version_display_name overrides the version display name",
+			versionQuery:           "&version_display_name=Version%201.0.0",
+			expectedVersionName:    "my-pipeline",
+			expectedVersionDisplay: "Version 1.0.0",
+			expectedVersionDesc:    "pipeline description",
+		},
+		{
+			name:                   "only version_description overrides the version description",
+			versionQuery:           "&version_description=version%20description",
+			expectedVersionName:    "my-pipeline",
+			expectedVersionDisplay: "My Pipeline",
+			expectedVersionDesc:    "version description",
+		},
+		{
+			name:                   "all version parameters override every version field",
+			versionQuery:           "&version_name=v1.0.0&version_display_name=Version%201.0.0&version_description=version%20description",
+			expectedVersionName:    "v1.0.0",
+			expectedVersionDisplay: "Version 1.0.0",
+			expectedVersionDesc:    "version description",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clientManager, server := setupClientManagerAndServer()
+			bytesBuffer, writer := setupWriter("")
+			setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+			response := uploadPipeline(
+				"/apis/v2beta1/pipelines/upload?"+pipelineQuery+tt.versionQuery,
+				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+			assert.Equal(t, 200, response.Code)
+
+			opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+			assert.Nil(t, err)
+
+			// Verify metadata in db
+			pkgsExpect := []*model.Pipeline{
+				{
+					UUID:           DefaultFakeUUID,
+					CreatedAtInSec: 1,
+					Name:           "my-pipeline",
+					DisplayName:    "My Pipeline",
+					Status:         model.PipelineReady,
+					Description:    "pipeline description",
+					Namespace:      "",
+				},
+			}
+			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, 1, totalSize)
+			assert.Equal(t, str, "")
+			assert.Equal(t, pkgsExpect, pkg)
+
+			opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+			assert.Nil(t, err)
+			pkgsExpect2 := []*model.PipelineVersion{
+				{
+					UUID:           DefaultFakeUUID,
+					Description:    model.LargeText(tt.expectedVersionDesc),
+					CreatedAtInSec: 2,
+					Name:           tt.expectedVersionName,
+					DisplayName:    tt.expectedVersionDisplay,
+					Parameters:     "[]",
+					Status:         model.PipelineVersionReady,
+					PipelineId:     DefaultFakeUUID,
+					PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+				},
+			}
+			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, 1, totalSize)
+			assert.Equal(t, str, "")
+			assert.Equal(t, pkgsExpect2, pkg2)
+		})
+	}
 }
 
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {

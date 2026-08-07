@@ -91,6 +91,24 @@ type UploadPipelineParams struct {
 	*/
 	Uploadfile runtime.NamedReadCloser
 
+	/* VersionDescription.
+
+	   Optional description of the initial pipeline version. Defaults to the pipeline description when omitted.
+	*/
+	VersionDescription *string
+
+	/* VersionDisplayName.
+
+	   Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted.
+	*/
+	VersionDisplayName *string
+
+	/* VersionName.
+
+	   Optional name of the initial pipeline version. Defaults to the pipeline name when omitted.
+	*/
+	VersionName *string
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -221,6 +239,39 @@ func (o *UploadPipelineParams) SetUploadfile(uploadfile runtime.NamedReadCloser)
 	o.Uploadfile = uploadfile
 }
 
+// WithVersionDescription adds the versionDescription to the upload pipeline params
+func (o *UploadPipelineParams) WithVersionDescription(versionDescription *string) *UploadPipelineParams {
+	o.SetVersionDescription(versionDescription)
+	return o
+}
+
+// SetVersionDescription adds the versionDescription to the upload pipeline params
+func (o *UploadPipelineParams) SetVersionDescription(versionDescription *string) {
+	o.VersionDescription = versionDescription
+}
+
+// WithVersionDisplayName adds the versionDisplayName to the upload pipeline params
+func (o *UploadPipelineParams) WithVersionDisplayName(versionDisplayName *string) *UploadPipelineParams {
+	o.SetVersionDisplayName(versionDisplayName)
+	return o
+}
+
+// SetVersionDisplayName adds the versionDisplayName to the upload pipeline params
+func (o *UploadPipelineParams) SetVersionDisplayName(versionDisplayName *string) {
+	o.VersionDisplayName = versionDisplayName
+}
+
+// WithVersionName adds the versionName to the upload pipeline params
+func (o *UploadPipelineParams) WithVersionName(versionName *string) *UploadPipelineParams {
+	o.SetVersionName(versionName)
+	return o
+}
+
+// SetVersionName adds the versionName to the upload pipeline params
+func (o *UploadPipelineParams) SetVersionName(versionName *string) {
+	o.VersionName = versionName
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -333,6 +384,57 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 	// form file param uploadfile
 	if err := r.SetFileParam("uploadfile", o.Uploadfile); err != nil {
 		return err
+	}
+
+	if o.VersionDescription != nil {
+
+		// query param version_description
+		var qrVersionDescription string
+
+		if o.VersionDescription != nil {
+			qrVersionDescription = *o.VersionDescription
+		}
+		qVersionDescription := qrVersionDescription
+		if qVersionDescription != "" {
+
+			if err := r.SetQueryParam("version_description", qVersionDescription); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.VersionDisplayName != nil {
+
+		// query param version_display_name
+		var qrVersionDisplayName string
+
+		if o.VersionDisplayName != nil {
+			qrVersionDisplayName = *o.VersionDisplayName
+		}
+		qVersionDisplayName := qrVersionDisplayName
+		if qVersionDisplayName != "" {
+
+			if err := r.SetQueryParam("version_display_name", qVersionDisplayName); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.VersionName != nil {
+
+		// query param version_name
+		var qrVersionName string
+
+		if o.VersionName != nil {
+			qrVersionName = *o.VersionName
+		}
+		qVersionName := qrVersionName
+		if qVersionName != "" {
+
+			if err := r.SetQueryParam("version_name", qVersionName); err != nil {
+				return err
+			}
+		}
 	}
 
 	if len(res) > 0 {

@@ -53,6 +53,12 @@ class PipelineUploadServiceApi(object):
         :type display_name: str
         :param description:
         :type description: str
+        :param version_name: Optional name of the initial pipeline version. Defaults to the pipeline name when omitted.
+        :type version_name: str
+        :param version_display_name: Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted.
+        :type version_display_name: str
+        :param version_description: Optional description of the initial pipeline version. Defaults to the pipeline description when omitted.
+        :type version_description: str
         :param namespace:
         :type namespace: str
         :param tags: JSON-encoded map of key-value pairs for pipeline tags.
@@ -93,6 +99,12 @@ class PipelineUploadServiceApi(object):
         :type display_name: str
         :param description:
         :type description: str
+        :param version_name: Optional name of the initial pipeline version. Defaults to the pipeline name when omitted.
+        :type version_name: str
+        :param version_display_name: Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted.
+        :type version_display_name: str
+        :param version_description: Optional description of the initial pipeline version. Defaults to the pipeline description when omitted.
+        :type version_description: str
         :param namespace:
         :type namespace: str
         :param tags: JSON-encoded map of key-value pairs for pipeline tags.
@@ -125,6 +137,9 @@ class PipelineUploadServiceApi(object):
             'name',
             'display_name',
             'description',
+            'version_name',
+            'version_display_name',
+            'version_description',
             'namespace',
             'tags',
             'code_source_url'
@@ -162,6 +177,12 @@ class PipelineUploadServiceApi(object):
             query_params.append(('display_name', local_var_params['display_name']))  # noqa: E501
         if 'description' in local_var_params and local_var_params['description'] is not None:  # noqa: E501
             query_params.append(('description', local_var_params['description']))  # noqa: E501
+        if 'version_name' in local_var_params and local_var_params['version_name'] is not None:  # noqa: E501
+            query_params.append(('version_name', local_var_params['version_name']))  # noqa: E501
+        if 'version_display_name' in local_var_params and local_var_params['version_display_name'] is not None:  # noqa: E501
+            query_params.append(('version_display_name', local_var_params['version_display_name']))  # noqa: E501
+        if 'version_description' in local_var_params and local_var_params['version_description'] is not None:  # noqa: E501
+            query_params.append(('version_description', local_var_params['version_description']))  # noqa: E501
         if 'namespace' in local_var_params and local_var_params['namespace'] is not None:  # noqa: E501
             query_params.append(('namespace', local_var_params['namespace']))  # noqa: E501
         if 'tags' in local_var_params and local_var_params['tags'] is not None:  # noqa: E501
