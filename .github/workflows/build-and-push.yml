@@ -56,6 +56,11 @@ on:
         default: false
         description: 'Whether to push image to CR or not'
         required: false
+      scan_fixable_cves:
+        type: boolean
+        default: false
+        description: 'Fail before publishing tags when the image contains fixable CVEs'
+        required: false
   workflow_dispatch:
     inputs:
       src_branch:
@@ -244,6 +249,41 @@ jobs:
           if [ -n "$digest" ]; then
             echo "digest=$digest" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Scan image for fixable CVEs
+        id: trivy_scan
+        if: >-
+          steps.check_tag.outcome == 'success' &&
+          inputs.push &&
+          inputs.scan_fixable_cves
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: 'image'
+          image-ref: ${{ format('{0}/{1}/{2}@{3}', env.IMAGE_REGISTRY, env.IMAGE_ORG, inputs.app_to_build, steps.push.outputs.digest) }}
+          scanners: 'vuln'
+          ignore-unfixed: true
+          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+          format: 'json'
+          output: 'trivy-results.json'
+          exit-code: '0'
+        env:
+          # Use ECR instead of GitHub Container Registry to avoid rate limiting.
+          # Do not skip updates: release decisions must use current advisory data.
+          TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db:2
+          TRIVY_JAVA_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-java-db:1
+
+      - name: Enforce fixable CVE policy
+        if: ${{ steps.trivy_scan.outcome == 'success' }}
+        run: python3 .github/resources/scripts/check_fixable_cves.py trivy-results.json
+
+      - name: Upload CVE scan report
+        if: ${{ always() && steps.trivy_scan.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixable-cve-scan-${{ inputs.app_to_build }}-${{ inputs.arch_tag }}
+          path: trivy-results.json
+          if-no-files-found: error
+          retention-days: 30
 
       # Export the digest
       - name: Export digest
