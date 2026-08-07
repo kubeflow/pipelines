@@ -91,6 +91,9 @@ class TypeUtilsTest(parameterized.TestCase):
         self.assertEqual(expected_result,
                          type_utils.is_parameter_type(type_name))
 
+    def test_is_parameter_type_empty_dict(self):
+        self.assertFalse(type_utils.is_parameter_type({}))
+
     @parameterized.parameters(
         {
             'given_type': 'Int',
@@ -180,6 +183,9 @@ class TypeUtilsTest(parameterized.TestCase):
     def test_get_parameter_type_invalid(self):
         with self.assertRaises(AttributeError):
             type_utils.get_parameter_type_schema(None)
+
+    def test_get_parameter_type_empty_dict(self):
+        self.assertIsNone(type_utils.get_parameter_type({}))
 
     @parameterized.parameters(
         {

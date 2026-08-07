@@ -8,6 +8,8 @@
 
 ## Bug fixes and other changes
 
+* Raise a clear error instead of an `IndexError` when a v1 component output declares an empty `{}` type and is referenced by an `{outputPath: ...}` placeholder. Fixes #13745
+
 # 2.15.2
 
 ## Bug fixes and other changes
