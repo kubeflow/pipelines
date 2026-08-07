@@ -2564,6 +2564,88 @@ func Test_extendPodSpecPatch_SecurityContext_NonRootAllowedOnHardenedContainer(t
 	require.Equal(t, nonRootUID, *got.Containers[0].SecurityContext.RunAsUser)
 }
 
+func Test_extendPodSpecPatch_SecurityContext_RootRejectedWithUserRunAsNonRoot(t *testing.T) {
+	rootUID := int64(0)
+	userRunAsNonRoot := true
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+			SecurityContext: &kubernetesplatform.SecurityContext{
+				RunAsUser:    &rootUID,
+				RunAsNonRoot: &userRunAsNonRoot,
+			},
+		}},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	// Component sets runAsNonRoot=true and runAsUser=0 — contradiction must be rejected.
+	require.NotNil(t, err)
+	require.Contains(t, err.Error(), "runAsUser=0 (root) is not allowed")
+}
+
+func Test_extendPodSpecPatch_SecurityContext_RootAllowedWhenAdminRunAsNonRootFalseOverridesUser(t *testing.T) {
+	adminRunAsNonRoot := false
+	rootUID := int64(0)
+	userRunAsNonRoot := true
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{
+			DefaultRunAsNonRoot: &adminRunAsNonRoot,
+			KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser:    &rootUID,
+					RunAsNonRoot: &userRunAsNonRoot,
+				},
+			},
+		},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	// Admin explicitly allows root (runAsNonRoot=false) — user's runAsNonRoot=true
+	// is ignored (with warning) and runAsUser=0 must be allowed.
+	require.Nil(t, err)
+	require.Equal(t, rootUID, *got.Containers[0].SecurityContext.RunAsUser)
+	require.False(t, *got.Containers[0].SecurityContext.RunAsNonRoot)
+}
+
+func Test_extendPodSpecPatch_SecurityContext_RootAllowedWithUserRunAsNonRootFalse(t *testing.T) {
+	rootUID := int64(0)
+	userRunAsNonRoot := false
+
+	got := &k8score.PodSpec{Containers: []k8score.Container{
+		{Name: "main"},
+	}}
+	err := extendPodSpecPatch(
+		context.Background(),
+		got,
+		Options{KubernetesExecutorConfig: &kubernetesplatform.KubernetesExecutorConfig{
+			SecurityContext: &kubernetesplatform.SecurityContext{
+				RunAsUser:    &rootUID,
+				RunAsNonRoot: &userRunAsNonRoot,
+			},
+		}},
+		nil, nil, nil,
+		map[string]*structpb.Value{},
+		nil,
+	)
+	// Component explicitly sets runAsNonRoot=false — root is allowed.
+	require.Nil(t, err)
+	require.Equal(t, rootUID, *got.Containers[0].SecurityContext.RunAsUser)
+	require.Equal(t, userRunAsNonRoot, *got.Containers[0].SecurityContext.RunAsNonRoot)
+}
+
 func Test_extendPodSpecPatch_ImagePullPolicy(t *testing.T) {
 	tests := []struct {
 		name       string

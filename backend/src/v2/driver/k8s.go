@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -752,14 +753,14 @@ func extendPodSpecPatch(
 			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
 		}
 		existingSecurityContext := podSpec.Containers[0].SecurityContext
-		runAsNonRootEnforced := existingSecurityContext.RunAsNonRoot != nil && *existingSecurityContext.RunAsNonRoot
+		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
 				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
 				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
-					return fmt.Errorf("runAsUser=0 (root) is not allowed: the admin security policy enforces non-root execution (runAsNonRoot=true); use a non-root UID instead")
+					return fmt.Errorf("runAsUser=0 (root) is not allowed: runAsNonRoot is true; use a non-root UID instead")
 				}
 				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
 			}

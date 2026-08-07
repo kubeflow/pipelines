@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -61,12 +62,11 @@ func (c *workflowCompiler) validateKubernetesSecurityContext(name string, config
 	if c.defaultRunAsUser != nil {
 		return nil
 	}
-	if c.defaultRunAsNonRoot != nil && *c.defaultRunAsNonRoot &&
+	if securitycontext.IsRunAsNonRootEffective(c.defaultRunAsNonRoot, securityContext.RunAsNonRoot) &&
 		securityContext.RunAsUser != nil && *securityContext.RunAsUser == 0 {
 		return fmt.Errorf(
 			"runAsUser=0 (root) is not allowed for component %q: "+
-				"the admin security policy enforces non-root execution "+
-				"(runAsNonRoot=true); use a non-root UID instead",
+				"runAsNonRoot is true; use a non-root UID instead",
 			name,
 		)
 	}
