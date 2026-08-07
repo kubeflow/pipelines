@@ -1,6 +1,9 @@
 name: OSV-Scanner Vulnerability Scan
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     # Every Friday at 19:39
     - cron: '39 19 * * 5'
@@ -8,13 +11,15 @@ on:
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  scan:
+  scan-source:
     name: Scan repository dependencies
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -39,6 +44,8 @@ jobs:
           ./osv-scanner scan source \
             --recursive \
             --no-resolve \
+            --experimental-exclude backend/api/v1beta1/python_http_client \
+            --experimental-exclude backend/api/v2beta1/python_http_client \
             --format sarif \
             --output-file osv-results.sarif \
             . || scan_exit_code=$?
@@ -56,3 +63,92 @@ jobs:
         with:
           sarif_file: osv-results.sarif
           category: kubeflow-pipelines-osv-scanner
+
+  discover-images:
+    name: Discover deployed images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.images.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Install Kustomize
+        env:
+          KUSTOMIZE_VERSION: '5.8.1'
+          KUSTOMIZE_SHA256: '029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d'
+        run: |
+          kustomize_archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/${kustomize_archive}" \
+            --output "${RUNNER_TEMP}/${kustomize_archive}"
+          echo "${KUSTOMIZE_SHA256}  ${RUNNER_TEMP}/${kustomize_archive}" | \
+            sha256sum --check --strict
+          tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/kustomize"
+
+      - name: Render manifests and collect images
+        id: images
+        run: |
+          image_matrix=$(python3 .github/resources/scripts/osv_manifest_images.py \
+            --kustomize "${RUNNER_TEMP}/kustomize" \
+            --overlay manifests/kustomize/env/platform-agnostic \
+            --overlay manifests/kustomize/env/platform-agnostic-multi-user)
+          echo "matrix=${image_matrix}" >> "${GITHUB_OUTPUT}"
+
+  scan-images:
+    name: Scan image (${{ matrix.image }})
+    needs: discover-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.discover-images.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Install OSV-Scanner
+        env:
+          OSV_SCANNER_VERSION: '2.3.8'
+          OSV_SCANNER_SHA256: 'bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc'
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            --output osv-scanner
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Scan deployed container image
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
+
+          scan_exit_code=0
+          ./osv-scanner scan image "${IMAGE}" \
+            --format sarif \
+            --output-file osv-image-results.sarif \
+            || scan_exit_code=$?
+
+          if [[ "${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code ${scan_exit_code} for ${IMAGE}"
+            exit "${scan_exit_code}"
+          fi
+
+      - name: Upload image results to GitHub Security
+        if: always() && hashFiles('osv-image-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: osv-image-results.sarif
+          category: kubeflow-pipelines-osv-image-${{ matrix.category }}
