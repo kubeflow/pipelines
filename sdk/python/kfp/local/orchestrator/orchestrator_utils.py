@@ -247,10 +247,15 @@ class OrchestratorUtils:
                             selector.producer_subtask,
                             selector.output_parameter_key,
                         )
-                        found_values.append(value)
                     except (KeyError, ValueError):
                         # This branch didn't execute, skip it
                         continue
+                    # Skipped producers return the SKIPPED sentinel rather
+                    # than raising; that branch did not actually produce a
+                    # value, so it should not be counted in the OneOf set.
+                    if io_store.is_skipped(value):
+                        continue
+                    found_values.append(value)
                 if len(found_values) == 1:
                     outputs[root_output_key] = found_values[0]
                 elif len(found_values) == 0:
