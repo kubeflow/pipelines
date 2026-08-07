@@ -16,7 +16,7 @@ from typing import List
 
 from google_cloud_pipeline_components import _image
 from google_cloud_pipeline_components import _placeholders
-from kfp.dsl import ConcatPlaceholder
+from google_cloud_pipeline_components import utils
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import OutputPath
@@ -39,6 +39,7 @@ def hyperparameter_tuning_job(
     encryption_spec_key_name: str = '',
     service_account: str = '',
     network: str = '',
+    persistent_resource_id: str = _placeholders.PERSISTENT_RESOURCE_ID_PLACEHOLDER,
     project: str = _placeholders.PROJECT_ID_PLACEHOLDER,
 ):
   # fmt: off
@@ -79,6 +80,7 @@ def hyperparameter_tuning_job(
       service_account: Specifies the service account for workload run-as account. Users submitting jobs must have act-as permission on this run-as account.
       network: The full name of the Compute Engine network to which the job should be peered. For example, `projects/12345/global/networks/myVPC`. Private services access must already be configured for the network. If left unspecified, the job is not peered with any network.
       project: Project to run the HyperparameterTuningJob in. Defaults to the project in which the PipelineJob is run.
+      persistent_resource_id: The id of the PersistentResource in the same Project and Location which to run. The default value is a placeholder that will be resolved to the PipelineJob [RuntimeConfig](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.pipelineJobs#PipelineJob.RuntimeConfig)'s persistent resource id at runtime. However, if the PipelineJob doesn't set Persistent Resource as the job level runtime, the placedholder will be resolved to an empty string and the custom job will be run on demand. If this is specified, the job will be run on existing machines held by the PersistentResource instead of on-demand short-live machines. The network and CMEK configs on the job should be consistent with those on the PersistentResource, otherwise, the job will be rejected.
 
   Returns:
       gcp_resources: Serialized JSON of `gcp_resources` [proto](https://github.com/kubeflow/pipelines/tree/master/components/google-cloud/google_cloud_pipeline_components/proto) which contains the GCP resource ID of the Hyperparameter Tuning job.
@@ -96,48 +98,28 @@ def hyperparameter_tuning_job(
           '--type',
           'HyperparameterTuningJob',
           '--payload',
-          ConcatPlaceholder([
-              '{',
-              '"display_name": "',
-              display_name,
-              '"',
-              ', "study_spec": {',
-              '"metrics": ',
-              study_spec_metrics,
-              ', "parameters": ',
-              study_spec_parameters,
-              ', "algorithm": "',
-              study_spec_algorithm,
-              '"',
-              ', "measurement_selection_type": "',
-              study_spec_measurement_selection_type,
-              '"',
-              '}',
-              ', "max_trial_count": ',
-              max_trial_count,
-              ', "parallel_trial_count": ',
-              parallel_trial_count,
-              ', "max_failed_trial_count": ',
-              max_failed_trial_count,
-              ', "trial_job_spec": {',
-              '"worker_pool_specs": ',
-              worker_pool_specs,
-              ', "service_account": "',
-              service_account,
-              '"',
-              ', "network": "',
-              network,
-              '"',
-              ', "base_output_directory": {',
-              '"output_uri_prefix": "',
-              base_output_directory,
-              '"}',
-              '}',
-              ', "encryption_spec": {"kms_key_name":"',
-              encryption_spec_key_name,
-              '"}',
-              '}',
-          ]),
+          utils.container_component_dumps({
+              'display_name': display_name,
+              'study_spec': {
+                  'metrics': study_spec_metrics,
+                  'parameters': study_spec_parameters,
+                  'algorithm': study_spec_algorithm,
+                  'measurement_selection_type': study_spec_measurement_selection_type,
+              },
+              'max_trial_count': max_trial_count,
+              'parallel_trial_count': parallel_trial_count,
+              'max_failed_trial_count': max_failed_trial_count,
+              'trial_job_spec': {
+                  'worker_pool_specs': worker_pool_specs,
+                  'service_account': service_account,
+                  'network': network,
+                  'base_output_directory': {
+                      'output_uri_prefix': base_output_directory
+                  },
+                  'persistent_resource_id': persistent_resource_id,
+              },
+              'encryption_spec': {'kms_key_name': encryption_spec_key_name},
+          }),
           '--project',
           project,
           '--location',
