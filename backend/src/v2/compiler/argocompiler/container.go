@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -322,13 +321,9 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 		return nil, fmt.Errorf("component reference is nil")
 	}
 
-	// Retrieve pod metadata defined in the Kubernetes Spec, if any
-	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
-	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-	if kubernetesConfigParam != nil && kubernetesConfigParam.Value != nil {
-		if err := protojson.Unmarshal([]byte((*kubernetesConfigParam.Value)), k8sExecCfg); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kubernetes config: %v", err)
-		}
+	k8sExecCfg := c.kubernetesConfigs[refName]
+	if k8sExecCfg == nil {
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
 	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
