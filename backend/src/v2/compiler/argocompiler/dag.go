@@ -697,6 +697,10 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 				// other artifact input types do not introduce implicit dependencies
 			}
 		}
+		// Dependencies are collected by iterating input maps, whose order is not
+		// deterministic in Go. Sort so the compiled output is stable across runs;
+		// dependentTasks is a set, so ordering is semantically irrelevant.
+		sort.Strings(task.DependentTasks)
 	}
 	return nil
 }
