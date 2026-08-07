@@ -28,7 +28,7 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -54,6 +54,17 @@ type token struct {
 	SortByFieldValue  interface{}
 	SortByFieldPrefix string
 
+	// SortByFieldIsNull is true when the sort field value of the next row is a
+	// genuine SQL NULL rather than an absent/invalid field. This only happens
+	// for metric sorts, where a run without the selected metric produces a NULL
+	// sort_metric_value. It exists to disambiguate a legitimate NULL sort value
+	// from the "field does not exist" error case: SortByFieldValue is interface{}
+	// and its nil is otherwise ambiguous. When true, SortByFieldValue is nil and
+	// the row belongs to the NULL block, which always sorts last.
+	// The omitempty tag keeps tokens byte-identical to the previous layout when
+	// the field is false, which is the common case.
+	SortByFieldIsNull bool `json:",omitempty"`
+
 	// KeyFieldName is the name of the primary key for the model being queried.
 	KeyFieldName string
 	// KeyFieldValue is the value of the sorted field of the next row to be
@@ -63,6 +74,12 @@ type token struct {
 
 	// IsDesc is true if the sorting order should be descending.
 	IsDesc bool
+
+	// SortByFieldIsString indicates whether the sort field is a string type.
+	// Used to decide whether to apply LOWER() in ORDER BY and WHERE clauses.
+	// This avoids relying on the runtime type of SortByFieldValue, which is nil
+	// on the first page and therefore cannot be used for type inference.
+	SortByFieldIsString bool `json:",omitempty"`
 
 	// ModelName is the table where ***FieldName belongs to.
 	ModelName string
@@ -199,11 +216,20 @@ func EmptyOptions() *Options {
 }
 
 // Matches returns trues if the sorting and filtering criteria in o matches that
-// of the one supplied in opts.
+// of the one supplied in opts. For metric sorts SortByFieldName holds the raw
+// metric name, so tokens minted for different metrics never match each other.
 func (o *Options) Matches(opts *Options) bool {
 	return o.SortByFieldName == opts.SortByFieldName && o.SortByFieldPrefix == opts.SortByFieldPrefix &&
 		o.IsDesc == opts.IsDesc &&
 		reflect.DeepEqual(o.Filter, opts.Filter)
+}
+
+// IsMetricSort reports whether o sorts by a run metric rather than a regular
+// model field. Metric sorts are marked by the fixed SQL alias in
+// SortBySQLColumn; the raw metric name is carried in SortByFieldName and only
+// ever reaches SQL as a bind parameter.
+func (o *Options) IsMetricSort() bool {
+	return o.SortBySQLColumn == model.MetricSortSQLAlias
 }
 
 // NewOptionsFromToken creates a new Options struct from the passed in token
@@ -261,13 +287,20 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 	token.SortByFieldPrefix = listable.GetSortByFieldPrefix(token.SortByFieldName)
 	token.KeyFieldPrefix = listable.GetKeyFieldPrefix()
 
+	// Probe the sort field type using the listable instance. SortByFieldName is
+	// the user-facing name, which GetFieldValue resolves for both regular fields
+	// and metric names. String fields return "" (string type); numeric fields
+	// return int64(0) or similar.
+	probeVal := listable.GetFieldValue(token.SortByFieldName)
+	_, token.SortByFieldIsString = probeVal.(string)
+
 	if len(queryList) == 2 {
 		token.IsDesc = queryList[1] == "desc"
 	}
 
 	// Filtering.
 	if filter != nil {
-		if err := filter.ReplaceKeys(listable.APIToModelFieldMap(), listable.GetModelName()); err != nil {
+		if err := filter.ReplaceKeys(listable.APIToModelFieldMap(), listable.GetModelName(), listable.CaseInsensitiveFields()); err != nil {
 			return nil, err
 		}
 		token.Filter = filter
@@ -278,38 +311,142 @@ func NewOptions(listable Listable, pageSize int, sortBy string, filter *filter.F
 // AddPaginationToSelect adds WHERE clauses with the sorting and pagination criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-	sqlBuilder = o.AddSortingToSelect(sqlBuilder)
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+// The collation parameter is appended after LOWER() expressions for string sorting and cursor
+// comparisons (e.g., `COLLATE "C"` for PostgreSQL, "" for MySQL/SQLite).
+func (o *Options) AddPaginationToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
+	sqlBuilder = o.AddSortingToSelect(sqlBuilder, quote, collation)
 	// Add one more item than what is requested.
 	sqlBuilder = sqlBuilder.Limit(uint64(o.PageSize + 1))
 
 	return sqlBuilder
 }
 
+// qualifyColumn joins an optional table prefix and a column name, quoting each
+// part separately with the given quote function. Prefixes are stored in page
+// tokens with a trailing dot (e.g. "experiments."), matching the historical
+// token layout; the dot is stripped before quoting so the output is
+// `"experiments"."Name"` rather than `"experiments."."Name"`.
+func qualifyColumn(prefix, column string, quote dialect.QuoteFunction) string {
+	prefix = strings.TrimSuffix(prefix, ".")
+	if prefix == "" {
+		return quote(column)
+	}
+	return quote(prefix) + "." + quote(column)
+}
+
 // AddSortingToSelect adds Order By clause.
-func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// The collation parameter is appended after LOWER() expressions for string sorting and cursor
+// comparisons to ensure consistent ordering across databases (e.g., `COLLATE "C"` for
+// PostgreSQL byte-order sorting, "" for MySQL/SQLite which use their default collation).
+func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
+	if quote == nil {
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
+	}
+
+	// lowerWithCollation wraps col in LOWER() and appends the collation clause if non-empty.
+	// Used consistently in both ORDER BY and WHERE cursor comparisons so that pagination
+	// boundaries are evaluated with the same collation as the sort order.
+	lowerWithCollation := func(col string) string {
+		if collation == "" {
+			return fmt.Sprintf("LOWER(%s)", col)
+		}
+		return fmt.Sprintf("LOWER(%s) %s", col, collation)
+	}
+
+	sortByFieldNameWithPrefix := qualifyColumn(o.SortByFieldPrefix, o.SortBySQLColumn, quote)
+	keyFieldNameWithPrefix := qualifyColumn(o.KeyFieldPrefix, o.KeyFieldName, quote)
+
 	// When sorting by a direct field in the listable model (i.e., name in Run or uuid in Pipeline), a sortByFieldPrefix can be specified; when sorting by a field in an array-typed dictionary (i.e., a run metric inside the metrics in Run), a sortByFieldPrefix is not needed.
 	// If next row's value is specified, set those values in the clause.
 	if o.SortByFieldValue != nil && o.KeyFieldValue != nil {
+		// Use SortByFieldIsString (set at Options creation time) to determine field type.
+		// Also check the runtime value type as a fallback for tokens created before this field existed.
+		_, valueIsString := o.SortByFieldValue.(string)
+		isStringField := o.SortByFieldIsString || valueIsString
+
+		strVal, sortValueIsString := o.SortByFieldValue.(string)
+		floatVal, sortValueIsFloat := o.SortByFieldValue.(float64)
+
+		sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+
 		if o.IsDesc {
-			sqlBuilder = sqlBuilder.
-				Where(sq.Or{
-					sq.Lt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+			if isStringField && sortValueIsString {
+				// String field: use LOWER() with collation for case-insensitive comparison.
+				// Cursor value is non-NULL. NULL rows sort last, so from a non-NULL
+				// cursor we must also include the entire NULL block that follows.
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Expr(fmt.Sprintf("%s < %s", sortCol, lowerWithCollation("?")), strVal),
+						sq.And{
+							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?")), strVal),
+							sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+						sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
+					})
+			} else if !isStringField && sortValueIsFloat {
+				// Numeric field: use bind parameter to preserve full float64 precision and prevent injection.
+				// Cursor value is non-NULL. NULL rows sort last, so from a non-NULL
+				// cursor we must also include the entire NULL block that follows.
+				cursorClause := sq.Or{
+					sq.Expr(sortByFieldNameWithPrefix+" < ?", floatVal),
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
-						sq.LtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Expr(sortByFieldNameWithPrefix+" = ?", floatVal),
+						sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
-				})
+					sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
+				}
+				sqlBuilder = sqlBuilder.Where(cursorClause)
+			}
 		} else {
-			sqlBuilder = sqlBuilder.
-				Where(sq.Or{
-					sq.Gt{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
+			if isStringField && sortValueIsString {
+				// String field: use LOWER() with collation for case-insensitive comparison.
+				// Cursor value is non-NULL. NULL rows sort last, so from a non-NULL
+				// cursor we must also include the entire NULL block that follows.
+				sqlBuilder = sqlBuilder.
+					Where(sq.Or{
+						sq.Expr(fmt.Sprintf("%s > %s", sortCol, lowerWithCollation("?")), strVal),
+						sq.And{
+							sq.Expr(fmt.Sprintf("%s = %s", sortCol, lowerWithCollation("?")), strVal),
+							sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
+						},
+						sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
+					})
+			} else if !isStringField && sortValueIsFloat {
+				// Numeric field: use bind parameter to preserve full float64 precision and prevent injection.
+				// Cursor value is non-NULL. NULL rows sort last, so from a non-NULL
+				// cursor we must also include the entire NULL block that follows.
+				cursorClause := sq.Or{
+					sq.Expr(sortByFieldNameWithPrefix+" > ?", floatVal),
 					sq.And{
-						sq.Eq{o.SortByFieldPrefix + o.SortBySQLColumn: o.SortByFieldValue},
-						sq.GtOrEq{o.KeyFieldPrefix + o.KeyFieldName: o.KeyFieldValue},
+						sq.Expr(sortByFieldNameWithPrefix+" = ?", floatVal),
+						sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue},
 					},
-				})
+					sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
+				}
+				sqlBuilder = sqlBuilder.Where(cursorClause)
+			}
 		}
+	} else if o.SortByFieldIsNull && o.KeyFieldValue != nil {
+		// Cursor value is a genuine NULL (metric sort only). All non-NULL rows have
+		// already been paged through, so advance within the trailing NULL block
+		// using the primary key alone. Direction of the key tie-break follows the
+		// sort direction, matching the non-NULL branches above.
+		//
+		// This branch remains metric-only because Go model structs use value types
+		// (string, int64) and GORM maps SQL NULL to the zero value, so
+		// GetFieldValue cannot distinguish NULL from zero for non-metric fields.
+		// Extending this to all fields would require pointer types in the models.
+		keyCursor := sq.Sqlizer(sq.GtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue})
+		if o.IsDesc {
+			keyCursor = sq.LtOrEq{keyFieldNameWithPrefix: o.KeyFieldValue}
+		}
+		sqlBuilder = sqlBuilder.Where(sq.And{
+			sq.Expr(sortByFieldNameWithPrefix + " IS NULL"),
+			keyCursor,
+		})
 	}
 
 	order := "ASC"
@@ -318,11 +455,65 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 	}
 
 	if o.SortBySQLColumn != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.SortByFieldPrefix+o.SortBySQLColumn, order))
+		// Place NULL values last regardless of direction using a "(col IS NULL) ASC"
+		// leading key. MySQL/PostgreSQL/SQLite all support this boolean expression in
+		// ORDER BY, giving deterministic, cross-dialect NULL ordering without relying
+		// on NULLS LAST (unsupported by MySQL) or on each database's default NULL
+		// placement (which differs between MySQL and PostgreSQL). For NOT NULL columns
+		// the expression is a constant 0 and the optimizer can skip it.
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("(%v IS NULL) ASC", sortByFieldNameWithPrefix))
+		// Use SortByFieldIsString to decide whether to wrap with LOWER().
+		// Also check runtime value type as fallback for old tokens that lack this field.
+		_, valueIsString := o.SortByFieldValue.(string)
+		if o.SortByFieldIsString || valueIsString {
+			sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortCol, order))
+		} else {
+			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
+		}
 	}
 
 	if o.KeyFieldName != "" {
-		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", o.KeyFieldPrefix+o.KeyFieldName, order))
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", keyFieldNameWithPrefix, order))
+	}
+
+	return sqlBuilder
+}
+
+// AddOrderByToSelect adds only the ORDER BY clauses from the sorting criteria,
+// without cursor WHERE clauses or LIMIT. Use this when the rows have already been
+// paged by a subquery and only need to be re-sorted for the final result set.
+func (o *Options) AddOrderByToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction, collation string) sq.SelectBuilder {
+	if quote == nil {
+		panic("quote function must not be nil: caller must provide a dialect-aware identifier quoter")
+	}
+	lowerWithCollation := func(col string) string {
+		if collation == "" {
+			return fmt.Sprintf("LOWER(%s)", col)
+		}
+		return fmt.Sprintf("LOWER(%s) %s", col, collation)
+	}
+
+	sortByFieldNameWithPrefix := qualifyColumn(o.SortByFieldPrefix, o.SortBySQLColumn, quote)
+	keyFieldNameWithPrefix := qualifyColumn(o.KeyFieldPrefix, o.KeyFieldName, quote)
+
+	order := "ASC"
+	if o.IsDesc {
+		order = "DESC"
+	}
+
+	if o.SortBySQLColumn != "" {
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("(%v IS NULL) ASC", sortByFieldNameWithPrefix))
+		_, valueIsString := o.SortByFieldValue.(string)
+		if o.SortByFieldIsString || valueIsString {
+			sortCol := lowerWithCollation(sortByFieldNameWithPrefix)
+			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortCol, order))
+		} else {
+			sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", sortByFieldNameWithPrefix, order))
+		}
+	}
+	if o.KeyFieldName != "" {
+		sqlBuilder = sqlBuilder.OrderBy(fmt.Sprintf("%v %v", keyFieldNameWithPrefix, order))
 	}
 
 	return sqlBuilder
@@ -331,76 +522,14 @@ func (o *Options) AddSortingToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuild
 // AddFilterToSelect adds WHERE clauses with the filtering criteria in the
 // Options o to the supplied SelectBuilder, and returns the new SelectBuilder
 // containing these.
-func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+// The quote parameter is used to quote SQL identifiers (e.g., table and column names) based on the database dialect.
+// If quote is nil, identifiers are not quoted.
+func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder, quote dialect.QuoteFunction) sq.SelectBuilder {
 	if o.Filter != nil {
-		sqlBuilder = o.Filter.AddToSelect(sqlBuilder)
+		sqlBuilder = o.Filter.AddToSelect(sqlBuilder, quote)
 	}
 
 	return sqlBuilder
-}
-
-// FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
-// table that match an optional given filter, and returns the rebuilt SelectBuilder.
-func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *model.FilterContext,
-) (sq.SelectBuilder, error) {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName)
-	if filterContext.ReferenceKey != nil && (filterContext.ReferenceKey.ID != "" || common.IsMultiUserMode()) {
-		resourceReferenceFilter, args, err := sq.Select("ResourceUUID").
-			From("resource_references as rf").
-			Where(sq.And{
-				sq.Eq{"rf.ResourceType": resourceType},
-				sq.Eq{"rf.ReferenceUUID": filterContext.ID},
-				sq.Eq{"rf.ReferenceType": filterContext.Type},
-			}).ToSql()
-		if err != nil {
-			return selectBuilder, util.NewInternalServerError(
-				err, "Failed to create subquery to filter by resource reference: %v", err.Error())
-		}
-		return selectBuilder.Where(fmt.Sprintf("UUID in (%s)", resourceReferenceFilter), args...), nil
-	}
-	return selectBuilder, nil
-}
-
-// FilterOnExperiment filters the given table by rows based on provided experiment ID,
-// and returns the rebuilt SelectBuilder.
-func FilterOnExperiment(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	experimentID string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "ExperimentUUID", experimentID), nil
-}
-
-func FilterOnNamespace(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	namespace string,
-) (sq.SelectBuilder, error) {
-	return filterByColumnValue(tableName, columns, selectCount, "Namespace", namespace), nil
-}
-
-func filterByColumnValue(
-	tableName string,
-	columns []string,
-	selectCount bool,
-	columnName string,
-	filterValue interface{},
-) sq.SelectBuilder {
-	selectBuilder := sq.Select(columns...)
-	if selectCount {
-		selectBuilder = sq.Select("count(*)")
-	}
-	selectBuilder = selectBuilder.From(tableName).Where(
-		sq.Eq{columnName: filterValue},
-	)
-	return selectBuilder
 }
 
 // Scans the one given row into a number, and returns the number.
@@ -438,6 +567,11 @@ type Listable interface {
 	GetField(name string) (fieldName string, sqlColumn string, ok bool)
 	// Find the value of a given field in a listable object.
 	GetFieldValue(name string) interface{}
+	// CaseInsensitiveFields returns the set of API field names that should use
+	// case-insensitive comparison (LOWER() in SQL, EqualFold in-memory).
+	// Only user-facing text fields (name, display_name, description) belong
+	// here; identifiers, UUIDs, and enum fields should use exact comparison.
+	CaseInsensitiveFields() map[string]struct{}
 }
 
 // NextPageToken returns a string that can be used to fetch the subsequent set
@@ -451,13 +585,45 @@ func (o *Options) NextPageToken(listable Listable) (string, error) {
 	return t.marshal()
 }
 
+func (o *Options) GetSortByFieldValue() interface{} {
+	if o.token == nil {
+		return nil
+	}
+	return o.SortByFieldValue
+}
+
+// WithSortByFieldValue returns a new Options struct with the specific sort by field value.
+// It maintains immutability of the original Options.
+func (o *Options) WithSortByFieldValue(val interface{}) *Options {
+	newOpts := *o
+	if o.token != nil {
+		newToken := *o.token
+		newToken.SortByFieldValue = val
+		newOpts.token = &newToken
+	}
+	return &newOpts
+}
+
 func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	elem := reflect.ValueOf(listable).Elem()
 	elemName := elem.Type().Name()
 
-	var sortByField interface{}
-	if sortByField = listable.GetFieldValue(o.SortByFieldName); sortByField == nil {
-		return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
+	// SortByFieldName is the user-facing name (for metric sorts, the raw metric
+	// name), which GetFieldValue resolves directly.
+	//
+	// A nil field value is ambiguous: it can mean the field does not exist (a
+	// real error), or, for metric sorts, that this row simply has no value for
+	// the selected metric (a legitimate SQL NULL in sort_metric_value). Only the
+	// metric case is allowed to carry a NULL cursor forward; for regular fields a
+	// nil value still indicates an invalid sort field.
+	sortByField := listable.GetFieldValue(o.SortByFieldName)
+	sortByFieldIsNull := false
+	if sortByField == nil {
+		if o.IsMetricSort() {
+			sortByFieldIsNull = true
+		} else {
+			return nil, util.NewInvalidInputError("cannot sort by field %q on type %q", o.SortByFieldName, elemName)
+		}
 	}
 
 	keyField := elem.FieldByName(listable.PrimaryKeyColumnName())
@@ -466,16 +632,18 @@ func (o *Options) nextPageToken(listable Listable) (*token, error) {
 	}
 
 	return &token{
-		SortByFieldName:   o.SortByFieldName,
-		SortBySQLColumn:   o.SortBySQLColumn,
-		SortByFieldValue:  sortByField,
-		SortByFieldPrefix: listable.GetSortByFieldPrefix(o.SortByFieldName),
-		KeyFieldName:      listable.PrimaryKeyColumnName(),
-		KeyFieldValue:     keyField.Interface(),
-		KeyFieldPrefix:    listable.GetKeyFieldPrefix(),
-		IsDesc:            o.IsDesc,
-		Filter:            o.Filter,
-		ModelName:         o.ModelName,
+		SortByFieldName:     o.SortByFieldName,
+		SortBySQLColumn:     o.SortBySQLColumn,
+		SortByFieldValue:    sortByField,
+		SortByFieldIsNull:   sortByFieldIsNull,
+		SortByFieldPrefix:   listable.GetSortByFieldPrefix(o.SortByFieldName),
+		SortByFieldIsString: o.SortByFieldIsString,
+		KeyFieldName:        listable.PrimaryKeyColumnName(),
+		KeyFieldValue:       keyField.Interface(),
+		KeyFieldPrefix:      listable.GetKeyFieldPrefix(),
+		IsDesc:              o.IsDesc,
+		Filter:              o.Filter,
+		ModelName:           o.ModelName,
 	}, nil
 }
 
