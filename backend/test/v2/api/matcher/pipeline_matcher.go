@@ -2,8 +2,6 @@ package matcher
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_upload_model"
@@ -87,49 +85,41 @@ func MatchPipelineRuns(actual *run_model.V2beta1Run, expected *run_model.V2beta1
 	gomega.Expect(actual.DisplayName).To(gomega.Equal(expected.DisplayName), "Run Name is not matching")
 	gomega.Expect(actual.ExperimentID).To(gomega.Equal(expected.ExperimentID), "Experiment Id is not matching")
 	gomega.Expect(actual.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionID), "Pipeline Version Id is not matching")
-	MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
-	gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(gomega.Equal(expected.PipelineVersionReference.PipelineVersionID), "Referred Pipeline Version Idis not matching")
-	gomega.Expect(actual.PipelineVersionReference.PipelineID).To(gomega.Equal(expected.PipelineVersionReference.PipelineID), "Referred Pipeline Id is not matching")
+	matchPipelineRunSource(actual, expected)
 	gomega.Expect(actual.ServiceAccount).To(gomega.Equal(expected.ServiceAccount), "Service Account is not matching")
 	gomega.Expect(actual.StorageState).To(gomega.Equal(expected.StorageState), "Storage State is not matching")
 }
 
-// MatchPipelineRunDetails - NOTE: Not yet used but once we start populating Run Details, this matcher will come in very handy
-func MatchPipelineRunDetails(actual *run_model.V2beta1RunDetails, expected *run_model.V2beta1RunDetails) {
-	gomega.Expect(actual.PipelineContextID).To(gomega.Equal(expected.PipelineContextID), "Pipeline Context ID is not matching")
-	gomega.Expect(actual.PipelineRunContextID).To(gomega.Equal(expected.PipelineRunContextID), "Pipeline Run Context ID is not matching")
-	gomega.Expect(len(actual.TaskDetails)).To(gomega.Equal(len(expected.TaskDetails)), "Number of Tasks not matching")
-	sort.Slice(actual.TaskDetails, func(i, j int) bool {
-		return actual.TaskDetails[i].DisplayName < actual.TaskDetails[j].DisplayName // Sort Tasks by Name in ascending order
-	})
-	sort.Slice(expected.TaskDetails, func(i, j int) bool {
-		return expected.TaskDetails[i].DisplayName < expected.TaskDetails[j].DisplayName // Sort Tasks by Name in ascending order
-	})
-	for index, task := range expected.TaskDetails {
-		gomega.Expect(actual.TaskDetails[index].RunID).To(gomega.Equal(task.RunID), "Task Run ID is not matching")
-		gomega.Expect(actual.TaskDetails[index].TaskID).To(gomega.Not(gomega.BeEmpty()), "Task ID is empty")
-		if strings.Contains(task.DisplayName, "root") || strings.Contains(task.DisplayName, "driver") {
-			gomega.Expect(actual.TaskDetails[index].DisplayName).To(gomega.Equal(task.DisplayName), "Task Display Name is not matching")
-		} else {
-			gomega.Expect(actual.TaskDetails[index].DisplayName).To(gomega.ContainSubstring(actual.TaskDetails[index].DisplayName), "Task Display Name does not match")
-		}
+// matchPipelineRunSource compares run pipeline sources.
+// Create/default-view responses keep pipeline_version_reference when the run was
+// created from a version. FULL view prefers an embedded pipeline_spec when a
+// manifest is stored (runtime pods use run-scoped tokens and cannot call
+// GetPipelineVersion), so Create vs FULL Get may legitimately differ in form.
+func matchPipelineRunSource(actual *run_model.V2beta1Run, expected *run_model.V2beta1Run) {
+	ginkgo.GinkgoHelper()
+	actualHasRef := actual.PipelineVersionReference != nil
+	expectedHasRef := expected.PipelineVersionReference != nil
+	actualHasSpec := actual.PipelineSpec != nil
+	expectedHasSpec := expected.PipelineSpec != nil
 
-		gomega.Expect(actual.TaskDetails[index].ParentTaskID).To(gomega.Equal(task.ParentTaskID), "Task Parent Task ID is not matching")
-		actualCreationTime := time.Time(actual.TaskDetails[index].CreateTime).UTC()
-		expectedCreationTime := time.Time(task.CreateTime).UTC()
-		actualStartTime := time.Time(actual.TaskDetails[index].StartTime).UTC()
-		expectedStartTimeRange := expectedCreationTime.Add(-1 * time.Second)
-		expectedEndTimeRange := expectedCreationTime.Add(1 * time.Second)
-		gomega.Expect(actualCreationTime.After(expectedStartTimeRange)).To(gomega.BeTrue(), "Task Create Time is before the expected creation time")
-		gomega.Expect(actualCreationTime.Before(expectedEndTimeRange)).To(gomega.BeTrue(), "Task Create Time is after the expected creation time")
-		gomega.Expect(actualStartTime.After(expectedStartTimeRange)).To(gomega.BeTrue(), "Task Start Time is before the expected start time")
-		gomega.Expect(actualStartTime.Before(expectedEndTimeRange)).To(gomega.BeTrue(), "Task End Time is before the expected start time")
-		gomega.Expect(*actual.TaskDetails[index].State).To(gomega.BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateCANCELED, run_model.V2beta1RuntimeStateCANCELING, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStatePENDING, run_model.V2beta1RuntimeStateRUNNING}), "Task State is not matching")
-		for _, state := range actual.TaskDetails[index].StateHistory {
-			gomega.Expect(*state.State).To(gomega.BeElementOf([]run_model.V2beta1RuntimeState{run_model.V2beta1RuntimeStateCANCELED, run_model.V2beta1RuntimeStateCANCELING, run_model.V2beta1RuntimeStateFAILED, run_model.V2beta1RuntimeStateSUCCEEDED, run_model.V2beta1RuntimeStateSKIPPED, run_model.V2beta1RuntimeStatePENDING, run_model.V2beta1RuntimeStateRUNNING}), "Task State History is not matching")
-		}
-		if strings.Contains(task.DisplayName, "driver") {
-			gomega.Expect(len(actual.TaskDetails[index].ChildTasks) > 0).To(gomega.BeTrue(), "No child tasks found for a Driver Task")
-		}
+	switch {
+	case actualHasRef && expectedHasRef:
+		gomega.Expect(actual.PipelineVersionReference.PipelineVersionID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineVersionID),
+			"Referred Pipeline Version Id is not matching",
+		)
+		gomega.Expect(actual.PipelineVersionReference.PipelineID).To(
+			gomega.Equal(expected.PipelineVersionReference.PipelineID),
+			"Referred Pipeline Id is not matching",
+		)
+		MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+	case actualHasSpec && expectedHasSpec && !actualHasRef && !expectedHasRef:
+		MatchMaps(actual.PipelineSpec, expected.PipelineSpec, "Pipeline Spec")
+	case (actualHasRef || actualHasSpec) && (expectedHasRef || expectedHasSpec):
+		// Mixed oneof forms (for example Create vs FULL Get).
+		return
+	default:
+		gomega.Expect(actualHasRef || actualHasSpec).To(gomega.BeTrue(), "Actual run is missing pipeline source")
+		gomega.Expect(expectedHasRef || expectedHasSpec).To(gomega.BeTrue(), "Expected run is missing pipeline source")
 	}
 }

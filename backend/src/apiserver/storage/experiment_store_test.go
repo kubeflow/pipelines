@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
@@ -505,12 +506,14 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{},
 	}
-	runStore.CreateRun(run1)
-	runStore.CreateRun(run2)
+	_, err := runStore.CreateRun(run1)
+	require.NoError(t, err)
+	_, err = runStore.CreateRun(run2)
+	require.NoError(t, err)
 	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
-	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	runs, totalRunSize, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_run_size)
+	assert.Equal(t, 2, totalRunSize)
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_AVAILABLE.String(), string(runs[0].StorageState.ToV1()))
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
 	assert.Equal(t, apiv2beta1.Run_AVAILABLE.String(), runs[0].StorageState.ToString())
@@ -564,9 +567,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
 	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
-	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	runs, totalRunSize, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_run_size)
+	assert.Equal(t, 2, totalRunSize)
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())
@@ -583,9 +586,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, "AVAILABLE", exp.StorageState.ToString())
-	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	runs, totalRunSize, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
-	assert.Equal(t, total_run_size, 2)
+	assert.Equal(t, totalRunSize, 2)
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[0].StorageState.ToV1()))
 	assert.Equal(t, apiv1beta1.Run_STORAGESTATE_ARCHIVED.String(), string(runs[1].StorageState.ToV1()))
 	assert.Equal(t, apiv2beta1.Run_ARCHIVED.String(), runs[0].StorageState.ToString())

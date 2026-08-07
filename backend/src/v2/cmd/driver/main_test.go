@@ -8,9 +8,11 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver"
 	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +32,30 @@ func runtimeValueConstant(value string) *pipelinespec.TaskInputsSpec_InputParame
 			},
 		},
 	}
+}
+
+func TestResolveNamespace(t *testing.T) {
+	t.Run("requires explicit namespace flag", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+		t.Setenv("POD_NAMESPACE", "ignored")
+
+		got, err := resolveNamespace("flag-namespace")
+		if err != nil {
+			t.Fatalf("resolveNamespace() error = %v", err)
+		}
+		if got != "flag-namespace" {
+			t.Fatalf("resolveNamespace() = %q, want %q", got, "flag-namespace")
+		}
+	})
+
+	t.Run("fails when namespace flag is missing", func(t *testing.T) {
+		t.Setenv("NAMESPACE", "kubeflow")
+
+		got, err := resolveNamespace("")
+		if err == nil {
+			t.Fatalf("resolveNamespace() = %q, want error", got)
+		}
+	})
 }
 
 func TestSpecParsing(t *testing.T) {
@@ -295,9 +321,11 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 }
 
 func Test_handleExecutionContainer(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		Condition: "condition.txt",
 	}
 
@@ -313,9 +341,11 @@ func Test_handleExecutionContainer(t *testing.T) {
 }
 
 func Test_handleExecutionRootDAG(t *testing.T) {
-	execution := &driver.Execution{}
+	execution := &driver.Execution{
+		TaskID: "test-task-id",
+	}
 
-	executionPaths := &ExecutionPaths{
+	executionPaths := &TaskPaths{
 		IterationCount: "iteration_count.txt",
 		Condition:      "condition.txt",
 	}
@@ -332,29 +362,9 @@ func Test_handleExecutionRootDAG(t *testing.T) {
 	cleanup(t, executionPaths)
 }
 
-func Test_handleExecutionDAG(t *testing.T) {
-	execution := &driver.Execution{}
-
-	executionPaths := &ExecutionPaths{
-		IterationCount: "iteration_count.txt",
-		Condition:      "condition.txt",
-	}
-
-	err := handleExecution(execution, DAG, executionPaths)
-
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-
-	verifyFileContent(t, executionPaths.IterationCount, "0")
-	verifyFileContent(t, executionPaths.Condition, "nil")
-
-	cleanup(t, executionPaths)
-}
-
-func cleanup(t *testing.T, executionPaths *ExecutionPaths) {
+func cleanup(t *testing.T, executionPaths *TaskPaths) {
 	removeIfExists(t, executionPaths.IterationCount)
-	removeIfExists(t, executionPaths.ExecutionID)
+	removeIfExists(t, executionPaths.TaskID)
 	removeIfExists(t, executionPaths.Condition)
 	removeIfExists(t, executionPaths.PodSpecPatch)
 	removeIfExists(t, executionPaths.CachedDecision)
@@ -384,4 +394,44 @@ func verifyFileContent(t *testing.T, filePath string, expectedContent string) {
 	if string(fileContent) != expectedContent {
 		t.Errorf("Expected file fileContent to be %q, got %q", expectedContent, string(fileContent))
 	}
+}
+
+func TestParseOptionalBoolFlag(t *testing.T) {
+	tests := []struct {
+		name    string
+		value   string
+		wantNil bool
+		want    bool
+		wantErr bool
+	}{
+		{name: "unset empty", value: "", wantNil: true},
+		{name: "true", value: "true", want: true},
+		{name: "false", value: "false", want: false},
+		{name: "invalid", value: "maybe", wantErr: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseOptionalBoolFlag("--default_host_users", tc.value)
+			if tc.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, got)
+				return
+			}
+			assert.NoError(t, err)
+			if tc.wantNil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, tc.want, *got)
+		})
+	}
+}
+
+func TestNewPluginDispatcher_ReturnsNonNil(t *testing.T) {
+	dispatcher := newPluginDispatcher()
+	require.NotNil(t, dispatcher)
+	// With no plugins enabled in unit tests, this should be a usable no-op dispatcher.
+	_, err := dispatcher.OnTaskStart(context.Background(), &plugins.TaskInfo{Name: "unit-test"})
+	assert.NoError(t, err)
 }

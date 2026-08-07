@@ -71,6 +71,30 @@ func (f *fakeRunServiceClient) RetryRun(ctx context.Context, in *api.RetryRunReq
 	return nil, nil
 }
 
+func (f *fakeRunServiceClient) CreateTask(ctx context.Context, in *api.CreateTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) UpdateTask(ctx context.Context, in *api.UpdateTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) UpdateTasksBulk(ctx context.Context, in *api.UpdateTasksBulkRequest, opts ...grpc.CallOption) (*api.UpdateTasksBulkResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) GetTask(ctx context.Context, in *api.GetTaskRequest, opts ...grpc.CallOption) (*api.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) ListTasks(ctx context.Context, in *api.ListTasksRequest, opts ...grpc.CallOption) (*api.ListTasksResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeRunServiceClient) FindCachedTask(ctx context.Context, in *api.FindCachedTaskRequest, opts ...grpc.CallOption) (*api.FindCachedTaskResponse, error) {
+	return nil, nil
+}
+
 // fakeTokenSource implements transport.ResettableTokenSource for testing.
 type fakeTokenSource struct {
 	token string
