@@ -23,7 +23,15 @@ import (
 
 func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 	dbName, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string,
-) *mysql.Config {
+) (*mysql.Config, error) {
+	// Require tls to be set explicitly rather than relying on the driver default
+	// (unencrypted). Failing fast forces operators to make a deliberate choice
+	// ("false" for local development, "true" or "skip-verify" for TLS).
+	if _, ok := mysqlExtraParams["tls"]; !ok {
+		return nil, fmt.Errorf("tls must be explicitly set in MySQL extra params; " +
+			`use "false" for local development or "true"/"skip-verify" for TLS (see backend/README.md)`)
+	}
+
 	params := map[string]string{
 		"charset":              "utf8",
 		"parseTime":            "True",
@@ -43,7 +51,7 @@ func CreateMySQLConfig(user, password, mysqlServiceHost, mysqlServicePort,
 		Params:               params,
 		DBName:               dbName,
 		AllowNativePasswords: true,
-	}
+	}, nil
 }
 
 func CreatePostgreSQLConfig(user, password, postgresHost, dbName string, postgresPort uint16,

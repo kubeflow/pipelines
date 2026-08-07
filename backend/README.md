@@ -64,6 +64,53 @@ docker build . -f backend/Dockerfile.conformance -t <tag>
 
 ## API Server Configuration
 
+### Database TLS
+
+MySQL connections require an explicit `tls` value in `DBConfig.MySQLConfig.ExtraParams`
+(or the cache server's `--db_extra_params` JSON flag). The API server and cache
+server fail fast at startup if `tls` is unset, instead of silently using an
+unencrypted connection.
+
+| Value | Meaning |
+|-------|---------|
+| `false` | Disable TLS (local development / CI only) |
+| `true` | Enable TLS with the system certificate authorities |
+| `skip-verify` | Enable TLS without verifying the server certificate |
+
+Example for local development (`config.json`):
+
+```json
+{
+  "DBConfig": {
+    "MySQLConfig": {
+      "ExtraParams": {
+        "tls": "false"
+      }
+    }
+  }
+}
+```
+
+Example for local Kind CI overlays:
+
+```yaml
+- name: DBCONFIG_MYSQLCONFIG_EXTRAPARAMS
+  value: '{"tls":"false"}'
+```
+
+Example for the cache server:
+
+```yaml
+args:
+  - --db_extra_params={"tls":"false"}
+```
+
+Production deployments should set `tls` to `true` or `skip-verify` and configure the
+MySQL server with valid certificates. For custom CA bundles or mutual TLS, register a
+named TLS config with `mysql.RegisterTLSConfig` in application startup and pass that
+name as the `tls` extra param value (see the
+[go-sql-driver/mysql TLS documentation](https://github.com/go-sql-driver/mysql#tls)).
+
 ### Driver Pod Labels and Annotations
 
 The API server supports configuring custom labels and annotations for driver pods through the configuration file or the Kubernetes ConfigMap. This is useful for integration with service mesh (Istio), monitoring systems, or other infrastructure requirements.
