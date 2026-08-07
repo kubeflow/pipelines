@@ -96,6 +96,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -105,13 +106,13 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer sizeRow.Close()
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -121,7 +122,6 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {

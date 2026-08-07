@@ -78,6 +78,36 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
     }
   };
 
+  const deleteCallback = (_: string[], success: boolean) => {
+    if (success) {
+      const breadcrumbs = props.toolbarProps.breadcrumbs;
+      const previousPage = breadcrumbs.length
+        ? breadcrumbs[breadcrumbs.length - 1].href
+        : RoutePage.EXPERIMENTS;
+      props.history.push(previousPage);
+    }
+  };
+
+  const getInitialToolbarState = (): ToolbarProps => {
+    const buttons = new Buttons(props, refreshRecurringRun);
+    return {
+      actions: buttons
+        .cloneRecurringRun(() => (recurringRun ? [recurringRun.recurring_run_id!] : []), true)
+        .refresh(refreshRecurringRun)
+        .enableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
+        .disableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
+        .delete(
+          () => (recurringRun ? [recurringRun.recurring_run_id!] : []),
+          'recurring run config',
+          deleteCallback,
+          true /* useCurrentResource */,
+        )
+        .getToolbarActionMap(),
+      breadcrumbs: [],
+      pageTitle: '',
+    };
+  };
+
   useEffect(() => {
     const toolbarState = getInitialToolbarState();
 
@@ -138,36 +168,6 @@ export function RecurringRunDetailsV2FC(props: PageProps) {
       cancelled = true;
     };
   }, [getRecurringRunError, getExperimentError, recurringRunId, updateBanner]);
-
-  const deleteCallback = (_: string[], success: boolean) => {
-    if (success) {
-      const breadcrumbs = props.toolbarProps.breadcrumbs;
-      const previousPage = breadcrumbs.length
-        ? breadcrumbs[breadcrumbs.length - 1].href
-        : RoutePage.EXPERIMENTS;
-      props.history.push(previousPage);
-    }
-  };
-
-  const getInitialToolbarState = (): ToolbarProps => {
-    const buttons = new Buttons(props, refreshRecurringRun);
-    return {
-      actions: buttons
-        .cloneRecurringRun(() => (recurringRun ? [recurringRun.recurring_run_id!] : []), true)
-        .refresh(refreshRecurringRun)
-        .enableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
-        .disableRecurringRun(() => (recurringRun ? recurringRun.recurring_run_id! : ''))
-        .delete(
-          () => (recurringRun ? [recurringRun.recurring_run_id!] : []),
-          'recurring run config',
-          deleteCallback,
-          true /* useCurrentResource */,
-        )
-        .getToolbarActionMap(),
-      breadcrumbs: [],
-      pageTitle: '',
-    };
-  };
 
   if (isRecurringRunLoading) {
     return <CircularProgress />;
@@ -233,13 +233,13 @@ function getRunTriggers(recurringRun: V2beta1RecurringRun): Array<KeyValue<strin
 }
 
 function getRunParameters(recurringRun: V2beta1RecurringRun): Array<KeyValue<string>> {
-  let parameters: Array<KeyValue<string>> = [];
-
-  parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(([key, value]) => {
-    const displayValue =
-      value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
-    return [key || '', displayValue];
-  });
+  const parameters = Object.entries(recurringRun.runtime_config?.parameters || []).map(
+    ([key, value]) => {
+      const displayValue =
+        value == null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
+      return [key || '', displayValue];
+    },
+  );
 
   return parameters;
 }

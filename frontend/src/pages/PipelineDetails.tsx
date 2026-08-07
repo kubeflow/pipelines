@@ -342,7 +342,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let templateString = '';
     let breadcrumbs: Array<{ displayName: string; href: string }> = [];
     const toolbarActions = this.props.toolbarProps.actions;
-    let pageTitle = '';
+    let pageTitle: string;
 
     // If fromRunId or fromRecurringRunId is specified,
     // then load the run and get the pipeline template from it

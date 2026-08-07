@@ -337,7 +337,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   };
 
   protected async _loadRuns(request: ListRequest): Promise<string> {
-    let displayRuns: DisplayRun[] = [];
+    let displayRuns: DisplayRun[];
     let nextPageToken = '';
 
     if (Array.isArray(this.props.runIdListMask)) {
