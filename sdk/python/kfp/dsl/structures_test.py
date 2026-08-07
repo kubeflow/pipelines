@@ -1113,6 +1113,112 @@ implementation:
         self.assertEqual(outputs['output4'].type, 'Dict')
 
 
+class TestLoadV1ComponentWithYamlBooleanNames(parameterized.TestCase):
+
+    @parameterized.parameters(['on', 'off', 'yes', 'no', 'On', 'OFF'])
+    def test_unquoted_boolean_like_input_name(self, name: str):
+        comp_text = textwrap.dedent(f"""\
+            name: test
+            inputs:
+            - {{name: {name}, type: String}}
+            implementation:
+              container:
+                image: alpine
+                command: [echo, {{inputValue: {name}}}]
+            """)
+
+        comp = components.load_component_from_text(comp_text)
+
+        sanitized_name = name.lower()
+        self.assertEqual(
+            list(comp.component_spec.inputs.keys()), [sanitized_name])
+        self.assertEqual(comp.component_spec.inputs[sanitized_name].type,
+                         'String')
+        self.assertEqual(comp.component_spec.implementation.container.command, [
+            'echo',
+            placeholders.InputValuePlaceholder(input_name=sanitized_name),
+        ])
+
+    @parameterized.parameters(['on', 'off', 'yes', 'no'])
+    def test_unquoted_boolean_like_output_name(self, name: str):
+        comp_text = textwrap.dedent(f"""\
+            name: test
+            outputs:
+            - {{name: {name}}}
+            implementation:
+              container:
+                image: alpine
+                command: [echo, {{outputPath: {name}}}]
+            """)
+
+        comp = components.load_component_from_text(comp_text)
+
+        self.assertEqual(list(comp.component_spec.outputs.keys()), [name])
+
+    def test_block_style_unquoted_boolean_like_input_name(self):
+        comp_text = textwrap.dedent("""\
+            name: test
+            inputs:
+            - name: off
+              type: String
+            implementation:
+              container:
+                image: alpine
+                command: [echo]
+            """)
+
+        comp = components.load_component_from_text(comp_text)
+
+        self.assertEqual(list(comp.component_spec.inputs.keys()), ['off'])
+
+    def test_unquoted_boolean_like_default_still_casts_to_bool(self):
+        comp_text = textwrap.dedent("""\
+            name: test
+            inputs:
+            - {name: val, type: Boolean, default: yes}
+            implementation:
+              container:
+                image: alpine
+                command: [echo, {inputValue: val}]
+            """)
+
+        comp = components.load_component_from_text(comp_text)
+
+        self.assertIs(comp.component_spec.inputs['val'].default, True)
+
+    def test_unquoted_boolean_like_optional_still_casts_to_bool(self):
+        comp_text = textwrap.dedent("""\
+            name: test
+            inputs:
+            - {name: val, type: String, optional: yes}
+            implementation:
+              container:
+                image: alpine
+                command: [echo, {inputValue: val}]
+            """)
+
+        comp = components.load_component_from_text(comp_text)
+
+        self.assertTrue(comp.component_spec.inputs['val'].optional)
+
+    def test_non_string_input_name_raises_clear_error(self):
+        comp_text = textwrap.dedent("""\
+            name: test
+            inputs:
+            - {name: 5, type: String}
+            implementation:
+              container:
+                image: alpine
+                command: [echo]
+            """)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Invalid input name 5 in the component YAML\. Component input names must be strings\.'
+        ):
+            components.load_component_from_text(comp_text)
+
+
 class TestLoadDocumentsFromYAML(unittest.TestCase):
 
     def test_no_documents(self):

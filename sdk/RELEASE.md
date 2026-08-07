@@ -8,6 +8,8 @@
 
 ## Bug fixes and other changes
 
+* Load v1 component input and output names that YAML 1.1 resolves as booleans (`on`, `off`, `yes`, `no`) as strings instead of failing with a `TypeError`. Fixes #13756
+
 # 2.15.2
 
 ## Bug fixes and other changes

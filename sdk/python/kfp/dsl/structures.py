@@ -1084,9 +1084,71 @@ def load_documents_from_yaml(component_yaml: str) -> Tuple[dict, dict]:
     return pipeline_spec_dict, platform_spec_dict
 
 
+class _V1ComponentYamlLoader(yaml.SafeLoader):
+    """YAML loader that resolves booleans per the YAML 1.2 core schema.
+
+    PyYAML implements YAML 1.1, which resolves the unquoted scalars
+    ``on``, ``off``, ``yes`` and ``no`` to booleans. v1 component YAML
+    uses these words as ordinary strings, most commonly as input and
+    output names.
+    """
+
+
+def _drop_yaml_1_1_bool_resolvers() -> Dict[str, List[tuple]]:
+    """Builds implicit resolvers that only treat t/T/f/F scalars as bools.
+
+    This restricts implicit booleans to
+    true/True/TRUE/false/False/FALSE.
+    """
+    resolvers_by_first_char = {}
+    for first_char, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items(
+    ):
+        resolvers_by_first_char[first_char] = [
+            (tag, regexp)
+            for tag, regexp in resolvers
+            if tag != 'tag:yaml.org,2002:bool' or first_char in 'tTfF'
+        ]
+    return resolvers_by_first_char
+
+
+_V1ComponentYamlLoader.yaml_implicit_resolvers = _drop_yaml_1_1_bool_resolvers()
+
+_YAML_1_1_BOOL_STRINGS = {
+    'yes': True,
+    'no': False,
+    'on': True,
+    'off': False,
+}
+
+
+def _normalize_v1_io_specs(component_dict: Dict[str, Any]) -> None:
+    """Validates v1 I/O names and restores boolean ``optional`` values.
+
+    ``_V1ComponentYamlLoader`` keeps ``on``/``off``/``yes``/``no`` as
+    strings so that they can be used as I/O names. ``optional`` is
+    declared as a boolean, so the boolean meaning is restored for that
+    field only.
+    """
+    for field_name, io_kind in (('inputs', 'input'), ('outputs', 'output')):
+        for spec in component_dict.get(field_name) or []:
+            if not isinstance(spec, dict):
+                continue
+            name = spec.get('name')
+            if not isinstance(name, str):
+                raise ValueError(
+                    f'Invalid {io_kind} name {name!r} in the component YAML. Component {io_kind} names must be strings. Quote the name to keep it a string, such as name: "{name}".'
+                )
+            optional = spec.get('optional')
+            if isinstance(optional, str):
+                normalized = _YAML_1_1_BOOL_STRINGS.get(optional.lower())
+                if normalized is not None:
+                    spec['optional'] = normalized
+
+
 def _load_component_spec_from_component_text(
         text) -> v1_structures.ComponentSpec:
-    component_dict = yaml.safe_load(text)
+    component_dict = yaml.load(text, Loader=_V1ComponentYamlLoader)
+    _normalize_v1_io_specs(component_dict)
     component_spec = v1_structures.ComponentSpec.from_dict(component_dict)
 
     # Calculating hash digest for the component
