@@ -52,7 +52,6 @@ const (
 	httpProxyArg                          = "http_proxy"
 	httpsProxyArg                         = "https_proxy"
 	noProxyArg                            = "no_proxy"
-	unsetProxyArgValue                    = "unset"
 	ROOT_DAG                              = "ROOT_DAG" //nolint
 	DAG                                   = "DAG"
 	CONTAINER                             = "CONTAINER"
@@ -62,18 +61,17 @@ const (
 
 var (
 	// inputs
-	driverType                      = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName                    = flag.String("pipeline_name", "", "pipeline context name")
-	runID                           = flag.String("run_id", "", "pipeline run uid")
-	runName                         = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
-	runDisplayName                  = flag.String("run_display_name", "", "pipeline run display name")
-	pipelineJobCreateTimeUTCArg     = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
-	pipelineJobScheduleTimeEpochArg = flag.String("pipeline_job_schedule_time_epoch_seconds", "", "pipeline job scheduled time as Unix epoch seconds")
-	componentSpecJSON               = flag.String("component", "{}", "component spec")
-	taskSpecJSON                    = flag.String("task", "", "task spec")
-	runtimeConfigJSON               = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex                  = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	taskName                        = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	driverType                  = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName                = flag.String("pipeline_name", "", "pipeline context name")
+	runID                       = flag.String("run_id", "", "pipeline run uid")
+	runName                     = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
+	runDisplayName              = flag.String("run_display_name", "", "pipeline run display name")
+	pipelineJobCreateTimeUTCArg = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
+	componentSpecJSON           = flag.String("component", "{}", "component spec")
+	taskSpecJSON                = flag.String("task", "", "task spec")
+	runtimeConfigJSON           = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex              = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName                    = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -96,9 +94,9 @@ var (
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
-	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
-	httpsProxy           = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
-	noProxy              = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	httpProxy            = flag.String(httpProxyArg, "", "The proxy for HTTP connections.")
+	httpsProxy           = flag.String(httpsProxyArg, "", "The proxy for HTTPS connections.")
+	noProxy              = flag.String(noProxyArg, "", "Addresses that should ignore the proxy.")
 	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
@@ -114,6 +112,7 @@ var (
 
 func main() {
 	flag.Parse()
+	providedFlags = collectProvidedFlags()
 	initConfig()
 
 	glog.Infof("Setting log level to: '%s'", *logLevel)
@@ -135,20 +134,103 @@ func init() {
 	flag.Set("stderrthreshold", "WARNING")
 }
 
+// Required flags the compiler must always pass to the driver, grouped by driver
+// type, so a dropped flag fails fast instead of silently using a default. A flag
+// is required for a type when the compiler always emits it for that type. Only the
+// admin-default flags (default_run_as_*, default_host_users) stay optional -- they
+// are emitted only when configured, and their absence is indistinguishable from
+// "not set".
+var (
+	commonRequiredDriverFlags = []string{
+		driverTypeArg,
+		"pipeline_name",
+		"run_id",
+		"run_name",
+		"run_display_name",
+		"pipeline_job_create_time_utc",
+		"component",
+		"ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+		"mlmd_server_address",
+		"mlmd_server_port",
+		"log_level",
+		"publish_logs",
+		"cache_disabled",
+		"ml_pipeline_tls_enabled",
+		"metadata_tls_enabled",
+		"ca_cert_path",
+		"condition_path",
+		"iteration_index",
+		"http_proxy",
+		"https_proxy",
+		"no_proxy",
+	}
+	nonRootRequiredDriverFlags = []string{
+		"task",
+		"dag_execution_id",
+		"task_name",
+	}
+	dagOutputPathDriverFlags     = []string{"execution_id_path", "iteration_count_path"}
+	rootDAGRequiredDriverFlags   = []string{"runtime_config"}
+	containerRequiredDriverFlags = []string{
+		"container",
+		"kubernetes_config",
+		"cached_decision_path",
+		"pod_spec_patch_path",
+	}
+)
+
+// providedFlags holds the flags passed on the command line; set in main().
+var providedFlags = map[string]bool{}
+
+// collectProvidedFlags returns the flags explicitly set on the command line.
+// flag.Visit reports only flags that were provided, not those left at default.
+func collectProvidedFlags() map[string]bool {
+	provided := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) {
+		provided[f.Name] = true
+	})
+	return provided
+}
+
+func requiredDriverFlags(driverType string) ([]string, error) {
+	required := append([]string{}, commonRequiredDriverFlags...)
+	switch driverType {
+	case ROOT_DAG:
+		required = append(required, dagOutputPathDriverFlags...)
+		required = append(required, rootDAGRequiredDriverFlags...)
+	case DAG:
+		required = append(required, dagOutputPathDriverFlags...)
+		required = append(required, nonRootRequiredDriverFlags...)
+	case CONTAINER:
+		required = append(required, nonRootRequiredDriverFlags...)
+		required = append(required, containerRequiredDriverFlags...)
+	default:
+		return nil, fmt.Errorf("unknown driver type %q, must be one of %s, %s, %s", driverType, ROOT_DAG, DAG, CONTAINER)
+	}
+	return required, nil
+}
+
+func validateRequiredFlags(provided map[string]bool, driverType string) error {
+	required, err := requiredDriverFlags(driverType)
+	if err != nil {
+		return err
+	}
+	for _, name := range required {
+		if !provided[name] {
+			return fmt.Errorf("--%s is required for %s but was not provided", name, driverType)
+		}
+	}
+	return nil
+}
+
 func validate() error {
 	if *driverType == "" {
 		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
 	}
-	if *httpProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", httpProxyArg)
+	if err := validateRequiredFlags(providedFlags, *driverType); err != nil {
+		return err
 	}
-	if *httpsProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", httpsProxyArg)
-	}
-	if *noProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
-	}
-	// validation responsibility lives in driver itself, so we do not validate all other args
 	return nil
 }
 
@@ -236,11 +318,10 @@ func getWorkflowMetadataForPipelineJobTimes(
 	workflowName string,
 	placeholderUsage pipelineJobTimePlaceholderUsage,
 	createTimeUTC string,
-	scheduleTimeEpochSeconds string,
 	getMetadata workflowMetadataGetter,
 ) (*metav1.ObjectMeta, error) {
 	needsCreateTimeMetadata := placeholderUsage.needsCreateTime && createTimeUTC == ""
-	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime && scheduleTimeEpochSeconds == ""
+	needsScheduleTimeMetadata := placeholderUsage.needsScheduleTime
 	if !needsCreateTimeMetadata && !needsScheduleTimeMetadata {
 		return nil, nil
 	}
@@ -285,25 +366,16 @@ func resolvePipelineJobScheduleTimeUTCFromWorkflow(
 }
 
 // resolvePipelineJobTimes normalizes the placeholder inputs into the UTC values
-// consumed by driver.Options. Schedule time may come from the compiled flag
-// when explicitly provided, or from workflow metadata when manual runs would
-// otherwise have no workflowEpoch label to resolve.
+// consumed by driver.Options. Schedule time is resolved from workflow metadata,
+// falling back to create time when there is no workflowEpoch label (manual runs).
 func resolvePipelineJobTimes(
 	createTimeUTC string,
-	scheduleTimeEpochSeconds string,
 	workflowMeta *metav1.ObjectMeta,
-) (string, string, error) {
+) (string, string) {
 	if createTimeUTC == "" && workflowMeta != nil {
 		createTimeUTC = workflowMeta.CreationTimestamp.Time.UTC().Format(time.RFC3339)
 	}
-	if scheduleTimeEpochSeconds == "" {
-		return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC), nil
-	}
-	scheduleTimeEpoch, err := strconv.ParseInt(scheduleTimeEpochSeconds, 10, 64)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid pipeline job schedule time epoch seconds %q: %w", scheduleTimeEpochSeconds, err)
-	}
-	return createTimeUTC, time.Unix(scheduleTimeEpoch, 0).UTC().Format(time.RFC3339), nil
+	return createTimeUTC, resolvePipelineJobScheduleTimeUTCFromWorkflow(workflowMeta, createTimeUTC)
 }
 
 func drive() (err error) {
@@ -391,20 +463,15 @@ func drive() (err error) {
 		*runName,
 		placeholderUsage,
 		*pipelineJobCreateTimeUTCArg,
-		*pipelineJobScheduleTimeEpochArg,
 		getCurrentWorkflowMetadata,
 	)
 	if err != nil {
 		return err
 	}
-	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC, err := resolvePipelineJobTimes(
+	resolvedPipelineJobCreateTimeUTC, resolvedPipelineJobScheduleTimeUTC := resolvePipelineJobTimes(
 		*pipelineJobCreateTimeUTCArg,
-		*pipelineJobScheduleTimeEpochArg,
 		workflowMeta,
 	)
-	if err != nil {
-		return err
-	}
 	options := driver.Options{
 		PipelineName:               *pipelineName,
 		RunID:                      *runID,
@@ -442,20 +509,23 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
-		// Set admin defaults only when explicitly configured (non-negative).
-		if *defaultRunAsUser >= 0 {
+		// Admin defaults are intentionally optional: apply each only when the flag
+		// was actually provided. flag.Visit (via providedFlags) is the authority
+		// for "was it set", so no sentinel value is needed.
+		if providedFlags["default_run_as_user"] {
 			options.DefaultRunAsUser = defaultRunAsUser
 		}
-		if *defaultRunAsGroup >= 0 {
+		if providedFlags["default_run_as_group"] {
 			options.DefaultRunAsGroup = defaultRunAsGroup
 		}
-		if *defaultRunAsNonRoot != "" {
+		if providedFlags["default_run_as_non_root"] {
 			v, err := strconv.ParseBool(*defaultRunAsNonRoot)
-			if err == nil {
-				options.DefaultRunAsNonRoot = &v
+			if err != nil {
+				return fmt.Errorf("invalid --default_run_as_non_root value %q: %w", *defaultRunAsNonRoot, err)
 			}
+			options.DefaultRunAsNonRoot = &v
 		}
-		if *defaultHostUsers != "" {
+		if providedFlags["default_host_users"] {
 			v, err := strconv.ParseBool(*defaultHostUsers)
 			if err != nil {
 				return fmt.Errorf("invalid --default_host_users value %q: %w", *defaultHostUsers, err)
