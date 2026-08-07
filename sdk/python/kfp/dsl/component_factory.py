@@ -13,6 +13,7 @@
 # limitations under the License.
 import base64
 import dataclasses
+import errno
 import gzip
 import inspect
 import io
@@ -502,6 +503,73 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 ]
 
 
+def _safe_add_to_tar(
+    tar: tarfile.TarFile,
+    root: pathlib.Path,
+    arcname: str = '.',
+) -> None:
+    """Add a file or directory to a tar archive with controlled symlink
+    resolution.
+
+    Resolves the top-level *root* path, then walks its contents:
+    - Regular files are added directly.
+    - In-tree file symlinks are dereferenced (archived as regular files).
+    - Dangling symlinks raise ``ValueError``.
+    - Files whose resolved path escapes the artifact tree raise
+      ``ValueError``.
+    - Directory symlinks are rejected unconditionally.
+
+    This helper operates on trusted local input and does not attempt to
+    enforce source-tree immutability against concurrent modification.
+    """
+    resolved_root = root.resolve()
+
+    if resolved_root.is_file():
+        tar.add(str(resolved_root), arcname=arcname)
+        return
+
+    if not resolved_root.is_dir():
+        raise ValueError(f'Embedded artifact path does not exist or is not a '
+                         f'file/directory: {root}')
+
+    def _walk(
+        current: pathlib.Path,
+        arc_prefix: str,
+    ) -> None:
+        try:
+            resolved = current.resolve(strict=True)
+        except RuntimeError:
+            raise ValueError(f'Symlink cycle detected at: {current}')
+        except OSError as e:
+            if e.errno == errno.ELOOP:
+                raise ValueError(f'Symlink cycle detected at: {current}')
+            if e.errno in (errno.ENOENT, errno.ENOTDIR):
+                raise ValueError(f'Dangling symlink: {current}')
+            raise
+
+        if resolved.is_dir():
+            if current != resolved:
+                raise ValueError(
+                    f'Directory symlinks are not supported: {current}')
+
+            tar.add(str(resolved), arcname=arc_prefix, recursive=False)
+            for child in sorted(resolved.iterdir()):
+                child_arc = (f'{arc_prefix}/{child.name}'
+                             if arc_prefix != '.' else child.name)
+                _walk(child, child_arc)
+        elif resolved.is_file():
+            try:
+                resolved.relative_to(resolved_root)
+            except ValueError:
+                raise ValueError(
+                    f'Path escapes artifact tree: {current} -> {resolved}')
+            tar.add(str(resolved), arcname=arc_prefix)
+        else:
+            raise ValueError(f'Unsupported file type: {current}')
+
+    _walk(resolved_root, arcname)
+
+
 def _get_command_and_args_for_lightweight_component(
     func: Callable,
     additional_funcs: Optional[List[Callable]] = None,
@@ -533,9 +601,9 @@ def _get_command_and_args_for_lightweight_component(
         buf = io.BytesIO()
         with tarfile.open(fileobj=buf, mode='w') as tar:
             if asset_path.is_dir():
-                tar.add(asset_path, arcname='.')
+                _safe_add_to_tar(tar, asset_path, arcname='.')
             else:
-                tar.add(asset_path, arcname=asset_path.name)
+                _safe_add_to_tar(tar, asset_path, arcname=asset_path.name)
 
         archive_bytes = buf.getvalue()
 
