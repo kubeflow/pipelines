@@ -16,7 +16,6 @@ package argocompiler
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
@@ -102,15 +101,7 @@ func (c *workflowCompiler) addImporterTemplate(downloadToWorkspace bool) string 
 	}
 	args = append(args, "--ca_cert_path", caCertPath)
 
-	logLevel := "1"
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		logLevel = value
-	}
-	publishLogs := "true"
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		publishLogs = value
-	}
-	args = append(args, "--log_level", logLevel, "--publish_logs", publishLogs)
+	args = append(args, "--log_level", pipelineLogLevelArg(), "--publish_logs", publishLogsArg())
 
 	var volumeMounts []k8score.VolumeMount
 	var volumes []k8score.Volume

@@ -280,7 +280,8 @@ func TestRequiredDriverFlags(t *testing.T) {
 		"pipeline_job_create_time_utc", "component", "ml_pipeline_server_address",
 		"ml_pipeline_server_port", "mlmd_server_address", "mlmd_server_port",
 		"log_level", "publish_logs", "cache_disabled", "ml_pipeline_tls_enabled",
-		"metadata_tls_enabled", "ca_cert_path", "condition_path",
+		"metadata_tls_enabled", "ca_cert_path", "condition_path", "iteration_index",
+		"http_proxy", "https_proxy", "no_proxy",
 	}
 	withCommon := func(extra ...string) []string {
 		return append(append([]string{}, common...), extra...)
@@ -290,8 +291,8 @@ func TestRequiredDriverFlags(t *testing.T) {
 		want       []string
 	}{
 		{driverType: ROOT_DAG, want: withCommon("execution_id_path", "iteration_count_path", "runtime_config")},
-		{driverType: DAG, want: withCommon("execution_id_path", "iteration_count_path", "task", "dag_execution_id", "iteration_index", "task_name")},
-		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "iteration_index", "task_name", "container", "kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
+		{driverType: DAG, want: withCommon("execution_id_path", "iteration_count_path", "task", "dag_execution_id", "task_name")},
+		{driverType: CONTAINER, want: withCommon("task", "dag_execution_id", "task_name", "container", "kubernetes_config", "cached_decision_path", "pod_spec_patch_path")},
 	}
 	for _, tc := range tests {
 		t.Run(tc.driverType, func(t *testing.T) {
@@ -376,6 +377,12 @@ func TestValidateRequiredFlags(t *testing.T) {
 			name:       "DAG missing ca_cert_path",
 			driverType: DAG,
 			omit:       []string{"ca_cert_path"},
+			wantErr:    true,
+		},
+		{
+			name:       "CONTAINER missing http_proxy",
+			driverType: CONTAINER,
+			omit:       []string{"http_proxy"},
 			wantErr:    true,
 		},
 		{

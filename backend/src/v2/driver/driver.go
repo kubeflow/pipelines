@@ -59,9 +59,10 @@ type Options struct {
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 
-	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
+	// required, pipeline run name (Kubernetes object name); used by the
+	// {{$.pipeline_job_resource_name}} placeholder and workspace runs
 	RunName string
-	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
+	// required, pipeline run display name; used by the {{$.pipeline_job_name}} placeholder
 	RunDisplayName string
 
 	PipelineLogLevel string

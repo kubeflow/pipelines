@@ -52,7 +52,6 @@ const (
 	httpProxyArg                          = "http_proxy"
 	httpsProxyArg                         = "https_proxy"
 	noProxyArg                            = "no_proxy"
-	unsetProxyArgValue                    = "unset"
 	ROOT_DAG                              = "ROOT_DAG" //nolint
 	DAG                                   = "DAG"
 	CONTAINER                             = "CONTAINER"
@@ -62,17 +61,17 @@ const (
 
 var (
 	// inputs
-	driverType                      = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
-	pipelineName                    = flag.String("pipeline_name", "", "pipeline context name")
-	runID                           = flag.String("run_id", "", "pipeline run uid")
-	runName                         = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
-	runDisplayName                  = flag.String("run_display_name", "", "pipeline run display name")
-	pipelineJobCreateTimeUTCArg     = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
-	componentSpecJSON               = flag.String("component", "{}", "component spec")
-	taskSpecJSON                    = flag.String("task", "", "task spec")
-	runtimeConfigJSON               = flag.String("runtime_config", "", "jobruntime config")
-	iterationIndex                  = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
-	taskName                        = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
+	driverType                  = flag.String(driverTypeArg, "", "task driver type, one of ROOT_DAG, DAG, CONTAINER")
+	pipelineName                = flag.String("pipeline_name", "", "pipeline context name")
+	runID                       = flag.String("run_id", "", "pipeline run uid")
+	runName                     = flag.String("run_name", "", "pipeline run name (Kubernetes object name)")
+	runDisplayName              = flag.String("run_display_name", "", "pipeline run display name")
+	pipelineJobCreateTimeUTCArg = flag.String("pipeline_job_create_time_utc", "", "pipeline job creation time in UTC")
+	componentSpecJSON           = flag.String("component", "{}", "component spec")
+	taskSpecJSON                = flag.String("task", "", "task spec")
+	runtimeConfigJSON           = flag.String("runtime_config", "", "jobruntime config")
+	iterationIndex              = flag.Int("iteration_index", -1, "iteration index, -1 means not an interation")
+	taskName                    = flag.String("task_name", "", "original task name, used for proper input resolution in the container/dag driver")
 
 	// container inputs
 	dagExecutionID    = flag.Int64("dag_execution_id", 0, "DAG execution ID")
@@ -95,9 +94,9 @@ var (
 	logLevel           = flag.String("log_level", "1", "The verbosity level to log.")
 
 	// proxy
-	httpProxy            = flag.String(httpProxyArg, unsetProxyArgValue, "The proxy for HTTP connections.")
-	httpsProxy           = flag.String(httpsProxyArg, unsetProxyArgValue, "The proxy for HTTPS connections.")
-	noProxy              = flag.String(noProxyArg, unsetProxyArgValue, "Addresses that should ignore the proxy.")
+	httpProxy            = flag.String(httpProxyArg, "", "The proxy for HTTP connections.")
+	httpsProxy           = flag.String(httpsProxyArg, "", "The proxy for HTTPS connections.")
+	noProxy              = flag.String(noProxyArg, "", "Addresses that should ignore the proxy.")
 	publishLogs          = flag.String("publish_logs", "true", "Whether to publish component logs to the object store")
 	cacheDisabledFlag    = flag.Bool("cache_disabled", false, "Disable cache globally.")
 	mlPipelineTLSEnabled = flag.Bool("ml_pipeline_tls_enabled", false, "Set to true if mlpipeline API server serves over TLS.")
@@ -137,10 +136,10 @@ func init() {
 
 // Required flags the compiler must always pass to the driver, grouped by driver
 // type, so a dropped flag fails fast instead of silently using a default. A flag
-// is required for a type when the compiler always emits it for that type. The
-// admin-default flags (default_run_as_*, default_host_users) stay optional --
-// they are emitted only when configured, and their absence is indistinguishable
-// from "not set". Proxy flags are validated via their sentinel below.
+// is required for a type when the compiler always emits it for that type. Only the
+// admin-default flags (default_run_as_*, default_host_users) stay optional -- they
+// are emitted only when configured, and their absence is indistinguishable from
+// "not set".
 var (
 	commonRequiredDriverFlags = []string{
 		driverTypeArg,
@@ -161,11 +160,14 @@ var (
 		"metadata_tls_enabled",
 		"ca_cert_path",
 		"condition_path",
+		"iteration_index",
+		"http_proxy",
+		"https_proxy",
+		"no_proxy",
 	}
 	nonRootRequiredDriverFlags = []string{
 		"task",
 		"dag_execution_id",
-		"iteration_index",
 		"task_name",
 	}
 	dagOutputPathDriverFlags     = []string{"execution_id_path", "iteration_count_path"}
@@ -228,15 +230,6 @@ func validate() error {
 	}
 	if err := validateRequiredFlags(providedFlags, *driverType); err != nil {
 		return err
-	}
-	if *httpProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", httpProxyArg)
-	}
-	if *httpsProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", httpsProxyArg)
-	}
-	if *noProxy == unsetProxyArgValue {
-		return fmt.Errorf("argument --%s is required but can be an empty value", noProxyArg)
 	}
 	return nil
 }
@@ -516,20 +509,23 @@ func drive() (err error) {
 	case CONTAINER:
 		options.Container = containerSpec
 		options.KubernetesExecutorConfig = k8sExecCfg
-		// Set admin defaults only when explicitly configured (non-negative).
-		if *defaultRunAsUser >= 0 {
+		// Admin defaults are intentionally optional: apply each only when the flag
+		// was actually provided. flag.Visit (via providedFlags) is the authority
+		// for "was it set", so no sentinel value is needed.
+		if providedFlags["default_run_as_user"] {
 			options.DefaultRunAsUser = defaultRunAsUser
 		}
-		if *defaultRunAsGroup >= 0 {
+		if providedFlags["default_run_as_group"] {
 			options.DefaultRunAsGroup = defaultRunAsGroup
 		}
-		if *defaultRunAsNonRoot != "" {
+		if providedFlags["default_run_as_non_root"] {
 			v, err := strconv.ParseBool(*defaultRunAsNonRoot)
-			if err == nil {
-				options.DefaultRunAsNonRoot = &v
+			if err != nil {
+				return fmt.Errorf("invalid --default_run_as_non_root value %q: %w", *defaultRunAsNonRoot, err)
 			}
+			options.DefaultRunAsNonRoot = &v
 		}
-		if *defaultHostUsers != "" {
+		if providedFlags["default_host_users"] {
 			v, err := strconv.ParseBool(*defaultHostUsers)
 			if err != nil {
 				return fmt.Errorf("invalid --default_host_users value %q: %w", *defaultHostUsers, err)
