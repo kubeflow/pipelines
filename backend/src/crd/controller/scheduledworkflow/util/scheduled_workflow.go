@@ -112,6 +112,11 @@ func (s *ScheduledWorkflow) nextIndex() int64 {
 	return s.lastIndex() + 1
 }
 
+// NextIndex returns the one-based index of the next run of this schedule.
+func (s *ScheduledWorkflow) NextIndex() int64 {
+	return s.nextIndex()
+}
+
 // MinIndex returns the minimum index of the workflow to retrieve as part of the workflow
 // history.
 func (s *ScheduledWorkflow) MinIndex() int64 {
