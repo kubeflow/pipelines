@@ -266,12 +266,11 @@ func apply(f func(string) string, vs []string) []string {
 }
 
 func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	var r model.Run
 	resourceRefConcatQuery := s.db.Concat([]string{`"["`, s.db.GroupConcat("rr.Payload", ","), `"]"`}, "")
 	columnsAfterJoiningResourceReferences := append(
 		apply(func(column string) string { return "rd." + column }, runColumns), // Add prefix "rd." to runColumns
 		resourceRefConcatQuery+" AS refs")
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+	if opts != nil && opts.SortByMetricName != "" {
 		columnsAfterJoiningResourceReferences = append(columnsAfterJoiningResourceReferences, "rd."+model.MetricSortSQLAlias)
 	}
 	subQ := sq.
@@ -285,7 +284,7 @@ func (s *RunStore) addMetricsResourceReferencesAndTasks(filteredSelectBuilder sq
 		apply(func(column string) string { return "rdref." + column }, runColumns),
 		"rdref.refs",
 		tasksConcatQuery+" AS taskDetails")
-	if opts != nil && !r.IsRegularField(opts.SortByFieldName) {
+	if opts != nil && opts.SortByMetricName != "" {
 		columnsAfterJoiningTasks = append(columnsAfterJoiningTasks, "rdref."+model.MetricSortSQLAlias)
 	}
 	subQ = sq.
@@ -849,8 +848,9 @@ func (s *RunStore) TerminateRun(runId string) error {
 // With the metric as a field in the select clause enable sorting on this metric afterwards.
 // TODO(jingzhang36): example of resulting SQL query and explanation for it.
 func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts *list.Options) sq.SelectBuilder {
-	var r model.Run
-	if r.IsRegularField(opts.SortByFieldName) {
+	// A metric sort is identified by a non-empty SortByMetricName. For regular
+	// field sorts there is no metric join to add.
+	if opts.SortByMetricName == "" {
 		return sqlBuilder
 	}
 	// Use a fixed alias for the metric column so user input never reaches SQL
@@ -859,7 +859,7 @@ func (s *RunStore) addSortByRunMetricToSelect(sqlBuilder sq.SelectBuilder, opts 
 	return sq.
 		Select("selected_runs.*, run_metrics.numbervalue as "+model.MetricSortSQLAlias).
 		FromSelect(sqlBuilder, "selected_runs").
-		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name=?", opts.SortByFieldName)
+		LeftJoin("run_metrics ON selected_runs.uuid=run_metrics.runuuid AND run_metrics.name=?", opts.SortByMetricName)
 }
 
 func (s *RunStore) scanRowsToRunMetrics(rows *sql.Rows) ([]*model.RunMetric, error) {

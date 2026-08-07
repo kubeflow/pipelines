@@ -193,7 +193,11 @@ func validatedListOptions(listable list.Listable, pageToken string, pageSize int
 		return defaultOpts()
 	}
 
-	opts, err := list.NewOptionsFromToken(pageToken, pageSize)
+	if listable == nil {
+		return nil, util.NewInvalidInputError("Please specify a valid type to list. E.g., list runs or list jobs")
+	}
+
+	opts, err := list.NewOptionsFromToken(listable, pageToken, pageSize)
 	if err != nil {
 		return nil, err
 	}
