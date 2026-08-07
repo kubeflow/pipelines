@@ -408,6 +408,49 @@ describe('RunDetailsV2', () => {
     );
   });
 
+  it('derives the terminate action from the current run state', async () => {
+    const props = generateProps();
+    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
+    const succeededRun = { ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED };
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={runningRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+    const getLatestTerminateDisabled = () => {
+      const actionUpdates = updateToolbarSpy.mock.calls.filter(([update]: any[]) => update.actions);
+      return actionUpdates[actionUpdates.length - 1]?.[0].actions.terminateRun.disabled;
+    };
+
+    await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={succeededRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => expect(getLatestTerminateDisabled()).toBe(true));
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={runningRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
+  });
+
   describe('topbar tabs', () => {
     it('switches to Detail tab', async () => {
       render(

@@ -95,9 +95,10 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storage,
     namespace,
+    providerInfo,
     isDownload: true,
   });
-  const artifactViewUrl = Apis.buildReadFileUrl({ path: storage, namespace });
+  const artifactViewUrl = Apis.buildReadFileUrl({ path: storage, namespace, providerInfo });
 
   return (
     <div className={css.root}>

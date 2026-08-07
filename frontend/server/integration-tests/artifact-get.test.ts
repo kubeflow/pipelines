@@ -1451,5 +1451,53 @@ describe('/artifacts', () => {
         .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
         .expect(200, tarGzBuffer.toString());
     });
+
+    it('downloads an s3-compatible artifact using secret-backed providerInfo from the query string', async () => {
+      // The download link (path-based route) must honor providerInfo so that
+      // secret-backed S3-compatible credentials are used instead of falling
+      // through to the AWS instance-profile chain.
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('someSecret');
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+      const request = requests(app.app);
+      const providerInfo = {
+        Params: {
+          accessKeyKey: 'accesskey',
+          disableSSL: 'true',
+          endpoint: 'seaweedfs.kubeflow.svc.cluster.local:9000',
+          fromEnv: 'false',
+          region: 'us-east-1',
+          secretKeyKey: 'secretkey',
+          secretName: 'mlpipeline-minio-artifact',
+        },
+        Provider: 's3',
+      };
+      // Provider Secret access is only permitted in the server's own namespace.
+      const namespace = 'kubeflow';
+      await request
+        .get(
+          `/artifacts/s3/ml-pipeline/hello/world.txt?namespace=${namespace}&providerInfo=${JSON.stringify(
+            providerInfo,
+          )}`,
+        )
+        .expect(200, artifactContent);
+      expect(mockedMinioClient).toBeCalledWith({
+        accessKey: 'someSecret',
+        endPoint: 'seaweedfs.kubeflow.svc.cluster.local',
+        port: 9000,
+        region: 'us-east-1',
+        secretKey: 'someSecret',
+        useSSL: false,
+      });
+      expect(mockedMinioClient).toBeCalledTimes(1);
+      expect(mockedGetK8sSecret).toBeCalledWith(
+        'mlpipeline-minio-artifact',
+        'accesskey',
+        namespace,
+      );
+      expect(mockedGetK8sSecret).toBeCalledTimes(2);
+    });
   });
 });

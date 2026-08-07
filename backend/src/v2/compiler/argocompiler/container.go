@@ -296,6 +296,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
+
+	applyDriverPodConfig(c.driverPodConfig, template)
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
