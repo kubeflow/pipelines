@@ -208,7 +208,7 @@ are failing, you can update them automatically with `npm test -u` or
 
 - Prefer Testing Library and assertions against user-visible behavior in new UI tests. Avoid Enzyme and implementation-detail testing in new code. For examples, see [frontend/src/pages/ExecutionList.test.tsx](src/pages/ExecutionList.test.tsx) and [frontend/src/pages/RunDetailsV2.test.tsx](src/pages/RunDetailsV2.test.tsx).
 - Keep snapshot tests small and intentional. Use them as focused regression coverage, not as a substitute for behavioral assertions.
-- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see [AGENTS.md](../AGENTS.md#react-effect-discipline).
+- Prefer prop/state-driven data flow over imperative refs. Reach for `useEffect` when synchronizing with systems outside React, not for derived UI state. For more detailed guidance used in reviews, see the [React effects guide](../docs/agents/frontend.md#react-effects).
 
 ## Production Build
 
