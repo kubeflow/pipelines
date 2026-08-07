@@ -234,6 +234,11 @@ func (j *Job) GetModelName() string {
 	return "jobs"
 }
 
+// IsRegularField reports whether name is a real column on Job.
+func (j *Job) IsRegularField(name string) bool {
+	return isRegularFieldIn(j.APIToModelFieldMap(), name)
+}
+
 func (j *Job) GetField(name string) (string, string, bool) {
 	if field, ok := jobAPIToModelFieldMap[name]; ok {
 		return field, field, true

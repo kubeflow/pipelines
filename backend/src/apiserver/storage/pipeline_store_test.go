@@ -284,7 +284,7 @@ func TestListPipelines_Pagination(t *testing.T) {
 	}
 	pipelinesExpected2 := []*model.Pipeline{expectedPipeline2, expectedPipeline3}
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Pipeline{}, nextPageToken, 2)
 	assert.Nil(t, err)
 
 	pipelines, _, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
@@ -342,7 +342,7 @@ func TestListPipelines_Pagination_Descend(t *testing.T) {
 	}
 	pipelinesExpected2 := []*model.Pipeline{expectedPipeline4, expectedPipeline1}
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Pipeline{}, nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelines, _, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
@@ -425,7 +425,7 @@ func TestListPipelinesV1_Pagination_NameAsc(t *testing.T) {
 	pipelinesExpected2 := []*model.Pipeline{expectedPipeline3}
 	pipelineVersionsExpected2 := []*model.PipelineVersion{{}}
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.Pipeline{}, nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelines, pipelineVersions, total_size, nextPageToken, err = pipelineStore.ListPipelinesV1(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
@@ -1550,7 +1550,7 @@ func TestListPipelineVersions_Pagination(t *testing.T) {
 		},
 	})
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.PipelineVersion{}, nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
@@ -1667,7 +1667,7 @@ func TestListPipelineVersions_Pagination_Descend(t *testing.T) {
 		},
 	})
 
-	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	opts, err = list.NewOptionsFromToken(&model.PipelineVersion{}, nextPageToken, 2)
 	assert.Nil(t, err)
 	pipelineVersions, totalSize, nextPageToken, err = pipelineStore.ListPipelineVersions(DefaultFakePipelineId, opts, nil)
 	assert.Nil(t, err)
