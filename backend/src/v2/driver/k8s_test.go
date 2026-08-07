@@ -2397,10 +2397,12 @@ func Test_extendPodSpecPatch_SecurityContext_RootOnHardenedContainer(t *testing.
 		map[string]*structpb.Value{},
 		nil,
 	)
-	// runAsUser=0 on a hardened container (allowPrivilegeEscalation=false)
-	// must be rejected with an immediate error instead of deferring to kubelet.
-	require.NotNil(t, err)
-	require.Contains(t, err.Error(), "runAsUser=0 (root) is not allowed")
+	// allowPrivilegeEscalation=false does not prevent root — it only blocks
+	// privilege escalation. runAsUser=0 is allowed here.
+	require.Nil(t, err)
+	require.NotNil(t, got)
+	require.Equal(t, rootUID, *got.Containers[0].SecurityContext.RunAsUser)
+	require.Equal(t, allowPrivEsc, *got.Containers[0].SecurityContext.AllowPrivilegeEscalation)
 }
 
 func Test_extendPodSpecPatch_SecurityContext_AdminRunAsNonRoot(t *testing.T) {

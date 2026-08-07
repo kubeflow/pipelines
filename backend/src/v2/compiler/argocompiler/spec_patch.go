@@ -61,11 +61,12 @@ func (c *workflowCompiler) validateKubernetesSecurityContext(name string, config
 	if c.defaultRunAsUser != nil {
 		return nil
 	}
-	if securityContext.RunAsUser != nil && *securityContext.RunAsUser == 0 {
+	if c.defaultRunAsNonRoot != nil && *c.defaultRunAsNonRoot &&
+		securityContext.RunAsUser != nil && *securityContext.RunAsUser == 0 {
 		return fmt.Errorf(
 			"runAsUser=0 (root) is not allowed for component %q: "+
-				"the container security context enforces non-root execution "+
-				"(allowPrivilegeEscalation=false); use a non-root UID instead",
+				"the admin security policy enforces non-root execution "+
+				"(runAsNonRoot=true); use a non-root UID instead",
 			name,
 		)
 	}

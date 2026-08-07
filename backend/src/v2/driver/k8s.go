@@ -752,15 +752,14 @@ func extendPodSpecPatch(
 			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
 		}
 		existingSecurityContext := podSpec.Containers[0].SecurityContext
-		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
 		runAsNonRootEnforced := existingSecurityContext.RunAsNonRoot != nil && *existingSecurityContext.RunAsNonRoot
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
 				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
-				if *userSecurityContext.RunAsUser == 0 && (isCompilerHardened || runAsNonRootEnforced) {
-					return fmt.Errorf("runAsUser=0 (root) is not allowed: the container security context enforces non-root execution (runAsNonRoot=true or allowPrivilegeEscalation=false); use a non-root UID instead")
+				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
+					return fmt.Errorf("runAsUser=0 (root) is not allowed: the admin security policy enforces non-root execution (runAsNonRoot=true); use a non-root UID instead")
 				}
 				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
 			}

@@ -295,15 +295,14 @@ func TestAddKubernetesSpec_RejectsRootRunAsUser(t *testing.T) {
 		errorContains       string
 	}{
 		{
-			name:          "runAsUser=0 rejected",
+			name:          "runAsUser=0 allowed without runAsNonRoot enforcement",
 			componentName: "comp-train",
 			config: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
 					RunAsUser: int64Ptr(0),
 				},
 			},
-			expectError:   true,
-			errorContains: "runAsUser=0 (root) is not allowed",
+			expectError: false,
 		},
 		{
 			name:                "runAsUser=0 rejected with admin runAsNonRoot",
@@ -377,14 +376,26 @@ func TestAddKubernetesSpec_RejectsRootRunAsUser(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:                "runAsUser=0 allowed when admin defaultRunAsNonRoot is false",
+			componentName:       "comp-train",
+			defaultRunAsNonRoot: new(false),
+			config: &kubernetesplatform.KubernetesExecutorConfig{
+				SecurityContext: &kubernetesplatform.SecurityContext{
+					RunAsUser: int64Ptr(0),
+				},
+			},
+			expectError: false,
+		},
+		{
 			name:          "nil kubernetes spec",
 			componentName: "comp-train",
 			config:        nil,
 			expectError:   false,
 		},
 		{
-			name:          "error includes component name",
-			componentName: "my-custom-component",
+			name:                "error includes component name",
+			componentName:       "my-custom-component",
+			defaultRunAsNonRoot: new(true),
 			config: &kubernetesplatform.KubernetesExecutorConfig{
 				SecurityContext: &kubernetesplatform.SecurityContext{
 					RunAsUser: int64Ptr(0),
