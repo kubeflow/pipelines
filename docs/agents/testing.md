@@ -11,7 +11,14 @@ pytest -v sdk/python/kfp
 pytest -v kubernetes_platform/python/test
 
 # Backend unit tests
-go test -v $(go list ./backend/... | grep -v backend/test/)
+go test -v $(go list ./backend/... | \
+  grep -v backend/test/v2/api | \
+  grep -v backend/test/integration | \
+  grep -v backend/test/v2/integration | \
+  grep -v backend/test/initialization | \
+  grep -v backend/test/v2/initialization | \
+  grep -v backend/test/compiler | \
+  grep -v backend/test/end2end)
 
 # Compiler, API, and end-to-end suites
 ginkgo -v ./backend/test/compiler
