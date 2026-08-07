@@ -41,6 +41,14 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         self.assertIn('./osv-scanner scan source', self.workflow)
         self.assertIn('            --recursive', self.workflow)
         self.assertIn('            --no-resolve', self.workflow)
+        self.assertIn(
+            '            --experimental-exclude backend/api/v1beta1/python_http_client',
+            self.workflow,
+        )
+        self.assertIn(
+            '            --experimental-exclude backend/api/v2beta1/python_http_client',
+            self.workflow,
+        )
         self.assertIn('            --format sarif', self.workflow)
         self.assertIn('            --output-file osv-results.sarif',
                       self.workflow)
@@ -51,12 +59,35 @@ class OsvScannerWorkflowTest(unittest.TestCase):
         )
 
     def test_scan_has_least_privilege_and_manual_dispatch(self):
+        self.assertIn('  push:', self.workflow)
+        self.assertIn('      - master', self.workflow)
         self.assertIn('  workflow_dispatch:', self.workflow)
         self.assertIn('  contents: read', self.workflow)
         self.assertIn('  security-events: write', self.workflow)
+        self.assertEqual(self.workflow.count('      security-events: write'), 2)
         self.assertIn('          persist-credentials: false', self.workflow)
         self.assertNotIn('contents: write', self.workflow)
         self.assertNotIn('pull-requests: write', self.workflow)
+
+    def test_deployed_images_are_discovered_and_scanned(self):
+        self.assertIn("KUSTOMIZE_VERSION: '5.8.1'", self.workflow)
+        self.assertIn(
+            "KUSTOMIZE_SHA256: '029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d'",
+            self.workflow,
+        )
+        self.assertIn('osv_manifest_images.py', self.workflow)
+        self.assertIn('--overlay manifests/kustomize/env/platform-agnostic',
+                      self.workflow)
+        self.assertIn(
+            '--overlay manifests/kustomize/env/platform-agnostic-multi-user',
+            self.workflow,
+        )
+        self.assertIn('./osv-scanner scan image "${IMAGE}"', self.workflow)
+        self.assertIn('docker-pull-with-retry.sh "${IMAGE}"', self.workflow)
+        self.assertIn(
+            'category: kubeflow-pipelines-osv-image-${{ matrix.category }}',
+            self.workflow)
+        self.assertIn('      fail-fast: false', self.workflow)
 
     def test_ci_scripts_tests_run_for_osv_workflow_changes(self):
         self.assertIn(
