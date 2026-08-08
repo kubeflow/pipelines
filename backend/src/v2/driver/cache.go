@@ -114,7 +114,13 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	}
 	sort.Strings(sortedPVCNames)
 
-	image := resolveImageForCache(opts, opts.Container.Image)
+	// Resolve runtime-parameter placeholders (e.g. {{$.inputs.parameters['image']}})
+	// before digest lookup so parameterized mutable tags are fingerprinted correctly.
+	imageRef, err := resolvePodSpecInputRuntimeParameter(opts.Container.Image, executorInput)
+	if err != nil {
+		return "", fmt.Errorf("failure while resolving container image for cache fingerprint: %w", err)
+	}
+	image := resolveImageForCache(opts, imageRef)
 
 	cacheKey, err := cacheClient.GenerateCacheKey(
 		executorInput.GetInputs(),

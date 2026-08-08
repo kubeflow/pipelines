@@ -37,6 +37,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func Test_parseImageReference(t *testing.T) {
@@ -447,6 +448,44 @@ func Test_getFingerPrint_resolvesImageWhenEnabled(t *testing.T) {
 	assert.Equal(t, "docker.io/library/test-image@sha256:resolved", gotImage)
 }
 
+func Test_getFingerPrint_resolvesRuntimeParameterImageBeforeDigest(t *testing.T) {
+	var resolvedInput string
+	opts := Options{
+		CacheResolveImageDigest: true,
+		ImageDigestResolver: func(image string) (string, error) {
+			resolvedInput = image
+			return "docker.io/library/runtime-image@sha256:from-param", nil
+		},
+		Component: &pipelinespec.ComponentSpec{},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image: "{{$.inputs.parameters['image']}}",
+		},
+	}
+	var gotImage string
+	mockClient := &mockCacheClient{
+		generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
+			gotImage = image
+			return &cachekey.CacheKey{}, nil
+		},
+		generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
+			return "fp", nil
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"image": structpb.NewStringValue("runtime-image:latest"),
+			},
+		},
+	}
+
+	fingerPrint, err := getFingerPrint(opts, executorInput, mockClient, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "fp", fingerPrint)
+	assert.Equal(t, "runtime-image:latest", resolvedInput)
+	assert.Equal(t, "docker.io/library/runtime-image@sha256:from-param", gotImage)
+}
+
 func Test_getFingerPrint_keepsImageWhenDisabled(t *testing.T) {
 	opts := Options{
 		CacheResolveImageDigest: false,
@@ -473,6 +512,83 @@ func Test_getFingerPrint_keepsImageWhenDisabled(t *testing.T) {
 	_, err := getFingerPrint(opts, &pipelinespec.ExecutorInput{}, mockClient, nil)
 	require.NoError(t, err)
 	assert.Equal(t, "test-image:latest", gotImage)
+}
+
+func Test_resolveImageDigestHTTP_basicChallengeFallsBackToBasicAuth(t *testing.T) {
+	var sawBasicAuth bool
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v2/library/ubuntu/manifests/22.04", func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if auth == "" {
+			w.Header().Set("Www-Authenticate", `Basic realm="Registry Realm"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if strings.HasPrefix(auth, "Basic ") {
+			sawBasicAuth = true
+			w.Header().Set("Docker-Content-Digest", "sha256:basicdigest")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	host := server.Listener.Addr().String()
+
+	configPath := writeDockerConfig(t, map[string]dockerConfigAuth{
+		host: {Auth: base64.StdEncoding.EncodeToString([]byte("user:pass"))},
+	})
+
+	got, err := resolveImageDigestHTTP(
+		"ubuntu:22.04",
+		server.Client(),
+		ImageDigestResolveConfig{
+			DockerConfigPath:      configPath,
+			DockerHubRegistryHost: host,
+			InsecureRegistries:    host,
+		},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "docker.io/library/ubuntu@sha256:basicdigest", got)
+	assert.True(t, sawBasicAuth)
+}
+
+func Test_fetchRegistryPullToken_rejectsHTTPRealmUnlessInsecure(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"token":"should-not-be-used"}`))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	host := server.Listener.Addr().String()
+
+	_, err := fetchRegistryPullToken(
+		server.Client(),
+		"registry.example.com",
+		"my-project/app",
+		`Bearer realm="http://`+host+`/token",service="registry.example.com",scope="repository:my-project/app:pull"`,
+		ImageDigestResolveConfig{},
+		&dockerConfigFile{Auths: map[string]dockerConfigAuth{
+			"registry.example.com": {Username: "user", Password: "pass"},
+		}},
+		false,
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "refusing non-HTTPS token realm")
+
+	got, err := fetchRegistryPullToken(
+		server.Client(),
+		host,
+		"my-project/app",
+		`Bearer realm="http://`+host+`/token",service="registry.example.com",scope="repository:my-project/app:pull"`,
+		ImageDigestResolveConfig{InsecureRegistries: host},
+		&dockerConfigFile{},
+		false,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "should-not-be-used", got)
 }
 
 func writeDockerConfig(t *testing.T, auths map[string]dockerConfigAuth) string {

@@ -453,14 +453,20 @@ func fetchRegistryPullToken(
 ) (string, error) {
 	challenge, ok := parseBearerChallenge(wwwAuthenticate)
 	if !ok {
-		// No Bearer challenge: fall back to well-known Docker Hub auth for docker.io hosts.
-		// Token realm/service for other registries (and Docker Hub mirrors) come from WWW-Authenticate.
-		if registryHost == cfg.DockerHubRegistryHost || registryHost == dockerHubRegistry {
+		// Only fall back to well-known Docker Hub auth when WWW-Authenticate is
+		// genuinely absent. A non-Bearer challenge (e.g. Basic) must error so the
+		// caller can retry with configured Basic credentials — otherwise a Hub
+		// mirror that challenges with Basic would receive a Docker Hub Bearer
+		// token and never reach the Basic fallback.
+		if strings.TrimSpace(wwwAuthenticate) == "" &&
+			(registryHost == cfg.DockerHubRegistryHost || registryHost == dockerHubRegistry) {
 			challenge = bearerChallenge{
 				realm:   defaultDockerHubAuthURL,
 				service: defaultDockerHubService,
 				scope:   "repository:" + repository + ":pull",
 			}
+		} else if strings.TrimSpace(wwwAuthenticate) != "" {
+			return "", fmt.Errorf("registry returned non-Bearer WWW-Authenticate challenge %q", wwwAuthenticate)
 		} else {
 			return "", fmt.Errorf("registry did not return a Bearer WWW-Authenticate challenge")
 		}
@@ -475,6 +481,13 @@ func fetchRegistryPullToken(
 	tokenURL, err := url.Parse(challenge.realm)
 	if err != nil {
 		return "", fmt.Errorf("invalid token realm %q: %w", challenge.realm, err)
+	}
+	// Reject credential-bearing token exchanges over cleartext unless the
+	// originating registry is explicitly listed as insecure.
+	if tokenURL.Scheme != "https" {
+		if _, insecure := cfg.insecureSet()[registryHost]; !insecure || tokenURL.Scheme != "http" {
+			return "", fmt.Errorf("refusing non-HTTPS token realm %q; add %q to CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES to allow HTTP", challenge.realm, registryHost)
+		}
 	}
 	query := tokenURL.Query()
 	if challenge.service != "" {
