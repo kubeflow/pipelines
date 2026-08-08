@@ -1547,6 +1547,25 @@ func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID string) ([]
 	return tasks, nil
 }
 
+func shouldPreserveTerminatedRunState(currentState, reportedState model.RuntimeState) bool {
+	currentState = currentState.ToV2()
+	reportedState = reportedState.ToV2()
+
+	if currentState == model.RuntimeStateCanceled {
+		return reportedState != model.RuntimeStateCanceled
+	}
+	if currentState != model.RuntimeStateCancelling {
+		return false
+	}
+
+	switch reportedState {
+	case model.RuntimeStateCancelling, model.RuntimeStateSucceeded, model.RuntimeStateFailed, model.RuntimeStateCanceled:
+		return false
+	default:
+		return true
+	}
+}
+
 // Reports a workflow CR.
 // This is called to update runs.
 func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
@@ -1602,11 +1621,42 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
 	if updateError == nil {
-		run.State = state
-		run.Conditions = string(state.ToV1())
-		run.FinishedAtInSec = execStatus.FinishedAt()
-		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
-		if updateError = r.runStore.UpdateRun(run); updateError != nil {
+		const maxStateUpdateAttempts = 3
+		updated := false
+		for attempt := 0; attempt < maxStateUpdateAttempts; attempt++ {
+			expectedState := run.State
+			if shouldPreserveTerminatedRunState(run.State, state) {
+				glog.Infof(
+					"Preserving run %q state %q instead of applying stale workflow state %q",
+					runId,
+					run.State,
+					state,
+				)
+			} else {
+				run.State = state
+				run.Conditions = string(state.ToV1())
+				run.FinishedAtInSec = execStatus.FinishedAt()
+			}
+			run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
+
+			updated, updateError = r.runStore.UpdateRunWithExpectedState(run, expectedState)
+			if updateError != nil || updated {
+				break
+			}
+
+			run, updateError = r.GetRun(runId)
+			if updateError != nil {
+				break
+			}
+		}
+		if updateError == nil && !updated {
+			updateError = util.NewUnavailableServerError(
+				fmt.Errorf("run state changed during %d update attempts", maxStateUpdateAttempts),
+				"Failed to report workflow for run %s due to concurrent state updates",
+				runId,
+			)
+		}
+		if updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
 	}
