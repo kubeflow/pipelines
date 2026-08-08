@@ -95,7 +95,8 @@ jobs:
         run: |
           cd backend/api/v2beta1/python_http_client
           rm -rf dist
-          python setup.py --quiet sdist
+          python -m pip install --quiet build hatchling
+          python -m build --sdist
           twine check dist/*
 
       - name: Publish to PyPI
