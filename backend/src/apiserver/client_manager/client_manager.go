@@ -24,6 +24,7 @@ import (
 	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsv2middleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
 	awsv2creds "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -79,6 +80,9 @@ const (
 
 	clientQPS   = "ClientQPS"
 	clientBurst = "ClientBurst"
+
+	tagName      = "TAG_NAME"
+	userAgentKey = "kubeflow-pipelines"
 )
 
 var scheme *runtime.Scheme
@@ -1028,6 +1032,9 @@ func newS3BucketClient(ctx context.Context, config *blobStorageConfig) (*s3.Clie
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
 		o.BaseEndpoint = awsv2.String(endpointWithProtocol)
 		o.UsePathStyle = true
+		// Append to the SDK user agent so object store operators can attribute requests.
+		o.APIOptions = append(o.APIOptions, awsv2middleware.AddUserAgentKeyValue(
+			userAgentKey, common.GetStringConfigWithDefault(tagName, "unknown")))
 	})
 
 	return s3Client, nil
