@@ -83,6 +83,11 @@ type RunStoreInterface interface {
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
 
+	// Updates a run from a workflow report if its state has not changed since it
+	// was read and the report does not regress a canceling or terminal run.
+	// Returns false without modifying the run when the report is stale.
+	UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error)
+
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
 	// Conditions, etc.) to avoid redundant writes and potential clobbering.
@@ -611,18 +616,64 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+// UpdateRunFromWorkflow applies workflow-reported state atomically against the
+// state observed by the reporter. Explicit lifecycle operations such as retry
+// continue to use UpdateRun and are not constrained by this transition policy.
+func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error) {
+	expectedState = expectedState.ToV2()
+	incomingState := run.State.ToV2()
+
+	switch expectedState {
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled:
+		if incomingState != expectedState {
+			return false, nil
+		}
+	case model.RuntimeStateCancelling:
+		switch incomingState {
+		case model.RuntimeStateCancelling,
+			model.RuntimeStateSucceeded,
+			model.RuntimeStateSkipped,
+			model.RuntimeStateFailed,
+			model.RuntimeStateCanceled:
+			// A canceling run may remain canceling or reach a terminal state.
+		default:
+			return false, nil
+		}
+	}
+
+	return s.updateRun(run, &expectedState)
+}
+
+func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
-	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
+	stateHistory := run.StateHistory
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != run.State {
+		newStatus := &model.RuntimeStatus{
 			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
-		})
+			State:           run.State,
+		}
+		if expectedState == nil {
+			// Preserve UpdateRun's existing caller-visible mutation, including
+			// when the update later reports that the run does not exist.
+			run.StateHistory = append(run.StateHistory, newStatus)
+			stateHistory = run.StateHistory
+		} else {
+			// A rejected workflow report must not mutate its caller's snapshot.
+			stateHistory = append(append([]*model.RuntimeStatus(nil), stateHistory...), newStatus)
+		}
 	}
 	stateHistoryString := ""
-	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+	if historyString, err := json.Marshal(stateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
 	updateFields := sq.Eq{
@@ -640,40 +691,58 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if run.PluginsOutputString != nil {
 		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
 	}
-	sql, args, err := sq.
+	updateBuilder := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.Eq{"UUID": run.UUID}).
-		ToSql()
+		Where(sq.Eq{"UUID": run.UUID})
+	if expectedState != nil {
+		updateBuilder = updateBuilder.Where(sq.Eq{"State": expectedState.ToString()})
+	}
+	sql, args, err := updateBuilder.ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		if expectedState == nil {
+			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		}
+		currentRun, getErr := s.GetRun(run.UUID)
+		if getErr != nil {
+			return false, getErr
+		}
+		// MySQL may report zero affected rows when the matching row already has
+		// the requested values. Only treat it as applied when the compare state
+		// still matches; reaching the incoming state through another update must
+		// retry so this report cannot skip its manifest and history write.
+		if currentRun.State == expectedState.ToV2() {
+			return true, nil
+		}
+		return false, nil
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	run.StateHistory = stateHistory
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given
