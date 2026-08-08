@@ -46,27 +46,36 @@ const (
 	// but are overridden by environment variables set via k8s manifests.
 	// For releases, the manifest will have the correct release version set.
 	// this is to avoid hardcoding releases in code here.
-	DefaultLauncherImage     = "ghcr.io/kubeflow/kfp-launcher:latest"
-	LauncherCommandEnvVar    = "V2_LAUNCHER_COMMAND"
-	DefaultLauncherCommand   = "launcher-v2"
-	DefaultDriverImage       = "ghcr.io/kubeflow/kfp-driver:latest"
-	DefaultDriverCommand     = "driver"
-	DriverCommandEnvVar      = "V2_DRIVER_COMMAND"
-	PipelineRunAsUserEnvVar  = "PIPELINE_RUN_AS_USER"
-	PipelineLogLevelEnvVar   = "PIPELINE_LOG_LEVEL"
-	PublishLogsEnvVar        = "PUBLISH_LOGS"
-	gcsScratchLocation       = "/gcs"
-	gcsScratchName           = "gcs-scratch"
-	s3ScratchLocation        = "/s3"
-	s3ScratchName            = "s3-scratch"
-	minioScratchLocation     = "/minio"
-	minioScratchName         = "minio-scratch"
-	dotLocalScratchLocation  = "/.local"
-	dotLocalScratchName      = "dot-local-scratch"
-	dotCacheScratchLocation  = "/.cache"
-	dotCacheScratchName      = "dot-cache-scratch"
-	dotConfigScratchLocation = "/.config"
-	dotConfigScratchName     = "dot-config-scratch"
+	DefaultLauncherImage                     = "ghcr.io/kubeflow/kfp-launcher:latest"
+	LauncherCommandEnvVar                    = "V2_LAUNCHER_COMMAND"
+	DefaultLauncherCommand                   = "launcher-v2"
+	DefaultDriverImage                       = "ghcr.io/kubeflow/kfp-driver:latest"
+	DefaultDriverCommand                     = "driver"
+	DriverCommandEnvVar                      = "V2_DRIVER_COMMAND"
+	PipelineRunAsUserEnvVar                  = "PIPELINE_RUN_AS_USER"
+	PipelineLogLevelEnvVar                   = "PIPELINE_LOG_LEVEL"
+	PublishLogsEnvVar                        = "PUBLISH_LOGS"
+	CacheResolveImageDigestEnvVar            = "CACHE_RESOLVE_IMAGE_DIGEST"
+	CacheImageDigestDockerConfigSecretEnvVar = "CACHE_IMAGE_DIGEST_DOCKER_CONFIG_SECRET"
+	CacheImageDigestDockerHubRegistryEnvVar  = "CACHE_IMAGE_DIGEST_DOCKERHUB_REGISTRY_HOST"
+	CacheImageDigestInsecureRegistriesEnvVar = "CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES"
+
+	cacheImageDigestDockerConfigVolume = "cache-image-digest-docker-config"
+	cacheImageDigestDockerConfigMount  = "/var/run/secrets/kfp-cache-image-digest"
+	cacheImageDigestDockerConfigPath   = cacheImageDigestDockerConfigMount + "/.dockerconfigjson"
+	cacheImageDigestDockerConfigKey    = ".dockerconfigjson"
+	gcsScratchLocation                 = "/gcs"
+	gcsScratchName                     = "gcs-scratch"
+	s3ScratchLocation                  = "/s3"
+	s3ScratchName                      = "s3-scratch"
+	minioScratchLocation               = "/minio"
+	minioScratchName                   = "minio-scratch"
+	dotLocalScratchLocation            = "/.local"
+	dotLocalScratchName                = "dot-local-scratch"
+	dotCacheScratchLocation            = "/.cache"
+	dotCacheScratchName                = "dot-cache-scratch"
+	dotConfigScratchLocation           = "/.config"
+	dotConfigScratchName               = "dot-config-scratch"
 )
 
 func (c *workflowCompiler) Container(name string, component *pipelinespec.ComponentSpec, container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec) error {
@@ -217,6 +226,15 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	if c.cacheDisabled {
 		args = append(args, "--cache_disabled")
 	}
+	setCacheImageDigestDockerConfig := false
+	if value, ok := os.LookupEnv(CacheResolveImageDigestEnvVar); ok && strings.EqualFold(value, "true") {
+		args = append(args, "--cache_resolve_image_digest")
+		args = appendCacheImageDigestConfigArgs(args)
+		if os.Getenv(CacheImageDigestDockerConfigSecretEnvVar) != "" {
+			args = append(args, "--cache_image_digest_docker_config", cacheImageDigestDockerConfigPath)
+			setCacheImageDigestDockerConfig = true
+		}
+	}
 	if c.mlPipelineTLSEnabled {
 		args = append(args, "--ml_pipeline_tls_enabled")
 	}
@@ -286,6 +304,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
+	}
+	if setCacheImageDigestDockerConfig {
+		configureCacheImageDigestDockerConfig(template)
 	}
 	c.templates[name] = template
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *template)
@@ -795,4 +816,41 @@ func extendMetadataMap(
 		lowPriorityMap[k] = v
 	}
 	return lowPriorityMap
+}
+
+func appendCacheImageDigestConfigArgs(args []string) []string {
+	if value, ok := os.LookupEnv(CacheImageDigestDockerHubRegistryEnvVar); ok && value != "" {
+		args = append(args, "--cache_image_digest_dockerhub_registry_host", value)
+	}
+	if value, ok := os.LookupEnv(CacheImageDigestInsecureRegistriesEnvVar); ok && value != "" {
+		args = append(args, "--cache_image_digest_insecure_registries", value)
+	}
+	return args
+}
+
+// configureCacheImageDigestDockerConfig mounts a kubernetes.io/dockerconfigjson Secret
+// into the container driver so private registry credentials are available when
+// resolving image digests for cache fingerprints.
+func configureCacheImageDigestDockerConfig(tmpl *wfapi.Template) {
+	secretName := os.Getenv(CacheImageDigestDockerConfigSecretEnvVar)
+	if secretName == "" || tmpl.Container == nil {
+		return
+	}
+	tmpl.Volumes = append(tmpl.Volumes, k8score.Volume{
+		Name: cacheImageDigestDockerConfigVolume,
+		VolumeSource: k8score.VolumeSource{
+			Secret: &k8score.SecretVolumeSource{
+				SecretName: secretName,
+				Items: []k8score.KeyToPath{{
+					Key:  cacheImageDigestDockerConfigKey,
+					Path: cacheImageDigestDockerConfigKey,
+				}},
+			},
+		},
+	})
+	tmpl.Container.VolumeMounts = append(tmpl.Container.VolumeMounts, k8score.VolumeMount{
+		Name:      cacheImageDigestDockerConfigVolume,
+		MountPath: cacheImageDigestDockerConfigMount,
+		ReadOnly:  true,
+	})
 }
