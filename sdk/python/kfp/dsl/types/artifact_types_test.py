@@ -58,6 +58,18 @@ class ArtifactsTest(unittest.TestCase):
             expected_json = json.load(json_file)
             self.assertEqual(expected_json, metrics.metadata)
 
+    def test_log_metric_validates_finite_numbers(self):
+        metrics = dsl.Metrics()
+        with self.assertRaisesRegex(ValueError, r'Invalid metric value'):
+            metrics.log_metric('accuracy', float('nan'))
+        with self.assertRaisesRegex(ValueError, r'Invalid metric value'):
+            metrics.log_metric('loss', float('inf'))
+        with self.assertRaisesRegex(ValueError, r'Invalid metric value'):
+            metrics.log_metric('loss', float('-inf'))
+
+        metrics.log_metric('valid_score', 0.95)
+        self.assertEqual(metrics.metadata['valid_score'], 0.95)
+
 
 @contextlib.contextmanager
 def set_temporary_task_root(task_root: str):
