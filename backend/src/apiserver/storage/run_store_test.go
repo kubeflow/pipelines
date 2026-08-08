@@ -1033,6 +1033,10 @@ func TestTerminateRun(t *testing.T) {
 					UpdateTimeInSec: 1,
 					State:           model.RuntimeStateRunning,
 				},
+				{
+					UpdateTimeInSec: 4,
+					State:           model.RuntimeStateCancelling,
+				},
 			},
 		},
 		Metrics: []*model.RunMetric{
@@ -1063,7 +1067,7 @@ func TestTerminateRun_RunDoesNotExist(t *testing.T) {
 
 	err := runStore.TerminateRun("does-not-exist")
 	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "Row not found")
+	assert.Contains(t, err.Error(), "could not fetch existing state")
 }
 
 func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {

@@ -821,13 +821,30 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	// TODO(gkcalat): append CANCELLING to StateHistory
+	run, err := s.GetRun(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to terminate run %s: could not fetch existing state", runId)
+	}
+
+	stateHistory := run.RunDetails.StateHistory
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != model.RuntimeStateCancelling {
+		stateHistory = append(stateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           model.RuntimeStateCancelling,
+		})
+	}
+	stateHistoryBytes, err := json.Marshal(stateHistory)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to marshal state history while terminating run %s", runId)
+	}
+
 	result, err := s.db.Exec(`
 		UPDATE run_details
-		SET Conditions = ?, State = ?
+		SET Conditions = ?, State = ?, StateHistory = ?
 		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
 		string(model.RuntimeStateCancelling.ToV1()),
 		model.RuntimeStateCancelling.ToString(),
+		string(stateHistoryBytes),
 		runId,
 		model.RuntimeStatePaused.ToString(),
 		model.RuntimeStatePending.ToString(),
