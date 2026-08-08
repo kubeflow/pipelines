@@ -35,8 +35,9 @@ import { Deployments, KFP_FLAGS } from '../lib/Flags';
 import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@mui/icons-material';
-import { BuildInfoContext } from 'src/lib/BuildInfo';
-
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import { useThemeContext } from '../lib/ThemeContext';
 import { Button, IconButton, Tooltip } from '@mui/material';
 
 export const tailwindcss = {
@@ -526,6 +527,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             </Tooltip>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
+          <ThemeToggleButton collapsed={collapsed} />
           <ExternalUri
             title={'Documentation'}
             to={ExternalLinks.DOCUMENTATION}
@@ -679,6 +681,41 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
     }
   }
 }
+
+const ThemeToggleButton: React.FC<{ collapsed: boolean }> = ({ collapsed }) => {
+  const { activeMode, toggleTheme } = useThemeContext();
+  const isDark = activeMode === 'dark';
+  const label = isDark ? 'Light Mode' : 'Dark Mode';
+
+  return (
+    <Tooltip
+      title={label}
+      enterDelay={300}
+      placement={'right-start'}
+      disableFocusListener={!collapsed}
+      disableHoverListener={!collapsed}
+      disableTouchListener={!collapsed}
+    >
+      <div>
+        <SideNavButton
+          collapsed={collapsed}
+          onClick={toggleTheme}
+          id='themeToggleBtn'
+          data-testid='theme-toggle-btn'
+        >
+          <div className={tailwindcss.sideNavItem}>
+            {isDark ? (
+              <LightModeIcon style={{ width: 20, height: 20 }} />
+            ) : (
+              <DarkModeIcon style={{ width: 20, height: 20 }} />
+            )}
+            <span className={classes(collapsed && css.collapsedLabel, css.label)}>{label}</span>
+          </div>
+        </SideNavButton>
+      </div>
+    </Tooltip>
+  );
+};
 
 interface ExternalUriProps {
   title: string;
