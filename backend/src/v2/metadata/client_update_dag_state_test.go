@@ -544,3 +544,178 @@ func TestUpdateDAGExecutionsState_ErrorPropagation(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateDAGExecutionsState_RetryDuplicateTaskName(t *testing.T) {
+	// When Argo retries a failed child task, a new MLMD execution record is
+	// created with the same task_name. GetExecutionsInDAG must deduplicate
+	// by keeping the newer execution so UpdateDAGExecutionsState sees the
+	// post-retry state.
+	failedExecution := &pb.Execution{
+		Id:             int64Ptr(11),
+		LastKnownState: pb.Execution_FAILED.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("search-videos"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(1000),
+	}
+	retriedExecution := &pb.Execution{
+		Id:             int64Ptr(12),
+		LastKnownState: pb.Execution_COMPLETE.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("search-videos"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(2000),
+	}
+
+	dagExecution := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{
+		keyTotalDagTasks: intValue(1),
+	})
+
+	store := map[int64]*pb.Execution{
+		10: dagExecution,
+		11: failedExecution,
+		12: retriedExecution,
+	}
+
+	runCtxID := int64(500)
+	pipeline := &Pipeline{pipelineRunCtx: &pb.Context{Id: &runCtxID}}
+	dag := makeDAG(dagExecution)
+
+	mock := buildMock(
+		store,
+		map[int64][]*pb.Context{10: {}},
+		map[int64][]*pb.Execution{runCtxID: {failedExecution, retriedExecution}},
+		defaultPutExecution(store),
+	)
+	client := newTestClient(mock)
+
+	err := client.UpdateDAGExecutionsState(context.Background(), dag, pipeline)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if dagExecution.GetLastKnownState() != pb.Execution_COMPLETE {
+		t.Errorf("expected DAG state COMPLETE after retry, got %v", dagExecution.GetLastKnownState())
+	}
+}
+
+func TestUpdateDAGExecutionsState_RetryKeepsNewerExecution(t *testing.T) {
+	// Verify that when two executions share the same task name, the one with
+	// the higher create_time_since_epoch is kept (the retried one).
+	olderExecution := &pb.Execution{
+		Id:             int64Ptr(20),
+		LastKnownState: pb.Execution_FAILED.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("task-a"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(100),
+	}
+	newerExecution := &pb.Execution{
+		Id:             int64Ptr(21),
+		LastKnownState: pb.Execution_FAILED.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("task-a"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(200),
+	}
+
+	dagExecution := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{
+		keyTotalDagTasks: intValue(1),
+	})
+
+	store := map[int64]*pb.Execution{
+		10: dagExecution,
+		20: olderExecution,
+		21: newerExecution,
+	}
+
+	runCtxID := int64(500)
+	pipeline := &Pipeline{pipelineRunCtx: &pb.Context{Id: &runCtxID}}
+	dag := makeDAG(dagExecution)
+
+	var putState pb.Execution_State
+	mock := buildMock(
+		store,
+		map[int64][]*pb.Context{10: {}},
+		map[int64][]*pb.Execution{runCtxID: {olderExecution, newerExecution}},
+		func(_ context.Context, req *pb.PutExecutionRequest, _ ...grpc.CallOption) (*pb.PutExecutionResponse, error) {
+			putState = req.GetExecution().GetLastKnownState()
+			if stored, ok := store[req.GetExecution().GetId()]; ok {
+				stored.LastKnownState = req.GetExecution().LastKnownState
+			}
+			return &pb.PutExecutionResponse{}, nil
+		},
+	)
+	client := newTestClient(mock)
+
+	err := client.UpdateDAGExecutionsState(context.Background(), dag, pipeline)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// The newer execution is FAILED, so the DAG should be FAILED.
+	if putState != pb.Execution_FAILED {
+		t.Errorf("expected DAG state FAILED (from newer execution), got %v", putState)
+	}
+}
+
+func TestUpdateDAGExecutionsState_RetryMixedStates(t *testing.T) {
+	// Two tasks in a DAG: one has a failed+retried execution pair, the other
+	// is a single completed execution. After deduplication the DAG should
+	// transition to COMPLETE.
+	searchFailed := &pb.Execution{
+		Id:             int64Ptr(11),
+		LastKnownState: pb.Execution_FAILED.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("search-videos"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(1000),
+	}
+	searchRetried := &pb.Execution{
+		Id:             int64Ptr(12),
+		LastKnownState: pb.Execution_COMPLETE.Enum(),
+		CustomProperties: map[string]*pb.Value{
+			keyTaskName:    StringValue("search-videos"),
+			keyParentDagID: intValue(10),
+		},
+		CreateTimeSinceEpoch: int64Ptr(2000),
+	}
+	saveVideos := makeExecution(13, pb.Execution_COMPLETE, map[string]*pb.Value{
+		keyTaskName:    StringValue("save-videos"),
+		keyParentDagID: intValue(10),
+	})
+
+	dagExecution := makeExecution(10, pb.Execution_RUNNING, map[string]*pb.Value{
+		keyTotalDagTasks: intValue(2),
+	})
+
+	store := map[int64]*pb.Execution{
+		10: dagExecution,
+		11: searchFailed,
+		12: searchRetried,
+		13: saveVideos,
+	}
+
+	runCtxID := int64(500)
+	pipeline := &Pipeline{pipelineRunCtx: &pb.Context{Id: &runCtxID}}
+	dag := makeDAG(dagExecution)
+
+	mock := buildMock(
+		store,
+		map[int64][]*pb.Context{10: {}},
+		map[int64][]*pb.Execution{runCtxID: {searchFailed, searchRetried, saveVideos}},
+		defaultPutExecution(store),
+	)
+	client := newTestClient(mock)
+
+	err := client.UpdateDAGExecutionsState(context.Background(), dag, pipeline)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if dagExecution.GetLastKnownState() != pb.Execution_COMPLETE {
+		t.Errorf("expected DAG state COMPLETE after retry, got %v", dagExecution.GetLastKnownState())
+	}
+}
