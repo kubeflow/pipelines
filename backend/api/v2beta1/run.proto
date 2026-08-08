@@ -115,12 +115,27 @@ service RunService {
   }
 
   // Re-initiates a failed or terminated run.
- rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
-   option (google.api.http) = {
-     post: "/apis/v2beta1/runs/{run_id}:retry"
+  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/runs/{run_id}:retry"
     };
   }
 
+  // Clears a task's status, causing it to re-run.
+  rpc ClearTask(ClearTaskRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/runs/{run_id}/tasks/{task_id}:clear"
+      body: "*"
+    };
+  }
+
+  // Marks a task as succeeded, allowing downstream tasks to proceed.
+  rpc MarkTaskSuccess(MarkTaskSuccessRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/runs/{run_id}/tasks/{task_id}:marksuccess"
+      body: "*"
+    };
+  }
 }
 
 message Run {
@@ -506,4 +521,43 @@ message RetryRunRequest {
 
  // The ID of the run to be retried.
  string run_id = 2;
+}
+
+// The propagation scope for Clear and Mark Success actions.
+enum TaskScope {
+  TASK_SCOPE_UNSPECIFIED = 0;
+  TASK_ONLY = 1;
+  DOWNSTREAM = 2;
+  UPSTREAM = 3;
+  UPSTREAM_DOWNSTREAM = 4;
+}
+
+// Request to clear (re-run) a task.
+message ClearTaskRequest {
+  // The ID of the run containing the task.
+  string run_id = 1;
+
+  // The ID (node ID or name) of the task to be cleared.
+  string task_id = 2;
+
+  // The propagation scope for clearing the task.
+  TaskScope scope = 3;
+
+  // Whether to bypass existing execution cache for the cleared tasks.
+  bool invalidate_cache = 4;
+}
+
+// Request to override a task status to Success.
+message MarkTaskSuccessRequest {
+  // The ID of the run containing the task.
+  string run_id = 1;
+
+  // The ID (node ID or name) of the task to be marked as success.
+  string task_id = 2;
+
+  // The propagation scope for marking success.
+  TaskScope scope = 3;
+
+  // A mandatory reason or comment for manual override audit logging.
+  string comment = 4;
 }

@@ -2137,3 +2137,120 @@ func file_backend_api_v2beta1_run_proto_init() {
 	file_backend_api_v2beta1_run_proto_goTypes = nil
 	file_backend_api_v2beta1_run_proto_depIdxs = nil
 }
+
+type TaskScope int32
+
+const (
+	TaskScope_TASK_ONLY TaskScope = 0
+	TaskScope_DOWNSTREAM TaskScope = 1
+	TaskScope_UPSTREAM TaskScope = 2
+	TaskScope_UPSTREAM_DOWNSTREAM TaskScope = 3
+)
+
+var TaskScope_name = map[int32]string{
+	0: "TASK_ONLY",
+	1: "DOWNSTREAM",
+	2: "UPSTREAM",
+	3: "UPSTREAM_DOWNSTREAM",
+}
+
+var TaskScope_value = map[string]int32{
+	"TASK_ONLY":           0,
+	"DOWNSTREAM":          1,
+	"UPSTREAM":            2,
+	"UPSTREAM_DOWNSTREAM": 3,
+}
+
+func (x TaskScope) String() string {
+	return TaskScope_name[int32(x)]
+}
+
+type ClearTaskRequest struct {
+	RunId           string    `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	TaskId          string    `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Scope           TaskScope `protobuf:"varint,3,opt,name=scope,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.TaskScope" json:"scope,omitempty"`
+	InvalidateCache bool      `protobuf:"varint,4,opt,name=invalidate_cache,json=invalidateCache,proto3" json:"invalidate_cache,omitempty"`
+}
+
+func (x *ClearTaskRequest) Reset() {
+	*x = ClearTaskRequest{}
+}
+
+func (x *ClearTaskRequest) String() string {
+	return ""
+}
+
+func (*ClearTaskRequest) ProtoMessage() {}
+
+func (x *ClearTaskRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *ClearTaskRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *ClearTaskRequest) GetScope() TaskScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TaskScope_TASK_ONLY
+}
+
+func (x *ClearTaskRequest) GetInvalidateCache() bool {
+	if x != nil {
+		return x.InvalidateCache
+	}
+	return false
+}
+
+type MarkTaskSuccessRequest struct {
+	RunId   string    `protobuf:"bytes,1,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	TaskId  string    `protobuf:"bytes,2,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Scope   TaskScope `protobuf:"varint,3,opt,name=scope,proto3,enum=kubeflow.pipelines.backend.api.v2beta1.TaskScope" json:"scope,omitempty"`
+	Comment string    `protobuf:"bytes,4,opt,name=comment,proto3" json:"comment,omitempty"`
+}
+
+func (x *MarkTaskSuccessRequest) Reset() {
+	*x = MarkTaskSuccessRequest{}
+}
+
+func (x *MarkTaskSuccessRequest) String() string {
+	return ""
+}
+
+func (*MarkTaskSuccessRequest) ProtoMessage() {}
+
+func (x *MarkTaskSuccessRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *MarkTaskSuccessRequest) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *MarkTaskSuccessRequest) GetScope() TaskScope {
+	if x != nil {
+		return x.Scope
+	}
+	return TaskScope_TASK_ONLY
+}
+
+func (x *MarkTaskSuccessRequest) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}

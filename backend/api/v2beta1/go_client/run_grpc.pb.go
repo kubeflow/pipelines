@@ -66,6 +66,8 @@ type RunServiceClient interface {
 	TerminateRun(ctx context.Context, in *TerminateRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
 	RetryRun(ctx context.Context, in *RetryRunRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ClearTask(ctx context.Context, in *ClearTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	MarkTaskSuccess(ctx context.Context, in *MarkTaskSuccessRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type runServiceClient struct {
@@ -156,6 +158,26 @@ func (c *runServiceClient) RetryRun(ctx context.Context, in *RetryRunRequest, op
 	return out, nil
 }
 
+func (c *runServiceClient) ClearTask(ctx context.Context, in *ClearTaskRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/kubeflow.pipelines.backend.api.v2beta1.RunService/ClearTask", in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runServiceClient) MarkTaskSuccess(ctx context.Context, in *MarkTaskSuccessRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/kubeflow.pipelines.backend.api.v2beta1.RunService/MarkTaskSuccess", in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RunServiceServer is the server API for RunService service.
 // All implementations must embed UnimplementedRunServiceServer
 // for forward compatibility.
@@ -178,6 +200,8 @@ type RunServiceServer interface {
 	TerminateRun(context.Context, *TerminateRunRequest) (*emptypb.Empty, error)
 	// Re-initiates a failed or terminated run.
 	RetryRun(context.Context, *RetryRunRequest) (*emptypb.Empty, error)
+	ClearTask(context.Context, *ClearTaskRequest) (*emptypb.Empty, error)
+	MarkTaskSuccess(context.Context, *MarkTaskSuccessRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedRunServiceServer()
 }
 
@@ -210,7 +234,13 @@ func (UnimplementedRunServiceServer) TerminateRun(context.Context, *TerminateRun
 	return nil, status.Error(codes.Unimplemented, "method TerminateRun not implemented")
 }
 func (UnimplementedRunServiceServer) RetryRun(context.Context, *RetryRunRequest) (*emptypb.Empty, error) {
-	return nil, status.Error(codes.Unimplemented, "method RetryRun not implemented")
+	return nil, status.Errorf(codes.Unimplemented, "method RetryRun not implemented")
+}
+func (UnimplementedRunServiceServer) ClearTask(context.Context, *ClearTaskRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClearTask not implemented")
+}
+func (UnimplementedRunServiceServer) MarkTaskSuccess(context.Context, *MarkTaskSuccessRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MarkTaskSuccess not implemented")
 }
 func (UnimplementedRunServiceServer) mustEmbedUnimplementedRunServiceServer() {}
 func (UnimplementedRunServiceServer) testEmbeddedByValue()                    {}
@@ -377,6 +407,42 @@ func _RunService_RetryRun_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RunService_ClearTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClearTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).ClearTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kubeflow.pipelines.backend.api.v2beta1.RunService/ClearTask",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).ClearTask(ctx, req.(*ClearTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RunService_MarkTaskSuccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MarkTaskSuccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RunServiceServer).MarkTaskSuccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/kubeflow.pipelines.backend.api.v2beta1.RunService/MarkTaskSuccess",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RunServiceServer).MarkTaskSuccess(ctx, req.(*MarkTaskSuccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RunService_ServiceDesc is the grpc.ServiceDesc for RunService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -415,6 +481,14 @@ var RunService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RetryRun",
 			Handler:    _RunService_RetryRun_Handler,
+		},
+		{
+			MethodName: "ClearTask",
+			Handler:    _RunService_ClearTask_Handler,
+		},
+		{
+			MethodName: "MarkTaskSuccess",
+			Handler:    _RunService_MarkTaskSuccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
