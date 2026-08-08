@@ -21,6 +21,8 @@ __all__ = [
     'add_node_selector_json',
     'add_node_affinity',
     'add_node_affinity_json',
+    'add_pod_affinity',
+    'add_pod_affinity_json',
     'add_pod_annotation',
     'add_pod_label',
     'add_toleration',
@@ -51,6 +53,8 @@ from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.node_selector import add_node_selector_json
 from kfp.kubernetes.node_affinity import add_node_affinity
 from kfp.kubernetes.node_affinity import add_node_affinity_json
+from kfp.kubernetes.pod_affinity import add_pod_affinity
+from kfp.kubernetes.pod_affinity import add_pod_affinity_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
 from kfp.kubernetes.security_context import set_security_context
