@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/golang/glog"
@@ -30,6 +31,7 @@ import (
 	"google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
+	k8score "k8s.io/api/core/v1"
 )
 
 var ErrResolvedParameterNull = errors.New("the resolved input parameter is null")
@@ -364,8 +366,105 @@ func resolveInputs(
 		}
 		inputs.Artifacts[name] = v
 	}
-	// TODO(Bobgy): validate executor inputs match component inputs definition
+	if err := validateExecutorInputs(inputs, opts.Component); err != nil {
+		taskName := task.GetTaskInfo().GetName()
+		if taskName == "" {
+			taskName = "unknown"
+		}
+
+		if opts.EventRecorder != nil && (opts.RunName != "" || opts.RunID != "") {
+			runName := opts.RunName
+			if runName == "" {
+				runName = opts.RunID
+			}
+			ref := &k8score.ObjectReference{
+				Kind:      "PipelineRun",
+				Name:      runName,
+				Namespace: opts.Namespace,
+			}
+			opts.EventRecorder.Eventf(ref, k8score.EventTypeWarning, "InputValidationFailed", "Task %q: %v", taskName, err)
+		}
+		return nil, fmt.Errorf("task %q: %w", taskName, err)
+	}
 	return inputs, nil
+}
+
+func validateExecutorInputs(inputs *pipelinespec.ExecutorInput_Inputs, component *pipelinespec.ComponentSpec) error {
+	if inputs == nil {
+		return fmt.Errorf("inputs cannot be nil")
+	}
+	if component == nil || component.GetInputDefinitions() == nil {
+		return nil
+	}
+
+	// Validate Parameters
+	for name, paramDef := range component.GetInputDefinitions().GetParameters() {
+		val, ok := inputs.ParameterValues[name]
+		if !ok {
+			if !paramDef.GetIsOptional() && paramDef.GetDefaultValue() == nil {
+				return fmt.Errorf("missing required parameter: %q", name)
+			}
+			continue
+		}
+
+		if val == nil || val.GetKind() == nil {
+			continue
+		}
+		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
+			continue
+		}
+
+		switch paramDef.GetParameterType() {
+		case pipelinespec.ParameterType_STRING:
+			if _, isString := val.GetKind().(*structpb.Value_StringValue); !isString {
+				return fmt.Errorf("parameter %q expected STRING, got %T", name, val.GetKind())
+			}
+		case pipelinespec.ParameterType_NUMBER_DOUBLE, pipelinespec.ParameterType_NUMBER_INTEGER:
+			numVal, isNum := val.GetKind().(*structpb.Value_NumberValue)
+			if !isNum {
+				return fmt.Errorf("parameter %q expected NUMBER, got %T", name, val.GetKind())
+			}
+			if paramDef.GetParameterType() == pipelinespec.ParameterType_NUMBER_INTEGER {
+				if math.Trunc(numVal.NumberValue) != numVal.NumberValue {
+					return fmt.Errorf("parameter %q expected NUMBER_INTEGER, got %v", name, numVal.NumberValue)
+				}
+			}
+		case pipelinespec.ParameterType_BOOLEAN:
+			if _, isBool := val.GetKind().(*structpb.Value_BoolValue); !isBool {
+				return fmt.Errorf("parameter %q expected BOOLEAN, got %T", name, val.GetKind())
+			}
+		case pipelinespec.ParameterType_LIST:
+			if _, isList := val.GetKind().(*structpb.Value_ListValue); !isList {
+				return fmt.Errorf("parameter %q expected LIST, got %T", name, val.GetKind())
+			}
+		case pipelinespec.ParameterType_STRUCT:
+			if _, isStruct := val.GetKind().(*structpb.Value_StructValue); !isStruct {
+				return fmt.Errorf("parameter %q expected STRUCT, got %T", name, val.GetKind())
+			}
+		default:
+			// Allow unspecified or unknown legacy parameter types to pass for backward compatibility.
+		}
+	}
+
+	// Validate Artifacts
+	for name, artifactDef := range component.GetInputDefinitions().GetArtifacts() {
+		val, ok := inputs.Artifacts[name]
+		if !ok || val == nil {
+			if !artifactDef.GetIsOptional() {
+				return fmt.Errorf("missing required artifact: %q", name)
+			}
+			continue
+		}
+
+		// If the artifact is present but empty, only allow it if it's explicitly an ArtifactList or Optional
+		if len(val.Artifacts) == 0 {
+			if !artifactDef.GetIsArtifactList() && !artifactDef.GetIsOptional() {
+				return fmt.Errorf("missing required artifact: %q", name)
+			}
+		}
+	}
+
+	return nil
 }
 
 // resolveInputParameter resolves an InputParameterSpec
