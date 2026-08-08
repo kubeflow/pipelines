@@ -171,6 +171,14 @@ def is_task_config_type(type_name: Optional[Union[str, dict]]) -> bool:
     return isinstance(type_name, str) and (type_name == TaskConfig.__name__)
 
 
+def _get_dict_type_key(type_dict: dict) -> str:
+    """Returns the type name key from a v1 struct-style type dict."""
+    if not type_dict:
+        raise ValueError(
+            'Component I/O type cannot be an empty dict. Got invalid type {}.')
+    return next(iter(type_dict))
+
+
 def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     """Check if a ComponentSpec I/O type is considered as a parameter type.
 
@@ -183,7 +191,7 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     if isinstance(type_name, str):
         type_name = type_annotations.get_short_type_name(type_name)
     elif isinstance(type_name, dict):
-        type_name = list(type_name.keys())[0]
+        type_name = _get_dict_type_key(type_name)
     else:
         return False
 
@@ -219,6 +227,7 @@ def get_parameter_type(
       The enum value of the mapped IR I/O primitive type.
 
     Raises:
+      ValueError: if param_type is an empty dict.
       AttributeError: if type_name is not a string type.
     """
     # Special handling for PipelineTaskFinalStatus and TaskConfig, treat them as Dict type.
@@ -227,7 +236,7 @@ def get_parameter_type(
     if type(param_type) == type:
         type_name = param_type.__name__
     elif isinstance(param_type, dict):
-        type_name = list(param_type.keys())[0]
+        type_name = _get_dict_type_key(param_type)
     else:
         type_name = type_annotations.get_short_type_name(str(param_type))
     return PARAMETER_TYPES_MAPPING.get(type_name.lower())
@@ -405,8 +414,10 @@ def _check_dict_types(
     given_type: dict,
     expected_type: dict,
 ) -> bool:
-    given_type_name, _ = list(given_type.items())[0]
-    expected_type_name, _ = list(expected_type.items())[0]
+    given_type_name = _get_dict_type_key(given_type)
+    expected_type_name = _get_dict_type_key(expected_type)
+    given_type_properties = given_type[given_type_name]
+    expected_type_properties = expected_type[expected_type_name]
     if given_type_name == '' or expected_type_name == '':
         # If the type name is empty, it matches any types
         return True
@@ -415,16 +426,16 @@ def _check_dict_types(
               ' is different from expected: ' + str(expected_type_name))
         return False
     type_name = given_type_name
-    for type_property in given_type[type_name]:
-        if type_property not in expected_type[type_name]:
+    for type_property in given_type_properties:
+        if type_property not in expected_type_properties:
             print(type_name + ' has a property ' + str(type_property) +
                   ' that the latter does not.')
             return False
-        if given_type[type_name][type_property] != expected_type[type_name][
+        if given_type_properties[type_property] != expected_type_properties[
                 type_property]:
             print(type_name + ' has a property ' + str(type_property) +
-                  ' with value: ' + str(given_type[type_name][type_property]) +
-                  ' and ' + str(expected_type[type_name][type_property]))
+                  ' with value: ' + str(given_type_properties[type_property]) +
+                  ' and ' + str(expected_type_properties[type_property]))
             return False
     return True
 
