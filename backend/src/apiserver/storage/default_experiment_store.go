@@ -106,10 +106,10 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
-	defer rows.Close()
 
 	if rows.Next() {
 		err = rows.Scan(&defaultExperimentId)
