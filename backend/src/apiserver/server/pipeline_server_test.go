@@ -982,6 +982,63 @@ func TestPipelineServer_CreatePipelineAndVersion_v2(t *testing.T) {
 	}
 }
 
+func TestGetPipelineVersion_RejectsMismatchedPipelineID(t *testing.T) {
+	httpServer := getMockServer(t)
+	defer httpServer.Close()
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	pipelineServer := createPipelineServer(resourceManager, httpServer.Client())
+
+	pipelineA, err := pipelineServer.CreatePipelineAndVersion(context.Background(), &apiv2.CreatePipelineAndVersionRequest{
+		Pipeline: &apiv2.Pipeline{
+			DisplayName: "pipeline-a",
+			Description: "first pipeline",
+		},
+		PipelineVersion: &apiv2.PipelineVersion{
+			PackageUrl: &apiv2.Url{
+				PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, pipelineA)
+	assert.Equal(t, DefaultFakeUUID, pipelineA.GetPipelineId())
+
+	versionA, err := resourceManager.GetLatestPipelineVersion(DefaultFakeUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, DefaultFakeUUID, versionA.UUID)
+	assert.Equal(t, DefaultFakeUUID, versionA.PipelineId)
+
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
+	resourceManager = resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	pipelineServer = createPipelineServer(resourceManager, httpServer.Client())
+
+	pipelineB, err := pipelineServer.CreatePipelineAndVersion(context.Background(), &apiv2.CreatePipelineAndVersionRequest{
+		Pipeline: &apiv2.Pipeline{
+			DisplayName: "pipeline-b",
+			Description: "second pipeline",
+		},
+		PipelineVersion: &apiv2.PipelineVersion{
+			PackageUrl: &apiv2.Url{
+				PipelineUrl: httpServer.URL + "/arguments-parameters.yaml",
+			},
+		},
+	})
+	assert.Nil(t, err)
+	assert.NotNil(t, pipelineB)
+	assert.Equal(t, NonDefaultFakeUUID, pipelineB.GetPipelineId())
+
+	_, err = pipelineServer.GetPipelineVersion(context.Background(), &apiv2.GetPipelineVersionRequest{
+		PipelineId:        NonDefaultFakeUUID,
+		PipelineVersionId: versionA.UUID,
+	})
+	if !assert.NotNil(t, err, "GetPipelineVersion should reject a version that belongs to a different pipeline") {
+		return
+	}
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestRecoverClearTagsIntent(t *testing.T) {
 	tests := []struct {
 		name    string
