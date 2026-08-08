@@ -18,6 +18,7 @@ import os
 import re
 import collections
 import kubernetes
+import urllib3
 import yaml
 from time import sleep
 import lru
@@ -402,6 +403,11 @@ while True:
         # If the for loop ended, a server-side timeout occurred. Continue watching.
         pass
 
+    except urllib3.exceptions.ReadTimeoutError:
+        # The watch read timed out (e.g. on an idle cluster). This is an expected,
+        # benign event - re-establish the watch without printing a full traceback.
+        print("Watch connection timed out. Re-establishing the watch.")
+        continue
     except Exception as e:
         # Handle any errors, print stack trace, and continue watching.
         import traceback
