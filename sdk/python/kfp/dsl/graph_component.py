@@ -13,12 +13,13 @@
 # limitations under the License.
 """Pipeline as a component (aka graph component)."""
 
+from __future__ import annotations
+
 import inspect
 from typing import Callable, List, Optional
 import uuid
 
 from kfp import dsl
-from kfp.compiler import pipeline_spec_builder as builder
 from kfp.dsl import base_component
 from kfp.dsl import pipeline_channel
 from kfp.dsl import pipeline_config
@@ -73,6 +74,8 @@ class GraphComponent(base_component.BaseComponent):
         # templates
         pipeline_group = dsl_pipeline.groups[0]
         pipeline_group.name = uuid.uuid4().hex
+
+        from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec, platform_spec = builder.create_pipeline_spec(
             pipeline=dsl_pipeline,
