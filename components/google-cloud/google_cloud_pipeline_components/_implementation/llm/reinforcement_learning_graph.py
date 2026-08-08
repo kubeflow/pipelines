@@ -24,7 +24,7 @@ from google_cloud_pipeline_components._implementation.llm import reinforcer
 from google_cloud_pipeline_components._implementation.llm import upload_tensorboard_metrics
 import kfp
 
-PipelineOutput = NamedTuple(
+PipelineOutput = NamedTuple(  # pyrefly: ignore[bad-class-definition]
     'Outputs',
     output_model_path=str,
     output_adapter_path=str,
@@ -157,6 +157,6 @@ def pipeline(
   )
 
   return PipelineOutput(
-      output_model_path=rl_model.outputs['output_model_path'],
-      output_adapter_path=rl_model.outputs['output_adapter_path'],
+      output_model_path=rl_model.outputs['output_model_path'],  # pyrefly: ignore[unexpected-keyword]
+      output_adapter_path=rl_model.outputs['output_adapter_path'],  # pyrefly: ignore[unexpected-keyword]
   )
