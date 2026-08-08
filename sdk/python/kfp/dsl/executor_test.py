@@ -1887,5 +1887,83 @@ def temporary_envvar(key: str, value: str) -> None:
             del os.environ[key]
 
 
+try:
+    import pydantic
+except ImportError:
+    pydantic = None
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
+
+    @classmethod
+    def setUp(cls):
+        cls._test_dir = tempfile.mkdtemp()
+
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
+        executor_input_dict = json.loads(executor_input %
+                                         {'test_dir': self._test_dir})
+        executor.Executor(
+            executor_input=executor_input_dict,
+            function_to_execute=func).execute()
+        with open(executor_input_dict['outputs']['outputFile']) as f:
+            return json.loads(f.read())
+
+    def test_pydantic_basemodel_input_is_validated(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.foo, 'bar')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_pydantic_basemodel_output_is_serialized(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(foo='bar')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        self.assertEqual({'parameterValues': {
+            'Output': {
+                'foo': 'bar'
+            }
+        }}, output_metadata)
+
+
 if __name__ == '__main__':
     unittest.main()

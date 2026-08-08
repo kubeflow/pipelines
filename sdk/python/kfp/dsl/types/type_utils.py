@@ -577,6 +577,21 @@ def validate_bundled_artifact_type(type_: str) -> None:
     validate_schema_version(schema_version)
 
 
+def is_pydantic_basemodel_subclass(annotation: Any) -> bool:
+    """Check if annotation is a pydantic.BaseModel subclass.
+
+    Uses a lazy import so pydantic stays an optional dependency for
+    users who don't type-hint components with it.
+    """
+    if not isinstance(annotation, type):
+        return False
+    try:
+        import pydantic
+    except ImportError:
+        return False
+    return issubclass(annotation, pydantic.BaseModel)
+
+
 def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
@@ -603,6 +618,8 @@ def _annotation_to_type_struct(annotation):
         return origin_type
 
     if isinstance(annotation, type):
+        if is_pydantic_basemodel_subclass(annotation):
+            return get_canonical_type_name_for_type(dict)
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct

@@ -76,6 +76,66 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
     return param_to_artifact_cls
 
 
+def get_param_to_pydantic_basemodel_class(func: Callable) -> Dict[str, type]:
+    """Gets a map of parameter names to pydantic.BaseModel subclasses.
+
+    Return key is 'return-' for normal returns and 'return-<field>' for
+    typing.NamedTuple returns.
+    """
+    param_to_basemodel_cls: Dict[str, type] = {}
+
+    signature = inspect.signature(func)
+    for name, param in signature.parameters.items():
+        annotation = param.annotation
+        if type_utils.is_pydantic_basemodel_subclass(annotation):
+            param_to_basemodel_cls[name] = annotation
+
+    return_annotation = signature.return_annotation
+
+    if return_annotation is inspect.Signature.empty:
+        pass
+
+    elif type_utils.is_typed_named_tuple_annotation(return_annotation):
+        for name, annotation in return_annotation.__annotations__.items():
+            if type_utils.is_pydantic_basemodel_subclass(annotation):
+                param_to_basemodel_cls[f'{RETURN_PREFIX}{name}'] = annotation
+
+    elif type_utils.is_pydantic_basemodel_subclass(return_annotation):
+        param_to_basemodel_cls[RETURN_PREFIX] = return_annotation
+
+    return param_to_basemodel_cls
+
+
+def get_pydantic_basemodel_import_items_from_function(
+        func: Callable) -> List[str]:
+    """Gets the fully qualified name of the symbol that must be imported for
+    the pydantic.BaseModel type annotation to be referenced successfully from
+    a component function."""
+    param_to_cls = get_param_to_pydantic_basemodel_class(func)
+    import_items = []
+    for basemodel_cls in param_to_cls.values():
+        # get_full_qualname_for_artifact only reads __module__/__qualname__,
+        # so it works for any class, not just artifacts.
+        qualname = get_full_qualname_for_artifact(basemodel_cls)
+        if qualname not in import_items:
+            import_items.append(qualname)
+    return import_items
+
+
+def get_pydantic_basemodel_type_import_statements(func: Callable) -> List[str]:
+    """Gets a list of pydantic.BaseModel type import statements from a
+    lightweight Python component function."""
+    basemodel_imports = get_pydantic_basemodel_import_items_from_function(func)
+    imports_source = []
+    for obj_str in basemodel_imports:
+        if '.' in obj_str:
+            path, name = obj_str.rsplit('.', 1)
+            imports_source.append(f'from {path} import {name}')
+        else:
+            imports_source.append(f'import {obj_str}')
+    return imports_source
+
+
 def get_full_qualname_for_artifact(obj: type) -> str:
     """Gets the fully qualified name for an object. For example, for class Foo
     in module bar.baz, this function returns bar.baz.Foo.

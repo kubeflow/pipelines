@@ -246,6 +246,8 @@ class Executor:
                 raise ValueError(
                     f'Function `{self.func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
+            if type_utils.is_pydantic_basemodel_subclass(origin_type):
+                return_value = return_value.model_dump(mode='json')
             self.write_output_parameter_value(output_name, return_value)
 
         elif is_artifact(annotation_type):
@@ -410,6 +412,8 @@ class Executor:
             elif is_parameter(v):
                 value = self.get_input_parameter_value(k)
                 if value is not None:
+                    if type_utils.is_pydantic_basemodel_subclass(v):
+                        value = v.model_validate(value)
                     func_kwargs[k] = value
 
             elif type_annotations.is_Input_Output_artifact_annotation(v):
@@ -478,6 +482,8 @@ def create_artifact_instance(
 def is_parameter(annotation: Any) -> bool:
     if isinstance(annotation, type):
         if annotation in [str, int, float, bool, dict, list]:
+            return True
+        if type_utils.is_pydantic_basemodel_subclass(annotation):
             return True
         annotation_name = getattr(annotation, '__name__', '')
         if type_utils.is_task_final_status_type(annotation_name):

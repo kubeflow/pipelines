@@ -82,6 +82,47 @@ class _VertexDummy(artifact_types.Artifact):
         super().__init__(uri='uri', name='name', metadata={'dummy': '123'})
 
 
+try:
+    import pydantic
+except ImportError:
+    pydantic = None
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestPydanticBaseModelSupport(parameterized.TestCase):
+
+    def test_is_pydantic_basemodel_subclass_true(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(type_utils.is_pydantic_basemodel_subclass(MyModel))
+
+    def test_is_pydantic_basemodel_subclass_false_for_plain_class(self):
+        self.assertFalse(
+            type_utils.is_pydantic_basemodel_subclass(_ArbitraryClass))
+
+    def test_is_pydantic_basemodel_subclass_false_for_non_type(self):
+        self.assertFalse(type_utils.is_pydantic_basemodel_subclass('MyModel'))
+        self.assertFalse(type_utils.is_pydantic_basemodel_subclass(None))
+
+    def test_annotation_to_type_struct_for_pydantic_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
+
+    def test_get_parameter_type_for_pydantic_basemodel_type_struct(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        type_struct = type_utils._annotation_to_type_struct(MyModel)
+        self.assertEqual(pb.ParameterType.STRUCT,
+                         type_utils.get_parameter_type(type_struct))
+
+
 class TypeUtilsTest(parameterized.TestCase):
 
     @parameterized.parameters([(item, True) for item in _PARAMETER_TYPES] +
