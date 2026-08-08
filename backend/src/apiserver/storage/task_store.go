@@ -199,6 +199,7 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 			Fingerprint:       fingerprint,
 			Name:              name.String,
 			ParentTaskId:      parentTaskId.String,
+			State:             model.RuntimeState(state.String),
 			StateHistory:      stateHistoryNew,
 			MLMDInputs:        model.LargeText(inputs.String),
 			MLMDOutputs:       model.LargeText(outputs.String),

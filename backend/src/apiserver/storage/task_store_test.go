@@ -143,6 +143,7 @@ func initializeTaskStore() (*DB, *TaskStore) {
 		StartedTimestamp:  5,
 		FinishedTimestamp: 6,
 		Fingerprint:       "1",
+		State:             model.RuntimeStateRunning,
 	}
 	taskStore.CreateTask(task4)
 
@@ -178,8 +179,10 @@ func TestListTasks(t *testing.T) {
 			CreatedTimestamp:  5,
 			FinishedTimestamp: 6,
 			Fingerprint:       "1",
+			State:             model.RuntimeStateRunning,
 		},
 	}
+
 	expectedSecondPageTasks := []*model.Task{
 		{
 			UUID:              defaultFakeTaskIdFive,
@@ -192,6 +195,7 @@ func TestListTasks(t *testing.T) {
 			StartedTimestamp:  7,
 			FinishedTimestamp: 8,
 			Fingerprint:       "10",
+			State:             model.RuntimeStateUnspecified,
 		},
 	}
 
@@ -230,7 +234,9 @@ func TestTaskStore_GetTask(t *testing.T) {
 		StartedTimestamp:  5,
 		FinishedTimestamp: 6,
 		Fingerprint:       "1",
+		State:             model.RuntimeStateRunning,
 	}
+
 	task2 := &model.Task{
 		UUID:              defaultFakeTaskIdFive,
 		Namespace:         "ns2",
@@ -242,8 +248,8 @@ func TestTaskStore_GetTask(t *testing.T) {
 		StartedTimestamp:  7,
 		FinishedTimestamp: 8,
 		Fingerprint:       "10",
+		State:             model.RuntimeStateUnspecified,
 	}
-
 	tests := []struct {
 		name    string
 		id      string
@@ -326,7 +332,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					StartedTimestamp:  5,
 					FinishedTimestamp: 6,
 					Fingerprint:       "1",
-					State:             model.RuntimeStateUnspecified,
+					State:             model.RuntimeStateRunning,
 				},
 			},
 			false,
@@ -455,7 +461,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					PipelineName:      "namespace/ns2/pipeline/pipeline2",
 					RunID:             defaultFakeRunIdTwo,
 					MLMDExecutionID:   "4",
-					State:             model.RuntimeStateUnspecified,
+					State:             model.RuntimeStateRunning,
 					StartedTimestamp:  5,
 					FinishedTimestamp: 6,
 					Fingerprint:       "1",
@@ -465,7 +471,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					CreatedTimestamp:  5,
 					PodName:           "pod4",
 					Namespace:         "ns2",
-					State:             model.RuntimeStateUnspecified,
+					State:             model.RuntimeStateRunning,
 					PipelineName:      "namespace/ns2/pipeline/pipeline2",
 					RunID:             defaultFakeRunIdTwo,
 					MLMDExecutionID:   "4",
@@ -566,8 +572,8 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 		StartedTimestamp:  5,
 		FinishedTimestamp: 6,
 		Fingerprint:       "1",
-		State:             model.RuntimeStateUnspecified,
-		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 1, State: model.RuntimeStateUnspecified}},
+		State:             model.RuntimeStateRunning,
+		StateHistory:      []*model.RuntimeStatus{{UpdateTimeInSec: 1, State: model.RuntimeStateRunning}},
 	}
 	want2 := &model.Task{
 		UUID:              defaultFakeTaskIdFive,
