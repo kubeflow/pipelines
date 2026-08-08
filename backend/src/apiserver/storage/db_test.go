@@ -15,8 +15,11 @@
 package storage
 
 import (
+	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -134,4 +137,106 @@ func TestSQLiteDialect_UpdateWithJointOrFrom(t *testing.T) {
 		"target_table.status = ?")
 	expectedQuery := `UPDATE target_table SET State = ? FROM other_table WHERE target_table.Name = other_table.Name AND target_table.status = ?`
 	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_GroupConcat_WithSeparator(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.GroupConcat("col1", ";")
+
+	expectedQuery := `STRING_AGG(col1::text, ';')`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+// PostgreSQL requires an explicit separator, so an empty one must fall back to
+// the comma that MySQL's GROUP_CONCAT uses by default rather than emitting a
+// single-argument STRING_AGG, which does not parse.
+func TestPostgreSQLDialect_GroupConcat_WithoutSeparator(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.GroupConcat("col1", "")
+
+	expectedQuery := `STRING_AGG(col1::text, ',')`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+// Separators must be single-quoted: PostgreSQL reads a double-quoted token as
+// an identifier, not a string literal.
+func TestPostgreSQLDialect_Concat_WithSeparator(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.Concat([]string{"col1", "col2"}, "-")
+
+	expectedQuery := `CONCAT(col1,'-',col2)`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_Concat_WithoutSeparator(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.Concat([]string{"col1", "col2"}, "")
+
+	expectedQuery := `CONCAT(col1,col2)`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_Upsert_Overwrite(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.Upsert("INSERT INTO tbl VALUES (?)", "UUID", true, "Name", "State")
+
+	expectedQuery := `INSERT INTO tbl VALUES (?) ON CONFLICT(UUID) DO UPDATE SET Name=EXCLUDED.Name,State=EXCLUDED.State`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_Upsert_NoOverwrite(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	actualQuery := postgresDialect.Upsert("INSERT INTO tbl VALUES (?)", "UUID", false, "Name")
+
+	expectedQuery := `INSERT INTO tbl VALUES (?) ON CONFLICT(UUID) DO UPDATE SET Name=Name`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_SelectForUpdate(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	assert.Equal(t, "SELECT * FROM tbl FOR UPDATE", postgresDialect.SelectForUpdate("SELECT * FROM tbl"))
+}
+
+// PostgreSQL uses UPDATE ... FROM, like SQLite, rather than MySQL's
+// UPDATE ... INNER JOIN.
+func TestPostgreSQLDialect_UpdateWithJointOrFrom(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+	actualQuery := postgresDialect.UpdateWithJointOrFrom(
+		"target_table",
+		"other_table",
+		"State = ?",
+		"target_table.Name = other_table.Name",
+		"target_table.status = ?")
+	expectedQuery := `UPDATE target_table SET State = ? FROM other_table WHERE target_table.Name = other_table.Name AND target_table.status = ?`
+	assert.Equal(t, expectedQuery, actualQuery)
+}
+
+func TestPostgreSQLDialect_IsDuplicateError(t *testing.T) {
+	postgresDialect := NewPostgreSQLDialect()
+
+	assert.True(t, postgresDialect.IsDuplicateError(&pgconn.PgError{Code: pgUniqueViolation}))
+	// A wrapped error must still be recognised: the pgx stdlib driver wraps
+	// *pgconn.PgError before it surfaces through database/sql.
+	assert.True(t, postgresDialect.IsDuplicateError(fmt.Errorf("insert failed: %w", &pgconn.PgError{Code: pgUniqueViolation})))
+
+	// A different SQLSTATE is not a duplicate-key error.
+	assert.False(t, postgresDialect.IsDuplicateError(&pgconn.PgError{Code: "23503"}))
+	assert.False(t, postgresDialect.IsDuplicateError(errors.New("some other failure")))
+	assert.False(t, postgresDialect.IsDuplicateError(nil))
+}
+
+// The MySQL dialect must not treat a PostgreSQL unique violation as a
+// duplicate-key error, which is what happened while every install used
+// MySQLDialect regardless of driver.
+func TestMySQLDialect_IsDuplicateError_IgnoresPostgresError(t *testing.T) {
+	mysqlDialect := NewMySQLDialect()
+
+	assert.False(t, mysqlDialect.IsDuplicateError(&pgconn.PgError{Code: pgUniqueViolation}))
 }
