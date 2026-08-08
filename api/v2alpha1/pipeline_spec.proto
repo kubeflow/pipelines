@@ -811,6 +811,16 @@ message PipelineDeploymentConfig {
       // values and placeholders.
       string resource_memory_request = 10;
 
+      // The ephemeral storage limit in GB. This container execution needs
+      // at most resource_ephemeral_storage_limit ephemeral storage to run.
+      // Handles static values and placeholders.
+      string resource_ephemeral_storage_limit = 11;
+
+      // The ephemeral storage request in GB. This container execution needs
+      // at least resource_ephemeral_storage_request ephemeral storage to run.
+      // Handles static values and placeholders.
+      string resource_ephemeral_storage_request = 12;
+
       // The specification on the accelerators being attached to this container.
       message AcceleratorConfig {
         // The type of accelerators.

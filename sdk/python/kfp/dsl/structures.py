@@ -239,6 +239,8 @@ class ResourceSpec:
         cpu_limit (optional): the limit of the number of vCPU cores.
         memory_request (optional): the memory requirement in GB.
         memory_limit (optional): the memory limit in GB.
+        ephemeral_storage_request (optional): the ephemeral storage requirement in GB.
+        ephemeral_storage_limit (optional): the ephemeral storage limit in GB.
         accelerator_type (optional): the type of accelerators attached to the
             container.
         accelerator_count (optional): the number of accelerators attached.
@@ -247,6 +249,8 @@ class ResourceSpec:
     cpu_limit: Optional[str] = None
     memory_request: Optional[str] = None
     memory_limit: Optional[str] = None
+    ephemeral_storage_request: Optional[str] = None
+    ephemeral_storage_limit: Optional[str] = None
     accelerator_type: Optional[str] = None
     accelerator_count: Optional[str] = None
 
