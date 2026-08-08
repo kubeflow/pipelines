@@ -154,6 +154,12 @@ func (f *FakeClientManager) TaskStore() storage.TaskStoreInterface {
 	return f.taskStore
 }
 
+// SetTaskStore overrides the task store so tests can inject failures.
+// Resource managers created before this call keep the previous store.
+func (f *FakeClientManager) SetTaskStore(taskStore storage.TaskStoreInterface) {
+	f.taskStore = taskStore
+}
+
 func (f *FakeClientManager) ResourceReferenceStore() storage.ResourceReferenceStoreInterface {
 	return f.resourceReferenceStore
 }

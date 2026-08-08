@@ -60,6 +60,23 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
+// A transient artifact-read failure is reported as *artifactclient.Error, not
+// as a util.CustomError. ReportMetrics must classify it as transient so the
+// workflow saver retries instead of finalizing the workflow with the metrics
+// unreported.
+func TestReportMetrics_TransientArtifactReadFailure_ReturnsTransientError(t *testing.T) {
+	pipelineFake := client.NewPipelineClientFake()
+	workflow := terminalWorkflowWithMetrics(t, pipelineFake)
+	pipelineFake.StubArtifactError(artifactclient.NewError(
+		artifactclient.ErrorCodeTransient, fmt.Errorf("HTTP 500"), "artifact store unavailable"))
+
+	reporter := NewMetricsReporter(pipelineFake)
+	err := reporter.ReportMetrics(workflow)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+}
+
 func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 	pipelineFake := client.NewPipelineClientFake()
 
