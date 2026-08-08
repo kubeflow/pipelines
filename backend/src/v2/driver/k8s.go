@@ -973,15 +973,7 @@ func createPVC(
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: parameter volumeSize not provided")
 	}
 
-	// Optional input: storage_class_name
-	// When not provided, use default value `standard`
-	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
-	var storageClassName string
-	if !ok {
-		storageClassName = "standard"
-	} else {
-		storageClassName = storageClassNameInput.GetStringValue()
-	}
+	storageClassName := pvcStorageClassNameFromInputs(inputs)
 
 	// Optional input: annotations
 	pvcAnnotations := make(map[string]string)
@@ -1068,7 +1060,7 @@ func createPVC(
 					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},
 			},
-			StorageClassName: &storageClassName,
+			StorageClassName: storageClassName,
 			VolumeName:       volumeName,
 			DataSource:       dataSource,
 		},
@@ -1090,6 +1082,17 @@ func createPVC(
 	}
 
 	return createdPVC.ObjectMeta.Name, createdExecution, pb.Execution_COMPLETE, nil
+}
+
+// pvcStorageClassNameFromInputs returns the StorageClassName for a PVC based on
+// executor inputs. When storage_class_name is omitted, returns nil so
+// Kubernetes applies the cluster default StorageClass.
+func pvcStorageClassNameFromInputs(inputs *pipelinespec.ExecutorInput_Inputs) *string {
+	if storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]; ok {
+		sc := storageClassNameInput.GetStringValue()
+		return &sc
+	}
+	return nil
 }
 
 // buildPVCDataSource converts a protobuf Value representing a PVC data source
