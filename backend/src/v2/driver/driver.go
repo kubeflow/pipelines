@@ -351,9 +351,6 @@ func initPodSpecPatch(
 		// Add log level to user code launcher if not default (set to 1)
 		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
 	}
-	if publishLogs == "true" {
-		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
-	}
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},
