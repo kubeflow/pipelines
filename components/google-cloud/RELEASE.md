@@ -1,6 +1,7 @@
 ## Upcoming release
 
 * Remove deprecated Wide and Deep Tabular Workflow pipeline.
+* Fix `docs` extra's `protobuf` pin so it no longer conflicts with the `protobuf` range required by `kfp`.
 
 ## Release 2.22.0
 
