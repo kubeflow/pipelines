@@ -1038,6 +1038,32 @@ describe('RunDetails', () => {
     });
   });
 
+  it('shows a pod lifecycle failure message distinctly from a pipeline code failure', async () => {
+    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
+      metadata: { name: 'workflow1' },
+      status: {
+        nodes: {
+          node1: {
+            id: 'node1',
+            name: 'node1',
+            templateName: 'template1',
+            phase: 'Failed',
+            message: 'OOMKilled',
+          },
+        },
+      },
+    });
+    await renderRunDetails();
+    await clickGraphNode('node1');
+    await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
+    await waitFor(() => {
+      expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty(
+        'phaseMessage',
+        'This step failed due to a Kubernetes pod issue, not an error in your pipeline code: OOMKilled',
+      );
+    });
+  });
+
   it('dismisses node message banner if node loses message after refresh', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
