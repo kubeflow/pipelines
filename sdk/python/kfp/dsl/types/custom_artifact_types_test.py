@@ -36,6 +36,11 @@ from kfp.dsl.types.type_annotations import OutputPath
 Alias = Artifact
 artifact_types_alias = artifact_types
 
+try:
+    import pydantic
+except ImportError:
+    pydantic = None
+
 
 class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
 
@@ -51,6 +56,18 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
         tmp_dir = tempfile.TemporaryDirectory()
         with open(os.path.join(tmp_dir.name, 'aiplatform.py'), 'w') as f:
             f.write(class_source)
+
+        if pydantic is not None:
+            with open(os.path.join(tmp_dir.name, 'my_pydantic_models.py'),
+                      'w') as f:
+                f.write(
+                    textwrap.dedent("""\
+                    import pydantic
+
+                    class MyModel(pydantic.BaseModel):
+                        foo: str
+                    """))
+
         sys.path.append(tmp_dir.name)
         cls.tmp_dir = tmp_dir
 
@@ -521,6 +538,95 @@ class TestGetCustomArtifactImportItemsFromFunction(
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
         self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestGetParamToPydanticBasemodelClass(_TestCaseWithThirdPartyPackage):
+
+    def test_no_ann(self):
+
+        def func():
+            pass
+
+        actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
+            func)
+        self.assertEqual(actual, {})
+
+    def test_primitives(self):
+
+        def func(a: str, b: int) -> str:
+            pass
+
+        actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
+            func)
+        self.assertEqual(actual, {})
+
+    def test_input_basemodel(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: MyModel):
+            pass
+
+        actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
+            func)
+        self.assertEqual(actual, {'a': MyModel})
+
+    def test_return_basemodel(self):
+        from my_pydantic_models import MyModel
+
+        def func() -> MyModel:
+            pass
+
+        actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
+            func)
+        self.assertEqual(actual, {'return-': MyModel})
+
+    def test_named_tuple_basemodel(self):
+        from my_pydantic_models import MyModel
+
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', MyModel),
+            ('b', str),
+        ]):
+            pass
+
+        actual = custom_artifact_types.get_param_to_pydantic_basemodel_class(
+            func)
+        self.assertEqual(actual, {'return-a': MyModel})
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestGetPydanticBasemodelImportItemsFromFunction(
+        _TestCaseWithThirdPartyPackage):
+
+    def test_no_ann(self):
+
+        def func():
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_input_basemodel(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: MyModel):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+            func)
+        self.assertEqual(actual, ['my_pydantic_models.MyModel'])
+
+    def test_import_statement_format(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: MyModel) -> MyModel:
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_type_import_statements(
+            func)
+        self.assertEqual(actual, ['from my_pydantic_models import MyModel'])
 
 
 if __name__ == '__main__':
