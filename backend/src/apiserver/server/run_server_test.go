@@ -39,6 +39,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -1651,4 +1652,130 @@ func TestRetryRunV1(t *testing.T) {
 	_, err := server.RetryRunV1(context.Background(), &apiv1beta1.RetryRunRequest{RunId: run.UUID})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Workflow must be Failed/Error to retry")
+}
+
+func TestMarkTaskSuccess_CommentValidation(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+
+	// Test empty comment
+	_, err := server.MarkTaskSuccess(context.Background(), &apiv2beta1.MarkTaskSuccessRequest{
+		RunId:   run.UUID,
+		TaskId:  "task-1",
+		Scope:   apiv2beta1.TaskScope_TASK_ONLY,
+		Comment: "",
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "A comment is mandatory")
+
+	// Test whitespace-only comment
+	_, err = server.MarkTaskSuccess(context.Background(), &apiv2beta1.MarkTaskSuccessRequest{
+		RunId:   run.UUID,
+		TaskId:  "task-1",
+		Scope:   apiv2beta1.TaskScope_TASK_ONLY,
+		Comment: "   ",
+	})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "A comment is mandatory")
+}
+
+func TestClearTask_Success(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+
+	// Populate mock workflow templates and nodes in the fake execution client
+	wfInterface := clients.ExecClientFake.Execution("ns1")
+	latestWf, err := wfInterface.Get(context.Background(), "workflow-name", metav1.GetOptions{})
+	assert.Nil(t, err)
+	workflow, ok := latestWf.(*util.Workflow)
+	assert.True(t, ok)
+
+	workflow.Spec.Templates = []v1alpha1.Template{
+		{
+			Name: "my-task-template",
+			Container: &corev1.Container{
+				Args: []string{"run"},
+			},
+		},
+	}
+	workflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node-1": {
+			ID:           "node-1",
+			Name:         "workflow-name.node-1",
+			DisplayName:  "task-1",
+			TemplateName: "my-task-template",
+			Phase:        v1alpha1.NodeFailed,
+			Type:         v1alpha1.NodeTypePod,
+		},
+		"node-2": {
+			ID:          "node-2",
+			Name:        "workflow-name.node-2",
+			DisplayName: "task-2",
+			Phase:       v1alpha1.NodeSucceeded,
+			Type:        v1alpha1.NodeTypePod,
+			Children:    []string{"node-1"},
+		},
+	}
+	_, err = wfInterface.Update(context.Background(), workflow, metav1.UpdateOptions{})
+	assert.Nil(t, err)
+
+	// Call ClearTask with invalidateCache = true
+	_, err = server.ClearTask(context.Background(), &apiv2beta1.ClearTaskRequest{
+		RunId:           run.UUID,
+		TaskId:          "task-1",
+		Scope:           apiv2beta1.TaskScope_TASK_ONLY,
+		InvalidateCache: true,
+	})
+	assert.Nil(t, err)
+
+	// Fetch workflow again to verify template arguments was modified to disable cache
+	updatedWf, err := wfInterface.Get(context.Background(), "workflow-name", metav1.GetOptions{})
+	assert.Nil(t, err)
+	workflowCopy, ok := updatedWf.(*util.Workflow)
+	assert.True(t, ok)
+	assert.Contains(t, workflowCopy.Spec.Templates[0].Container.Args, "--cache_disabled")
+}
+
+func TestMarkTaskSuccess_Success(t *testing.T) {
+	clients, manager, run := initWithOneTimeRun(t)
+	defer clients.Close()
+	server := createRunServer(manager)
+
+	// Populate mock workflow nodes in the fake execution client
+	wfInterface := clients.ExecClientFake.Execution("ns1")
+	latestWf, err := wfInterface.Get(context.Background(), "workflow-name", metav1.GetOptions{})
+	assert.Nil(t, err)
+	workflow, ok := latestWf.(*util.Workflow)
+	assert.True(t, ok)
+
+	workflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node-1": {
+			ID:          "node-1",
+			Name:        "workflow-name.node-1",
+			DisplayName: "task-1",
+			Phase:       v1alpha1.NodeFailed,
+			Type:        v1alpha1.NodeTypePod,
+		},
+	}
+	_, err = wfInterface.Update(context.Background(), workflow, metav1.UpdateOptions{})
+	assert.Nil(t, err)
+
+	// Call MarkTaskSuccess
+	_, err = server.MarkTaskSuccess(context.Background(), &apiv2beta1.MarkTaskSuccessRequest{
+		RunId:   run.UUID,
+		TaskId:  "task-1",
+		Scope:   apiv2beta1.TaskScope_TASK_ONLY,
+		Comment: "Overriding failed task to success",
+	})
+	assert.Nil(t, err)
+
+	// Fetch workflow again to verify target node status phase is succeeded and contains audit comment
+	updatedWf, err := wfInterface.Get(context.Background(), "workflow-name", metav1.GetOptions{})
+	assert.Nil(t, err)
+	workflowCopy, ok := updatedWf.(*util.Workflow)
+	assert.True(t, ok)
+	assert.Equal(t, v1alpha1.NodeSucceeded, workflowCopy.Status.Nodes["node-1"].Phase)
+	assert.Contains(t, workflowCopy.Status.Nodes["node-1"].Message, "Manually marked as Succeeded. Reason: Overriding failed task to success")
 }
