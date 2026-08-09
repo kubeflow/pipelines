@@ -6,10 +6,12 @@
   - [Current State and Limitations](#current-state-and-limitations)
   - [Goals](#goals)
   - [Non-Goals](#non-goals)
+- [Backward Compatibility](#backward-compatibility)
 - [Dependencies](#dependencies)
 - [Proposal](#proposal)
   - [SDK User Experience](#sdk-user-experience)
   - [User Stories](#user-stories)
+  - [End-to-End Workflow](#end-to-end-workflow)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Design Details](#design-details)
   - [How It Works](#how-it-works)
@@ -50,7 +52,9 @@ model lives, regardless of whether the consumer is an online serving system or a
 
 ### Goals
 
-1. Allow `dsl.importer` to accept URIs in the form `model-registry://{model_name}/{model_version}`
+1. Allow `dsl.importer` to accept URIs in the form `model-registry://{model_name}/{model_version}`.
+   Model names and versions may contain alphanumeric characters, hyphens, underscores, and dots.
+   Forward slashes within a name or version segment are not supported. Segments are URL-decoded after parsing.
 2. Resolve the logical URI to the real storage path at runtime, inside the importer launcher
 3. Fail clearly when Model Registry is not configured or the model cannot be found
 4. Share configuration infrastructure with KEP-12020 so both registration and import use the same setup
@@ -63,6 +67,14 @@ model lives, regardless of whether the consumer is an online serving system or a
    storage backend (S3, GCS, etc.). Model Registry never proxies or caches artifact content.
 3. This protocol is scoped to `dsl.importer`. It does not apply to pipeline inputs, outputs, or component artifact
    parameters.
+
+## Backward Compatibility
+
+This proposal is fully backward compatible. No SDK changes, proto changes, or modifications to existing behavior are
+required. The `modelRegistry` key in the `kfp-launcher` ConfigMap is optional. If it is absent, KFP behaves exactly
+as it does today. Pipelines that do not use `model-registry://` URIs have zero new dependencies. If Model Registry is
+not deployed or configured, only pipelines that reference `model-registry://` URIs are affected; they fail immediately
+with a clear error explaining that Model Registry is not configured.
 
 ## Dependencies
 
@@ -108,6 +120,25 @@ to the backend unchanged. The `model-registry://` prefix is only interpreted at 
 3. **As an ML/DS engineer**, I want model consumption in my pipelines to go through Model Registry, so I have a single
    place to audit which models are being used in production batch jobs.
 
+### End-to-End Workflow
+
+**Platform admin setup:**
+
+1. Deploy Model Registry on the cluster
+2. Create a Kubernetes Secret with the Model Registry auth token in the pipeline run namespace
+3. Add `modelRegistry` config to the `kfp-launcher` ConfigMap:
+   - Standalone mode: edit the ConfigMap directly (e.g., `kubectl edit configmap kfp-launcher -n kubeflow`)
+   - Multi-user mode: configure the profile controller to include the `modelRegistry` key
+     (see [Configuration](#configuration))
+
+**ML engineer usage:**
+
+1. Register a model in Model Registry (via the Model Registry UI or API), which records the model name,
+   version, and storage URI
+2. Use `model-registry://model-name/version` as the `artifact_uri` in `dsl.importer`
+3. Run the pipeline. The importer resolves the name to the storage path, records it on the artifact, and
+   makes it available to downstream tasks
+
 ### Risks and Mitigations
 
 - **Model Registry unavailable at runtime**: The launcher retries with a configurable timeout. On failure, it surfaces
@@ -116,6 +147,8 @@ to the backend unchanged. The `model-registry://` prefix is only interpreted at 
 - **Resolved URI uses an unsupported storage scheme**: The launcher routes the resolved URI through the existing
   importer scheme handling (`gs://`, `s3://`, `minio://`, and `oci://` for `system.Model`) so the same validation and
   workspace restrictions apply to direct and Model Registry imports.
+- **Credentials misconfiguration**: If the secret referenced in `tokenSecretRef` does not exist in the pipeline run
+  namespace, the importer fails with a clear error identifying the missing secret name and namespace.
 
 ## Design Details
 
@@ -130,8 +163,9 @@ The resolution happens inside the importer pod at runtime, following these steps
 
 3. **Launcher calls Model Registry.** It parses the model name and version from the URI, then queries the Model
    Registry REST API to find the registered model, find the requested model version, and list that version's associated
-   artifacts. It selects the newest `ModelArtifact` using the same ordering as the Kubeflow Hub/KServe resolver and uses
-   that artifact's `uri` field as the storage location.
+   artifacts. It selects the `ModelArtifact` with the most recent `createTimeSinceEpoch`, matching the ordering used by
+   the [KServe Model Registry storage initializer](https://github.com/kserve/kserve/tree/master/python/kserve/kserve/protocol/model_registry),
+   and uses that artifact's `uri` field as the storage location.
 
 4. **Launcher records the resolved storage location.** The resolved URI (e.g.,
    `s3://bucket/models/my-model/v3/`) is stored on the artifact for the standard downstream artifact-consumption flow.
@@ -142,8 +176,11 @@ The resolution happens inside the importer pod at runtime, following these steps
    model name, version name, and artifact ID, are persisted as custom properties on the MLMD artifact. This
    preserves auditability: users can trace which pipeline runs consumed which registered models.
 
-When `reimport=False` (the default), the cache lookup happens against the resolved storage URI. This ensures that if a
-model version's storage location changes, the next pipeline run imports the updated artifact.
+When `reimport=False` (the default), the cache lookup matches on the resolved storage URI **and** the artifact's custom
+properties, including the Model Registry metadata stored in step 5. This means that if the storage location changes,
+the next run imports a fresh artifact. It also means that a direct URI import (e.g., `s3://bucket/path`) and a
+`model-registry://` import that resolves to the same path are treated as distinct cache entries, preserving the
+provenance distinction between the two import methods.
 
 ### Configuration
 
@@ -168,17 +205,38 @@ data:
     retryAttempts: 3
 ```
 
+The `url` and `tokenSecretRef` fields are required; `caConfigMapRef`, `timeout`, and `retryAttempts` are optional with
+sensible defaults. Final field names and defaults will be aligned with KEP-12020 during implementation. If this
+configuration is absent and a pipeline uses a `model-registry://` URI, the importer fails immediately with an error
+explaining that Model Registry is not configured.
+
+#### Standalone mode
+
+The admin adds the `modelRegistry` block to the `kfp-launcher` ConfigMap directly (e.g.,
+`kubectl edit configmap kfp-launcher -n kubeflow`). No reconciler runs in standalone mode, so manual edits persist.
+
+#### Multi-user mode
+
+In multi-user deployments, the profile controller (`sync.py`) creates a namespace-local `kfp-launcher` ConfigMap for
+each user namespace. The controller rebuilds the ConfigMap on every reconciliation cycle with only
+`defaultPipelineRoot` and `clusterDomain`
+(`manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py`, lines 276-287). Any manually
+added keys, including `modelRegistry`, are overwritten.
+
+To support this proposal, `sync.py` must be updated to accept Model Registry config as input (e.g., environment
+variables on the profile controller deployment) and include the `modelRegistry` key in the desired state for each
+namespace's ConfigMap. This follows the same pattern already used for `clusterDomain` and `object_store_host` in
+`get_settings_from_env()`.
+
+Since Model Registry does not support multi-tenant isolation out of the box, companies may deploy separate Model
+Registry instances per team. Because the `kfp-launcher` ConfigMap is per-namespace, each namespace can point to a
+different Model Registry URL without any additional code changes.
+
+#### Credentials
+
 The authentication secret and CA ConfigMap must exist in the same namespace as the pipeline run. The importer pod's
 service account (`pipeline-runner`) has a namespace-scoped Role that only permits reading secrets and ConfigMaps
-within its own namespace.
-
-**Multi-user mode:** In multi-user deployments, the profile controller creates a namespace-local `kfp-launcher`
-ConfigMap for each user namespace. The `modelRegistry` key must be propagated to both new and existing per-namespace ConfigMaps,
-either by updating the profile controller's sync logic or by having the launcher fall back to reading from a
-cluster-wide configuration source. The exact propagation mechanism will be finalized during implementation.
-
-The exact schema will be finalized during implementation. If this configuration is absent and a pipeline uses a
-`model-registry://` URI, the importer fails immediately with an error explaining that Model Registry is not configured.
+within its own namespace (`manifests/kustomize/base/pipeline/pipeline-runner-role.yaml`).
 
 ### Implementation Pointers
 
@@ -189,9 +247,10 @@ The exact schema will be finalized during implementation. If this configuration 
   following the same pattern as `getBucketProviders()` which parses structured YAML from the `kfp-launcher` ConfigMap.
 - **Auth**: The importer pod reads the token from the referenced Kubernetes Secret in the run namespace. The
   `pipeline-runner` Role already permits reading secrets within its own namespace; no additional RBAC is needed.
-- **Multi-user propagation** (`manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py`):
-  Update the profile controller to include the `modelRegistry` key when generating per-namespace `kfp-launcher`
-  ConfigMaps.
+- **Profile controller** (`manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py`):
+  Add `modelRegistry` to the desired state returned by `sync()`. Source the config from environment variables on the
+  profile controller deployment, following the pattern of `clusterDomain` in `get_settings_from_env()`. Each namespace
+  can have a different Model Registry URL to support deployments with multiple registry instances.
 
 ## Frontend Considerations
 
@@ -225,6 +284,8 @@ use the resolved storage URI directly.
 ## Implementation History
 
 - 2026-07-19: Initial proposal
+- 2026-08-09: Revised to address maintainer feedback (backward compatibility, end-to-end workflow, multi-user
+  reconciler behavior)
 
 ## Drawbacks
 
