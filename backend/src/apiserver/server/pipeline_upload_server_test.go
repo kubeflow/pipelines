@@ -666,58 +666,72 @@ func TestUploadPipeline_VersionQueryParameters(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			clientManager, server := setupClientManagerAndServer()
-			bytesBuffer, writer := setupWriter("")
-			setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
-			response := uploadPipeline(
-				"/apis/v2beta1/pipelines/upload?"+pipelineQuery+tt.versionQuery,
-				bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
-			assert.Equal(t, 200, response.Code)
+	apiVersions := []struct {
+		name string
+		path string
+	}{
+		{name: "v1beta1", path: "/apis/v1beta1/pipelines/upload"},
+		{name: "v2beta1", path: "/apis/v2beta1/pipelines/upload"},
+	}
 
-			opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
-			assert.Nil(t, err)
+	for _, av := range apiVersions {
+		for _, tt := range tests {
+			t.Run(av.name+"/"+tt.name, func(t *testing.T) {
+				clientManager, server := setupClientManagerAndServer()
+				handler := server.UploadPipeline
+				if av.name == "v1beta1" {
+					handler = server.UploadPipelineV1
+				}
+				bytesBuffer, writer := setupWriter("")
+				setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+				response := uploadPipeline(
+					av.path+"?"+pipelineQuery+tt.versionQuery,
+					bytes.NewReader(bytesBuffer.Bytes()), writer, handler)
+				assert.Equal(t, 200, response.Code)
 
-			// Verify metadata in db
-			pkgsExpect := []*model.Pipeline{
-				{
-					UUID:           DefaultFakeUUID,
-					CreatedAtInSec: 1,
-					Name:           "my-pipeline",
-					DisplayName:    "My Pipeline",
-					Status:         model.PipelineReady,
-					Description:    "pipeline description",
-					Namespace:      "",
-				},
-			}
-			pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
-			assert.Nil(t, err)
-			assert.Equal(t, 1, totalSize)
-			assert.Equal(t, str, "")
-			assert.Equal(t, pkgsExpect, pkg)
+				opts, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+				assert.Nil(t, err)
 
-			opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
-			assert.Nil(t, err)
-			pkgsExpect2 := []*model.PipelineVersion{
-				{
-					UUID:           DefaultFakeUUID,
-					Description:    model.LargeText(tt.expectedVersionDesc),
-					CreatedAtInSec: 2,
-					Name:           tt.expectedVersionName,
-					DisplayName:    tt.expectedVersionDisplay,
-					Parameters:     "[]",
-					Status:         model.PipelineVersionReady,
-					PipelineId:     DefaultFakeUUID,
-					PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
-				},
-			}
-			pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
-			assert.Nil(t, err)
-			assert.Equal(t, 1, totalSize)
-			assert.Equal(t, str, "")
-			assert.Equal(t, pkgsExpect2, pkg2)
-		})
+				// Verify metadata in db
+				pkgsExpect := []*model.Pipeline{
+					{
+						UUID:           DefaultFakeUUID,
+						CreatedAtInSec: 1,
+						Name:           "my-pipeline",
+						DisplayName:    "My Pipeline",
+						Status:         model.PipelineReady,
+						Description:    "pipeline description",
+						Namespace:      "",
+					},
+				}
+				pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts, nil)
+				assert.Nil(t, err)
+				assert.Equal(t, 1, totalSize)
+				assert.Equal(t, str, "")
+				assert.Equal(t, pkgsExpect, pkg)
+
+				opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+				assert.Nil(t, err)
+				pkgsExpect2 := []*model.PipelineVersion{
+					{
+						UUID:           DefaultFakeUUID,
+						Description:    model.LargeText(tt.expectedVersionDesc),
+						CreatedAtInSec: 2,
+						Name:           tt.expectedVersionName,
+						DisplayName:    tt.expectedVersionDisplay,
+						Parameters:     "[]",
+						Status:         model.PipelineVersionReady,
+						PipelineId:     DefaultFakeUUID,
+						PipelineSpec:   "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+					},
+				}
+				pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts2, nil)
+				assert.Nil(t, err)
+				assert.Equal(t, 1, totalSize)
+				assert.Equal(t, str, "")
+				assert.Equal(t, pkgsExpect2, pkg2)
+			})
+		}
 	}
 }
 

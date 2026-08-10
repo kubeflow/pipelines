@@ -205,6 +205,13 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		return
 	}
 
+	// PipelineVersion.Description is a LargeText (LONGTEXT/TEXT) column with no practical
+	// size limit, so it is not validated here; DisplayName is a fixed-width column.
+	if err := validation.ValidateFieldLength("PipelineVersion", "DisplayName", pipelineVersion.DisplayName); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
 	newPipeline, newPipelineVersion, err := s.resourceManager.CreatePipelineAndPipelineVersion(pipeline, pipelineVersion)
