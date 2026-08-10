@@ -218,6 +218,31 @@ spec:
               value: ghcr.io/kubeflow/kfp-driver:2.17.0
             - name: V2_LAUNCHER_IMAGE
               value: ghcr.io/kubeflow/kfp-launcher:2.17.0
+            # Resolve mutable image tags to digests for v2 cache fingerprints.
+            - name: CACHE_RESOLVE_IMAGE_DIGEST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: CACHE_RESOLVE_IMAGE_DIGEST
+                  optional: true
+            - name: CACHE_IMAGE_DIGEST_DOCKER_CONFIG_SECRET
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: CACHE_IMAGE_DIGEST_DOCKER_CONFIG_SECRET
+                  optional: true
+            - name: CACHE_IMAGE_DIGEST_DOCKERHUB_REGISTRY_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: CACHE_IMAGE_DIGEST_DOCKERHUB_REGISTRY_HOST
+                  optional: true
+            - name: CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: CACHE_IMAGE_DIGEST_INSECURE_REGISTRIES
+                  optional: true
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"

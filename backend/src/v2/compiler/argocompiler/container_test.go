@@ -131,6 +131,96 @@ func TestContainerDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) 
 	assert.NotContains(t, tmpl.Container.Args, "--pipeline_job_schedule_time_epoch_seconds")
 }
 
+func TestContainerDriverTemplate_CacheResolveImageDigest(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	t.Run("disabled by default", func(t *testing.T) {
+		t.Setenv(CacheResolveImageDigestEnvVar, "false")
+		t.Setenv(CacheImageDigestDockerConfigSecretEnvVar, "")
+		t.Setenv(CacheImageDigestDockerHubRegistryEnvVar, "")
+		t.Setenv(CacheImageDigestInsecureRegistriesEnvVar, "")
+		c := newTestWorkflowCompiler()
+		name := c.addContainerDriverTemplate()
+		tmpl := c.templates[name]
+		require.NotNil(t, tmpl.Container)
+		assert.NotContains(t, tmpl.Container.Args, "--cache_resolve_image_digest")
+		assert.NotContains(t, tmpl.Container.Args, "--cache_image_digest_docker_config")
+		for _, volume := range tmpl.Volumes {
+			assert.NotEqual(t, cacheImageDigestDockerConfigVolume, volume.Name)
+		}
+	})
+
+	t.Run("enabled without dockerconfig secret", func(t *testing.T) {
+		t.Setenv(CacheResolveImageDigestEnvVar, "true")
+		t.Setenv(CacheImageDigestDockerConfigSecretEnvVar, "")
+		t.Setenv(CacheImageDigestDockerHubRegistryEnvVar, "mirror.example.com")
+		t.Setenv(CacheImageDigestInsecureRegistriesEnvVar, "localhost:5000")
+		c := newTestWorkflowCompiler()
+		name := c.addContainerDriverTemplate()
+		tmpl := c.templates[name]
+		require.NotNil(t, tmpl.Container)
+		assert.Contains(t, tmpl.Container.Args, "--cache_resolve_image_digest")
+		assert.Contains(t, tmpl.Container.Args, "--cache_image_digest_dockerhub_registry_host")
+		assert.Contains(t, tmpl.Container.Args, "mirror.example.com")
+		assert.Contains(t, tmpl.Container.Args, "--cache_image_digest_insecure_registries")
+		assert.Contains(t, tmpl.Container.Args, "localhost:5000")
+		assert.NotContains(t, tmpl.Container.Args, "--cache_image_digest_docker_config")
+		for _, volume := range tmpl.Volumes {
+			assert.NotEqual(t, cacheImageDigestDockerConfigVolume, volume.Name)
+		}
+	})
+
+	t.Run("enabled with dockerconfig secret mounts volume", func(t *testing.T) {
+		t.Setenv(CacheResolveImageDigestEnvVar, "true")
+		t.Setenv(CacheImageDigestDockerConfigSecretEnvVar, "registry-pull-secret")
+		c := newTestWorkflowCompiler()
+		name := c.addContainerDriverTemplate()
+		tmpl := c.templates[name]
+		require.NotNil(t, tmpl.Container)
+		assert.Contains(t, tmpl.Container.Args, "--cache_resolve_image_digest")
+		assert.Contains(t, tmpl.Container.Args, "--cache_image_digest_docker_config")
+		assert.Contains(t, tmpl.Container.Args, cacheImageDigestDockerConfigPath)
+
+		var foundVolume bool
+		for _, volume := range tmpl.Volumes {
+			if volume.Name != cacheImageDigestDockerConfigVolume {
+				continue
+			}
+			foundVolume = true
+			require.NotNil(t, volume.Secret)
+			assert.Equal(t, "registry-pull-secret", volume.Secret.SecretName)
+			require.Len(t, volume.Secret.Items, 1)
+			assert.Equal(t, cacheImageDigestDockerConfigKey, volume.Secret.Items[0].Key)
+		}
+		assert.True(t, foundVolume, "expected dockerconfig secret volume on container driver")
+
+		var foundMount bool
+		for _, mount := range tmpl.Container.VolumeMounts {
+			if mount.Name == cacheImageDigestDockerConfigVolume {
+				foundMount = true
+				assert.Equal(t, cacheImageDigestDockerConfigMount, mount.MountPath)
+				assert.True(t, mount.ReadOnly)
+			}
+		}
+		assert.True(t, foundMount, "expected dockerconfig volume mount on container driver")
+	})
+}
+
+func newTestWorkflowCompiler() *workflowCompiler {
+	return &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{Name: "test-pipeline"},
+		},
+		job: &pipelinespec.PipelineJob{},
+	}
+}
+
 func Test_extendPodMetadata(t *testing.T) {
 	tests := []struct {
 		name                     string
