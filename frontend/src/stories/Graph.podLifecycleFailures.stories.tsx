@@ -1,7 +1,7 @@
 // Demonstrates the pod lifecycle failure color-coding and cause/fix tooltips
 // added to Graph/StatusUtils. Run `npm run storybook` and open
 // Demo/PodLifecycleFailureGraph to see it interactively.
-import { Meta, StoryObj } from '@storybook/react';
+import { Meta, StoryFn, StoryObj } from '@storybook/react';
 import RunGraph from '../components/Graph';
 import WorkflowParser from '../lib/WorkflowParser';
 
@@ -57,6 +57,16 @@ const graph = WorkflowParser.createRuntimeGraph(workflow, undefined);
 const meta: Meta<typeof RunGraph> = {
   title: 'Demo/PodLifecycleFailureGraph',
   component: RunGraph,
+  argTypes: {
+    graph: { control: false },
+  },
+  decorators: [
+    (Story: StoryFn) => (
+      <div style={{ height: 600, width: '100%' }}>
+        <Story />
+      </div>
+    ),
+  ],
 };
 export default meta;
 
