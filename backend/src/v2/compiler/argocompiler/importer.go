@@ -44,12 +44,16 @@ func (c *workflowCompiler) importerTask(name string, task *pipelinespec.Pipeline
 	if err != nil {
 		return nil, err
 	}
+	taskJSONCompressed, err := util.GzipCompressBase64(taskJSON)
+	if err != nil {
+		return nil, err
+	}
 	return &wfapi.DAGTask{
 		Name:     name,
 		Template: c.addImporterTemplate(downloadToWorkspace),
 		Arguments: wfapi.Arguments{Parameters: []wfapi.Parameter{{
 			Name:  paramTask,
-			Value: wfapi.AnyStringPtr(taskJSON),
+			Value: wfapi.AnyStringPtr(taskJSONCompressed),
 		}, {
 			Name:  paramComponent,
 			Value: wfapi.AnyStringPtr(componentPlaceholder),

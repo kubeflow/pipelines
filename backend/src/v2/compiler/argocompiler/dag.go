@@ -527,18 +527,26 @@ func (c *workflowCompiler) dagDriverTask(name string, inputs dagDriverInputs) (*
 		if err != nil {
 			return nil, nil, fmt.Errorf("dagDriverTask: marshaling runtime config to proto JSON failed: %w", err)
 		}
+		runtimeConfigCompressed, err := util.GzipCompressBase64(runtimeConfigJson)
+		if err != nil {
+			return nil, nil, fmt.Errorf("dagDriverTask: compressing runtime config failed: %w", err)
+		}
 		params = append(params, wfapi.Parameter{
 			Name:  paramRuntimeConfig,
-			Value: wfapi.AnyStringPtr(runtimeConfigJson),
+			Value: wfapi.AnyStringPtr(runtimeConfigCompressed),
 		}, wfapi.Parameter{
 			Name:  paramDriverType,
 			Value: wfapi.AnyStringPtr("ROOT_DAG"),
 		})
 	}
 	if inputs.task != "" {
+		taskCompressed, err := util.GzipCompressBase64(inputs.task)
+		if err != nil {
+			return nil, nil, fmt.Errorf("dagDriverTask: compressing task spec failed: %w", err)
+		}
 		params = append(params, wfapi.Parameter{
 			Name:  paramTask,
-			Value: wfapi.AnyStringPtr(inputs.task),
+			Value: wfapi.AnyStringPtr(taskCompressed),
 		})
 	}
 
