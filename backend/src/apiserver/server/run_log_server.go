@@ -15,7 +15,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -62,7 +61,7 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Cache-Control", "no-cache, private")
 
-	err := s.resourceManager.ReadLog(context.Background(), runId, nodeId, follow, w)
+	err := s.resourceManager.ReadLog(r.Context(), runId, nodeId, follow, w)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, err)
 	}
