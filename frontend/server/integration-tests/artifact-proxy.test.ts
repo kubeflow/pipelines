@@ -191,15 +191,30 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(res.text).not.toContain('stack');
   });
 
-  it('rejects ambiguous namespace query parameters', async () => {
-    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
-    app = new UIServer(configs);
-    await requests(app.app)
-      .get(
-        `/artifacts/get?source=minio&bucket=ml-pipeline&key=hello.txt&namespace=ns-a&namespace=ns-b`,
-      )
-      .expect(400, 'namespace must be a single string value');
-  });
+  it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+    'rejects ambiguous %s query parameters before proxying',
+    async (parameterName) => {
+      const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns-a' });
+      const configs = loadConfigs(argv, {
+        ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+      });
+      app = new UIServer(configs);
+      const query = new URLSearchParams({
+        source: 'minio',
+        bucket: 'ml-pipeline',
+        key: 'hello.txt',
+        providerInfo: '{}',
+        namespace: 'ns-a',
+        peek: '10',
+      });
+      query.append(parameterName, 'duplicate');
+
+      await requests(app.app)
+        .get(`/artifacts/get?${query.toString()}`)
+        .expect(400, `${parameterName} must be a single string value`);
+      expect(receivedUrls).toEqual([]);
+    },
+  );
 
   it('proxies a request with basePath too', async () => {
     const { receivedUrls, response } = await setUpNamespacedArtifactService({});

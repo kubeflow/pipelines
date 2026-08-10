@@ -69,6 +69,14 @@ interface ArtifactsQueryStrings {
 type ArtifactSource = ArtifactsQueryStrings['source'];
 
 const ARTIFACT_SOURCES = new Set<ArtifactSource>(['minio', 's3', 'gcs', 'http', 'https', 'volume']);
+const ARTIFACT_QUERY_PARAMETER_NAMES = [
+  'source',
+  'bucket',
+  'key',
+  'providerInfo',
+  'namespace',
+  'peek',
+] as const;
 
 export interface S3ProviderInfo {
   Provider: string;
@@ -139,6 +147,12 @@ export function getArtifactsAuthMiddleware(
   envoyAddress?: string,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
+    const queryError = validateArtifactQueryParameters(request.query);
+    if (queryError) {
+      response.status(queryError.status).send(queryError.message);
+      return;
+    }
+
     if (!authEnabled) {
       return next();
     }
@@ -468,6 +482,18 @@ function getOptionalRequestString(
     return { error: { status: 400, message: `${name} must be a single string value` } };
   }
   return { value };
+}
+
+function validateArtifactQueryParameters(
+  query: Request['query'],
+): { status: number; message: string } | undefined {
+  for (const name of ARTIFACT_QUERY_PARAMETER_NAMES) {
+    const parameter = getOptionalRequestString(query[name], name);
+    if ('error' in parameter) {
+      return parameter.error;
+    }
+  }
+  return undefined;
 }
 
 function parsePeekValue(value: string | undefined): number {
