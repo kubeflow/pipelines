@@ -28,16 +28,16 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// InputParameterRe matches the complete {{$.inputs.parameters['name']}}
+// inputParameterRe matches the complete {{$.inputs.parameters['name']}}
 // placeholder including the surrounding double braces.
-var InputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
+var inputParameterRe = regexp.MustCompile(`\{\{\$\.inputs\.parameters\['(.+?)']}}`)
 
 // PbValueToString converts a structpb.Value to its canonical string
 // representation.  It handles STRING, NUMBER (integer and double), BOOLEAN,
 // NULL, LIST, and STRUCT values.  Integer-valued floats are formatted without
-// a decimal point; non-integer floats use %g (shortest representation,
-// scientific notation for extreme values) to preserve the original driver
-// behavior.
+// a decimal point; non-integer floats use decimal notation ('f' format) so
+// that values like learning rates (e.g. 0.00001) are never rendered in
+// scientific notation.
 func PbValueToString(v *structpb.Value) (string, error) {
 	if v == nil {
 		return "", nil
@@ -52,7 +52,7 @@ func PbValueToString(v *structpb.Value) (string, error) {
 		if n == float64(int64(n)) {
 			return fmt.Sprintf("%d", int64(n)), nil
 		}
-		return fmt.Sprintf("%g", n), nil
+		return strconv.FormatFloat(n, 'f', -1, 64), nil
 	case *structpb.Value_BoolValue:
 		return strconv.FormatBool(v.GetBoolValue()), nil
 	case *structpb.Value_ListValue:
@@ -78,15 +78,15 @@ func PbValueToString(v *structpb.Value) (string, error) {
 // standalone placeholders and placeholders embedded in larger strings
 // (e.g. "prefix-{{$.inputs.parameters['x']}}").
 func ResolveInputParameterPlaceholders(arg string, parameterValues map[string]*structpb.Value) (string, error) {
-	if !InputParameterRe.MatchString(arg) {
+	if !inputParameterRe.MatchString(arg) {
 		return arg, nil
 	}
 	var resolveErr error
-	result := InputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
+	result := inputParameterRe.ReplaceAllStringFunc(arg, func(match string) string {
 		if resolveErr != nil {
 			return match
 		}
-		submatch := InputParameterRe.FindStringSubmatch(match)
+		submatch := inputParameterRe.FindStringSubmatch(match)
 		if len(submatch) < 2 {
 			resolveErr = fmt.Errorf("failed to extract parameter name from: %s", match)
 			return match
