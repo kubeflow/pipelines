@@ -233,23 +233,16 @@ export async function openFileWithinRoot(
     }
 
     fileHandle = await fsPromises.open(realFilePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
-    const [openedFileStat, currentRealFilePath] = await Promise.all([
-      fileHandle.stat(),
-      fsPromises.realpath(realFilePath),
-    ]);
-    if (!isPathWithinRoot(currentRealFilePath, realRootPath)) {
+    const openedFilePath = await resolveOpenedFilePath(fileHandle, realFilePath, filePath);
+    if (!isPathWithinRoot(openedFilePath, realRootPath)) {
       await fileHandle.close();
       return [
         undefined,
         {
-          message: `File ${filePath} changed to resolve outside volume mount ${rootPath}`,
+          message: `Opened file ${filePath} resolves outside volume mount ${rootPath}`,
           pathEscaped: true,
         },
       ];
-    }
-    const currentFileStat = await fsPromises.stat(currentRealFilePath);
-    if (openedFileStat.dev !== currentFileStat.dev || openedFileStat.ino !== currentFileStat.ino) {
-      throw new Error(`File ${filePath} changed while it was being opened`);
     }
     return [fileHandle, undefined];
   } catch (error) {
@@ -262,6 +255,29 @@ export async function openFileWithinRoot(
       },
     ];
   }
+}
+
+async function resolveOpenedFilePath(
+  fileHandle: FileHandle,
+  realFilePath: string,
+  requestedFilePath: string,
+): Promise<string> {
+  if (process.platform === 'linux') {
+    // Validate the descriptor itself so a mutable path cannot be swapped between
+    // open(), realpath(), and stat(). KFP's frontend server is deployed on Linux.
+    return fsPromises.readlink(`/proc/self/fd/${fileHandle.fd}`);
+  }
+
+  // Keep local development on non-Linux hosts working where /proc is unavailable.
+  const [openedFileStat, currentRealFilePath] = await Promise.all([
+    fileHandle.stat(),
+    fsPromises.realpath(realFilePath),
+  ]);
+  const currentFileStat = await fsPromises.stat(currentRealFilePath);
+  if (openedFileStat.dev !== currentFileStat.dev || openedFileStat.ino !== currentFileStat.ino) {
+    throw new Error(`File ${requestedFilePath} changed while it was being opened`);
+  }
+  return currentRealFilePath;
 }
 
 function isPathWithinRoot(filePath: string, rootPath: string): boolean {

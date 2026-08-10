@@ -259,6 +259,10 @@ describe('utils', () => {
   });
 
   describe('openFileWithinRoot', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
     function makeTempDirectory(): string {
       return fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-volume-test-'));
     }
@@ -301,6 +305,30 @@ describe('utils', () => {
         await fileHandle?.close();
       } finally {
         fs.rmSync(rootPath, { recursive: true, force: true });
+      }
+    });
+
+    it('rejects an opened descriptor outside the root even when the requested path is inside', async () => {
+      const rootPath = makeTempDirectory();
+      const outsidePath = makeTempDirectory();
+      const requestedFilePath = path.join(rootPath, 'artifact');
+      const outsideFilePath = path.join(outsidePath, 'secret');
+      fs.writeFileSync(requestedFilePath, 'inside content');
+      fs.writeFileSync(outsideFilePath, 'outside secret');
+
+      const outsideFileHandle = await fs.promises.open(outsideFilePath, fs.constants.O_RDONLY);
+      vi.spyOn(process, 'platform', 'get').mockReturnValue('linux');
+      vi.spyOn(fs.promises, 'open').mockResolvedValueOnce(outsideFileHandle);
+      vi.spyOn(fs.promises, 'readlink').mockResolvedValueOnce(outsideFilePath);
+
+      try {
+        const [fileHandle, error] = await openFileWithinRoot(requestedFilePath, rootPath);
+        expect(fileHandle).toBeUndefined();
+        expect(error).toMatchObject({ pathEscaped: true });
+      } finally {
+        await outsideFileHandle.close().catch(() => undefined);
+        fs.rmSync(rootPath, { recursive: true, force: true });
+        fs.rmSync(outsidePath, { recursive: true, force: true });
       }
     });
   });
