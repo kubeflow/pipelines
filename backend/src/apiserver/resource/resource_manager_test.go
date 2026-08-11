@@ -296,11 +296,53 @@ func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	}
 
 	var dst bytes.Buffer
-	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+	err = manager.readRunLogFromArchive(context.Background(), testWorkflow.ToStringForStore(), "node-id", &dst)
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
 	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+// cancelAwareObjectStore wraps readerOnlyObjectStore but actually checks the
+// context it's given, the way a real network-backed object store would.
+type cancelAwareObjectStore struct {
+	*readerOnlyObjectStore
+}
+
+func (m *cancelAwareObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return m.readerOnlyObjectStore.GetFileReader(ctx, filePath)
+}
+
+func TestReadRunLogFromArchivePropagatesCanceledContext(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &cancelAwareObjectStore{
+		readerOnlyObjectStore: &readerOnlyObjectStore{
+			files: map[string][]byte{
+				logPath: []byte("archived log line\n"),
+			},
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(ctx, testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), context.Canceled.Error())
 }
 
 func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
