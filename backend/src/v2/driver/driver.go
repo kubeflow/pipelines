@@ -31,6 +31,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	k8score "k8s.io/api/core/v1"
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/client-go/tools/record"
 )
 
 // Driver options
@@ -57,6 +58,9 @@ type Options struct {
 
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
+
+	// optional, for emitting Kubernetes events on validation failures or significant state changes
+	EventRecorder record.EventRecorder
 
 	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
 	RunName string
