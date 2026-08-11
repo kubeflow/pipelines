@@ -319,7 +319,7 @@ message IOProducer {
   optional int64 iteration = 2;
 }
 
-// Describes a relationship link between Artifacts and Tasks
+// V2beta1ArtifactTask
 message ArtifactTask {
   // Output only. The unique server generated id of the ArtifactTask.
   string id = 1;
@@ -331,7 +331,7 @@ message ArtifactTask {
   string key = 7;
 }
 
-// Not to be confused with RuntimeArtifact in PipelineSpec
+// V2beta1Artifact
 message Artifact {
   // Output only. The unique server generated id of the artifact.
   // Note: Updated id name to be consistent with other api naming patterns (with prefix)

@@ -38,7 +38,7 @@ class TestV2beta1CreateArtifactsBulkRequest(unittest.TestCase):
             return V2beta1CreateArtifactsBulkRequest(
                 artifacts = [
                     kfp_server_api.models.v2beta1_create_artifact_request.v2beta1CreateArtifactRequest(
-                        artifact = kfp_server_api.models.not_to_be_confused_with_runtime_artifact_in_pipeline_spec.Not to be confused with RuntimeArtifact in PipelineSpec(
+                        artifact = kfp_server_api.models.v2beta1_artifact.V2beta1Artifact(
                             artifact_id = '0', 
                             name = '0', 
                             description = '0', 

@@ -490,7 +490,7 @@ func TestListRuns_SkipCount(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 	opts.SkipCount = true
 
-	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, -1, totalSize)
@@ -503,7 +503,7 @@ func TestListRuns_DoesNotSkipCountByDefault(t *testing.T) {
 	// SkipCount left unset (false), matching every caller before this option existed.
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
-	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, 3, totalSize)
@@ -2456,7 +2456,7 @@ func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
 		"Failed to retry run run-archived-claim as it is archived. Unarchive the run first to allow it to be retried",
 		userError.ExternalMessage())
 
-	unchanged, err := runStore.GetRun("run-archived-claim")
+	unchanged, err := runStore.GetRun("run-archived-claim", false)
 	require.Nil(t, err)
 	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
 	assert.Equal(t, int64(100), unchanged.FinishedAtInSec)

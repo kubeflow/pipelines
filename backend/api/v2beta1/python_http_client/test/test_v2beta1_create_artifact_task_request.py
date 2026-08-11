@@ -36,7 +36,7 @@ class TestV2beta1CreateArtifactTaskRequest(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_create_artifact_task_request.V2beta1CreateArtifactTaskRequest()  # noqa: E501
         if include_optional :
             return V2beta1CreateArtifactTaskRequest(
-                artifact_task = kfp_server_api.models.describes_a_relationship_link_between_artifacts_and_tasks.Describes a relationship link between Artifacts and Tasks(
+                artifact_task = kfp_server_api.models.v2beta1_artifact_task.V2beta1ArtifactTask(
                     id = '0', 
                     artifact_id = '0', 
                     run_id = '0', 

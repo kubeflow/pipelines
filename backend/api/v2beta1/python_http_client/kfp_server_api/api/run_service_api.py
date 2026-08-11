@@ -1274,6 +1274,8 @@ class RunServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param skip_count: Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size.
+        :type skip_count: bool
         :param view: Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default `tasks` field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated.
         :type view: str
         :param async_req: Whether to execute the request asynchronously.
@@ -1314,6 +1316,8 @@ class RunServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param skip_count: Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size.
+        :type skip_count: bool
         :param view: Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default `tasks` field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated.
         :type view: str
         :param async_req: Whether to execute the request asynchronously.
@@ -1344,6 +1348,7 @@ class RunServiceApi(object):
             'page_size',
             'sort_by',
             'filter',
+            'skip_count',
             'view'
         ]
         all_params.extend(
@@ -1381,6 +1386,8 @@ class RunServiceApi(object):
             query_params.append(('sort_by', local_var_params['sort_by']))  # noqa: E501
         if 'filter' in local_var_params and local_var_params['filter'] is not None:  # noqa: E501
             query_params.append(('filter', local_var_params['filter']))  # noqa: E501
+        if 'skip_count' in local_var_params and local_var_params['skip_count'] is not None:  # noqa: E501
+            query_params.append(('skip_count', local_var_params['skip_count']))  # noqa: E501
         if 'view' in local_var_params and local_var_params['view'] is not None:  # noqa: E501
             query_params.append(('view', local_var_params['view']))  # noqa: E501
 

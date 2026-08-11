@@ -543,7 +543,7 @@ message PipelineTask {
       optional IOProducer producer = 4;
     }
 
-    // Align structure with Executor Input
+    // InputOutputsIOArtifact
     message IOArtifact {
       repeated Artifact artifacts = 1;
       IOType type = 2;

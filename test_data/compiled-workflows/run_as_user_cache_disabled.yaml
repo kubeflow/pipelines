@@ -63,7 +63,6 @@ spec:
       - --publish_logs
       - "true"
       - --ml_pipeline_tls_enabled=false
-      - --metadata_tls_enabled=false
       - --ca_cert_path
       - ""
       command:
@@ -357,7 +356,6 @@ spec:
       - --publish_logs
       - "true"
       - --ml_pipeline_tls_enabled=false
-      - --metadata_tls_enabled=false
       - --ca_cert_path
       - ""
       command:

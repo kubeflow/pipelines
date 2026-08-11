@@ -90,7 +90,7 @@ class TestV2beta1ListTasksResponse(unittest.TestCase):
                                         iteration = '0', ), )
                                 ], 
                             artifacts = [
-                                kfp_server_api.models.align_structure_with_executor_input.Align structure with Executor Input(
+                                kfp_server_api.models.input_outputs_io_artifact.InputOutputsIOArtifact(
                                     artifact_key = '0', )
                                 ], ), 
                         outputs = kfp_server_api.models.pipeline_task_input_outputs.PipelineTaskInputOutputs(

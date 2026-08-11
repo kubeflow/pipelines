@@ -731,7 +731,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **run_service_list_runs**
-> V2beta1ListRunsResponse run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, view=view)
+> V2beta1ListRunsResponse run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, skip_count=skip_count, view=view)
 
 Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
 
@@ -775,11 +775,12 @@ page_token = 'page_token_example' # str | A page token to request the next page 
 page_size = 56 # int | The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When `view = FULL`, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with `LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). (optional)
+skip_count = True # bool | Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. (optional)
 view = 'DEFAULT' # str | Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default `tasks` field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. (optional) (default to 'DEFAULT')
 
     try:
         # Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
-        api_response = api_instance.run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, view=view)
+        api_response = api_instance.run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, skip_count=skip_count, view=view)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->run_service_list_runs: %s\n" % e)
@@ -795,6 +796,7 @@ Name | Type | Description  | Notes
  **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. If omitted, the server uses its standard default page size. When &#x60;view &#x3D; FULL&#x60;, the server may enforce a lower maximum page size to limit task hydration cost. By default FULL requests are capped at 100 runs, and operators can override that cap with &#x60;LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE&#x60;. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+ **skip_count** | **bool**| Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. | [optional] 
  **view** | **str**| Optional view mode. This field can be used to adjust how detailed the Run object that is returned will be.   - DEFAULT: By default &#x60;tasks&#x60; field is omitted. This provides a faster and leaner run object.  - FULL: This view mode displays all the tasks for this run with all its fields populated. | [optional] [default to &#39;DEFAULT&#39;]
 
 ### Return type
