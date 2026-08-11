@@ -111,9 +111,6 @@ func ConfigureCacheSettings(workflow *v1alpha1.Workflow, remove bool) *v1alpha1.
 		if template.Container != nil {
 			setCacheArg(template.Container.Args)
 		}
-		for index := range template.InitContainers {
-			setCacheArg(template.InitContainers[index].Args)
-		}
 	}
 	return configuredWorkflow
 }

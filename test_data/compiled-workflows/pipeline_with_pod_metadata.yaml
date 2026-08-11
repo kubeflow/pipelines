@@ -335,7 +335,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -464,7 +463,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -627,7 +625,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -772,7 +769,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
@@ -907,7 +903,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest

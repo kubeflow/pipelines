@@ -456,13 +456,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 
 	args := []string{
 		"--copy", component.KFPLauncherPath,
-		"--cache_disabled=" + strconv.FormatBool(c.cacheDisabled),
-	}
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
 	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,

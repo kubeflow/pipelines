@@ -224,16 +224,6 @@ func validateRequiredFlags(provided map[string]bool, driverType string) error {
 	return nil
 }
 
-func validate() error {
-	if *driverType == "" {
-		return fmt.Errorf("argument --%s must be specified", driverTypeArg)
-	}
-	if err := validateRequiredFlags(providedFlags, *driverType); err != nil {
-		return err
-	}
-	return nil
-}
-
 // getCurrentWorkflowMetadata returns metadata for the Argo Workflow backing the
 // current run.
 //
@@ -385,7 +375,7 @@ func drive() (err error) {
 		}
 	}()
 	ctx := context.Background()
-	if err = validate(); err != nil {
+	if err = validateRequiredFlags(providedFlags, *driverType); err != nil {
 		return err
 	}
 

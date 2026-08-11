@@ -205,9 +205,6 @@ spec:
     - args:
       - --copy
       - /kfp-launcher/launch
-      - --cache_disabled=false
-      - --log_level
-      - "3"
       command:
       - launcher-v2
       image: ghcr.io/kubeflow/kfp-launcher:latest
