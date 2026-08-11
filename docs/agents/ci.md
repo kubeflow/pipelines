@@ -5,7 +5,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Update this guide when changing workflows, CI matrices, commands, generated outputs, or common failure handling.
 - CI covers supported Kubernetes and Argo versions, database and Kubernetes pipeline stores, proxy/cache variants, and GPU scheduling. Preserve the relevant matrix coverage when changing a lane.
 - Use `.github/actions/setup-python-pip-cache` for pip caching. Give each dependency set a distinct `cache-scope` and hash every installed requirements file; do not use `setup-python`'s built-in pip cache.
-- `validate-generated-files.yml` validates backend-generated outputs. `frontend.yml` runs `npm run apis:all` and rejects stale frontend clients.
+- `validate-generated-files.yml` validates backend-generated outputs. Go-based API generator versions come from the root or `backend/api/tools` Go modules; a lightweight change detector skips this expensive validation for unrelated Go module updates. `frontend.yml` runs `npm run apis:all` and rejects stale frontend clients.
 - Changes to `frontend/server/handlers/artifacts.ts` trigger `e2e-test.yml` so the multi-user artifact-proxy and SeaweedFS namespace-isolation checks run before artifact authorization changes merge.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 
