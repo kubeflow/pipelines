@@ -30,11 +30,12 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             encoding='utf-8')
 
     def test_scanner_release_is_pinned_and_checksum_verified(self):
-        self.assertIn("OSV_SCANNER_VERSION: '2.3.8'", self.workflow)
-        self.assertIn(
-            "OSV_SCANNER_SHA256: 'bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc'",
-            self.workflow,
-        )
+        self.assertEqual(self.workflow.count("OSV_SCANNER_VERSION: '2.5.0'"),
+                         2)
+        scanner_checksum = (
+            "OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3f"
+            "cfc434b0b423ea67468a84c207524e0c'")
+        self.assertEqual(self.workflow.count(scanner_checksum), 2)
         self.assertIn('sha256sum --check --strict', self.workflow)
 
     def test_scan_recursively_reports_all_supported_dependencies(self):
@@ -88,6 +89,24 @@ class OsvScannerWorkflowTest(unittest.TestCase):
             'category: kubeflow-pipelines-osv-image-${{ matrix.category }}',
             self.workflow)
         self.assertIn('      fail-fast: false', self.workflow)
+
+    def test_exact_duplicate_results_are_removed_before_upload(self):
+        self.assertEqual(self.workflow.count('deduplicate_sarif.py'), 2)
+        self.assertIn('            --input osv-results.sarif', self.workflow)
+        self.assertIn('            --output osv-results-deduplicated.sarif',
+                      self.workflow)
+        self.assertIn('            --input osv-image-results.sarif',
+                      self.workflow)
+        self.assertIn(
+            '            --output osv-image-results-deduplicated.sarif',
+            self.workflow,
+        )
+        self.assertIn('          sarif_file: osv-results-deduplicated.sarif',
+                      self.workflow)
+        self.assertIn(
+            '          sarif_file: osv-image-results-deduplicated.sarif',
+            self.workflow,
+        )
 
     def test_ci_scripts_tests_run_for_osv_workflow_changes(self):
         self.assertIn(
