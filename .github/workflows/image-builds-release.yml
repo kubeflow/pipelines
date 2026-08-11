@@ -108,6 +108,7 @@ jobs:
       platforms: ${{ matrix.arch.platform }}
       runs_on: ${{ matrix.arch.runs_on }}
       push: ${{ !inputs.dry_run }}
+      scan_fixable_cves: ${{ !inputs.dry_run }}
 
   create-manifests:
     needs: build-images-for-release

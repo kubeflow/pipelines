@@ -7,6 +7,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - Use `.github/actions/setup-python-pip-cache` for pip caching. Give each dependency set a distinct `cache-scope` and hash every installed requirements file; do not use `setup-python`'s built-in pip cache.
 - `validate-generated-files.yml` validates backend-generated outputs. Go-based API generator versions come from the root or `backend/api/tools` Go modules; a lightweight change detector skips this expensive validation for unrelated Go module updates. `frontend.yml` runs `npm run apis:all` and rejects stale frontend clients.
 - Changes to `frontend/server/handlers/artifacts.ts` trigger `e2e-test.yml` so the multi-user artifact-proxy and SeaweedFS namespace-isolation checks run before artifact authorization changes merge.
+- `image-builds-release.yml` scans every pushed architecture-specific image digest for fixable CVEs of any severity before creating versioned or `latest` manifests. The gate uses a current Trivy database and uploads a per-image JSON report.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
 
 ## Common CI failures

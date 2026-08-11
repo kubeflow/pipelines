@@ -356,7 +356,7 @@ class GithubCommandTest(unittest.TestCase):
     with mock.patch('time.time', return_value=1783537500), mock.patch('time.sleep'):
       core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345'])
+    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345', '--exit-status'])
     self.assertNotIn(['gh', 'run', 'watch', ''], runner.commands)
 
   def test_watch_latest_workflow_run_ignores_runs_created_before_dispatch(self):
@@ -382,7 +382,7 @@ class GithubCommandTest(unittest.TestCase):
     with mock.patch('time.time', return_value=1783537500), mock.patch('time.sleep'):
       core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main')
 
-    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '222'])
+    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '222', '--exit-status'])
     self.assertNotIn(['gh', 'run', 'watch', '111'], runner.commands)
 
   def test_watch_latest_workflow_run_can_resume_existing_run(self):
@@ -404,7 +404,7 @@ class GithubCommandTest(unittest.TestCase):
     with mock.patch('time.time', return_value=1783537500):
       core.watch_latest_workflow_run(runner, 'test-workflow.yml', 'main', fresh_only=False)
 
-    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '111'])
+    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '111', '--exit-status'])
 
   def test_watch_latest_workflow_run_prints_run_url(self):
     class RunUrlRunner:
@@ -427,7 +427,22 @@ class GithubCommandTest(unittest.TestCase):
 
     output = '\n'.join(str(call.args[0]) for call in print_mock.call_args_list)
     self.assertIn('Workflow run: \033[4mhttps://github.com/kubeflow/pipelines/actions/runs/12345\033[0m', output)
-    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345'])
+    self.assertEqual(runner.commands[-1], ['gh', 'run', 'watch', '12345', '--exit-status'])
+
+  def test_watch_latest_workflow_run_propagates_failed_run(self):
+    class FailedRunRunner:
+
+      dry_run = False
+
+      def capture(self, command, cwd=None):
+        return '12345\thttps://github.com/kubeflow/pipelines/actions/runs/12345\t2026-07-08T19:05:01Z'
+
+      def run(self, command, cwd=None, check=True):
+        raise RuntimeError('workflow failed')
+
+    with mock.patch('time.time', return_value=1783537500):
+      with self.assertRaisesRegex(RuntimeError, 'workflow failed'):
+        core.watch_latest_workflow_run(FailedRunRunner(), 'test-workflow.yml', 'main')
 
   def test_watch_latest_workflow_run_supports_python_without_datetime_utc(self):
     class RunRunner:
