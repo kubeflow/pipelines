@@ -14,12 +14,7 @@ version: 2
 updates:
   - package-ecosystem: gomod
     directories:
-      - "/"
-      - "/api"
-      - "/backend/api/tools"
-      - "/kubernetes_platform"
-      - "/third_party/ml-metadata"
-      - "/test/tools/project-cleaner"
+      - "**/*"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
@@ -63,12 +58,7 @@ updates:
         group-by: dependency-name
   - package-ecosystem: npm
     directories:
-      - "/frontend"
-      - "/frontend/mock-backend"
-      - "/frontend/scripts/ui-smoke-test"
-      - "/frontend/server"
-      - "/test/frontend-integration-test"
-      - "/test/server-integration-test"
+      - "**/*"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10

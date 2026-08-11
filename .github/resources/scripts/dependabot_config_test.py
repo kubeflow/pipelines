@@ -33,6 +33,13 @@ def repository_directory(path: Path) -> str:
     return '/' if relative_directory == '.' else f'/{relative_directory}'
 
 
+def matches_dependabot_directory(directory: str, pattern: str) -> bool:
+    # Dependabot defines **/* as the current directory and all descendants.
+    if pattern == '**/*':
+        return True
+    return PurePosixPath(directory).match(pattern)
+
+
 class DependabotConfigTest(unittest.TestCase):
 
     @classmethod
@@ -87,8 +94,15 @@ class DependabotConfigTest(unittest.TestCase):
             for path in REPOSITORY_ROOT.rglob('go.mod')
         }
 
-        self.assertEqual(self.configured_directories('gomod'),
-                         module_directories)
+        configured_directories = self.configured_directories('gomod')
+        self.assertEqual(configured_directories, {'**/*'})
+        self.assertTrue(module_directories)
+        self.assertTrue(
+            all(
+                any(
+                    matches_dependabot_directory(module_directory, pattern)
+                    for pattern in configured_directories)
+                for module_directory in module_directories))
 
     def test_all_npm_projects_are_covered(self):
         npm_directories = {
@@ -97,7 +111,15 @@ class DependabotConfigTest(unittest.TestCase):
             if 'node_modules' not in path.parts
         }
 
-        self.assertEqual(self.configured_directories('npm'), npm_directories)
+        configured_directories = self.configured_directories('npm')
+        self.assertEqual(configured_directories, {'**/*'})
+        self.assertTrue(npm_directories)
+        self.assertTrue(
+            all(
+                any(
+                    matches_dependabot_directory(npm_directory, pattern)
+                    for pattern in configured_directories)
+                for npm_directory in npm_directories))
 
     def test_all_maintained_python_projects_are_covered(self):
         python_manifests = set(REPOSITORY_ROOT.rglob('setup.py'))
@@ -125,7 +147,8 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertTrue(
             all(
                 any(
-                    PurePosixPath(action_directory).match(configured_directory)
+                    matches_dependabot_directory(action_directory,
+                                                 configured_directory)
                     for configured_directory in configured_directories
                     if configured_directory != '/')
                 for action_directory in action_directories))

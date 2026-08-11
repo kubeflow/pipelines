@@ -98,7 +98,12 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
 
         dependabot = (REPOSITORY_ROOT / '.github/dependabot.yml').read_text(
             encoding='utf-8')
-        self.assertIn('- "/backend/api/tools"', dependabot)
+        self.assertRegex(
+            dependabot,
+            r'(?ms)^  - package-ecosystem: gomod\n'
+            r'(?:(?!^  - package-ecosystem:).)*?'
+            r'^    directories:\n      - "\*\*/\*"$',
+        )
 
         makefile = (REPOSITORY_ROOT / 'backend/api/Makefile').read_text(
             encoding='utf-8')
