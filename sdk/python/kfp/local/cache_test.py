@@ -204,6 +204,19 @@ class LocalCachePutGetTest(unittest.TestCase):
         self.assertIsNotNone(got)
         self.assertEqual(got['out_art'].uri, 'gs://bucket/a')
 
+    def test_azure_and_hdfs_remote_artifact_uri_is_hit(self):
+        azure_art = dsl.Artifact(
+            name='a1',
+            uri='abfs://container@account.blob.core.windows.net/data.parquet')
+        hdfs_art = dsl.Artifact(
+            name='a2', uri='hdfs://namenode:8020/user/data.csv')
+        outputs = {'a1': azure_art, 'a2': hdfs_art}
+        self.cache.put('k_remote', outputs)
+        got = self.cache.get('k_remote')
+        self.assertIsNotNone(got)
+        self.assertEqual(got['a1'].uri, azure_art.uri)
+        self.assertEqual(got['a2'].uri, hdfs_art.uri)
+
     def test_atomic_write_no_partial(self):
         # Concurrent writers should not corrupt entries.
         def writer(i):
