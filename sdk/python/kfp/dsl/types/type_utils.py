@@ -592,6 +592,32 @@ def is_pydantic_basemodel_subclass(annotation: Any) -> bool:
     return issubclass(annotation, pydantic.BaseModel)
 
 
+def validate_pydantic_basemodel_version(model_cls: Type) -> None:
+    """Raises a clear error if `model_cls`, a pydantic.BaseModel subclass used
+    for component I/O, is running under an unsupported pydantic version.
+
+    KFP validates and serializes BaseModel component inputs/outputs with the
+    pydantic v2 API (``model_validate``/``model_dump``), which does not exist
+    in pydantic 1.x. A component authored against pydantic 1.x would compile
+    successfully, then fail at task runtime with a confusing
+    ``AttributeError``, so this check is applied as early as possible
+    (component definition time) and again at task runtime, since the
+    authoring and runtime environments may install different pydantic
+    versions (e.g., via `packages_to_install` or a custom `base_image`).
+    """
+    import pydantic
+    pydantic_major_version = int(pydantic.VERSION.split('.')[0])
+    if pydantic_major_version < 2:
+        qualname = f'{model_cls.__module__}.{model_cls.__qualname__}'
+        raise TypeError(
+            f"pydantic.BaseModel subclass '{qualname}' is used for "
+            f'component I/O, which requires pydantic>=2. Found '
+            f'pydantic=={pydantic.VERSION}. Upgrade pydantic in both the '
+            "authoring environment and the component's runtime environment "
+            "(e.g., via `packages_to_install=['pydantic>=2']` or a custom "
+            '`base_image`).')
+
+
 def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
@@ -619,6 +645,7 @@ def _annotation_to_type_struct(annotation):
 
     if isinstance(annotation, type):
         if is_pydantic_basemodel_subclass(annotation):
+            validate_pydantic_basemodel_version(annotation)
             return get_canonical_type_name_for_type(dict)
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:

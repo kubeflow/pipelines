@@ -86,7 +86,8 @@ def get_param_to_pydantic_basemodel_class(func: Callable) -> Dict[str, type]:
 
     signature = inspect.signature(func)
     for name, param in signature.parameters.items():
-        annotation = param.annotation
+        annotation = type_annotations.maybe_strip_optional_from_annotation(
+            param.annotation)
         if type_utils.is_pydantic_basemodel_subclass(annotation):
             param_to_basemodel_cls[name] = annotation
 
@@ -97,13 +98,54 @@ def get_param_to_pydantic_basemodel_class(func: Callable) -> Dict[str, type]:
 
     elif type_utils.is_typed_named_tuple_annotation(return_annotation):
         for name, annotation in return_annotation.__annotations__.items():
+            annotation = type_annotations.maybe_strip_optional_from_annotation(
+                annotation)
             if type_utils.is_pydantic_basemodel_subclass(annotation):
                 param_to_basemodel_cls[f'{RETURN_PREFIX}{name}'] = annotation
 
-    elif type_utils.is_pydantic_basemodel_subclass(return_annotation):
-        param_to_basemodel_cls[RETURN_PREFIX] = return_annotation
+    else:
+        return_annotation = type_annotations.maybe_strip_optional_from_annotation(
+            return_annotation)
+        if type_utils.is_pydantic_basemodel_subclass(return_annotation):
+            param_to_basemodel_cls[RETURN_PREFIX] = return_annotation
 
     return param_to_basemodel_cls
+
+
+def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
+    """Raises a TypeError if `basemodel_cls` cannot be imported by name from
+    its defining module in the component's runtime environment.
+
+    Lightweight Python components only ship the source of the decorated
+    function itself; they do not bundle the source of types referenced in its
+    annotations. A `pydantic.BaseModel` used for component I/O must therefore
+    be defined at module level in a module that is separately importable at
+    task runtime (for example, a package listed in `packages_to_install`, or
+    included in a custom `base_image`). Models defined in the `__main__`
+    entrypoint script, or nested inside a function/method body, do not meet
+    this requirement: the generated `from <module> import <Name>` statement
+    would either import the wrong `__main__` (the executor's, not the
+    authoring script's) or reference a symbol that was never a module-level
+    attribute.
+    """
+    if basemodel_cls.__module__ == '__main__':
+        raise TypeError(
+            f"pydantic.BaseModel '{basemodel_cls.__qualname__}' used for "
+            "component I/O is defined in the '__main__' script. It cannot "
+            "be imported by name in the component's runtime environment, "
+            'since components do not bundle source from the entrypoint '
+            'script. Move the model to an importable module that is '
+            'installed in the runtime environment, e.g. via '
+            '`packages_to_install` or a custom `base_image`.')
+    if '<locals>' in basemodel_cls.__qualname__:
+        raise TypeError(
+            f"pydantic.BaseModel '{basemodel_cls.__qualname__}' used for "
+            'component I/O is defined inside a function or method. It '
+            "cannot be imported by name in the component's runtime "
+            'environment. Define the model at module level in an '
+            'importable module that is installed in the runtime '
+            'environment, e.g. via `packages_to_install` or a custom '
+            '`base_image`.')
 
 
 def get_pydantic_basemodel_import_items_from_function(
@@ -114,6 +156,7 @@ def get_pydantic_basemodel_import_items_from_function(
     param_to_cls = get_param_to_pydantic_basemodel_class(func)
     import_items = []
     for basemodel_cls in param_to_cls.values():
+        validate_pydantic_basemodel_is_importable(basemodel_cls)
         # get_full_qualname_for_artifact only reads __module__/__qualname__,
         # so it works for any class, not just artifacts.
         qualname = get_full_qualname_for_artifact(basemodel_cls)

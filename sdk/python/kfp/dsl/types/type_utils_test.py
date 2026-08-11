@@ -122,6 +122,42 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
         self.assertEqual(pb.ParameterType.STRUCT,
                          type_utils.get_parameter_type(type_struct))
 
+    def test_validate_pydantic_basemodel_version_passes_for_v2(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        # should not raise, since the test environment runs pydantic v2
+        type_utils.validate_pydantic_basemodel_version(MyModel)
+
+    def test_validate_pydantic_basemodel_version_raises_for_v1(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(
+                    TypeError,
+                    r'requires pydantic>=2\. Found pydantic==1\.10\.13'):
+                type_utils.validate_pydantic_basemodel_version(MyModel)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_annotation_to_type_struct_raises_for_pydantic_v1(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                type_utils._annotation_to_type_struct(MyModel)
+        finally:
+            pydantic.VERSION = original_version
+
 
 class TypeUtilsTest(parameterized.TestCase):
 

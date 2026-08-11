@@ -1934,6 +1934,30 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
 
         self.execute_and_load_output_metadata(test_func, executor_input)
 
+    def test_optional_pydantic_basemodel_input_is_validated(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: Optional[MyModel] = None) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.foo, 'bar')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
     def test_pydantic_basemodel_output_is_serialized(self):
 
         class MyModel(pydantic.BaseModel):
@@ -1963,6 +1987,120 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
                 'foo': 'bar'
             }
         }}, output_metadata)
+
+    def test_pydantic_basemodel_output_is_serialized_by_alias(self):
+
+        class MyModel(pydantic.BaseModel):
+            name: str = pydantic.Field(alias='personName')
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(personName='Alice')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        wire_value = output_metadata['parameterValues']['Output']
+        self.assertEqual({'personName': 'Alice'}, wire_value)
+        # the serialized wire value must round trip back through
+        # model_validate() using the same model.
+        self.assertEqual(
+            MyModel(personName='Alice'), MyModel.model_validate(wire_value))
+
+    def test_pydantic_basemodel_input_is_validated_by_alias(self):
+
+        class MyModel(pydantic.BaseModel):
+            name: str = pydantic.Field(alias='personName')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"personName": "Alice"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.name, 'Alice')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_pydantic_basemodel_output_raises_for_unsupported_version(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(foo='bar')
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                self.execute_and_load_output_metadata(test_func, executor_input)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_pydantic_basemodel_input_raises_for_unsupported_version(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            pass
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                self.execute_and_load_output_metadata(test_func, executor_input)
+        finally:
+            pydantic.VERSION = original_version
 
 
 if __name__ == '__main__':

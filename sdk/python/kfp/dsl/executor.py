@@ -247,7 +247,13 @@ class Executor:
                     f'Function `{self.func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
             if type_utils.is_pydantic_basemodel_subclass(origin_type):
-                return_value = return_value.model_dump(mode='json')
+                type_utils.validate_pydantic_basemodel_version(origin_type)
+                # by_alias=True so the wire format matches what
+                # model_validate() expects back for fields with a
+                # validation alias, keeping serialize/deserialize a
+                # round trip.
+                return_value = return_value.model_dump(
+                    mode='json', by_alias=True)
             self.write_output_parameter_value(output_name, return_value)
 
         elif is_artifact(annotation_type):
@@ -413,6 +419,7 @@ class Executor:
                 value = self.get_input_parameter_value(k)
                 if value is not None:
                     if type_utils.is_pydantic_basemodel_subclass(v):
+                        type_utils.validate_pydantic_basemodel_version(v)
                         value = v.model_validate(value)
                     func_kwargs[k] = value
 
