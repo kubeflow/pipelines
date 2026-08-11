@@ -37,7 +37,7 @@ class TestV2beta1ListArtifactResponse(unittest.TestCase):
         if include_optional :
             return V2beta1ListArtifactResponse(
                 artifacts = [
-                    kfp_server_api.models.not_to_be_confused_with_runtime_artifact_in_pipeline_spec.Not to be confused with RuntimeArtifact in PipelineSpec(
+                    kfp_server_api.models.v2beta1_artifact.V2beta1Artifact(
                         artifact_id = '0', 
                         name = '0', 
                         description = '0', 

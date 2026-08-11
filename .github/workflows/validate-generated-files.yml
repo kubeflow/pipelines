@@ -5,9 +5,9 @@ on:
       - master
   pull_request:
     paths:
-      - '.gitattributes'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/resources/scripts/generated_files_dependency_change.py'
+      - '.github/resources/scripts/check_generated_diff.py'
       - '.github/actions/setup-python-pip-cache/**'
       - 'go.mod'
       - 'go.sum'
@@ -20,7 +20,6 @@ on:
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
-      - 'backend/api/**/python_http_client_smoke/**'
       - 'backend/api/**/swagger/**'
       - 'api/Makefile'
       - 'api/**/*.proto'
@@ -46,7 +45,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       required: ${{ steps.detect.outputs.required }}
-      auto-regeneration: ${{ steps.detect.outputs.auto-regeneration }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -61,13 +59,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            python3 .github/resources/scripts/generated_files_dependency_change.py \
-              --base "$BASE_SHA" --head "$HEAD_SHA" --mode outputs \
-              >> "$GITHUB_OUTPUT"
+            required="$(python3 .github/resources/scripts/generated_files_dependency_change.py \
+              --base "$BASE_SHA" --head "$HEAD_SHA")"
           else
-            echo "required=true" >> "$GITHUB_OUTPUT"
-            echo "auto-regeneration=false" >> "$GITHUB_OUTPUT"
+            required=true
           fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
 
   generate-and-check:
     needs: detect-generator-changes
@@ -80,13 +77,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          # Auto-regeneration patches must be based on the branch commit they
-          # will later be applied to, not GitHub's synthetic PR merge commit.
-          ref: >-
-            ${{ github.actor == 'dependabot[bot]' &&
-                needs.detect-generator-changes.outputs.auto-regeneration == 'true'
-                && github.event.pull_request.head.sha || github.sha }}
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -141,62 +131,6 @@ jobs:
         env:
           API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
-
-      - name: Capture safe Dependabot generated-file changes
-        id: dependabot-generated-files
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.actor == 'dependabot[bot]' &&
-          needs.detect-generator-changes.outputs.auto-regeneration == 'true'
-        shell: bash
-        env:
-          EVENT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
-          PATCH_PATH: ${{ runner.temp }}/generated-files.patch
-          PATHS_PATH: ${{ runner.temp }}/generated-files-paths.txt
-          METADATA_PATH: ${{ runner.temp }}/generated-files-metadata.json
-        run: |
-          echo "has-changes=false" >> "$GITHUB_OUTPUT"
-          python3 .github/resources/scripts/generated_files_dependency_change.py \
-            --write-worktree-paths "$PATHS_PATH"
-          if [[ ! -s "$PATHS_PATH" ]]; then
-            echo "Generator outputs are already current."
-            exit 0
-          fi
-
-          if ! python3 .github/resources/scripts/generated_files_dependency_change.py \
-            --check-generated-paths "$PATHS_PATH"; then
-            echo "Generated changes are outside the auto-commit allowlist."
-            exit 0
-          fi
-
-          git add --all
-          git diff --cached --binary --full-index > "$PATCH_PATH"
-          jq -n \
-            --arg pr_number "$EVENT_PR_NUMBER" \
-            --arg head_sha "$EVENT_HEAD_SHA" \
-            --arg head_ref "$EVENT_HEAD_REF" \
-            '{pr_number: $pr_number, head_sha: $head_sha, head_ref: $head_ref}' \
-            > "$METADATA_PATH"
-          echo "has-changes=true" >> "$GITHUB_OUTPUT"
-
-      - name: Upload Dependabot generated-file changes
-        if: steps.dependabot-generated-files.outputs.has-changes == 'true'
-        uses: ./.github/actions/upload-artifact-with-retry
-        with:
-          name: dependabot-generated-files-${{ github.event.pull_request.head.sha }}
-          path: |
-            ${{ runner.temp }}/generated-files.patch
-            ${{ runner.temp }}/generated-files-paths.txt
-            ${{ runner.temp }}/generated-files-metadata.json
-          if-no-files-found: error
-          overwrite: true
-          retention-days: 1
-
-      - name: Smoke-test generated v2beta1 Python client
-        working-directory: ./backend/api/v2beta1/python_http_client_smoke
-        run: python3 -m unittest discover -v
 
       - name: Check for Changes
         run: make check-diff

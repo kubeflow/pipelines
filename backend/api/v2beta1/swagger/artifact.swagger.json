@@ -449,7 +449,7 @@
           "type": "string"
         }
       },
-      "title": "Not to be confused with RuntimeArtifact in PipelineSpec"
+      "title": "V2beta1Artifact"
     },
     "v2beta1ArtifactTask": {
       "type": "object",
@@ -478,7 +478,7 @@
           "type": "string"
         }
       },
-      "title": "Describes a relationship link between Artifacts and Tasks"
+      "title": "V2beta1ArtifactTask"
     },
     "v2beta1CreateArtifactRequest": {
       "type": "object",

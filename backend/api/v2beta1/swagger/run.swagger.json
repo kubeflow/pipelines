@@ -83,6 +83,13 @@
             "type": "string"
           },
           {
+            "name": "skip_count",
+            "description": "Optional input field. If true, the server skips computing total_size in\nthe response, avoiding an extra count query. Defaults to false, which\npreserves the existing behavior of always computing total_size.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
             "name": "view",
             "description": "Optional view mode. This field can be used to adjust\nhow detailed the Run object that is returned will be.\n\n - DEFAULT: By default `tasks` field is omitted.\nThis provides a faster and leaner run object.\n - FULL: This view mode displays all the tasks for this run\nwith all its fields populated.",
             "in": "query",
@@ -683,7 +690,7 @@
           "$ref": "#/definitions/v2beta1IOProducer"
         }
       },
-      "title": "Align structure with Executor Input"
+      "title": "InputOutputsIOArtifact"
     },
     "InputOutputsIOParameter": {
       "type": "object",
@@ -943,7 +950,7 @@
           "type": "string"
         }
       },
-      "title": "Not to be confused with RuntimeArtifact in PipelineSpec"
+      "title": "V2beta1Artifact"
     },
     "v2beta1FindCachedTaskRequest": {
       "type": "object",
@@ -1028,7 +1035,7 @@
         "total_size": {
           "type": "integer",
           "format": "int32",
-          "description": "The total number of runs for the given query."
+          "description": "The total number of runs for the given query. If the request set\nskip_count to true, this is -1 rather than a real count."
         },
         "next_page_token": {
           "type": "string",

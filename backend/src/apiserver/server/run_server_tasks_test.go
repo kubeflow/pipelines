@@ -38,12 +38,12 @@ func seedOneRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceMa
 	return clients, manager, run.UUID
 }
 
-type recordingSubjectAccessReviewClient struct {
+type taskRecordingSubjectAccessReviewClient struct {
 	lastReview *authzv1.SubjectAccessReview
 	reviews    []*authzv1.SubjectAccessReview
 }
 
-func (c *recordingSubjectAccessReviewClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+func (c *taskRecordingSubjectAccessReviewClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ metav1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
 	c.lastReview = sar
 	c.reviews = append(c.reviews, sar)
 	return &authzv1.SubjectAccessReview{
@@ -358,7 +358,7 @@ func TestFindCachedTask_UsesListVerb(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	recorder := &recordingSubjectAccessReviewClient{}
+	recorder := &taskRecordingSubjectAccessReviewClient{}
 	clients.SubjectAccessReviewClientFake = recorder
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runSrv := createRunServer(manager)
@@ -1185,7 +1185,7 @@ func TestUpdateTasksBulk_RejectsCrossRunScopeBeforeForeignAuth(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	recorder := &recordingSubjectAccessReviewClient{}
+	recorder := &taskRecordingSubjectAccessReviewClient{}
 	clients.SubjectAccessReviewClientFake = recorder
 	manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	runSrv = createRunServer(manager)
@@ -1254,7 +1254,7 @@ func TestListTasks_ByRunAndParentUseGetVerb(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			recorder := &recordingSubjectAccessReviewClient{}
+			recorder := &taskRecordingSubjectAccessReviewClient{}
 			clients.SubjectAccessReviewClientFake = recorder
 			manager = resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 			runSrv := createRunServer(manager)
