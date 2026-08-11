@@ -65,23 +65,39 @@ export default class CompareUtils {
   public static multiRunMetricsCompareProps(runs: ApiRun[]): CompareTableProps {
     const metricMetadataMap = RunUtils.runsToMetricMetadataMap(runs);
 
-    const yLabels = Array.from(metricMetadataMap.keys());
+    const metricRows = Array.from(metricMetadataMap.keys()).flatMap((name) => {
+      const maxOccurrences = Math.max(
+        ...runs.map(
+          (r) =>
+            (r.metrics || []).filter(
+              (m) => m.name === name && m.number_value !== undefined && !isNaN(m.number_value),
+            ).length,
+        ),
+      );
 
-    const rows = yLabels.map((name) =>
-      runs.map((r) =>
-        // TODO(rjbauer): This logic isn't quite right. A single run can have multiple metrics
-        // with the same name, but here we're stopping once we find one.
-        MetricUtils.getMetricDisplayString((r.metrics || []).find((m) => m.name === name)),
-      ),
+      return Array.from({ length: maxOccurrences }, (_, occurrence) => ({
+        name,
+        occurrence,
+        label: occurrence === 0 ? name : `${name} (${occurrence + 1})`,
+      }));
+    });
+
+    const rows = metricRows.map(({ name, occurrence }) =>
+      runs.map((r) => {
+        const metrics = (r.metrics || []).filter(
+          (m) => m.name === name && m.number_value !== undefined && !isNaN(m.number_value),
+        );
+
+        return MetricUtils.getMetricDisplayString(metrics[occurrence]);
+      }),
     );
 
     return {
       rows,
       xLabels: runs.map((r) => r.name!),
-      yLabels,
+      yLabels: metricRows.map((row) => row.label),
     };
   }
-
   /**
    * For a given run and its runtime workflow, a CompareTableProps object is returned containing:
    * xLabels: an array of unique meeric names produced during the run's execution
