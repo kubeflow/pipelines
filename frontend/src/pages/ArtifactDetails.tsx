@@ -1,163 +1,88 @@
 /*
  * Copyright 2019 The Kubeflow Authors
  *
- * Licensed under the Apache License, Version 2.0 (the 'License');
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  * https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an 'AS IS' BASIS,
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
-import type * as React from 'react';
-import {
-  Api,
-  ArtifactProperties,
-  getResourceProperty,
-  LineageResource,
-  LineageView,
-} from 'src/mlmd/library';
-import {
-  ArtifactType,
-  Artifact,
-  GetArtifactsByIDRequest,
-  GetArtifactTypesByIDRequest,
-} from 'src/third_party/mlmd';
 import { CircularProgress } from '@mui/material';
-import { Route, Switch } from 'react-router-dom';
-import { classes } from 'typestyle';
-import MD2Tabs from '../atoms/MD2Tabs';
-import { ResourceInfo, ResourceType } from '../components/ResourceInfo';
-import { RoutePage, RoutePageFactory, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { commonCss, padding } from '../Css';
+import type * as React from 'react';
+import { Link, Route, Switch } from 'react-router-dom';
 import {
-  errorToMessage,
-  isServiceError,
-  logger,
-  serviceErrorToString,
-  titleCase,
-} from '../lib/Utils';
-import { Page, PageProps } from './Page';
-import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
+  ArtifactArtifactType,
+  V2beta1Artifact,
+  V2beta1ArtifactTask,
+} from 'src/apisv2beta1/artifact';
+import MD2Tabs from 'src/atoms/MD2Tabs';
+import ArtifactPreview from 'src/components/ArtifactPreview';
+import DetailsTable, { ValueComponentProps } from 'src/components/DetailsTable';
+import { RoutePage, RoutePageFactory, RouteParams } from 'src/components/Router';
+import { ToolbarProps } from 'src/components/Toolbar';
+import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
+import { commonCss, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
+import { KeyValue } from 'src/lib/StaticGraphParser';
+import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
+import { getArtifactSessionInfo } from 'src/lib/v2/RuntimeArtifactUtils';
+import { Page, PageProps } from 'src/pages/Page';
+import { classes } from 'typestyle';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
-  LINEAGE_EXPLORER = 1,
+  RELATED_TASKS = 1,
 }
 
-const LINEAGE_PATH = 'lineage';
-
-const TABS = {
-  [ArtifactDetailsTab.OVERVIEW]: { name: 'Overview' },
-  [ArtifactDetailsTab.LINEAGE_EXPLORER]: { name: 'Lineage Explorer' },
-};
-
-const TAB_NAMES = [ArtifactDetailsTab.OVERVIEW, ArtifactDetailsTab.LINEAGE_EXPLORER].map(
-  (tabConfig) => TABS[tabConfig].name,
-);
+const RELATED_TASKS_PATH = 'lineage';
+const TAB_NAMES = ['Overview', 'Related tasks'];
 
 interface ArtifactDetailsState {
-  artifact?: Artifact;
-  artifactType?: ArtifactType;
+  artifact?: V2beta1Artifact;
+  artifactTasks: V2beta1ArtifactTask[];
   hasError?: boolean;
 }
 
 class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
-  private get fullTypeName(): string {
-    return this.state.artifactType?.getName() || '';
+  public state: ArtifactDetailsState = { artifactTasks: [] };
+
+  private get id(): string {
+    return this.props.match.params[RouteParams.ID];
   }
-
-  private get properTypeName(): string {
-    const parts = this.fullTypeName.split('/');
-    if (!parts.length) {
-      return '';
-    }
-    return titleCase(parts[parts.length - 1]);
-  }
-
-  private get id(): number {
-    return Number(this.props.match.params[RouteParams.ID]);
-  }
-
-  private static buildResourceDetailsPageRoute(
-    resource: LineageResource,
-    _: string, // typename is no longer used
-  ): string {
-    // HACK: this distinguishes artifact from execution, only artifacts have
-    // the getUri() method.
-    // TODO: switch to use typedResource
-    if (typeof resource['getUri'] === 'function') {
-      return RoutePageFactory.artifactDetails(resource.getId());
-    } else {
-      return RoutePageFactory.executionDetails(resource.getId());
-    }
-  }
-
-  public state: ArtifactDetailsState = {};
-
-  private api = Api.getInstance();
 
   public async componentDidMount(): Promise<void> {
     this._isMounted = true;
-    return this.load();
+    await this.load();
   }
 
   public render(): React.JSX.Element {
-    if (!this.state.artifact && !this.state.hasError) {
+    const { artifact, artifactTasks, hasError } = this.state;
+    if (!artifact && !hasError) {
       return (
         <div className={commonCss.page}>
           <CircularProgress className={commonCss.absoluteCenter} />
         </div>
       );
     }
-    if (!this.state.artifact) {
+    if (!artifact) {
       return <div className={commonCss.page} />;
     }
+
     return (
-      <div className={classes(commonCss.page)}>
+      <div className={commonCss.page}>
         <Switch>
-          {/*
-           ** This is react-router's nested route feature.
-           ** reference: https://reacttraining.com/react-router/web/example/nesting
-           */}
           <Route path={this.props.match.path} exact={true}>
-            <>
-              <div className={classes(padding(20, 't'))}>
-                <MD2Tabs
-                  tabs={TAB_NAMES}
-                  selectedTab={ArtifactDetailsTab.OVERVIEW}
-                  onSwitch={this.switchTab}
-                />
-              </div>
-              <div className={classes(padding(20, 'lr'))}>
-                <ResourceInfo
-                  resourceType={ResourceType.ARTIFACT}
-                  typeName={this.properTypeName}
-                  resource={this.state.artifact}
-                />
-              </div>
-            </>
+            <ArtifactOverview artifact={artifact} onSwitch={this.switchTab} />
           </Route>
-          <Route path={`${this.props.match.path}/${LINEAGE_PATH}`} exact={true}>
-            <>
-              <div className={classes(padding(20, 't'))}>
-                <MD2Tabs
-                  tabs={TAB_NAMES}
-                  selectedTab={ArtifactDetailsTab.LINEAGE_EXPLORER}
-                  onSwitch={this.switchTab}
-                />
-              </div>
-              <LineageView
-                target={this.state.artifact}
-                buildResourceDetailsPageRoute={ArtifactDetails.buildResourceDetailsPageRoute}
-              />
-            </>
+          <Route path={`${this.props.match.path}/${RELATED_TASKS_PATH}`} exact={true}>
+            <ArtifactRelationships artifactTasks={artifactTasks} onSwitch={this.switchTab} />
           </Route>
         </Switch>
       </div>
@@ -168,78 +93,202 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `Artifact #${this.id}`,
+      pageTitle: `Artifact ${this.id}`,
     };
   }
 
   public async refresh(): Promise<void> {
-    return this.load();
+    await this.load();
   }
 
   private load = async (): Promise<void> => {
     this.setStateSafe({ hasError: false });
-    const request = new GetArtifactsByIDRequest();
-    request.setArtifactIdsList([Number(this.id)]);
-
     try {
-      const response = await this.api.metadataStoreService.getArtifactsByID(request);
-      if (response.getArtifactsList().length === 0) {
-        this.setStateSafe({ hasError: true });
-        this.showPageError(`No artifact identified by id: ${this.id}`);
-        return;
-      }
-      if (response.getArtifactsList().length > 1) {
-        this.setStateSafe({ hasError: true });
-        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
-        return;
-      }
-      const artifact = response.getArtifactsList()[0];
-      const typeRequest = new GetArtifactTypesByIDRequest();
-      typeRequest.setTypeIdsList([artifact.getTypeId()]);
-      const typeResponse = await this.api.metadataStoreService.getArtifactTypesByID(typeRequest);
-      const artifactType = typeResponse.getArtifactTypesList()[0] || undefined;
-
-      let title = ArtifactHelpers.getName(artifact);
-      const version = getResourceProperty(artifact, ArtifactProperties.VERSION);
-      if (version) {
-        title += ` (version: ${version})`;
-      }
+      const [artifact, artifactTasks] = await Promise.all([
+        Apis.artifactServiceApiV2.artifact_1(this.id),
+        getAllArtifactTasks(this.id),
+      ]);
       if (!this._isMounted) {
         return;
       }
-
-      this.props.updateToolbar({
-        pageTitle: title,
-      });
-      this.setStateSafe({ artifact, artifactType });
-    } catch (err) {
+      this.props.updateToolbar({ pageTitle: artifact.name || `Artifact ${this.id}` });
+      this.setStateSafe({ artifact, artifactTasks, hasError: false });
+      this.clearBanner();
+    } catch (error) {
+      const message = await errorToMessage(error);
       this.setStateSafe({ hasError: true });
-      if (isServiceError(err)) {
-        this.showPageError(serviceErrorToString(err));
-      } else {
-        const errorMessage = await errorToMessage(err);
-        this.showPageError(
-          errorMessage ? `Error: ${errorMessage}` : 'Error: failed to load artifact.',
-        );
-      }
+      this.showPageError(message || `Error: failed to load artifact ${this.id}.`, error);
     }
   };
 
   private switchTab = (selectedTab: number) => {
     switch (selectedTab) {
-      case ArtifactDetailsTab.LINEAGE_EXPLORER:
-        return this.props.history.push(`${this.props.match.url}/${LINEAGE_PATH}`);
+      case ArtifactDetailsTab.RELATED_TASKS:
+        this.props.history.push(`${this.props.match.url}/${RELATED_TASKS_PATH}`);
+        return;
       case ArtifactDetailsTab.OVERVIEW:
-        return this.props.history.push(this.props.match.url);
+        this.props.history.push(this.props.match.url.replace(`/${RELATED_TASKS_PATH}`, ''));
+        return;
       default:
         logger.error(`Unknown selected tab ${selectedTab}.`);
     }
   };
 }
 
-// This guarantees that each artifact renders a different <ArtifactDetails /> instance.
-const EnhancedArtifactDetails = (props: PageProps) => {
-  return <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />;
-};
+function ArtifactOverview({
+  artifact,
+  onSwitch,
+}: {
+  artifact: V2beta1Artifact;
+  onSwitch: (selectedTab: number) => void;
+}) {
+  const details: Array<KeyValue<string>> = [
+    ['Artifact ID', artifact.artifact_id || '-'],
+    ['Name', artifact.name || '-'],
+    ['Type', artifact.type || '-'],
+    ['Description', artifact.description || '-'],
+    ['Namespace', artifact.namespace || '-'],
+    ['Created at', formatDateString(artifact.created_at)],
+  ];
+  if (artifact.number_value !== undefined) {
+    details.push(['Value', String(artifact.number_value)]);
+  }
+  if (artifact.metadata && Object.keys(artifact.metadata).length) {
+    details.push(['Metadata', JSON.stringify(artifact.metadata)]);
+  }
+
+  const sessionMap = new Map<string, string | undefined>();
+  if (artifact.uri) {
+    sessionMap.set(artifact.uri, getArtifactSessionInfo(artifact));
+  }
+
+  return (
+    <>
+      <ArtifactTabs selectedTab={ArtifactDetailsTab.OVERVIEW} onSwitch={onSwitch} />
+      <div className={classes(padding(20, 'lr'))}>
+        <DetailsTable title='Artifact details' fields={details} />
+        {artifact.uri && (
+          <DetailsTable<string>
+            title='Artifact URI'
+            fields={[[artifact.name || 'Artifact', artifact.uri]]}
+            valueComponent={ArtifactPreview}
+            valueComponentProps={{ namespace: artifact.namespace, sessionMap }}
+          />
+        )}
+        {isVisualizableArtifact(artifact) && (
+          <RuntimeMetricsVisualizations artifacts={[artifact]} namespace={artifact.namespace} />
+        )}
+      </div>
+    </>
+  );
+}
+
+function isVisualizableArtifact(artifact: V2beta1Artifact): boolean {
+  return (
+    artifact.type === ArtifactArtifactType.Metric ||
+    artifact.type === ArtifactArtifactType.ClassificationMetric ||
+    artifact.type === ArtifactArtifactType.SlicedClassificationMetric ||
+    artifact.type === ArtifactArtifactType.HTML ||
+    artifact.type === ArtifactArtifactType.Markdown
+  );
+}
+
+function ArtifactRelationships({
+  artifactTasks,
+  onSwitch,
+}: {
+  artifactTasks: V2beta1ArtifactTask[];
+  onSwitch: (selectedTab: number) => void;
+}) {
+  const relationshipMap = new Map<string, V2beta1ArtifactTask>();
+  const fields: Array<KeyValue<string>> = artifactTasks.map((artifactTask, index) => {
+    const relationshipId = artifactTask.id || `relationship-${index}`;
+    relationshipMap.set(relationshipId, artifactTask);
+    return [relationshipLabel(artifactTask, index), relationshipId];
+  });
+
+  return (
+    <>
+      <ArtifactTabs selectedTab={ArtifactDetailsTab.RELATED_TASKS} onSwitch={onSwitch} />
+      <div className={classes(padding(20, 'lr'))}>
+        {fields.length ? (
+          <DetailsTable<string>
+            title='Producing and consuming tasks'
+            fields={fields}
+            valueComponent={RelatedTaskLink}
+            valueComponentProps={{ relationshipMap }}
+          />
+        ) : (
+          <div className={commonCss.header2}>No related tasks found.</div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function RelatedTaskLink({
+  value,
+  relationshipMap,
+}: ValueComponentProps<string> & { relationshipMap?: Map<string, V2beta1ArtifactTask> }) {
+  const artifactTask = relationshipMap?.get(String(value));
+  if (!artifactTask?.run_id) {
+    return <>{artifactTask?.task_id || '-'}</>;
+  }
+  return (
+    <Link className={commonCss.link} to={RoutePageFactory.runDetails(artifactTask.run_id)}>
+      Run {artifactTask.run_id}
+      {artifactTask.task_id ? ` · Task ${artifactTask.task_id}` : ''}
+    </Link>
+  );
+}
+
+function ArtifactTabs({
+  selectedTab,
+  onSwitch,
+}: {
+  selectedTab: ArtifactDetailsTab;
+  onSwitch: (selectedTab: number) => void;
+}) {
+  return (
+    <div className={classes(padding(20, 't'))}>
+      <MD2Tabs tabs={TAB_NAMES} selectedTab={selectedTab} onSwitch={onSwitch} />
+    </div>
+  );
+}
+
+function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
+  const direction = artifactTask.type === 'OUTPUT' ? 'Produced as' : 'Consumed as';
+  return `${direction} ${artifactTask.key || artifactTask.producer?.task_name || index + 1}`;
+}
+
+export async function getAllArtifactTasks(artifactId: string): Promise<V2beta1ArtifactTask[]> {
+  const artifactTasks: V2beta1ArtifactTask[] = [];
+  const seenPageTokens = new Set<string>();
+  let pageToken: string | undefined;
+  do {
+    const response = await Apis.artifactServiceApiV2.artifactTasks(
+      undefined,
+      undefined,
+      [artifactId],
+      undefined,
+      pageToken,
+      100,
+      'id asc',
+    );
+    artifactTasks.push(...(response.artifact_tasks || []));
+    pageToken = response.next_page_token || undefined;
+    if (pageToken) {
+      if (seenPageTokens.has(pageToken)) {
+        throw new Error(`Artifact service returned a repeated page token: ${pageToken}`);
+      }
+      seenPageTokens.add(pageToken);
+    }
+  } while (pageToken);
+  return artifactTasks;
+}
+
+const EnhancedArtifactDetails = (props: PageProps) => (
+  <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />
+);
 
 export default EnhancedArtifactDetails;

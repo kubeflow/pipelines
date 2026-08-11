@@ -17,7 +17,12 @@ import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
-import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import {
+  V2beta1PipelineTask,
+  V2beta1Run,
+  V2beta1RuntimeState,
+  V2beta1RunStorageState,
+} from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
@@ -33,19 +38,12 @@ import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
   convertSubDagToRuntimeFlowElements,
-  getNodeMlmdInfo,
+  getNodeRuntimeInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import {
-  getArtifactsFromContext,
-  getEventsByExecutions,
-  getExecutionsFromContext,
-  getKfpV2RunContext,
-  LinkedArtifact,
-} from 'src/mlmd/MlmdUtils';
-import { Artifact, Event, Execution } from 'src/third_party/mlmd';
+import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { classes } from 'typestyle';
 import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
@@ -55,17 +53,6 @@ import DagCanvas from './v2/DagCanvas';
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
-
-interface MlmdPackage {
-  executions: Execution[];
-  artifacts: Artifact[];
-  events: Event[];
-}
-
-export interface NodeMlmdInfo {
-  execution?: Execution;
-  linkedArtifact?: LinkedArtifact;
-}
 
 interface RunDetailsV2Info {
   pipeline_job: string;
@@ -95,25 +82,21 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
-  const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
   const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
   const runFinished = hasFinishedV2(run.state) && !retriedCurrentRunState;
 
-  // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
-    queryKey: queryKeys.mlmdPackage(runId),
-    queryFn: async () => {
-      const context = await getKfpV2RunContext(runId);
-      const executions = await getExecutionsFromContext(context);
-      const artifacts = await getArtifactsFromContext(context);
-      const events = await getEventsByExecutions(executions);
-
-      return { executions, artifacts, events };
-    },
+  const {
+    isSuccess,
+    isError,
+    error,
+    data: tasks,
+  } = useQuery<V2beta1PipelineTask[], Error>({
+    queryKey: queryKeys.runTasks(runId),
+    queryFn: () => getRunTasks(runId),
     staleTime: QUERY_STALE_TIME,
-    refetchInterval: QUERY_REFETCH_INTERVAL,
+    refetchInterval: runFinished ? false : QUERY_REFETCH_INTERVAL,
   });
 
   // Retrieves experiment detail.
@@ -128,11 +111,11 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   });
   const namespace = experiment?.namespace;
 
-  // Single banner effect with clear precedence: MLMD error > experiment error > clear on success.
+  // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
     if (isError && error) {
       updateBanner({
-        message: 'Cannot get MLMD objects from Metadata store.',
+        message: 'Cannot get tasks for this run.',
         additionalInfo: error.message,
         mode: 'error',
       });
@@ -151,35 +134,26 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     (layers: string[]) => {
       setSelectedNode(null);
       setLayers(layers);
-      setFlowElements(
-        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-      ); // render elements in the sub-layer.
+      setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
     },
-    [data, pipelineSpec],
+    [pipelineSpec, tasks],
   );
 
   const dynamicFlowElements = useMemo(() => {
-    if (!isSuccess || !data) {
+    if (!isSuccess || !tasks) {
       return flowElements;
     }
 
-    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
-    return updateFlowElementsState(
-      layers,
-      flowElements,
-      data.executions,
-      data.events,
-      data.artifacts,
-    );
-  }, [data, flowElements, isSuccess, layers]);
+    return updateFlowElementsState(layers, flowElements, tasks);
+  }, [flowElements, isSuccess, layers, tasks]);
 
-  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
+  const selectedNodeRuntimeInfo = useMemo(
+    () => getNodeRuntimeInfo(selectedNode, tasks || [], layers),
+    [layers, selectedNode, tasks],
+  );
+
+  const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);
-    if (data) {
-      setSelectedNodeMlmdInfo(
-        getNodeMlmdInfo(element, data.executions, data.events, data.artifacts),
-      );
-    }
   };
 
   // Update page title and experiment information.
@@ -235,7 +209,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
                   element={selectedNode}
-                  elementMlmdInfo={selectedNodeMlmdInfo}
+                  elementRuntimeInfo={selectedNodeRuntimeInfo}
                   namespace={namespace}
                 ></RuntimeNodeDetailsV2>
               </SidePanel>
@@ -269,6 +243,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       </div>
     </>
   );
+}
+
+export async function getRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
+  return listAllRunTasks(runId);
 }
 
 async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {

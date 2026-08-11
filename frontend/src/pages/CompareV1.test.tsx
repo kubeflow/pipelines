@@ -28,7 +28,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { PlotType } from 'src/components/viewers/Viewer';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
-import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { Workflow } from 'src/third_party/argo/argo_template';
 import { ButtonKeys } from 'src/lib/Buttons';
 import { MemoryRouter, Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';

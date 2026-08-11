@@ -17,10 +17,6 @@
 import { queryKeys } from './queryKeys';
 
 describe('queryKeys', () => {
-  it('artifactTypes returns a stable key', () => {
-    expect(queryKeys.artifactTypes()).toEqual(['artifact_types']);
-  });
-
   it('pipelineVersionTemplate includes both IDs', () => {
     expect(queryKeys.pipelineVersionTemplate('p1', 'v1')).toEqual([
       'PipelineVersionTemplate',
@@ -54,17 +50,6 @@ describe('queryKeys', () => {
     ]);
   });
 
-  it('mlmdPackage includes the run ID', () => {
-    expect(queryKeys.mlmdPackage('run-456')).toEqual(['mlmd_package', { id: 'run-456' }]);
-  });
-
-  it('contextByExecution includes execution ID and state', () => {
-    expect(queryKeys.contextByExecution(42, 3)).toEqual([
-      'context_by_execution',
-      { id: 42, state: 3 },
-    ]);
-  });
-
   it('pipeline includes the pipeline ID', () => {
     expect(queryKeys.pipeline('pipe-1')).toEqual(['pipeline', 'pipe-1']);
   });
@@ -82,19 +67,12 @@ describe('queryKeys', () => {
   });
 
   it('returns distinct keys for different factories', () => {
-    const artifactTypesKey = queryKeys.artifactTypes();
+    const runTasksKey = queryKeys.runTasks('run-1');
     const pipelineKey = queryKeys.pipeline('p1');
-    expect(artifactTypesKey[0]).not.toEqual(pipelineKey[0]);
+    expect(runTasksKey[0]).not.toEqual(pipelineKey[0]);
   });
 
   it('pipelineVersions defaults to empty string when pipelineId is null', () => {
     expect(queryKeys.pipelineVersions(null)).toEqual(['pipeline_versions', '']);
-  });
-
-  it('executionLogs includes executionId and namespace', () => {
-    expect(queryKeys.executionLogs(5, 'kubeflow')).toEqual([
-      'execution_logs',
-      { executionId: 5, namespace: 'kubeflow' },
-    ]);
   });
 });

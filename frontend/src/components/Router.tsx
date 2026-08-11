@@ -31,9 +31,7 @@ import AllExperimentsAndArchive, {
 import AllRecurringRunsPage from 'src/pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
 import ArtifactDetails from 'src/pages/ArtifactDetails';
-import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
-import ExecutionDetails from 'src/pages/ExecutionDetails';
-import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
+import EnhancedArtifactList from 'src/pages/ArtifactList';
 import ExperimentDetailsPage from 'src/pages/ExperimentDetails';
 import { GettingStarted } from 'src/pages/GettingStarted';
 import NewExperimentPage from 'src/pages/NewExperiment';
@@ -84,7 +82,7 @@ export enum RouteParams {
   pipelineVersionId = 'vid',
   runId = 'rid',
   recurringRunId = 'rrid',
-  // TODO: create one of these for artifact and execution?
+  // Legacy execution routes below are retained only to redirect old bookmarks.
   ID = 'id',
   executionId = 'executionid',
 }
@@ -92,7 +90,6 @@ export enum RouteParams {
 // tslint:disable-next-line:variable-name
 export const RoutePrefix = {
   ARTIFACT: '/artifact',
-  EXECUTION: '/execution',
   RECURRING_RUN: '/recurringrun',
 };
 
@@ -124,11 +121,11 @@ export const RoutePage = {
 };
 
 export const RoutePageFactory = {
-  artifactDetails: (artifactId: number) => {
+  artifactDetails: (artifactId: string | number) => {
     return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
-  executionDetails: (executionId: number) => {
-    return RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.ID}`, '' + executionId);
+  runDetails: (runId: string) => {
+    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
   },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
@@ -171,6 +168,8 @@ export interface RouterProps {
 const DEFAULT_ROUTE =
   KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
+const RemovedExecutionRoute = () => <Redirect to={RoutePage.RUNS} />;
+
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
@@ -187,10 +186,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.ARCHIVED_EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
-    { path: RoutePage.ARTIFACTS, Component: ArtifactListSwitcher },
+    { path: RoutePage.ARTIFACTS, Component: EnhancedArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
-    { path: RoutePage.EXECUTIONS, Component: ExecutionListSwitcher },
-    { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
+    { path: RoutePage.EXECUTIONS, Component: RemovedExecutionRoute },
+    { path: RoutePage.EXECUTION_DETAILS, Component: RemovedExecutionRoute },
     {
       Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,

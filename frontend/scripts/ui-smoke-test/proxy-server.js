@@ -50,7 +50,6 @@ const PROXY_PATHS = [
   '/visualizations/',
   '/k8s/',
   '/apps/',
-  '/ml_metadata.',
 ];
 
 function shouldProxy(pathname) {

@@ -25,7 +25,8 @@ import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
 import { logger } from 'src/lib/Utils';
-import { URIToSessionInfo } from './tabs/InputOutputTab';
+
+export type URIToSessionInfo = Map<string, string | undefined>;
 
 const css = stylesheet({
   root: {

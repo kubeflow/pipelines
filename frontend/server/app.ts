@@ -125,7 +125,6 @@ function createUIServer(options: UIConfigs) {
   const apiVersion1Prefix = options.server.apiVersion1Prefix;
   const apiVersion2Prefix = options.server.apiVersion2Prefix;
   const apiServerAddress = getAddress(options.pipeline);
-  const envoyServiceAddress = getAddress(options.metadata.envoyService);
 
   const app: Application = express();
   const registerHandler = getRegisterHandler(app, basePath);
@@ -168,7 +167,7 @@ function createUIServer(options: UIConfigs) {
     authorizeFn,
     options.auth.enabled,
     options.auth.kubeflowUserIdHeader,
-    envoyServiceAddress,
+    apiServerAddress,
   );
 
   /** Artifact */
@@ -327,19 +326,6 @@ function createUIServer(options: UIConfigs) {
     app.get,
     '/visualizations/allowed',
     getAllowCustomVisualizationsHandler(options.visualizations.allowCustomVisualizations),
-  );
-
-  /** Proxy metadata requests to the Envoy instance which will handle routing to the metadata gRPC server */
-  app.all(
-    '/ml_metadata.*',
-    createProxyMiddleware({
-      changeOrigin: true,
-      onProxyReq: (proxyReq) => {
-        console.log('Metadata proxied request: ', (proxyReq as any).path);
-      },
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
-      target: envoyServiceAddress,
-    }),
   );
 
   registerHandler(

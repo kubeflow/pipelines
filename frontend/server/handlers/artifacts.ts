@@ -41,7 +41,7 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { validateArtifactNamespace, buildArtifactUri } from '../helpers/mlmd-validator.js';
+import { validateArtifactNamespace, buildArtifactUri } from '../helpers/artifact-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   AuthorizeRequestResources,
@@ -137,14 +137,13 @@ export interface GCSProviderInfo {
  * @param authorizeFn The authorization function to validate permissions
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
- * @param envoyAddress MLMD Envoy address used for namespace-ownership
- *   validation (#9889). When omitted, the IDOR check is skipped.
+ * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
-  envoyAddress?: string,
+  apiServerAddress?: string,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     const queryError = validateArtifactQueryParameters(request.query);
@@ -157,7 +156,8 @@ export function getArtifactsAuthMiddleware(
       return next();
     }
 
-    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    const userIdHeader = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    const userId = Array.isArray(userIdHeader) ? userIdHeader[0] : userIdHeader;
     if (!userId) {
       console.warn(
         `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
@@ -212,7 +212,7 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (envoyAddress) {
+    if (apiServerAddress) {
       const coords = resolveArtifactCoordinates(request);
       if (coords === null) {
         console.warn(
@@ -222,10 +222,15 @@ export function getArtifactsAuthMiddleware(
         response.status(400).send('Malformed URL encoding in artifact path');
         return;
       }
-      const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
-      if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
+      const trackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
+      if (trackedSources.has(coords.source) && coords.bucket && coords.key) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
-        const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
+        const validation = await validateArtifactNamespace(
+          apiServerAddress,
+          artifactUri,
+          namespace,
+          { [kubeflowUserIdHeader]: userId },
+        );
 
         if (!validation.valid) {
           console.warn(

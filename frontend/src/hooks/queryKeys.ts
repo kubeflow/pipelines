@@ -21,15 +21,13 @@
  * and makes cache invalidation discoverable.
  *
  * staleTime guidelines:
- *   - Infinity: appropriate for immutable or static reference data (artifact
- *     types, published pipeline versions, historical run records).
+ *   - Infinity: appropriate for immutable or static reference data (published
+ *     pipeline versions, historical run records).
  *   - Finite / refetchInterval: use for data that may change while the user
- *     is viewing the page (e.g. active run MLMD state in RunDetailsV2).
+ *     is viewing the page (e.g. active run task state in RunDetailsV2).
  */
 export const queryKeys = {
   // --- Shared hooks (actively imported) ---
-
-  artifactTypes: () => ['artifact_types'] as const,
 
   pipelineVersionTemplate: (pipelineId?: string, pipelineVersionId?: string) =>
     ['PipelineVersionTemplate', { pipelineId, pipelineVersionId }] as const,
@@ -42,6 +40,8 @@ export const queryKeys = {
 
   v2RunDetails: (runIds: string[]) => ['v2_run_details', { ids: runIds }] as const,
 
+  v2RunComparison: (runIds: string[]) => ['v2_run_comparison', { ids: runIds }] as const,
+
   v2RecurringRunDetail: (recurringRunId: string | null | undefined) =>
     ['v2_recurring_run_detail', { id: recurringRunId }] as const,
 
@@ -50,23 +50,12 @@ export const queryKeys = {
 
   runDetails: (runIds: string[]) => ['run_details', { ids: runIds }] as const,
 
-  // --- MLMD ---
+  // --- Runtime metadata ---
 
-  runArtifacts: (runIds: string[]) => ['run_artifacts', { runIds }] as const,
+  runTasks: (runId: string) => ['run_tasks', { id: runId }] as const,
 
-  mlmdPackage: (runId: string) => ['mlmd_package', { id: runId }] as const,
-
-  executionArtifact: (executionId: number, executionState: number) =>
-    ['execution_artifact', { id: executionId, state: executionState }] as const,
-
-  executionOutputArtifact: (executionId: number, executionState: number) =>
-    ['execution_output_artifact', { id: executionId, state: executionState }] as const,
-
-  executionLogs: (executionId: number | undefined, namespace: string | undefined) =>
-    ['execution_logs', { executionId, namespace }] as const,
-
-  contextByExecution: (executionId: number, executionState: number) =>
-    ['context_by_execution', { id: executionId, state: executionState }] as const,
+  taskLogs: (taskId?: string, taskState?: string, namespace?: string) =>
+    ['task_logs', { taskId, taskState, namespace }] as const,
 
   // --- Pipeline & version ---
 
@@ -96,17 +85,8 @@ export const queryKeys = {
 
   // --- Viewer configs ---
 
-  viewConfig: (artifactId: number | undefined, executionState: number, namespace?: string) =>
-    ['viewconfig', { artifact: artifactId, state: executionState, namespace }] as const,
-
-  htmlViewerConfig: (artifactIds: number[], executionState: number, namespace?: string) =>
-    ['htmlViewerConfig', { artifacts: artifactIds, state: executionState, namespace }] as const,
-
-  markdownViewerConfig: (artifactIds: number[], executionState: number, namespace?: string) =>
-    ['markdownViewerConfig', { artifacts: artifactIds, state: executionState, namespace }] as const,
-
-  visualizationPanelViewerConfig: (artifactId: number | undefined, namespace?: string) =>
-    ['viewerConfig', { artifact: artifactId, namespace }] as const,
+  runtimeArtifactVisualizations: (artifactIds: string[], namespace?: string) =>
+    ['runtime_artifact_visualizations', { artifactIds, namespace }] as const,
 
   // --- Misc ---
 

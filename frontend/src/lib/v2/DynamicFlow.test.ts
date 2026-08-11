@@ -12,222 +12,245 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { load } from 'js-yaml';
 import { Node } from '@xyflow/react';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
-import { PipelineSpec } from 'src/generated/pipeline_spec';
-import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import {
-  getNodeMlmdInfo,
-  PARENT_DAG_ID_KEY,
-  TASK_NAME_KEY,
+  ArtifactArtifactType,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
+  V2beta1PipelineTask,
+} from 'src/apisv2beta1/run';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
+import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { convertFlowElements, NodeTypeNames } from './StaticFlow';
+import {
+  convertSubDagToRuntimeFlowElements,
+  getNodeRuntimeInfo,
   updateFlowElementsState,
 } from './DynamicFlow';
-import { convertFlowElements, getTaskKeyFromNodeKey, NodeTypeNames } from './StaticFlow';
-import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
-import { load } from 'js-yaml';
+
+const rootTask: V2beta1PipelineTask = {
+  task_id: 'root-task',
+  name: 'root',
+  type: PipelineTaskTaskType.ROOT,
+  state: PipelineTaskTaskState.RUNNING,
+};
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
-    it('update node status based on MLMD', () => {
-      // Prepare MLMD objects.
-      const EXECUTION_ROOT = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
-      EXECUTION_ROOT.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-      const EXECUTION_PREPROCESS = new Execution()
-        .setId(3)
-        .setLastKnownState(Execution.State.COMPLETE);
-      EXECUTION_PREPROCESS.getCustomPropertiesMap()
-        .set(TASK_NAME_KEY, new Value().setStringValue('preprocess'))
-        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
-      const EXECUTION_TRAIN = new Execution().setId(4).setLastKnownState(Execution.State.FAILED);
-      EXECUTION_TRAIN.getCustomPropertiesMap()
-        .set(TASK_NAME_KEY, new Value().setStringValue('train'))
-        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
+    it('updates task and artifact nodes from hydrated task data', () => {
+      const preprocessTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        display_name: 'Preprocess data',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'output_dataset_one',
+              artifacts: [
+                {
+                  artifact_id: 'artifact-one',
+                  name: 'dataset-one',
+                  type: ArtifactArtifactType.Dataset,
+                },
+              ],
+            },
+            {
+              artifact_key: 'output_dataset_two_path',
+              artifacts: [
+                {
+                  artifact_id: 'artifact-two',
+                  name: 'dataset-two',
+                  type: ArtifactArtifactType.Dataset,
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const trainTask: V2beta1PipelineTask = {
+        task_id: 'train-task',
+        parent_task_id: rootTask.task_id,
+        name: 'train',
+        state: PipelineTaskTaskState.FAILED,
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'model',
+              artifacts: [
+                {
+                  artifact_id: 'model-artifact',
+                  name: 'model',
+                  type: ArtifactArtifactType.Model,
+                },
+              ],
+            },
+          ],
+        },
+      };
 
-      const ARTIFACT_OUTPUT_DATA_ONE = new Artifact().setId(1).setState(Artifact.State.LIVE);
-      const ARTIFACT_OUTPUT_DATA_TWO = new Artifact().setId(2).setState(Artifact.State.PENDING);
-      const ARTIFACT_MODEL = new Artifact().setId(3).setState(Artifact.State.DELETED);
-
-      const EVENT_PREPROCESS_OUTPUT_DATA_ONE = new Event()
-        .setExecutionId(3)
-        .setArtifactId(1)
-        .setType(Event.Type.OUTPUT)
-        .setPath(
-          new Event.Path().setStepsList([new Event.Path.Step().setKey('output_dataset_one')]),
-        );
-      const EVENT_PREPROCESS_OUTPUT_DATA_TWO = new Event()
-        .setExecutionId(3)
-        .setArtifactId(2)
-        .setType(Event.Type.OUTPUT)
-        .setPath(
-          new Event.Path().setStepsList([new Event.Path.Step().setKey('output_dataset_two_path')]),
-        );
-      const EVENT_OUTPUT_DATA_ONE_TRAIN = new Event().setExecutionId(4).setArtifactId(1);
-      const EVENT_OUTPUT_DATA_TWO_TRAIN = new Event().setExecutionId(4).setArtifactId(2);
-      const EVENT_TRAIN_MODEL = new Event()
-        .setExecutionId(4)
-        .setArtifactId(3)
-        .setType(Event.Type.OUTPUT)
-        .setPath(new Event.Path().setStepsList([new Event.Path.Step().setKey('model')]));
-
-      // Converts to static graph first, its type is Elements<any>.
       const yamlObject = load(v2YamlTemplateString);
-      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
-      const graph = convertFlowElements(pipelineSpec);
+      const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [
+        rootTask,
+        preprocessTask,
+        trainTask,
+      ]);
 
-      // MLMD objects to provide node states.
-      const executions: Execution[] = [EXECUTION_ROOT, EXECUTION_PREPROCESS, EXECUTION_TRAIN];
-      const events: Event[] = [
-        EVENT_PREPROCESS_OUTPUT_DATA_ONE,
-        EVENT_PREPROCESS_OUTPUT_DATA_TWO,
-        EVENT_OUTPUT_DATA_ONE_TRAIN,
-        EVENT_OUTPUT_DATA_TWO_TRAIN,
-        EVENT_TRAIN_MODEL,
-      ];
-      const artifacts: Artifact[] = [
-        ARTIFACT_OUTPUT_DATA_ONE,
-        ARTIFACT_OUTPUT_DATA_TWO,
-        ARTIFACT_MODEL,
-      ];
-
-      const runtimeGraph = updateFlowElementsState(['root'], graph, executions, events, artifacts);
-      for (let element of runtimeGraph) {
-        runtimeGraph
-          .filter((e) => e.id === element.id)
-          .forEach((e) => {
-            if (e.id === 'task.preprocess') {
-              expect(e.data.state).toEqual(EXECUTION_PREPROCESS.getLastKnownState());
-            } else if (e.id === 'task.train') {
-              expect(e.data.state).toEqual(EXECUTION_TRAIN.getLastKnownState());
-            } else if (e.id === 'artifact.preprocess.output_dataset_one') {
-              expect(e.data.state).toEqual(ARTIFACT_OUTPUT_DATA_ONE.getState());
-            } else if (e.id === 'artifact.preprocess.output_dataset_two_path') {
-              expect(e.data.state).toEqual(ARTIFACT_OUTPUT_DATA_TWO.getState());
-            } else if (e.id === 'artifact.train.model') {
-              expect(e.data.state).toEqual(ARTIFACT_MODEL.getState());
-            }
-          });
-      }
+      expect(runtimeGraph.find((element) => element.id === 'task.preprocess')?.data).toMatchObject({
+        label: 'Preprocess data',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        taskId: 'preprocess-task',
+      });
+      expect(runtimeGraph.find((element) => element.id === 'task.train')?.data).toMatchObject({
+        state: PipelineTaskTaskState.FAILED,
+        taskId: 'train-task',
+      });
+      expect(
+        runtimeGraph.find((element) => element.id === 'artifact.preprocess.output_dataset_one')
+          ?.data,
+      ).toMatchObject({ artifactIds: ['artifact-one'], hasArtifact: true });
+      expect(
+        runtimeGraph.find((element) => element.id === 'artifact.train.model')?.data,
+      ).toMatchObject({ artifactIds: ['model-artifact'], hasArtifact: true });
     });
 
-    it('does not preserve React Flow hidden flags when applying MLMD state', () => {
-      const rootExecution = new Execution().setId(2).setLastKnownState(Execution.State.COMPLETE);
-      rootExecution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue(''));
-
-      const preprocessExecution = new Execution()
-        .setId(3)
-        .setLastKnownState(Execution.State.COMPLETE);
-      preprocessExecution
-        .getCustomPropertiesMap()
-        .set(TASK_NAME_KEY, new Value().setStringValue('preprocess'))
-        .set(PARENT_DAG_ID_KEY, new Value().setIntValue(2));
-
+    it('does not preserve React Flow hidden flags when applying task state', () => {
+      const preprocessTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.SUCCEEDED,
+      };
       const yamlObject = load(v2YamlTemplateString);
-      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
-      const graph = convertFlowElements(pipelineSpec);
+      const graph = convertFlowElements(PipelineSpec.fromJSON(yamlObject));
       const preprocessNode = graph.find((element) => element.id === 'task.preprocess') as Node;
       (preprocessNode as Node & { hidden?: boolean }).hidden = true;
       preprocessNode.measured = { width: 123, height: 45 };
 
-      const runtimeGraph = updateFlowElementsState(
-        ['root'],
-        graph,
-        [rootExecution, preprocessExecution],
-        [],
-        [],
-      );
+      const runtimeGraph = updateFlowElementsState(['root'], graph, [rootTask, preprocessTask]);
       const updatedPreprocessNode = runtimeGraph.find(
         (element) => element.id === 'task.preprocess',
       ) as Node & { hidden?: boolean };
 
       expect(updatedPreprocessNode.hidden).toBeUndefined();
       expect(updatedPreprocessNode.measured).toEqual({ width: 123, height: 45 });
-      expect(updatedPreprocessNode.data?.state).toEqual(preprocessExecution.getLastKnownState());
+      expect(updatedPreprocessNode.data?.state).toEqual(PipelineTaskTaskState.SUCCEEDED);
     });
   });
 
-  describe('getNodeMlmdInfo', () => {
-    it('execution not exist', () => {
-      const elem: Node<FlowElementDataBase> = {
+  describe('getNodeRuntimeInfo', () => {
+    it('finds a task from the current runtime layer', () => {
+      const element: Node<FlowElementDataBase> = {
         id: 'task.exec',
+        data: { label: 'custom-label' },
         type: NodeTypeNames.EXECUTION,
         position: { x: 1, y: 2 },
       };
-
-      const nodeMlmdInfo = getNodeMlmdInfo(elem, [], [], []);
-      expect(nodeMlmdInfo).toEqual({});
-    });
-
-    it('execution found', () => {
-      const elem: Node<FlowElementDataBase> = {
-        id: 'task.exec',
-        data: {
-          mlmdId: 1,
-        },
-        type: NodeTypeNames.EXECUTION,
-        position: { x: 1, y: 2 },
+      const task: V2beta1PipelineTask = {
+        task_id: 'task-id',
+        parent_task_id: rootTask.task_id,
+        name: 'exec',
       };
 
-      const execution = new Execution();
-      execution.setId(1);
-      execution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue('exec'));
-      const nodeMlmdInfo = getNodeMlmdInfo(elem, [execution], [], []);
-      expect(nodeMlmdInfo).toEqual({ execution });
+      expect(getNodeRuntimeInfo(element, [rootTask, task], ['root'])).toEqual({ task });
     });
 
-    it('execution found with custom name', () => {
-      const label = 'custom-label';
-      const elem: Node<FlowElementDataBase> = {
-        id: 'task.exec',
-        data: {
-          label: label,
-          mlmdId: 1,
-        },
-        type: NodeTypeNames.EXECUTION,
-        position: { x: 1, y: 2 },
-      };
-
-      const execution = new Execution();
-      execution.setId(1);
-      execution
-        .getCustomPropertiesMap()
-        .set(TASK_NAME_KEY, new Value().setStringValue(getTaskKeyFromNodeKey(elem.id)));
-      const nodeMlmdInfo = getNodeMlmdInfo(elem, [execution], [], []);
-      expect(nodeMlmdInfo).toEqual({ execution });
-    });
-
-    it('artifact not exist', () => {
-      const elem: Node<FlowElementDataBase> = {
-        id: 'artifact.exec.arti',
+    it('finds an output artifact group on its producing task', () => {
+      const element: Node<FlowElementDataBase> = {
+        id: 'artifact.exec.output',
+        data: { label: 'output' },
         type: NodeTypeNames.ARTIFACT,
         position: { x: 1, y: 2 },
       };
+      const artifactGroup = {
+        artifact_key: 'output',
+        artifacts: [{ artifact_id: 'artifact-id', name: 'output' }],
+      };
+      const task: V2beta1PipelineTask = {
+        task_id: 'task-id',
+        parent_task_id: rootTask.task_id,
+        name: 'exec',
+        outputs: { artifacts: [artifactGroup] },
+      };
 
-      const nodeMlmdInfo = getNodeMlmdInfo(elem, [], [], []);
-      expect(nodeMlmdInfo).toEqual({});
+      expect(getNodeRuntimeInfo(element, [rootTask, task], ['root'])).toEqual({
+        task,
+        artifactGroup,
+      });
     });
 
-    it('artifact found', () => {
-      const elem: Node<FlowElementDataBase> = {
-        id: 'artifact.exec.arti',
-        type: NodeTypeNames.ARTIFACT,
+    it('filters loop body tasks by selected iteration', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '2' },
+      };
+      const iterationZero: V2beta1PipelineTask = {
+        task_id: 'body-0',
+        parent_task_id: loopTask.task_id,
+        name: 'body',
+        type_attributes: { iteration_index: '0' },
+      };
+      const iterationOne: V2beta1PipelineTask = {
+        task_id: 'body-1',
+        parent_task_id: loopTask.task_id,
+        name: 'body',
+        type_attributes: { iteration_index: '1' },
+      };
+      const element: Node<FlowElementDataBase> = {
+        id: 'task.body',
+        data: { label: 'body' },
+        type: NodeTypeNames.EXECUTION,
         position: { x: 1, y: 2 },
       };
 
-      const execution = new Execution();
-      execution.setId(1);
-      execution.getCustomPropertiesMap().set(TASK_NAME_KEY, new Value().setStringValue('exec'));
+      expect(
+        getNodeRuntimeInfo(
+          element,
+          [rootTask, loopTask, iterationZero, iterationOne],
+          ['root', 'loop', 'loop.1'],
+        ),
+      ).toEqual({ task: iterationOne });
+    });
+  });
 
-      const artifact = new Artifact();
-      artifact.setId(2);
+  describe('convertSubDagToRuntimeFlowElements', () => {
+    it('builds one synthetic sub-DAG node per loop iteration', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '2' },
+      };
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: {
+          'loop-component': { dag: { tasks: {} } },
+        },
+      });
 
-      const event = new Event();
-      event.setExecutionId(1);
-      event.setArtifactId(2);
-      event.setType(Event.Type.OUTPUT);
-      event.setPath(new Event.Path().setStepsList([new Event.Path.Step().setKey('arti')]));
-
-      const nodeMlmdInfo = getNodeMlmdInfo(elem, [execution], [event], [artifact]);
-      expect(nodeMlmdInfo).toEqual({ execution, linkedArtifact: { event, artifact } });
+      const elements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        ['root', 'loop'],
+        [rootTask, loopTask],
+      );
+      expect(elements.map((element) => element.id)).toEqual(['task.loop.0', 'task.loop.1']);
     });
   });
 });

@@ -17,25 +17,23 @@
 import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
+import {
+  ArtifactArtifactType,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
+  V2beta1PipelineTask,
+  V2beta1Run,
+  V2beta1RuntimeState,
+} from 'src/apisv2beta1/run';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
-import { Api } from 'src/mlmd/Api';
-import { KFP_V2_RUN_CONTEXT_TYPE } from 'src/mlmd/MlmdUtils';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
-import {
-  Context,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
-  GetExecutionsByContextResponse,
-} from 'src/third_party/mlmd';
-import * as metadataStoreServicePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
-import { RunDetailsV2 } from './RunDetailsV2';
+import { getRunTasks, RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
 vi.mock('src/components/Editor', () => ({
@@ -96,29 +94,59 @@ describe('RunDetailsV2', () => {
     display_name: 'Default',
     storage_state: V2beta1ExperimentStorageState.AVAILABLE,
   };
+  const TEST_TASKS: V2beta1PipelineTask[] = [
+    {
+      task_id: 'root-task',
+      run_id: RUN_ID,
+      name: 'root',
+      type: PipelineTaskTaskType.ROOT,
+      state: PipelineTaskTaskState.SUCCEEDED,
+    },
+    {
+      task_id: 'preprocess-task',
+      parent_task_id: 'root-task',
+      run_id: RUN_ID,
+      name: 'preprocess',
+      display_name: 'preprocess',
+      type: PipelineTaskTaskType.RUNTIME,
+      state: PipelineTaskTaskState.SUCCEEDED,
+    },
+    {
+      task_id: 'train-task',
+      parent_task_id: 'root-task',
+      run_id: RUN_ID,
+      name: 'train',
+      display_name: 'train',
+      type: PipelineTaskTaskType.RUNTIME,
+      state: PipelineTaskTaskState.SUCCEEDED,
+      outputs: {
+        artifacts: [
+          {
+            artifact_key: 'model',
+            artifacts: [
+              {
+                artifact_id: 'model-artifact',
+                name: 'model',
+                type: ArtifactArtifactType.Model,
+                uri: 's3://pipeline-root/model',
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ];
   beforeEach(() => {
     mockResizeObserver();
 
     updateBannerSpy = vi.fn();
+    updateDialogSpy = vi.fn();
+    updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
+    historyPushSpy = vi.fn();
 
-    const contextResponse = new GetContextByTypeAndNameResponse();
-    contextResponse.setContext(new Context());
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockResolvedValue(
-      contextResponse,
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
-      new GetExecutionsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
-      new metadataStoreServicePb.GetArtifactsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
-      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes').mockResolvedValue(
-      new metadataStoreServicePb.GetArtifactTypesResponse(),
-    );
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: TEST_TASKS });
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
   });
 
   it('Render detail page with reactflow', async () => {
@@ -132,6 +160,45 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
+  });
+
+  it('retrieves every page of tasks for the run', async () => {
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+    tasksSpy
+      .mockResolvedValueOnce({ tasks: [TEST_TASKS[0]], next_page_token: 'next-page' })
+      .mockResolvedValueOnce({ tasks: [TEST_TASKS[1]] });
+
+    await expect(getRunTasks(RUN_ID)).resolves.toEqual([TEST_TASKS[0], TEST_TASKS[1]]);
+    expect(tasksSpy).toHaveBeenNthCalledWith(
+      1,
+      RUN_ID,
+      undefined,
+      100,
+      undefined,
+      undefined,
+      'create_time asc',
+    );
+    expect(tasksSpy).toHaveBeenNthCalledWith(
+      2,
+      RUN_ID,
+      undefined,
+      100,
+      'next-page',
+      undefined,
+      'create_time asc',
+    );
+  });
+
+  it('rejects a repeated task page token instead of polling forever', async () => {
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: [],
+      next_page_token: 'repeated-page',
+    });
+
+    await expect(getRunTasks(RUN_ID)).rejects.toThrow(
+      'Task service returned a repeated page token: repeated-page',
+    );
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
@@ -157,9 +224,9 @@ describe('RunDetailsV2', () => {
     expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
   });
 
-  it('Shows error banner when disconnected from MLMD', async () => {
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
-      new Error('Not connected to MLMD'),
+  it('Shows error banner when tasks cannot be retrieved', async () => {
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockRejectedValue(
+      new Error('Task service unavailable'),
     );
 
     render(
@@ -175,16 +242,15 @@ describe('RunDetailsV2', () => {
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          additionalInfo:
-            'Cannot find context with {"typeName":"system.PipelineRun","contextName":"1"}: Not connected to MLMD',
-          message: 'Cannot get MLMD objects from Metadata store.',
+          additionalInfo: 'Task service unavailable',
+          message: 'Cannot get tasks for this run.',
           mode: 'error',
         }),
       ),
     );
   });
 
-  it('Shows experiment warning banner when experiment fetch fails and MLMD succeeds', async () => {
+  it('Shows experiment warning banner when experiment fetch fails and task fetch succeeds', async () => {
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
       new Error('Experiment not found'),
     );
@@ -210,9 +276,9 @@ describe('RunDetailsV2', () => {
     );
   });
 
-  it('Shows MLMD error banner even when experiment also fails (MLMD takes precedence)', async () => {
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
-      new Error('Not connected to MLMD'),
+  it('Shows task error banner even when experiment also fails (task error takes precedence)', async () => {
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockRejectedValue(
+      new Error('Task service unavailable'),
     );
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
       new Error('Experiment not found'),
@@ -231,14 +297,14 @@ describe('RunDetailsV2', () => {
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          message: 'Cannot get MLMD objects from Metadata store.',
+          message: 'Cannot get tasks for this run.',
           mode: 'error',
         }),
       ),
     );
   });
 
-  it('Does not clear experiment warning when MLMD succeeds after experiment fails', async () => {
+  it('Does not clear experiment warning when task fetch succeeds after experiment fails', async () => {
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
       new Error('Experiment not found'),
     );
@@ -254,7 +320,7 @@ describe('RunDetailsV2', () => {
     );
 
     // Wait for both queries to settle — the last banner call should be the experiment warning,
-    // NOT a clear ({}) from the MLMD success path.
+    // not a clear ({}) from the task success path.
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -265,30 +331,7 @@ describe('RunDetailsV2', () => {
     );
   });
 
-  it('Shows no banner when connected from MLMD', async () => {
-    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
-      (request: GetContextByTypeAndNameRequest) => {
-        const response = new GetContextByTypeAndNameResponse();
-        if (
-          request.getTypeName() === KFP_V2_RUN_CONTEXT_TYPE &&
-          request.getContextName() === RUN_ID
-        ) {
-          response.setContext(new Context());
-        }
-        return response;
-      },
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
-      new GetExecutionsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
-      new metadataStoreServicePb.GetArtifactsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
-      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
-    );
-
+  it('Shows no banner when tasks and experiment load', async () => {
     render(
       <CommonTestWrapper>
         <RunDetailsV2
@@ -307,23 +350,6 @@ describe('RunDetailsV2', () => {
     getRunSpy.mockResolvedValue(TEST_RUN);
     const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
-
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
-      (request: GetContextByTypeAndNameRequest) => {
-        const response = new GetContextByTypeAndNameResponse();
-        response.setContext(new Context());
-        return response;
-      },
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
-      new GetExecutionsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
-      new metadataStoreServicePb.GetArtifactsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
-      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
-    );
 
     await act(async () => {
       render(
@@ -364,23 +390,6 @@ describe('RunDetailsV2', () => {
     getRunSpy.mockResolvedValue(TEST_RUN);
     const getExperimentSpy = vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment');
     getExperimentSpy.mockResolvedValue(TEST_EXPERIMENT);
-
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockImplementation(
-      () => {
-        const response = new GetContextByTypeAndNameResponse();
-        response.setContext(new Context());
-        return response;
-      },
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getExecutionsByContext').mockResolvedValue(
-      new GetExecutionsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByContext').mockResolvedValue(
-      new metadataStoreServicePb.GetArtifactsByContextResponse(),
-    );
-    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
-      new metadataStoreServicePb.GetEventsByExecutionIDsResponse(),
-    );
 
     await act(async () => {
       render(
@@ -710,8 +719,9 @@ describe('RunDetailsV2', () => {
       // Select artifact to open side panel.
       // Use fireEvent: user-event v14 creates events with non-configurable view, which breaks
       // d3-drag (@xyflow/react) when event.view is null in jsdom.
+      await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
       fireEvent.click(screen.getByText('model'));
-      screen.getByText('Artifact Info');
+      expect(screen.getAllByText('Artifact Info')).toHaveLength(2);
       screen.getByText('Visualization');
 
       // Close side panel.

@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { Api } from 'src/mlmd/library';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import * as dagre from 'dagre';
 import { createMemoryHistory } from 'history';
@@ -26,7 +25,6 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { PlotType } from 'src/components/viewers/Viewer';
 import { Apis, JSONObject } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
-import * as MlmdUtils from 'src/mlmd/MlmdUtils';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { NodePhase } from 'src/lib/StatusUtils';
 import * as Utils from 'src/lib/Utils';
@@ -34,21 +32,10 @@ import WorkflowParser from 'src/lib/WorkflowParser';
 import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 import { PageProps } from './Page';
 import EnhancedRunDetails, { RunDetailsInternalProps, SidePanelTab, TEST_ONLY } from './RunDetails';
-import { Context, Execution, GetArtifactTypesResponse, Value } from 'src/third_party/mlmd';
-import { KfpExecutionProperties } from 'src/mlmd/MlmdUtils';
 import { vi, SpyInstance } from 'vitest';
 import userEvent from '@testing-library/user-event';
 
 const RunDetails = TEST_ONLY.RunDetails;
-
-vi.mock('src/mlmd/MlmdUtils', async () => {
-  const actual = await vi.importActual<typeof import('src/mlmd/MlmdUtils')>('src/mlmd/MlmdUtils');
-  return {
-    ...actual,
-    getRunContext: vi.fn(),
-    getExecutionsFromContext: vi.fn(),
-  };
-});
 
 vi.mock('src/components/Graph', () => ({
   default: function GraphMock({
@@ -93,7 +80,6 @@ const STEP_TABS = {
   LOGS: SidePanelTab.LOGS,
   POD: SidePanelTab.POD,
   EVENTS: SidePanelTab.EVENTS,
-  ML_METADATA: SidePanelTab.ML_METADATA,
   MANIFEST: SidePanelTab.MANIFEST,
 };
 
@@ -102,10 +88,6 @@ const WORKFLOW_TEMPLATE = {
     name: 'workflow1',
   },
 };
-
-interface CustomProps {
-  param_exeuction_id?: string;
-}
 
 testBestPractices();
 describe('RunDetails', () => {
@@ -124,10 +106,7 @@ describe('RunDetails', () => {
   let loaderSpy: any;
   let retryRunSpy: any;
   let terminateRunSpy: any;
-  let artifactTypesSpy: any;
   let formatDateStringSpy: any;
-  let getRunContextSpy: any;
-  let getExecutionsFromContextSpy: any;
   let warnSpy: any;
 
   let testRun: ApiRunDetail = {};
@@ -142,17 +121,14 @@ describe('RunDetails', () => {
     await TestUtils.flushPromises();
   }
 
-  async function renderRunDetails(
-    customProps?: CustomProps,
-    options?: {
-      waitForLoad?: boolean;
-      props?: Partial<RunDetailsInternalProps & PageProps>;
-    },
-  ): Promise<ReturnType<typeof render>> {
+  async function renderRunDetails(options?: {
+    waitForLoad?: boolean;
+    props?: Partial<RunDetailsInternalProps & PageProps>;
+  }): Promise<ReturnType<typeof render>> {
     normalizeWorkflowManifestPhases();
     runDetailsRef = React.createRef<InstanceType<typeof RunDetails>>();
     renderResult = render(
-      <RunDetails ref={runDetailsRef} {...generateProps(customProps)} {...options?.props} />,
+      <RunDetails ref={runDetailsRef} {...generateProps()} {...options?.props} />,
     );
     if (options?.waitForLoad !== false) {
       await waitForRunLoad();
@@ -192,14 +168,13 @@ describe('RunDetails', () => {
     return call.actions[key];
   }
 
-  function generateProps(customProps?: CustomProps): RunDetailsInternalProps & PageProps {
+  function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy } as any,
       location: '' as any,
       match: {
         params: {
           [RouteParams.runId]: testRun.run!.id,
-          [RouteParams.executionId]: customProps?.param_exeuction_id,
         },
         isExact: true,
         path: '',
@@ -252,14 +227,9 @@ describe('RunDetails', () => {
     loaderSpy = vi.spyOn(OutputArtifactLoader, 'load');
     retryRunSpy = vi.spyOn(Apis.runServiceApiV2, 'retryRun');
     terminateRunSpy = vi.spyOn(Apis.runServiceApiV2, 'terminateRun');
-    artifactTypesSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactTypes');
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
     // test environments
     formatDateStringSpy = vi.spyOn(Utils, 'formatDateString');
-    getRunContextSpy = vi.mocked(MlmdUtils.getRunContext).mockResolvedValue(new Context());
-    getExecutionsFromContextSpy = vi
-      .mocked(MlmdUtils.getExecutionsFromContext)
-      .mockResolvedValue([]);
     // Hide expected warning messages
     warnSpy = vi.spyOn(Utils.logger, 'warn').mockImplementation();
 
@@ -277,13 +247,6 @@ describe('RunDetails', () => {
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
     formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
-    artifactTypesSpy.mockImplementation(() => {
-      // TODO: This is temporary workaround to let tfx artifact resolving logic fail early.
-      // We should add proper testing for those cases later too.
-      const response = new GetArtifactTypesResponse();
-      response.setArtifactTypesList([]);
-      return response;
-    });
   });
 
   afterEach(() => {
@@ -335,7 +298,7 @@ describe('RunDetails', () => {
   });
 
   it('clicking the clone button when the page is half-loaded navigates to new run page with run id', async () => {
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
     const cloneBtn = getToolbarAction(ButtonKeys.CLONE_RUN, 0);
     expect(cloneBtn).toBeDefined();
@@ -386,7 +349,7 @@ describe('RunDetails', () => {
   });
 
   it('calls retry API when retry dialog is confirmed and page is half-loaded', async () => {
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
     const retryBtn = getToolbarAction(ButtonKeys.RETRY, 0);
     await retryBtn!.action();
@@ -455,7 +418,7 @@ describe('RunDetails', () => {
   });
 
   it('calls terminate API when terminate dialog is confirmed and page is half-loaded', async () => {
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     // Intentionally don't wait until all network requests finish.
     const terminateBtn = getToolbarAction(ButtonKeys.TERMINATE_RUN, 0);
     await terminateBtn!.action();
@@ -520,7 +483,7 @@ describe('RunDetails', () => {
   });
 
   it('renders an empty run', async () => {
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     await TestUtils.flushPromises();
     expect(screen.getByText('No graph to show')).toBeInTheDocument();
   });
@@ -532,7 +495,7 @@ describe('RunDetails', () => {
 
   it('shows an error banner if get run API fails', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -551,7 +514,7 @@ describe('RunDetails', () => {
       { key: { id: 'experiment1', type: ApiResourceType.EXPERIMENT } },
     ];
     TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops');
-    await renderRunDetails(undefined, { waitForLoad: false });
+    await renderRunDetails({ waitForLoad: false });
     await TestUtils.flushPromises();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -767,32 +730,6 @@ describe('RunDetails', () => {
     expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
   });
 
-  it('opens side panel when valid execution id in router parameter', async () => {
-    // Arrange
-    testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
-      metadata: { name: 'workflow1' },
-      status: { nodes: { node1: { id: 'node1', name: 'node1', templateName: 'template1' } } },
-    });
-    const execution = new Execution();
-    const nodePodName = new Value();
-    nodePodName.setStringValue('node1');
-    execution.setId(1).getCustomPropertiesMap().set(KfpExecutionProperties.POD_NAME, nodePodName);
-    getRunContextSpy.mockResolvedValue(new Context());
-    getExecutionsFromContextSpy.mockResolvedValue([execution]);
-
-    // Act
-    await renderRunDetails({ param_exeuction_id: '1' });
-    await act(async () => {
-      await runDetailsRef?.current?.refresh();
-    });
-    await TestUtils.flushPromises();
-
-    // Assert
-    expect(getRunDetailsState()?.selectedNodeDetails).toHaveProperty('id', 'node1');
-    expect(screen.getByRole('button', { name: 'Graph' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Input/Output' })).toBeInTheDocument();
-  });
-
   it('shows clicked node message in side panel', async () => {
     testRun.pipeline_runtime!.workflow_manifest = JSON.stringify({
       metadata: { name: 'workflow1' },
@@ -836,7 +773,6 @@ describe('RunDetails', () => {
     await pathsParser;
     await pathsWithStepsParser;
     await loaderSpy;
-    await artifactTypesSpy;
     await TestUtils.flushPromises();
 
     // TODO: fix this test and write additional tests for the ArtifactTabContent component.
@@ -1177,7 +1113,7 @@ describe('RunDetails', () => {
         },
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
-      await renderRunDetails(undefined, {
+      await renderRunDetails({
         props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
       });
       await clickGraphNode('node1');
@@ -1226,7 +1162,7 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
-      await renderRunDetails(undefined, {
+      await renderRunDetails({
         props: { gkeMetadata: { projectId: 'test-project-id', clusterName: 'test-cluster-name' } },
       });
       await clickGraphNode('node1');
@@ -1251,7 +1187,7 @@ describe('RunDetails', () => {
         metadata: { namespace: 'ns', name: 'workflow1' },
       });
       TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'pod not found');
-      await renderRunDetails(undefined, { props: { gkeMetadata: {} } });
+      await renderRunDetails({ props: { gkeMetadata: {} } });
       await clickGraphNode('node1');
       await userEvent.click(screen.getByRole('button', { name: 'Logs' }));
       await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
@@ -1470,7 +1406,7 @@ describe('RunDetails', () => {
     });
 
     it('starts an interval of 5 seconds to auto refresh the page', async () => {
-      await renderRunDetails(undefined, { waitForLoad: false });
+      await renderRunDetails({ waitForLoad: false });
       await act(async () => {
         await (runDetailsRef?.current as any)?._startAutoRefresh();
       });
@@ -1481,7 +1417,7 @@ describe('RunDetails', () => {
     });
 
     it('refreshes after each interval', async () => {
-      await renderRunDetails(undefined, { waitForLoad: false });
+      await renderRunDetails({ waitForLoad: false });
       await act(async () => {
         await (runDetailsRef?.current as any)?._startAutoRefresh();
       });
@@ -1500,7 +1436,7 @@ describe('RunDetails', () => {
       (status) => {
         it(`sets 'runFinished' to true if run has status: ${status}`, async () => {
           testRun.run!.status = status;
-          await renderRunDetails(undefined, { waitForLoad: false });
+          await renderRunDetails({ waitForLoad: false });
           await TestUtils.flushPromises();
 
           expect(getRunDetailsState()?.runFinished).toBe(true);
@@ -1511,7 +1447,7 @@ describe('RunDetails', () => {
     [NodePhase.PENDING, NodePhase.RUNNING, NodePhase.UNKNOWN].forEach((status) => {
       it(`leaves 'runFinished' false if run has status: ${status}`, async () => {
         testRun.run!.status = status;
-        await renderRunDetails(undefined, { waitForLoad: false });
+        await renderRunDetails({ waitForLoad: false });
         await TestUtils.flushPromises();
 
         expect(getRunDetailsState()?.runFinished).toBe(false);
@@ -1519,7 +1455,7 @@ describe('RunDetails', () => {
     });
 
     it('pauses auto refreshing if window loses focus', async () => {
-      await renderRunDetails(undefined, { waitForLoad: false });
+      await renderRunDetails({ waitForLoad: false });
       await act(async () => {
         await (runDetailsRef?.current as any)?._startAutoRefresh();
       });
@@ -1537,7 +1473,7 @@ describe('RunDetails', () => {
     it('resumes auto refreshing if window loses focus and then regains it', async () => {
       // Declare that the run has not finished
       testRun.run!.status = NodePhase.PENDING;
-      await renderRunDetails(undefined, { waitForLoad: false });
+      await renderRunDetails({ waitForLoad: false });
       await act(async () => {
         await (runDetailsRef?.current as any)?._startAutoRefresh();
       });
@@ -1561,7 +1497,7 @@ describe('RunDetails', () => {
     it('does not resume auto refreshing if window loses focus and then regains it but run is finished', async () => {
       // Declare that the run has finished
       testRun.run!.status = NodePhase.SUCCEEDED;
-      await renderRunDetails(undefined, { waitForLoad: false });
+      await renderRunDetails({ waitForLoad: false });
       await act(async () => {
         await (runDetailsRef?.current as any)?._startAutoRefresh();
       });

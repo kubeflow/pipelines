@@ -20,12 +20,12 @@ import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
-import { V2beta1Run } from 'src/apisv2beta1/run';
 import Compare from './Compare';
 import * as features from 'src/features';
 import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
-import * as mlmdUtils from 'src/mlmd/MlmdUtils';
-import { Context } from 'src/third_party/mlmd';
+
+vi.mock('./CompareV1', () => ({ default: () => <div>V1 Comparison</div> }));
+vi.mock('./CompareV2', () => ({ default: () => <div>Scalar Metrics</div> }));
 
 testBestPractices();
 describe('Switch between v1 and v2 Run Comparison pages', () => {
@@ -51,15 +51,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   }
 
   let runs: ApiRunDetail[] = [];
-  const v2RunContext = new Context();
-
-  function newMockV2Run(id: string): V2beta1Run {
-    return {
-      run_id: id,
-      display_name: `test run ${id}`,
-    };
-  }
-
   function newMockRun(id?: string, v2?: boolean): ApiRunDetail {
     return {
       pipeline_runtime: {
@@ -74,12 +65,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(mlmdUtils, 'getKfpV2RunContext').mockResolvedValue(v2RunContext);
-    vi.spyOn(mlmdUtils, 'getExecutionsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getArtifactsFromContext').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getEventsByExecutions').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
-    vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation((id: string) => newMockV2Run(id));
+    updateBannerSpy.mockClear();
   });
 
   it('shows a loading spinner while runs are being fetched', () => {

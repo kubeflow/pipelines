@@ -18,7 +18,7 @@ import { isFunction } from 'lodash';
 import * as pako from 'pako';
 import * as React from 'react';
 import { classes } from 'typestyle';
-import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { Workflow } from 'src/third_party/argo/argo_template';
 import { ApiTrigger } from 'src/apis/job';
 import { V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 import { ApiRun } from 'src/apis/run';

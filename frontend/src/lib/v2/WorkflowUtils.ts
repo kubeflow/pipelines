@@ -23,7 +23,7 @@ import {
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { Workflow } from 'src/third_party/mlmd/argo_template';
+import { Workflow } from 'src/third_party/argo/argo_template';
 
 // This key is used to retrieve the platform-agnostic pipeline definition
 export const PIPELINE_SPEC_TEMPLATE_KEY = 'pipeline_spec';

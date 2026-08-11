@@ -15,381 +15,143 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
-import { MemoryRouter, Route, Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, Mock } from 'vitest';
-import { Api } from 'src/mlmd/library';
-import { Artifact, ArtifactType, GetArtifactsByIDResponse, Value } from 'src/third_party/mlmd';
-import { GetArtifactTypesByIDResponse } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import { MemoryRouter } from 'react-router-dom';
+import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { testBestPractices } from 'src/TestUtils';
-import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
+import { Apis } from 'src/lib/Apis';
+import EnhancedArtifactDetails, { getAllArtifactTasks } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
+import { testBestPractices } from 'src/TestUtils';
 
-vi.mock('src/mlmd/LineageView', () => ({
-  LineageView: () => <div data-testid='lineage-view'>LineageView Mock</div>,
-}));
+vi.mock('src/components/ArtifactPreview', () => ({ default: () => <div>Artifact preview</div> }));
 
 testBestPractices();
 
 describe('ArtifactDetails', () => {
-  let updateBannerSpy: Mock;
-  let updateToolbarSpy: Mock;
-  let historyPushSpy: Mock;
-  let getArtifactsByIDSpy: Mock;
-  let getArtifactTypesByIDSpy: Mock;
+  const TEST_ARTIFACT_ID = 'artifact-42';
+  const updateBannerSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  const historyPushSpy = vi.fn();
+  const artifact: V2beta1Artifact = {
+    artifact_id: TEST_ARTIFACT_ID,
+    name: 'test-artifact',
+    description: 'A native artifact',
+    type: ArtifactArtifactType.Dataset,
+    uri: 's3://pipeline-root/dataset',
+    namespace: 'kubeflow',
+    metadata: { accuracy: 0.9 },
+    created_at: new Date('2026-08-11T12:00:00Z'),
+  };
 
-  const TEST_ARTIFACT_ID = 42;
-
-  function buildArtifact(id = TEST_ARTIFACT_ID, name = 'test-artifact'): Artifact {
-    const artifact = new Artifact();
-    artifact.setId(id);
-    artifact.setTypeId(7);
-    const nameValue = new Value();
-    nameValue.setStringValue(name);
-    artifact.getPropertiesMap().set('name', nameValue);
-    return artifact;
-  }
-
-  function buildArtifactType(): ArtifactType {
-    const artifactType = new ArtifactType();
-    artifactType.setId(7);
-    artifactType.setName('system/Dataset');
-    return artifactType;
-  }
-
-  function buildGetArtifactsByIDResponse(artifacts: Artifact[]): GetArtifactsByIDResponse {
-    const response = new GetArtifactsByIDResponse();
-    response.setArtifactsList(artifacts);
-    return response;
-  }
-
-  function buildGetArtifactTypesByIDResponse(types: ArtifactType[]): GetArtifactTypesByIDResponse {
-    const response = new GetArtifactTypesByIDResponse();
-    response.setArtifactTypesList(types);
-    return response;
-  }
-
-  function generateProps(artifactId = TEST_ARTIFACT_ID): PageProps {
-    const match = {
-      isExact: true,
-      path: RoutePage.ARTIFACT_DETAILS,
-      url: `/artifacts/${artifactId}`,
-      params: { [RouteParams.ID]: String(artifactId) },
-    } as any;
+  function generateProps(): PageProps {
     return {
       history: { push: historyPushSpy } as any,
-      location: { pathname: `/artifacts/${artifactId}` } as any,
-      match,
-      toolbarProps: {
-        actions: {},
-        breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-        pageTitle: `Artifact #${artifactId}`,
-      },
+      location: { pathname: `/artifacts/${TEST_ARTIFACT_ID}` } as any,
+      match: {
+        isExact: true,
+        path: RoutePage.ARTIFACT_DETAILS,
+        url: `/artifacts/${TEST_ARTIFACT_ID}`,
+        params: { [RouteParams.ID]: TEST_ARTIFACT_ID },
+      } as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: vi.fn(),
       updateSnackbar: vi.fn(),
       updateToolbar: updateToolbarSpy,
-    } as any;
+    };
   }
 
-  function renderWithRouter(props: PageProps, initialPath?: string) {
-    const path = initialPath || `/artifacts/${props.match.params[RouteParams.ID]}`;
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+  function renderPage(initialPath = `/artifacts/${TEST_ARTIFACT_ID}`) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[path]}>
-          <Route path={['/artifacts/:id/lineage', '/artifacts/:id']}>
-            {(routeProps: any) => (
-              <EnhancedArtifactDetails
-                {...routeProps}
-                {...props}
-                match={{ ...routeProps.match, ...props.match }}
-              />
-            )}
-          </Route>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <EnhancedArtifactDetails {...generateProps()} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
   }
 
   beforeEach(() => {
-    updateBannerSpy = vi.fn();
-    updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
-    getArtifactsByIDSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
-    getArtifactTypesByIDSpy = vi.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getArtifactTypesByID',
-    );
-  });
-
-  function mockSuccessfulLoad(artifact?: Artifact) {
-    const a = artifact || buildArtifact();
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([a]));
-    getArtifactTypesByIDSpy.mockResolvedValue(
-      buildGetArtifactTypesByIDResponse([buildArtifactType()]),
-    );
-  }
-
-  it('shows CircularProgress spinner while artifact is loading', () => {
-    getArtifactsByIDSpy.mockReturnValue(new Promise(() => {}));
-
-    renderWithRouter(generateProps());
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('renders Overview tab with ResourceInfo after artifact loads', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Lineage Explorer')).toBeInTheDocument();
-  });
-
-  it('updates toolbar title with artifact name after load', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: expect.stringContaining('test-artifact'),
-        }),
-      );
+    vi.spyOn(Apis.artifactServiceApiV2, 'artifact_1').mockResolvedValue(artifact);
+    vi.spyOn(Apis.artifactServiceApiV2, 'artifactTasks').mockResolvedValue({
+      artifact_tasks: [
+        {
+          id: 'relationship-1',
+          artifact_id: TEST_ARTIFACT_ID,
+          run_id: 'run-1',
+          task_id: 'task-1',
+          key: 'dataset',
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
     });
   });
 
-  it('shows page error banner when no artifact found for the given ID', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([]));
+  it('shows a spinner while the artifact is loading', () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockReturnValue(new Promise(() => {}));
+    renderPage();
 
-    renderWithRouter(generateProps());
+    screen.getByRole('progressbar');
+  });
 
-    await waitFor(() => {
+  it('renders native artifact details and updates the toolbar', async () => {
+    renderPage();
+
+    await screen.findByText('Artifact details');
+    expect(screen.getAllByText('test-artifact')).toHaveLength(2);
+    screen.getByText('Dataset');
+    screen.getByText('A native artifact');
+    screen.getByText('Artifact preview');
+    expect(updateToolbarSpy).toHaveBeenCalledWith({ pageTitle: 'test-artifact' });
+  });
+
+  it('renders native producer and consumer relationships with run links', async () => {
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Producing and consuming tasks');
+    const runLink = screen.getByRole('link', { name: 'Run run-1 · Task task-1' });
+    expect(runLink).toHaveAttribute('href', '/runs/details/run-1');
+    screen.getByText('Produced as dataset');
+  });
+
+  it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
+    renderPage();
+    await screen.findByText('Related tasks');
+
+    fireEvent.click(screen.getByText('Related tasks'));
+
+    expect(historyPushSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+  });
+
+  it('shows a page error when the native service fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockRejectedValue(
+      new Error('Artifact not found'),
+    );
+    renderPage();
+
+    await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining(`No artifact identified by id: ${TEST_ARTIFACT_ID}`),
-          mode: 'error',
-        }),
-      );
-    });
+        expect.objectContaining({ additionalInfo: 'Artifact not found', mode: 'error' }),
+      ),
+    );
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
-  it('shows page error banner when multiple artifacts found for the given ID', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(
-      buildGetArtifactsByIDResponse([buildArtifact(), buildArtifact()]),
-    );
+  it('paginates artifact-task relationships', async () => {
+    const artifactTasksSpy = vi.mocked(Apis.artifactServiceApiV2.artifactTasks);
+    artifactTasksSpy
+      .mockResolvedValueOnce({
+        artifact_tasks: [{ id: 'relationship-1' }],
+        next_page_token: 'next-page',
+      })
+      .mockResolvedValueOnce({ artifact_tasks: [{ id: 'relationship-2' }] });
 
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining(`Found multiple artifacts with ID: ${TEST_ARTIFACT_ID}`),
-          mode: 'error',
-        }),
-      );
-    });
-  });
-
-  it('shows page error banner on service error', async () => {
-    getArtifactsByIDSpy.mockRejectedValue({ message: 'Service unavailable' });
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining('Service unavailable'),
-          mode: 'error',
-        }),
-      );
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('shows fallback error message when a non-service error with no message is thrown', async () => {
-    getArtifactsByIDSpy.mockRejectedValue(undefined);
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Error: failed to load artifact.',
-          mode: 'error',
-        }),
-      );
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('shows extracted error message when a non-service error with text() is thrown', async () => {
-    getArtifactsByIDSpy.mockRejectedValue({ text: () => 'detailed failure info' });
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Error: detailed failure info',
-          mode: 'error',
-        }),
-      );
-    });
-  });
-
-  it('shows spinner again when retrying after a failure', async () => {
-    getArtifactsByIDSpy.mockRejectedValueOnce(new Error('transient'));
-
-    renderWithRouter(generateProps());
-
-    let refreshFn: (() => Promise<void>) | undefined;
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
-      const bannerCall = updateBannerSpy.mock.calls.find(
-        (call) => call[0]?.mode === 'error' && typeof call[0]?.refresh === 'function',
-      );
-      expect(bannerCall).toBeDefined();
-      refreshFn = bannerCall![0].refresh;
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-
-    mockSuccessfulLoad();
-    updateBannerSpy.mockClear();
-
-    await refreshFn!();
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('renders a new ArtifactDetails instance when artifact ID in URL changes', async () => {
-    getArtifactsByIDSpy.mockImplementation((req) => {
-      const id = req.getArtifactIdsList()[0];
-      if (id === 1) {
-        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(1, 'artifact-one')]));
-      }
-      if (id === 2) {
-        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(2, 'artifact-two')]));
-      }
-      return Promise.resolve(buildGetArtifactsByIDResponse([]));
-    });
-    getArtifactTypesByIDSpy.mockResolvedValue(
-      buildGetArtifactTypesByIDResponse([buildArtifactType()]),
-    );
-
-    const history = createMemoryHistory({ initialEntries: ['/artifacts/1'] });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Router history={history}>
-          <Route path={['/artifacts/:id/lineage', '/artifacts/:id']}>
-            {(routeProps: any) => (
-              <EnhancedArtifactDetails
-                {...routeProps}
-                updateBanner={updateBannerSpy}
-                updateDialog={vi.fn()}
-                updateSnackbar={vi.fn()}
-                updateToolbar={updateToolbarSpy}
-                toolbarProps={{
-                  actions: {},
-                  breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-                  pageTitle: '',
-                }}
-              />
-            )}
-          </Route>
-        </Router>
-      </QueryClientProvider>,
-    );
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ pageTitle: expect.stringContaining('artifact-one') }),
-      );
-    });
-
-    updateToolbarSpy.mockClear();
-    history.push('/artifacts/2');
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ pageTitle: expect.stringContaining('artifact-two') }),
-      );
-    });
-  });
-
-  it('renders with empty type name when artifact type list is empty', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([buildArtifact()]));
-    getArtifactTypesByIDSpy.mockResolvedValue(buildGetArtifactTypesByIDResponse([]));
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
-  });
-
-  it('includes version in toolbar title when artifact has a version property', async () => {
-    const artifact = buildArtifact();
-    const versionValue = new Value();
-    versionValue.setStringValue('v1.2');
-    artifact.getPropertiesMap().set('version', versionValue);
-
-    mockSuccessfulLoad(artifact);
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: expect.stringContaining('(version: v1.2)'),
-        }),
-      );
-    });
-  });
-
-  it('navigates to lineage URL when Lineage Explorer tab is clicked', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Lineage Explorer'));
-
-    expect(historyPushSpy).toHaveBeenCalledWith(expect.stringContaining('/lineage'));
-  });
-
-  it('navigates back to overview URL when Overview tab is clicked', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps(), `/artifacts/${TEST_ARTIFACT_ID}/lineage`);
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Overview'));
-
-    expect(historyPushSpy).toHaveBeenCalledWith(expect.stringMatching(/\/artifacts\/42$/));
+    await expect(getAllArtifactTasks(TEST_ARTIFACT_ID)).resolves.toEqual([
+      { id: 'relationship-1' },
+      { id: 'relationship-2' },
+    ]);
+    expect(artifactTasksSpy).toHaveBeenCalledTimes(2);
   });
 });
