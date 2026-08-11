@@ -577,9 +577,7 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
     def test_simple_secret_no_subdag(self):
         """Baseline: secret_name from pipeline param at root level.
-
-        No rewriting needed - componentInputParameter stays unprefixed.
-        """
+        No rewriting needed - componentInputParameter stays unprefixed."""
 
         @dsl.component
         def my_comp():
@@ -651,10 +649,8 @@ class TestPlatformConfigDAGBoundaryHandling(unittest.TestCase):
 
     def test_parallelfor_outer_task_output_secret(self):
         """Cross-DAG: secret_name from outer task output inside ParallelFor.
-
-        The taskOutputParameter must be rewritten to
-        componentInputParameter pointing to the surfaced input.
-        """
+        The taskOutputParameter must be rewritten to componentInputParameter
+        pointing to the surfaced input."""
 
         @dsl.component
         def emit_secret_name() -> str:
@@ -992,8 +988,8 @@ def pipeline_spec_from_file(filepath: str) -> str:
 class TestToProtobufValue(unittest.TestCase):
     """Tests for pipeline_spec_builder.to_protobuf_value.
 
-    Ensures that None and nested-None values inside dicts/lists are
-    encoded as protobuf null_value (Part 1 of issue #12838).
+    Ensures that None and nested-None values inside dicts/lists are encoded as
+    protobuf null_value (Part 1 of issue #12838).
     """
 
     def test_none_encodes_as_null_value(self):

@@ -423,7 +423,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(description='Prefer me.')
         def my_pipeline():
-            """Don't prefer me."""
+            """Don't prefer me"""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
@@ -445,8 +445,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             """Docstring-specified description.
 
-            More information about this pipeline.
-            """
+            More information about this pipeline."""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(
@@ -456,8 +455,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
-        component_op = components.load_component_from_text(\
-                                                           """
+        component_op = components.load_component_from_text("""
       name: component
       inputs:
       - {name: some_input, type: , description: an uptyped input}
@@ -490,8 +488,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_generic_artifact_to_input_expecting_concrete_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text(\
-                                                           """
+        producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
       - {name: output, type: Artifact}
@@ -506,8 +503,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def producer_op2(output: dsl.Output[dsl.Artifact]):
             pass
 
-        consumer_op1 = components.load_component_from_text(\
-                                                           """
+        consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
       - {name: input1, type: MyDataset}
@@ -539,8 +535,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text(\
-                                                           """
+        producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
       - {name: output, type: Dataset}
@@ -555,8 +550,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def producer_op2(output: dsl.Output[dsl.Model]):
             pass
 
-        consumer_op1 = components.load_component_from_text(\
-                                                           """
+        consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
       - {name: input1, type: Artifact}
@@ -588,8 +582,7 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
             self):
 
-        producer_op1 = components.load_component_from_text(\
-                                                           """
+        producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
       - {name: output, type: SomeArbitraryType}
@@ -700,8 +693,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
     def test_use_task_final_status_in_non_exit_op_yaml(self):
 
-        print_op = components.load_component_from_text(\
-                                                       """
+        print_op = components.load_component_from_text("""
 name: Print Op
 inputs:
 - {name: message, type: PipelineTaskFinalStatus}
@@ -1315,6 +1307,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
+
             hello_world(text=text)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1333,6 +1326,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
+
             hello_world(text=text)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1357,6 +1351,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
         @pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
+
             hello_world(text=text)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -1431,8 +1426,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
     def test_compile_pipeline_with_default_value(self):
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            producer_op = components.load_component_from_text(\
-                                                              """
+            producer_op = components.load_component_from_text("""
       name: producer
       inputs:
       - {name: location, type: String, default: 'us-central1'}
@@ -1804,6 +1798,7 @@ class TestSetRetryCompilation(unittest.TestCase):
         @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
+
             hello_world(text=text).set_retry(
                 num_retries=3,
                 backoff_duration='30s',
@@ -2492,15 +2487,13 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        inputs_string = textwrap.dedent(\
-                                        """\
+        inputs_string = textwrap.dedent("""\
                 # Inputs:
                 #    sample_input1: bool [Default: True]
                 #    sample_input2: str [Default: 'string']
                 """)
 
-        outputs_string = textwrap.dedent(\
-                                         """\
+        outputs_string = textwrap.dedent("""\
                 # Outputs:
                 #    Output: str
                 """)
@@ -2687,8 +2680,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        pattern_sample = textwrap.dedent(\
-                                         """\
+        pattern_sample = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-pipeline
                 # Description: This is a definition of this pipeline.
@@ -2719,6 +2711,7 @@ class TestYamlComments(unittest.TestCase):
                         sample_input6: dict = {'one': 1},
                         sample_input7: int = 5) -> Model:
             """This is a definition of this pipeline."""
+
             task = output_model()
             return task.output
 
@@ -2730,8 +2723,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        predicted_comment = textwrap.dedent(\
-                                            """\
+        predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: test-pipeline
                 # Description: This is a definition of this pipeline.
@@ -2753,7 +2745,7 @@ class TestYamlComments(unittest.TestCase):
 
         @dsl.component
         def my_component(string: str, model: bool) -> str:
-            """Component description."""
+            """component description."""
             return string
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2764,8 +2756,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        predicted_comment = textwrap.dedent(\
-                                            """\
+        predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-component
                 # Description: component description.
@@ -2778,7 +2769,7 @@ class TestYamlComments(unittest.TestCase):
 
         @dsl.container_component
         def my_container_component(text: str, output_path: OutputPath(str)):
-            """Component description."""
+            """component description."""
             return ContainerSpec(
                 image='python:3.11',
                 command=['my_program', text],
@@ -2793,8 +2784,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        predicted_comment = textwrap.dedent(\
-                                            """\
+        predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-container-component
                 # Description: component description.
@@ -2826,8 +2816,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
-        predicted_comment = textwrap.dedent(\
-                                            """\
+        predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-pipeline
                 # Description: My description.
@@ -2850,8 +2839,7 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_multiline_definition(
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
-            """Docstring short description.
-
+            """docstring short description.
             docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
@@ -2867,8 +2855,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        description_string = textwrap.dedent(\
-                                             """\
+        description_string = textwrap.dedent("""\
             # Description: docstring short description.
             #              docstring long description. docstring long description.
             """)
@@ -2879,9 +2866,10 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_multiline_definition(
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
-            """Docstring long description.
-
-            docstring long description. docstring long description.
+            """
+            docstring long description.
+            docstring long description.
+            docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2896,8 +2884,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        description_string = textwrap.dedent(\
-                                             """\
+        description_string = textwrap.dedent("""\
             # Description: docstring long description.
             #              docstring long description.
             #              docstring long description.
@@ -2910,9 +2897,9 @@ class TestYamlComments(unittest.TestCase):
         @dsl.pipeline()
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
-            """Docstring short description.
-
-            docstring long description. docstring long description.
+            """docstring short description.
+            docstring long description.
+            docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2930,8 +2917,7 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 reloaded_yaml_content = f.read()
 
-        predicted_comment = textwrap.dedent(\
-                                            """\
+        predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-pipeline
                 # Description: docstring short description.
@@ -4479,8 +4465,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used and no workspace
-        configured."""
+        """Tests that compilation fails if placeholder is used and no workspace configured."""
+
         @dsl.component
         def uses_workspace(workspace_path: str) -> str:
             import os
@@ -4507,8 +4493,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used within nested
-        groups and no workspace configured."""
+        """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
+
         import os
         import tempfile
 
@@ -4547,8 +4533,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
             self):
-        """Tests that compilation fails if importer uses download_to_workspace
-        without workspace config."""
+        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
+
         import os
         import tempfile
 
@@ -4576,8 +4562,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
             self):
-        """Tests that compilation succeeds with both download_to_workspace and
-        workspace config."""
+        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+
         import os
         import tempfile
 
@@ -4602,8 +4588,8 @@ class TestPlatformConfig(unittest.TestCase):
             self.assertTrue(os.path.exists(output_yaml))
 
     def test_pipeline_with_ttl_seconds_after_finished(self):
-        """ttl_seconds_after_finished → resource_ttl_on_completion
-        (SecondsAfterCompletion)."""
+        """ttl_seconds_after_finished → resource_ttl_on_completion (SecondsAfterCompletion)."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300))
         def my_pipeline():
@@ -4621,8 +4607,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_success(self):
-        """ttl_seconds_after_success → resource_ttl_on_success
-        (SecondsAfterSuccess)."""
+        """ttl_seconds_after_success → resource_ttl_on_success (SecondsAfterSuccess)."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600))
         def my_pipeline():
@@ -4639,8 +4625,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_failure(self):
-        """ttl_seconds_after_failure → resource_ttl_on_failure
-        (SecondsAfterFailure)."""
+        """ttl_seconds_after_failure → resource_ttl_on_failure (SecondsAfterFailure)."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120))
         def my_pipeline():
@@ -4658,6 +4644,7 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_pipeline_with_all_three_ttl_fields(self):
         """All three TTL fields can be set independently."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(
                 ttl_seconds_after_finished=300,
@@ -4682,11 +4669,11 @@ class TestPlatformConfig(unittest.TestCase):
     def test_pipeline_with_ttl_zero(self):
         """TTL of 0 is accepted but treated as "not set" and not serialized.
 
-        A value of 0 is indistinguishable from the proto3 int32 default,
-        so the serializer skips it.  The resulting platform spec
-        contains no pipelineConfig entry at all, identical to not
-        setting a TTL.
+        A value of 0 is indistinguishable from the proto3 int32 default, so the
+        serializer skips it.  The resulting platform spec contains no
+        pipelineConfig entry at all, identical to not setting a TTL.
         """
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=0))
         def my_pipeline():
@@ -4752,6 +4739,7 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_pipeline_with_active_deadline_seconds(self):
         """active_deadline_seconds → activeDeadlineSeconds in platform spec."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(active_deadline_seconds=3600))
         def my_pipeline():
@@ -4769,8 +4757,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_active_deadline_none_omits_field(self):
-        """active_deadline_seconds=None (default) produces no platform spec
-        entry."""
+        """active_deadline_seconds=None (default) produces no platform spec entry."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
         def my_pipeline():
@@ -4785,6 +4773,7 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_pipeline_with_active_deadline_and_ttl(self):
         """active_deadline_seconds and TTL fields coexist."""
+
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(
                 ttl_seconds_after_finished=300,
@@ -4925,6 +4914,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
                 out_artifact: Component output artifact.
             """
             return string
+
         Outputs = NamedTuple(
             'Outputs',
             out_str=str,
@@ -5025,6 +5015,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
                 out_artifact: Component output artifact.
             """
             return string
+
         Outputs = NamedTuple(
             'Outputs',
             out_str=str,
@@ -5036,16 +5027,15 @@ class ExtractInputOutputDescription(unittest.TestCase):
             string: str,
             in_artifact: Input[Artifact],
         ) -> Outputs:
-            """Pipeline description.
+            """Pipeline description. Returns
 
-            Returns
-                        Args:
-                            string: Return Pipeline input string. Returns
-                            in_artifact: Pipeline input Return artifact.
+            Args:
+                string: Return Pipeline input string. Returns
+                in_artifact: Pipeline input Return artifact.
 
-                        Returns:
-                            out_str: Pipeline output string.
-                            out_artifact: Pipeline output artifact.
+            Returns:
+                out_str: Pipeline output string.
+                out_artifact: Pipeline output artifact.
             """
             t = comp(
                 string=string,
@@ -5500,9 +5490,8 @@ class TestDslOneOf(unittest.TestCase):
     # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
 
     def test_if_else_returned(self):
-        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf
-        returned from a pipeline, and different output keys on dsl.OneOf
-        channels."""
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+
         @dsl.pipeline
         def roll_die_pipeline() -> str:
             flip_coin_task = flip_coin()
@@ -5562,9 +5551,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
-        dsl.OneOf returned from a pipeline, and different output keys on
-        dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+
         @dsl.pipeline
         def roll_die_pipeline() -> str:
             flip_coin_task = roll_three_sided_die()
@@ -5638,9 +5626,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_consumed(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
-        dsl.OneOf passed to a consumer task, and different output keys on
-        dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+
         @dsl.pipeline
         def roll_die_pipeline():
             flip_coin_task = roll_three_sided_die()
@@ -5716,9 +5703,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
-        and dsl.OneOf passed to a consumer task and returned from the
-        pipeline."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+
         @dsl.pipeline
         def flip_coin_pipeline() -> str:
             flip_coin_task = flip_coin()
@@ -5790,8 +5776,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned_artifacts(self):
-        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and
-        dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+
         @dsl.pipeline
         def flip_coin_pipeline() -> Artifact:
             flip_coin_task = flip_coin()
@@ -5866,6 +5852,7 @@ class TestDslOneOf(unittest.TestCase):
 
     def test_nested_under_condition_consumed(self):
         """Uses If, Else, and OneOf nested under a parent If."""
+
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
             with dsl.If(execute_pipeline == True):
@@ -5956,8 +5943,8 @@ class TestDslOneOf(unittest.TestCase):
                                      print_task_2.outputs['a'])
 
     def test_deeply_nested_consumed(self):
-        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-
-        DAGs."""
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
+
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
             with dsl.ExitHandler(cleanup()):
@@ -6055,8 +6042,8 @@ class TestDslOneOf(unittest.TestCase):
                                  print_task_2.outputs['a'])
 
     def test_oneof_in_condition(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group
-        nested one level."""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+
         @dsl.pipeline
         def roll_die_pipeline(repeat_on: str = 'Got heads!'):
             flip_coin_task = roll_three_sided_die()
@@ -6108,8 +6095,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_consumed_in_nested_groups(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group
-        nested multiple levels."""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+
         @dsl.pipeline
         def roll_die_pipeline(
             repeat: bool = True,
@@ -6673,10 +6660,12 @@ class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
 
 class TestNoneLiteralForOptionalParams(unittest.TestCase):
     """Tests for passing None as an explicit literal argument to optional
-    parameters (Optional[T] / Union[T, None] / T | None)."""
+    parameters (Optional[T] / Union[T, None] / T | None).
+    """
 
     def test_pass_none_to_optional_param_compiles(self):
         """Pipeline can pass None literal to a component with Optional[T]."""
+
         @dsl.component
         def my_comp(x: Optional[int] = None):
             print(x)
@@ -6694,6 +6683,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
 
     def test_pass_none_to_optional_str_param_compiles(self):
         """Pipeline can pass None literal to a component with Optional[str]."""
+
         @dsl.component
         def my_comp(x: Optional[str] = None):
             return x or 'default'
@@ -6709,6 +6699,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
 
     def test_pass_none_to_non_optional_param_raises(self):
         """Passing None to a non-optional parameter should raise ValueError."""
+
         @dsl.component
         def my_comp(x: int):
             print(x)
@@ -6722,6 +6713,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
     def test_nested_none_in_dict_compiles(self):
         """Nested None values inside a dict literal are preserved faithfully
         via the null_value protobuf encoding."""
+
         @dsl.component
         def my_comp(cfg: dict = None):
             print(cfg)
@@ -6741,6 +6733,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
     def test_nested_none_in_list_compiles(self):
         """Nested None values inside a list literal are preserved faithfully
         via the null_value protobuf encoding."""
+
         @dsl.component
         def my_comp(items: list = None):
             print(items)
@@ -6759,6 +6752,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
     def test_union_with_none_annotation_compiles(self):
         """Union[T, None] annotation is treated identically to Optional[T]."""
         import typing
+
         @dsl.component
         def my_comp(x: typing.Union[str, None] = None):
             return x or 'fallback'
@@ -6773,8 +6767,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
         self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
 
     def test_pipeline_level_optional_param_is_marked_optional(self):
-        """Pipeline-level Optional[T] input is marked optional in the pipeline
-        spec."""
+        """Pipeline-level Optional[T] input is marked optional in the pipeline spec."""
         @dsl.component
         def my_comp(x: Optional[int] = None):
             print(x)
@@ -6790,6 +6783,7 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
 
     def test_is_optional_preserved_on_optional_param(self):
         """is_optional flag is set on the component's input spec."""
+
         @dsl.component
         def my_comp(x: Optional[int] = None):
             print(x)
@@ -6799,8 +6793,8 @@ class TestNoneLiteralForOptionalParams(unittest.TestCase):
         self.assertTrue(param_spec.is_optional)
 
     def test_pass_none_to_optional_artifact_raises(self):
-        """Passing None to an optional artifact input should raise
-        ValueError."""
+        """Passing None to an optional artifact input should raise ValueError."""
+
         @dsl.component
         def my_comp(x: Optional[Input[Artifact]] = None):
             print(x)

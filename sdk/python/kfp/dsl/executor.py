@@ -278,9 +278,8 @@ class Executor:
     def write_executor_output(self,
                               func_output: Optional[Any] = None
                              ) -> Optional[str]:
-        """Writes executor output containing the Python function output.
-
-        The executor output file will not be written if this code is executed from
+        """Writes executor output containing the Python function output. The
+        executor output file will not be written if this code is executed from
         a non-chief node in a mirrored execution strategy.
 
         Args:
@@ -289,6 +288,7 @@ class Executor:
         Returns:
             Optional[str]: Returns the location of the executor_output file as a string if the file is written. Else, None.
         """
+
         if func_output is not None:
             if is_parameter(self.return_annotation) or is_artifact(
                     self.return_annotation):
@@ -349,9 +349,8 @@ class Executor:
         return None
 
     def execute(self) -> Optional[str]:
-        """Executes the function and writes the executor output file.
-
-        The executor output file will not be written if this code is executed from
+        """Executes the function and writes the executor output file. The
+        executor output file will not be written if this code is executed from
         a non-chief node in a mirrored execution strategy.
 
         Returns:
