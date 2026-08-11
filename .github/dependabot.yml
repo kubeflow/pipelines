@@ -17,6 +17,7 @@ updates:
     directories:
       - "/"
       - "/api"
+      - "/backend/api/tools"
       - "/kubernetes_platform"
       - "/third_party/ml-metadata"
       - "/test/tools/project-cleaner"
