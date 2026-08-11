@@ -1,0 +1,205 @@
+# Apply generated outputs from the unprivileged validation workflow. This
+# workflow runs from the default branch and never executes pull-request code
+# while the repository's write-capable SSH credential is available.
+name: Update Dependabot Generated Files
+
+on:
+  workflow_run:
+    workflows: ["Validate Generated Files"]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: update-dependabot-generated-files-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  update-generated-files:
+    if: >-
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate the Dependabot PR and download its generated patch
+        id: prepare
+        uses: actions/github-script@v8
+        with:
+          retries: 3
+          script: |
+            const fs = require("fs");
+            const path = require("path");
+            const run = context.payload.workflow_run;
+            core.setOutput("eligible", "false");
+
+            if (run.pull_requests.length !== 1) {
+              core.info(`Expected one pull request for workflow run ${run.id}; found ${run.pull_requests.length}.`);
+              return;
+            }
+
+            const pullNumber = run.pull_requests[0].number;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+            });
+
+            if (pullRequest.state !== "open") {
+              core.info(`PR #${pullNumber} is ${pullRequest.state}; skipping.`);
+              return;
+            }
+            if (pullRequest.user.login !== "dependabot[bot]") {
+              core.setFailed(`PR #${pullNumber} is not authored by dependabot[bot].`);
+              return;
+            }
+            if (pullRequest.head.repo.full_name !== `${context.repo.owner}/${context.repo.repo}`) {
+              core.setFailed(`PR #${pullNumber} does not use a same-repository branch.`);
+              return;
+            }
+            if (!pullRequest.head.ref.startsWith("dependabot/go_modules/")) {
+              core.setFailed(`PR #${pullNumber} does not use a Dependabot Go modules branch.`);
+              return;
+            }
+            if (pullRequest.head.sha !== run.head_sha) {
+              core.info(`PR #${pullNumber} moved from ${run.head_sha} to ${pullRequest.head.sha}; skipping stale output.`);
+              return;
+            }
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+              per_page: 100,
+            });
+            const unexpectedPaths = files
+              .map((file) => file.filename)
+              .filter((filename) => !/(^|\/)go\.(mod|sum)$/.test(filename));
+            if (unexpectedPaths.length > 0) {
+              core.setFailed(
+                `PR #${pullNumber} contains non-module changes before regeneration: ${unexpectedPaths.join(", ")}`
+              );
+              return;
+            }
+
+            const artifactName = `dependabot-generated-files-${run.head_sha}`;
+            const artifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id,
+                per_page: 100,
+              }
+            );
+            const matchingArtifacts = artifacts.filter((artifact) => artifact.name === artifactName);
+            if (matchingArtifacts.length === 0) {
+              core.info(`Workflow run ${run.id} has no ${artifactName} artifact; no update is needed.`);
+              return;
+            }
+            if (matchingArtifacts.length !== 1) {
+              core.setFailed(`Workflow run ${run.id} has multiple ${artifactName} artifacts.`);
+              return;
+            }
+
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: matchingArtifacts[0].id,
+              archive_format: "zip",
+            });
+            const archivePath = path.join(process.env.RUNNER_TEMP, "dependabot-generated-files.zip");
+            fs.writeFileSync(archivePath, Buffer.from(download.data));
+
+            core.setOutput("eligible", "true");
+            core.setOutput("head_ref", pullRequest.head.ref);
+            core.setOutput("head_sha", pullRequest.head.sha);
+            core.setOutput("pr_number", String(pullNumber));
+
+      - name: Extract generated patch
+        if: steps.prepare.outputs.eligible == 'true'
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/dependabot-generated-files"
+          unzip -q "$RUNNER_TEMP/dependabot-generated-files.zip" \
+            -d "$RUNNER_TEMP/dependabot-generated-files"
+
+      - name: Validate artifact metadata
+        if: steps.prepare.outputs.eligible == 'true'
+        shell: bash
+        env:
+          EXPECTED_HEAD_REF: ${{ steps.prepare.outputs.head_ref }}
+          EXPECTED_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
+          EXPECTED_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
+        run: |
+          jq -e \
+            --arg head_ref "$EXPECTED_HEAD_REF" \
+            --arg head_sha "$EXPECTED_HEAD_SHA" \
+            --arg pr_number "$EXPECTED_PR_NUMBER" \
+            '.head_ref == $head_ref and .head_sha == $head_sha and .pr_number == $pr_number' \
+            "$RUNNER_TEMP/dependabot-generated-files/generated-files-metadata.json"
+
+      - name: Check out the current Dependabot head with push credentials
+        if: steps.prepare.outputs.eligible == 'true'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.prepare.outputs.head_sha }}
+          fetch-depth: 0
+          path: source
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Apply and validate generated changes
+        if: steps.prepare.outputs.eligible == 'true'
+        working-directory: source
+        shell: bash
+        run: |
+          git apply --check "$RUNNER_TEMP/dependabot-generated-files/generated-files.patch"
+          git apply "$RUNNER_TEMP/dependabot-generated-files/generated-files.patch"
+          git diff --name-only > "$RUNNER_TEMP/applied-generated-files-paths.txt"
+          diff -u \
+            "$RUNNER_TEMP/dependabot-generated-files/generated-files-paths.txt" \
+            "$RUNNER_TEMP/applied-generated-files-paths.txt"
+          python3 .github/resources/scripts/generated_files_dependency_change.py \
+            --check-generated-paths "$RUNNER_TEMP/applied-generated-files-paths.txt"
+          git diff --check
+
+      - name: Commit generated changes with DCO sign-off
+        if: steps.prepare.outputs.eligible == 'true'
+        working-directory: source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit --signoff -m "chore(deps): regenerate generated files"
+
+      - name: Confirm the pull request head is still current
+        if: steps.prepare.outputs.eligible == 'true'
+        uses: actions/github-script@v8
+        env:
+          EXPECTED_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
+          PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
+        with:
+          retries: 3
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: Number(process.env.PR_NUMBER),
+            });
+            if (pullRequest.head.sha !== process.env.EXPECTED_HEAD_SHA) {
+              core.setFailed(
+                `PR #${process.env.PR_NUMBER} moved from ${process.env.EXPECTED_HEAD_SHA} to ${pullRequest.head.sha}.`
+              );
+            }
+
+      - name: Push generated commit
+        if: steps.prepare.outputs.eligible == 'true'
+        working-directory: source
+        shell: bash
+        env:
+          HEAD_REF: ${{ steps.prepare.outputs.head_ref }}
+        run: git push origin "HEAD:refs/heads/${HEAD_REF}"
