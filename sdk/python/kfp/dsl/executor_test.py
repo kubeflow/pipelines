@@ -443,24 +443,12 @@ class ExecutorTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'executor_input':
-                """\
-            {
-              "inputs": {
-                "parameterValues": {
-                  "first": 0.0,
-                  "second": 1.2
-                }
-              },
-              "outputs": {
-                "parameters": {
-                  "Output": {
-                    "outputFile": "gs://some-bucket/output"
-                  }
-                },
-                "outputFile": "%(test_dir)s/output_metadata.json"
-              }
-            }
-            """,
+                """\ { "inputs": { "parameterValues": { "first": 0.0, "second":
+                1.2 } }, "outputs": { "parameters": { "Output": { "outputFile":
+                "gs://some-bucket/output" } }, "outputFile":
+                "%(test_dir)s/output_metadata.json" } }"""
+
+               ,
             'expected_output_metadata': {
                 'parameterValues': {
                     'Output': 1.2

@@ -498,8 +498,9 @@ class PipelineTask:
     def set_accelerator_limit(
         self, limit: Union[int, str,
                            pipeline_channel.PipelineChannel]) -> 'PipelineTask':
-        """Sets accelerator limit (maximum) for the task. Only applies if
-        accelerator type is also set via .set_accelerator_type().
+        """Sets accelerator limit (maximum) for the task.
+
+        Only applies if accelerator type is also set via .set_accelerator_type().
 
         Args:
             limit: Maximum number of accelerators allowed. Must be a
@@ -529,8 +530,9 @@ class PipelineTask:
 
     @warn_if_final()
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
-        """Sets GPU limit (maximum) for the task. Only applies if accelerator
-        type is also set via .add_accelerator_type().
+        """Sets GPU limit (maximum) for the task.
+
+        Only applies if accelerator type is also set via .add_accelerator_type().
 
         Args:
             gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
@@ -652,15 +654,16 @@ class PipelineTask:
 
     @warn_if_final()
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
-        """Deprecated. Use :meth:`set_accelerator_type` instead.
+        """Deprecated.
 
-        Sets accelerator type to use when executing this task.
+        Use :meth:`set_accelerator_type` instead.
+                Sets accelerator type to use when executing this task.
 
-        Args:
-            accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
+                Args:
+                    accelerator: The name of the accelerator, such as ``'NVIDIA_TESLA_K80'``, ``'TPU_V3'``, ``'nvidia.com/gpu'`` or ``'cloud-tpus.google.com/v3'``.
 
-        Returns:
-            Self return to allow chained setting calls.
+                Returns:
+                    Self return to allow chained setting calls.
         """
         warnings.warn(
             f'{self.add_node_selector_constraint.__name__!r} is deprecated. Please use {self.set_accelerator_type.__name__!r} instead.',
