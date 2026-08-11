@@ -320,7 +320,6 @@ func TestGetWorkflowMetadataForPipelineJobTimes(t *testing.T) {
 	}
 }
 
-
 func allProvided(flags []string) map[string]bool {
 	provided := make(map[string]bool, len(flags))
 	for _, name := range flags {
