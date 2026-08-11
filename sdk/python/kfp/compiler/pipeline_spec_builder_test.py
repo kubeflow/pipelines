@@ -988,8 +988,8 @@ def pipeline_spec_from_file(filepath: str) -> str:
 class TestToProtobufValue(unittest.TestCase):
     """Tests for pipeline_spec_builder.to_protobuf_value.
 
-    Ensures that None and nested-None values inside dicts/lists are encoded as
-    protobuf null_value (Part 1 of issue #12838).
+    Ensures that None and nested-None values inside dicts/lists are
+    encoded as protobuf null_value (Part 1 of issue #12838).
     """
 
     def test_none_encodes_as_null_value(self):
