@@ -37,7 +37,7 @@ class TestV2beta1CreateArtifactTasksBulkRequest(unittest.TestCase):
         if include_optional :
             return V2beta1CreateArtifactTasksBulkRequest(
                 artifact_tasks = [
-                    kfp_server_api.models.describes_a_relationship_link_between_artifacts_and_tasks.Describes a relationship link between Artifacts and Tasks(
+                    kfp_server_api.models.v2beta1_artifact_task.V2beta1ArtifactTask(
                         id = '0', 
                         artifact_id = '0', 
                         run_id = '0', 

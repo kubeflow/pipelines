@@ -214,17 +214,21 @@ func (m *V2beta1Run) validateFinishedAt(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validatePipelineReference(formats strfmt.Registry) error {
-	if swag.IsZero(m.PipelineReference) { // not required
+	if typeutils.IsZero(m.PipelineReference) { // not required
 		return nil
 	}
 
 	if m.PipelineReference != nil {
 		if err := m.PipelineReference.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("pipeline_reference")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("pipeline_reference")
 			}
+
 			return err
 		}
 	}
@@ -420,22 +424,26 @@ func (m *V2beta1Run) validateStorageState(formats strfmt.Registry) error {
 }
 
 func (m *V2beta1Run) validateTasks(formats strfmt.Registry) error {
-	if swag.IsZero(m.Tasks) { // not required
+	if typeutils.IsZero(m.Tasks) { // not required
 		return nil
 	}
 
 	for i := 0; i < len(m.Tasks); i++ {
-		if swag.IsZero(m.Tasks[i]) { // not required
+		if typeutils.IsZero(m.Tasks[i]) { // not required
 			continue
 		}
 
 		if m.Tasks[i] != nil {
 			if err := m.Tasks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("tasks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("tasks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -524,16 +532,20 @@ func (m *V2beta1Run) contextValidatePipelineReference(ctx context.Context, forma
 
 	if m.PipelineReference != nil {
 
-		if swag.IsZero(m.PipelineReference) { // not required
+		if typeutils.IsZero(m.PipelineReference) { // not required
 			return nil
 		}
 
 		if err := m.PipelineReference.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("pipeline_reference")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("pipeline_reference")
 			}
+
 			return err
 		}
 	}
@@ -716,16 +728,20 @@ func (m *V2beta1Run) contextValidateTasks(ctx context.Context, formats strfmt.Re
 
 		if m.Tasks[i] != nil {
 
-			if swag.IsZero(m.Tasks[i]) { // not required
+			if typeutils.IsZero(m.Tasks[i]) { // not required
 				return nil
 			}
 
 			if err := m.Tasks[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("tasks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("tasks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

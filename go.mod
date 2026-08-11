@@ -20,6 +20,7 @@ require (
 	github.com/go-openapi/strfmt v0.27.1
 	github.com/go-openapi/swag/conv v0.29.1
 	github.com/go-openapi/swag/jsonutils v0.29.1
+	github.com/go-openapi/swag/stringutils v0.29.1
 	github.com/go-openapi/swag/typeutils v0.29.1
 	github.com/go-openapi/validate v1.0.0
 	github.com/go-sql-driver/mysql v1.10.1
@@ -150,7 +151,6 @@ require (
 	github.com/go-openapi/swag/mangling v0.29.1 // indirect
 	github.com/go-openapi/swag/netutils v0.29.1 // indirect
 	github.com/go-openapi/swag/pools v0.29.1 // indirect
-	github.com/go-openapi/swag/stringutils v0.29.1 // indirect
 	github.com/go-openapi/swag/yamlutils v0.29.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
