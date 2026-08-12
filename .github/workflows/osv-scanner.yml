@@ -28,8 +28,8 @@ jobs:
 
       - name: Install OSV-Scanner
         env:
-          OSV_SCANNER_VERSION: '2.3.8'
-          OSV_SCANNER_SHA256: 'bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc'
+          OSV_SCANNER_VERSION: '2.5.0'
+          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
         run: |
           curl -fsSL --retry 5 --retry-all-errors \
             "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
@@ -57,11 +57,18 @@ jobs:
             exit "${scan_exit_code}"
           fi
 
-      - name: Upload OSV-Scanner results to GitHub Security
+      - name: Remove exact duplicate source results
         if: always() && hashFiles('osv-results.sarif') != ''
+        run: |
+          python3 .github/resources/scripts/deduplicate_sarif.py \
+            --input osv-results.sarif \
+            --output osv-results-deduplicated.sarif
+
+      - name: Upload OSV-Scanner results to GitHub Security
+        if: always() && hashFiles('osv-results-deduplicated.sarif') != ''
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
-          sarif_file: osv-results.sarif
+          sarif_file: osv-results-deduplicated.sarif
           category: kubeflow-pipelines-osv-scanner
 
   discover-images:
@@ -119,8 +126,8 @@ jobs:
 
       - name: Install OSV-Scanner
         env:
-          OSV_SCANNER_VERSION: '2.3.8'
-          OSV_SCANNER_SHA256: 'bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc'
+          OSV_SCANNER_VERSION: '2.5.0'
+          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
         run: |
           curl -fsSL --retry 5 --retry-all-errors \
             "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
@@ -146,9 +153,16 @@ jobs:
             exit "${scan_exit_code}"
           fi
 
-      - name: Upload image results to GitHub Security
+      - name: Remove exact duplicate image results
         if: always() && hashFiles('osv-image-results.sarif') != ''
+        run: |
+          python3 .github/resources/scripts/deduplicate_sarif.py \
+            --input osv-image-results.sarif \
+            --output osv-image-results-deduplicated.sarif
+
+      - name: Upload image results to GitHub Security
+        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
         uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
         with:
-          sarif_file: osv-image-results.sarif
+          sarif_file: osv-image-results-deduplicated.sarif
           category: kubeflow-pipelines-osv-image-${{ matrix.category }}
