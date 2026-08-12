@@ -596,14 +596,15 @@ def validate_pydantic_basemodel_version(model_cls: Type) -> None:
     """Raises a clear error if `model_cls`, a pydantic.BaseModel subclass used
     for component I/O, is running under an unsupported pydantic version.
 
-    KFP validates and serializes BaseModel component inputs/outputs with the
-    pydantic v2 API (``model_validate``/``model_dump``), which does not exist
-    in pydantic 1.x. A component authored against pydantic 1.x would compile
-    successfully, then fail at task runtime with a confusing
-    ``AttributeError``, so this check is applied as early as possible
-    (component definition time) and again at task runtime, since the
-    authoring and runtime environments may install different pydantic
-    versions (e.g., via `packages_to_install` or a custom `base_image`).
+    KFP validates and serializes BaseModel component inputs/outputs with
+    the pydantic v2 API (``model_validate``/``model_dump``), which does
+    not exist in pydantic 1.x. A component authored against pydantic 1.x
+    would compile successfully, then fail at task runtime with a
+    confusing ``AttributeError``, so this check is applied as early as
+    possible (component definition time) and again at task runtime,
+    since the authoring and runtime environments may install different
+    pydantic versions (e.g., via `packages_to_install` or a custom
+    `base_image`).
     """
     import pydantic
     pydantic_major_version = int(pydantic.VERSION.split('.')[0])

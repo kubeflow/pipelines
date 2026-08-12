@@ -117,16 +117,16 @@ def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
     its defining module in the component's runtime environment.
 
     Lightweight Python components only ship the source of the decorated
-    function itself; they do not bundle the source of types referenced in its
-    annotations. A `pydantic.BaseModel` used for component I/O must therefore
-    be defined at module level in a module that is separately importable at
-    task runtime (for example, a package listed in `packages_to_install`, or
-    included in a custom `base_image`). Models defined in the `__main__`
-    entrypoint script, or nested inside a function/method body, do not meet
-    this requirement: the generated `from <module> import <Name>` statement
-    would either import the wrong `__main__` (the executor's, not the
-    authoring script's) or reference a symbol that was never a module-level
-    attribute.
+    function itself; they do not bundle the source of types referenced
+    in its annotations. A `pydantic.BaseModel` used for component I/O
+    must therefore be defined at module level in a module that is
+    separately importable at task runtime (for example, a package listed
+    in `packages_to_install`, or included in a custom `base_image`).
+    Models defined in the `__main__` entrypoint script, or nested inside
+    a function/method body, do not meet this requirement: the generated
+    `from <module> import <Name>` statement would either import the
+    wrong `__main__` (the executor's, not the authoring script's) or
+    reference a symbol that was never a module-level attribute.
     """
     if basemodel_cls.__module__ == '__main__':
         raise TypeError(
@@ -151,8 +151,8 @@ def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
 def get_pydantic_basemodel_import_items_from_function(
         func: Callable) -> List[str]:
     """Gets the fully qualified name of the symbol that must be imported for
-    the pydantic.BaseModel type annotation to be referenced successfully from
-    a component function."""
+    the pydantic.BaseModel type annotation to be referenced successfully from a
+    component function."""
     param_to_cls = get_param_to_pydantic_basemodel_class(func)
     import_items = []
     for basemodel_cls in param_to_cls.values():

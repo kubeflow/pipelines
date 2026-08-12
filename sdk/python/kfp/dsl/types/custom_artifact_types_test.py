@@ -712,18 +712,18 @@ class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestPydanticBasemodelRuntimeIsolation(_TestCaseWithThirdPartyPackage):
-    """End-to-end tests that actually execute a compiled lightweight
-    component in a fresh `python -m kfp.dsl.executor_main` subprocess whose
-    working directory and PYTHONPATH are set explicitly, rather than
-    inherited from the test process.
+    """End-to-end tests that actually execute a compiled lightweight component
+    in a fresh `python -m kfp.dsl.executor_main` subprocess whose working
+    directory and PYTHONPATH are set explicitly, rather than inherited from the
+    test process.
 
     Unlike `kfp.local.SubprocessRunner`, which runs the same command but
-    inherits the developer machine's cwd and installed packages wholesale,
-    this reproduces the isolation boundary a real component runtime has: a
-    `pydantic.BaseModel` used for component I/O is only resolvable if its
-    module is explicitly made importable at runtime (e.g., via
-    `packages_to_install` or a custom `base_image`), not because of ambient
-    dev-environment state.
+    inherits the developer machine's cwd and installed packages
+    wholesale, this reproduces the isolation boundary a real component
+    runtime has: a `pydantic.BaseModel` used for component I/O is only
+    resolvable if its module is explicitly made importable at runtime
+    (e.g., via `packages_to_install` or a custom `base_image`), not
+    because of ambient dev-environment state.
     """
 
     def _write_ephemeral_component(self, func, run_dir: str) -> str:
