@@ -26,8 +26,8 @@ import {
 
 export function buildRuntimeArtifactRows(groups: InputOutputsIOArtifact[] | undefined) {
   const rows: Array<[string | ReactElement | undefined, ArtifactPreviewValue]> = [];
-  for (const { artifact, artifactKey, index } of flattenArtifactGroups(groups)) {
-    const displayName = getArtifactDisplayName(artifact, artifactKey, index);
+  for (const { artifact, artifactKey, group, index } of flattenArtifactGroups(groups)) {
+    const displayName = getArtifactDisplayName(artifact, artifactKey, index, group.artifacts);
     const label = artifact.artifact_id ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifact.artifact_id)}>
         {displayName}

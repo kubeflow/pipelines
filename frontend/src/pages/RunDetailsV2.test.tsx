@@ -421,6 +421,47 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
   });
 
+  it('refetches tasks once when an active run becomes terminal', async () => {
+    const tasksSpy = vi.spyOn(Apis.runServiceApiV2, 'tasks');
+    const props = generateProps();
+    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
+    const succeededRun = { ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED };
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={runningRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalledTimes(1));
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={succeededRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalledTimes(2));
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={succeededRun}
+          {...props}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+    await act(async () => {});
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+  });
+
   describe('topbar tabs', () => {
     it('switches to Detail tab', async () => {
       render(

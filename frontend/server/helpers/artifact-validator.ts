@@ -114,9 +114,7 @@ export async function validateArtifactNamespace(
   claimedNamespace: string,
   authenticationHeaders?: Record<string, string>,
 ): Promise<ValidationResult> {
-  const artifactService = new ArtifactServiceApi(
-    new Configuration({ basePath: apiServerAddress, fetchApi: fetch as any }),
-  );
+  const artifactService = new ArtifactServiceApi(new Configuration({ basePath: apiServerAddress }));
   const filter = JSON.stringify({
     predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
   });

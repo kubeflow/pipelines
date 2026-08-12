@@ -112,10 +112,10 @@ describe('DynamicFlow', () => {
       expect(
         runtimeGraph.find((element) => element.id === 'artifact.preprocess.output_dataset_one')
           ?.data,
-      ).toMatchObject({ artifactIds: ['artifact-one'], hasArtifact: true });
+      ).toMatchObject({ hasArtifact: true });
       expect(
         runtimeGraph.find((element) => element.id === 'artifact.train.model')?.data,
-      ).toMatchObject({ artifactIds: ['model-artifact'], hasArtifact: true });
+      ).toMatchObject({ hasArtifact: true });
     });
 
     it('does not preserve React Flow hidden flags when applying task state', () => {

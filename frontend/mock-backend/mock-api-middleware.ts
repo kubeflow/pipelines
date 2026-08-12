@@ -30,6 +30,7 @@ import {
   ApiPipelineVersion,
 } from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
+import { ArtifactArtifactType, V2beta1Artifact } from '../src/apisv2beta1/artifact';
 import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
@@ -85,6 +86,17 @@ const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
 const v1beta1Prefix = '/apis/v1beta1';
 const v2beta1Prefix = '/apis/v2beta1';
+
+const mockV2Artifacts: V2beta1Artifact[] = [
+  {
+    artifact_id: 'mock-artifact-1',
+    created_at: new Date('2026-01-01T00:00:00.000Z'),
+    description: 'Representative native artifact for local frontend development.',
+    name: 'mock-dataset',
+    namespace: 'kubeflow-user-example-com',
+    type: ArtifactArtifactType.Dataset,
+  },
+];
 
 let tensorboardPod = '';
 
@@ -579,7 +591,18 @@ export default (app: express.Application) => {
   });
 
   app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
-    res.json({ artifacts: [] });
+    res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts/:artifactId', (req, res) => {
+    const artifact = mockV2Artifacts.find(
+      (candidate) => candidate.artifact_id === req.params.artifactId,
+    );
+    if (!artifact) {
+      res.status(404).send(`No artifact was found with ID: ${req.params.artifactId}`);
+      return;
+    }
+    res.json(artifact);
   });
 
   app.get(v2beta1Prefix + '/artifact_tasks', (_req, res) => {

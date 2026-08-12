@@ -40,6 +40,8 @@ export interface RuntimeArtifactEntry {
   index: number;
 }
 
+export const EXECUTOR_LOGS_ARTIFACT_KEY = 'executor-logs';
+
 export function flattenArtifactGroups(
   groups: InputOutputsIOArtifact[] | undefined,
 ): RuntimeArtifactEntry[] {
@@ -57,9 +59,20 @@ export function getArtifactDisplayName(
   artifact: V2beta1Artifact,
   artifactKey?: string,
   index?: number,
+  siblingArtifacts?: V2beta1Artifact[],
 ): string {
   const baseName = artifact.name || artifactKey || artifact.artifact_id || 'Artifact';
-  return index && index > 0 ? `${baseName} (${index + 1})` : baseName;
+  const needsSuffix =
+    index !== undefined &&
+    index > 0 &&
+    (!artifact.name ||
+      siblingArtifacts
+        ?.slice(0, index)
+        .some(
+          (sibling) =>
+            (sibling.name || artifactKey || sibling.artifact_id || 'Artifact') === baseName,
+        ));
+  return needsSuffix ? `${baseName} (${index + 1})` : baseName;
 }
 
 export function getArtifactTypeName(artifact: V2beta1Artifact): string {

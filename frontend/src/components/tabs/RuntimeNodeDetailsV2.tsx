@@ -40,9 +40,10 @@ import { PlatformDeploymentConfig } from 'src/generated/pipeline_spec/pipeline_s
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { errorToMessage } from 'src/lib/Utils';
+import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
 import {
+  EXECUTOR_LOGS_ARTIFACT_KEY,
   flattenArtifactGroups,
   getArtifactDisplayName,
   getArtifactSessionInfo,
@@ -225,11 +226,8 @@ export function getTaskDetailsFields(
   }
   details.push(['Task name', task.display_name || task.name || '-']);
   details.push(['Status', formatTaskState(task.state)]);
-  details.push(['Created At', task.create_time?.toString() || '-']);
-  details.push([
-    'Finished At',
-    isTaskFinished(task.state) ? task.end_time?.toString() || '-' : '-',
-  ]);
+  details.push(['Created At', formatDateString(task.create_time)]);
+  details.push(['Finished At', isTaskFinished(task.state) ? formatDateString(task.end_time) : '-']);
   if (task.status_metadata?.message) {
     details.push(['Message', task.status_metadata.message]);
   }
@@ -311,7 +309,7 @@ export async function getLogsInfo(
     podLogsError = new Error('Task pod information is not available.');
   }
 
-  const executorLogsArtifact = getOutputArtifactByName(task, 'executor-logs');
+  const executorLogsArtifact = getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY);
   if (executorLogsArtifact?.uri) {
     try {
       logsInfo.set(
@@ -382,7 +380,7 @@ function ArtifactInfo({
     ['Upstream Task Name', task.display_name || task.name || '-'],
     ['Artifact Name', getArtifactDisplayName(firstArtifact, artifactGroup.artifact_key)],
     ['Artifact Type', getArtifactTypeName(firstArtifact)],
-    ['Created At', firstArtifact.created_at?.toString() || '-'],
+    ['Created At', formatDateString(firstArtifact.created_at)],
   ];
   if (artifactEntries.length > 1) {
     artifactInfo.push(['Artifact Count', String(artifactEntries.length)]);

@@ -155,10 +155,9 @@ export function updateFlowElementsState(
       data.label = runtimeInfo.task.display_name || runtimeInfo.task.name || data.label;
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
-      data.artifactIds = runtimeInfo.artifactGroup.artifacts
-        ?.map((artifact) => artifact.artifact_id)
-        .filter((artifactId): artifactId is string => !!artifactId);
-      data.hasArtifact = !!data.artifactIds?.length;
+      data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(
+        (artifact) => artifact.artifact_id,
+      );
     }
     return updatedElement;
   });

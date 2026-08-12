@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  MouseEvent as ReactMouseEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -87,18 +94,32 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
   const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
   const runFinished = hasFinishedV2(run.state) && !retriedCurrentRunState;
+  const runIsTerminal = hasFinishedV2(run.state);
+  const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
 
   const {
     isSuccess,
     isError,
     error,
     data: tasks,
+    refetch: refetchTasks,
   } = useQuery<V2beta1PipelineTask[], Error>({
     queryKey: queryKeys.runTasks(runId),
     queryFn: () => listAllRunTasks(runId),
     staleTime: QUERY_STALE_TIME,
     refetchInterval: runFinished ? false : QUERY_REFETCH_INTERVAL,
   });
+
+  // The terminal run update stops polling immediately, so fetch once more to capture the final
+  // task states. Initial terminal mounts and same-state rerenders use the normal query lifecycle.
+  useEffect(() => {
+    const previousStatus = previousRunStatus.current;
+    previousRunStatus.current = { runId, isTerminal: runIsTerminal };
+
+    if (previousStatus.runId === runId && !previousStatus.isTerminal && runIsTerminal) {
+      void refetchTasks();
+    }
+  }, [refetchTasks, runId, runIsTerminal]);
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;

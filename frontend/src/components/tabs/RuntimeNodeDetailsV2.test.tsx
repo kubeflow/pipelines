@@ -24,6 +24,7 @@ import {
   V2beta1PipelineTask,
 } from 'src/apisv2beta1/run';
 import {
+  getTaskDetailsFields,
   getLogsInfo,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
@@ -171,5 +172,52 @@ describe('RuntimeNodeDetailsV2', () => {
 
     screen.getByText('/data');
     screen.getByText('createpvc');
+  });
+
+  it('formats task timestamps consistently with other details pages', () => {
+    const createdAt = new Date('2026-08-11T12:00:00Z');
+    const finishedAt = new Date('2026-08-11T12:05:00Z');
+
+    expect(
+      getTaskDetailsFields(
+        executionElement,
+        createTask({ create_time: createdAt, end_time: finishedAt }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        ['Created At', createdAt.toLocaleString()],
+        ['Finished At', finishedAt.toLocaleString()],
+      ]),
+    );
+  });
+
+  it('formats artifact timestamps consistently with other details pages', () => {
+    const createdAt = new Date('2026-08-11T12:00:00Z');
+    const artifactElement = {
+      data: { label: 'model' },
+      id: 'artifact.preprocess.model',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'model',
+              artifacts: [{ name: 'model', created_at: createdAt }],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    screen.getByText(createdAt.toLocaleString());
   });
 });

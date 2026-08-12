@@ -19,6 +19,7 @@ import {
 } from 'src/apisv2beta1/run';
 import {
   flattenArtifactGroups,
+  EXECUTOR_LOGS_ARTIFACT_KEY,
   formatParameters,
   getArtifactDisplayName,
   getArtifactSessionInfo,
@@ -56,9 +57,30 @@ describe('RuntimeArtifactUtils', () => {
     expect(entries[0]).toMatchObject({ artifactKey: 'models', index: 0 });
     expect(entries[1]).toMatchObject({ artifactKey: 'models', index: 1 });
     expect(entries[0].group).toBe(task.outputs?.artifacts?.[0]);
-    expect(getArtifactDisplayName(entries[1].artifact, entries[1].artifactKey, 1)).toBe(
-      'model (2)',
+    expect(
+      getArtifactDisplayName(
+        entries[1].artifact,
+        entries[1].artifactKey,
+        1,
+        entries[1].group.artifacts,
+      ),
+    ).toBe('model (2)');
+  });
+
+  it('only adds artifact suffixes when labels would otherwise be ambiguous', () => {
+    const distinctArtifacts = [{ name: 'model-a' }, { name: 'model-b' }];
+    expect(getArtifactDisplayName(distinctArtifacts[1], 'models', 1, distinctArtifacts)).toBe(
+      'model-b',
     );
+
+    const unnamedArtifacts = [{ artifact_id: 'artifact-1' }, { artifact_id: 'artifact-2' }];
+    expect(getArtifactDisplayName(unnamedArtifacts[1], 'models', 1, unnamedArtifacts)).toBe(
+      'models (2)',
+    );
+  });
+
+  it('defines the native executor logs output key', () => {
+    expect(EXECUTOR_LOGS_ARTIFACT_KEY).toBe('executor-logs');
   });
 
   it('finds output artifacts by either output key or artifact name', () => {

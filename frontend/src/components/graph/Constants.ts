@@ -32,7 +32,6 @@ export type ExecutionFlowElementData = FlowElementDataBase & {
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
-  artifactIds?: string[];
   hasArtifact?: boolean;
   producerSubtask?: string;
   outputArtifactKey?: string;

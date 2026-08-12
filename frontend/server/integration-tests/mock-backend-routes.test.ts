@@ -190,6 +190,41 @@ describe('mock backend routes', () => {
       });
     });
 
+    it('lists and fetches a native artifact by id', async () => {
+      const listResponse = await request.get('/apis/v2beta1/artifacts').expect(200);
+
+      expect(listResponse.body).toMatchObject({
+        total_size: 1,
+        artifacts: [
+          {
+            artifact_id: 'mock-artifact-1',
+            name: 'mock-dataset',
+            namespace: 'kubeflow-user-example-com',
+            type: 'Dataset',
+          },
+        ],
+      });
+
+      const artifactResponse = await request
+        .get('/apis/v2beta1/artifacts/mock-artifact-1')
+        .expect(200);
+
+      expect(artifactResponse.body).toMatchObject({
+        artifact_id: 'mock-artifact-1',
+        created_at: '2026-01-01T00:00:00.000Z',
+        description: 'Representative native artifact for local frontend development.',
+        name: 'mock-dataset',
+        namespace: 'kubeflow-user-example-com',
+        type: 'Dataset',
+      });
+    });
+
+    it('returns 404 for an unknown native artifact', async () => {
+      await request
+        .get('/apis/v2beta1/artifacts/does-not-exist')
+        .expect(404, 'No artifact was found with ID: does-not-exist');
+    });
+
     it('lists v2 recurring runs filtered by experiment id', async () => {
       const response = await request
         .get(
