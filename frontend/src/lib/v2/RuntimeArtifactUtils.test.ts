@@ -22,7 +22,6 @@ import {
   EXECUTOR_LOGS_ARTIFACT_KEY,
   formatParameters,
   getArtifactDisplayName,
-  getArtifactSessionInfo,
   getArtifactTypeName,
   getOutputArtifactByName,
   getScalarMetricValue,
@@ -42,7 +41,6 @@ describe('RuntimeArtifactUtils', () => {
             {
               artifact_id: 'model-1',
               name: 'model',
-              metadata: { store_session_info: 'session-a' } as any,
             },
             { artifact_id: 'model-2', name: 'model' },
           ],
@@ -138,8 +136,7 @@ describe('RuntimeArtifactUtils', () => {
     expect(isVisualizableArtifact({ name: 'mlpipeline-ui-metadata' })).toBe(true);
   });
 
-  it('reads session metadata and recognizes every terminal task state', () => {
-    expect(getArtifactSessionInfo(task.outputs?.artifacts?.[0].artifacts?.[0]!)).toBe('session-a');
+  it('recognizes every terminal task state', () => {
     expect(isTaskFinished(PipelineTaskTaskState.SUCCEEDED)).toBe(true);
     expect(isTaskFinished(PipelineTaskTaskState.FAILED)).toBe(true);
     expect(isTaskFinished(PipelineTaskTaskState.SKIPPED)).toBe(true);

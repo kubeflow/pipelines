@@ -19,7 +19,13 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/WorkflowParser';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
-import { RuntimeMetricsVisualizations, TEST_ONLY } from './RuntimeMetricsVisualizations';
+import {
+  buildConfusionMatrices,
+  buildRocCurves,
+  expandClassificationMetrics,
+  RuntimeMetricsVisualizations,
+  TEST_ONLY,
+} from './RuntimeMetricsVisualizations';
 
 describe('RuntimeMetricsVisualizations', () => {
   it('builds ROC curve configurations from native artifact metadata', () => {
@@ -37,7 +43,7 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     };
 
-    expect(TEST_ONLY.buildRocCurves(TEST_ONLY.expandClassificationMetrics([artifact]))).toEqual({
+    expect(buildRocCurves(expandClassificationMetrics([artifact]))).toEqual({
       configs: [
         {
           type: PlotType.ROC,
@@ -70,8 +76,8 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     ];
 
-    const visualizations = TEST_ONLY.expandClassificationMetrics(artifacts);
-    expect(TEST_ONLY.buildConfusionMatrices(visualizations)).toEqual([
+    const visualizations = expandClassificationMetrics(artifacts);
+    expect(buildConfusionMatrices(visualizations)).toEqual([
       {
         visualization: {
           key: 'matrix-1',
@@ -141,7 +147,7 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     };
 
-    expect(TEST_ONLY.expandClassificationMetrics([artifact])).toEqual([
+    expect(expandClassificationMetrics([artifact])).toEqual([
       {
         key: 'sliced-1:slice:0',
         displayName: 'evaluation · country=US',
@@ -172,7 +178,7 @@ describe('RuntimeMetricsVisualizations', () => {
         name: 'report',
         type: ArtifactArtifactType.HTML,
         uri: 's3://reports/output.html',
-        metadata: { store_session_info: 'session' } as any,
+        metadata: { store_session_info: 'stale-session' } as any,
       },
       {
         artifact_id: 'markdown-1',
@@ -195,7 +201,6 @@ describe('RuntimeMetricsVisualizations', () => {
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
     expect(readFileSpy).toHaveBeenCalledWith({
       path: { bucket: 'reports', key: 'output.html', source: StorageService.S3 },
-      providerInfo: 'session',
       namespace: 'team-a',
     });
   });
@@ -236,7 +241,7 @@ describe('RuntimeMetricsVisualizations', () => {
       name: 'legacy-output',
       type: ArtifactArtifactType.Artifact,
       uri: 's3://reports/mlpipeline-ui-metadata.json',
-      metadata: { store_session_info: 'provider-session' } as any,
+      metadata: { store_session_info: 'stale-session' } as any,
     };
 
     render(
@@ -253,7 +258,7 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(loadSpy).toHaveBeenCalledWith(
       { bucket: 'reports', key: 'mlpipeline-ui-metadata.json', source: StorageService.S3 },
       'team-a',
-      { providerInfo: 'provider-session', throwOnError: true },
+      { throwOnError: true },
     );
   });
 

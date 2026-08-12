@@ -13,37 +13,33 @@
 // limitations under the License.
 
 import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/artifact/index.js';
+export { buildArtifactUri, requiresArtifactOwnershipValidation } from './artifact-sources.js';
 
 const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
   .trim()
   .replace(/^\/+|\/+$/g, '');
-const NAMESPACE_OWNERSHIP_MODE = (
-  process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE || 'mlmd-then-prefix'
-)
-  .trim()
-  .toLowerCase();
-const PREFIX_FALLBACK_OWNERSHIP_MODES: ReadonlySet<string> = new Set([
-  'mlmd-then-prefix',
-  'artifact-then-prefix',
-]);
+export type ArtifactOwnershipMode = 'artifact-then-prefix' | 'artifact-only' | 'invalid';
+
+export function normalizeArtifactOwnershipMode(value?: string): ArtifactOwnershipMode {
+  switch ((value || 'artifact-then-prefix').trim().toLowerCase()) {
+    case 'mlmd-then-prefix':
+    case 'artifact-then-prefix':
+      return 'artifact-then-prefix';
+    case 'mlmd-only':
+    case 'artifact-only':
+      return 'artifact-only';
+    default:
+      return 'invalid';
+  }
+}
+
+const NAMESPACE_OWNERSHIP_MODE = normalizeArtifactOwnershipMode(
+  process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE,
+);
 const VALIDATION_TIMEOUT_MS = (() => {
   const configured = Number(process.env.ARTIFACT_VALIDATION_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : 5000;
 })();
-
-// Volume artifacts use local filesystem paths rather than object-store bucket/key URIs,
-// so their ownership cannot be established through the artifact URI lookup below.
-export const OWNERSHIP_VALIDATED_ARTIFACT_SOURCES: ReadonlySet<string> = new Set([
-  'minio',
-  's3',
-  'gcs',
-  'http',
-  'https',
-]);
-
-export function requiresArtifactOwnershipValidation(source: string): boolean {
-  return OWNERSHIP_VALIDATED_ARTIFACT_SOURCES.has(source);
-}
 
 export interface ValidationResult {
   valid: boolean;
@@ -90,15 +86,13 @@ export function validateArtifactKeyPrefix(
 export function validateArtifactNotFound(
   artifactUri: string,
   claimedNamespace: string,
-  ownershipMode: string = NAMESPACE_OWNERSHIP_MODE,
+  ownershipMode: ArtifactOwnershipMode = NAMESPACE_OWNERSHIP_MODE,
 ): ValidationResult {
-  const normalizedMode = ownershipMode.trim().toLowerCase();
-  if (!PREFIX_FALLBACK_OWNERSHIP_MODES.has(normalizedMode)) {
-    const strictMode = normalizedMode === 'mlmd-only' || normalizedMode === 'artifact-only';
+  if (ownershipMode !== 'artifact-then-prefix') {
     console.warn(
       `[SECURITY] Artifact ownership lookup found no record for URI "${artifactUri}"; ` +
-        (strictMode
-          ? `denying access because ARTIFACT_NAMESPACE_OWNERSHIP_MODE is "${ownershipMode}".`
+        (ownershipMode === 'artifact-only'
+          ? 'denying access because ARTIFACT_NAMESPACE_OWNERSHIP_MODE uses strict validation.'
           : `denying access because ARTIFACT_NAMESPACE_OWNERSHIP_MODE "${ownershipMode}" is ` +
             `not recognized. Use "artifact-only" for strict validation or ` +
             `"artifact-then-prefix" to enable namespace-prefix fallback.`),
@@ -143,9 +137,4 @@ export async function validateArtifactNamespace(
   } finally {
     clearTimeout(timeout);
   }
-}
-
-export function buildArtifactUri(source: string, bucket: string, key: string): string {
-  const scheme = source === 'gcs' ? 'gs' : source;
-  return `${scheme}://${bucket}/${key}`;
 }

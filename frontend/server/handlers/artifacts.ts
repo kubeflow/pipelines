@@ -41,39 +41,21 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import {
-  buildArtifactUri,
-  requiresArtifactOwnershipValidation,
-  validateArtifactNamespace,
-} from '../helpers/artifact-validator.js';
+import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import {
+  ArtifactSource,
+  buildArtifactUri,
+  isArtifactSource,
+  isLauncherArtifactSource,
+  requiresArtifactOwnershipValidation,
+} from '../helpers/artifact-sources.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
 import { ArtifactCoordinates, getLauncherProviderInfo } from '../helpers/launcher-config.js';
 
-/**
- * ArtifactsQueryStrings describes the expected query strings key value pairs
- * in the artifact request object.
- */
-interface ArtifactsQueryStrings {
-  /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
-  /** bucket name. */
-  bucket: string;
-  /** artifact key/path that is uri encoded.  */
-  key: string;
-  /** return only the first x characters or bytes. */
-  peek?: number;
-  /** optional provider info to use to query object store */
-  providerInfo?: string;
-  namespace?: string;
-}
-
-type ArtifactSource = ArtifactsQueryStrings['source'];
-
-const ARTIFACT_SOURCES = new Set<ArtifactSource>(['minio', 's3', 'gcs', 'http', 'https', 'volume']);
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
   'bucket',
@@ -526,14 +508,6 @@ function parsePeekValue(value: string | undefined): number {
   }
   const peek = Number(value);
   return Number.isFinite(peek) && peek > 0 ? peek : 0;
-}
-
-function isArtifactSource(source: string): source is ArtifactSource {
-  return ARTIFACT_SOURCES.has(source as ArtifactSource);
-}
-
-function isLauncherArtifactSource(source: ArtifactSource): source is ArtifactCoordinates['source'] {
-  return source === 'minio' || source === 's3' || source === 'gcs';
 }
 
 /**
@@ -1089,7 +1063,25 @@ export function getArtifactsProxyHandler({
     if (namespace) {
       const url = new URL(req.url || '', DUMMY_BASE_PATH);
       if (!url.searchParams.get('providerInfo')) {
-        const coordinates = getArtifactCoordinatesFromUrl(url);
+        const resolvedCoordinates = resolveArtifactCoordinates({
+          path: url.pathname,
+          query: {
+            source: url.searchParams.get('source') || undefined,
+            bucket: url.searchParams.get('bucket') || undefined,
+            key: url.searchParams.get('key') || undefined,
+          },
+        });
+        if (resolvedCoordinates === null) {
+          res.status(400).send('Malformed URL encoding in artifact path');
+          return;
+        }
+        const coordinates: ArtifactCoordinates | undefined =
+          resolvedCoordinates &&
+          isLauncherArtifactSource(resolvedCoordinates.source) &&
+          resolvedCoordinates.bucket &&
+          resolvedCoordinates.key
+            ? { ...resolvedCoordinates, source: resolvedCoordinates.source }
+            : undefined;
         if (coordinates) {
           try {
             const providerInfo = await getLauncherProviderInfo(coordinates, namespace);
@@ -1109,40 +1101,6 @@ export function getArtifactsProxyHandler({
       }
     }
     proxy(req, res, next);
-  };
-}
-
-function getArtifactCoordinatesFromUrl(url: URL): ArtifactCoordinates | undefined {
-  const querySource = url.searchParams.get('source');
-  const queryBucket = url.searchParams.get('bucket');
-  const queryKey = url.searchParams.get('key');
-  if (
-    querySource &&
-    isArtifactSource(querySource) &&
-    isLauncherArtifactSource(querySource) &&
-    queryBucket &&
-    queryKey
-  ) {
-    return { source: querySource, bucket: queryBucket, key: queryKey };
-  }
-
-  const artifactPath = url.pathname.split('/artifacts/')[1];
-  if (!artifactPath || artifactPath.startsWith('get')) {
-    return undefined;
-  }
-  const [source, bucket, ...keyParts] = artifactPath.split('/');
-  if (
-    !isArtifactSource(source) ||
-    !isLauncherArtifactSource(source) ||
-    !bucket ||
-    !keyParts.length
-  ) {
-    return undefined;
-  }
-  return {
-    source,
-    bucket: decodeURIComponent(bucket),
-    key: keyParts.map((part) => decodeURIComponent(part)).join('/'),
   };
 }
 

@@ -20,7 +20,6 @@ import {
   V2beta1Artifact,
   V2beta1PipelineTask,
 } from 'src/apisv2beta1/run';
-import { STORE_SESSION_INFO_KEY } from 'src/lib/ReservedArtifactProperties';
 
 const ARTIFACT_SCHEMA_TITLES: Partial<Record<ArtifactArtifactType, string>> = {
   [ArtifactArtifactType.Artifact]: 'system.Artifact',
@@ -78,11 +77,6 @@ export function getArtifactDisplayName(
 
 export function getArtifactTypeName(artifact: V2beta1Artifact): string {
   return artifact.type ? ARTIFACT_SCHEMA_TITLES[artifact.type] || artifact.type : '-';
-}
-
-export function getArtifactSessionInfo(artifact: V2beta1Artifact): string | undefined {
-  const value = artifact.metadata?.[STORE_SESSION_INFO_KEY];
-  return typeof value === 'string' ? value : undefined;
 }
 
 export function getOutputArtifactByName(

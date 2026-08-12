@@ -18,11 +18,7 @@ import { InputOutputsIOArtifact } from 'src/apisv2beta1/run';
 import { ArtifactPreviewValue } from 'src/components/ArtifactPreview';
 import { RoutePageFactory } from 'src/components/Router';
 import { commonCss } from 'src/Css';
-import {
-  flattenArtifactGroups,
-  getArtifactDisplayName,
-  getArtifactSessionInfo,
-} from 'src/lib/v2/RuntimeArtifactUtils';
+import { flattenArtifactGroups, getArtifactDisplayName } from 'src/lib/v2/RuntimeArtifactUtils';
 
 export function buildRuntimeArtifactRows(groups: InputOutputsIOArtifact[] | undefined) {
   const rows: Array<[string | ReactElement | undefined, ArtifactPreviewValue]> = [];
@@ -35,10 +31,7 @@ export function buildRuntimeArtifactRows(groups: InputOutputsIOArtifact[] | unde
     ) : (
       displayName
     );
-    rows.push([
-      label,
-      artifact.uri ? { uri: artifact.uri, providerInfo: getArtifactSessionInfo(artifact) } : '',
-    ]);
+    rows.push([label, artifact.uri ? { uri: artifact.uri } : '']);
   }
   return rows;
 }

@@ -71,10 +71,10 @@ spec:
           - name: DISABLE_GKE_METADATA
             value: "true"
           # Namespace-ownership resolution for objects the artifact database does not track.
-          # The default "mlmd-then-prefix" is retained for compatibility and checks the
+          # The default "artifact-then-prefix" checks the
           # "private-artifacts/<namespace>/" object-key prefix after an Artifact API miss.
-          # "artifact-then-prefix" is an equivalent, clearer alias. Existing "mlmd-only"
-          # settings now make the Artifact API authoritative; "artifact-only" is an alias.
+          # The legacy "mlmd-then-prefix" alias remains supported. Use "artifact-only" for
+          # strict Artifact API validation; the legacy "mlmd-only" value is also supported.
           - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
             valueFrom:
               configMapKeyRef:

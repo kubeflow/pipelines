@@ -15,7 +15,7 @@
 import type { Request } from 'express';
 
 export function resolveArtifactCoordinates(
-  request: Request,
+  request: Pick<Request, 'path' | 'query'>,
 ): { source: string; bucket: string; key: string } | null {
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =

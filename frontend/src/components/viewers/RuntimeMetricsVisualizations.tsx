@@ -22,11 +22,9 @@ import Banner from 'src/components/Banner';
 import PlotCard from 'src/components/PlotCard';
 import { color, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
-import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
-  getArtifactSessionInfo,
   getScalarMetricValue,
   isClassificationMetricArtifact,
   isHtmlArtifact,
@@ -34,6 +32,7 @@ import {
   isMarkdownArtifact,
   isScalarMetricArtifact,
 } from 'src/lib/v2/RuntimeArtifactUtils';
+import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
@@ -296,7 +295,6 @@ async function loadLegacyUiMetadataVisualization(
     );
   }
   return OutputArtifactLoader.load(WorkflowParser.parseStoragePath(artifact.uri), namespace, {
-    providerInfo: getArtifactSessionInfo(artifact),
     throwOnError: true,
   });
 }
@@ -400,11 +398,7 @@ async function downloadVisualization(
       `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced a valid artifact location.`,
     );
   }
-  const content = await Apis.readFile({
-    path: WorkflowParser.parseStoragePath(artifact.uri),
-    providerInfo: getArtifactSessionInfo(artifact),
-    namespace,
-  });
+  const content = await readArtifactFile(artifact, namespace);
   if (isHtmlArtifact(artifact)) {
     return { htmlContent: content, type: PlotType.WEB_APP } as HTMLViewerConfig;
   }
@@ -449,10 +443,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export const TEST_ONLY = {
-  buildConfusionMatrices,
-  buildRocCurves,
   downloadVisualization,
-  expandClassificationMetrics,
   loadLegacyUiMetadataVisualization,
 };
 

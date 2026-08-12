@@ -26,6 +26,8 @@ import {
 import {
   getTaskDetailsFields,
   getLogsInfo,
+  LOGS_BANNER_ADDITIONAL_INFO,
+  LOGS_BANNER_MESSAGE,
   LOGS_DETAILS,
   RuntimeNodeDetailsV2,
 } from 'src/components/tabs/RuntimeNodeDetailsV2';
@@ -146,6 +148,43 @@ describe('RuntimeNodeDetailsV2', () => {
 
     await waitFor(() => expect(readFileSpy).toHaveBeenCalled());
     screen.getByTestId(TEST_LOG_VIEW_ID);
+  });
+
+  it('reports both pod and executor-artifact errors when both log sources fail', async () => {
+    vi.spyOn(Apis, 'getPodLogs').mockRejectedValue(new Error('pod was garbage collected'));
+    vi.spyOn(Apis, 'readFile').mockRejectedValue(new Error('storage credentials expired'));
+    const logsInfo = await getLogsInfo(
+      createTask({
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'executor-logs',
+              artifacts: [
+                {
+                  name: 'executor-logs',
+                  uri: 's3://pipeline-root/logs.txt',
+                  metadata: { store_session_info: 'stale-session' } as any,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(logsInfo.get(LOGS_BANNER_MESSAGE)).toBe('Failed to retrieve task logs.');
+    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
+      'Pod logs error: pod was garbage collected',
+    );
+    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
+      'Executor logs artifact error: storage credentials expired',
+    );
+    expect(Apis.readFile).toHaveBeenCalledWith({
+      path: { bucket: 'pipeline-root', key: 'logs.txt', source: 's3' },
+      namespace: TEST_NAMESPACE,
+    });
   });
 
   it('returns cached text without retrieving pod logs', async () => {

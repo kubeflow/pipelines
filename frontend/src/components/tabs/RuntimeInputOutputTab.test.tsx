@@ -111,7 +111,7 @@ describe('RuntimeInputOutputTab', () => {
     screen.getByText('There is no input/output parameter or artifact.');
   });
 
-  it('keeps provider information distinct when artifacts share a URI', () => {
+  it('ignores stale provider metadata when artifacts share a URI', () => {
     const task: V2beta1PipelineTask = {
       name: 'shared-uri',
       outputs: {
@@ -141,7 +141,7 @@ describe('RuntimeInputOutputTab', () => {
       </MemoryRouter>,
     );
 
-    screen.getByText('Preview s3://bucket/report with session-a');
-    screen.getByText('Preview s3://bucket/report with session-b');
+    expect(screen.getAllByText('Preview s3://bucket/report')).toHaveLength(2);
+    expect(screen.queryByText(/ with session-/)).not.toBeInTheDocument();
   });
 });

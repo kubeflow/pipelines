@@ -14,10 +14,13 @@
 
 import { load } from 'js-yaml';
 import { getConfigMap } from '../k8s-helper.js';
+import {
+  ArtifactProvider,
+  artifactProviderForSource,
+  LauncherArtifactSource,
+} from './artifact-sources.js';
 
 const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
-
-type ArtifactProvider = 'minio' | 's3' | 'gs';
 
 interface SecretRef {
   secretName?: string;
@@ -60,7 +63,7 @@ interface StoreSessionInfo {
 }
 
 export interface ArtifactCoordinates {
-  source: 'minio' | 's3' | 'gcs';
+  source: LauncherArtifactSource;
   bucket: string;
   key: string;
 }
@@ -88,7 +91,7 @@ export async function getLauncherProviderInfo(
     throw new Error('kfp-launcher providers must be a YAML object');
   }
   const providers = parsed as LauncherProviders;
-  const provider = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
+  const provider = artifactProviderForSource(coordinates.source);
   const config = providers[provider];
   if (!config) {
     return undefined;

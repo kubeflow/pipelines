@@ -39,7 +39,6 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
 import { listAllArtifactTasks } from 'src/lib/v2/ArtifactTaskUtils';
 import {
-  getArtifactSessionInfo,
   getArtifactTypeName,
   isVisualizableArtifact,
   LEGACY_UI_METADATA_ARTIFACT_KEY,
@@ -196,12 +195,7 @@ function ArtifactOverview({
         {artifact.uri && (
           <DetailsTable
             title='Artifact URI'
-            fields={[
-              [
-                artifact.name || 'Artifact',
-                { uri: artifact.uri, providerInfo: getArtifactSessionInfo(artifact) },
-              ],
-            ]}
+            fields={[[artifact.name || 'Artifact', { uri: artifact.uri }]]}
             valueComponent={ArtifactPreview}
             valueComponentProps={{ namespace: artifact.namespace }}
           />

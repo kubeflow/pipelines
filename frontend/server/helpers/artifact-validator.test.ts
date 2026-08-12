@@ -15,6 +15,7 @@
 import {
   buildArtifactUri,
   namespaceFromArtifactUri,
+  normalizeArtifactOwnershipMode,
   requiresArtifactOwnershipValidation,
   validateArtifactKeyPrefix,
   validateArtifactNamespace,
@@ -70,8 +71,10 @@ describe('artifact-validator', () => {
   });
 
   it.each(['mlmd-then-prefix', 'artifact-then-prefix'])(
-    'uses namespace-prefix fallback in %s mode',
-    (ownershipMode) => {
+    'normalizes %s to namespace-prefix fallback',
+    (configuredMode) => {
+      const ownershipMode = normalizeArtifactOwnershipMode(configuredMode);
+      expect(ownershipMode).toBe('artifact-then-prefix');
       expect(
         validateArtifactNotFound(
           'minio://bucket/private-artifacts/team-a/run/executor.log',
@@ -82,18 +85,22 @@ describe('artifact-validator', () => {
     },
   );
 
-  it.each(['mlmd-only', 'MLMD-ONLY', 'artifact-only', 'invalid-mode'])(
-    'denies prefix fallback in strict or unrecognized %s mode',
-    (ownershipMode) => {
-      expect(
-        validateArtifactNotFound(
-          'minio://bucket/private-artifacts/team-a/run/executor.log',
-          'team-a',
-          ownershipMode,
-        ),
-      ).toEqual({ valid: false, reason: 'artifact-not-found' });
-    },
-  );
+  it.each([
+    ['mlmd-only', 'artifact-only'],
+    ['MLMD-ONLY', 'artifact-only'],
+    ['artifact-only', 'artifact-only'],
+    ['invalid-mode', 'invalid'],
+  ] as const)('normalizes %s to %s and denies prefix fallback', (configuredMode, expectedMode) => {
+    const ownershipMode = normalizeArtifactOwnershipMode(configuredMode);
+    expect(ownershipMode).toBe(expectedMode);
+    expect(
+      validateArtifactNotFound(
+        'minio://bucket/private-artifacts/team-a/run/executor.log',
+        'team-a',
+        ownershipMode,
+      ),
+    ).toEqual({ valid: false, reason: 'artifact-not-found' });
+  });
 
   it('accepts an exact namespace and URI match from ArtifactService', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(

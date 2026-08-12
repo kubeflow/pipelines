@@ -41,12 +41,12 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
+import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import { getComponentSpec } from 'src/lib/v2/NodeUtils';
 import {
   EXECUTOR_LOGS_ARTIFACT_KEY,
   flattenArtifactGroups,
   getArtifactDisplayName,
-  getArtifactSessionInfo,
   getArtifactTypeName,
   getOutputArtifactByName,
   isTaskFinished,
@@ -54,7 +54,6 @@ import {
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
 import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
-import WorkflowParser from 'src/lib/WorkflowParser';
 
 export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
@@ -310,29 +309,29 @@ export async function getLogsInfo(
   }
 
   const executorLogsArtifact = getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY);
+  let artifactLogsError: unknown;
   if (executorLogsArtifact?.uri) {
     try {
-      logsInfo.set(
-        LOGS_DETAILS,
-        await Apis.readFile({
-          path: WorkflowParser.parseStoragePath(executorLogsArtifact.uri),
-          providerInfo: getArtifactSessionInfo(executorLogsArtifact),
-          namespace: namespace || executorLogsArtifact.namespace,
-        }),
-      );
+      logsInfo.set(LOGS_DETAILS, await readArtifactFile(executorLogsArtifact, namespace));
       return logsInfo;
     } catch (error) {
-      logsInfo.set(LOGS_BANNER_ADDITIONAL_INFO, await errorToMessage(error));
+      artifactLogsError = error;
     }
   }
 
-  logsInfo.set(LOGS_BANNER_MESSAGE, 'Failed to retrieve pod logs.');
-  if (!logsInfo.has(LOGS_BANNER_ADDITIONAL_INFO)) {
-    logsInfo.set(
-      LOGS_BANNER_ADDITIONAL_INFO,
-      `Error response: ${await errorToMessage(podLogsError)}`,
-    );
-  }
+  const podErrorMessage = await errorToMessage(podLogsError);
+  logsInfo.set(
+    LOGS_BANNER_MESSAGE,
+    artifactLogsError ? 'Failed to retrieve task logs.' : 'Failed to retrieve pod logs.',
+  );
+  logsInfo.set(
+    LOGS_BANNER_ADDITIONAL_INFO,
+    artifactLogsError
+      ? `Pod logs error: ${podErrorMessage}\nExecutor logs artifact error: ${await errorToMessage(
+          artifactLogsError,
+        )}`
+      : `Error response: ${podErrorMessage}`,
+  );
   return logsInfo;
 }
 
