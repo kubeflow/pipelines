@@ -15,6 +15,7 @@
 import {
   buildArtifactUri,
   namespaceFromArtifactUri,
+  requiresArtifactOwnershipValidation,
   validateArtifactKeyPrefix,
   validateArtifactNamespace,
 } from './artifact-validator.js';
@@ -120,5 +121,14 @@ describe('artifact-validator', () => {
 
   it('normalizes the GCS scheme when constructing an artifact URI', () => {
     expect(buildArtifactUri('gcs', 'bucket', 'path/output')).toBe('gs://bucket/path/output');
+  });
+
+  it('validates ownership only for object-store and remote artifact sources', () => {
+    expect(requiresArtifactOwnershipValidation('minio')).toBe(true);
+    expect(requiresArtifactOwnershipValidation('s3')).toBe(true);
+    expect(requiresArtifactOwnershipValidation('gcs')).toBe(true);
+    expect(requiresArtifactOwnershipValidation('http')).toBe(true);
+    expect(requiresArtifactOwnershipValidation('https')).toBe(true);
+    expect(requiresArtifactOwnershipValidation('volume')).toBe(false);
   });
 });

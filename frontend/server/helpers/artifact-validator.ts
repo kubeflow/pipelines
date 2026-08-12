@@ -22,6 +22,20 @@ const VALIDATION_TIMEOUT_MS = (() => {
   return Number.isFinite(configured) && configured > 0 ? configured : 5000;
 })();
 
+// Volume artifacts use local filesystem paths rather than object-store bucket/key URIs,
+// so their ownership cannot be established through the artifact URI lookup below.
+export const OWNERSHIP_VALIDATED_ARTIFACT_SOURCES: ReadonlySet<string> = new Set([
+  'minio',
+  's3',
+  'gcs',
+  'http',
+  'https',
+]);
+
+export function requiresArtifactOwnershipValidation(source: string): boolean {
+  return OWNERSHIP_VALIDATED_ARTIFACT_SOURCES.has(source);
+}
+
 export interface ValidationResult {
   valid: boolean;
   actualNamespace?: string;

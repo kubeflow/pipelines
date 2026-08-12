@@ -116,7 +116,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   useEffect(() => {
     if (isError && error) {
       updateBanner({
-        message: 'Cannot get tasks for this run.',
+        message: 'Cannot get tasks for this run. Refresh the page to try again.',
         additionalInfo: error.message,
         mode: 'error',
       });

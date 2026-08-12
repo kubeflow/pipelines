@@ -274,7 +274,8 @@ describe('CompareV2', () => {
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenCalledWith({
         additionalInfo: 'Task service unavailable',
-        message: 'Cannot get native task and artifact data for the selected runs.',
+        message:
+          'Cannot get native task and artifact data for the selected runs. Refresh the page to try again.',
         mode: 'error',
       }),
     );

@@ -168,7 +168,8 @@ export function CompareV2(props: CompareV2Props) {
     if (isError) {
       updateBanner({
         additionalInfo: error?.message,
-        message: 'Cannot get native task and artifact data for the selected runs.',
+        message:
+          'Cannot get native task and artifact data for the selected runs. Refresh the page to try again.',
         mode: 'error',
       });
     } else {

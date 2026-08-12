@@ -47,6 +47,8 @@ vi.mock('../gcs-helper.js', () => ({
 const mockedValidateArtifactNamespace = vi.fn();
 vi.mock('../helpers/artifact-validator.js', () => ({
   validateArtifactNamespace: (...args: unknown[]) => mockedValidateArtifactNamespace(...args),
+  requiresArtifactOwnershipValidation: (source: string) =>
+    ['minio', 's3', 'gcs', 'http', 'https'].includes(source),
   buildArtifactUri: (source: string, bucket: string, key: string) => {
     const scheme = source === 'gcs' ? 'gs' : source;
     return `${scheme}://${bucket}/${key}`;

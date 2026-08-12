@@ -204,7 +204,7 @@ describe('RunDetailsV2', () => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
           additionalInfo: 'Task service unavailable',
-          message: 'Cannot get tasks for this run.',
+          message: 'Cannot get tasks for this run. Refresh the page to try again.',
           mode: 'error',
         }),
       ),
@@ -258,7 +258,7 @@ describe('RunDetailsV2', () => {
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
-          message: 'Cannot get tasks for this run.',
+          message: 'Cannot get tasks for this run. Refresh the page to try again.',
           mode: 'error',
         }),
       ),

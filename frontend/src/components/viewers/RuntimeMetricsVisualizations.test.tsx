@@ -34,7 +34,7 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     };
 
-    expect(TEST_ONLY.buildRocCurves([artifact])).toEqual({
+    expect(TEST_ONLY.buildRocCurves(TEST_ONLY.expandClassificationMetrics([artifact]))).toEqual({
       configs: [
         {
           type: PlotType.ROC,
@@ -67,9 +67,15 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     ];
 
-    expect(TEST_ONLY.buildConfusionMatrices(artifacts)).toEqual([
+    const visualizations = TEST_ONLY.expandClassificationMetrics(artifacts);
+    expect(TEST_ONLY.buildConfusionMatrices(visualizations)).toEqual([
       {
-        artifact: artifacts[0],
+        visualization: {
+          key: 'matrix-1',
+          displayName: 'wrapped',
+          metadata: artifacts[0].metadata,
+          sourceArtifact: artifacts[0],
+        },
         configs: [
           {
             type: PlotType.CONFUSION_MATRIX,
@@ -83,7 +89,12 @@ describe('RuntimeMetricsVisualizations', () => {
         ],
       },
       {
-        artifact: artifacts[1],
+        visualization: {
+          key: 'matrix-2',
+          displayName: 'direct',
+          metadata: artifacts[1].metadata,
+          sourceArtifact: artifacts[1],
+        },
         configs: [
           {
             type: PlotType.CONFUSION_MATRIX,
@@ -128,25 +139,25 @@ describe('RuntimeMetricsVisualizations', () => {
     };
 
     expect(TEST_ONLY.expandClassificationMetrics([artifact])).toEqual([
-      expect.objectContaining({
-        artifact_id: 'sliced-1:country=US',
-        name: 'evaluation · country=US',
-        type: ArtifactArtifactType.ClassificationMetric,
+      {
+        key: 'sliced-1:slice:0',
+        displayName: 'evaluation · country=US',
         metadata: {
           confidenceMetrics: [{ confidenceThreshold: 0.5, falsePositiveRate: 0.1, recall: 0.9 }],
         },
-      }),
-      expect.objectContaining({
-        artifact_id: 'sliced-1:country=CA',
-        name: 'evaluation · country=CA',
-        type: ArtifactArtifactType.ClassificationMetric,
+        sourceArtifact: artifact,
+      },
+      {
+        key: 'sliced-1:slice:1',
+        displayName: 'evaluation · country=CA',
         metadata: {
           confusionMatrix: {
             annotationSpecs: [{ displayName: 'yes' }, { displayName: 'no' }],
             rows: [{ row: [1, 0] }, { row: [0, 1] }],
           },
         },
-      }),
+        sourceArtifact: artifact,
+      },
     ]);
   });
 
@@ -199,6 +210,8 @@ describe('RuntimeMetricsVisualizations', () => {
   it('rejects file artifacts without a URI', async () => {
     await expect(
       TEST_ONLY.downloadVisualizations([{ name: 'missing-file', type: ArtifactArtifactType.HTML }]),
-    ).rejects.toThrow('missing-file has no URI.');
+    ).rejects.toThrow(
+      'missing-file has no URI. Verify that the component produced a valid artifact location.',
+    );
   });
 });

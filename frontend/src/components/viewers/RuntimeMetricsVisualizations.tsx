@@ -50,6 +50,13 @@ interface DownloadedVisualizations {
   markdown: MarkdownViewerConfig[];
 }
 
+interface ClassificationVisualization {
+  key: string;
+  displayName: string;
+  metadata?: { [key: string]: object };
+  sourceArtifact: V2beta1Artifact;
+}
+
 const ROC_CURVE_DEFINITION =
   'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate.';
 
@@ -99,7 +106,7 @@ export function RuntimeMetricsVisualizations({
     <>
       {downloadError && (
         <Banner
-          message='Error in retrieving visualization information.'
+          message='Unable to retrieve visualization information. Verify the artifact URI and refresh the page.'
           mode='error'
           additionalInfo={downloadError.message}
         />
@@ -127,9 +134,9 @@ export function RuntimeMetricsVisualizations({
           <ROCCurve configs={rocCurves.configs} forceLegend={rocCurves.configs.length > 1} />
         </div>
       )}
-      {confusionMatrices.map(({ artifact, configs }) => (
-        <div className={padding(40)} key={artifact.artifact_id || artifact.name}>
-          <h3>Confusion Matrix: {getArtifactDisplayName(artifact)}</h3>
+      {confusionMatrices.map(({ visualization, configs }) => (
+        <div className={padding(40)} key={visualization.key}>
+          <h3>Confusion Matrix: {visualization.displayName}</h3>
           <ConfusionMatrix configs={configs} />
         </div>
       ))}
@@ -164,19 +171,19 @@ export function RuntimeMetricsVisualizations({
   );
 }
 
-function buildRocCurves(artifacts: V2beta1Artifact[]): {
+function buildRocCurves(visualizations: ClassificationVisualization[]): {
   configs: ROCCurveConfig[];
   error?: string;
 } {
   const configs: ROCCurveConfig[] = [];
-  for (const artifact of artifacts) {
-    const confidenceMetrics = unwrapList(artifact.metadata?.confidenceMetrics);
+  for (const visualization of visualizations) {
+    const confidenceMetrics = unwrapList(visualization.metadata?.confidenceMetrics);
     if (!confidenceMetrics) {
       continue;
     }
     const { error } = validateConfidenceMetrics(confidenceMetrics);
     if (error) {
-      return { configs, error: `${getArtifactDisplayName(artifact)}: ${error}` };
+      return { configs, error: `${visualization.displayName}: ${error}` };
     }
     configs.push(
       buildRocCurveConfig(confidenceMetrics as Parameters<typeof buildRocCurveConfig>[0]),
@@ -185,13 +192,22 @@ function buildRocCurves(artifacts: V2beta1Artifact[]): {
   return { configs };
 }
 
-function expandClassificationMetrics(artifacts: V2beta1Artifact[]): V2beta1Artifact[] {
-  return artifacts.flatMap((artifact) => {
+function expandClassificationMetrics(artifacts: V2beta1Artifact[]): ClassificationVisualization[] {
+  return artifacts.flatMap((artifact, artifactIndex) => {
+    const sourceKey =
+      artifact.artifact_id || artifact.uri || artifact.name || `classification-${artifactIndex}`;
     if (
       isClassificationMetricArtifact(artifact) &&
       artifact.type === ArtifactArtifactType.ClassificationMetric
     ) {
-      return [artifact];
+      return [
+        {
+          key: sourceKey,
+          displayName: getArtifactDisplayName(artifact),
+          metadata: artifact.metadata,
+          sourceArtifact: artifact,
+        },
+      ];
     }
     if (artifact.type !== ArtifactArtifactType.SlicedClassificationMetric) {
       return [];
@@ -209,11 +225,10 @@ function expandClassificationMetrics(artifacts: V2beta1Artifact[]): V2beta1Artif
       const sliceName = typeof slice.slice === 'string' ? slice.slice : `Slice ${index + 1}`;
       return [
         {
-          ...artifact,
-          artifact_id: `${artifact.artifact_id || artifact.name || 'sliced-metric'}:${sliceName}`,
-          name: `${getArtifactDisplayName(artifact)} · ${sliceName}`,
-          type: ArtifactArtifactType.ClassificationMetric,
+          key: `${sourceKey}:slice:${index}`,
+          displayName: `${getArtifactDisplayName(artifact)} · ${sliceName}`,
           metadata: sliceMetrics as { [key: string]: object },
+          sourceArtifact: artifact,
         },
       ];
     });
@@ -221,16 +236,16 @@ function expandClassificationMetrics(artifacts: V2beta1Artifact[]): V2beta1Artif
 }
 
 function buildConfusionMatrices(
-  artifacts: V2beta1Artifact[],
-): Array<{ artifact: V2beta1Artifact; configs: ConfusionMatrixConfig[] }> {
-  return artifacts.flatMap((artifact) => {
-    const matrix = unwrapStruct(artifact.metadata?.confusionMatrix);
+  visualizations: ClassificationVisualization[],
+): Array<{ visualization: ClassificationVisualization; configs: ConfusionMatrixConfig[] }> {
+  return visualizations.flatMap((visualization) => {
+    const matrix = unwrapStruct(visualization.metadata?.confusionMatrix);
     if (!isConfusionMatrix(matrix)) {
       return [];
     }
     return [
       {
-        artifact,
+        visualization,
         configs: [
           {
             type: PlotType.CONFUSION_MATRIX,
@@ -251,7 +266,9 @@ async function downloadVisualizations(
   const downloaded = await Promise.all(
     artifacts.map(async (artifact) => {
       if (!artifact.uri) {
-        throw new Error(`${getArtifactDisplayName(artifact)} has no URI.`);
+        throw new Error(
+          `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced a valid artifact location.`,
+        );
       }
       const content = await Apis.readFile({
         path: WorkflowParser.parseStoragePath(artifact.uri),

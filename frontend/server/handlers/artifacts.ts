@@ -41,7 +41,11 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { validateArtifactNamespace, buildArtifactUri } from '../helpers/artifact-validator.js';
+import {
+  buildArtifactUri,
+  requiresArtifactOwnershipValidation,
+  validateArtifactNamespace,
+} from '../helpers/artifact-validator.js';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   AuthorizeRequestResources,
@@ -222,8 +226,7 @@ export function getArtifactsAuthMiddleware(
         response.status(400).send('Malformed URL encoding in artifact path');
         return;
       }
-      const trackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
-      if (trackedSources.has(coords.source) && coords.bucket && coords.key) {
+      if (requiresArtifactOwnershipValidation(coords.source) && coords.bucket && coords.key) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
         const validation = await validateArtifactNamespace(
           apiServerAddress,
