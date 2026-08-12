@@ -187,3 +187,108 @@ export function checkIfTerminatedV2(
   }
   return state;
 }
+
+export type PodLifecycleFailureReason =
+  | 'OOMKilled'
+  | 'ImagePullBackOff'
+  | 'ErrImagePull'
+  | 'CrashLoopBackOff'
+  | 'NodeLost'
+  | 'Evicted'
+  | 'UnknownFailure';
+
+export interface PodDiagnosticSummary {
+  reason: PodLifecycleFailureReason;
+  title: string;
+  description: string;
+  suggestion: string;
+}
+
+/**
+ * Parses raw node or container error messages to identify common Kubernetes pod lifecycle failures.
+ */
+export function parsePodLifecycleFailure(message?: string): PodLifecycleFailureReason | null {
+  if (!message) {
+    return null;
+  }
+
+  const lowerMsg = message.toLowerCase();
+  if (lowerMsg.includes('oomkilled') || lowerMsg.includes('out of memory')) {
+    return 'OOMKilled';
+  }
+  if (lowerMsg.includes('imagepullbackoff')) {
+    return 'ImagePullBackOff';
+  }
+  if (lowerMsg.includes('errimagepull') || lowerMsg.includes('image pull failed')) {
+    return 'ErrImagePull';
+  }
+  if (lowerMsg.includes('crashloopbackoff') || lowerMsg.includes('back-off restarting failed container')) {
+    return 'CrashLoopBackOff';
+  }
+  if (lowerMsg.includes('nodelost') || lowerMsg.includes('node lost')) {
+    return 'NodeLost';
+  }
+  if (lowerMsg.includes('evicted') || lowerMsg.includes('pod evicted')) {
+    return 'Evicted';
+  }
+
+  return null;
+}
+
+/**
+ * Provides human-readable diagnostic details and remediation steps for Kubernetes pod lifecycle failures.
+ */
+export function getPodDiagnosticSummary(reason: PodLifecycleFailureReason): PodDiagnosticSummary {
+  switch (reason) {
+    case 'OOMKilled':
+      return {
+        reason: 'OOMKilled',
+        title: 'Container Out of Memory (OOMKilled)',
+        description:
+          'The container exceeded its configured memory limit and was terminated by the Linux kernel OOM killer.',
+        suggestion:
+          'Increase the container memory requests/limits in your pipeline component spec or optimize memory usage.',
+      };
+    case 'ImagePullBackOff':
+    case 'ErrImagePull':
+      return {
+        reason,
+        title: 'Container Image Pull Failure',
+        description: 'Kubernetes failed to pull the specified container image from the container registry.',
+        suggestion:
+          'Verify the container image name, tag, and registry authentication credentials (imagePullSecrets).',
+      };
+    case 'CrashLoopBackOff':
+      return {
+        reason: 'CrashLoopBackOff',
+        title: 'Container Crash Loop',
+        description: 'The container repeatedly started, crashed, and restarted.',
+        suggestion:
+          'Check the container execution logs and entrypoint parameters for application runtime errors.',
+      };
+    case 'NodeLost':
+      return {
+        reason: 'NodeLost',
+        title: 'Kubernetes Node Disconnected',
+        description:
+          'The worker node hosting this pipeline task became unresponsive or lost connection to the cluster.',
+        suggestion: 'Check cluster node health or retry the pipeline run on an active node.',
+      };
+    case 'Evicted':
+      return {
+        reason: 'Evicted',
+        title: 'Pod Evicted from Node',
+        description:
+          'The pod was evicted by the Kubernetes node due to resource pressure (disk, memory, or PID pressure).',
+        suggestion: 'Review node resource usage or set appropriate resource requests for your pipeline step.',
+      };
+    default:
+      return {
+        reason: 'UnknownFailure',
+        title: 'Pipeline Step Failure',
+        description: 'The pipeline step failed during execution.',
+        suggestion: 'Inspect the pod logs and event details for further diagnostics.',
+      };
+  }
+}
+
