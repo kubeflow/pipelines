@@ -247,6 +247,74 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
                 '\'typing-extensions>=3.7.4,<5; python_version<"3.9"\' && "$0" "$@"\n'
             ]))
 
+    def test_with_packages_to_install_with_pip_trusted_hosts_only(self):
+        packages_to_install = ['package1', 'package2']
+        pip_trusted_hosts = ['myurl.org']
+
+        command = component_factory._get_packages_to_install_command(
+            packages_to_install=packages_to_install,
+            pip_trusted_hosts=pip_trusted_hosts,
+        )
+
+        self.assertEqual(
+            strip_kfp_version(command),
+            strip_kfp_version([
+                'sh', '-c', '\n'
+                'if ! [ -x "$(command -v pip)" ]; then\n'
+                '    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install '
+                'python3-pip\n'
+                'fi\n'
+                '\n'
+                'PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet '
+                "--no-warn-script-location --trusted-host myurl.org 'package1' 'package2'  &&  "
+                'python3 -m pip install --quiet --no-warn-script-location --trusted-host '
+                "myurl.org kfp '--no-deps' 'typing-extensions>=3.7.4,<5; "
+                'python_version<"3.9"\' && "$0" "$@"\n'
+            ]))
+
+
+class TestMakeIndexUrlOptions(unittest.TestCase):
+
+    def test_with_no_index_urls_and_no_trusted_hosts(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=None, pip_trusted_hosts=None), '')
+
+    def test_with_index_urls_only(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=['https://myurl.org/simple'],
+                pip_trusted_hosts=None),
+            '--index-url https://myurl.org/simple ')
+
+    def test_with_multiple_index_urls_only(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=[
+                    'https://myurl.org/simple', 'https://myurl2.org/simple'
+                ],
+                pip_trusted_hosts=None), '--index-url https://myurl.org/simple '
+            '--extra-index-url https://myurl2.org/simple ')
+
+    def test_with_index_urls_and_trusted_hosts(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=['https://myurl.org/simple'],
+                pip_trusted_hosts=['myurl.org', 'myurl2.org']),
+            '--index-url https://myurl.org/simple '
+            '--trusted-host myurl.org --trusted-host myurl2.org ')
+
+    def test_with_trusted_hosts_only(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=None, pip_trusted_hosts=['myurl.org']),
+            '--trusted-host myurl.org ')
+
+    def test_with_empty_lists(self):
+        self.assertEqual(
+            component_factory.make_index_url_options(
+                pip_index_urls=[], pip_trusted_hosts=[]), '')
+
 
 class TestInvalidParameterName(unittest.TestCase):
 
