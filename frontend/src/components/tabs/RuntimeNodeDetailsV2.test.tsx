@@ -31,8 +31,10 @@ import {
 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { Apis } from 'src/lib/Apis';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { PlotType } from 'src/components/viewers/Viewer';
 
 const V2_PVC_TEMPLATE_STRING = dump({
   pipeline_spec: loadAll(v2PvcYamlString)[0],
@@ -219,5 +221,46 @@ describe('RuntimeNodeDetailsV2', () => {
     );
 
     screen.getByText(createdAt.toLocaleString());
+  });
+
+  it('uses the native output key to restore legacy UI metadata visualizations', async () => {
+    const loadSpy = vi
+      .spyOn(OutputArtifactLoader, 'load')
+      .mockResolvedValue([{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }]);
+    const artifactElement = {
+      data: { label: 'legacy-output' },
+      id: 'artifact.preprocess.mlpipeline-ui-metadata',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'mlpipeline-ui-metadata',
+              artifacts: [
+                {
+                  artifact_id: 'legacy-metadata-1',
+                  name: 'legacy-output',
+                  uri: 's3://reports/metadata.json',
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(screen.getByText('Visualization'));
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 });

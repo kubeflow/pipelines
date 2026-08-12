@@ -27,6 +27,7 @@ import {
   getOutputArtifactByName,
   getScalarMetricValue,
   isClassificationMetricArtifact,
+  isLegacyUiMetadataArtifact,
   isVisualizableArtifact,
   isTaskFinished,
 } from './RuntimeArtifactUtils';
@@ -128,6 +129,13 @@ describe('RuntimeArtifactUtils', () => {
       isClassificationMetricArtifact({ type: ArtifactArtifactType.ClassificationMetric }),
     ).toBe(true);
     expect(isVisualizableArtifact({ type: ArtifactArtifactType.Dataset })).toBe(false);
+  });
+
+  it('recognizes legacy UI metadata by artifact name or output key', () => {
+    expect(isLegacyUiMetadataArtifact({ name: 'mlpipeline-ui-metadata' })).toBe(true);
+    expect(isLegacyUiMetadataArtifact({}, 'mlpipeline_ui_metadata')).toBe(true);
+    expect(isLegacyUiMetadataArtifact({ name: 'dataset' }, 'model')).toBe(false);
+    expect(isVisualizableArtifact({ name: 'mlpipeline-ui-metadata' })).toBe(true);
   });
 
   it('reads session metadata and recognizes every terminal task state', () => {

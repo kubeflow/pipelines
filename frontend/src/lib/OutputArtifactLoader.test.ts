@@ -97,6 +97,27 @@ describe('OutputArtifactLoader', () => {
         ]
       `);
     });
+
+    it('uses artifact provider info for metadata and resolves referenced sources independently', async () => {
+      const metadata = { type: 'markdown', source: 's3://bucket/object/key', storage: 'gcs' };
+      fileToRead = JSON.stringify({ outputs: [metadata] });
+
+      await OutputArtifactLoader.load(storagePath, 'ns1', { providerInfo: 'provider-session' });
+
+      expect(readFileSpy).toHaveBeenCalledTimes(2);
+      expect(readFileSpy.mock.calls.map(([{ providerInfo }]) => providerInfo)).toEqual([
+        'provider-session',
+        undefined,
+      ]);
+    });
+
+    it('can surface loading failures to a query boundary', async () => {
+      readFileSpy.mockRejectedValue(new Error('metadata unavailable'));
+
+      await expect(
+        OutputArtifactLoader.load(storagePath, 'ns1', { throwOnError: true }),
+      ).rejects.toThrow('metadata unavailable');
+    });
   });
 
   describe('buildConfusionMatrixConfig', () => {

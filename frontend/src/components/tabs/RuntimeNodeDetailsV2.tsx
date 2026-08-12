@@ -360,7 +360,11 @@ function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDeta
           <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
         )}
         {selectedTab === 1 && (
-          <RuntimeMetricsVisualizations artifacts={artifacts} namespace={namespace} />
+          <RuntimeMetricsVisualizations
+            artifacts={artifacts}
+            artifactKey={artifactGroup.artifact_key}
+            namespace={namespace}
+          />
         )}
       </div>
     </div>

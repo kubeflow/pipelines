@@ -41,6 +41,7 @@ export interface RuntimeArtifactEntry {
 }
 
 export const EXECUTOR_LOGS_ARTIFACT_KEY = 'executor-logs';
+export const LEGACY_UI_METADATA_ARTIFACT_KEY = 'mlpipeline-ui-metadata';
 
 export function flattenArtifactGroups(
   groups: InputOutputsIOArtifact[] | undefined,
@@ -135,12 +136,22 @@ export function isMarkdownArtifact(artifact: V2beta1Artifact): boolean {
   return artifact.type === ArtifactArtifactType.Markdown;
 }
 
+export function isLegacyUiMetadataArtifact(
+  artifact: V2beta1Artifact,
+  artifactKey?: string,
+): boolean {
+  return [artifact.name, artifactKey].some(
+    (value) => value?.replace(/[\W_]/g, '-').toLowerCase() === LEGACY_UI_METADATA_ARTIFACT_KEY,
+  );
+}
+
 export function isVisualizableArtifact(artifact: V2beta1Artifact): boolean {
   return (
     isScalarMetricArtifact(artifact) ||
     isClassificationMetricArtifact(artifact) ||
     isHtmlArtifact(artifact) ||
-    isMarkdownArtifact(artifact)
+    isMarkdownArtifact(artifact) ||
+    isLegacyUiMetadataArtifact(artifact)
   );
 }
 

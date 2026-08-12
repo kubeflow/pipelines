@@ -90,6 +90,9 @@ export const queryKeys = {
   runtimeArtifactVisualization: (artifactId: string | undefined, namespace?: string) =>
     ['runtime_artifact_visualization', artifactId, namespace] as const,
 
+  legacyRuntimeUiMetadata: (artifactId: string | undefined, namespace?: string) =>
+    ['legacy_runtime_ui_metadata', artifactId, namespace] as const,
+
   // --- Misc ---
 
   artifactPreview: (

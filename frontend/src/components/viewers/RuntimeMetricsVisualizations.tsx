@@ -23,12 +23,14 @@ import PlotCard from 'src/components/PlotCard';
 import { color, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
   getArtifactSessionInfo,
   getScalarMetricValue,
   isClassificationMetricArtifact,
   isHtmlArtifact,
+  isLegacyUiMetadataArtifact,
   isMarkdownArtifact,
   isScalarMetricArtifact,
 } from 'src/lib/v2/RuntimeArtifactUtils';
@@ -40,13 +42,15 @@ import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
 import { PlotType, ViewerConfig } from './Viewer';
+import { componentMap } from './ViewerContainer';
 
 interface RuntimeMetricsVisualizationsProps {
   artifacts: V2beta1Artifact[];
+  artifactKey?: string;
   namespace?: string;
 }
 
-interface ClassificationVisualization {
+export interface ClassificationVisualization {
   key: string;
   displayName: string;
   metadata?: { [key: string]: object };
@@ -58,18 +62,23 @@ const ROC_CURVE_DEFINITION =
 
 export function RuntimeMetricsVisualizations({
   artifacts,
+  artifactKey,
   namespace,
 }: RuntimeMetricsVisualizationsProps) {
-  const { scalarMetrics, classificationMetrics, fileArtifacts } = useMemo(() => {
-    const files = artifacts.filter(
-      (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
-    );
-    return {
-      scalarMetrics: artifacts.filter(isScalarMetricArtifact),
-      classificationMetrics: expandClassificationMetrics(artifacts),
-      fileArtifacts: files,
-    };
-  }, [artifacts]);
+  const { scalarMetrics, classificationMetrics, fileArtifacts, legacyUiMetadataArtifacts } =
+    useMemo(() => {
+      const files = artifacts.filter(
+        (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
+      );
+      return {
+        scalarMetrics: artifacts.filter(isScalarMetricArtifact),
+        classificationMetrics: expandClassificationMetrics(artifacts),
+        fileArtifacts: files,
+        legacyUiMetadataArtifacts: artifacts.filter((artifact) =>
+          isLegacyUiMetadataArtifact(artifact, artifactKey),
+        ),
+      };
+    }, [artifactKey, artifacts]);
 
   const rocCurves = useMemo(() => buildRocCurves(classificationMetrics), [classificationMetrics]);
   const confusionMatrices = useMemo(
@@ -81,7 +90,8 @@ export function RuntimeMetricsVisualizations({
     scalarMetrics.length === 0 &&
     rocCurves.configs.length === 0 &&
     confusionMatrices.length === 0 &&
-    fileArtifacts.length === 0
+    fileArtifacts.length === 0 &&
+    legacyUiMetadataArtifacts.length === 0
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
@@ -136,6 +146,13 @@ export function RuntimeMetricsVisualizations({
       {!!fileArtifacts.length && (
         <FileArtifactVisualization artifacts={fileArtifacts} namespace={namespace} />
       )}
+      {legacyUiMetadataArtifacts.map((artifact, index) => (
+        <LegacyUiMetadataVisualization
+          artifact={artifact}
+          key={artifact.artifact_id || artifact.uri || `legacy-ui-metadata-${index}`}
+          namespace={artifact.namespace || namespace}
+        />
+      ))}
     </>
   );
 }
@@ -159,12 +176,6 @@ function FileArtifactVisualization({
   const selectedEntry = entries.find(({ key }) => key === selectedKey);
   const activeSelectedKey = selectedEntry?.key || '';
   const selectedArtifact = selectedEntry?.artifact;
-  const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
-    queryKey: queryKeys.runtimeArtifactVisualization(activeSelectedKey || undefined, namespace),
-    queryFn: () => downloadVisualization(selectedArtifact!, namespace),
-    enabled: !!selectedArtifact,
-    staleTime: Infinity,
-  });
 
   return (
     <div className={padding(20, 'lrt')}>
@@ -184,6 +195,30 @@ function FileArtifactVisualization({
           ))}
         </Select>
       </FormControl>
+      {selectedArtifact && (
+        <RuntimeArtifactVisualization artifact={selectedArtifact} namespace={namespace} />
+      )}
+    </div>
+  );
+}
+
+export function RuntimeArtifactVisualization({
+  artifact,
+  namespace,
+  title,
+}: {
+  artifact: V2beta1Artifact;
+  namespace?: string;
+  title?: string;
+}) {
+  const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
+  const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
+    queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace),
+    queryFn: () => downloadVisualization(artifact, namespace),
+    staleTime: Infinity,
+  });
+  return (
+    <>
       {error && (
         <Banner
           message='Unable to retrieve the selected visualization. Verify the artifact URI and refresh the page to retry.'
@@ -195,14 +230,70 @@ function FileArtifactVisualization({
       {data && (
         <PlotCard
           configs={[data]}
-          title={isHtmlArtifact(selectedArtifact!) ? 'Static HTML' : 'Static Markdown'}
+          title={title || (isHtmlArtifact(artifact) ? 'Static HTML' : 'Static Markdown')}
         />
       )}
+    </>
+  );
+}
+
+function LegacyUiMetadataVisualization({
+  artifact,
+  namespace,
+}: {
+  artifact: V2beta1Artifact;
+  namespace?: string;
+}) {
+  const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
+  const { data, error, isLoading } = useQuery<ViewerConfig[], Error>({
+    queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace),
+    queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
+    retry: false,
+    staleTime: Infinity,
+  });
+  return (
+    <div className={padding(20, 'lrt')}>
+      {error && (
+        <Banner
+          message='Unable to retrieve legacy UI visualizations. Verify the metadata artifact and its referenced sources, then refresh the page to retry.'
+          mode='error'
+          additionalInfo={error.message}
+        />
+      )}
+      {isLoading && <Banner message='Legacy UI visualizations are loading.' mode='info' />}
+      {data?.length === 0 && (
+        <Banner
+          message='The legacy UI metadata artifact contains no supported visualizations.'
+          mode='info'
+        />
+      )}
+      {data?.map((config, index) => (
+        <PlotCard
+          configs={[config]}
+          key={`${config.type}-${index}`}
+          title={componentMap[config.type].prototype.getDisplayName()}
+        />
+      ))}
     </div>
   );
 }
 
-function buildRocCurves(visualizations: ClassificationVisualization[]): {
+async function loadLegacyUiMetadataVisualization(
+  artifact: V2beta1Artifact,
+  namespace?: string,
+): Promise<ViewerConfig[]> {
+  if (!artifact.uri) {
+    throw new Error(
+      `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced the UI metadata artifact at a valid location.`,
+    );
+  }
+  return OutputArtifactLoader.load(WorkflowParser.parseStoragePath(artifact.uri), namespace, {
+    providerInfo: getArtifactSessionInfo(artifact),
+    throwOnError: true,
+  });
+}
+
+export function buildRocCurves(visualizations: ClassificationVisualization[]): {
   configs: ROCCurveConfig[];
   error?: string;
 } {
@@ -223,7 +314,9 @@ function buildRocCurves(visualizations: ClassificationVisualization[]): {
   return { configs };
 }
 
-function expandClassificationMetrics(artifacts: V2beta1Artifact[]): ClassificationVisualization[] {
+export function expandClassificationMetrics(
+  artifacts: V2beta1Artifact[],
+): ClassificationVisualization[] {
   return artifacts.flatMap((artifact, artifactIndex) => {
     const sourceKey =
       artifact.artifact_id || artifact.uri || artifact.name || `classification-${artifactIndex}`;
@@ -266,7 +359,7 @@ function expandClassificationMetrics(artifacts: V2beta1Artifact[]): Classificati
   });
 }
 
-function buildConfusionMatrices(
+export function buildConfusionMatrices(
   visualizations: ClassificationVisualization[],
 ): Array<{ visualization: ClassificationVisualization; configs: ConfusionMatrixConfig[] }> {
   return visualizations.flatMap((visualization) => {
@@ -352,6 +445,7 @@ export const TEST_ONLY = {
   buildRocCurves,
   downloadVisualization,
   expandClassificationMetrics,
+  loadLegacyUiMetadataVisualization,
 };
 
 export default RuntimeMetricsVisualizations;

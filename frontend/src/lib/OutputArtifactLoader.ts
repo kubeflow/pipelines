@@ -45,13 +45,26 @@ export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
 
+export interface OutputArtifactLoadOptions {
+  providerInfo?: string;
+  throwOnError?: boolean;
+}
+
 type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
 
 export class OutputArtifactLoader {
-  public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
+  public static async load(
+    outputPath: StoragePath,
+    namespace?: string,
+    options: OutputArtifactLoadOptions = {},
+  ): Promise<ViewerConfig[]> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
-      const metadataFile = await Apis.readFile({ path: outputPath, namespace: namespace });
+      const metadataFile = await Apis.readFile({
+        path: outputPath,
+        namespace,
+        providerInfo: options.providerInfo,
+      });
       if (metadataFile) {
         try {
           plotMetadataList = OutputArtifactLoader.parseOutputMetadataInJson(
@@ -73,7 +86,9 @@ export class OutputArtifactLoader {
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       logger.error('Error loading run outputs:', errorMessage);
-      // TODO: error dialog
+      if (options.throwOnError) {
+        throw err;
+      }
     }
 
     const getSourceContent: SourceContentGetter = async (source, storage) =>
@@ -304,7 +319,7 @@ async function readSourceContent(
   }
   return await Apis.readFile({
     path: WorkflowParser.parseStoragePath(source),
-    namespace: namespace,
+    namespace,
   });
 }
 

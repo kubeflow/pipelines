@@ -15,6 +15,7 @@
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/WorkflowParser';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType } from './Viewer';
@@ -220,5 +221,61 @@ describe('RuntimeMetricsVisualizations', () => {
     ).rejects.toThrow(
       'missing-file has no URI. Verify that the component produced a valid artifact location.',
     );
+  });
+
+  it('renders legacy UI metadata viewers from a native artifact and output key', async () => {
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue([
+      {
+        data: [['restored']],
+        labels: ['value'],
+        type: PlotType.TABLE,
+      },
+    ]);
+    const artifact: V2beta1Artifact = {
+      artifact_id: 'legacy-metadata-1',
+      name: 'legacy-output',
+      type: ArtifactArtifactType.Artifact,
+      uri: 's3://reports/mlpipeline-ui-metadata.json',
+      metadata: { store_session_info: 'provider-session' } as any,
+    };
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[artifact]}
+          artifactKey='mlpipeline-ui-metadata'
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(loadSpy).toHaveBeenCalledWith(
+      { bucket: 'reports', key: 'mlpipeline-ui-metadata.json', source: StorageService.S3 },
+      'team-a',
+      { providerInfo: 'provider-session', throwOnError: true },
+    );
+  });
+
+  it('isolates a legacy UI metadata loading failure behind an actionable banner', async () => {
+    vi.spyOn(OutputArtifactLoader, 'load').mockRejectedValue(new Error('metadata unavailable'));
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              artifact_id: 'legacy-metadata-1',
+              name: 'mlpipeline-ui-metadata',
+              uri: 'gs://reports/metadata.json',
+            },
+          ]}
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText(/Unable to retrieve legacy UI visualizations/)).toBeVisible();
+    screen.getByText(/Verify the metadata artifact and its referenced sources/);
   });
 });
