@@ -59,7 +59,6 @@ def main():
     print(f"✅ Title validated successfully. Type: {issue_type}, Area: {issue_area}")
 
     system_instructions = """You are an expert open-source maintainer for Kubeflow Pipelines.
-You are an expert open-source maintainer for Kubeflow Pipelines.
 Analyze the quality of the incoming issue {issue_type} based on Scope, Context, Guidance, and Complexity.
              
 Calibrate your evaluation against these compressed reference standards:
