@@ -12,6 +12,7 @@ on:
       - 'go.sum'
       - 'backend/api/Dockerfile'
       - 'backend/api/Makefile'
+      - 'backend/api/build_kfp_server_api_python_package.sh'
       - 'backend/api/tools/go.mod'
       - 'backend/api/tools/go.sum'
       - 'backend/api/**/*.proto'
