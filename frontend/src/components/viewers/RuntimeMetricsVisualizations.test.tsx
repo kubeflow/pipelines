@@ -18,7 +18,7 @@ import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/WorkflowParser';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { PlotType } from './Viewer';
+import { PlotType, ViewerConfig } from './Viewer';
 import { RuntimeMetricsVisualizations, TEST_ONLY } from './RuntimeMetricsVisualizations';
 
 describe('RuntimeMetricsVisualizations', () => {
@@ -277,5 +277,28 @@ describe('RuntimeMetricsVisualizations', () => {
 
     expect(await screen.findByText(/Unable to retrieve legacy UI visualizations/)).toBeVisible();
     screen.getByText(/Verify the metadata artifact and its referenced sources/);
+  });
+
+  it('reports an unsupported legacy viewer type without crashing the visualization tab', async () => {
+    vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue([
+      { type: 'future-viewer' } as unknown as ViewerConfig,
+    ]);
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              artifact_id: 'legacy-metadata-1',
+              name: 'mlpipeline-ui-metadata',
+              uri: 'gs://reports/metadata.json',
+            },
+          ]}
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText(/contains an unsupported visualization type/)).toBeVisible();
   });
 });

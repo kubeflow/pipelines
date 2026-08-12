@@ -251,6 +251,8 @@ function LegacyUiMetadataVisualization({
     retry: false,
     staleTime: Infinity,
   });
+  const supportedConfigs = data?.filter((config) => !!componentMap[config.type]);
+  const containsUnsupportedConfig = supportedConfigs?.length !== data?.length;
   return (
     <div className={padding(20, 'lrt')}>
       {error && (
@@ -267,7 +269,13 @@ function LegacyUiMetadataVisualization({
           mode='info'
         />
       )}
-      {data?.map((config, index) => (
+      {containsUnsupportedConfig && (
+        <Banner
+          message='The legacy UI metadata contains an unsupported visualization type. Update the metadata to use a supported viewer and refresh the page.'
+          mode='error'
+        />
+      )}
+      {supportedConfigs?.map((config, index) => (
         <PlotCard
           configs={[config]}
           key={`${config.type}-${index}`}

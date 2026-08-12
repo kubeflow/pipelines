@@ -23,15 +23,19 @@ import { RouteParams } from 'src/components/Router';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { queryClientTest } from 'src/TestUtils';
-import { V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
-import RunDetailsRouter from './RunDetailsRouter';
+import RunDetailsRouter, { RUN_DETAILS_REFETCH_INTERVAL } from './RunDetailsRouter';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { vi } from 'vitest';
 
 vi.mock('src/pages/RunDetailsV2', () => ({
   RunDetailsV2: (props: any) => (
-    <div data-testid='run-details-v2' data-pipeline-job={props.pipeline_job} />
+    <div
+      data-testid='run-details-v2'
+      data-pipeline-job={props.pipeline_job}
+      data-run-state={props.run.state}
+    />
   ),
 }));
 
@@ -80,6 +84,7 @@ describe('RunDetailsRouter', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -113,6 +118,52 @@ describe('RunDetailsRouter', () => {
     await waitFor(() => {
       expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
     });
+  });
+
+  it('polls an active v2 run and stops after observing its terminal state', async () => {
+    vi.useFakeTimers();
+    const runningRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.RUNNING,
+    };
+    const succeededRun: V2beta1Run = {
+      ...runningRun,
+      state: V2beta1RuntimeState.SUCCEEDED,
+    };
+    getRunSpy.mockResolvedValueOnce(runningRun).mockResolvedValue(succeededRun);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-state',
+      V2beta1RuntimeState.RUNNING,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-state',
+      V2beta1RuntimeState.SUCCEEDED,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 2);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
   });
 
   it('renders EnhancedRunDetails (V1) when template is not a v2 pipeline spec', async () => {

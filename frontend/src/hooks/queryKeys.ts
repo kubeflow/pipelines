@@ -56,6 +56,9 @@ export const queryKeys = {
 
   artifactTasks: (artifactId: string) => ['artifact_tasks', { id: artifactId }] as const,
 
+  artifactVisualizationKey: (artifactId: string) =>
+    ['artifact_visualization_key', { id: artifactId }] as const,
+
   taskLogs: (taskId?: string, taskState?: string, namespace?: string) =>
     ['task_logs', { taskId, taskState, namespace }] as const,
 

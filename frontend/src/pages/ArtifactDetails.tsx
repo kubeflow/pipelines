@@ -18,7 +18,13 @@ import { CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import type * as React from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
-import { V2beta1Artifact, V2beta1ArtifactTask, V2beta1IOType } from 'src/apisv2beta1/artifact';
+import {
+  ArtifactArtifactType,
+  V2beta1Artifact,
+  V2beta1ArtifactTask,
+  V2beta1IOType,
+} from 'src/apisv2beta1/artifact';
+import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
@@ -36,6 +42,7 @@ import {
   getArtifactSessionInfo,
   getArtifactTypeName,
   isVisualizableArtifact,
+  LEGACY_UI_METADATA_ARTIFACT_KEY,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
@@ -148,6 +155,24 @@ function ArtifactOverview({
   artifact: V2beta1Artifact;
   onSwitch: (selectedTab: number) => void;
 }) {
+  const directlyVisualizable = isVisualizableArtifact(artifact);
+  const shouldLookUpLegacyKey =
+    !directlyVisualizable &&
+    !!artifact.artifact_id &&
+    (!artifact.type ||
+      artifact.type === ArtifactArtifactType.TYPE_UNSPECIFIED ||
+      artifact.type === ArtifactArtifactType.Artifact);
+  const {
+    data: legacyArtifactKey,
+    error: legacyKeyError,
+    isError: legacyKeyIsError,
+  } = useQuery<string | undefined, Error>({
+    queryKey: queryKeys.artifactVisualizationKey(artifact.artifact_id || ''),
+    queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
+    enabled: shouldLookUpLegacyKey,
+    retry: false,
+    staleTime: Infinity,
+  });
   const details: Array<KeyValue<string>> = [
     ['Artifact ID', artifact.artifact_id || '-'],
     ['Name', artifact.name || '-'],
@@ -181,12 +206,48 @@ function ArtifactOverview({
             valueComponentProps={{ namespace: artifact.namespace }}
           />
         )}
-        {isVisualizableArtifact(artifact) && (
-          <RuntimeMetricsVisualizations artifacts={[artifact]} namespace={artifact.namespace} />
+        {legacyKeyIsError && (
+          <Banner
+            message='Unable to determine whether this artifact contains legacy UI visualizations. Refresh the page to try again.'
+            additionalInfo={legacyKeyError.message}
+            mode='error'
+          />
+        )}
+        {(directlyVisualizable || legacyArtifactKey) && (
+          <RuntimeMetricsVisualizations
+            artifacts={[artifact]}
+            artifactKey={legacyArtifactKey}
+            namespace={artifact.namespace}
+          />
         )}
       </div>
     </>
   );
+}
+
+async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<string | undefined> {
+  const filter: V2beta1Filter = {
+    predicates: [
+      {
+        key: 'key',
+        operation: V2beta1PredicateOperation.EQUALS,
+        string_value: LEGACY_UI_METADATA_ARTIFACT_KEY,
+      },
+    ],
+  };
+  const response = await Apis.artifactServiceApiV2.artifactTasks(
+    undefined,
+    undefined,
+    [artifactId],
+    undefined,
+    undefined,
+    1,
+    'id asc',
+    encodeURIComponent(JSON.stringify(filter)),
+  );
+  return response.artifact_tasks?.[0]?.key === LEGACY_UI_METADATA_ARTIFACT_KEY
+    ? LEGACY_UI_METADATA_ARTIFACT_KEY
+    : undefined;
 }
 
 function ArtifactRelationshipsLoader({

@@ -19,7 +19,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
 import { RoutePage, RouteParams } from 'src/components/Router';
+import { PlotType } from 'src/components/viewers/Viewer';
 import { Apis } from 'src/lib/Apis';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
 import { testBestPractices } from 'src/TestUtils';
@@ -106,6 +108,42 @@ describe('ArtifactDetails', () => {
     screen.getByText('Artifact preview');
     expect(updateToolbarSpy).toHaveBeenCalledWith({ pageTitle: 'test-artifact' });
     expect(Apis.artifactServiceApiV2.artifactTasks).not.toHaveBeenCalled();
+  });
+
+  it('uses the producing output key to render legacy UI metadata', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [
+        {
+          artifact_id: TEST_ARTIFACT_ID,
+          key: 'mlpipeline-ui-metadata',
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
+    });
+    const loadSpy = vi
+      .spyOn(OutputArtifactLoader, 'load')
+      .mockResolvedValue([{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }]);
+
+    renderPage();
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      undefined,
+      undefined,
+      1,
+      'id asc',
+      expect.stringContaining('mlpipeline-ui-metadata'),
+    );
+    expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
   it('renders native producer and consumer relationships with run links', async () => {

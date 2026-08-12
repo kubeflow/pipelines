@@ -83,13 +83,17 @@ describe('RuntimeArtifactComparison', () => {
   });
 
   it('builds two independently selectable confusion-matrix panels', async () => {
-    const matrix = {
+    const firstMatrix = {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
       rows: [{ row: [2, 0] }, { row: [1, 3] }],
     };
+    const secondMatrix = {
+      annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
+      rows: [{ row: [12, 10] }, { row: [11, 13] }],
+    };
     const artifacts = [
-      classificationEntry('First run', 'matrix-1', { confusionMatrix: matrix }),
-      classificationEntry('Second run', 'matrix-2', { confusionMatrix: matrix }),
+      classificationEntry('First run', 'matrix-1', { confusionMatrix: firstMatrix }),
+      classificationEntry('Second run', 'matrix-2', { confusionMatrix: secondMatrix }),
     ];
 
     render(
@@ -109,6 +113,13 @@ describe('RuntimeArtifactComparison', () => {
 
     expect(screen.getByTitle('First run / Evaluate / evaluation')).toBeVisible();
     expect(screen.getByTitle('Second run / Evaluate / evaluation')).toBeVisible();
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
+    fireEvent.click(
+      await screen.findByRole('option', { name: 'Second run / Evaluate / evaluation' }),
+    );
+
+    expect(screen.getAllByText('12')).toHaveLength(2);
   });
 
   it('downloads only selected file panels and isolates one artifact failure', async () => {
@@ -224,10 +235,11 @@ describe('RuntimeArtifactComparison', () => {
     ).toEqual(Array.from({ length: 10 }, (_, index) => `${index}`));
   });
 
-  it('assigns stable colors from a curve provenance key', () => {
-    expect(TEST_ONLY.getStableRocColor('run-2:roc-2')).toBe(
-      TEST_ONLY.getStableRocColor('run-2:roc-2'),
-    );
-    expect(TEST_ONLY.getStableRocColor('run-2:roc-2')).toMatch(/^#[0-9a-f]{6}$/i);
+  it('assigns unique stable colors to the selected ROC curves', () => {
+    const keys = Array.from({ length: 10 }, (_, index) => `run-${index + 1}:roc-${index + 1}`);
+    const colors = TEST_ONLY.allocateRocColors(keys);
+
+    expect(new Set(Object.values(colors)).size).toBe(keys.length);
+    expect(TEST_ONLY.allocateRocColors(keys, colors)).toEqual(colors);
   });
 });

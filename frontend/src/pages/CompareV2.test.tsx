@@ -41,11 +41,39 @@ vi.mock('src/pages/RunList', () => ({
 }));
 
 vi.mock('src/components/viewers/RuntimeArtifactComparison', () => ({
+  createRuntimeArtifactComparisonSelectionState: () => ({
+    panelSelections: { 'confusion matrix': ['', ''], html: ['', ''], markdown: ['', ''] },
+    rocColorByKey: {},
+  }),
   RuntimeArtifactComparison: ({
     artifacts,
+    selectionState,
+    setSelectionState,
   }: {
     artifacts: Array<{ artifact: { artifact_id?: string } }>;
-  }) => <div>Compared {artifacts.map(({ artifact }) => artifact.artifact_id).join(',')}</div>,
+    selectionState: {
+      panelSelections: Record<string, [string, string]>;
+    };
+    setSelectionState: (updater: (current: any) => any) => void;
+  }) => (
+    <div>
+      Compared {artifacts.map(({ artifact }) => artifact.artifact_id).join(',')}
+      <button
+        onClick={() =>
+          setSelectionState((current) => ({
+            ...current,
+            panelSelections: {
+              ...current.panelSelections,
+              html: ['run-1:html-1', ''],
+            },
+          }))
+        }
+      >
+        Select comparison artifact
+      </button>
+      <span data-testid='comparison-selection'>{selectionState.panelSelections.html[0]}</span>
+    </div>
+  ),
 }));
 
 testBestPractices();
@@ -284,6 +312,25 @@ describe('CompareV2', () => {
     fireEvent.click(screen.getByText('Classification Metrics'));
 
     screen.getByText(/Compared .*classification-1/);
+  });
+
+  it('preserves artifact selections after visiting Scalar Metrics', async () => {
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByText('Train / accuracy');
+
+    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select comparison artifact' }));
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
+
+    fireEvent.click(screen.getByText('Scalar Metrics'));
+    expect(screen.queryByTestId('comparison-selection')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('HTML'));
+
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
   });
 
   it('shows an actionable banner when native task retrieval fails', async () => {

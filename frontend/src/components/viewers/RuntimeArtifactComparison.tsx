@@ -22,10 +22,11 @@ import {
   SelectChangeEvent,
 } from '@mui/material';
 import { useMemo, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import Banner from 'src/components/Banner';
 import PlotCard from 'src/components/PlotCard';
-import { color, padding } from 'src/Css';
+import { padding } from 'src/Css';
 import {
   getArtifactDisplayName,
   isClassificationMetricArtifact,
@@ -111,30 +112,52 @@ interface RocComparisonEntry {
 type ComparisonPanelKind = 'confusion matrix' | 'html' | 'markdown';
 type PanelSelections = Record<ComparisonPanelKind, [string, string]>;
 
-const EMPTY_PANEL_SELECTIONS: PanelSelections = {
-  'confusion matrix': ['', ''],
-  html: ['', ''],
-  markdown: ['', ''],
-};
+export interface RuntimeArtifactComparisonSelectionState {
+  panelSelections: PanelSelections;
+  rocColorByKey: Record<string, string>;
+  rocSelectedKeys?: string[];
+}
+
+export function createRuntimeArtifactComparisonSelectionState(): RuntimeArtifactComparisonSelectionState {
+  return {
+    panelSelections: {
+      'confusion matrix': ['', ''],
+      html: ['', ''],
+      markdown: ['', ''],
+    },
+    rocColorByKey: {},
+  };
+}
 
 export function RuntimeArtifactComparison({
   artifacts,
   kind,
+  selectionState,
+  setSelectionState,
 }: {
   artifacts: RuntimeComparisonArtifact[];
   kind: RuntimeArtifactComparisonKind;
+  selectionState?: RuntimeArtifactComparisonSelectionState;
+  setSelectionState?: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
-  const [rocSelectedKeys, setRocSelectedKeys] = useState<string[] | undefined>();
-  const [panelSelections, setPanelSelections] = useState<PanelSelections>(EMPTY_PANEL_SELECTIONS);
+  const [internalSelectionState, setInternalSelectionState] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
+  const isControlled = selectionState !== undefined && setSelectionState !== undefined;
+  const activeSelectionState = isControlled ? selectionState : internalSelectionState;
+  const updateSelectionState = isControlled ? setSelectionState : setInternalSelectionState;
   const updatePanelSelection = (
     panelKind: ComparisonPanelKind,
     panelIndex: number,
     key: string,
   ) => {
-    setPanelSelections((current) => {
-      const nextSelection = [...current[panelKind]] as [string, string];
+    updateSelectionState((current) => {
+      const nextSelection = [...current.panelSelections[panelKind]] as [string, string];
       nextSelection[panelIndex] = key;
-      return { ...current, [panelKind]: nextSelection };
+      return {
+        ...current,
+        panelSelections: { ...current.panelSelections, [panelKind]: nextSelection },
+      };
     });
   };
 
@@ -148,9 +171,10 @@ export function RuntimeArtifactComparison({
     return (
       <ClassificationComparison
         artifacts={classificationArtifacts}
-        panelSelections={panelSelections['confusion matrix']}
-        rocSelectedKeys={rocSelectedKeys}
-        setRocSelectedKeys={setRocSelectedKeys}
+        panelSelections={activeSelectionState.panelSelections['confusion matrix']}
+        rocColorByKey={activeSelectionState.rocColorByKey}
+        rocSelectedKeys={activeSelectionState.rocSelectedKeys}
+        updateSelectionState={updateSelectionState}
         updatePanelSelection={updatePanelSelection}
       />
     );
@@ -168,7 +192,7 @@ export function RuntimeArtifactComparison({
     <FileComparison
       artifacts={fileArtifacts}
       kind={kind}
-      panelSelections={panelSelections[kind]}
+      panelSelections={activeSelectionState.panelSelections[kind]}
       updatePanelSelection={updatePanelSelection}
     />
   );
@@ -177,14 +201,16 @@ export function RuntimeArtifactComparison({
 function ClassificationComparison({
   artifacts,
   panelSelections,
+  rocColorByKey,
   rocSelectedKeys,
-  setRocSelectedKeys,
+  updateSelectionState,
   updatePanelSelection,
 }: {
   artifacts: RuntimeComparisonArtifact[];
   panelSelections: [string, string];
+  rocColorByKey: Record<string, string>;
   rocSelectedKeys: string[] | undefined;
-  setRocSelectedKeys: (keys: string[]) => void;
+  updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
   updatePanelSelection: (kind: ComparisonPanelKind, panelIndex: number, key: string) => void;
 }) {
   const visualizations = useMemo(
@@ -212,7 +238,8 @@ function ClassificationComparison({
           entries={rocEntries}
           errors={rocErrors}
           explicitSelectedKeys={rocSelectedKeys}
-          setExplicitSelectedKeys={setRocSelectedKeys}
+          rocColorByKey={rocColorByKey}
+          updateSelectionState={updateSelectionState}
         />
       )}
       {!rocEntries.length && !!rocErrors.length && (
@@ -241,12 +268,14 @@ function RocCurveComparison({
   entries,
   errors,
   explicitSelectedKeys,
-  setExplicitSelectedKeys,
+  rocColorByKey,
+  updateSelectionState,
 }: {
   entries: RocComparisonEntry[];
   errors: string[];
   explicitSelectedKeys: string[] | undefined;
-  setExplicitSelectedKeys: (keys: string[]) => void;
+  rocColorByKey: Record<string, string>;
+  updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
   const validKeys = useMemo(() => new Set(entries.map(({ key }) => key)), [entries]);
   const selectedKeys = (
@@ -254,11 +283,16 @@ function RocCurveComparison({
   ).filter((key) => validKeys.has(key));
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const colorByKey = new Map(entries.map(({ key }) => [key, getStableRocColor(key)]));
+  const selectedColorByKey = allocateRocColors(selectedKeys, rocColorByKey);
+  const getColor = (key: string) => selectedColorByKey[key] || getStableRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
-    setExplicitSelectedKeys(nextKeys);
+    updateSelectionState((current) => ({
+      ...current,
+      rocColorByKey: allocateRocColors(nextKeys, current.rocColorByKey),
+      rocSelectedKeys: nextKeys,
+    }));
   };
 
   return (
@@ -289,7 +323,7 @@ function RocCurveComparison({
                 <span
                   aria-hidden='true'
                   className={css.curveSwatch}
-                  style={{ backgroundColor: colorByKey.get(key) || color.weak }}
+                  style={{ backgroundColor: getColor(key) }}
                 />
                 <ListItemText primary={label} />
               </MenuItem>
@@ -307,7 +341,7 @@ function RocCurveComparison({
       {!!selectedEntries.length && (
         <>
           <ROCCurve
-            colors={selectedEntries.map(({ key }) => colorByKey.get(key) || color.weak)}
+            colors={selectedEntries.map(({ key }) => getColor(key))}
             configs={selectedEntries.map(({ config }) => config)}
             disableAnimation
             forceLegend
@@ -318,7 +352,7 @@ function RocCurveComparison({
                 <span
                   aria-hidden='true'
                   className={css.curveSwatch}
-                  style={{ backgroundColor: colorByKey.get(key) || color.weak }}
+                  style={{ backgroundColor: getColor(key) }}
                 />
                 {label}
               </li>
@@ -405,7 +439,9 @@ function TwoPanelComparison({
                   ))}
                 </Select>
               </FormControl>
-              {entry?.configs && <PlotCard configs={entry.configs} title={entry.label} />}
+              {entry?.configs && (
+                <PlotCard configs={entry.configs} key={entry.key} title={entry.label} />
+              )}
               {entry?.artifact && (
                 <RuntimeArtifactVisualization
                   artifact={entry.artifact}
@@ -475,7 +511,41 @@ function getStableRocColor(key: string): string {
   return lineColors[Math.abs(hash) % lineColors.length];
 }
 
+function allocateRocColors(
+  keys: string[],
+  existingColors: Record<string, string> = {},
+): Record<string, string> {
+  const colorsByKey: Record<string, string> = {};
+  const usedColors = new Set<string>();
+
+  keys.forEach((key) => {
+    const existingColor = existingColors[key];
+    if (existingColor && lineColors.includes(existingColor) && !usedColors.has(existingColor)) {
+      colorsByKey[key] = existingColor;
+      usedColors.add(existingColor);
+    }
+  });
+
+  keys.forEach((key) => {
+    if (colorsByKey[key]) {
+      return;
+    }
+    const preferredColorIndex = lineColors.indexOf(getStableRocColor(key));
+    for (let offset = 0; offset < lineColors.length; offset++) {
+      const candidate = lineColors[(preferredColorIndex + offset) % lineColors.length];
+      if (!usedColors.has(candidate)) {
+        colorsByKey[key] = candidate;
+        usedColors.add(candidate);
+        return;
+      }
+    }
+  });
+
+  return colorsByKey;
+}
+
 export const TEST_ONLY = {
+  allocateRocColors,
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
   getStableRocColor,

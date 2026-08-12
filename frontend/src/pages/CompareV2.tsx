@@ -17,6 +17,7 @@
 import { CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { Redirect } from 'react-router-dom';
 import { V2beta1Artifact, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
@@ -25,8 +26,10 @@ import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import {
+  createRuntimeArtifactComparisonSelectionState,
   RuntimeArtifactComparison,
   RuntimeArtifactComparisonKind,
+  RuntimeArtifactComparisonSelectionState,
   RuntimeComparisonArtifact,
 } from 'src/components/viewers/RuntimeArtifactComparison';
 import { commonCss, padding, zIndex } from 'src/Css';
@@ -116,6 +119,9 @@ export function CompareV2(props: CompareV2Props) {
   const runIdsKey = runIds.join(',');
   const [selectedIdsState, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
+  const [artifactComparisonSelection, setArtifactComparisonSelection] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -278,6 +284,8 @@ export function CompareV2(props: CompareV2Props) {
                 comparisonData={selectedData}
                 metricsTab={metricsTab}
                 namespace={namespace}
+                selectionState={artifactComparisonSelection}
+                setSelectionState={setArtifactComparisonSelection}
               />
             )}
           </div>
@@ -293,10 +301,14 @@ function NativeArtifactComparison({
   comparisonData,
   metricsTab,
   namespace,
+  selectionState,
+  setSelectionState,
 }: {
   comparisonData: RunComparisonData[];
   metricsTab: NativeMetricsTab;
   namespace?: string;
+  selectionState: RuntimeArtifactComparisonSelectionState;
+  setSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
   const artifacts = useMemo(
     () => collectRuntimeComparisonArtifacts(comparisonData, namespace),
@@ -308,7 +320,14 @@ function NativeArtifactComparison({
       : metricsTab === NativeMetricsTab.HTML
         ? 'html'
         : 'markdown';
-  return <RuntimeArtifactComparison artifacts={artifacts} kind={kind} />;
+  return (
+    <RuntimeArtifactComparison
+      artifacts={artifacts}
+      kind={kind}
+      selectionState={selectionState}
+      setSelectionState={setSelectionState}
+    />
+  );
 }
 
 function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {

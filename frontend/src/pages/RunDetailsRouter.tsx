@@ -27,6 +27,9 @@ import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2, RunDetailsV2Params } from 'src/pages/RunDetailsV2';
 import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
 import { queryKeys } from 'src/hooks/queryKeys';
+import { hasFinishedV2 } from 'src/lib/StatusUtils';
+
+export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 
 // This is a router to determine whether to show V1 or V2 run detail page.
 export default function RunDetailsRouter(
@@ -44,6 +47,10 @@ export default function RunDetailsRouter(
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    refetchInterval: (query) => {
+      const state = query.state.data?.state;
+      return state !== undefined && !hasFinishedV2(state) ? RUN_DETAILS_REFETCH_INTERVAL : false;
+    },
   });
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
