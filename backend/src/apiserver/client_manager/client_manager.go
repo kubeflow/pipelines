@@ -116,6 +116,7 @@ type ClientManager struct {
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
 	controllerClientNoCache   ctrlclient.Client
+	gcIndexReady              bool
 }
 
 // Options to pass to Client Manager initialization
@@ -124,6 +125,12 @@ type Options struct {
 	GlobalKubernetesWebhookMode  bool
 	Context                      context.Context
 	WaitGroup                    *sync.WaitGroup
+}
+
+// IsGarbageCollectorIndexReady returns true if the GC lifecycle index
+// exists. When false, GC must not start to avoid full table scans.
+func (c *ClientManager) IsGarbageCollectorIndexReady() bool {
+	return c.gcIndexReady
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -274,11 +281,12 @@ func (c *ClientManager) init(options *Options) error {
 
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, gcIndexReady := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
+	c.gcIndexReady = gcIndexReady
 	if !options.UsePipelineKubernetesStorage {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	}
@@ -330,7 +338,7 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
+func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -372,11 +380,42 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		util.TerminateIfError(autoMigrate(db))
 	}
 
+	// GC lifecycle index: covers (StorageState, FinishedAtInSec) for
+	// ArchiveExpiredRuns and DeleteExpiredArchivedRuns queries.
+	gcIndexReady := false
+	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
+		if db.Migrator().HasTable("run_details") {
+			if db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
+				gcIndexReady = true
+			} else {
+				quoteIdentifier := dialect.QuoteIdentifier
+				var indexSQL string
+				if dialect.Name == "pgx" {
+					// CONCURRENTLY avoids blocking writes; IF NOT EXISTS handles replica races.
+					indexSQL = fmt.Sprintf("CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s, %s)",
+						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
+						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
+				} else {
+					// MySQL InnoDB CREATE INDEX is online by default.
+					indexSQL = fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
+						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
+						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
+				}
+				if err := db.Exec(indexSQL).Error; err != nil {
+					glog.Errorf("Failed to create GC lifecycle index: %v. "+
+						"GC disabled; create the index manually to enable.", err)
+				} else {
+					gcIndexReady = true
+				}
+			}
+		}
+	}
+
 	newdb, err := db.DB()
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect())
+	return storage.NewDB(newdb, storage.NewMySQLDialect()), gcIndexReady
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:

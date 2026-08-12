@@ -41,5 +41,9 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 | `FRONTEND_SERVER_NAMESPACE` | Namespace used by a local frontend server |
 | `MINIO_ENDPOINT_REWRITE` | Rewrites object-store endpoints in local proxy mode |
 | `MAX_METRICS_FILE_BYTES` | Maximum uncompressed metrics JSON size; defaults to 1 MiB |
+| `RUNS_RETENTION_TIME` | Auto-archive terminal runs after this Go duration (e.g., `720h`); empty disables |
+| `ARCHIVED_RUNS_RETENTION_TIME` | Auto-delete archived runs after this Go duration (e.g., `2160h`); empty disables |
+| `RUNS_GC_INTERVAL` | Poll interval for the run garbage collector; defaults to `6h` |
+| `RUNS_GC_BATCH_SIZE` | Maximum rows per GC batch; defaults to `100` |
 
 `TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.

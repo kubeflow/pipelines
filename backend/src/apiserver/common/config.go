@@ -56,6 +56,13 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+
+	// Run garbage collection configuration keys.
+	// Disabled by default (zero values).
+	RunsRetentionTime         string = "RUNS_RETENTION_TIME"
+	ArchivedRunsRetentionTime string = "ARCHIVED_RUNS_RETENTION_TIME"
+	RunsGCInterval            string = "RUNS_GC_INTERVAL"
+	RunsGCBatchSize           string = "RUNS_GC_BATCH_SIZE"
 )
 
 type PluginLimitsConfig struct {
@@ -154,6 +161,22 @@ func GetDurationConfig(configName string) time.Duration {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetDuration(configName)
+}
+
+func GetDurationConfigWithDefault(configName string, value time.Duration) time.Duration {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	raw := strings.TrimSpace(viper.GetString(configName))
+	if raw == "" {
+		return value
+	}
+	duration, parseError := time.ParseDuration(raw)
+	if parseError != nil {
+		glog.Errorf("Failed to parse duration for %s: %v. Using default %v", configName, parseError, value)
+		return value
+	}
+	return duration
 }
 
 func IsMultiUserMode() bool {
@@ -274,4 +297,28 @@ func GetPluginLimitsConfig() (PluginLimitsConfig, error) {
 		MaxTotalPayloadBytes: maxTotalPayloadBytes,
 		MaxNestingDepth:      maxNestingDepth,
 	}, nil
+}
+
+func GetRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(RunsRetentionTime, 0)
+}
+
+func GetArchivedRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(ArchivedRunsRetentionTime, 0)
+}
+
+func GetRunsGCInterval() time.Duration {
+	garbageCollectionInterval := GetDurationConfigWithDefault(RunsGCInterval, 6*time.Hour)
+	if garbageCollectionInterval <= 0 {
+		return 6 * time.Hour
+	}
+	return garbageCollectionInterval
+}
+
+func GetRunsGCBatchSize() int {
+	configuredBatchSize := GetIntConfigWithDefault(RunsGCBatchSize, 100)
+	if configuredBatchSize <= 0 {
+		return 100
+	}
+	return configuredBatchSize
 }

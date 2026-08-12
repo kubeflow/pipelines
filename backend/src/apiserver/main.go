@@ -43,6 +43,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/gc"
 	_ "github.com/kubeflow/pipelines/backend/src/apiserver/plugins/all"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
@@ -317,6 +318,17 @@ func main() {
 
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
+
+	// Start run GC if the required database index is ready.
+	if clientManager.IsGarbageCollectorIndexReady() {
+		runGC := gc.NewRunGarbageCollector(
+			clientManager.RunStore(),
+			clientManager.KubernetesCoreClient().GetClientSet(),
+			common.GetPodNamespace(),
+		)
+		go runGC.Start(backgroundCtx)
+	}
+
 	go startRPCServer(resourceManager, tlsCfg)
 	// This is blocking
 	startHTTPProxy(resourceManager, *usePipelinesKubernetesStorage, tlsCfg)

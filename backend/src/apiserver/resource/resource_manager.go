@@ -1091,6 +1091,16 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrapf(err, "Failed to retry run %s", runId)
 	}
 
+	// Claim the row before external ops so GC cannot delete it mid-retry.
+	// FinishedAtInSec=0 makes the row invisible to both GC predicates.
+	run.FinishedAtInSec = 0
+	run.State = model.RuntimeStatePending
+	run.Conditions = string(model.RuntimeStatePending.ToV1())
+	if claimError := r.runStore.UpdateRun(run); claimError != nil {
+		return util.NewInternalServerError(claimError,
+			"Failed to retry run %s: could not claim database row before workflow operation", runId)
+	}
+
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
 	}
