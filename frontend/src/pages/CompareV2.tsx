@@ -24,7 +24,11 @@ import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
+import {
+  RuntimeArtifactComparison,
+  RuntimeArtifactComparisonKind,
+  RuntimeComparisonArtifact,
+} from 'src/components/viewers/RuntimeArtifactComparison';
 import { commonCss, padding, zIndex } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
@@ -36,10 +40,8 @@ import { errorToMessage } from 'src/lib/Utils';
 import {
   flattenArtifactGroups,
   formatParameterValue,
+  getArtifactDisplayName,
   getScalarMetricValue,
-  isClassificationMetricArtifact,
-  isHtmlArtifact,
-  isMarkdownArtifact,
   isScalarMetricArtifact,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
@@ -52,7 +54,6 @@ const css = stylesheet({
   outputsRow: { marginLeft: 15 },
   outputsOverflow: { overflowX: 'auto' },
   relativeContainer: { height: '12rem', position: 'relative' },
-  runMetrics: { marginBottom: 32 },
 });
 
 export enum NativeMetricsTab {
@@ -297,29 +298,17 @@ function NativeArtifactComparison({
   metricsTab: NativeMetricsTab;
   namespace?: string;
 }) {
-  const dataWithArtifacts = useMemo(
-    () =>
-      comparisonData
-        .map((data) => ({ ...data, artifacts: filterArtifacts(data.tasks, metricsTab) }))
-        .filter(({ artifacts }) => artifacts.length > 0),
-    [comparisonData, metricsTab],
+  const artifacts = useMemo(
+    () => collectRuntimeComparisonArtifacts(comparisonData, namespace),
+    [comparisonData, namespace],
   );
-  if (!dataWithArtifacts.length) {
-    return <p>There are no {METRICS_TAB_NAMES[metricsTab]} available on the selected runs.</p>;
-  }
-  return (
-    <>
-      {dataWithArtifacts.map(({ run, artifacts }) => (
-        <section className={css.runMetrics} key={run.run_id}>
-          <h3>{run.display_name || run.run_id || 'Run'}</h3>
-          <RuntimeMetricsVisualizations
-            artifacts={artifacts}
-            namespace={artifacts[0]?.namespace || namespace}
-          />
-        </section>
-      ))}
-    </>
-  );
+  const kind: RuntimeArtifactComparisonKind =
+    metricsTab === NativeMetricsTab.CLASSIFICATION
+      ? 'classification'
+      : metricsTab === NativeMetricsTab.HTML
+        ? 'html'
+        : 'markdown';
+  return <RuntimeArtifactComparison artifacts={artifacts} kind={kind} />;
 }
 
 function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
@@ -340,23 +329,34 @@ function getTaskComparisonLabel(task: V2beta1PipelineTask): string {
     : `${baseLabel} [iteration ${task.type_attributes.iteration_index}]`;
 }
 
-function filterArtifacts(tasks: V2beta1PipelineTask[], metricsTab: NativeMetricsTab) {
-  return collectOutputArtifacts(tasks)
-    .map(({ artifact }) => artifact)
-    .filter((artifact) => isArtifactInMetricsTab(artifact, metricsTab));
-}
-
-function isArtifactInMetricsTab(artifact: V2beta1Artifact, metricsTab: NativeMetricsTab): boolean {
-  switch (metricsTab) {
-    case NativeMetricsTab.CLASSIFICATION:
-      return isClassificationMetricArtifact(artifact);
-    case NativeMetricsTab.HTML:
-      return isHtmlArtifact(artifact);
-    case NativeMetricsTab.MARKDOWN:
-      return isMarkdownArtifact(artifact);
-    default:
-      return false;
-  }
+export function collectRuntimeComparisonArtifacts(
+  comparisonData: RunComparisonData[],
+  defaultNamespace?: string,
+): RuntimeComparisonArtifact[] {
+  return comparisonData.flatMap(({ run, tasks }) => {
+    const runLabel = run.display_name || run.run_id || 'Run';
+    return tasks.flatMap((task, taskIndex) =>
+      flattenArtifactGroups(task.outputs?.artifacts).map(
+        ({ artifact, artifactKey, group, index }) => ({
+          artifact,
+          key: [
+            run.run_id || runLabel,
+            task.task_id || task.name || taskIndex,
+            artifactKey,
+            index,
+            artifact.artifact_id || artifact.uri || artifact.name || 'artifact',
+          ].join(':'),
+          label: `${runLabel} / ${getTaskComparisonLabel(task)} / ${getArtifactDisplayName(
+            artifact,
+            artifactKey,
+            index,
+            group.artifacts,
+          )}`,
+          namespace: artifact.namespace || defaultNamespace,
+        }),
+      ),
+    );
+  });
 }
 
 export function buildParamsTableProps(

@@ -26,7 +26,12 @@ import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
-import { buildParamsTableProps, buildScalarMetricsTableProps, CompareV2 } from './CompareV2';
+import {
+  buildParamsTableProps,
+  buildScalarMetricsTableProps,
+  collectRuntimeComparisonArtifacts,
+  CompareV2,
+} from './CompareV2';
 
 vi.mock('src/pages/RunList', () => ({
   default: forwardRef(function MockRunList(_props, ref) {
@@ -35,10 +40,12 @@ vi.mock('src/pages/RunList', () => ({
   }),
 }));
 
-vi.mock('src/components/viewers/RuntimeMetricsVisualizations', () => ({
-  RuntimeMetricsVisualizations: ({ artifacts }: { artifacts: Array<{ artifact_id?: string }> }) => (
-    <div>Visualized {artifacts.map((artifact) => artifact.artifact_id).join(',')}</div>
-  ),
+vi.mock('src/components/viewers/RuntimeArtifactComparison', () => ({
+  RuntimeArtifactComparison: ({
+    artifacts,
+  }: {
+    artifacts: Array<{ artifact: { artifact_id?: string } }>;
+  }) => <div>Compared {artifacts.map(({ artifact }) => artifact.artifact_id).join(',')}</div>,
 }));
 
 testBestPractices();
@@ -233,6 +240,23 @@ describe('CompareV2', () => {
     });
   });
 
+  it('builds stable native comparison labels with run, task, and artifact provenance', () => {
+    expect(
+      collectRuntimeComparisonArtifacts(
+        runs.map((run) => ({ run, tasks: tasksByRun[run.run_id!] })),
+        'team-a',
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'run-1:task-1:classification:0:classification-1',
+          label: 'First run / Train / evaluation',
+          namespace: 'team-a',
+        }),
+      ]),
+    );
+  });
+
   it('loads runs and tasks in parallel and displays native comparisons', async () => {
     render(
       <CommonTestWrapper>
@@ -249,7 +273,7 @@ describe('CompareV2', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
-  it('shows classification artifacts grouped by run', async () => {
+  it('passes artifacts from all selected runs to the native comparison surface', async () => {
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -259,8 +283,7 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('Classification Metrics'));
 
-    expect(await screen.findAllByText('First run')).toHaveLength(2);
-    screen.getByText('Visualized classification-1');
+    screen.getByText(/Compared .*classification-1/);
   });
 
   it('shows an actionable banner when native task retrieval fails', async () => {
