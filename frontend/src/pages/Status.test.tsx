@@ -77,5 +77,21 @@ describe('Status', () => {
         expect(asFragment()).toMatchSnapshot();
       }),
     );
+
+    it('renders diagnostic information for OOMKilled failure messages', () => {
+      const { asFragment } = render(
+        statusToIcon(NodePhase.FAILED, startDate, endDate, 'Task container failed: OOMKilled'),
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
+
+    it('renders diagnostic information for ImagePullBackOff failure messages', () => {
+      const { asFragment } = render(
+        statusToIcon(NodePhase.FAILED, startDate, endDate, 'ImagePullBackOff'),
+      );
+      expect(asFragment()).toMatchSnapshot();
+    });
   });
 });
+
+
