@@ -189,10 +189,10 @@ export function RuntimeArtifactComparison({
     );
   }
   return (
-    <FileComparison
-      artifacts={fileArtifacts}
+    <TwoPanelComparison
+      entries={fileArtifacts}
       kind={kind}
-      panelSelections={activeSelectionState.panelSelections[kind]}
+      selectedKeys={activeSelectionState.panelSelections[kind]}
       updatePanelSelection={updatePanelSelection}
     />
   );
@@ -364,33 +364,6 @@ function RocCurveComparison({
         <Banner message='Select at least one ROC curve to compare.' mode='info' />
       )}
     </section>
-  );
-}
-
-function FileComparison({
-  artifacts,
-  kind,
-  panelSelections,
-  updatePanelSelection,
-}: {
-  artifacts: RuntimeComparisonArtifact[];
-  kind: 'html' | 'markdown';
-  panelSelections: [string, string];
-  updatePanelSelection: (kind: ComparisonPanelKind, panelIndex: number, key: string) => void;
-}) {
-  const entries: ComparisonPanelEntry[] = artifacts.map((entry) => ({
-    artifact: entry.artifact,
-    key: entry.key,
-    label: entry.label,
-    namespace: entry.namespace,
-  }));
-  return (
-    <TwoPanelComparison
-      entries={entries}
-      kind={kind}
-      selectedKeys={panelSelections}
-      updatePanelSelection={updatePanelSelection}
-    />
   );
 }
 

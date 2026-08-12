@@ -19,18 +19,15 @@ import { listAllPages } from './PaginationUtils';
 const MAX_PAGE_SIZE = 200;
 
 export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
-  return listAllPages(
-    async (pageToken) => {
-      const response = await Apis.runServiceApiV2.tasks(
-        runId,
-        undefined,
-        MAX_PAGE_SIZE,
-        pageToken,
-        undefined,
-        'create_time asc',
-      );
-      return { items: response.tasks, nextPageToken: response.next_page_token };
-    },
-    (pageToken) => new Error(`Task service returned a repeated page token: ${pageToken}`),
-  );
+  return listAllPages(async (pageToken) => {
+    const response = await Apis.runServiceApiV2.tasks(
+      runId,
+      undefined,
+      MAX_PAGE_SIZE,
+      pageToken,
+      undefined,
+      'create_time asc',
+    );
+    return { items: response.tasks, nextPageToken: response.next_page_token };
+  }, 'Task service');
 }

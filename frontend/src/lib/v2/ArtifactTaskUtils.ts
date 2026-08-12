@@ -19,19 +19,16 @@ import { listAllPages } from './PaginationUtils';
 const MAX_PAGE_SIZE = 200;
 
 export function listAllArtifactTasks(artifactId: string): Promise<V2beta1ArtifactTask[]> {
-  return listAllPages(
-    async (pageToken) => {
-      const response = await Apis.artifactServiceApiV2.artifactTasks(
-        undefined,
-        undefined,
-        [artifactId],
-        undefined,
-        pageToken,
-        MAX_PAGE_SIZE,
-        'id asc',
-      );
-      return { items: response.artifact_tasks, nextPageToken: response.next_page_token };
-    },
-    (pageToken) => new Error(`Artifact service returned a repeated page token: ${pageToken}`),
-  );
+  return listAllPages(async (pageToken) => {
+    const response = await Apis.artifactServiceApiV2.artifactTasks(
+      undefined,
+      undefined,
+      [artifactId],
+      undefined,
+      pageToken,
+      MAX_PAGE_SIZE,
+      'id asc',
+    );
+    return { items: response.artifact_tasks, nextPageToken: response.next_page_token };
+  }, 'Artifact service');
 }

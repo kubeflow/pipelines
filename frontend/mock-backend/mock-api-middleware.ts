@@ -585,7 +585,7 @@ export default (app: express.Application) => {
 
   // Native runtime metadata endpoints used by the V2 run and artifact pages.
   // The mock backend does not simulate task execution yet, but valid empty
-  // list responses keep local development usable after the MLMD proxy removal.
+  // list responses keep local development usable.
   app.get(v2beta1Prefix + '/runs/:rid/tasks', (_req, res) => {
     res.json({ tasks: [] });
   });

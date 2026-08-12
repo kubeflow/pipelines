@@ -19,7 +19,7 @@ interface Page<T> {
 
 export async function listAllPages<T>(
   fetchPage: (pageToken?: string) => Promise<Page<T>>,
-  repeatedPageTokenError: (pageToken: string) => Error,
+  sourceName: string,
 ): Promise<T[]> {
   const items: T[] = [];
   const seenPageTokens = new Set<string>();
@@ -30,7 +30,7 @@ export async function listAllPages<T>(
     pageToken = page.nextPageToken || undefined;
     if (pageToken) {
       if (seenPageTokens.has(pageToken)) {
-        throw repeatedPageTokenError(pageToken);
+        throw new Error(`${sourceName} returned a repeated page token: ${pageToken}`);
       }
       seenPageTokens.add(pageToken);
     }

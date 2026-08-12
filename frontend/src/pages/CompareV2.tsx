@@ -19,7 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Redirect } from 'react-router-dom';
-import { V2beta1Artifact, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
@@ -46,6 +46,7 @@ import {
   getArtifactDisplayName,
   getScalarMetricValue,
   isScalarMetricArtifact,
+  type RuntimeArtifactEntry,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { classes, stylesheet } from 'typestyle';
@@ -73,9 +74,8 @@ interface RunComparisonData {
   tasks: V2beta1PipelineTask[];
 }
 
-interface RunArtifactEntry {
-  artifact: V2beta1Artifact;
-  artifactKey: string;
+interface RunArtifactEntry extends RuntimeArtifactEntry {
+  taskKey: string;
   taskName: string;
 }
 
@@ -331,10 +331,10 @@ function NativeArtifactComparison({
 }
 
 function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
-  return tasks.flatMap((task) =>
-    flattenArtifactGroups(task.outputs?.artifacts).map(({ artifact, artifactKey }) => ({
-      artifact,
-      artifactKey,
+  return tasks.flatMap((task, taskIndex) =>
+    flattenArtifactGroups(task.outputs?.artifacts).map((entry) => ({
+      ...entry,
+      taskKey: task.task_id || task.name || String(taskIndex),
       taskName: getTaskComparisonLabel(task),
     })),
   );
@@ -354,26 +354,24 @@ export function collectRuntimeComparisonArtifacts(
 ): RuntimeComparisonArtifact[] {
   return comparisonData.flatMap(({ run, tasks }) => {
     const runLabel = run.display_name || run.run_id || 'Run';
-    return tasks.flatMap((task, taskIndex) =>
-      flattenArtifactGroups(task.outputs?.artifacts).map(
-        ({ artifact, artifactKey, group, index }) => ({
+    return collectOutputArtifacts(tasks).map(
+      ({ artifact, artifactKey, group, index, taskKey, taskName }) => ({
+        artifact,
+        key: [
+          run.run_id || runLabel,
+          taskKey,
+          artifactKey,
+          index,
+          artifact.artifact_id || artifact.uri || artifact.name || 'artifact',
+        ].join(':'),
+        label: `${runLabel} / ${taskName} / ${getArtifactDisplayName(
           artifact,
-          key: [
-            run.run_id || runLabel,
-            task.task_id || task.name || taskIndex,
-            artifactKey,
-            index,
-            artifact.artifact_id || artifact.uri || artifact.name || 'artifact',
-          ].join(':'),
-          label: `${runLabel} / ${getTaskComparisonLabel(task)} / ${getArtifactDisplayName(
-            artifact,
-            artifactKey,
-            index,
-            group.artifacts,
-          )}`,
-          namespace: artifact.namespace || defaultNamespace,
-        }),
-      ),
+          artifactKey,
+          index,
+          group.artifacts,
+        )}`,
+        namespace: artifact.namespace || defaultNamespace,
+      }),
     );
   });
 }
