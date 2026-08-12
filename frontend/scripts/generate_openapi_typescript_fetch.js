@@ -103,10 +103,7 @@ const SHARED_OPENAPI_SUPPORT_GROUPS = [
     importExtension: '',
   },
   {
-    outputPrefixes: [
-      'frontend/server/src/generated/apis/',
-      'frontend/server/src/generated/apisv2beta1/',
-    ],
+    outputPrefixes: ['frontend/server/src/generated/apis/', 'frontend/server/src/generated/apisv2beta1/'],
     sharedRoot: 'frontend/server/src/generated/openapi',
     importExtension: '.js',
   },
@@ -334,9 +331,7 @@ function createSharedOpenApiSupportSource(source) {
 }
 
 function createOpenApiReExportShim(sharedFilePath, sourceFilePath, importExtension = '') {
-  const relativeImportPath = toImportSpecifier(
-    path.relative(path.dirname(sourceFilePath), sharedFilePath),
-  );
+  const relativeImportPath = toImportSpecifier(path.relative(path.dirname(sourceFilePath), sharedFilePath));
   const importSpecifier = `${relativeImportPath}${importExtension}`;
   return [
     '/* tslint:disable */',
@@ -410,9 +405,8 @@ function resetFullySelectedSharedOpenApiSupportDirs(repoRoot, targets) {
   const selectedTargets = new Set(targets);
   for (const sharedGroup of SHARED_OPENAPI_SUPPORT_GROUPS) {
     const groupTargetKeys = getTargetKeysForSharedOpenApiSupportGroup(sharedGroup);
-    const selectedGroupTargetCount = groupTargetKeys.filter((targetKey) =>
-      selectedTargets.has(targetKey),
-    ).length;
+    const selectedGroupTargetCount = groupTargetKeys.filter((targetKey) => selectedTargets.has(targetKey))
+      .length;
 
     if (selectedGroupTargetCount === 0 || selectedGroupTargetCount !== groupTargetKeys.length) {
       continue;
@@ -661,17 +655,13 @@ async function main() {
     await generateTargetsParallel(repoRoot, targets, concurrency);
   }
 
-  const outputDirs = [
-    ...new Set(targets.map((targetKey) => path.join(repoRoot, SPEC_TARGETS[targetKey].output))),
-  ];
+  const outputDirs = [...new Set(targets.map((targetKey) => path.join(repoRoot, SPEC_TARGETS[targetKey].output)))];
   await formatGeneratedTypeScript(repoRoot, outputDirs);
 
   resetFullySelectedSharedOpenApiSupportDirs(repoRoot, targets);
   const sharedDirs = dedupeTargetsOpenApiSupportFiles(repoRoot, targets);
 
-  const allFormattedDirs = [
-    ...new Set([...outputDirs, ...sharedDirs, ...getSharedOpenApiSupportDirs(repoRoot, targets)]),
-  ];
+  const allFormattedDirs = [...new Set([...outputDirs, ...sharedDirs, ...getSharedOpenApiSupportDirs(repoRoot, targets)])];
   await formatGeneratedTypeScript(repoRoot, allFormattedDirs);
 }
 

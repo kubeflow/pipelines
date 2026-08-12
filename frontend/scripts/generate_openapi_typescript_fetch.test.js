@@ -439,15 +439,10 @@ export interface GoogleRpcStatus {
         expect(clientSharedRuntime).not.toContain('/**');
 
         const serverSharedStatus = fs.readFileSync(
-          path.join(
-            tempRepoRoot,
-            'frontend/server/src/generated/openapi/models/GoogleRpcStatus.ts',
-          ),
+          path.join(tempRepoRoot, 'frontend/server/src/generated/openapi/models/GoogleRpcStatus.ts'),
           'utf8',
         );
-        expect(serverSharedStatus).toContain(
-          "import type { ProtobufAny } from './ProtobufAny.js';",
-        );
+        expect(serverSharedStatus).toContain("import type { ProtobufAny } from './ProtobufAny.js';");
         expect(serverSharedStatus).not.toContain('backend/api/v1beta1/auth.proto');
       } finally {
         fs.rmSync(tempRepoRoot, { recursive: true, force: true });
@@ -520,10 +515,7 @@ export interface GoogleRpcStatus {
           'Shared OpenAPI support mismatch for runtime.ts.',
         );
         expect(
-          fs.readFileSync(
-            path.join(tempRepoRoot, 'frontend/src/generated/openapi/runtime.ts'),
-            'utf8',
-          ),
+          fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/generated/openapi/runtime.ts'), 'utf8'),
         ).toContain("export const BASE_PATH = 'run';");
         expect(
           fs.readFileSync(path.join(tempRepoRoot, 'frontend/src/apis/pipeline/runtime.ts'), 'utf8'),
