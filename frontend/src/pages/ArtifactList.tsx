@@ -24,12 +24,11 @@ import { commonCss, padding } from 'src/Css';
 import { Apis, ListRequest } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
+import { getArtifactTypeName } from 'src/lib/v2/RuntimeArtifactUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
 
 interface ArtifactListProps {
-  // Retained while old bookmarked switcher routes converge on the native list.
-  isGroupView?: boolean;
   namespace?: string;
 }
 
@@ -95,7 +94,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
           otherFields: [
             artifact.name || '[unnamed]',
             artifact.artifact_id || '-',
-            artifact.type || '-',
+            getArtifactTypeName(artifact),
             artifact.uri || '',
             artifact.namespace || '-',
             formatDateString(artifact.created_at),

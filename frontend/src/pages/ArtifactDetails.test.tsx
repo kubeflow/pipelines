@@ -20,7 +20,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
-import EnhancedArtifactDetails, { getAllArtifactTasks } from 'src/pages/ArtifactDetails';
+import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
 import { testBestPractices } from 'src/TestUtils';
 
@@ -101,10 +101,11 @@ describe('ArtifactDetails', () => {
 
     await screen.findByText('Artifact details');
     expect(screen.getAllByText('test-artifact')).toHaveLength(2);
-    screen.getByText('Dataset');
+    screen.getByText('system.Dataset');
     screen.getByText('A native artifact');
     screen.getByText('Artifact preview');
     expect(updateToolbarSpy).toHaveBeenCalledWith({ pageTitle: 'test-artifact' });
+    expect(Apis.artifactServiceApiV2.artifactTasks).not.toHaveBeenCalled();
   });
 
   it('renders native producer and consumer relationships with run links', async () => {
@@ -114,6 +115,7 @@ describe('ArtifactDetails', () => {
     const runLink = screen.getByRole('link', { name: 'Run run-1 · Task task-1' });
     expect(runLink).toHaveAttribute('href', '/runs/details/run-1');
     screen.getByText('Produced as dataset');
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
@@ -137,21 +139,5 @@ describe('ArtifactDetails', () => {
       ),
     );
     expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('paginates artifact-task relationships', async () => {
-    const artifactTasksSpy = vi.mocked(Apis.artifactServiceApiV2.artifactTasks);
-    artifactTasksSpy
-      .mockResolvedValueOnce({
-        artifact_tasks: [{ id: 'relationship-1' }],
-        next_page_token: 'next-page',
-      })
-      .mockResolvedValueOnce({ artifact_tasks: [{ id: 'relationship-2' }] });
-
-    await expect(getAllArtifactTasks(TEST_ARTIFACT_ID)).resolves.toEqual([
-      { id: 'relationship-1' },
-      { id: 'relationship-2' },
-    ]);
-    expect(artifactTasksSpy).toHaveBeenCalledTimes(2);
   });
 });

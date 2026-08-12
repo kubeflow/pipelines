@@ -18,7 +18,12 @@ import { ArtifactArtifactType, V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { RuntimeInputOutputTab } from './RuntimeInputOutputTab';
 
 vi.mock('src/components/ArtifactPreview', () => ({
-  default: ({ value }: { value: string }) => <div>Preview {value}</div>,
+  default: ({ value }: { value: { uri: string; providerInfo?: string } }) => (
+    <div>
+      Preview {value.uri}
+      {value.providerInfo ? ` with ${value.providerInfo}` : ''}
+    </div>
+  ),
 }));
 
 describe('RuntimeInputOutputTab', () => {
@@ -104,5 +109,39 @@ describe('RuntimeInputOutputTab', () => {
     );
 
     screen.getByText('There is no input/output parameter or artifact.');
+  });
+
+  it('keeps provider information distinct when artifacts share a URI', () => {
+    const task: V2beta1PipelineTask = {
+      name: 'shared-uri',
+      outputs: {
+        artifacts: [
+          {
+            artifact_key: 'reports',
+            artifacts: [
+              {
+                name: 'first',
+                uri: 's3://bucket/report',
+                metadata: { store_session_info: 'session-a' } as any,
+              },
+              {
+                name: 'second',
+                uri: 's3://bucket/report',
+                metadata: { store_session_info: 'session-b' } as any,
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <RuntimeInputOutputTab task={task} />
+      </MemoryRouter>,
+    );
+
+    screen.getByText('Preview s3://bucket/report with session-a');
+    screen.getByText('Preview s3://bucket/report with session-b');
   });
 });

@@ -22,7 +22,15 @@ import PlotCard from 'src/components/PlotCard';
 import { color, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
-import { getArtifactDisplayName, getArtifactSessionInfo } from 'src/lib/v2/RuntimeArtifactUtils';
+import {
+  getArtifactDisplayName,
+  getArtifactSessionInfo,
+  getScalarMetricValue,
+  isClassificationMetricArtifact,
+  isHtmlArtifact,
+  isMarkdownArtifact,
+  isScalarMetricArtifact,
+} from 'src/lib/v2/RuntimeArtifactUtils';
 import WorkflowParser from 'src/lib/WorkflowParser';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
@@ -49,18 +57,17 @@ export function RuntimeMetricsVisualizations({
   artifacts,
   namespace,
 }: RuntimeMetricsVisualizationsProps) {
-  const scalarMetrics = artifacts.filter(
-    (artifact) => artifact.type === ArtifactArtifactType.Metric,
-  );
-  const classificationMetrics = expandClassificationMetrics(artifacts);
-  const fileArtifacts = artifacts.filter(
-    (artifact) =>
-      artifact.type === ArtifactArtifactType.HTML ||
-      artifact.type === ArtifactArtifactType.Markdown,
-  );
-  const fileArtifactIds = fileArtifacts.map(
-    (artifact) => artifact.artifact_id || artifact.uri || '',
-  );
+  const { scalarMetrics, classificationMetrics, fileArtifacts, fileArtifactIds } = useMemo(() => {
+    const files = artifacts.filter(
+      (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
+    );
+    return {
+      scalarMetrics: artifacts.filter(isScalarMetricArtifact),
+      classificationMetrics: expandClassificationMetrics(artifacts),
+      fileArtifacts: files,
+      fileArtifactIds: files.map((artifact) => artifact.artifact_id || artifact.uri || ''),
+    };
+  }, [artifacts]);
 
   const {
     data: downloaded,
@@ -134,7 +141,7 @@ export function RuntimeMetricsVisualizations({
               {
                 data: scalarMetrics.map((artifact) => [
                   artifact.name || '-',
-                  String(artifact.number_value ?? artifact.metadata?.[artifact.name || ''] ?? '-'),
+                  getScalarMetricValue(artifact),
                 ]),
                 labels: ['name', 'value'],
                 type: PlotType.TABLE,
@@ -180,7 +187,10 @@ function buildRocCurves(artifacts: V2beta1Artifact[]): {
 
 function expandClassificationMetrics(artifacts: V2beta1Artifact[]): V2beta1Artifact[] {
   return artifacts.flatMap((artifact) => {
-    if (artifact.type === ArtifactArtifactType.ClassificationMetric) {
+    if (
+      isClassificationMetricArtifact(artifact) &&
+      artifact.type === ArtifactArtifactType.ClassificationMetric
+    ) {
       return [artifact];
     }
     if (artifact.type !== ArtifactArtifactType.SlicedClassificationMetric) {
@@ -253,10 +263,10 @@ async function downloadVisualizations(
   );
   return {
     html: downloaded
-      .filter(({ artifact }) => artifact.type === ArtifactArtifactType.HTML)
+      .filter(({ artifact }) => isHtmlArtifact(artifact))
       .map(({ content }) => ({ htmlContent: content, type: PlotType.WEB_APP })),
     markdown: downloaded
-      .filter(({ artifact }) => artifact.type === ArtifactArtifactType.Markdown)
+      .filter(({ artifact }) => isMarkdownArtifact(artifact))
       .map(({ content }) => ({ markdownContent: content, type: PlotType.MARKDOWN })),
   };
 }

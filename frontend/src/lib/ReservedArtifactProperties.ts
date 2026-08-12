@@ -15,8 +15,10 @@
  */
 
 /** Internal artifact custom-property keys that should not be rendered as user content. */
+export const STORE_SESSION_INFO_KEY = 'store_session_info';
+
 export const RESERVED_ARTIFACT_CUSTOM_PROPERTIES: ReadonlySet<string> = new Set([
-  'store_session_info',
+  STORE_SESSION_INFO_KEY,
 ]);
 
 /** Returns true if the key is an internal/reserved artifact custom property. */

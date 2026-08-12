@@ -88,12 +88,14 @@ describe('ArtifactPreview', () => {
     );
   });
 
-  it('carries providerInfo from the session map into download and view links', async () => {
+  it('carries row-specific providerInfo into download and view links', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValueOnce('s3 content');
-    const sessionMap = new Map([['s3://bucket/key', '{"Provider":"s3"}']]);
     render(
       <CommonTestWrapper>
-        <ArtifactPreview value={'s3://bucket/key'} namespace={'kubeflow'} sessionMap={sessionMap} />
+        <ArtifactPreview
+          value={{ uri: 's3://bucket/key', providerInfo: '{"Provider":"s3"}' }}
+          namespace={'kubeflow'}
+        />
       </CommonTestWrapper>,
     );
     await waitFor(() =>
@@ -103,6 +105,30 @@ describe('ArtifactPreview', () => {
     );
     expect(screen.getByText('s3://bucket/key').getAttribute('href')).toEqual(
       'artifacts/s3/bucket/key?namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+    );
+  });
+
+  it('keeps previews with the same URI but different providers in separate cache entries', async () => {
+    const readFileSpy = vi
+      .spyOn(Apis, 'readFile')
+      .mockResolvedValueOnce('first content')
+      .mockResolvedValueOnce('second content');
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value={{ uri: 's3://bucket/key', providerInfo: 'session-a' }} />
+        <ArtifactPreview value={{ uri: 's3://bucket/key', providerInfo: 'session-b' }} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('first content');
+    await screen.findByText('second content');
+    expect(readFileSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ providerInfo: 'session-a' }),
+    );
+    expect(readFileSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ providerInfo: 'session-b' }),
     );
   });
 

@@ -12,21 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Link } from 'react-router-dom';
-import { ReactElement } from 'react';
-import { InputOutputsIOArtifact, V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
-import { RoutePageFactory } from 'src/components/Router';
+import { buildRuntimeArtifactRows } from 'src/components/RuntimeArtifactRows';
 import { commonCss, padding } from 'src/Css';
-import {
-  flattenArtifactGroups,
-  formatParameters,
-  getArtifactDisplayName,
-  getArtifactSessionInfo,
-} from 'src/lib/v2/RuntimeArtifactUtils';
+import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
 
 export interface RuntimeInputOutputTabProps {
   task: V2beta1PipelineTask;
@@ -36,13 +29,13 @@ export interface RuntimeInputOutputTabProps {
 export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTabProps) {
   const inputParameters = formatParameters(task.inputs?.parameters);
   const outputParameters = formatParameters(task.outputs?.parameters);
-  const inputArtifacts = buildArtifactRows(task.inputs?.artifacts);
-  const outputArtifacts = buildArtifactRows(task.outputs?.artifacts);
+  const inputArtifacts = buildRuntimeArtifactRows(task.inputs?.artifacts);
+  const outputArtifacts = buildRuntimeArtifactRows(task.outputs?.artifacts);
   const isEmpty =
     !inputParameters.length &&
     !outputParameters.length &&
-    !inputArtifacts.rows.length &&
-    !outputArtifacts.rows.length;
+    !inputArtifacts.length &&
+    !outputArtifacts.length;
 
   return (
     <ErrorBoundary>
@@ -55,48 +48,29 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
           {!!inputParameters.length && (
             <DetailsTable title='Input Parameters' fields={inputParameters} />
           )}
-          {!!inputArtifacts.rows.length && (
-            <DetailsTable<string>
+          {!!inputArtifacts.length && (
+            <DetailsTable
               title='Input Artifacts'
-              fields={inputArtifacts.rows}
+              fields={inputArtifacts}
               valueComponent={ArtifactPreview}
-              valueComponentProps={{ namespace, sessionMap: inputArtifacts.sessionMap }}
+              valueComponentProps={{ namespace }}
             />
           )}
           {!!outputParameters.length && (
             <DetailsTable title='Output Parameters' fields={outputParameters} />
           )}
-          {!!outputArtifacts.rows.length && (
-            <DetailsTable<string>
+          {!!outputArtifacts.length && (
+            <DetailsTable
               title='Output Artifacts'
-              fields={outputArtifacts.rows}
+              fields={outputArtifacts}
               valueComponent={ArtifactPreview}
-              valueComponentProps={{ namespace, sessionMap: outputArtifacts.sessionMap }}
+              valueComponentProps={{ namespace }}
             />
           )}
         </div>
       </div>
     </ErrorBoundary>
   );
-}
-
-function buildArtifactRows(groups: InputOutputsIOArtifact[] | undefined) {
-  const rows: Array<[string | ReactElement | undefined, string]> = [];
-  const sessionMap = new Map<string, string | undefined>();
-  for (const { artifact, artifactKey, index } of flattenArtifactGroups(groups)) {
-    const displayName = getArtifactDisplayName(artifact, artifactKey, index);
-    const label = artifact.artifact_id ? (
-      <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifact.artifact_id)}>
-        {displayName}
-      </Link>
-    ) : (
-      displayName
-    );
-    const uri = artifact.uri || '';
-    rows.push([label, uri]);
-    sessionMap.set(uri, getArtifactSessionInfo(artifact));
-  }
-  return { rows, sessionMap };
 }
 
 export default RuntimeInputOutputTab;

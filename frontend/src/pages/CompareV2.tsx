@@ -18,12 +18,7 @@ import { CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import { Redirect } from 'react-router-dom';
-import {
-  ArtifactArtifactType,
-  V2beta1Artifact,
-  V2beta1PipelineTask,
-  V2beta1Run,
-} from 'src/apisv2beta1/run';
+import { V2beta1Artifact, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
@@ -38,7 +33,15 @@ import Buttons from 'src/lib/Buttons';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
-import { flattenArtifactGroups } from 'src/lib/v2/RuntimeArtifactUtils';
+import {
+  flattenArtifactGroups,
+  formatParameterValue,
+  getScalarMetricValue,
+  isClassificationMetricArtifact,
+  isHtmlArtifact,
+  isMarkdownArtifact,
+  isScalarMetricArtifact,
+} from 'src/lib/v2/RuntimeArtifactUtils';
 import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { classes, stylesheet } from 'typestyle';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -66,7 +69,7 @@ interface RunComparisonData {
   tasks: V2beta1PipelineTask[];
 }
 
-interface RuntimeArtifactEntry {
+interface RunArtifactEntry {
   artifact: V2beta1Artifact;
   artifactKey: string;
   taskName: string;
@@ -293,9 +296,13 @@ function NativeArtifactComparison({
   metricsTab: NativeMetricsTab;
   namespace?: string;
 }) {
-  const dataWithArtifacts = comparisonData
-    .map((data) => ({ ...data, artifacts: filterArtifacts(data.tasks, metricsTab) }))
-    .filter(({ artifacts }) => artifacts.length > 0);
+  const dataWithArtifacts = useMemo(
+    () =>
+      comparisonData
+        .map((data) => ({ ...data, artifacts: filterArtifacts(data.tasks, metricsTab) }))
+        .filter(({ artifacts }) => artifacts.length > 0),
+    [comparisonData, metricsTab],
+  );
   if (!dataWithArtifacts.length) {
     return <p>There are no {METRICS_TAB_NAMES[metricsTab]} available on the selected runs.</p>;
   }
@@ -314,7 +321,7 @@ function NativeArtifactComparison({
   );
 }
 
-function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RuntimeArtifactEntry[] {
+function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
   return tasks.flatMap((task) =>
     flattenArtifactGroups(task.outputs?.artifacts).map(({ artifact, artifactKey }) => ({
       artifact,
@@ -333,26 +340,21 @@ function getTaskComparisonLabel(task: V2beta1PipelineTask): string {
 }
 
 function filterArtifacts(tasks: V2beta1PipelineTask[], metricsTab: NativeMetricsTab) {
-  const entries = collectOutputArtifacts(tasks);
+  return collectOutputArtifacts(tasks)
+    .map(({ artifact }) => artifact)
+    .filter((artifact) => isArtifactInMetricsTab(artifact, metricsTab));
+}
+
+function isArtifactInMetricsTab(artifact: V2beta1Artifact, metricsTab: NativeMetricsTab): boolean {
   switch (metricsTab) {
     case NativeMetricsTab.CLASSIFICATION:
-      return entries
-        .filter(
-          ({ artifact }) =>
-            artifact.type === ArtifactArtifactType.ClassificationMetric ||
-            artifact.type === ArtifactArtifactType.SlicedClassificationMetric,
-        )
-        .map(({ artifact }) => artifact);
+      return isClassificationMetricArtifact(artifact);
     case NativeMetricsTab.HTML:
-      return entries
-        .filter(({ artifact }) => artifact.type === ArtifactArtifactType.HTML)
-        .map(({ artifact }) => artifact);
+      return isHtmlArtifact(artifact);
     case NativeMetricsTab.MARKDOWN:
-      return entries
-        .filter(({ artifact }) => artifact.type === ArtifactArtifactType.Markdown)
-        .map(({ artifact }) => artifact);
+      return isMarkdownArtifact(artifact);
     default:
-      return [];
+      return false;
   }
 }
 
@@ -373,7 +375,7 @@ export function buildParamsTableProps(
     rows: yLabels.map((parameterName) =>
       comparisonData.map(({ run }) => {
         const value = run.runtime_config?.parameters?.[parameterName];
-        return value === undefined ? '' : JSON.stringify(value);
+        return value === undefined ? '' : formatParameterValue(value);
       }),
     ),
   };
@@ -385,16 +387,10 @@ export function buildScalarMetricsTableProps(
   const metricsByRun = comparisonData.map(({ tasks }) => {
     const metrics = new Map<string, string>();
     collectOutputArtifacts(tasks)
-      .filter(({ artifact }) => artifact.type === ArtifactArtifactType.Metric)
+      .filter(({ artifact }) => isScalarMetricArtifact(artifact))
       .forEach(({ artifact, artifactKey, taskName }) => {
         const label = `${taskName} / ${artifact.name || artifactKey || 'Metric'}`;
-        const value =
-          artifact.number_value !== undefined
-            ? String(artifact.number_value)
-            : artifact.metadata
-              ? JSON.stringify(artifact.metadata)
-              : '';
-        metrics.set(label, value);
+        metrics.set(label, getScalarMetricValue(artifact));
       });
     return metrics;
   });
@@ -420,5 +416,3 @@ function EnhancedCompareV2(props: PageProps) {
 }
 
 export default EnhancedCompareV2;
-
-export const TEST_ONLY = { CompareV2 };

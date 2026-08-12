@@ -71,7 +71,7 @@ describe('ArtifactList', () => {
 
     const artifactLink = await screen.findByRole('link', { name: 'test artifact 1' });
     expect(artifactLink).toHaveAttribute('href', '/artifacts/artifact-1');
-    screen.getByText('Dataset');
+    screen.getByText('system.Dataset');
     screen.getByText('kubeflow');
   });
 

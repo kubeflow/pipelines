@@ -33,7 +33,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
-import { getRunTasks, RunDetailsV2 } from './RunDetailsV2';
+import { RunDetailsV2 } from './RunDetailsV2';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 
 vi.mock('src/components/Editor', () => ({
@@ -160,45 +160,6 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
-  });
-
-  it('retrieves every page of tasks for the run', async () => {
-    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
-    tasksSpy
-      .mockResolvedValueOnce({ tasks: [TEST_TASKS[0]], next_page_token: 'next-page' })
-      .mockResolvedValueOnce({ tasks: [TEST_TASKS[1]] });
-
-    await expect(getRunTasks(RUN_ID)).resolves.toEqual([TEST_TASKS[0], TEST_TASKS[1]]);
-    expect(tasksSpy).toHaveBeenNthCalledWith(
-      1,
-      RUN_ID,
-      undefined,
-      100,
-      undefined,
-      undefined,
-      'create_time asc',
-    );
-    expect(tasksSpy).toHaveBeenNthCalledWith(
-      2,
-      RUN_ID,
-      undefined,
-      100,
-      'next-page',
-      undefined,
-      'create_time asc',
-    );
-  });
-
-  it('rejects a repeated task page token instead of polling forever', async () => {
-    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
-      tasks: [],
-      next_page_token: 'repeated-page',
-    });
-
-    await expect(getRunTasks(RUN_ID)).rejects.toThrow(
-      'Task service returned a repeated page token: repeated-page',
-    );
-    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {

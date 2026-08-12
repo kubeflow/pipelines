@@ -16,8 +16,7 @@
 
 import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { ReactElement, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import {
   InputOutputsIOArtifact,
   PipelineTaskTaskPodType,
@@ -26,10 +25,10 @@ import {
 } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
+import { buildRuntimeArtifactRows } from 'src/components/RuntimeArtifactRows';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
 import LogViewer from 'src/components/LogViewer';
-import { RoutePageFactory } from 'src/components/Router';
 import { RuntimeInputOutputTab } from 'src/components/tabs/RuntimeInputOutputTab';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
 import { commonCss, padding } from 'src/Css';
@@ -374,27 +373,7 @@ function ArtifactInfo({
 }: Required<Pick<ArtifactNodeDetailProps, 'task' | 'artifactGroup'>> &
   Pick<ArtifactNodeDetailProps, 'namespace'>) {
   const artifactEntries = flattenArtifactGroups([artifactGroup]);
-  const sessionMap = new Map<string, string | undefined>();
-  const uriRows: Array<[string | ReactElement | undefined, string]> = artifactEntries.map(
-    ({ artifact, artifactKey, index }) => {
-      const uri = artifact.uri || '';
-      sessionMap.set(uri, getArtifactSessionInfo(artifact));
-      const name = getArtifactDisplayName(artifact, artifactKey, index);
-      return [
-        artifact.artifact_id ? (
-          <Link
-            className={commonCss.link}
-            to={RoutePageFactory.artifactDetails(artifact.artifact_id)}
-          >
-            {name}
-          </Link>
-        ) : (
-          name
-        ),
-        uri,
-      ];
-    },
-  );
+  const uriRows = buildRuntimeArtifactRows([artifactGroup]);
   const firstArtifact = artifactEntries[0].artifact;
   const artifactInfo: Array<KeyValue<string>> = [
     ['Upstream Task Name', task.display_name || task.name || '-'],
@@ -409,11 +388,11 @@ function ArtifactInfo({
     <div>
       <h3>{getArtifactDisplayName(firstArtifact, artifactGroup.artifact_key)}</h3>
       <DetailsTable title='Artifact Info' fields={artifactInfo} />
-      <DetailsTable<string>
+      <DetailsTable
         title='Artifact URI'
         fields={uriRows}
         valueComponent={ArtifactPreview}
-        valueComponentProps={{ namespace, sessionMap }}
+        valueComponentProps={{ namespace }}
       />
     </div>
   );

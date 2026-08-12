@@ -15,24 +15,28 @@
  */
 
 import { CircularProgress } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import type * as React from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
-import {
-  ArtifactArtifactType,
-  V2beta1Artifact,
-  V2beta1ArtifactTask,
-} from 'src/apisv2beta1/artifact';
+import { V2beta1Artifact, V2beta1ArtifactTask } from 'src/apisv2beta1/artifact';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
+import Banner from 'src/components/Banner';
 import DetailsTable, { ValueComponentProps } from 'src/components/DetailsTable';
 import { RoutePage, RoutePageFactory, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
 import { commonCss, padding } from 'src/Css';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
-import { getArtifactSessionInfo } from 'src/lib/v2/RuntimeArtifactUtils';
+import { listAllArtifactTasks } from 'src/lib/v2/ArtifactTaskUtils';
+import {
+  getArtifactSessionInfo,
+  getArtifactTypeName,
+  isVisualizableArtifact,
+} from 'src/lib/v2/RuntimeArtifactUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
 
@@ -46,12 +50,11 @@ const TAB_NAMES = ['Overview', 'Related tasks'];
 
 interface ArtifactDetailsState {
   artifact?: V2beta1Artifact;
-  artifactTasks: V2beta1ArtifactTask[];
   hasError?: boolean;
 }
 
 class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
-  public state: ArtifactDetailsState = { artifactTasks: [] };
+  public state: ArtifactDetailsState = {};
 
   private get id(): string {
     return this.props.match.params[RouteParams.ID];
@@ -63,7 +66,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   public render(): React.JSX.Element {
-    const { artifact, artifactTasks, hasError } = this.state;
+    const { artifact, hasError } = this.state;
     if (!artifact && !hasError) {
       return (
         <div className={commonCss.page}>
@@ -82,7 +85,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
             <ArtifactOverview artifact={artifact} onSwitch={this.switchTab} />
           </Route>
           <Route path={`${this.props.match.path}/${RELATED_TASKS_PATH}`} exact={true}>
-            <ArtifactRelationships artifactTasks={artifactTasks} onSwitch={this.switchTab} />
+            <ArtifactRelationshipsLoader artifactId={this.id} onSwitch={this.switchTab} />
           </Route>
         </Switch>
       </div>
@@ -104,15 +107,12 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   private load = async (): Promise<void> => {
     this.setStateSafe({ hasError: false });
     try {
-      const [artifact, artifactTasks] = await Promise.all([
-        Apis.artifactServiceApiV2.artifact_1(this.id),
-        getAllArtifactTasks(this.id),
-      ]);
+      const artifact = await Apis.artifactServiceApiV2.artifact_1(this.id);
       if (!this._isMounted) {
         return;
       }
       this.props.updateToolbar({ pageTitle: artifact.name || `Artifact ${this.id}` });
-      this.setStateSafe({ artifact, artifactTasks, hasError: false });
+      this.setStateSafe({ artifact, hasError: false });
       this.clearBanner();
     } catch (error) {
       const message = await errorToMessage(error);
@@ -145,7 +145,7 @@ function ArtifactOverview({
   const details: Array<KeyValue<string>> = [
     ['Artifact ID', artifact.artifact_id || '-'],
     ['Name', artifact.name || '-'],
-    ['Type', artifact.type || '-'],
+    ['Type', getArtifactTypeName(artifact)],
     ['Description', artifact.description || '-'],
     ['Namespace', artifact.namespace || '-'],
     ['Created at', formatDateString(artifact.created_at)],
@@ -157,22 +157,22 @@ function ArtifactOverview({
     details.push(['Metadata', JSON.stringify(artifact.metadata)]);
   }
 
-  const sessionMap = new Map<string, string | undefined>();
-  if (artifact.uri) {
-    sessionMap.set(artifact.uri, getArtifactSessionInfo(artifact));
-  }
-
   return (
     <>
       <ArtifactTabs selectedTab={ArtifactDetailsTab.OVERVIEW} onSwitch={onSwitch} />
       <div className={classes(padding(20, 'lr'))}>
         <DetailsTable title='Artifact details' fields={details} />
         {artifact.uri && (
-          <DetailsTable<string>
+          <DetailsTable
             title='Artifact URI'
-            fields={[[artifact.name || 'Artifact', artifact.uri]]}
+            fields={[
+              [
+                artifact.name || 'Artifact',
+                { uri: artifact.uri, providerInfo: getArtifactSessionInfo(artifact) },
+              ],
+            ]}
             valueComponent={ArtifactPreview}
-            valueComponentProps={{ namespace: artifact.namespace, sessionMap }}
+            valueComponentProps={{ namespace: artifact.namespace }}
           />
         )}
         {isVisualizableArtifact(artifact) && (
@@ -183,14 +183,40 @@ function ArtifactOverview({
   );
 }
 
-function isVisualizableArtifact(artifact: V2beta1Artifact): boolean {
-  return (
-    artifact.type === ArtifactArtifactType.Metric ||
-    artifact.type === ArtifactArtifactType.ClassificationMetric ||
-    artifact.type === ArtifactArtifactType.SlicedClassificationMetric ||
-    artifact.type === ArtifactArtifactType.HTML ||
-    artifact.type === ArtifactArtifactType.Markdown
-  );
+function ArtifactRelationshipsLoader({
+  artifactId,
+  onSwitch,
+}: {
+  artifactId: string;
+  onSwitch: (selectedTab: number) => void;
+}) {
+  const {
+    data: artifactTasks,
+    error,
+    isError,
+    isLoading,
+  } = useQuery<V2beta1ArtifactTask[], Error>({
+    queryKey: queryKeys.artifactTasks(artifactId),
+    queryFn: () => listAllArtifactTasks(artifactId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className={commonCss.page}>
+        <CircularProgress className={commonCss.absoluteCenter} />
+      </div>
+    );
+  }
+  if (isError) {
+    return (
+      <Banner
+        message='Unable to load related tasks. Refresh the page to try again.'
+        additionalInfo={error.message}
+        mode='error'
+      />
+    );
+  }
+  return <ArtifactRelationships artifactTasks={artifactTasks || []} onSwitch={onSwitch} />;
 }
 
 function ArtifactRelationships({
@@ -259,32 +285,6 @@ function ArtifactTabs({
 function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
   const direction = artifactTask.type === 'OUTPUT' ? 'Produced as' : 'Consumed as';
   return `${direction} ${artifactTask.key || artifactTask.producer?.task_name || index + 1}`;
-}
-
-export async function getAllArtifactTasks(artifactId: string): Promise<V2beta1ArtifactTask[]> {
-  const artifactTasks: V2beta1ArtifactTask[] = [];
-  const seenPageTokens = new Set<string>();
-  let pageToken: string | undefined;
-  do {
-    const response = await Apis.artifactServiceApiV2.artifactTasks(
-      undefined,
-      undefined,
-      [artifactId],
-      undefined,
-      pageToken,
-      100,
-      'id asc',
-    );
-    artifactTasks.push(...(response.artifact_tasks || []));
-    pageToken = response.next_page_token || undefined;
-    if (pageToken) {
-      if (seenPageTokens.has(pageToken)) {
-        throw new Error(`Artifact service returned a repeated page token: ${pageToken}`);
-      }
-      seenPageTokens.add(pageToken);
-    }
-  } while (pageToken);
-  return artifactTasks;
 }
 
 const EnhancedArtifactDetails = (props: PageProps) => (

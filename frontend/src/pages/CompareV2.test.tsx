@@ -150,7 +150,7 @@ describe('CompareV2', () => {
       yLabels: ['epochs', 'optimizer'],
       rows: [
         ['5', '10'],
-        ['"adam"', ''],
+        ['adam', ''],
       ],
     });
   });
@@ -163,6 +163,43 @@ describe('CompareV2', () => {
       yLabels: ['Train / accuracy'],
       rows: [['0.91', '0.95']],
     });
+  });
+
+  it('uses the named metadata value and a dash fallback for scalar metrics', () => {
+    const tasks: V2beta1PipelineTask[] = [
+      {
+        name: 'evaluate',
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'accuracy',
+              artifacts: [
+                {
+                  name: 'accuracy',
+                  type: ArtifactArtifactType.Metric,
+                  metadata: { accuracy: 0.88, ignored: 1 },
+                },
+              ],
+            },
+            {
+              artifact_key: 'loss',
+              artifacts: [
+                {
+                  name: 'loss',
+                  type: ArtifactArtifactType.Metric,
+                  metadata: { loss: null as any },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+
+    expect(buildScalarMetricsTableProps([{ run: runs[0], tasks }])?.rows).toEqual([
+      ['0.88'],
+      ['-'],
+    ]);
   });
 
   it('keeps metrics from separate loop iterations distinct', () => {

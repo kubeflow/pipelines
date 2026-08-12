@@ -26,7 +26,12 @@ import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
 import { logger } from 'src/lib/Utils';
 
-export type URIToSessionInfo = Map<string, string | undefined>;
+export type ArtifactPreviewValue =
+  | string
+  | {
+      uri: string;
+      providerInfo?: string;
+    };
 
 const css = stylesheet({
   root: {
@@ -51,9 +56,8 @@ const css = stylesheet({
   },
 });
 
-export interface ArtifactPreviewProps extends ValueComponentProps<string> {
+export interface ArtifactPreviewProps extends ValueComponentProps<ArtifactPreviewValue> {
   namespace?: string;
-  sessionMap?: URIToSessionInfo;
   maxbytes?: number;
   maxlines?: number;
 }
@@ -64,31 +68,31 @@ export interface ArtifactPreviewProps extends ValueComponentProps<string> {
 const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   value,
   namespace,
-  sessionMap,
   maxbytes = 255,
   maxlines = 20,
 }) => {
+  const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
+  const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
-  let providerInfo: string | undefined;
+  const providerInfo = typeof value === 'object' && value !== null ? value.providerInfo : undefined;
 
-  if (value) {
+  if (uri) {
     try {
-      providerInfo = sessionMap?.get(value);
-      storage = WorkflowParser.parseStoragePath(value);
+      storage = WorkflowParser.parseStoragePath(uri);
     } catch (error) {
       logger.error(error);
     }
   }
 
   const { isSuccess, isError, data, error } = useQuery<string, Error>({
-    queryKey: queryKeys.artifactPreview(value, namespace, maxbytes, maxlines),
+    queryKey: queryKeys.artifactPreview(uri, namespace, providerInfo, maxbytes, maxlines),
     queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
     staleTime: Infinity,
   });
 
   if (!storage) {
     return (
-      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='info' />
+      <Banner message={'Can not retrieve storage path from artifact uri: ' + rawUri} mode='info' />
     );
   }
 

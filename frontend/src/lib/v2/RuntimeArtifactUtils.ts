@@ -13,14 +13,25 @@
 // limitations under the License.
 
 import {
+  ArtifactArtifactType,
   InputOutputsIOArtifact,
   InputOutputsIOParameter,
   PipelineTaskTaskState,
   V2beta1Artifact,
   V2beta1PipelineTask,
 } from 'src/apisv2beta1/run';
+import { STORE_SESSION_INFO_KEY } from 'src/lib/ReservedArtifactProperties';
 
-export const STORE_SESSION_INFO_KEY = 'store_session_info';
+const ARTIFACT_SCHEMA_TITLES: Partial<Record<ArtifactArtifactType, string>> = {
+  [ArtifactArtifactType.Artifact]: 'system.Artifact',
+  [ArtifactArtifactType.Model]: 'system.Model',
+  [ArtifactArtifactType.Dataset]: 'system.Dataset',
+  [ArtifactArtifactType.HTML]: 'system.HTML',
+  [ArtifactArtifactType.Markdown]: 'system.Markdown',
+  [ArtifactArtifactType.Metric]: 'system.Metrics',
+  [ArtifactArtifactType.ClassificationMetric]: 'system.ClassificationMetrics',
+  [ArtifactArtifactType.SlicedClassificationMetric]: 'system.SlicedClassificationMetrics',
+};
 
 export interface RuntimeArtifactEntry {
   artifact: V2beta1Artifact;
@@ -52,7 +63,7 @@ export function getArtifactDisplayName(
 }
 
 export function getArtifactTypeName(artifact: V2beta1Artifact): string {
-  return artifact.type ? `system.${artifact.type}` : '-';
+  return artifact.type ? ARTIFACT_SCHEMA_TITLES[artifact.type] || artifact.type : '-';
 }
 
 export function getArtifactSessionInfo(artifact: V2beta1Artifact): string | undefined {
@@ -86,6 +97,38 @@ export function formatParameterValue(value: object | undefined): string {
     return value;
   }
   return JSON.stringify(value);
+}
+
+export function getScalarMetricValue(artifact: V2beta1Artifact): string {
+  return String(artifact.number_value ?? artifact.metadata?.[artifact.name || ''] ?? '-');
+}
+
+export function isScalarMetricArtifact(artifact: V2beta1Artifact): boolean {
+  return artifact.type === ArtifactArtifactType.Metric;
+}
+
+export function isClassificationMetricArtifact(artifact: V2beta1Artifact): boolean {
+  return (
+    artifact.type === ArtifactArtifactType.ClassificationMetric ||
+    artifact.type === ArtifactArtifactType.SlicedClassificationMetric
+  );
+}
+
+export function isHtmlArtifact(artifact: V2beta1Artifact): boolean {
+  return artifact.type === ArtifactArtifactType.HTML;
+}
+
+export function isMarkdownArtifact(artifact: V2beta1Artifact): boolean {
+  return artifact.type === ArtifactArtifactType.Markdown;
+}
+
+export function isVisualizableArtifact(artifact: V2beta1Artifact): boolean {
+  return (
+    isScalarMetricArtifact(artifact) ||
+    isClassificationMetricArtifact(artifact) ||
+    isHtmlArtifact(artifact) ||
+    isMarkdownArtifact(artifact)
+  );
 }
 
 export function isTaskFinished(state: PipelineTaskTaskState | undefined): boolean {

@@ -30,7 +30,6 @@ import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pip
 import {
   buildDag,
   buildGraphLayout,
-  getArtifactNodeKey,
   getKeysFromArtifactNodeKey,
   getIterationIdFromNodeKey,
   getTaskKeyFromNodeKey,
@@ -55,6 +54,11 @@ interface TaskIndex {
 interface RuntimeLayerContext {
   task?: V2beta1PipelineTask;
   iterationIndex?: number;
+}
+
+interface RuntimeFlowContext {
+  taskIndex: TaskIndex;
+  runtimeLayerContext: RuntimeLayerContext;
 }
 
 const ITERATION_LAYER_PATTERN = /^(.*)\.(\d+)$/;
@@ -106,9 +110,10 @@ export function updateFlowElementsState(
   layers: string[],
   elements: PipelineFlowElement[],
   tasks: V2beta1PipelineTask[],
+  existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
-  const taskIndex = buildTaskIndex(tasks);
-  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const { taskIndex, runtimeLayerContext: runtimeContext } = flowContext;
   if (!runtimeContext.task) {
     return elements;
   }
@@ -137,7 +142,7 @@ export function updateFlowElementsState(
       return updatedElement;
     }
 
-    const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, taskIndex);
+    const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, flowContext);
     if (updatedElement.type === NodeTypeNames.EXECUTION && runtimeInfo.task) {
       const data = updatedElement.data as ExecutionFlowElementData;
       data.state = runtimeInfo.task.state;
@@ -163,14 +168,14 @@ export function getNodeRuntimeInfo(
   element: PipelineFlowElement | null,
   tasks: V2beta1PipelineTask[],
   layers: string[],
-  existingTaskIndex?: TaskIndex,
+  existingFlowContext?: RuntimeFlowContext,
 ): NodeRuntimeInfo {
   if (!element || !isNode(element)) {
     return {};
   }
 
-  const taskIndex = existingTaskIndex || buildTaskIndex(tasks);
-  const runtimeContext = getRuntimeLayerContext(layers, taskIndex);
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const { taskIndex, runtimeLayerContext: runtimeContext } = flowContext;
   if (!runtimeContext.task) {
     return {};
   }
@@ -184,6 +189,14 @@ export function getNodeRuntimeInfo(
     return getArtifactRuntimeInfo(element, runtimeContext, taskIndex);
   }
   return {};
+}
+
+export function buildRuntimeFlowContext(
+  layers: string[],
+  tasks: V2beta1PipelineTask[],
+): RuntimeFlowContext {
+  const taskIndex = buildTaskIndex(tasks);
+  return { taskIndex, runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex) };
 }
 
 function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
@@ -389,8 +402,4 @@ function cloneFlowElement(element: PipelineFlowElement): PipelineFlowElement {
     source: element.source,
     target: element.target,
   };
-}
-
-export function getArtifactNodeRuntimeKey(taskName: string, artifactKey: string): string {
-  return getArtifactNodeKey(taskName, artifactKey);
 }

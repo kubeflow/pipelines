@@ -54,6 +54,8 @@ export const queryKeys = {
 
   runTasks: (runId: string) => ['run_tasks', { id: runId }] as const,
 
+  artifactTasks: (artifactId: string) => ['artifact_tasks', { id: artifactId }] as const,
+
   taskLogs: (taskId?: string, taskState?: string, namespace?: string) =>
     ['task_logs', { taskId, taskState, namespace }] as const,
 
@@ -93,7 +95,8 @@ export const queryKeys = {
   artifactPreview: (
     value: string | undefined,
     namespace: string | undefined,
+    providerInfo: string | undefined,
     maxbytes: number,
     maxlines: number,
-  ) => ['artifact_preview', { value, namespace, maxbytes, maxlines }] as const,
+  ) => ['artifact_preview', { value, namespace, providerInfo, maxbytes, maxlines }] as const,
 };

@@ -37,6 +37,7 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
+  buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
   updateFlowElementsState,
@@ -94,7 +95,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     data: tasks,
   } = useQuery<V2beta1PipelineTask[], Error>({
     queryKey: queryKeys.runTasks(runId),
-    queryFn: () => getRunTasks(runId),
+    queryFn: () => listAllRunTasks(runId),
     staleTime: QUERY_STALE_TIME,
     refetchInterval: runFinished ? false : QUERY_REFETCH_INTERVAL,
   });
@@ -139,17 +140,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     [pipelineSpec, tasks],
   );
 
+  const runtimeFlowContext = useMemo(
+    () => buildRuntimeFlowContext(layers, tasks || []),
+    [layers, tasks],
+  );
+
   const dynamicFlowElements = useMemo(() => {
     if (!isSuccess || !tasks) {
       return flowElements;
     }
 
-    return updateFlowElementsState(layers, flowElements, tasks);
-  }, [flowElements, isSuccess, layers, tasks]);
+    return updateFlowElementsState(layers, flowElements, tasks, runtimeFlowContext);
+  }, [flowElements, isSuccess, layers, runtimeFlowContext, tasks]);
 
   const selectedNodeRuntimeInfo = useMemo(
-    () => getNodeRuntimeInfo(selectedNode, tasks || [], layers),
-    [layers, selectedNode, tasks],
+    () => getNodeRuntimeInfo(selectedNode, tasks || [], layers, runtimeFlowContext),
+    [layers, runtimeFlowContext, selectedNode, tasks],
   );
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
@@ -243,10 +249,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       </div>
     </>
   );
-}
-
-export async function getRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
-  return listAllRunTasks(runId);
 }
 
 async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {

@@ -12,13 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { PipelineTaskTaskState, V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import {
+  ArtifactArtifactType,
+  PipelineTaskTaskState,
+  V2beta1PipelineTask,
+} from 'src/apisv2beta1/run';
 import {
   flattenArtifactGroups,
   formatParameters,
   getArtifactDisplayName,
   getArtifactSessionInfo,
+  getArtifactTypeName,
   getOutputArtifactByName,
+  getScalarMetricValue,
+  isClassificationMetricArtifact,
+  isVisualizableArtifact,
   isTaskFinished,
 } from './RuntimeArtifactUtils';
 
@@ -73,6 +81,31 @@ describe('RuntimeArtifactUtils', () => {
       ['enabled', 'false'],
       ['config', '{"nested":true}'],
     ]);
+  });
+
+  it('uses canonical schema titles for artifact types', () => {
+    expect(getArtifactTypeName({ type: ArtifactArtifactType.Metric })).toBe('system.Metrics');
+    expect(getArtifactTypeName({ type: ArtifactArtifactType.ClassificationMetric })).toBe(
+      'system.ClassificationMetrics',
+    );
+    expect(getArtifactTypeName({ type: ArtifactArtifactType.SlicedClassificationMetric })).toBe(
+      'system.SlicedClassificationMetrics',
+    );
+  });
+
+  it('formats scalar metrics consistently and shares visualization predicates', () => {
+    const metric = {
+      name: 'accuracy',
+      type: ArtifactArtifactType.Metric,
+      metadata: { accuracy: 0.91 },
+    };
+    expect(getScalarMetricValue(metric)).toBe('0.91');
+    expect(getScalarMetricValue({ ...metric, metadata: { accuracy: null as any } })).toBe('-');
+    expect(isVisualizableArtifact(metric)).toBe(true);
+    expect(
+      isClassificationMetricArtifact({ type: ArtifactArtifactType.ClassificationMetric }),
+    ).toBe(true);
+    expect(isVisualizableArtifact({ type: ArtifactArtifactType.Dataset })).toBe(false);
   });
 
   it('reads session metadata and recognizes every terminal task state', () => {

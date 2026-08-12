@@ -12,25 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { V2beta1ArtifactTask } from 'src/apisv2beta1/artifact';
 import { Apis } from 'src/lib/Apis';
 import { listAllPages } from './PaginationUtils';
 
 const MAX_PAGE_SIZE = 200;
 
-export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
+export function listAllArtifactTasks(artifactId: string): Promise<V2beta1ArtifactTask[]> {
   return listAllPages(
     async (pageToken) => {
-      const response = await Apis.runServiceApiV2.tasks(
-        runId,
+      const response = await Apis.artifactServiceApiV2.artifactTasks(
         undefined,
-        MAX_PAGE_SIZE,
+        undefined,
+        [artifactId],
+        undefined,
         pageToken,
-        undefined,
-        'create_time asc',
+        MAX_PAGE_SIZE,
+        'id asc',
       );
-      return { items: response.tasks, nextPageToken: response.next_page_token };
+      return { items: response.artifact_tasks, nextPageToken: response.next_page_token };
     },
-    (pageToken) => new Error(`Task service returned a repeated page token: ${pageToken}`),
+    (pageToken) => new Error(`Artifact service returned a repeated page token: ${pageToken}`),
   );
 }
