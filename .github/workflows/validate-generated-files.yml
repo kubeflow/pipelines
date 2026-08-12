@@ -5,6 +5,7 @@ on:
       - master
   pull_request:
     paths:
+      - '.gitattributes'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/resources/scripts/generated_files_dependency_change.py'
       - '.github/actions/setup-python-pip-cache/**'
@@ -59,16 +60,13 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [[ "$EVENT_NAME" == "pull_request" ]]; then
-            required="$(python3 .github/resources/scripts/generated_files_dependency_change.py \
-              --base "$BASE_SHA" --head "$HEAD_SHA")"
-            auto_regeneration="$(python3 .github/resources/scripts/generated_files_dependency_change.py \
-              --base "$BASE_SHA" --head "$HEAD_SHA" --mode auto-regeneration)"
+            python3 .github/resources/scripts/generated_files_dependency_change.py \
+              --base "$BASE_SHA" --head "$HEAD_SHA" --mode outputs \
+              >> "$GITHUB_OUTPUT"
           else
-            required=true
-            auto_regeneration=false
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            echo "auto-regeneration=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "required=$required" >> "$GITHUB_OUTPUT"
-          echo "auto-regeneration=$auto_regeneration" >> "$GITHUB_OUTPUT"
 
   generate-and-check:
     needs: detect-generator-changes
@@ -85,7 +83,8 @@ jobs:
           # Auto-regeneration patches must be based on the branch commit they
           # will later be applied to, not GitHub's synthetic PR merge commit.
           ref: >-
-            ${{ needs.detect-generator-changes.outputs.auto-regeneration == 'true'
+            ${{ github.actor == 'dependabot[bot]' &&
+                needs.detect-generator-changes.outputs.auto-regeneration == 'true'
                 && github.event.pull_request.head.sha || github.sha }}
 
       - name: Install Go
@@ -158,7 +157,8 @@ jobs:
           METADATA_PATH: ${{ runner.temp }}/generated-files-metadata.json
         run: |
           echo "has-changes=false" >> "$GITHUB_OUTPUT"
-          git diff --name-only > "$PATHS_PATH"
+          python3 .github/resources/scripts/generated_files_dependency_change.py \
+            --write-worktree-paths "$PATHS_PATH"
           if [[ ! -s "$PATHS_PATH" ]]; then
             echo "Generator outputs are already current."
             exit 0
@@ -170,7 +170,8 @@ jobs:
             exit 0
           fi
 
-          git diff --binary --full-index > "$PATCH_PATH"
+          git add --all
+          git diff --cached --binary --full-index > "$PATCH_PATH"
           jq -n \
             --arg pr_number "$EVENT_PR_NUMBER" \
             --arg head_sha "$EVENT_HEAD_SHA" \
@@ -189,6 +190,7 @@ jobs:
             ${{ runner.temp }}/generated-files-paths.txt
             ${{ runner.temp }}/generated-files-metadata.json
           if-no-files-found: error
+          overwrite: true
           retention-days: 1
 
       - name: Check for Changes

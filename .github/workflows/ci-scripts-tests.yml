@@ -6,6 +6,7 @@ name: CI Scripts Tests
 on:
   pull_request:
     paths:
+      - '.gitattributes'
       - '.github/dependabot.yml'
       - '**/go.mod'
       - '**/package.json'

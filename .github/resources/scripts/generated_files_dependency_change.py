@@ -15,6 +15,8 @@
 """Detect dependency-only changes that require generated-file validation."""
 
 import argparse
+import fnmatch
+from pathlib import Path
 from pathlib import PurePosixPath
 import subprocess
 import sys
@@ -31,19 +33,8 @@ TRACKED_MODULES = {
     ),
 }
 
-GENERATED_PATH_PREFIXES = (
-    'api/v2alpha1/go/',
-    'backend/api/v1beta1/go_client/',
-    'backend/api/v1beta1/go_http_client/',
-    'backend/api/v1beta1/python_http_client/',
-    'backend/api/v1beta1/swagger/',
-    'backend/api/v2beta1/go_client/',
-    'backend/api/v2beta1/go_http_client/',
-    'backend/api/v2beta1/python_http_client/',
-    'backend/api/v2beta1/swagger/',
-    'kubernetes_platform/go/',
-    'kubernetes_platform/python/kfp/kubernetes/',
-)
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+GENERATED_ATTRIBUTE = 'dependabot-auto-generated'
 
 
 def module_version(go_mod: str, module: str) -> str | None:
@@ -103,10 +94,24 @@ def supports_auto_regeneration(
     return False
 
 
-def generated_paths_are_allowed(paths: list[str]) -> bool:
+def generated_path_patterns(attributes: str) -> tuple[str, ...]:
+    """Return patterns marked as Dependabot-generated in .gitattributes."""
+    patterns = []
+    for line in attributes.splitlines():
+        fields = line.split()
+        if fields and not fields[0].startswith('#'):
+            if GENERATED_ATTRIBUTE in fields[1:]:
+                patterns.append(fields[0])
+    return tuple(patterns)
+
+
+def generated_paths_are_allowed(
+    paths: list[str], patterns: tuple[str, ...]
+) -> bool:
     """Return whether every path is a known committed generator output."""
-    return bool(paths) and all(
-        path.startswith(GENERATED_PATH_PREFIXES) for path in paths
+    return bool(paths) and bool(patterns) and all(
+        any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+        for path in paths
     )
 
 
@@ -130,25 +135,48 @@ def git_file_at_ref(ref: str, path: str) -> str:
     return result.stdout if result.returncode == 0 else ''
 
 
+def worktree_changed_paths() -> list[str]:
+    """Return tracked, deleted, and untracked worktree paths."""
+    tracked = git_output('diff', '--name-only', 'HEAD').splitlines()
+    untracked = git_output(
+        'ls-files', '--others', '--exclude-standard'
+    ).splitlines()
+    return sorted(set(tracked + untracked))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--base')
     parser.add_argument('--head')
     parser.add_argument(
         '--mode',
-        choices=('validation', 'auto-regeneration'),
+        choices=('validation', 'auto-regeneration', 'outputs'),
         default='validation',
     )
     parser.add_argument(
         '--check-generated-paths',
         help='Validate newline-delimited generated paths from this file.',
     )
+    parser.add_argument(
+        '--write-worktree-paths',
+        help='Write tracked and untracked worktree changes to this file.',
+    )
     args = parser.parse_args()
+
+    if args.write_worktree_paths:
+        paths = worktree_changed_paths()
+        Path(args.write_worktree_paths).write_text(
+            ''.join(f'{path}\n' for path in paths), encoding='utf-8'
+        )
+        return 0
 
     if args.check_generated_paths:
         with open(args.check_generated_paths, encoding='utf-8') as path_file:
             paths = path_file.read().splitlines()
-        if generated_paths_are_allowed(paths):
+        patterns = generated_path_patterns(
+            (REPOSITORY_ROOT / '.gitattributes').read_text(encoding='utf-8')
+        )
+        if generated_paths_are_allowed(paths, patterns):
             return 0
         print(
             'Generated patch contains an empty or non-allowlisted path set:',
@@ -170,15 +198,19 @@ def main() -> int:
     head_manifests = {
         path: git_file_at_ref(args.head, path) for path in TRACKED_MODULES
     }
-    if args.mode == 'auto-regeneration':
-        result = supports_auto_regeneration(
-            changed_paths, base_manifests, head_manifests
-        )
+    validation = requires_validation(
+        changed_paths, base_manifests, head_manifests
+    )
+    auto_regeneration = supports_auto_regeneration(
+        changed_paths, base_manifests, head_manifests
+    )
+    if args.mode == 'outputs':
+        print(f'required={str(validation).lower()}')
+        print(f'auto-regeneration={str(auto_regeneration).lower()}')
+    elif args.mode == 'auto-regeneration':
+        print(str(auto_regeneration).lower())
     else:
-        result = requires_validation(
-            changed_paths, base_manifests, head_manifests
-        )
-    print(str(result).lower())
+        print(str(validation).lower())
     return 0
 
 

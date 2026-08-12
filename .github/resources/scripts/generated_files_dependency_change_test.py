@@ -14,13 +14,18 @@
 # limitations under the License.
 """Tests for generated-file dependency change detection."""
 
+import os
+import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
 from generated_files_dependency_change import module_version
+from generated_files_dependency_change import generated_path_patterns
 from generated_files_dependency_change import generated_paths_are_allowed
 from generated_files_dependency_change import requires_validation
 from generated_files_dependency_change import supports_auto_regeneration
+from generated_files_dependency_change import worktree_changed_paths
 
 
 ROOT_BASE = """require (
@@ -108,16 +113,66 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
         ))
 
     def test_generated_paths_must_be_nonempty_and_allowlisted(self):
+        patterns = generated_path_patterns("""
+backend/api/v1beta1/go_client/** linguist-generated dependabot-auto-generated
+backend/api/v2beta1/swagger/** linguist-generated dependabot-auto-generated
+api/v2alpha1/go/** linguist-generated dependabot-auto-generated
+go.sum linguist-generated
+""")
         self.assertTrue(generated_paths_are_allowed([
             'backend/api/v1beta1/go_client/run.pb.gw.go',
             'backend/api/v2beta1/swagger/filter.swagger.json',
             'api/v2alpha1/go/pipelinespec/pipeline_spec.pb.go',
-        ]))
-        self.assertFalse(generated_paths_are_allowed([]))
+        ], patterns))
+        self.assertFalse(generated_paths_are_allowed([], patterns))
         self.assertFalse(generated_paths_are_allowed([
             'backend/api/v1beta1/go_client/run.pb.gw.go',
             '.github/workflows/validate-generated-files.yml',
-        ]))
+        ], patterns))
+
+    def test_repository_attributes_are_the_generated_path_source_of_truth(self):
+        attributes = (REPOSITORY_ROOT / '.gitattributes').read_text(
+            encoding='utf-8'
+        )
+        patterns = generated_path_patterns(attributes)
+        self.assertTrue(generated_paths_are_allowed([
+            'backend/api/v1beta1/go_client/run.pb.gw.go',
+            'backend/api/v2beta1/swagger/filter.swagger.json',
+            'kubernetes_platform/go/kubernetesplatform/config.pb.go',
+        ], patterns))
+        self.assertFalse(generated_paths_are_allowed(['go.sum'], patterns))
+
+    def test_worktree_paths_include_tracked_deleted_and_untracked_files(self):
+        with tempfile.TemporaryDirectory() as temp_directory:
+            repository = Path(temp_directory)
+            subprocess.run(('git', 'init', '-q'), cwd=repository, check=True)
+            subprocess.run(
+                ('git', 'config', 'user.email', 'test@example.com'),
+                cwd=repository,
+                check=True,
+            )
+            subprocess.run(
+                ('git', 'config', 'user.name', 'Test'),
+                cwd=repository,
+                check=True,
+            )
+            (repository / 'modified.txt').write_text('old\n', encoding='utf-8')
+            (repository / 'deleted.txt').write_text('old\n', encoding='utf-8')
+            subprocess.run(('git', 'add', '.'), cwd=repository, check=True)
+            subprocess.run(('git', 'commit', '-qm', 'base'), cwd=repository, check=True)
+            (repository / 'modified.txt').write_text('new\n', encoding='utf-8')
+            (repository / 'deleted.txt').unlink()
+            (repository / 'untracked.txt').write_text('new\n', encoding='utf-8')
+
+            previous_directory = os.getcwd()
+            try:
+                os.chdir(repository)
+                self.assertEqual(
+                    worktree_changed_paths(),
+                    ['deleted.txt', 'modified.txt', 'untracked.txt'],
+                )
+            finally:
+                os.chdir(previous_directory)
 
     def test_generator_version_sources_are_wired_to_automation(self):
         dockerfile = (REPOSITORY_ROOT / 'backend/api/Dockerfile').read_text(
@@ -166,6 +221,8 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
         self.assertIn('generate-and-check:', workflow)
         self.assertIn('validate-generated-files:', workflow)
         self.assertIn('dependabot-generated-files-', workflow)
+        self.assertIn('overwrite: true', workflow)
+        self.assertIn("github.actor == 'dependabot[bot]'", workflow)
 
         updater_workflow = (
             REPOSITORY_ROOT
@@ -174,6 +231,26 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
         self.assertIn('workflow_run:', updater_workflow)
         self.assertIn('SSH_PRIVATE_KEY', updater_workflow)
         self.assertNotIn('pull_request_target:', updater_workflow)
+        self.assertIn(
+            './trusted/.github/actions/download-artifact-with-retry',
+            updater_workflow,
+        )
+        self.assertIn(
+            'listPullRequestsAssociatedWithCommit', updater_workflow
+        )
+        self.assertIn('persist-credentials: false', updater_workflow)
+        self.assertNotIn('ssh-key:', updater_workflow)
+        self.assertNotIn('git diff --check', updater_workflow)
+        self.assertNotIn(
+            'source/.github/resources/scripts/generated_files_dependency_change.py',
+            updater_workflow,
+        )
+        self.assertLess(
+            updater_workflow.index(
+                'Confirm the pull request head is still current'
+            ),
+            updater_workflow.index('SSH_PRIVATE_KEY:'),
+        )
 
         ci_scripts_workflow = (
             REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
