@@ -3,35 +3,42 @@ on:
   issues:
     types: [opened]
 
-env:
-  TARGET_MODEL: "openai/gpt-4o-mini"
-
 jobs:
   analyze-issue:
     runs-on: ubuntu-latest
     permissions:
       issues: write
       contents: read
-      models: read
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Python Dependencies
+        run: pip install requests
+
+      - name: Install GitHub Models Extension
+        run: gh extension install github/gh-models
 
       - name: Execute AI Issue Triage
         id: ai_logic
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TITLE: ${{ github.event.issue.title }}
           RAW_BODY: ${{ github.event.issue.body }}
-        run: |
-          ./.github/scripts/ai_triage.sh
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          TARGET_MODEL: "openai/gpt-4o-mini"
+        run: python .github/scripts/ai_triage.py
 
-      - name: Apply Quality Analysis Comment
+      - name: Post Issue Review or Validation Comment
+        if: ${{ steps.ai_logic.outputs.analysis != '' }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPORT: ${{ steps.ai_logic.outputs.analysis }}
         run: |
-          gh issue comment "$ISSUE_NUMBER" --body "## 🤖 AI Issue Quality Review
-          $REPORT"
-
+          gh issue comment "$ISSUE_NUMBER" --body "$REPORT"
