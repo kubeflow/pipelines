@@ -571,6 +571,21 @@ export default (app: express.Application) => {
     res.json(toV2Run(run.run!));
   });
 
+  // Native runtime metadata endpoints used by the V2 run and artifact pages.
+  // The mock backend does not simulate task execution yet, but valid empty
+  // list responses keep local development usable after the MLMD proxy removal.
+  app.get(v2beta1Prefix + '/runs/:rid/tasks', (_req, res) => {
+    res.json({ tasks: [] });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
+    res.json({ artifacts: [] });
+  });
+
+  app.get(v2beta1Prefix + '/artifact_tasks', (_req, res) => {
+    res.json({ artifact_tasks: [] });
+  });
+
   app.get(v2beta1Prefix + '/recurringruns', (req, res) => {
     res.header('Content-Type', 'application/json');
     let recurringRuns = fixedData.jobs.map(toV2RecurringRun);

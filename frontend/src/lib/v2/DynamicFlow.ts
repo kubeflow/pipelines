@@ -244,8 +244,9 @@ function getRuntimeLayerContext(layers: string[], taskIndex: TaskIndex): Runtime
       continue;
     }
 
-    const children = taskIndex.childrenByParentId.get(contextTask.task_id || '') || [];
-    const matchedTask = children.find((task) => task.name === layer);
+    const matchedTask = getTasksUnderContext(context, taskIndex).find(
+      (task) => task.name === layer,
+    );
     if (!matchedTask) {
       return {};
     }

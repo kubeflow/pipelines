@@ -13,8 +13,9 @@
 // limitations under the License.
 
 import HelpIcon from '@mui/icons-material/Help';
+import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import Banner from 'src/components/Banner';
@@ -38,16 +39,11 @@ import { MarkdownViewerConfig } from './MarkdownViewer';
 import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
-import { PlotType } from './Viewer';
+import { PlotType, ViewerConfig } from './Viewer';
 
 interface RuntimeMetricsVisualizationsProps {
   artifacts: V2beta1Artifact[];
   namespace?: string;
-}
-
-interface DownloadedVisualizations {
-  html: HTMLViewerConfig[];
-  markdown: MarkdownViewerConfig[];
 }
 
 interface ClassificationVisualization {
@@ -64,7 +60,7 @@ export function RuntimeMetricsVisualizations({
   artifacts,
   namespace,
 }: RuntimeMetricsVisualizationsProps) {
-  const { scalarMetrics, classificationMetrics, fileArtifacts, fileArtifactIds } = useMemo(() => {
+  const { scalarMetrics, classificationMetrics, fileArtifacts } = useMemo(() => {
     const files = artifacts.filter(
       (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
     );
@@ -72,20 +68,8 @@ export function RuntimeMetricsVisualizations({
       scalarMetrics: artifacts.filter(isScalarMetricArtifact),
       classificationMetrics: expandClassificationMetrics(artifacts),
       fileArtifacts: files,
-      fileArtifactIds: files.map((artifact) => artifact.artifact_id || artifact.uri || ''),
     };
   }, [artifacts]);
-
-  const {
-    data: downloaded,
-    error: downloadError,
-    isLoading,
-  } = useQuery<DownloadedVisualizations, Error>({
-    queryKey: queryKeys.runtimeArtifactVisualizations(fileArtifactIds, namespace),
-    queryFn: () => downloadVisualizations(fileArtifacts, namespace),
-    enabled: fileArtifacts.length > 0,
-    staleTime: Infinity,
-  });
 
   const rocCurves = useMemo(() => buildRocCurves(classificationMetrics), [classificationMetrics]);
   const confusionMatrices = useMemo(
@@ -104,14 +88,6 @@ export function RuntimeMetricsVisualizations({
 
   return (
     <>
-      {downloadError && (
-        <Banner
-          message='Unable to retrieve visualization information. Verify the artifact URI and refresh the page.'
-          mode='error'
-          additionalInfo={downloadError.message}
-        />
-      )}
-      {isLoading && <Banner message='Visualization is loading.' mode='info' />}
       {rocCurves.error && (
         <Banner
           message='Invalid ROC curve artifact.'
@@ -157,17 +133,72 @@ export function RuntimeMetricsVisualizations({
           />
         </div>
       )}
-      {!!downloaded?.html.length && (
-        <div className={padding(20, 'lrt')}>
-          <PlotCard configs={downloaded.html} title='Static HTML' />
-        </div>
-      )}
-      {!!downloaded?.markdown.length && (
-        <div className={padding(20, 'lrt')}>
-          <PlotCard configs={downloaded.markdown} title='Static Markdown' />
-        </div>
+      {!!fileArtifacts.length && (
+        <FileArtifactVisualization artifacts={fileArtifacts} namespace={namespace} />
       )}
     </>
+  );
+}
+
+function FileArtifactVisualization({
+  artifacts,
+  namespace,
+}: {
+  artifacts: V2beta1Artifact[];
+  namespace?: string;
+}) {
+  const entries = useMemo(
+    () =>
+      artifacts.map((artifact, index) => ({
+        artifact,
+        key: artifact.artifact_id || artifact.uri || `${artifact.name || 'artifact'}-${index}`,
+      })),
+    [artifacts],
+  );
+  const [selectedKey, setSelectedKey] = useState('');
+  const selectedEntry = entries.find(({ key }) => key === selectedKey);
+  const activeSelectedKey = selectedEntry?.key || '';
+  const selectedArtifact = selectedEntry?.artifact;
+  const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
+    queryKey: queryKeys.runtimeArtifactVisualization(activeSelectedKey || undefined, namespace),
+    queryFn: () => downloadVisualization(selectedArtifact!, namespace),
+    enabled: !!selectedArtifact,
+    staleTime: Infinity,
+  });
+
+  return (
+    <div className={padding(20, 'lrt')}>
+      <FormControl variant='standard' style={{ minWidth: 240 }}>
+        <InputLabel id='file-visualization-label'>File visualization</InputLabel>
+        <Select
+          labelId='file-visualization-label'
+          value={activeSelectedKey}
+          onChange={(event) => setSelectedKey(event.target.value as string)}
+          inputProps={{ 'aria-label': 'File visualization' }}
+        >
+          <MenuItem value=''>Choose an artifact</MenuItem>
+          {entries.map(({ artifact, key }) => (
+            <MenuItem key={key} value={key}>
+              {getArtifactDisplayName(artifact)} ({isHtmlArtifact(artifact) ? 'HTML' : 'Markdown'})
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      {error && (
+        <Banner
+          message='Unable to retrieve the selected visualization. Verify the artifact URI and refresh the page to retry.'
+          mode='error'
+          additionalInfo={error.message}
+        />
+      )}
+      {isLoading && <Banner message='Visualization is loading.' mode='info' />}
+      {data && (
+        <PlotCard
+          configs={[data]}
+          title={isHtmlArtifact(selectedArtifact!) ? 'Static HTML' : 'Static Markdown'}
+        />
+      )}
+    </div>
   );
 }
 
@@ -259,33 +290,24 @@ function buildConfusionMatrices(
   });
 }
 
-async function downloadVisualizations(
-  artifacts: V2beta1Artifact[],
+async function downloadVisualization(
+  artifact: V2beta1Artifact,
   namespace?: string,
-): Promise<DownloadedVisualizations> {
-  const downloaded = await Promise.all(
-    artifacts.map(async (artifact) => {
-      if (!artifact.uri) {
-        throw new Error(
-          `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced a valid artifact location.`,
-        );
-      }
-      const content = await Apis.readFile({
-        path: WorkflowParser.parseStoragePath(artifact.uri),
-        providerInfo: getArtifactSessionInfo(artifact),
-        namespace,
-      });
-      return { artifact, content };
-    }),
-  );
-  return {
-    html: downloaded
-      .filter(({ artifact }) => isHtmlArtifact(artifact))
-      .map(({ content }) => ({ htmlContent: content, type: PlotType.WEB_APP })),
-    markdown: downloaded
-      .filter(({ artifact }) => isMarkdownArtifact(artifact))
-      .map(({ content }) => ({ markdownContent: content, type: PlotType.MARKDOWN })),
-  };
+): Promise<ViewerConfig> {
+  if (!artifact.uri) {
+    throw new Error(
+      `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced a valid artifact location.`,
+    );
+  }
+  const content = await Apis.readFile({
+    path: WorkflowParser.parseStoragePath(artifact.uri),
+    providerInfo: getArtifactSessionInfo(artifact),
+    namespace,
+  });
+  if (isHtmlArtifact(artifact)) {
+    return { htmlContent: content, type: PlotType.WEB_APP } as HTMLViewerConfig;
+  }
+  return { markdownContent: content, type: PlotType.MARKDOWN } as MarkdownViewerConfig;
 }
 
 function unwrapList(value: object | undefined): unknown[] | undefined {
@@ -328,7 +350,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export const TEST_ONLY = {
   buildConfusionMatrices,
   buildRocCurves,
-  downloadVisualizations,
+  downloadVisualization,
   expandClassificationMetrics,
 };
 

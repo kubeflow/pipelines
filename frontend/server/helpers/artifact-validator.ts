@@ -17,6 +17,15 @@ import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/
 const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
   .trim()
   .replace(/^\/+|\/+$/g, '');
+const NAMESPACE_OWNERSHIP_MODE = (
+  process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE || 'mlmd-then-prefix'
+)
+  .trim()
+  .toLowerCase();
+const PREFIX_FALLBACK_OWNERSHIP_MODES: ReadonlySet<string> = new Set([
+  'mlmd-then-prefix',
+  'artifact-then-prefix',
+]);
 const VALIDATION_TIMEOUT_MS = (() => {
   const configured = Number(process.env.ARTIFACT_VALIDATION_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : 5000;
@@ -78,6 +87,27 @@ export function validateArtifactKeyPrefix(
   return { valid: true, reason: 'prefix-match' };
 }
 
+export function validateArtifactNotFound(
+  artifactUri: string,
+  claimedNamespace: string,
+  ownershipMode: string = NAMESPACE_OWNERSHIP_MODE,
+): ValidationResult {
+  const normalizedMode = ownershipMode.trim().toLowerCase();
+  if (!PREFIX_FALLBACK_OWNERSHIP_MODES.has(normalizedMode)) {
+    const strictMode = normalizedMode === 'mlmd-only' || normalizedMode === 'artifact-only';
+    console.warn(
+      `[SECURITY] Artifact ownership lookup found no record for URI "${artifactUri}"; ` +
+        (strictMode
+          ? `denying access because ARTIFACT_NAMESPACE_OWNERSHIP_MODE is "${ownershipMode}".`
+          : `denying access because ARTIFACT_NAMESPACE_OWNERSHIP_MODE "${ownershipMode}" is ` +
+            `not recognized. Use "artifact-only" for strict validation or ` +
+            `"artifact-then-prefix" to enable namespace-prefix fallback.`),
+    );
+    return { valid: false, reason: 'artifact-not-found' };
+  }
+  return validateArtifactKeyPrefix(artifactUri, claimedNamespace);
+}
+
 export async function validateArtifactNamespace(
   apiServerAddress: string,
   artifactUri: string,
@@ -105,7 +135,7 @@ export async function validateArtifactNamespace(
     if (response.artifacts?.length) {
       return { valid: true, reason: 'artifact-api-match' };
     }
-    return validateArtifactKeyPrefix(artifactUri, claimedNamespace);
+    return validateArtifactNotFound(artifactUri, claimedNamespace);
   } catch (error) {
     console.error(
       `[SECURITY] Artifact ownership lookup failed for URI "${artifactUri}"; denying access.`,

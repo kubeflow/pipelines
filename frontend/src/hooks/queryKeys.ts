@@ -87,8 +87,8 @@ export const queryKeys = {
 
   // --- Viewer configs ---
 
-  runtimeArtifactVisualizations: (artifactIds: string[], namespace?: string) =>
-    ['runtime_artifact_visualizations', { artifactIds, namespace }] as const,
+  runtimeArtifactVisualization: (artifactId: string | undefined, namespace?: string) =>
+    ['runtime_artifact_visualization', artifactId, namespace] as const,
 
   // --- Misc ---
 

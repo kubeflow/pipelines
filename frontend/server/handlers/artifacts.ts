@@ -51,6 +51,7 @@ import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
+import { ArtifactCoordinates, getLauncherProviderInfo } from '../helpers/launcher-config.js';
 
 /**
  * ArtifactsQueryStrings describes the expected query strings key value pairs
@@ -309,14 +310,29 @@ export function getArtifactsHandler({
     // A missing namespace only occurs when auth is disabled (single-tenant): the
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
+    let resolvedProviderInfo = providerInfo;
+    if (!resolvedProviderInfo && isLauncherArtifactSource(source)) {
+      try {
+        resolvedProviderInfo =
+          (await getLauncherProviderInfo({ source, bucket, key }, namespace)) || '';
+      } catch (error) {
+        res
+          .status(500)
+          .send(
+            `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+          );
+        return;
+      }
+    }
+
     const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
-    if (!allowProviderSecrets && providerInfo) {
+    if (!allowProviderSecrets && resolvedProviderInfo) {
       console.warn(
         `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
           `only be read from the server namespace; falling back to environment credentials.`,
       );
     }
-    const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+    const effectiveProviderInfo = allowProviderSecrets ? resolvedProviderInfo : '';
 
     let client: MinioClient;
     switch (source) {
@@ -514,6 +530,10 @@ function parsePeekValue(value: string | undefined): number {
 
 function isArtifactSource(source: string): source is ArtifactSource {
   return ARTIFACT_SOURCES.has(source as ArtifactSource);
+}
+
+function isLauncherArtifactSource(source: ArtifactSource): source is ArtifactCoordinates['source'] {
+  return source === 'minio' || source === 's3' || source === 'gcs';
 }
 
 /**
@@ -1060,13 +1080,69 @@ export function getArtifactsProxyHandler({
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
       res.status(400).send('Invalid namespace');
       return;
     }
+    if (namespace) {
+      const url = new URL(req.url || '', DUMMY_BASE_PATH);
+      if (!url.searchParams.get('providerInfo')) {
+        const coordinates = getArtifactCoordinatesFromUrl(url);
+        if (coordinates) {
+          try {
+            const providerInfo = await getLauncherProviderInfo(coordinates, namespace);
+            if (providerInfo) {
+              url.searchParams.set('providerInfo', providerInfo);
+              req.url = url.pathname + url.search;
+            }
+          } catch (error) {
+            res
+              .status(500)
+              .send(
+                `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+              );
+            return;
+          }
+        }
+      }
+    }
     proxy(req, res, next);
+  };
+}
+
+function getArtifactCoordinatesFromUrl(url: URL): ArtifactCoordinates | undefined {
+  const querySource = url.searchParams.get('source');
+  const queryBucket = url.searchParams.get('bucket');
+  const queryKey = url.searchParams.get('key');
+  if (
+    querySource &&
+    isArtifactSource(querySource) &&
+    isLauncherArtifactSource(querySource) &&
+    queryBucket &&
+    queryKey
+  ) {
+    return { source: querySource, bucket: queryBucket, key: queryKey };
+  }
+
+  const artifactPath = url.pathname.split('/artifacts/')[1];
+  if (!artifactPath || artifactPath.startsWith('get')) {
+    return undefined;
+  }
+  const [source, bucket, ...keyParts] = artifactPath.split('/');
+  if (
+    !isArtifactSource(source) ||
+    !isLauncherArtifactSource(source) ||
+    !bucket ||
+    !keyParts.length
+  ) {
+    return undefined;
+  }
+  return {
+    source,
+    bucket: decodeURIComponent(bucket),
+    key: keyParts.map((part) => decodeURIComponent(part)).join('/'),
   };
 }
 

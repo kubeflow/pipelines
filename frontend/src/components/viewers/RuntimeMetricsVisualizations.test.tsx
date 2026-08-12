@@ -13,10 +13,12 @@
 // limitations under the License.
 
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
 import { StorageService } from 'src/lib/WorkflowParser';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType } from './Viewer';
-import { TEST_ONLY } from './RuntimeMetricsVisualizations';
+import { RuntimeMetricsVisualizations, TEST_ONLY } from './RuntimeMetricsVisualizations';
 
 describe('RuntimeMetricsVisualizations', () => {
   it('builds ROC curve configurations from native artifact metadata', () => {
@@ -161,13 +163,8 @@ describe('RuntimeMetricsVisualizations', () => {
     ]);
   });
 
-  it('downloads HTML and Markdown artifacts concurrently with native storage metadata', async () => {
-    let resolveHtml!: (value: string) => void;
-    let resolveMarkdown!: (value: string) => void;
+  it('does not download file artifacts until one is selected', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile');
-    readFileSpy
-      .mockReturnValueOnce(new Promise((resolve) => (resolveHtml = resolve)))
-      .mockReturnValueOnce(new Promise((resolve) => (resolveMarkdown = resolve)));
     const artifacts: V2beta1Artifact[] = [
       {
         artifact_id: 'html-1',
@@ -184,32 +181,42 @@ describe('RuntimeMetricsVisualizations', () => {
       },
     ];
 
-    const resultPromise = TEST_ONLY.downloadVisualizations(artifacts, 'team-a');
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations artifacts={artifacts} namespace='team-a' />
+      </CommonTestWrapper>,
+    );
 
-    expect(readFileSpy).toHaveBeenCalledTimes(2);
-    expect(readFileSpy).toHaveBeenNthCalledWith(1, {
+    expect(readFileSpy).not.toHaveBeenCalled();
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'File visualization' }));
+    fireEvent.click(screen.getByRole('option', { name: 'report (HTML)' }));
+
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+    expect(readFileSpy).toHaveBeenCalledWith({
       path: { bucket: 'reports', key: 'output.html', source: StorageService.S3 },
       providerInfo: 'session',
       namespace: 'team-a',
     });
-    expect(readFileSpy).toHaveBeenNthCalledWith(2, {
-      path: { bucket: 'reports', key: 'output.md', source: StorageService.GCS },
-      providerInfo: undefined,
-      namespace: 'team-a',
-    });
+  });
 
-    resolveHtml('<h1>Report</h1>');
-    resolveMarkdown('# Summary');
+  it('downloads one selected visualization with native storage metadata', async () => {
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('# Summary');
+    const artifact: V2beta1Artifact = {
+      artifact_id: 'markdown-1',
+      name: 'summary',
+      type: ArtifactArtifactType.Markdown,
+      uri: 'gs://reports/output.md',
+    };
 
-    await expect(resultPromise).resolves.toEqual({
-      html: [{ htmlContent: '<h1>Report</h1>', type: PlotType.WEB_APP }],
-      markdown: [{ markdownContent: '# Summary', type: PlotType.MARKDOWN }],
+    await expect(TEST_ONLY.downloadVisualization(artifact, 'team-a')).resolves.toEqual({
+      markdownContent: '# Summary',
+      type: PlotType.MARKDOWN,
     });
   });
 
   it('rejects file artifacts without a URI', async () => {
     await expect(
-      TEST_ONLY.downloadVisualizations([{ name: 'missing-file', type: ArtifactArtifactType.HTML }]),
+      TEST_ONLY.downloadVisualization({ name: 'missing-file', type: ArtifactArtifactType.HTML }),
     ).rejects.toThrow(
       'missing-file has no URI. Verify that the component produced a valid artifact location.',
     );

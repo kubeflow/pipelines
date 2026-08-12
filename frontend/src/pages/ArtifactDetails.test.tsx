@@ -118,6 +118,20 @@ describe('ArtifactDetails', () => {
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    V2beta1IOType.ITERATOR_OUTPUT,
+    V2beta1IOType.ONE_OF_OUTPUT,
+    V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+  ])('labels %s relationships as produced', async (type) => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [{ id: type, key: type, type }],
+    });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText(`Produced as ${type}`);
+  });
+
   it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
     renderPage();
     await screen.findByText('Related tasks');

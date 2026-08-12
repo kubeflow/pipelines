@@ -297,9 +297,12 @@ export async function getLogsInfo(
     task.pods?.[0];
   const createdAt = (task.create_time || new Date()).toISOString().split('T')[0];
   let podLogsError: unknown;
-  if (runId && pod?.name && namespace) {
+  if (runId && pod?.name) {
     try {
-      logsInfo.set(LOGS_DETAILS, await Apis.getPodLogs(runId, pod.name, namespace, createdAt));
+      logsInfo.set(
+        LOGS_DETAILS,
+        await Apis.getPodLogs(runId, pod.name, namespace || '', createdAt),
+      );
       return logsInfo;
     } catch (error) {
       podLogsError = error;

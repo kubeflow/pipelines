@@ -218,6 +218,61 @@ describe('DynamicFlow', () => {
         ),
       ).toEqual({ task: iterationOne });
     });
+
+    it('descends into the named task from the selected loop iteration', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '2' },
+      };
+      const iterationZeroDag: V2beta1PipelineTask = {
+        task_id: 'body-0',
+        parent_task_id: loopTask.task_id,
+        name: 'body',
+        type: PipelineTaskTaskType.DAG,
+        type_attributes: { iteration_index: '0' },
+      };
+      const iterationOneDag: V2beta1PipelineTask = {
+        task_id: 'body-1',
+        parent_task_id: loopTask.task_id,
+        name: 'body',
+        type: PipelineTaskTaskType.DAG,
+        type_attributes: { iteration_index: '1' },
+      };
+      const iterationZeroChild: V2beta1PipelineTask = {
+        task_id: 'child-0',
+        parent_task_id: iterationZeroDag.task_id,
+        name: 'exec',
+      };
+      const iterationOneChild: V2beta1PipelineTask = {
+        task_id: 'child-1',
+        parent_task_id: iterationOneDag.task_id,
+        name: 'exec',
+      };
+      const element: Node<FlowElementDataBase> = {
+        id: 'task.exec',
+        data: { label: 'exec' },
+        type: NodeTypeNames.EXECUTION,
+        position: { x: 1, y: 2 },
+      };
+
+      expect(
+        getNodeRuntimeInfo(
+          element,
+          [
+            rootTask,
+            loopTask,
+            iterationZeroDag,
+            iterationOneDag,
+            iterationZeroChild,
+            iterationOneChild,
+          ],
+          ['root', 'loop', 'loop.1', 'body'],
+        ),
+      ).toEqual({ task: iterationOneChild });
+    });
   });
 
   describe('convertSubDagToRuntimeFlowElements', () => {

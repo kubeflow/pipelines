@@ -8,6 +8,16 @@ import { PassThrough } from 'stream';
 import express from 'express';
 import { Server } from 'http';
 import * as artifactsHandler from '../handlers/artifacts.js';
+import { getConfigMap } from '../k8s-helper.js';
+
+vi.mock('../k8s-helper.js', () => ({
+  getArgoWorkflow: vi.fn(),
+  getConfigMap: vi.fn().mockResolvedValue([undefined, { message: 'not found' }]),
+  getK8sSecret: vi.fn(),
+  getPod: vi.fn(),
+  getPodLogs: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 
 beforeEach(() => {
   vi.spyOn(global.console, 'info').mockImplementation(() => {});
@@ -24,6 +34,10 @@ const commonParams = {
 describe('/artifacts/get namespaced proxy', () => {
   let app: UIServer;
   const { argv } = commonSetup();
+
+  beforeEach(() => {
+    vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+  });
 
   afterEach(async () => {
     if (app) {

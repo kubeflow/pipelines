@@ -106,6 +106,15 @@ describe('RuntimeNodeDetailsV2', () => {
     screen.getByTestId(TEST_LOG_VIEW_ID);
   });
 
+  it('retrieves pod logs without an experiment namespace', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('test-logs-details');
+
+    const logsInfo = await getLogsInfo(createTask(), TEST_RUN_ID);
+
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('test-logs-details');
+    expect(getPodLogsSpy).toHaveBeenCalledWith(TEST_RUN_ID, TEST_POD_NAME, '', '2026-08-11');
+  });
+
   it('falls back to the native executor-logs artifact when pod logs fail', async () => {
     vi.spyOn(Apis, 'getPodLogs').mockRejectedValue(new Error('Pod logs unavailable'));
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact-log-details');

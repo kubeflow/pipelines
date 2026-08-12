@@ -24,12 +24,19 @@ import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { commonSetup, mkTempDir } from './test-helper.js';
-import { getK8sSecret } from '../k8s-helper.js';
+import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { downloadGCSObjectStream, getGCSClient, listGCSObjectNames } from '../gcs-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
-vi.mock('../k8s-helper');
+vi.mock('../k8s-helper.js', () => ({
+  getArgoWorkflow: vi.fn(),
+  getConfigMap: vi.fn(),
+  getK8sSecret: vi.fn(),
+  getPod: vi.fn(),
+  getPodLogs: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 vi.mock('../gcs-helper.js');
 
 const mockedFetch = vi.fn();
@@ -53,6 +60,9 @@ describe('/artifacts', () => {
   let artifactContent: any = 'hello world';
   beforeEach(() => {
     artifactContent = 'hello world'; // reset
+    vi.mocked(getConfigMap)
+      .mockReset()
+      .mockResolvedValue([undefined, { message: 'not found' }]);
     const mockedMinioClient = MinioClient as any;
     mockedMinioClient.mockImplementation(function () {
       return {
@@ -197,6 +207,57 @@ describe('/artifacts', () => {
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledWith('aws-s3-creds', 'someSecret', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
+    });
+
+    it('reconstructs provider info from the namespace launcher config', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('launcher-secret');
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            providers: `
+s3:
+  default:
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: ml-pipeline
+      keyPrefix: hello
+      endpoint: https://custom-s3.example.com:9443
+      region: custom-region
+      disableSSL: false
+      credentials:
+        fromEnv: false
+        secretRef:
+          secretName: custom-store
+          accessKeyKey: access-key
+          secretKeyKey: secret-key
+`,
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow')
+        .expect(200, artifactContent);
+
+      expect(getConfigMap).toHaveBeenCalledWith('kfp-launcher', 'kubeflow');
+      expect(mockedGetK8sSecret).toHaveBeenCalledWith('custom-store', 'access-key', 'kubeflow');
+      expect(mockedGetK8sSecret).toHaveBeenCalledWith('custom-store', 'secret-key', 'kubeflow');
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'launcher-secret',
+        endPoint: 'custom-s3.example.com',
+        port: 9443,
+        region: 'custom-region',
+        secretKey: 'launcher-secret',
+        useSSL: true,
+      });
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', async () => {

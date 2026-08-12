@@ -18,10 +18,14 @@ import {
   requiresArtifactOwnershipValidation,
   validateArtifactKeyPrefix,
   validateArtifactNamespace,
+  validateArtifactNotFound,
 } from './artifact-validator.js';
 
 describe('artifact-validator', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 
   it('extracts only a leading namespace key prefix', () => {
     expect(namespaceFromArtifactUri('s3://bucket/private-artifacts/team-a/run/output')).toBe(
@@ -64,6 +68,32 @@ describe('artifact-validator', () => {
       ),
     ).toEqual({ reason: 'key-not-normalized', valid: false });
   });
+
+  it.each(['mlmd-then-prefix', 'artifact-then-prefix'])(
+    'uses namespace-prefix fallback in %s mode',
+    (ownershipMode) => {
+      expect(
+        validateArtifactNotFound(
+          'minio://bucket/private-artifacts/team-a/run/executor.log',
+          'team-a',
+          ownershipMode,
+        ),
+      ).toEqual({ valid: true, reason: 'prefix-match' });
+    },
+  );
+
+  it.each(['mlmd-only', 'MLMD-ONLY', 'artifact-only', 'invalid-mode'])(
+    'denies prefix fallback in strict or unrecognized %s mode',
+    (ownershipMode) => {
+      expect(
+        validateArtifactNotFound(
+          'minio://bucket/private-artifacts/team-a/run/executor.log',
+          'team-a',
+          ownershipMode,
+        ),
+      ).toEqual({ valid: false, reason: 'artifact-not-found' });
+    },
+  );
 
   it('accepts an exact namespace and URI match from ArtifactService', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
@@ -111,13 +141,48 @@ describe('artifact-validator', () => {
     ).resolves.toEqual({ valid: true, reason: 'prefix-match' });
   });
 
-  it('fails closed when ArtifactService is unavailable', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
+  it('preserves mlmd-only as strict ArtifactService-only validation', async () => {
+    vi.stubEnv('ARTIFACT_NAMESPACE_OWNERSHIP_MODE', 'mlmd-only');
+    vi.resetModules();
+    const { validateArtifactNamespace: validateWithStrictMode } =
+      await import('./artifact-validator.js');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ artifacts: [] }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      ),
+    );
 
     await expect(
-      validateArtifactNamespace('http://api-server', 's3://bucket/output', 'team-a'),
-    ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+      validateWithStrictMode(
+        'http://api-server',
+        's3://bucket/private-artifacts/team-a/run/executor.log',
+        'team-a',
+      ),
+    ).resolves.toEqual({ valid: false, reason: 'artifact-not-found' });
   });
+
+  it.each(['mlmd-then-prefix', 'mlmd-only'])(
+    'fails closed when ArtifactService is unavailable in %s mode',
+    async (ownershipMode) => {
+      vi.stubEnv('ARTIFACT_NAMESPACE_OWNERSHIP_MODE', ownershipMode);
+      vi.resetModules();
+      const { validateArtifactNamespace: validateWithConfiguredMode } =
+        await import('./artifact-validator.js');
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
+
+      await expect(
+        validateWithConfiguredMode(
+          'http://api-server',
+          's3://bucket/private-artifacts/team-a/output',
+          'team-a',
+        ),
+      ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+    },
+  );
 
   it('normalizes the GCS scheme when constructing an artifact URI', () => {
     expect(buildArtifactUri('gcs', 'bucket', 'path/output')).toBe('gs://bucket/path/output');

@@ -18,7 +18,7 @@ import { CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import type * as React from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
-import { V2beta1Artifact, V2beta1ArtifactTask } from 'src/apisv2beta1/artifact';
+import { V2beta1Artifact, V2beta1ArtifactTask, V2beta1IOType } from 'src/apisv2beta1/artifact';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
@@ -47,6 +47,12 @@ export enum ArtifactDetailsTab {
 
 const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
+const OUTPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
+  V2beta1IOType.OUTPUT,
+  V2beta1IOType.ITERATOR_OUTPUT,
+  V2beta1IOType.ONE_OF_OUTPUT,
+  V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+]);
 
 interface ArtifactDetailsState {
   artifact?: V2beta1Artifact;
@@ -283,7 +289,10 @@ function ArtifactTabs({
 }
 
 function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
-  const direction = artifactTask.type === 'OUTPUT' ? 'Produced as' : 'Consumed as';
+  const direction =
+    artifactTask.type && OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type)
+      ? 'Produced as'
+      : 'Consumed as';
   return `${direction} ${artifactTask.key || artifactTask.producer?.task_name || index + 1}`;
 }
 

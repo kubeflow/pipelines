@@ -19,12 +19,13 @@ import requests from 'supertest';
 import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import { commonSetup } from './test-helper.js';
+import { getConfigMap } from '../k8s-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
-  getConfigMap: vi.fn(),
+  getConfigMap: vi.fn().mockResolvedValue([undefined, { message: 'not found' }]),
   getK8sSecret: vi.fn(),
   getPod: vi.fn(),
   getPodLogs: vi.fn(),
@@ -61,6 +62,10 @@ vi.stubGlobal('fetch', mockedFetch);
 describe('/artifacts authorization', () => {
   let app: UIServer;
   const { argv } = commonSetup();
+
+  beforeEach(() => {
+    vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+  });
 
   const artifactContent = 'hello world';
 
