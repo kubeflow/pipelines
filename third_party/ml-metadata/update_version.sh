@@ -16,10 +16,7 @@ cd "${REPO_ROOT}"
 echo "${PWD}"
 echo "${TAG_NAME}"
 
-image_files=( "${REPO_ROOT}/.cloudbuild.yaml" \
-              "${REPO_ROOT}/.release.cloudbuild.yaml" \
-              "${REPO_ROOT}/manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml" \
-              "${REPO_ROOT}/test/tag_for_hosted.sh" \
+image_files=( "${REPO_ROOT}/manifests/kustomize/base/metadata/base/metadata-grpc-deployment.yaml" \
               "${REPO_ROOT}/backend/src/v2/Makefile" \
               )
 for i in "${image_files[@]}"

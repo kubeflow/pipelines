@@ -235,6 +235,19 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	// Schedule-only NVIDIA GPU check (Kind + FGO fake). Does not assert CUDA/torch.
+	// Filter with --label-filter=gpu-scheduling-check. Without a filter this also
+	// runs and needs a cluster that advertises nvidia.com/gpu (real or FGO fake).
+	Context("GPU scheduling check >", Label(E2eGpuSchedulingCheck), func() {
+		var pipelineDir = "valid/gpu-scheduling"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
 })
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {

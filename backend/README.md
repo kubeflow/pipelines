@@ -16,7 +16,7 @@ Note that you may need to restart your shell after installing these resources in
 
 ## Testing
 
-See the [Local testing](../AGENTS.md#local-testing) section in AGENTS.md.
+See the [testing guide](../docs/agents/testing.md).
 
 ## Build
 

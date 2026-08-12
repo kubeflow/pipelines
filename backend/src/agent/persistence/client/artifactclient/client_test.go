@@ -76,7 +76,7 @@ func createTarGz(files map[string]string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// extractTarGz extracts files from a tar.gz archive (like util.ExtractTgz but works with []byte)
+// extractTarGz extracts files from a tar.gz archive for test assertions.
 func extractTarGz(t *testing.T, tgzData []byte) map[string]string {
 	gr, err := gzip.NewReader(bytes.NewReader(tgzData))
 	require.NoError(t, err, "Failed to create gzip reader")

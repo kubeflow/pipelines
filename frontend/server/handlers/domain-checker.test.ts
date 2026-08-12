@@ -47,4 +47,8 @@ describe('isAllowedDomain', () => {
   it('accepts the default production allowlist for service URLs', () => {
     expect(isAllowedDomain('http://ml-pipeline.kubeflow:8888/artifacts', '^.*$')).toBe(true);
   });
+
+  it('rejects non-http schemes before applying the allowlist', () => {
+    expect(isAllowedDomain('file:///etc/passwd', '^.*$')).toBe(false);
+  });
 });
