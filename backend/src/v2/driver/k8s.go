@@ -974,14 +974,8 @@ func createPVC(
 	}
 
 	// Optional input: storage_class_name
-	// When not provided, use default value `standard`
-	storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]
-	var storageClassName string
-	if !ok {
-		storageClassName = "standard"
-	} else {
-		storageClassName = storageClassNameInput.GetStringValue()
-	}
+	// When not provided or null, leave pointer nil to use cluster default StorageClass.
+	storageClassName := resolveStorageClassName(inputs)
 
 	// Optional input: annotations
 	pvcAnnotations := make(map[string]string)
@@ -1068,7 +1062,7 @@ func createPVC(
 					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
 				},
 			},
-			StorageClassName: &storageClassName,
+			StorageClassName: storageClassName,
 			VolumeName:       volumeName,
 			DataSource:       dataSource,
 		},
@@ -1112,6 +1106,21 @@ func buildPVCDataSource(pvcDataSourceInput *structpb.Value) (*k8score.TypedLocal
 	}
 
 	return &dataSource, nil
+}
+
+// resolveStorageClassName resolves storage_class_name parameter value to a *string pointer.
+// If unprovided, nil, or null, it returns nil so Kubernetes uses the cluster's default StorageClass.
+func resolveStorageClassName(inputs *pipelinespec.ExecutorInput_Inputs) *string {
+	if inputs == nil || inputs.ParameterValues == nil {
+		return nil
+	}
+	if storageClassNameInput, ok := inputs.ParameterValues["storage_class_name"]; ok && storageClassNameInput != nil {
+		if _, isNull := storageClassNameInput.GetKind().(*structpb.Value_NullValue); !isNull {
+			val := storageClassNameInput.GetStringValue()
+			return &val
+		}
+	}
+	return nil
 }
 
 func deletePVC(
