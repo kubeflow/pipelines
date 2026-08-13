@@ -239,19 +239,29 @@ async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<stri
       },
     ],
   };
-  const response = await Apis.artifactServiceApiV2.artifactTasks(
-    undefined,
-    undefined,
-    [artifactId],
-    undefined,
-    undefined,
-    1,
-    'id asc',
-    encodeURIComponent(JSON.stringify(filter)),
+  const responses = await Promise.all(
+    [...OUTPUT_RELATIONSHIP_TYPES].map((type) =>
+      Apis.artifactServiceApiV2.artifactTasks(
+        undefined,
+        undefined,
+        [artifactId],
+        type,
+        undefined,
+        1,
+        'id asc',
+        encodeURIComponent(JSON.stringify(filter)),
+      ),
+    ),
   );
-  return response.artifact_tasks?.[0]?.key === LEGACY_UI_METADATA_ARTIFACT_KEY
-    ? LEGACY_UI_METADATA_ARTIFACT_KEY
-    : undefined;
+  const hasProducingRelationship = responses.some((response) =>
+    response.artifact_tasks?.some(
+      (artifactTask) =>
+        artifactTask.key === LEGACY_UI_METADATA_ARTIFACT_KEY &&
+        !!artifactTask.type &&
+        OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type),
+    ),
+  );
+  return hasProducingRelationship ? LEGACY_UI_METADATA_ARTIFACT_KEY : undefined;
 }
 
 interface ArtifactRelationshipsLoaderProps {

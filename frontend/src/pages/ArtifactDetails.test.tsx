@@ -118,15 +118,20 @@ describe('ArtifactDetails', () => {
       uri: 's3://reports/metadata.json',
       namespace: 'kubeflow',
     });
-    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
-      artifact_tasks: [
-        {
-          artifact_id: TEST_ARTIFACT_ID,
-          key: 'mlpipeline-ui-metadata',
-          type: V2beta1IOType.OUTPUT,
-        },
-      ],
-    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) =>
+        type === V2beta1IOType.OUTPUT
+          ? {
+              artifact_tasks: [
+                {
+                  artifact_id: TEST_ARTIFACT_ID,
+                  key: 'mlpipeline-ui-metadata',
+                  type: V2beta1IOType.OUTPUT,
+                },
+              ],
+            }
+          : { artifact_tasks: [] },
+    );
     const loadSpy = vi
       .spyOn(OutputArtifactLoader, 'load')
       .mockResolvedValue([{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }]);
@@ -134,17 +139,50 @@ describe('ArtifactDetails', () => {
     renderPage();
 
     expect(await screen.findByText('restored')).toBeVisible();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(
       undefined,
       undefined,
       [TEST_ARTIFACT_ID],
-      undefined,
+      V2beta1IOType.OUTPUT,
       undefined,
       1,
       'id asc',
       expect.stringContaining('mlpipeline-ui-metadata'),
     );
+    expect(
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mock.calls.map((call) => call[3]),
+    ).toEqual([
+      V2beta1IOType.OUTPUT,
+      V2beta1IOType.ITERATOR_OUTPUT,
+      V2beta1IOType.ONE_OF_OUTPUT,
+      V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+    ]);
     expect(loadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not treat a consumed mlpipeline-ui-metadata key as viewer metadata', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'ordinary-input',
+      uri: 's3://reports/data.json',
+      namespace: 'kubeflow',
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [
+        {
+          artifact_id: TEST_ARTIFACT_ID,
+          key: 'mlpipeline-ui-metadata',
+          type: V2beta1IOType.TASK_OUTPUT_INPUT,
+        },
+      ],
+    });
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'load');
+
+    renderPage();
+
+    await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+    expect(loadSpy).not.toHaveBeenCalled();
   });
 
   it('renders native producer and consumer relationships with run links', async () => {

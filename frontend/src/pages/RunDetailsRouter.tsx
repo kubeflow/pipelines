@@ -24,7 +24,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { RouteComponentProps } from 'react-router-dom';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
-import { RunDetailsV2, RunDetailsV2Params } from 'src/pages/RunDetailsV2';
+import { RunDetailsV2, RunDetailsV2Params, RunDetailsV2Props } from 'src/pages/RunDetailsV2';
 import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
@@ -40,20 +40,12 @@ export default function RunDetailsRouter(
   let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
-  const {
-    isSuccess: getV2RunSuccess,
-    isLoading: runIsLoading,
-    data: v2Run,
-  } = useQuery<V2beta1Run, Error>({
+  const { isLoading: runIsLoading, data: v2Run } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
-    refetchInterval: (query) => {
-      const state = query.state.data?.state;
-      return state !== undefined && !hasFinishedV2(state) ? RUN_DETAILS_REFETCH_INTERVAL : false;
-    },
   });
 
-  if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
+  if (v2Run?.pipeline_spec) {
     pipelineManifest = JsYaml.dump(v2Run.pipeline_spec);
   }
 
@@ -92,12 +84,37 @@ export default function RunDetailsRouter(
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
 
-  if (getV2RunSuccess && v2Run && templateString) {
+  if (v2Run && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
-      return <RunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
+      return <PolledRunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
     }
   }
 
   return <EnhancedRunDetails {...props} isLoading={runIsLoading || templateStrIsLoading} />;
+}
+
+function PolledRunDetailsV2(props: RunDetailsV2Props) {
+  const runId = props.match.params[RouteParams.runId];
+  const {
+    data: refreshedRun,
+    error: runRefreshError,
+    isRefetchError,
+  } = useQuery<V2beta1Run, Error>({
+    queryKey: queryKeys.v2RunDetail(runId),
+    queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    refetchInterval: (query) => {
+      const state = query.state.data?.state;
+      return state !== undefined && !hasFinishedV2(state) ? RUN_DETAILS_REFETCH_INTERVAL : false;
+    },
+    refetchOnMount: false,
+  });
+
+  return (
+    <RunDetailsV2
+      {...props}
+      run={refreshedRun || props.run}
+      runRefreshError={isRefetchError ? runRefreshError : undefined}
+    />
+  );
 }

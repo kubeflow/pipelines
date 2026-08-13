@@ -32,6 +32,7 @@ import {
   V2beta1RunStorageState,
 } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
@@ -67,6 +68,7 @@ const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 interface RunDetailsV2Info {
   pipeline_job: string;
   run: V2beta1Run;
+  runRefreshError?: Error | null;
 }
 
 export interface RunDetailsV2Params {
@@ -218,6 +220,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   return (
     <>
+      {props.runRefreshError && (
+        <Banner
+          message='Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.'
+          additionalInfo={props.runRefreshError.message}
+          mode='warning'
+        />
+      )}
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
         {/* DAG tab */}

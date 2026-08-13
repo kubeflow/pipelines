@@ -34,6 +34,7 @@ vi.mock('src/pages/RunDetailsV2', () => ({
     <div
       data-testid='run-details-v2'
       data-pipeline-job={props.pipeline_job}
+      data-run-refresh-error={props.runRefreshError?.message}
       data-run-state={props.run.state}
     />
   ),
@@ -166,6 +167,55 @@ describe('RunDetailsRouter', () => {
     expect(getRunSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps cached v2 run details visible when a background refresh fails', async () => {
+    vi.useFakeTimers();
+    const runningRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.RUNNING,
+    };
+    getRunSpy
+      .mockResolvedValueOnce(runningRun)
+      .mockRejectedValueOnce(new Error('Run service unavailable'))
+      .mockResolvedValue(runningRun);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-state',
+      V2beta1RuntimeState.RUNNING,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-refresh-error',
+      'Run service unavailable',
+    );
+    expect(screen.queryByTestId('enhanced-run-details')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
+  });
+
   it('renders EnhancedRunDetails (V1) when template is not a v2 pipeline spec', async () => {
     const argoWorkflow = {
       apiVersion: 'argoproj.io/v1alpha1',
@@ -191,6 +241,38 @@ describe('RunDetailsRouter', () => {
 
     const element = screen.getByTestId('enhanced-run-details');
     expect(element).toBeInTheDocument();
+  });
+
+  it('does not add a router poller for an active v1 run', async () => {
+    vi.useFakeTimers();
+    const argoWorkflow = {
+      apiVersion: 'argoproj.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: { name: 'test' },
+      spec: { arguments: { parameters: [{ name: 'output' }] } },
+    };
+    getRunSpy.mockResolvedValue({
+      run_id: TEST_RUN_ID,
+      pipeline_spec: argoWorkflow,
+      state: V2beta1RuntimeState.RUNNING,
+    });
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(screen.getByTestId('enhanced-run-details')).toBeInTheDocument();
+    expect(getRunSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 2);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(1);
   });
 
   it('renders EnhancedRunDetails with isLoading=true while pipeline version template is fetching', async () => {

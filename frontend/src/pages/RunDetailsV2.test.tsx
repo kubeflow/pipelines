@@ -345,6 +345,38 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
   });
 
+  it('shows cached run data with an inline warning when a run refresh fails', async () => {
+    const props = generateProps();
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          runRefreshError={new Error('Run service unavailable')}
+          {...props}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText(
+      'Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    await screen.findByText('Run service unavailable');
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+      </CommonTestWrapper>,
+    );
+
+    expect(
+      screen.queryByText(
+        'Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows run title and experiments' links", async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getRunSpy.mockResolvedValue(TEST_RUN);
