@@ -470,6 +470,33 @@ describe('CompareV2', () => {
     );
   });
 
+  it('marks artifact sources finished after bounded terminal reconciliation', () => {
+    const runningTask = {
+      ...tasksByRun['run-1'][0],
+      state: PipelineTaskTaskState.RUNNING,
+    };
+    const terminalRun = { ...runs[0], state: V2beta1RuntimeState.FAILED };
+
+    expect(
+      collectRuntimeComparisonArtifacts([
+        {
+          run: terminalRun,
+          tasks: [runningTask],
+          terminalTaskReconciliationPending: true,
+        },
+      ])[0].sourceFinished,
+    ).toBe(false);
+    expect(
+      collectRuntimeComparisonArtifacts([
+        {
+          run: terminalRun,
+          tasks: [runningTask],
+          terminalTaskReconciliationPending: false,
+        },
+      ])[0].sourceFinished,
+    ).toBe(true);
+  });
+
   it('loads runs and tasks in parallel and displays native comparisons', async () => {
     render(
       <CommonTestWrapper>
@@ -569,6 +596,34 @@ describe('CompareV2', () => {
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+  });
+
+  it('stops after one terminal reconciliation when fail-fast tasks remain running', async () => {
+    vi.useFakeTimers();
+    const runningTask = { ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING };
+    vi.mocked(Apis.runServiceApiV2.getRun)
+      .mockResolvedValueOnce({ ...runs[0], state: V2beta1RuntimeState.RUNNING })
+      .mockResolvedValue({ ...runs[0], state: V2beta1RuntimeState.FAILED });
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: [runningTask] });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
       await Promise.resolve();
       await vi.advanceTimersByTimeAsync(1);
     });

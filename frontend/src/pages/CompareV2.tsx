@@ -86,6 +86,7 @@ interface RunComparisonData {
   run: V2beta1Run;
   taskError?: Error;
   tasks: V2beta1PipelineTask[];
+  terminalTaskReconciliationPending?: boolean;
 }
 
 interface RunComparisonFailure {
@@ -123,10 +124,22 @@ async function loadRunComparisonData(
   if (runResult.status === 'rejected') {
     throw toError(runResult.reason);
   }
+  const run = runResult.value;
+  const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : previousData?.tasks || [];
+  const taskError = tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined;
+  const runIsTerminal = run.state !== undefined && hasFinishedV2(run.state);
+  const previousState = previousData?.run.state;
+  const previousRunWasTerminal = previousState !== undefined && hasFinishedV2(previousState);
+  const taskSnapshotIsIncomplete =
+    taskError !== undefined || tasks.some((task) => !isTaskFinished(task.state));
   return {
-    run: runResult.value,
-    tasks: tasksResult.status === 'fulfilled' ? tasksResult.value : previousData?.tasks || [],
-    taskError: tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined,
+    run,
+    tasks,
+    taskError,
+    // Fail-fast runs can retain non-terminal sibling task rows permanently. Reconcile once when
+    // terminal run data first arrives incomplete, then let the run state remain authoritative.
+    terminalTaskReconciliationPending:
+      runIsTerminal && !previousRunWasTerminal && taskSnapshotIsIncomplete,
   };
 }
 
@@ -196,14 +209,17 @@ export function CompareV2(props: CompareV2Props) {
             ? TERMINAL_COMPARISON_STALE_TIME
             : ACTIVE_COMPARISON_STALE_TIME;
         },
-        refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
+        refetchInterval: (query: {
+          state: { data?: RunComparisonData; fetchFailureCount: number };
+        }) => {
           const data = query.state.data;
           const state = data?.run.state;
-          const snapshotIsIncomplete =
-            data?.taskError !== undefined ||
-            data?.tasks.some((task) => !isTaskFinished(task.state)) === true ||
-            (state !== undefined && !hasFinishedV2(state));
-          return snapshotIsIncomplete ? ACTIVE_COMPARISON_REFRESH_INTERVAL : false;
+          const runIsActive = state !== undefined && !hasFinishedV2(state);
+          const reconciliationIsPending =
+            data?.terminalTaskReconciliationPending === true && query.state.fetchFailureCount === 0;
+          return runIsActive || reconciliationIsPending
+            ? ACTIVE_COMPARISON_REFRESH_INTERVAL
+            : false;
         },
       })),
     [queryClient, runIds],
@@ -440,8 +456,14 @@ export function collectRuntimeComparisonArtifacts(
   comparisonData: RunComparisonData[],
   defaultNamespace?: string,
 ): RuntimeComparisonArtifact[] {
-  return comparisonData.flatMap(({ run, tasks }) => {
+  return comparisonData.flatMap(({ run, tasks, terminalTaskReconciliationPending }) => {
     const runLabel = run.display_name || run.run_id || 'Run';
+    // After the bounded reconciliation, a terminal run is the authoritative signal that artifact
+    // production has stopped even when fail-fast leaves a sibling task row marked RUNNING.
+    const terminalRunFinishedSources =
+      run.state !== undefined &&
+      hasFinishedV2(run.state) &&
+      terminalTaskReconciliationPending !== true;
     return collectOutputArtifacts(tasks).map(
       ({ artifact, artifactKey, group, index, sourceFinished, taskKey, taskName }) => ({
         artifact,
@@ -459,7 +481,7 @@ export function collectRuntimeComparisonArtifacts(
           group.artifacts,
         )}`,
         namespace: artifact.namespace || defaultNamespace,
-        sourceFinished,
+        sourceFinished: sourceFinished || terminalRunFinishedSources,
       }),
     );
   });
