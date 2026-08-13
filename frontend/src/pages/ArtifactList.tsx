@@ -36,6 +36,17 @@ interface ArtifactListState {
   rows: Row[];
 }
 
+interface ArtifactUriCell {
+  namespace?: string;
+  uri: string;
+}
+
+interface PageTokenChain {
+  invalidRequests: Set<string>;
+  nextTokens: Set<string>;
+  successors: Map<string, string>;
+}
+
 const COLUMNS: Column[] = [
   { customRenderer: artifactNameRenderer, flex: 2, label: 'Name', sortKey: 'name' },
   { flex: 2, label: 'ID', sortKey: 'artifact_id' },
@@ -48,6 +59,8 @@ const COLUMNS: Column[] = [
 export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private activeReloadGeneration = 0;
+  private lastSuccessfulRequestKey?: string;
+  private pageTokenChains = new Map<string, PageTokenChain>();
 
   public state: ArtifactListState = { rows: [] };
 
@@ -82,6 +95,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
   private reload = async (request: ListRequest): Promise<string> => {
     const reloadGeneration = ++this.activeReloadGeneration;
+    const requestKey = this.getRequestKey(request);
     try {
       const response = await Apis.artifactServiceApiV2.artifacts(
         this.props.namespace,
@@ -90,7 +104,10 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
         request.sortBy,
         request.filter,
       );
+      const nextPageToken = response.next_page_token || '';
       if (reloadGeneration === this.activeReloadGeneration) {
+        const repeatedPageToken = this.isRepeatedPageToken(request, nextPageToken);
+        this.lastSuccessfulRequestKey = requestKey;
         this.setStateSafe({
           rows: (response.artifacts || []).map((artifact) => ({
             id: artifact.artifact_id || '',
@@ -98,24 +115,74 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
               artifact.name || '[unnamed]',
               artifact.artifact_id || '-',
               getArtifactTypeName(artifact),
-              artifact.uri || '',
+              { namespace: artifact.namespace || this.props.namespace, uri: artifact.uri || '' },
               artifact.namespace || '-',
               formatDateString(artifact.created_at),
             ],
           })),
         });
+        if (repeatedPageToken) {
+          this.showPageError(
+            `Artifact service returned a repeated page token: ${nextPageToken}`,
+            new Error(`Repeated artifact page token: ${nextPageToken}`),
+          );
+          return '';
+        }
         this.clearBanner();
       }
-      return response.next_page_token || '';
+      return nextPageToken;
     } catch (error) {
       const message = await errorToMessage(error);
       if (reloadGeneration === this.activeReloadGeneration) {
         this.showPageError(message || 'Error: failed to list artifacts.', error);
-        this.setStateSafe({ rows: [] });
+        if (this.lastSuccessfulRequestKey !== requestKey) {
+          this.setStateSafe({ rows: [] });
+        }
       }
       return '';
     }
   };
+
+  private getRequestKey(request: ListRequest): string {
+    return JSON.stringify({
+      filter: request.filter || '',
+      namespace: this.props.namespace || '',
+      pageSize: request.pageSize || 0,
+      pageToken: request.pageToken || '',
+      sortBy: request.sortBy || '',
+    });
+  }
+
+  private isRepeatedPageToken(request: ListRequest, nextPageToken: string): boolean {
+    if (!nextPageToken) {
+      return false;
+    }
+    const contextKey = JSON.stringify({
+      filter: request.filter || '',
+      namespace: this.props.namespace || '',
+      pageSize: request.pageSize || 0,
+      sortBy: request.sortBy || '',
+    });
+    const requestPageToken = request.pageToken || '';
+    let chain = this.pageTokenChains.get(contextKey);
+    if (!chain) {
+      chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
+      this.pageTokenChains.set(contextKey, chain);
+    }
+    if (chain.invalidRequests.has(requestPageToken)) {
+      return true;
+    }
+    if (chain.successors.get(requestPageToken) === nextPageToken) {
+      return false;
+    }
+    const repeated = requestPageToken === nextPageToken || chain.nextTokens.has(nextPageToken);
+    chain.successors.set(requestPageToken, nextPageToken);
+    chain.nextTokens.add(nextPageToken);
+    if (repeated) {
+      chain.invalidRequests.add(requestPageToken);
+    }
+    return repeated;
+  }
 }
 
 function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
@@ -130,8 +197,8 @@ function artifactNameRenderer({ id, value }: CustomRendererProps<string>) {
   );
 }
 
-function artifactUriRenderer({ value }: CustomRendererProps<string>) {
-  return <ArtifactLink artifactUri={value || ''} />;
+function artifactUriRenderer({ value }: CustomRendererProps<ArtifactUriCell>) {
+  return <ArtifactLink artifactUri={value?.uri || ''} namespace={value?.namespace} />;
 }
 
 const EnhancedArtifactList = (props: PageProps) => {

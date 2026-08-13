@@ -55,6 +55,11 @@ export interface ClassificationVisualization {
   sourceArtifact: V2beta1Artifact;
 }
 
+interface LegacyUiMetadataVisualizationResult {
+  configs: ViewerConfig[];
+  errors: string[];
+}
+
 const ROC_CURVE_DEFINITION =
   'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate.';
 
@@ -246,6 +251,7 @@ export function RuntimeArtifactVisualization({
   const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
     queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace),
     queryFn: () => downloadVisualization(artifact, namespace),
+    retry: false,
     staleTime: Infinity,
   });
   return (
@@ -276,14 +282,14 @@ function LegacyUiMetadataVisualization({
   namespace?: string;
 }) {
   const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
-  const { data, error, isLoading } = useQuery<ViewerConfig[], Error>({
+  const { data, error, isLoading } = useQuery<LegacyUiMetadataVisualizationResult, Error>({
     queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace),
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
     retry: false,
     staleTime: Infinity,
   });
-  const supportedConfigs = data?.filter((config) => !!componentMap[config.type]);
-  const containsUnsupportedConfig = supportedConfigs?.length !== data?.length;
+  const supportedConfigs = data?.configs.filter((config) => !!componentMap[config.type]);
+  const containsUnsupportedConfig = supportedConfigs?.length !== data?.configs.length;
   return (
     <div className={padding(20, 'lrt')}>
       {error && (
@@ -294,7 +300,14 @@ function LegacyUiMetadataVisualization({
         />
       )}
       {isLoading && <Banner message='Legacy UI visualizations are loading.' mode='info' />}
-      {data?.length === 0 && (
+      {!!data?.errors.length && (
+        <Banner
+          message='Some legacy UI visualizations could not be loaded.'
+          mode='error'
+          additionalInfo={data.errors.join('\n')}
+        />
+      )}
+      {data?.configs.length === 0 && data.errors.length === 0 && (
         <Banner
           message='The legacy UI metadata artifact contains no supported visualizations.'
           mode='info'
@@ -320,14 +333,14 @@ function LegacyUiMetadataVisualization({
 async function loadLegacyUiMetadataVisualization(
   artifact: V2beta1Artifact,
   namespace?: string,
-): Promise<ViewerConfig[]> {
+): Promise<LegacyUiMetadataVisualizationResult> {
   if (!artifact.uri) {
     throw new Error(
       `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced the UI metadata artifact at a valid location.`,
     );
   }
   const location = parseArtifactFileLocation(artifact.uri);
-  return OutputArtifactLoader.load(location.path, namespace, {
+  return OutputArtifactLoader.loadResult(location.path, namespace, {
     throwOnError: true,
     providerInfo: location.providerInfo,
   });

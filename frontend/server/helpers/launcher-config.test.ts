@@ -217,7 +217,7 @@ gs:
     });
   });
 
-  it('uses normal server defaults when the optional launcher config is absent', async () => {
+  it('uses normal server defaults under the default pipeline root when config is absent', async () => {
     mockedGetConfigMap.mockResolvedValue([
       undefined,
       { additionalInfo: { code: 404, reason: 'NotFound' }, message: 'not found' },
@@ -225,10 +225,24 @@ gs:
 
     await expect(
       getLauncherProviderInfo(
-        { source: 'minio', bucket: 'mlpipeline', key: 'artifact' },
+        { source: 'minio', bucket: 'mlpipeline', key: 'v2/artifacts/run/artifact' },
         'kubeflow',
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it('rejects default credentials outside the default pipeline root when config is absent', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      undefined,
+      { additionalInfo: { code: 404, reason: 'NotFound' }, message: 'not found' },
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        { source: 'minio', bucket: 'mlpipeline', key: 'outside/run/artifact' },
+        'kubeflow',
+      ),
+    ).rejects.toThrow('is outside defaultPipelineRoot and has no explicit provider query');
   });
 
   it('surfaces ConfigMap read failures instead of silently using environment credentials', async () => {

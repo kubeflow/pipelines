@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { forwardRef, useImperativeHandle } from 'react';
 import { BrowserRouter } from 'react-router-dom';
@@ -23,6 +23,7 @@ import {
   PipelineTaskTaskType,
   V2beta1PipelineTask,
   V2beta1Run,
+  V2beta1RuntimeState,
 } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from 'src/pages/Page';
@@ -33,6 +34,7 @@ import {
   buildScalarMetricsTableProps,
   collectRuntimeComparisonArtifacts,
   CompareV2,
+  ACTIVE_COMPARISON_REFRESH_INTERVAL,
 } from './CompareV2';
 
 vi.mock('src/pages/RunList', () => ({
@@ -207,6 +209,10 @@ describe('CompareV2', () => {
     }));
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('builds a parameter comparison from native runs', () => {
     expect(
       buildParamsTableProps(runs.map((run) => ({ run, tasks: tasksByRun[run.run_id!] }))),
@@ -331,6 +337,35 @@ describe('CompareV2', () => {
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
+  it('polls active comparisons and stops after observing a terminal run state', async () => {
+    vi.useFakeTimers();
+    const runningRun = { ...runs[0], state: V2beta1RuntimeState.RUNNING };
+    const succeededRun = { ...runs[0], state: V2beta1RuntimeState.SUCCEEDED };
+    vi.mocked(Apis.runServiceApiV2.getRun)
+      .mockResolvedValueOnce(runningRun)
+      .mockResolvedValue(succeededRun);
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
+  });
+
   it('passes artifacts from all selected runs to the native comparison surface', async () => {
     render(
       <CommonTestWrapper>
@@ -418,7 +453,7 @@ describe('CompareV2', () => {
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
   });
 
-  it('shows an actionable banner when every comparison query fails', async () => {
+  it('keeps run parameters visible when task hydration fails', async () => {
     vi.mocked(Apis.runServiceApiV2.tasks).mockRejectedValue(new Error('Task service unavailable'));
     render(
       <CommonTestWrapper>
@@ -428,11 +463,15 @@ describe('CompareV2', () => {
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenCalledWith({
-        additionalInfo: 'run-1: Task service unavailable\nrun-2: Task service unavailable',
-        message: 'Cannot get comparison data for the selected runs. Refresh the page to try again.',
-        mode: 'error',
+        additionalInfo:
+          'run-1 tasks: Task service unavailable\nrun-2 tasks: Task service unavailable',
+        message:
+          'Cannot get comparison data for 2 selected runs. Available runs are still shown. Refresh the page to try again.',
+        mode: 'warning',
       }),
     );
+    screen.getByText('epochs');
+    screen.getByText('optimizer');
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
   });

@@ -104,10 +104,7 @@ export async function getLauncherProviderInfo(
   namespace: string,
 ): Promise<string | undefined> {
   const [configMap, configMapError] = await getConfigMap(LAUNCHER_CONFIG_MAP, namespace);
-  if (configMapError) {
-    if (isNotFoundError(configMapError)) {
-      return undefined;
-    }
+  if (configMapError && !isNotFoundError(configMapError)) {
     throw new LauncherConfigReadError(
       `${configMapError.message}. Verify that the UI service account can read the ` +
         `${LAUNCHER_CONFIG_MAP} ConfigMap and retry the artifact request.`,

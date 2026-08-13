@@ -151,12 +151,27 @@ function TaskNodeDetail({
   namespace,
 }: TaskNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
+  const executorPod = task?.pods?.find(
+    (candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR,
+  );
+  const driverPod = task?.pods?.find(
+    (candidate) => candidate.type === PipelineTaskTaskPodType.DRIVER,
+  );
+  const executorLogsArtifact = task
+    ? getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY)
+    : undefined;
+  const logsSourceIdentity = [
+    executorPod?.name,
+    driverPod?.name,
+    executorLogsArtifact?.artifact_id,
+    executorLogsArtifact?.uri,
+  ].join(':');
   const {
     data: logsInfo,
     isError: logsQueryFailed,
     error: logsQueryError,
   } = useQuery<Map<string, string>, Error>({
-    queryKey: queryKeys.taskLogs(task?.task_id, task?.state, namespace),
+    queryKey: queryKeys.taskLogs(task?.task_id, task?.state, namespace, logsSourceIdentity),
     queryFn: () => {
       if (!task) {
         throw new Error('No task is found.');
@@ -164,6 +179,8 @@ function TaskNodeDetail({
       return getLogsInfo(task, runId, namespace);
     },
     enabled: !!task && selectedTab === 2,
+    // Live logs and transient "not available yet" responses must recover while the task runs.
+    refetchInterval: task && !isTaskFinished(task.state) ? 10000 : false,
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
@@ -198,11 +215,16 @@ function TaskNodeDetail({
         )}
         {selectedTab === 2 && (
           <div className={commonCss.page}>
-            {logsBannerMessage ? (
-              <Banner message={logsBannerMessage} additionalInfo={logsBannerAdditionalInfo} />
-            ) : (
+            {logsBannerMessage && (
+              <Banner
+                message={logsBannerMessage}
+                additionalInfo={logsBannerAdditionalInfo}
+                mode={logsDetails ? 'info' : 'error'}
+              />
+            )}
+            {logsDetails && (
               <div className={commonCss.pageOverflowHidden} data-testid='logs-view-window'>
-                <LogViewer logLines={(logsDetails || '').split(/[\r\n]+/)} />
+                <LogViewer logLines={logsDetails.split(/[\r\n]+/)} />
               </div>
             )}
           </div>
@@ -224,18 +246,44 @@ export function getTaskDetailsFields(
     return details;
   }
   details.push(['Task name', task.display_name || task.name || '-']);
+  details.push(['Task type', task.type || '-']);
   details.push(['Status', formatTaskState(task.state)]);
   details.push(['Created At', formatDateString(task.create_time)]);
   details.push(['Finished At', isTaskFinished(task.state) ? formatDateString(task.end_time) : '-']);
+  if (task.parent_task_id) {
+    details.push(['Parent task ID', task.parent_task_id]);
+  }
+  if (task.scope_path) {
+    details.push(['Scope path', task.scope_path]);
+  }
+  if (task.cache_fingerprint) {
+    details.push(['Cache fingerprint', task.cache_fingerprint]);
+  }
+  if (task.type_attributes && Object.keys(task.type_attributes).length) {
+    details.push(['Type attributes', JSON.stringify(task.type_attributes)]);
+  }
   if (task.status_metadata?.message) {
     details.push(['Message', task.status_metadata.message]);
   }
-  const podNames = (task.pods || [])
-    .map((pod) => pod.name)
+  const podDetails = (task.pods || [])
+    .map((pod) =>
+      [pod.type || 'UNKNOWN', pod.name || '-', pod.uid ? `UID ${pod.uid}` : undefined]
+        .filter(Boolean)
+        .join(' · '),
+    )
     .filter(Boolean)
     .join(', ');
-  if (podNames) {
-    details.push(['Pods', podNames]);
+  if (podDetails) {
+    details.push(['Pods', podDetails]);
+  }
+  const stateHistory = (task.state_history || [])
+    .map((status) => {
+      const value = `${formatTaskState(status.state)} · ${formatDateString(status.update_time)}`;
+      return status.error?.message ? `${value} · ${status.error.message}` : value;
+    })
+    .join('\n');
+  if (stateHistory) {
+    details.push(['State history', stateHistory]);
   }
   return details;
 }
@@ -288,16 +336,19 @@ export async function getLogsInfo(
     return logsInfo;
   }
 
-  // Driver pods have different logs from the task executor. If no executor pod is available,
-  // use the executor-logs artifact fallback rather than presenting driver output as task logs.
-  const pod = task.pods?.find((candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR);
+  const executorPod = task.pods?.find(
+    (candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR,
+  );
+  const driverPod = task.pods?.find(
+    (candidate) => candidate.type === PipelineTaskTaskPodType.DRIVER,
+  );
   const createdAt = (task.create_time || new Date()).toISOString().split('T')[0];
   let podLogsError: unknown;
-  if (runId && pod?.name) {
+  if (runId && executorPod?.name) {
     try {
       logsInfo.set(
         LOGS_DETAILS,
-        await Apis.getPodLogs(runId, pod.name, namespace || '', createdAt),
+        await Apis.getPodLogs(runId, executorPod.name, namespace || '', createdAt),
       );
       return logsInfo;
     } catch (error) {
@@ -318,17 +369,41 @@ export async function getLogsInfo(
     }
   }
 
+  let driverLogsError: unknown;
+  if (runId && driverPod?.name) {
+    try {
+      logsInfo.set(
+        LOGS_DETAILS,
+        await Apis.getPodLogs(runId, driverPod.name, namespace || '', createdAt),
+      );
+      logsInfo.set(
+        LOGS_BANNER_MESSAGE,
+        'Showing driver initialization logs. These are not component executor output logs.',
+      );
+      return logsInfo;
+    } catch (error) {
+      driverLogsError = error;
+    }
+  }
+
   const podErrorMessage = await errorToMessage(podLogsError);
   logsInfo.set(
     LOGS_BANNER_MESSAGE,
-    artifactLogsError ? 'Failed to retrieve task logs.' : 'Failed to retrieve pod logs.',
+    artifactLogsError || driverLogsError
+      ? 'Failed to retrieve task logs.'
+      : 'Failed to retrieve pod logs.',
   );
+  const additionalInfo = [`Pod logs error: ${podErrorMessage}`];
+  if (artifactLogsError) {
+    additionalInfo.push(`Executor logs artifact error: ${await errorToMessage(artifactLogsError)}`);
+  }
+  if (driverLogsError) {
+    additionalInfo.push(`Driver pod logs error: ${await errorToMessage(driverLogsError)}`);
+  }
   logsInfo.set(
     LOGS_BANNER_ADDITIONAL_INFO,
-    artifactLogsError
-      ? `Pod logs error: ${podErrorMessage}\nExecutor logs artifact error: ${await errorToMessage(
-          artifactLogsError,
-        )}`
+    artifactLogsError || driverLogsError
+      ? additionalInfo.join('\n')
       : `Error response: ${podErrorMessage}`,
   );
   return logsInfo;
@@ -342,6 +417,7 @@ interface ArtifactNodeDetailProps {
 
 function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
+  const [hasOpenedVisualization, setHasOpenedVisualization] = useState(false);
   const artifacts = artifactGroup?.artifacts || [];
   if (!task || !artifactGroup || !artifacts.length) {
     return NODE_STATE_UNAVAILABLE;
@@ -351,18 +427,25 @@ function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDeta
       <MD2Tabs
         tabs={['Artifact Info', 'Visualization']}
         selectedTab={selectedTab}
-        onSwitch={setSelectedTab}
+        onSwitch={(tab) => {
+          setSelectedTab(tab);
+          if (tab === 1) {
+            setHasOpenedVisualization(true);
+          }
+        }}
       />
       <div className={padding(20)}>
-        {selectedTab === 0 && (
+        <div hidden={selectedTab !== 0}>
           <ArtifactInfo task={task} artifactGroup={artifactGroup} namespace={namespace} />
-        )}
-        {selectedTab === 1 && (
-          <RuntimeMetricsVisualizations
-            artifacts={artifacts}
-            artifactKey={artifactGroup.artifact_key}
-            namespace={namespace}
-          />
+        </div>
+        {(selectedTab === 1 || hasOpenedVisualization) && (
+          <div hidden={selectedTab !== 1}>
+            <RuntimeMetricsVisualizations
+              artifacts={artifacts}
+              artifactKey={artifactGroup.artifact_key}
+              namespace={namespace}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -48,6 +48,7 @@ import Buttons from 'src/lib/Buttons';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
+import { hasFinishedV2 } from 'src/lib/StatusUtils';
 import {
   flattenArtifactGroups,
   formatParameterValue,
@@ -76,14 +77,19 @@ export enum NativeMetricsTab {
 }
 
 const METRICS_TAB_NAMES = ['Scalar Metrics', 'Classification Metrics', 'HTML', 'Markdown'];
+export const ACTIVE_COMPARISON_REFRESH_INTERVAL = 10_000;
+const ACTIVE_COMPARISON_STALE_TIME = ACTIVE_COMPARISON_REFRESH_INTERVAL;
+const TERMINAL_COMPARISON_STALE_TIME = 60_000;
 
 interface RunComparisonData {
   run: V2beta1Run;
+  taskError?: Error;
   tasks: V2beta1PipelineTask[];
 }
 
 interface RunComparisonFailure {
   runId: string;
+  source: 'run' | 'tasks';
   error: Error;
 }
 
@@ -100,11 +106,22 @@ interface RunArtifactEntry extends RuntimeArtifactEntry {
 export type CompareV2Props = PageProps & { namespace?: string };
 
 async function loadRunComparisonData(runId: string): Promise<RunComparisonData> {
-  const [run, tasks] = await Promise.all([
+  const [runResult, tasksResult] = await Promise.allSettled([
     Apis.runServiceApiV2.getRun(runId),
     listAllRunTasks(runId),
   ]);
-  return { run, tasks };
+  if (runResult.status === 'rejected') {
+    throw toError(runResult.reason);
+  }
+  return {
+    run: runResult.value,
+    tasks: tasksResult.status === 'fulfilled' ? tasksResult.value : [],
+    taskError: tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined,
+  };
+}
+
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
 }
 
 function CompareTableSection({
@@ -158,7 +175,18 @@ export function CompareV2(props: CompareV2Props) {
         queryKey: queryKeys.v2RunComparison(runId),
         queryFn: () => loadRunComparisonData(runId),
         retry: false,
-        staleTime: Infinity,
+        staleTime: (query: { state: { data?: RunComparisonData } }) => {
+          const state = query.state.data?.run.state;
+          return state !== undefined && hasFinishedV2(state)
+            ? TERMINAL_COMPARISON_STALE_TIME
+            : ACTIVE_COMPARISON_STALE_TIME;
+        },
+        refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
+          const state = query.state.data?.run.state;
+          return state !== undefined && !hasFinishedV2(state)
+            ? ACTIVE_COMPARISON_REFRESH_INTERVAL
+            : false;
+        },
       })),
     [runIds],
   );
@@ -169,9 +197,12 @@ export function CompareV2(props: CompareV2Props) {
       results.forEach((result, index) => {
         if (result.data) {
           comparisonData.push(result.data);
+          if (result.data.taskError) {
+            failures.push({ runId: runIds[index], source: 'tasks', error: result.data.taskError });
+          }
         }
         if (result.error) {
-          failures.push({ runId: runIds[index], error: result.error });
+          failures.push({ runId: runIds[index], source: 'run', error: result.error });
         }
       });
       return {
@@ -208,7 +239,12 @@ export function CompareV2(props: CompareV2Props) {
     if (failures.length) {
       const failedRunLabel = failures.length === 1 ? 'run' : 'runs';
       updateBanner({
-        additionalInfo: failures.map(({ runId, error }) => `${runId}: ${error.message}`).join('\n'),
+        additionalInfo: failures
+          .map(
+            ({ runId, source, error }) =>
+              `${runId}${source === 'tasks' ? ' tasks' : ''}: ${error.message}`,
+          )
+          .join('\n'),
         message: comparisonData.length
           ? `Cannot get comparison data for ${failures.length} selected ${failedRunLabel}. Available runs are still shown. Refresh the page to try again.`
           : 'Cannot get comparison data for the selected runs. Refresh the page to try again.',

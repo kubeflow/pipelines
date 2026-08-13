@@ -172,16 +172,9 @@ describe('artifact-validator', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('uses the namespace prefix for an object absent from ArtifactService', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ artifacts: [] }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 200,
-        }),
-      ),
-    );
+  it('accepts a canonical namespace prefix without calling ArtifactService', async () => {
+    const fetchSpy = vi.fn().mockRejectedValue(new Error('unavailable'));
+    vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
       validateArtifactNamespace(
@@ -190,6 +183,7 @@ describe('artifact-validator', () => {
         'team-a',
       ),
     ).resolves.toEqual({ valid: true, reason: 'prefix-match' });
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('preserves mlmd-only as strict ArtifactService-only validation', async () => {
@@ -197,15 +191,13 @@ describe('artifact-validator', () => {
     vi.resetModules();
     const { validateArtifactNamespace: validateWithStrictMode } =
       await import('./artifact-validator.js');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ artifacts: [] }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 200,
-        }),
-      ),
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ artifacts: [] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
     );
+    vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
       validateWithStrictMode(
@@ -214,26 +206,24 @@ describe('artifact-validator', () => {
         'team-a',
       ),
     ).resolves.toEqual({ valid: false, reason: 'artifact-not-found' });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['mlmd-then-prefix', 'mlmd-only'])(
-    'fails closed when ArtifactService is unavailable in %s mode',
-    async (ownershipMode) => {
-      vi.stubEnv('ARTIFACT_NAMESPACE_OWNERSHIP_MODE', ownershipMode);
-      vi.resetModules();
-      const { validateArtifactNamespace: validateWithConfiguredMode } =
-        await import('./artifact-validator.js');
-      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
+  it('fails closed when ArtifactService is unavailable in strict mode', async () => {
+    vi.stubEnv('ARTIFACT_NAMESPACE_OWNERSHIP_MODE', 'mlmd-only');
+    vi.resetModules();
+    const { validateArtifactNamespace: validateWithConfiguredMode } =
+      await import('./artifact-validator.js');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('unavailable')));
 
-      await expect(
-        validateWithConfiguredMode(
-          'http://api-server',
-          's3://bucket/private-artifacts/team-a/output',
-          'team-a',
-        ),
-      ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
-    },
-  );
+    await expect(
+      validateWithConfiguredMode(
+        'http://api-server',
+        's3://bucket/private-artifacts/team-a/output',
+        'team-a',
+      ),
+    ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
+  });
 
   it('preserves the legacy MLMD timeout and prefers the replacement setting', () => {
     expect(resolveArtifactValidationTimeoutMs({ MLMD_VALIDATION_TIMEOUT_MS: '30000' })).toBe(30000);

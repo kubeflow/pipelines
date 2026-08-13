@@ -121,6 +121,9 @@ export async function validateArtifactNamespace(
   if (!keyPrefixValidation.valid && keyPrefixValidation.reason !== 'artifact-not-found') {
     return keyPrefixValidation;
   }
+  if (NAMESPACE_OWNERSHIP_MODE === 'artifact-then-prefix' && keyPrefixValidation.valid) {
+    return keyPrefixValidation;
+  }
 
   const artifactService = new ArtifactServiceApi(new Configuration({ basePath: apiServerAddress }));
   const filter = JSON.stringify({

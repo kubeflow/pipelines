@@ -495,13 +495,14 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
   });
 
-  it('invalidates the run query after a successful retry', async () => {
-    const invalidateQueriesSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+  it('notifies the polling owner after a successful retry', async () => {
+    const onRetryStarted = vi.fn();
     vi.spyOn(Apis.runServiceApiV2, 'retryRun').mockResolvedValue({});
     render(
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
+          onRetryStarted={onRetryStarted}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
           {...generateProps()}
         />
@@ -519,9 +520,7 @@ describe('RunDetailsV2', () => {
       .buttons.find((button: { text: string }) => button.text === 'Retry');
     await confirmButton.onClick();
 
-    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: queryKeys.v2RunDetail(RUN_ID),
-    });
+    expect(onRetryStarted).toHaveBeenCalledTimes(1);
   });
 
   it('refetches a fresh cached task snapshot when mounting a terminal run', async () => {

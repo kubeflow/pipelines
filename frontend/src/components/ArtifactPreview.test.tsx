@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from '../lib/Apis';
 import { expectErrors, testBestPractices } from '../TestUtils';
@@ -59,6 +59,7 @@ describe('ArtifactPreview', () => {
         <ArtifactPreview value={'minio://'} namespace={'kubeflow'} />
       </CommonTestWrapper>,
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
     await waitFor(() => screen.getByText('Error in retrieving artifact preview.'));
   });
 
@@ -70,6 +71,7 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => screen.getByText('gs://bucket/key'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
     await waitFor(() => screen.getByText('gcs preview'));
   });
 
@@ -120,6 +122,11 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
 
+    expect(readFileSpy).not.toHaveBeenCalled();
+    screen
+      .getAllByRole('button', { name: 'Load preview' })
+      .forEach((button) => fireEvent.click(button));
+
     await screen.findByText('first content');
     await screen.findByText('second content');
     expect(readFileSpy).toHaveBeenNthCalledWith(
@@ -146,6 +153,7 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => screen.getByText('minio://bucket/key'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
     await waitFor(() => screen.getByText(`012 345 ...`));
   });
 
@@ -162,6 +170,7 @@ describe('ArtifactPreview', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => screen.getByText('minio://bucket/key'));
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
     await waitFor(() => screen.getByText(`012 345 67 ...`));
   });
 });

@@ -51,6 +51,11 @@ export interface OutputArtifactLoadOptions {
   throwOnError?: boolean;
 }
 
+export interface OutputArtifactLoadResult {
+  configs: ViewerConfig[];
+  errors: string[];
+}
+
 type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
 
 export class OutputArtifactLoader {
@@ -59,6 +64,14 @@ export class OutputArtifactLoader {
     namespace?: string,
     options: OutputArtifactLoadOptions = {},
   ): Promise<ViewerConfig[]> {
+    return (await this.loadResult(outputPath, namespace, options)).configs;
+  }
+
+  public static async loadResult(
+    outputPath: StoragePath,
+    namespace?: string,
+    options: OutputArtifactLoadOptions = {},
+  ): Promise<OutputArtifactLoadResult> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
       const metadataFile = await Apis.readFile({
@@ -95,7 +108,7 @@ export class OutputArtifactLoader {
     const getSourceContent: SourceContentGetter = async (source, storage) =>
       await readSourceContent(source, storage, namespace);
 
-    const configs: Array<ViewerConfig | null> = await Promise.all(
+    const results = await Promise.allSettled(
       plotMetadataList.map(async (metadata) => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
@@ -117,7 +130,20 @@ export class OutputArtifactLoader {
       }),
     );
 
-    return configs.filter((c) => !!c) as ViewerConfig[];
+    const configs: ViewerConfig[] = [];
+    const errors: string[] = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if (result.value) {
+          configs.push(result.value);
+        }
+      } else {
+        const message = await errorToMessage(result.reason);
+        logger.error('Error loading run output:', message);
+        errors.push(message);
+      }
+    }
+    return { configs, errors };
   }
 
   private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {

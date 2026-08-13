@@ -21,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
@@ -66,6 +66,7 @@ const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface RunDetailsV2Info {
+  onRetryStarted?: () => void;
   pipeline_job: string;
   run: V2beta1Run;
   runRefreshError?: Error | null;
@@ -80,9 +81,9 @@ export type RunDetailsV2Props = RunDetailsV2Info &
   RouteComponentProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
+  const { onRetryStarted, updateToolbar } = props;
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
-  const queryClient = useQueryClient();
   const run = props.run;
   const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
@@ -200,8 +201,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // Update page title and experiment information.
   useEffect(() => {
-    updateToolBar(run, experiment, props.updateToolbar);
-  }, [run, experiment, props.updateToolbar]);
+    updateToolBar(run, experiment, updateToolbar);
+  }, [run, experiment, updateToolbar]);
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
@@ -212,24 +213,22 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       runIdFromParams,
       run,
       runFinished,
-      props.updateToolbar,
+      updateToolbar,
       () => forceUpdate,
       (_selectedIds, success) => {
         if (success) {
           setRetriedCurrentRunState(true);
-          // Retrying changes the existing run resource back to an active state. Refresh it now so
-          // the router resumes run-state polling without waiting for focus or a remount.
-          void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runIdFromParams) });
+          onRetryStarted?.();
         }
       },
     );
   }, [
     buttons,
-    queryClient,
     runIdFromParams,
     run,
     runFinished,
-    props.updateToolbar,
+    updateToolbar,
+    onRetryStarted,
     setRetriedCurrentRunState,
   ]);
 

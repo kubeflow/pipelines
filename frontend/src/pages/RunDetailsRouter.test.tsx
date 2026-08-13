@@ -31,12 +31,16 @@ import { vi } from 'vitest';
 
 vi.mock('src/pages/RunDetailsV2', () => ({
   RunDetailsV2: (props: any) => (
-    <div
-      data-testid='run-details-v2'
-      data-pipeline-job={props.pipeline_job}
-      data-run-refresh-error={props.runRefreshError?.message}
-      data-run-state={props.run.state}
-    />
+    <>
+      <div
+        data-testid='run-details-v2'
+        data-pipeline-job={props.pipeline_job}
+        data-run-refresh-error={props.runRefreshError?.message}
+        data-run-state={props.run.state}
+      />
+      <input data-testid='run-details-mount' defaultValue={props.run.run_id} />
+      <button onClick={props.onRetryStarted}>Retry started</button>
+    </>
   ),
 }));
 
@@ -214,6 +218,60 @@ describe('RunDetailsRouter', () => {
     });
     expect(getRunSpy).toHaveBeenCalledTimes(3);
     expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
+  });
+
+  it('keeps polling after retry until a fresh active run state is observed', async () => {
+    vi.useFakeTimers();
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    const runningRun = { ...failedRun, state: V2beta1RuntimeState.RUNNING };
+    getRunSpy.mockResolvedValueOnce(failedRun).mockRejectedValueOnce(new Error('temporary outage'));
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+
+    getRunSpy.mockResolvedValue(runningRun);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-state',
+      V2beta1RuntimeState.RUNNING,
+    );
+  });
+
+  it('remounts the v2 detail subtree when the run ID changes', async () => {
+    const runOne: V2beta1Run = { run_id: 'run-1', pipeline_spec: v2PipelineSpec };
+    const runTwo: V2beta1Run = { run_id: 'run-2', pipeline_spec: v2PipelineSpec };
+    getRunSpy.mockImplementation(async (runId) => (runId === 'run-1' ? runOne : runTwo));
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps('run-1')} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByTestId('run-details-v2');
+
+    rerender(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps('run-2')} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('run-details-mount')).toHaveValue('run-2'));
   });
 
   it('renders EnhancedRunDetails (V1) when template is not a v2 pipeline spec', async () => {

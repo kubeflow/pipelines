@@ -132,9 +132,10 @@ describe('ArtifactDetails', () => {
             }
           : { artifact_tasks: [] },
     );
-    const loadSpy = vi
-      .spyOn(OutputArtifactLoader, 'load')
-      .mockResolvedValue([{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }]);
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
 
     renderPage();
 
@@ -185,11 +186,45 @@ describe('ArtifactDetails', () => {
     expect(loadSpy).not.toHaveBeenCalled();
   });
 
+  it('keeps a confirmed legacy visualization when another relationship lookup fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) => {
+        if (type === V2beta1IOType.OUTPUT) {
+          return {
+            artifact_tasks: [
+              {
+                artifact_id: TEST_ARTIFACT_ID,
+                key: 'mlpipeline-ui-metadata',
+                type: V2beta1IOType.OUTPUT,
+              },
+            ],
+          };
+        }
+        throw new Error(`${type} unavailable`);
+      },
+    );
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(screen.getByText(/Some artifact relationships could not be checked/)).toBeVisible();
+  });
+
   it('renders native producer and consumer relationships with run links', async () => {
     renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
 
     await screen.findByText('Producing and consuming tasks');
-    const runLink = screen.getByRole('link', { name: 'Run run-1 · Task task-1' });
+    const runLink = await screen.findByRole('link', { name: 'Run run-1 · Task task-1' });
     expect(runLink).toHaveAttribute('href', '/runs/details/run-1');
     screen.getByText('Produced as dataset');
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
@@ -215,7 +250,7 @@ describe('ArtifactDetails', () => {
                   run_id: 'run-2',
                   task_id: 'task-2',
                   key: 'consumer-input',
-                  type: V2beta1IOType.INPUT,
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
                 },
               ],
             }
@@ -279,10 +314,54 @@ describe('ArtifactDetails', () => {
     await screen.findByText('Artifact service unavailable');
   });
 
+  it('keeps the cached relationship page visible when returning to it fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) =>
+        pageToken === 'next-page'
+          ? {
+              artifact_tasks: [
+                {
+                  id: 'relationship-2',
+                  key: 'second-page',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+            }
+          : {
+              artifact_tasks: [
+                {
+                  id: 'relationship-1',
+                  key: 'cached-first-page',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+              next_page_token: 'next-page',
+            },
+    );
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await screen.findByText('Consumed as cached-first-page');
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await screen.findByText('Consumed as second-page');
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockRejectedValue(
+      new Error('Artifact service unavailable'),
+    );
+
+    fireEvent.click(screen.getByTestId('prev-page-btn'));
+
+    await screen.findByText('Consumed as cached-first-page');
+    screen.getByText('Unable to load related tasks. Refresh the page to try again.');
+  });
+
   it('stops pagination when the service repeats the current page token', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
       async (_taskIds, _runIds, _artifactIds, _type, pageToken) => ({
-        artifact_tasks: [{ id: pageToken || 'first', key: pageToken || 'first' }],
+        artifact_tasks: [
+          {
+            id: pageToken || 'first',
+            key: pageToken || 'first',
+            type: V2beta1IOType.TASK_OUTPUT_INPUT,
+          },
+        ],
         next_page_token: pageToken || 'repeated-page',
       }),
     );
@@ -300,18 +379,28 @@ describe('ArtifactDetails', () => {
 
   it('does not replace a newer page-size result when an older request finishes later', async () => {
     let resolveFirstPage!: (value: {
-      artifact_tasks: Array<{ id: string; key: string }>;
+      artifact_tasks: Array<{ id: string; key: string; type?: V2beta1IOType }>;
       next_page_token: string;
     }) => void;
     const firstPage = new Promise<{
-      artifact_tasks: Array<{ id: string; key: string }>;
+      artifact_tasks: Array<{ id: string; key: string; type?: V2beta1IOType }>;
       next_page_token: string;
     }>((resolve) => {
       resolveFirstPage = resolve;
     });
     vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
       async (_taskIds, _runIds, _artifactIds, _type, _pageToken, pageSize) =>
-        pageSize === 10 ? firstPage : { artifact_tasks: [{ id: 'newer', key: 'newer-page-size' }] },
+        pageSize === 10
+          ? firstPage
+          : {
+              artifact_tasks: [
+                {
+                  id: 'newer',
+                  key: 'newer-page-size',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+            },
     );
 
     renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
@@ -323,7 +412,13 @@ describe('ArtifactDetails', () => {
 
     await act(async () => {
       resolveFirstPage({
-        artifact_tasks: [{ id: 'older', key: 'older-page-size' }],
+        artifact_tasks: [
+          {
+            id: 'older',
+            key: 'older-page-size',
+            type: V2beta1IOType.TASK_OUTPUT_INPUT,
+          },
+        ],
         next_page_token: 'older-next-page',
       });
       await firstPage;
@@ -346,6 +441,33 @@ describe('ArtifactDetails', () => {
     renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
 
     await screen.findByText(`Produced as ${type}`);
+  });
+
+  it.each([undefined, V2beta1IOType.UNSPECIFIED])(
+    'labels %s relationships as unknown instead of consumed',
+    async (type) => {
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+        artifact_tasks: [{ id: 'unknown', key: 'dataset', type }],
+      });
+
+      renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+      await screen.findByText('Related as unknown: dataset');
+      expect(screen.queryByText('Consumed as dataset')).not.toBeInTheDocument();
+    },
+  );
+
+  it('preserves a future relationship type instead of classifying it as consumed', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [
+        { id: 'future', key: 'dataset', type: 'FUTURE_RELATIONSHIP' as V2beta1IOType },
+      ],
+    });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Related as FUTURE_RELATIONSHIP: dataset');
+    expect(screen.queryByText('Consumed as dataset')).not.toBeInTheDocument();
   });
 
   it('keeps the old lineage bookmark path but labels it as related tasks', async () => {

@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import * as React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/artifact';
 import { RoutePage } from 'src/components/Router';
@@ -62,9 +63,12 @@ describe('ArtifactList', () => {
   }
 
   beforeEach(() => {
-    vi.spyOn(Apis.artifactServiceApiV2, 'artifacts').mockResolvedValue({
-      artifacts: generateArtifacts(5),
-    });
+    vi.spyOn(Apis.artifactServiceApiV2, 'artifacts');
+    vi.mocked(Apis.artifactServiceApiV2.artifacts)
+      .mockReset()
+      .mockResolvedValue({
+        artifacts: generateArtifacts(5),
+      });
   });
 
   it('renders native artifacts and links to their details', async () => {
@@ -81,6 +85,38 @@ describe('ArtifactList', () => {
     expect(artifactLink).toHaveAttribute('href', '/artifacts/artifact-1');
     screen.getByText('system.Dataset');
     screen.getByText('kubeflow');
+  });
+
+  it('includes the artifact namespace and separates provider query from the URI path', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({
+      artifacts: [
+        {
+          ...generateArtifacts(1)[0],
+          namespace: 'team-a',
+          uri: 's3://reports/output.csv?endpoint=https%3A%2F%2Fceph.example%3A9443',
+        },
+      ],
+    });
+    render(
+      <MemoryRouter>
+        <ArtifactList {...generateProps()} />
+      </MemoryRouter>,
+    );
+
+    const uriLink = await screen.findByRole('link', {
+      name: 's3://reports/output.csv?endpoint=https%3A%2F%2Fceph.example%3A9443',
+    });
+    const [path, query] = (uriLink.getAttribute('href') || '').split('?');
+    expect(path).toBe('artifacts/s3/reports/output.csv');
+    const params = new URLSearchParams(query);
+    expect(params.get('namespace')).toBe('team-a');
+    expect(JSON.parse(params.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://ceph.example:9443',
+        fromEnv: 'true',
+      },
+    });
   });
 
   it('uses the native API page token and page size', async () => {
@@ -138,6 +174,57 @@ describe('ArtifactList', () => {
         expect.objectContaining({ additionalInfo: 'Artifact service unavailable', mode: 'error' }),
       ),
     );
+  });
+
+  it('keeps matching rows visible when a refresh fails', async () => {
+    const listRef = React.createRef<ArtifactList>();
+    vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({
+      artifacts: [{ ...generateArtifacts(1)[0], name: 'last known artifact' }],
+    });
+    render(
+      <MemoryRouter>
+        <ArtifactList ref={listRef} {...generateProps()} />
+      </MemoryRouter>,
+    );
+    await screen.findByText('last known artifact');
+    vi.mocked(Apis.artifactServiceApiV2.artifacts).mockRejectedValue(
+      new Error('Artifact service unavailable'),
+    );
+
+    await act(async () => listRef.current?.refresh());
+
+    screen.getByText('last known artifact');
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ additionalInfo: 'Artifact service unavailable', mode: 'error' }),
+    );
+  });
+
+  it('stops pagination when the service repeats the current page token', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifacts).mockImplementation(
+      async (_namespace, pageToken) => ({
+        artifacts: [{ ...generateArtifacts(1)[0], name: pageToken || 'first page' }],
+        next_page_token: pageToken || 'repeated-page',
+      }),
+    );
+    render(
+      <MemoryRouter>
+        <ArtifactList {...generateProps()} />
+      </MemoryRouter>,
+    );
+    await screen.findByText('first page');
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: expect.stringContaining(
+            'Artifact service returned a repeated page token: repeated-page',
+          ),
+        }),
+      ),
+    );
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
   });
 
   it('ignores an older response when reload requests overlap', async () => {

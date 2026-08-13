@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import * as JsYaml from 'js-yaml';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -87,7 +87,9 @@ export default function RunDetailsRouter(
   if (v2Run && templateString) {
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
     if (isV2Pipeline) {
-      return <PolledRunDetailsV2 pipeline_job={templateString} run={v2Run} {...props} />;
+      return (
+        <PolledRunDetailsV2 key={runId} pipeline_job={templateString} run={v2Run} {...props} />
+      );
     }
   }
 
@@ -96,6 +98,8 @@ export default function RunDetailsRouter(
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
+  const queryClient = useQueryClient();
+  const waitingForPostRetryState = useRef(false);
   const {
     data: refreshedRun,
     error: runRefreshError,
@@ -105,7 +109,11 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      return state !== undefined && !hasFinishedV2(state) ? RUN_DETAILS_REFETCH_INTERVAL : false;
+      const runIsActive = state !== undefined && !hasFinishedV2(state);
+      if (waitingForPostRetryState.current && runIsActive) {
+        waitingForPostRetryState.current = false;
+      }
+      return waitingForPostRetryState.current || runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
     },
     refetchOnMount: false,
   });
@@ -113,6 +121,10 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
   return (
     <RunDetailsV2
       {...props}
+      onRetryStarted={() => {
+        waitingForPostRetryState.current = true;
+        void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runId) });
+      }}
       run={refreshedRun || props.run}
       runRefreshError={isRefetchError ? runRefreshError : undefined}
     />

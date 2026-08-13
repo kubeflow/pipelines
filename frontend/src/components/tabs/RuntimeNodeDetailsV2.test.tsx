@@ -108,7 +108,7 @@ describe('RuntimeNodeDetailsV2', () => {
     fireEvent.click(await screen.findByText('Logs'));
 
     await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalled());
-    screen.getByTestId(TEST_LOG_VIEW_ID);
+    await screen.findByTestId(TEST_LOG_VIEW_ID);
   });
 
   it('retrieves pod logs without an experiment namespace', async () => {
@@ -120,8 +120,8 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(getPodLogsSpy).toHaveBeenCalledWith(TEST_RUN_ID, TEST_POD_NAME, '', '2026-08-11');
   });
 
-  it('does not present driver pod output as executor logs', async () => {
-    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
+  it('falls back to explicitly labeled driver logs when executor output is unavailable', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('driver diagnostics');
 
     const logsInfo = await getLogsInfo(
       createTask({ pods: [{ name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER }] }),
@@ -129,10 +129,55 @@ describe('RuntimeNodeDetailsV2', () => {
       TEST_NAMESPACE,
     );
 
-    expect(getPodLogsSpy).not.toHaveBeenCalled();
-    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
-      'Task pod information is not available.',
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      'driver-pod',
+      TEST_NAMESPACE,
+      '2026-08-11',
     );
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('driver diagnostics');
+    expect(logsInfo.get(LOGS_BANNER_MESSAGE)).toBe(
+      'Showing driver initialization logs. These are not component executor output logs.',
+    );
+  });
+
+  it('shows the driver-log label alongside driver diagnostics', async () => {
+    vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('driver diagnostics');
+    renderTask(
+      createTask({ pods: [{ name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER }] }),
+    );
+
+    fireEvent.click(await screen.findByText('Logs'));
+
+    await screen.findByText(
+      'Showing driver initialization logs. These are not component executor output logs.',
+    );
+    screen.getByTestId(TEST_LOG_VIEW_ID);
+  });
+
+  it('prefers executor pod logs when both executor and driver pods are available', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor output');
+
+    const logsInfo = await getLogsInfo(
+      createTask({
+        pods: [
+          { name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER },
+          { name: TEST_POD_NAME, type: PipelineTaskTaskPodType.EXECUTOR },
+        ],
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      TEST_POD_NAME,
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('executor output');
+    expect(logsInfo.has(LOGS_BANNER_MESSAGE)).toBe(false);
   });
 
   it('falls back to the native executor-logs artifact when pod logs fail', async () => {
@@ -247,6 +292,45 @@ describe('RuntimeNodeDetailsV2', () => {
     );
   });
 
+  it('shows native task identity, scope, pod roles, cache identity, and state history', () => {
+    const updatedAt = new Date('2026-08-11T12:01:00Z');
+    const fields = getTaskDetailsFields(
+      executionElement,
+      createTask({
+        cache_fingerprint: 'cache-fingerprint',
+        parent_task_id: 'parent-task',
+        pods: [
+          {
+            name: 'executor-pod',
+            type: PipelineTaskTaskPodType.EXECUTOR,
+            uid: 'executor-uid',
+          },
+        ],
+        scope_path: 'root.preprocess',
+        state_history: [
+          {
+            error: { message: 'image pull delayed' },
+            state: PipelineTaskTaskState.RUNNING,
+            update_time: updatedAt,
+          },
+        ],
+        type_attributes: { iteration_index: '2' },
+      }),
+    );
+
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        ['Task type', PipelineTaskTaskType.RUNTIME],
+        ['Parent task ID', 'parent-task'],
+        ['Scope path', 'root.preprocess'],
+        ['Cache fingerprint', 'cache-fingerprint'],
+        ['Type attributes', '{"iteration_index":"2"}'],
+        ['Pods', 'EXECUTOR · executor-pod · UID executor-uid'],
+        ['State history', `Running · ${updatedAt.toLocaleString()} · image pull delayed`],
+      ]),
+    );
+  });
+
   it('formats artifact timestamps consistently with other details pages', () => {
     const createdAt = new Date('2026-08-11T12:00:00Z');
     const artifactElement = {
@@ -278,9 +362,10 @@ describe('RuntimeNodeDetailsV2', () => {
   });
 
   it('uses the native output key to restore legacy UI metadata visualizations', async () => {
-    const loadSpy = vi
-      .spyOn(OutputArtifactLoader, 'load')
-      .mockResolvedValue([{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }]);
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
     const artifactElement = {
       data: { label: 'legacy-output' },
       id: 'artifact.preprocess.mlpipeline-ui-metadata',

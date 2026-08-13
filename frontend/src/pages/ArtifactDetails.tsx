@@ -59,10 +59,24 @@ const OUTPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
   V2beta1IOType.ONE_OF_OUTPUT,
   V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
 ]);
+const INPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
+  V2beta1IOType.COMPONENT_DEFAULT_INPUT,
+  V2beta1IOType.TASK_OUTPUT_INPUT,
+  V2beta1IOType.COMPONENT_INPUT,
+  V2beta1IOType.RUNTIME_VALUE_INPUT,
+  V2beta1IOType.COLLECTED_INPUTS,
+  V2beta1IOType.ITERATOR_INPUT,
+  V2beta1IOType.ITERATOR_INPUT_RAW,
+]);
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
 ];
+
+interface LegacyUiMetadataKeyResult {
+  errors: string[];
+  key?: string;
+}
 
 interface ArtifactDetailsState {
   artifact?: V2beta1Artifact;
@@ -171,17 +185,14 @@ function ArtifactOverview({
     (!artifact.type ||
       artifact.type === ArtifactArtifactType.TYPE_UNSPECIFIED ||
       artifact.type === ArtifactArtifactType.Artifact);
-  const {
-    data: legacyArtifactKey,
-    error: legacyKeyError,
-    isError: legacyKeyIsError,
-  } = useQuery<string | undefined, Error>({
+  const { data: legacyKeyResult } = useQuery<LegacyUiMetadataKeyResult, Error>({
     queryKey: queryKeys.artifactVisualizationKey(artifact.artifact_id || ''),
     queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
     enabled: shouldLookUpLegacyKey,
     retry: false,
     staleTime: Infinity,
   });
+  const legacyArtifactKey = legacyKeyResult?.key;
   const details: Array<KeyValue<string>> = [
     ['Artifact ID', artifact.artifact_id || '-'],
     ['Name', artifact.name || '-'],
@@ -210,11 +221,11 @@ function ArtifactOverview({
             valueComponentProps={{ namespace: artifact.namespace }}
           />
         )}
-        {legacyKeyIsError && (
+        {!!legacyKeyResult?.errors.length && (
           <Banner
-            message='Unable to determine whether this artifact contains legacy UI visualizations. Refresh the page to try again.'
-            additionalInfo={legacyKeyError.message}
-            mode='error'
+            message='Some artifact relationships could not be checked. Available visualization information is still shown; refresh the page to try again.'
+            additionalInfo={legacyKeyResult.errors.join('\n')}
+            mode='warning'
           />
         )}
         {(directlyVisualizable || legacyArtifactKey) && (
@@ -229,7 +240,9 @@ function ArtifactOverview({
   );
 }
 
-async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<string | undefined> {
+async function findLegacyUiMetadataArtifactKey(
+  artifactId: string,
+): Promise<LegacyUiMetadataKeyResult> {
   const filter: V2beta1Filter = {
     predicates: [
       {
@@ -239,7 +252,7 @@ async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<stri
       },
     ],
   };
-  const responses = await Promise.all(
+  const results = await Promise.allSettled(
     [...OUTPUT_RELATIONSHIP_TYPES].map((type) =>
       Apis.artifactServiceApiV2.artifactTasks(
         undefined,
@@ -253,6 +266,17 @@ async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<stri
       ),
     ),
   );
+  const errors: string[] = [];
+  const responses = [];
+  for (const [index, result] of results.entries()) {
+    if (result.status === 'fulfilled') {
+      responses.push(result.value);
+    } else {
+      errors.push(
+        `${[...OUTPUT_RELATIONSHIP_TYPES][index]}: ${await errorToMessage(result.reason)}`,
+      );
+    }
+  }
   const hasProducingRelationship = responses.some((response) =>
     response.artifact_tasks?.some(
       (artifactTask) =>
@@ -261,7 +285,10 @@ async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<stri
         OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type),
     ),
   );
-  return hasProducingRelationship ? LEGACY_UI_METADATA_ARTIFACT_KEY : undefined;
+  return {
+    errors,
+    key: hasProducingRelationship ? LEGACY_UI_METADATA_ARTIFACT_KEY : undefined,
+  };
 }
 
 interface ArtifactRelationshipsLoaderProps {
@@ -284,7 +311,10 @@ interface ArtifactRelationshipsLoaderState {
   rows: Row[];
 }
 
+type ArtifactTasksResponse = Awaited<ReturnType<typeof Apis.artifactServiceApiV2.artifactTasks>>;
+
 interface PageTokenChain {
+  invalidRequests: Set<string>;
   nextTokens: Set<string>;
   successors: Map<string, string>;
 }
@@ -337,13 +367,14 @@ class ArtifactRelationshipsTable extends React.PureComponent<
 
   private reload = async (request: ListRequest): Promise<string> => {
     const reloadGeneration = ++this.activeReloadGeneration;
+    const queryKey = queryKeys.artifactTasksPage(
+      this.props.artifactId,
+      request.pageToken,
+      request.pageSize,
+    );
     try {
       const response = await this.props.queryClient.fetchQuery({
-        queryKey: queryKeys.artifactTasksPage(
-          this.props.artifactId,
-          request.pageToken,
-          request.pageSize,
-        ),
+        queryKey,
         queryFn: () =>
           Apis.artifactServiceApiV2.artifactTasks(
             undefined,
@@ -364,18 +395,16 @@ class ArtifactRelationshipsTable extends React.PureComponent<
         error: repeatedPageToken
           ? `Artifact service returned a repeated page token: ${nextPageToken}`
           : undefined,
-        rows: (response.artifact_tasks || []).map((artifactTask, index) => ({
-          id: artifactTask.id || `${request.pageToken || 'first-page'}-${index}`,
-          otherFields: [relationshipLabel(artifactTask, index), artifactTask],
-        })),
+        rows: buildArtifactTaskRows(response, request.pageToken),
       });
       return repeatedPageToken ? '' : nextPageToken;
     } catch (error) {
       const message = await errorToMessage(error);
       if (reloadGeneration === this.activeReloadGeneration) {
+        const cachedResponse = this.props.queryClient.getQueryData<ArtifactTasksResponse>(queryKey);
         this.setState({
           error: message || 'Artifact service failed to list related tasks.',
-          rows: [],
+          rows: cachedResponse ? buildArtifactTaskRows(cachedResponse, request.pageToken) : [],
         });
       }
       return '';
@@ -390,8 +419,11 @@ class ArtifactRelationshipsTable extends React.PureComponent<
     const requestPageToken = request.pageToken || '';
     let chain = this.pageTokenChains.get(pageSize);
     if (!chain) {
-      chain = { nextTokens: new Set(), successors: new Map() };
+      chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
       this.pageTokenChains.set(pageSize, chain);
+    }
+    if (chain.invalidRequests.has(requestPageToken)) {
+      return true;
     }
     if (chain.successors.get(requestPageToken) === nextPageToken) {
       return false;
@@ -399,8 +431,18 @@ class ArtifactRelationshipsTable extends React.PureComponent<
     const repeated = requestPageToken === nextPageToken || chain.nextTokens.has(nextPageToken);
     chain.successors.set(requestPageToken, nextPageToken);
     chain.nextTokens.add(nextPageToken);
+    if (repeated) {
+      chain.invalidRequests.add(requestPageToken);
+    }
     return repeated;
   }
+}
+
+function buildArtifactTaskRows(response: ArtifactTasksResponse, pageToken?: string): Row[] {
+  return (response.artifact_tasks || []).map((artifactTask, index) => ({
+    id: artifactTask.id || `${pageToken || 'first-page'}-${index}`,
+    otherFields: [relationshipLabel(artifactTask, index), artifactTask],
+  }));
 }
 
 function RelatedTaskLink({ value }: CustomRendererProps<V2beta1ArtifactTask>) {
@@ -431,11 +473,18 @@ function ArtifactTabs({
 }
 
 function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
-  const direction =
-    artifactTask.type && OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type)
-      ? 'Produced as'
-      : 'Consumed as';
-  return `${direction} ${artifactTask.key || artifactTask.producer?.task_name || index + 1}`;
+  const relationshipName = artifactTask.key || artifactTask.producer?.task_name || index + 1;
+  if (artifactTask.type && OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type)) {
+    return `Produced as ${relationshipName}`;
+  }
+  if (artifactTask.type && INPUT_RELATIONSHIP_TYPES.has(artifactTask.type)) {
+    return `Consumed as ${relationshipName}`;
+  }
+  const relationshipType =
+    artifactTask.type && artifactTask.type !== V2beta1IOType.UNSPECIFIED
+      ? artifactTask.type
+      : 'unknown';
+  return `Related as ${relationshipType}: ${relationshipName}`;
 }
 
 const EnhancedArtifactDetails = (props: PageProps) => (

@@ -15,6 +15,7 @@
  */
 
 import React from 'react';
+import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
@@ -72,6 +73,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines = 20,
 }) => {
+  const [previewRequested, setPreviewRequested] = React.useState(false);
   const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
   const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
@@ -90,6 +92,8 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const { isSuccess, isError, data, error } = useQuery<string, Error>({
     queryKey: queryKeys.artifactPreview(uri, namespace, providerInfo, maxbytes, maxlines),
     queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
+    enabled: previewRequested && !!storage,
+    retry: false,
     staleTime: Infinity,
   });
 
@@ -119,6 +123,11 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
           View All
         </ExternalLink>
       </div>
+      {!previewRequested && (
+        <Button size='small' onClick={() => setPreviewRequested(true)}>
+          Load preview
+        </Button>
+      )}
       {isError && (
         <Banner
           message='Error in retrieving artifact preview.'

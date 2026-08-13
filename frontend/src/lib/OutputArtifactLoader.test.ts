@@ -118,6 +118,29 @@ describe('OutputArtifactLoader', () => {
         OutputArtifactLoader.load(storagePath, 'ns1', { throwOnError: true }),
       ).rejects.toThrow('metadata unavailable');
     });
+
+    it('keeps valid viewer configs when a sibling source fails', async () => {
+      const metadata = JSON.stringify({
+        outputs: [
+          { type: PlotType.MARKDOWN, source: 'gs://bucket/valid.md', storage: 'gcs' },
+          { type: PlotType.MARKDOWN, source: 'gs://bucket/missing.md', storage: 'gcs' },
+        ],
+      });
+      readFileSpy.mockImplementation(async ({ path }) => {
+        if (path.key === 'k') {
+          return metadata;
+        }
+        if (path.key === 'valid.md') {
+          return '# valid';
+        }
+        throw new Error('missing source');
+      });
+
+      await expect(OutputArtifactLoader.loadResult(storagePath)).resolves.toEqual({
+        configs: [{ markdownContent: '# valid', type: PlotType.MARKDOWN }],
+        errors: ['missing source'],
+      });
+    });
   });
 
   describe('buildConfusionMatrixConfig', () => {

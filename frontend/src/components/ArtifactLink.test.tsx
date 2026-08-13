@@ -62,12 +62,51 @@ describe('ArtifactLink', () => {
     expect(link.getAttribute('href')).not.toBe('');
   });
 
+  it('renders malformed S3 URIs as plain text', () => {
+    render(<ArtifactLink artifactUri='s3:not-a-storage-path' namespace='team-a' />);
+
+    expect(screen.getByText('s3:not-a-storage-path')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('separates S3 provider parameters from the object key and includes the namespace', () => {
+    render(
+      <ArtifactLink
+        artifactUri='s3://my-bucket/my-object?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph'
+        namespace='team-a'
+      />,
+    );
+
+    const link = screen.getByRole('link');
+    const [path, query] = (link.getAttribute('href') || '').split('?');
+    expect(path).toBe('artifacts/s3/my-bucket/my-object');
+    const params = new URLSearchParams(query);
+    expect(params.get('namespace')).toBe('team-a');
+    expect(JSON.parse(params.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://ceph.example:9443',
+        fromEnv: 'true',
+        region: 'ceph',
+      },
+    });
+  });
+
   it('renders a clickable link for minio:// URIs with generated href', () => {
     render(<ArtifactLink artifactUri='minio://my-bucket/my-object' />);
     const link = screen.getByRole('link');
     expect(link).toHaveTextContent('minio://my-bucket/my-object');
     expect(link).toHaveAttribute('href');
     expect(link.getAttribute('href')).not.toBe('');
+  });
+
+  it('removes GCS provider parameters from the external console URL', () => {
+    render(<ArtifactLink artifactUri='gs://my-bucket/my-object?endpoint=storage.example' />);
+
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      'https://console.cloud.google.com/storage/browser/my-bucket/my-object',
+    );
   });
 
   it('renders an empty string when artifactUri is empty', () => {

@@ -370,13 +370,16 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('renders legacy UI metadata viewers from a native artifact and output key', async () => {
-    const loadSpy = vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue([
-      {
-        data: [['restored']],
-        labels: ['value'],
-        type: PlotType.TABLE,
-      },
-    ]);
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [
+        {
+          data: [['restored']],
+          labels: ['value'],
+          type: PlotType.TABLE,
+        },
+      ],
+      errors: [],
+    });
     const artifact: V2beta1Artifact = {
       artifact_id: 'legacy-metadata-1',
       name: 'legacy-output',
@@ -404,7 +407,9 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('isolates a legacy UI metadata loading failure behind an actionable banner', async () => {
-    vi.spyOn(OutputArtifactLoader, 'load').mockRejectedValue(new Error('metadata unavailable'));
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockRejectedValue(
+      new Error('metadata unavailable'),
+    );
 
     render(
       <CommonTestWrapper>
@@ -426,9 +431,10 @@ describe('RuntimeMetricsVisualizations', () => {
   });
 
   it('reports an unsupported legacy viewer type without crashing the visualization tab', async () => {
-    vi.spyOn(OutputArtifactLoader, 'load').mockResolvedValue([
-      { type: 'future-viewer' } as unknown as ViewerConfig,
-    ]);
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ type: 'future-viewer' } as unknown as ViewerConfig],
+      errors: [],
+    });
 
     render(
       <CommonTestWrapper>
@@ -446,5 +452,32 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     expect(await screen.findByText(/contains an unsupported visualization type/)).toBeVisible();
+  });
+
+  it('renders valid legacy viewers when a sibling viewer fails to load', async () => {
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['valid']], labels: ['value'], type: PlotType.TABLE }],
+      errors: ['missing HTML source'],
+    });
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              artifact_id: 'legacy-metadata-1',
+              name: 'mlpipeline-ui-metadata',
+              uri: 'gs://reports/metadata.json',
+            },
+          ]}
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('valid')).toBeVisible();
+    expect(screen.getByText('Some legacy UI visualizations could not be loaded.')).toBeVisible();
+    fireEvent.click(screen.getByText('Details'));
+    expect(screen.getByText('missing HTML source')).toBeVisible();
   });
 });
