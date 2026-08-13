@@ -70,27 +70,62 @@ runs:
         # into the Kind node is sufficient. Import two at a time: this overlaps
         # decompression without flooding the single Kind node's containerd.
         source .github/resources/scripts/ci-image-artifacts.sh
+
+        case "$(uname -m)" in
+          x86_64)
+            ARCH_NAME="amd64"
+            ;;
+          aarch64|arm64)
+            ARCH_NAME="arm64"
+            ;;
+          *)
+            echo "::error::Unsupported runner architecture: $(uname -m)"
+            exit 1
+            ;;
+        esac
+
+        echo "Loading ${ARCH_NAME} control-plane images into Kind"
+
         ARCHIVES=()
         for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
-          ARCHIVES+=("${{ inputs.image_path }}/$app/$app.tar")
+          ARCHIVES+=("${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar")
         done
+
         ./.github/resources/scripts/load-kind-image-archives.sh \
           "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
 
     - name: Load Driver and Launcher Images Into Kind
       shell: bash
       run: |
-        # Runtime-generated workflow pods inherit these refs from the API server
-        # environment. Tagging them away from `latest` makes Kubernetes default
-        # them to IfNotPresent, so they can also be loaded directly into Kind.
+        set -euo pipefail
+
+        case "$(uname -m)" in
+          x86_64)
+            ARCH_NAME="amd64"
+            ;;
+          aarch64|arm64)
+            ARCH_NAME="arm64"
+            ;;
+          *)
+            echo "::error::Unsupported runner architecture: $(uname -m)"
+            exit 1
+            ;;
+        esac
+
+        echo "Loading ${ARCH_NAME} runtime images into Kind"
+
         source .github/resources/scripts/ci-image-artifacts.sh
+
         for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
-          docker image load -i "${{ inputs.image_path }}/$app/$app.tar"
-          docker tag "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}" "${{ inputs.image_registry }}/$app:ci"
-          kind --name "${{ inputs.cluster_name }}" load docker-image "${{ inputs.image_registry }}/$app:ci"
-          rm "${{ inputs.image_path }}/$app/$app.tar"
-          docker image rm "${{ inputs.image_registry }}/$app:${{ inputs.image_tag }}"
-          docker image rm "${{ inputs.image_registry }}/$app:ci"
+          ARCHIVE="${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar"
+
+          docker image load -i "${ARCHIVE}"
+          docker tag             "${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"             "${{ inputs.image_registry }}/${app}:ci"
+          kind --name "${{ inputs.cluster_name }}" load docker-image             "${{ inputs.image_registry }}/${app}:ci"
+
+          rm "${ARCHIVE}"
+          docker image rm             "${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"
+          docker image rm             "${{ inputs.image_registry }}/${app}:ci"
         done
 
     - name: Load Runtime Base Images Into Kind
@@ -98,7 +133,20 @@ runs:
       run: |
         set -euo pipefail
 
-        RUNTIME_BASE_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images/runtime-base-images.tar"
+        case "$(uname -m)" in
+          x86_64)
+            ARCH_NAME="amd64"
+            ;;
+          aarch64|arm64)
+            ARCH_NAME="arm64"
+            ;;
+          *)
+            echo "::error::Unsupported runner architecture: $(uname -m)"
+            exit 1
+            ;;
+        esac
+
+        RUNTIME_BASE_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images-${ARCH_NAME}/runtime-base-images-${ARCH_NAME}.tar"
 
         if [[ -f "${RUNTIME_BASE_IMAGE_ARCHIVE}" ]]; then
           if kind --name "${{ inputs.cluster_name }}" load image-archive "${RUNTIME_BASE_IMAGE_ARCHIVE}"; then
