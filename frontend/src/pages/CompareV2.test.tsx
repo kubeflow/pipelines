@@ -27,6 +27,7 @@ import {
   V2beta1RuntimeState,
 } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
+import { ButtonKeys } from 'src/lib/Buttons';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
@@ -633,6 +634,76 @@ describe('CompareV2', () => {
       await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
     });
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+  });
+
+  it('preserves final tasks when the terminal reconciliation run refresh fails', async () => {
+    vi.useFakeTimers();
+    const runningTask = { ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING };
+    const finalTask: V2beta1PipelineTask = {
+      ...runningTask,
+      state: PipelineTaskTaskState.SUCCEEDED,
+      outputs: {
+        artifacts: [
+          {
+            artifact_key: 'accuracy',
+            artifacts: [
+              {
+                artifact_id: 'metric-1',
+                name: 'accuracy',
+                type: ArtifactArtifactType.Metric,
+                number_value: 0.99,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const terminalRun = { ...runs[0], state: V2beta1RuntimeState.SUCCEEDED };
+    vi.mocked(Apis.runServiceApiV2.getRun)
+      .mockResolvedValueOnce({ ...runs[0], state: V2beta1RuntimeState.RUNNING })
+      .mockResolvedValueOnce(terminalRun)
+      .mockRejectedValueOnce(new Error('Run service unavailable'))
+      .mockResolvedValue(terminalRun);
+    vi.mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: [runningTask] })
+      .mockResolvedValueOnce({ tasks: [runningTask] })
+      .mockResolvedValue({ tasks: [finalTask] });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+    expect(screen.getByText('0.99')).toBeVisible();
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ additionalInfo: 'run-1: Run service unavailable' }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
+
+    const refreshAction = updateToolbarSpy.mock.lastCall?.[0].actions[ButtonKeys.REFRESH].action as
+      | (() => Promise<void>)
+      | undefined;
+    expect(refreshAction).toBeDefined();
+    await act(async () => {
+      await refreshAction?.();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(4);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it('keeps polling a terminal run until its failed task refresh recovers', async () => {

@@ -84,6 +84,7 @@ const TERMINAL_COMPARISON_STALE_TIME = 60_000;
 
 interface RunComparisonData {
   run: V2beta1Run;
+  runError?: Error;
   taskError?: Error;
   tasks: V2beta1PipelineTask[];
   terminalTaskReconciliationPending?: boolean;
@@ -121,10 +122,24 @@ async function loadRunComparisonData(
     Apis.runServiceApiV2.getRun(runId),
     listAllRunTasks(runId),
   ]);
+  let run: V2beta1Run;
+  let runError: Error | undefined;
   if (runResult.status === 'rejected') {
-    throw toError(runResult.reason);
+    const cachedRun = previousData?.run;
+    if (
+      cachedRun?.state === undefined ||
+      !hasFinishedV2(cachedRun.state) ||
+      previousData?.terminalTaskReconciliationPending !== true
+    ) {
+      throw toError(runResult.reason);
+    }
+    // The cached terminal state is sufficient for the single bounded reconciliation. Do not use
+    // this fallback for later manual refreshes, where the run may have been retried and active.
+    run = cachedRun;
+    runError = toError(runResult.reason);
+  } else {
+    run = runResult.value;
   }
-  const run = runResult.value;
   const tasks = tasksResult.status === 'fulfilled' ? tasksResult.value : previousData?.tasks || [];
   const taskError = tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined;
   const runIsTerminal = run.state !== undefined && hasFinishedV2(run.state);
@@ -134,6 +149,7 @@ async function loadRunComparisonData(
     taskError !== undefined || tasks.some((task) => !isTaskFinished(task.state));
   return {
     run,
+    runError,
     tasks,
     taskError,
     // Fail-fast runs can retain non-terminal sibling task rows permanently. Reconcile once when
@@ -209,14 +225,11 @@ export function CompareV2(props: CompareV2Props) {
             ? TERMINAL_COMPARISON_STALE_TIME
             : ACTIVE_COMPARISON_STALE_TIME;
         },
-        refetchInterval: (query: {
-          state: { data?: RunComparisonData; fetchFailureCount: number };
-        }) => {
+        refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
           const data = query.state.data;
           const state = data?.run.state;
           const runIsActive = state !== undefined && !hasFinishedV2(state);
-          const reconciliationIsPending =
-            data?.terminalTaskReconciliationPending === true && query.state.fetchFailureCount === 0;
+          const reconciliationIsPending = data?.terminalTaskReconciliationPending === true;
           return runIsActive || reconciliationIsPending
             ? ACTIVE_COMPARISON_REFRESH_INTERVAL
             : false;
@@ -231,6 +244,9 @@ export function CompareV2(props: CompareV2Props) {
       results.forEach((result, index) => {
         if (result.data) {
           comparisonData.push(result.data);
+          if (result.data.runError) {
+            failures.push({ runId: runIds[index], source: 'run', error: result.data.runError });
+          }
           if (result.data.taskError) {
             failures.push({ runId: runIds[index], source: 'tasks', error: result.data.taskError });
           }
