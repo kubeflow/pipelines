@@ -619,6 +619,91 @@ def validate_pydantic_basemodel_version(model_cls: Type) -> None:
             '`base_image`).')
 
 
+def validate_pydantic_basemodel_alias_roundtrip(model_cls: Type) -> None:
+    """Raises a clear error if a field on `model_cls` would not survive a KFP
+    output-to-input round trip.
+
+    KFP serializes BaseModel outputs with ``model_dump(mode='json',
+    by_alias=True)`` and deserializes inputs with plain ``model_validate()``.
+    If a field's effective serialization key (its ``serialization_alias``, or
+    ``alias``, or else the field name) is not one of the keys
+    ``model_validate()`` will actually accept for that field (its effective
+    validation key, or additionally the plain field name when the model sets
+    ``model_config = ConfigDict(populate_by_name=True)``), the dumped value
+    can never be read back by a downstream component: the round trip breaks,
+    silently, since a missing key just fails as an ordinary required-field
+    validation error far from where the mismatch was actually introduced.
+    This check catches that at component definition/task-runtime time
+    instead, with a message that names the exact field and keys involved.
+
+    Fields using an ``AliasPath``/``AliasChoices`` for ``validation_alias``
+    are not checked here, since resolving those against a single
+    serialization key isn't a simple string comparison; such fields are
+    assumed to be intentionally configured by the user.
+    """
+    populate_by_name = bool(
+        model_cls.model_config.get('populate_by_name', False))
+    for field_name, field_info in model_cls.model_fields.items():
+        if not isinstance(field_info.validation_alias, (str, type(None))):
+            continue
+        serialization_key = (
+            field_info.serialization_alias or field_info.alias or field_name)
+        validation_key = (
+            field_info.validation_alias or field_info.alias or field_name)
+        acceptable_keys = {validation_key}
+        if populate_by_name:
+            acceptable_keys.add(field_name)
+        if serialization_key not in acceptable_keys:
+            qualname = f'{model_cls.__module__}.{model_cls.__qualname__}'
+            populate_by_name_hint = (
+                " ('populate_by_name=True' is set, so the plain field name "
+                'would also be accepted, but the serialization_alias does '
+                'not match that either)' if populate_by_name else '')
+            raise TypeError(
+                f"pydantic.BaseModel subclass '{qualname}' has a field "
+                f"'{field_name}' whose effective serialization key "
+                f"('{serialization_key}') will not be accepted by "
+                f"model_validate() on the way back in, which expects "
+                f"'{validation_key}'{populate_by_name_hint}. KFP serializes "
+                "component outputs with model_dump(by_alias=True) and "
+                'deserializes inputs with model_validate(), so this field '
+                'would be silently dropped passing between components. Use '
+                'the same value for validation_alias and serialization_alias '
+                "(or a single `alias`), or set "
+                'model_config = ConfigDict(populate_by_name=True) and give '
+                "serialization_alias the field's own name.")
+
+
+def is_pydantic_rootmodel_subclass(annotation: Any) -> bool:
+    """Check if annotation is a pydantic.RootModel subclass.
+
+    A RootModel wraps a single, unnamed root value (e.g. RootModel[int],
+    RootModel[List[str]]) and model_dump() returns that value directly,
+    not a JSON object like an ordinary BaseModel does, so it needs its
+    type struct derived from its root type instead of always being
+    treated as a dict.
+    """
+    if not is_pydantic_basemodel_subclass(annotation):
+        return False
+    import pydantic
+    return issubclass(annotation, pydantic.RootModel)
+
+
+def _pydantic_basemodel_to_type_struct(model_cls: Type) -> Any:
+    """Computes the KFP type struct for a pydantic.BaseModel (including
+    RootModel) subclass used for component I/O, after validating it can
+    actually be used for that purpose."""
+    validate_pydantic_basemodel_version(model_cls)
+    if is_pydantic_rootmodel_subclass(model_cls):
+        # A RootModel serializes to its root value's own shape (e.g. a bare
+        # int or a list), not to a dict, so its type struct comes from the
+        # root type, not from `dict`.
+        root_annotation = model_cls.model_fields['root'].annotation
+        return _annotation_to_type_struct(root_annotation)
+    validate_pydantic_basemodel_alias_roundtrip(model_cls)
+    return get_canonical_type_name_for_type(dict)
+
+
 def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
@@ -626,6 +711,16 @@ def _annotation_to_type_struct(annotation):
         annotation = annotation.to_dict()
     if isinstance(annotation, dict):
         return annotation
+
+    # Optional[BaseModel] (e.g. Optional[Person]) is a typing.Union, not a
+    # `type` instance, so it would otherwise fall through to the generic
+    # str(annotation) branch below instead of being recognized as a STRUCT.
+    stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
+        annotation)
+    if stripped_annotation is not annotation and isinstance(
+            stripped_annotation,
+            type) and is_pydantic_basemodel_subclass(stripped_annotation):
+        return _pydantic_basemodel_to_type_struct(stripped_annotation)
 
     origin = get_origin(annotation)
     if origin in {list, dict}:
@@ -646,8 +741,7 @@ def _annotation_to_type_struct(annotation):
 
     if isinstance(annotation, type):
         if is_pydantic_basemodel_subclass(annotation):
-            validate_pydantic_basemodel_version(annotation)
-            return get_canonical_type_name_for_type(dict)
+            return _pydantic_basemodel_to_type_struct(annotation)
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct

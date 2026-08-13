@@ -14,7 +14,7 @@
 import os
 import sys
 import tempfile
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import unittest
 
 from absl.testing import parameterized
@@ -157,6 +157,102 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
                 type_utils._annotation_to_type_struct(MyModel)
         finally:
             pydantic.VERSION = original_version
+
+    def test_annotation_to_type_struct_for_optional_pydantic_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual(
+            'Dict', type_utils._annotation_to_type_struct(Optional[MyModel]))
+
+    def test_is_parameter_true_for_optional_pydantic_basemodel(self):
+        from kfp.dsl import executor
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(executor.is_parameter(Optional[MyModel]))
+
+    def test_annotation_to_type_struct_for_rootmodel_scalar(self):
+
+        class IntRoot(pydantic.RootModel[int]):
+            pass
+
+        self.assertEqual('Integer',
+                         type_utils._annotation_to_type_struct(IntRoot))
+
+    def test_annotation_to_type_struct_for_rootmodel_list(self):
+
+        class ListRoot(pydantic.RootModel[List[str]]):
+            pass
+
+        type_struct = type_utils._annotation_to_type_struct(ListRoot)
+        self.assertEqual(pb.ParameterType.LIST,
+                         type_utils.get_parameter_type(type_struct))
+
+    def test_is_pydantic_rootmodel_subclass_true(self):
+
+        class IntRoot(pydantic.RootModel[int]):
+            pass
+
+        self.assertTrue(type_utils.is_pydantic_rootmodel_subclass(IntRoot))
+
+    def test_is_pydantic_rootmodel_subclass_false_for_plain_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertFalse(type_utils.is_pydantic_rootmodel_subclass(MyModel))
+
+    def test_validate_pydantic_basemodel_alias_roundtrip_passes_for_no_alias(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        # should not raise
+        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
+
+    def test_validate_pydantic_basemodel_alias_roundtrip_passes_for_matching_alias(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str = pydantic.Field(alias='fooAlias')
+
+        # should not raise: a single `alias` is used for both directions
+        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
+
+    def test_validate_pydantic_basemodel_alias_roundtrip_raises_for_mismatched_alias(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str = pydantic.Field(
+                validation_alias='foo_in', serialization_alias='foo_out')
+
+        with self.assertRaisesRegex(TypeError, "field 'foo'.*foo_out.*foo_in"):
+            type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
+
+    def test_validate_pydantic_basemodel_alias_roundtrip_passes_with_populate_by_name(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            model_config = pydantic.ConfigDict(populate_by_name=True)
+            foo: str = pydantic.Field(
+                validation_alias='foo_in', serialization_alias='foo')
+
+        # serialization_alias ('foo') matches the plain field name, which
+        # populate_by_name=True makes acceptable on the way back in.
+        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
+
+    def test_annotation_to_type_struct_raises_for_mismatched_alias(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str = pydantic.Field(
+                validation_alias='foo_in', serialization_alias='foo_out')
+
+        with self.assertRaisesRegex(TypeError, "field 'foo'"):
+            type_utils._annotation_to_type_struct(MyModel)
 
 
 class TypeUtilsTest(parameterized.TestCase):

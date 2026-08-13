@@ -661,6 +661,116 @@ class TestGetPydanticBasemodelImportItemsFromFunction(
             func)
         self.assertEqual(actual, ['my_pydantic_models.MyModel'])
 
+    def test_raises_for_simple_alias(self):
+        from my_pydantic_models import MyModel as MyModelAlias
+
+        def func(a: MyModelAlias):
+            pass
+
+        with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
+            custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+                func)
+
+    def test_raises_for_aliased_module_dotted_access(self):
+        import my_pydantic_models as aliased_module
+
+        def func(a: aliased_module.MyModel):
+            pass
+
+        with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
+            custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+                func)
+
+    def test_passes_for_unaliased_module_dotted_access(self):
+        import my_pydantic_models
+
+        def func(a: my_pydantic_models.MyModel):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+            func)
+        self.assertEqual(actual, ['my_pydantic_models'])
+
+    def test_raises_for_return_alias(self):
+        from my_pydantic_models import MyModel as MyModelAlias
+
+        def func() -> MyModelAlias:
+            pass
+
+        with self.assertRaisesRegex(TypeError, 'aliases are not supported'):
+            custom_artifact_types.get_pydantic_basemodel_import_items_from_function(
+                func)
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestGetPydanticBasemodelBaseSymbolForParameter(
+        _TestCaseWithThirdPartyPackage):
+
+    def test_simple_name(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: MyModel):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'MyModel')
+
+    def test_optional_simple_name(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: typing.Optional[MyModel] = None):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'MyModel')
+
+    def test_dotted_access(self):
+        import my_pydantic_models
+
+        def func(a: my_pydantic_models.MyModel):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'my_pydantic_models')
+
+    def test_alias(self):
+        from my_pydantic_models import MyModel as MyModelAlias
+
+        def func(a: MyModelAlias):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'MyModelAlias')
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestGetPydanticBasemodelBaseSymbolForReturn(_TestCaseWithThirdPartyPackage
+                                                 ):
+
+    def test_simple_name(self):
+        from my_pydantic_models import MyModel
+
+        def func() -> MyModel:
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
+            func, custom_artifact_types.RETURN_PREFIX)
+        self.assertEqual(actual, 'MyModel')
+
+    def test_named_tuple_field(self):
+        from my_pydantic_models import MyModel
+
+        def func() -> typing.NamedTuple('Outputs', [('output_model', MyModel)]):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_return(
+            func, f'{custom_artifact_types.RETURN_PREFIX}output_model')
+        self.assertEqual(actual, 'MyModel')
+
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestValidatePydanticBasemodelIsImportable(_TestCaseWithThirdPartyPackage):

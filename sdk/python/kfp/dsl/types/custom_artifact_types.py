@@ -148,6 +148,66 @@ def validate_pydantic_basemodel_is_importable(basemodel_cls: type) -> None:
             '`base_image`.')
 
 
+def _maybe_unwrap_optional_subscript(
+        annotation: Union[ast.expr, None]) -> Union[ast.expr, None]:
+    """Unwraps an `Optional[X]`/`X | None`-shaped AST node to the inner `X`
+    node, mirroring the Optional-stripping already applied to the resolved type
+    in get_param_to_pydantic_basemodel_class.
+
+    Pydantic models are type-hinted directly (e.g. `person: Person`),
+    unlike custom artifact types, which are always wrapped (e.g.
+    `Input[VertexDataset]`), so this only needs to handle the
+    `Optional[...]` sugar form, not a generic subscript slice.
+    """
+    if isinstance(annotation, ast.Subscript) and isinstance(
+            annotation.slice, (ast.Name, ast.Attribute)):
+        return annotation.slice
+    return annotation
+
+
+def get_pydantic_basemodel_base_symbol_for_parameter(func: Callable,
+                                                     arg_name: str) -> str:
+    """Gets the symbol required for a pydantic.BaseModel parameter type
+    annotation to be referenced correctly in the generated component file."""
+    module_node = ast.parse(
+        component_factory._get_function_source_definition(func))
+    args = module_node.body[0].args.args
+    args = {arg.arg: arg for arg in args}
+    annotation = _maybe_unwrap_optional_subscript(args[arg_name].annotation)
+    return traverse_ast_node_values_to_get_id(annotation)
+
+
+def get_pydantic_basemodel_base_symbol_for_return(func: Callable,
+                                                  return_name: str) -> str:
+    """Gets the symbol required for a pydantic.BaseModel return type annotation
+    (including a typing.NamedTuple field) to be referenced correctly in the
+    generated component file."""
+    module_node = ast.parse(
+        component_factory._get_function_source_definition(func))
+    return_ann = module_node.body[0].returns
+
+    if return_name == RETURN_PREFIX:
+        annotation = _maybe_unwrap_optional_subscript(return_ann)
+        if isinstance(annotation, (ast.Name, ast.Attribute)):
+            return traverse_ast_node_values_to_get_id(annotation)
+    elif isinstance(return_ann, ast.Call):
+        func_node = return_ann.func
+        # handles NamedTuple and typing.NamedTuple
+        if (isinstance(func_node, ast.Attribute) and
+                func_node.value.id == 'typing' and
+                func_node.attr == 'NamedTuple') or (isinstance(
+                    func_node, ast.Name) and func_node.id == 'NamedTuple'):
+            nt_field_list = return_ann.args[1].elts
+            for el in nt_field_list:
+                if f'{RETURN_PREFIX}{el.elts[0].s}' == return_name:
+                    annotation = _maybe_unwrap_optional_subscript(el.elts[1])
+                    return traverse_ast_node_values_to_get_id(annotation)
+
+    raise TypeError(
+        f"Unexpected pydantic.BaseModel return type annotation '{ast.dump(return_ann)}' "
+        f'for function {func.__name__}.')
+
+
 def get_pydantic_basemodel_import_items_from_function(
         func: Callable) -> List[str]:
     """Gets the fully qualified name of the symbol that must be imported for
@@ -155,13 +215,25 @@ def get_pydantic_basemodel_import_items_from_function(
     component function."""
     param_to_cls = get_param_to_pydantic_basemodel_class(func)
     import_items = []
-    for basemodel_cls in param_to_cls.values():
+    for param_name, basemodel_cls in param_to_cls.items():
         validate_pydantic_basemodel_is_importable(basemodel_cls)
+        base_symbol = get_pydantic_basemodel_base_symbol_for_return(
+            func, param_name) if param_name.startswith(
+                RETURN_PREFIX
+            ) else get_pydantic_basemodel_base_symbol_for_parameter(
+                func, param_name)
         # get_full_qualname_for_artifact only reads __module__/__qualname__,
         # so it works for any class, not just artifacts.
         qualname = get_full_qualname_for_artifact(basemodel_cls)
-        if qualname not in import_items:
-            import_items.append(qualname)
+        # Raises a clear error if base_symbol doesn't match how basemodel_cls
+        # is actually referenced (e.g. an `as` alias, or `models.Person` where
+        # `models` isn't basemodel_cls's real module path) -- see its
+        # docstring. This is the same check the custom artifact type
+        # mechanism already uses, so both mechanisms agree on what's
+        # supported instead of pydantic silently generating a broken import.
+        symbol_import_path = get_symbol_import_path(base_symbol, qualname)
+        if symbol_import_path not in import_items:
+            import_items.append(symbol_import_path)
     return import_items
 
 

@@ -207,8 +207,14 @@ class Executor:
         return input_artifact.path
 
     def write_output_parameter_value(
-            self, name: str, value: Union[str, int, float, bool, dict, list,
-                                          Dict, List]) -> None:
+        self, name: str, value: Union[str, int, float, bool, dict, list, Dict,
+                                      List, None]) -> None:
+        if value is None:
+            # An Optional-typed output (e.g. Optional[Person]) may
+            # legitimately produce no value; matching write_executor_output's
+            # own `if func_output is not None` behavior for a bare return,
+            # write nothing for this parameter rather than a null entry.
+            return
         if isinstance(value, (float, int)):
             output = str(value)
         elif isinstance(value, str):
@@ -234,19 +240,28 @@ class Executor:
     def handle_single_return_value(self, output_name: str, annotation_type: Any,
                                    return_value: Any) -> None:
         if is_parameter(annotation_type):
-            origin_type = getattr(annotation_type, '__origin__',
-                                  None) or annotation_type
+            stripped_annotation_type = type_annotations.maybe_strip_optional_from_annotation(
+                annotation_type)
+            is_optional = stripped_annotation_type is not annotation_type
+            origin_type = getattr(stripped_annotation_type, '__origin__',
+                                  None) or stripped_annotation_type
             # relax float-typed return to allow both int and float.
             if origin_type == float:
                 accepted_types = (int, float)
             # TODO: relax str-typed return to allow all primitive types?
             else:
                 accepted_types = origin_type
-            if not isinstance(return_value, accepted_types):
+            # A None return is only valid for an Optional-typed annotation (e.g.
+            # Optional[Person]); for a non-Optional annotation, None still fails
+            # the type check below same as before.
+            return_value_is_permitted_none = is_optional and return_value is None
+            if not return_value_is_permitted_none and not isinstance(
+                    return_value, accepted_types):
                 raise ValueError(
                     f'Function `{self.func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
                 )
-            if type_utils.is_pydantic_basemodel_subclass(origin_type):
+            if not return_value_is_permitted_none and type_utils.is_pydantic_basemodel_subclass(
+                    origin_type):
                 type_utils.validate_pydantic_basemodel_version(origin_type)
                 # by_alias=True so the wire format matches what
                 # model_validate() expects back for fields with a
@@ -418,9 +433,12 @@ class Executor:
             elif is_parameter(v):
                 value = self.get_input_parameter_value(k)
                 if value is not None:
-                    if type_utils.is_pydantic_basemodel_subclass(v):
-                        type_utils.validate_pydantic_basemodel_version(v)
-                        value = v.model_validate(value)
+                    stripped_v = type_annotations.maybe_strip_optional_from_annotation(
+                        v)
+                    if type_utils.is_pydantic_basemodel_subclass(stripped_v):
+                        type_utils.validate_pydantic_basemodel_version(
+                            stripped_v)
+                        value = stripped_v.model_validate(value)
                     func_kwargs[k] = value
 
             elif type_annotations.is_Input_Output_artifact_annotation(v):
@@ -497,6 +515,16 @@ def is_parameter(annotation: Any) -> bool:
             return True
         if type_utils.is_task_config_type(annotation_name):
             return True
+
+    # Optional[BaseModel] (e.g. Optional[Person]) is not itself a `type`
+    # instance (it's a typing.Union), so it falls through the isinstance
+    # check above even though the wrapped type is a pydantic model.
+    stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
+        annotation)
+    if stripped_annotation is not annotation and isinstance(
+            stripped_annotation, type
+    ) and type_utils.is_pydantic_basemodel_subclass(stripped_annotation):
+        return True
 
     return type_utils.is_parameter_type(str(annotation))
 
