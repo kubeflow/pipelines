@@ -15,6 +15,7 @@
 import {
   MouseEvent as ReactMouseEvent,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -47,11 +48,12 @@ import {
   buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
-  updateFlowElementsState,
+  reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
 import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
@@ -79,6 +81,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
+  const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = useMemo(
     () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
@@ -131,7 +134,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
-  const namespace = experiment?.namespace;
+  const namespace = experiment?.namespace || selectedNamespace;
 
   // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
@@ -171,8 +174,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       return flowElements;
     }
 
-    return updateFlowElementsState(layers, flowElements, tasks, runtimeFlowContext);
-  }, [flowElements, isSuccess, layers, runtimeFlowContext, tasks]);
+    return reconcileRuntimeFlowElements(
+      pipelineSpec,
+      layers,
+      flowElements,
+      tasks,
+      runtimeFlowContext,
+    );
+  }, [flowElements, isSuccess, layers, pipelineSpec, runtimeFlowContext, tasks]);
 
   const selectedNodeRuntimeInfo = useMemo(
     () => getNodeRuntimeInfo(selectedNode, tasks || [], layers, runtimeFlowContext),

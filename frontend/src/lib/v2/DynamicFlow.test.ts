@@ -27,6 +27,7 @@ import { convertFlowElements, NodeTypeNames } from './StaticFlow';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
+  reconcileRuntimeFlowElements,
   updateFlowElementsState,
 } from './DynamicFlow';
 
@@ -306,6 +307,51 @@ describe('DynamicFlow', () => {
         [rootTask, loopTask],
       );
       expect(elements.map((element) => element.id)).toEqual(['task.loop.0', 'task.loop.1']);
+    });
+
+    it('replaces a pre-task loop body with iteration nodes when tasks arrive', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '2' },
+      };
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: {
+          'loop-component': {
+            dag: {
+              tasks: {
+                body: {
+                  taskInfo: { name: 'body' },
+                  componentRef: { name: 'body-component' },
+                },
+              },
+            },
+          },
+          'body-component': { executorLabel: 'exec' },
+        },
+      });
+      const layers = ['root', 'loop'];
+      const preTaskElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, []);
+
+      expect(preTaskElements.map((element) => element.id)).toContain('task.body');
+      expect(
+        reconcileRuntimeFlowElements(pipelineSpec, layers, preTaskElements, [
+          rootTask,
+          loopTask,
+        ]).map((element) => element.id),
+      ).toEqual(['task.loop.0', 'task.loop.1']);
     });
   });
 });

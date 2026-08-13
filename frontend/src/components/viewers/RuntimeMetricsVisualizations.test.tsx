@@ -21,6 +21,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
 import {
   buildConfusionMatrices,
+  buildConfusionMatrixResult,
   buildRocCurves,
   expandClassificationMetrics,
   RuntimeMetricsVisualizations,
@@ -119,6 +120,67 @@ describe('RuntimeMetricsVisualizations', () => {
     ]);
   });
 
+  it('reports dimension and cell errors in malformed confusion matrices', () => {
+    const artifacts: V2beta1Artifact[] = [
+      {
+        artifact_id: 'matrix-dimension',
+        name: 'wrong dimensions',
+        type: ArtifactArtifactType.ClassificationMetric,
+        metadata: {
+          confusionMatrix: {
+            annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
+            rows: [{ row: [1, 0] }],
+          },
+        },
+      },
+      {
+        artifact_id: 'matrix-cell',
+        name: 'wrong cells',
+        type: ArtifactArtifactType.ClassificationMetric,
+        metadata: {
+          confusionMatrix: {
+            annotationSpecs: [{ displayName: 'cat' }],
+            rows: [{ row: ['many'] }],
+          },
+        },
+      },
+    ];
+
+    expect(buildConfusionMatrixResult(expandClassificationMetrics(artifacts))).toEqual({
+      errors: [
+        'wrong dimensions: annotationSpecs has length 2, but rows has length 1. Log one row per annotation and rerun the pipeline.',
+        'wrong cells: confusion matrix cells must be finite numbers. Correct the logged metric data and rerun the pipeline.',
+      ],
+      matrices: [],
+    });
+  });
+
+  it('renders an explicit error for an invalid confusion matrix', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              name: 'broken matrix',
+              type: ArtifactArtifactType.ClassificationMetric,
+              metadata: {
+                confusionMatrix: {
+                  annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
+                  rows: [{ row: [1, 0] }],
+                },
+              },
+            },
+          ]}
+        />
+      </CommonTestWrapper>,
+    );
+
+    screen.getByText('Invalid confusion matrix artifact.');
+    fireEvent.click(screen.getByText('Details'));
+    screen.getByText(/annotationSpecs has length 2, but rows has length 1/);
+    expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
+  });
+
   it('expands sliced classification metrics into one visualization artifact per slice', () => {
     const artifact: V2beta1Artifact = {
       artifact_id: 'sliced-1',
@@ -170,7 +232,7 @@ describe('RuntimeMetricsVisualizations', () => {
     ]);
   });
 
-  it('does not download file artifacts until one is selected', async () => {
+  it('does not download multiple files of one type until one is selected', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile');
     const artifacts: V2beta1Artifact[] = [
       {
@@ -181,10 +243,10 @@ describe('RuntimeMetricsVisualizations', () => {
         metadata: { store_session_info: 'stale-session' } as any,
       },
       {
-        artifact_id: 'markdown-1',
-        name: 'summary',
-        type: ArtifactArtifactType.Markdown,
-        uri: 'gs://reports/output.md',
+        artifact_id: 'html-2',
+        name: 'dashboard',
+        type: ArtifactArtifactType.HTML,
+        uri: 'gs://reports/dashboard.html',
       },
     ];
 
@@ -195,14 +257,70 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     expect(readFileSpy).not.toHaveBeenCalled();
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'File visualization' }));
-    fireEvent.click(screen.getByRole('option', { name: 'report (HTML)' }));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
+    fireEvent.click(screen.getByRole('option', { name: 'report' }));
 
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
     expect(readFileSpy).toHaveBeenCalledWith({
       path: { bucket: 'reports', key: 'output.html', source: StorageService.S3 },
       namespace: 'team-a',
     });
+  });
+
+  it('automatically renders a single file artifact', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    readFileSpy.mockClear();
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              artifact_id: 'html-1',
+              name: 'report',
+              type: ArtifactArtifactType.HTML,
+              uri: 's3://reports/output.html',
+            },
+          ]}
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('Static HTML')).toBeVisible();
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('combobox', { name: 'HTML visualization' })).toBeNull();
+  });
+
+  it('renders one HTML and one Markdown artifact together', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('content');
+    readFileSpy.mockClear();
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              artifact_id: 'html-1',
+              name: 'report',
+              type: ArtifactArtifactType.HTML,
+              uri: 's3://reports/output.html',
+            },
+            {
+              artifact_id: 'markdown-1',
+              name: 'summary',
+              type: ArtifactArtifactType.Markdown,
+              uri: 'gs://reports/output.md',
+            },
+          ]}
+          namespace='team-a'
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('Static HTML')).toBeVisible();
+    expect(await screen.findByText('Static Markdown')).toBeVisible();
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
   });
 
   it('downloads one selected visualization with native storage metadata', async () => {

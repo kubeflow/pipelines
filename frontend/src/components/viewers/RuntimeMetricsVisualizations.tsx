@@ -80,15 +80,16 @@ export function RuntimeMetricsVisualizations({
     }, [artifactKey, artifacts]);
 
   const rocCurves = useMemo(() => buildRocCurves(classificationMetrics), [classificationMetrics]);
-  const confusionMatrices = useMemo(
-    () => buildConfusionMatrices(classificationMetrics),
+  const confusionMatrixResult = useMemo(
+    () => buildConfusionMatrixResult(classificationMetrics),
     [classificationMetrics],
   );
 
   if (
     scalarMetrics.length === 0 &&
     rocCurves.configs.length === 0 &&
-    confusionMatrices.length === 0 &&
+    confusionMatrixResult.matrices.length === 0 &&
+    confusionMatrixResult.errors.length === 0 &&
     fileArtifacts.length === 0 &&
     legacyUiMetadataArtifacts.length === 0
   ) {
@@ -119,7 +120,14 @@ export function RuntimeMetricsVisualizations({
           <ROCCurve configs={rocCurves.configs} forceLegend={rocCurves.configs.length > 1} />
         </div>
       )}
-      {confusionMatrices.map(({ visualization, configs }) => (
+      {!!confusionMatrixResult.errors.length && (
+        <Banner
+          message='Invalid confusion matrix artifact.'
+          mode='error'
+          additionalInfo={confusionMatrixResult.errors.join('\n')}
+        />
+      )}
+      {confusionMatrixResult.matrices.map(({ visualization, configs }) => (
         <div className={padding(40)} key={visualization.key}>
           <h3>Confusion Matrix: {visualization.displayName}</h3>
           <ConfusionMatrix configs={configs} />
@@ -142,9 +150,16 @@ export function RuntimeMetricsVisualizations({
           />
         </div>
       )}
-      {!!fileArtifacts.length && (
-        <FileArtifactVisualization artifacts={fileArtifacts} namespace={namespace} />
-      )}
+      <FileArtifactVisualization
+        artifacts={fileArtifacts.filter(isHtmlArtifact)}
+        kind='HTML'
+        namespace={namespace}
+      />
+      <FileArtifactVisualization
+        artifacts={fileArtifacts.filter(isMarkdownArtifact)}
+        kind='Markdown'
+        namespace={namespace}
+      />
       {legacyUiMetadataArtifacts.map((artifact, index) => (
         <LegacyUiMetadataVisualization
           artifact={artifact}
@@ -158,9 +173,11 @@ export function RuntimeMetricsVisualizations({
 
 function FileArtifactVisualization({
   artifacts,
+  kind,
   namespace,
 }: {
   artifacts: V2beta1Artifact[];
+  kind: 'HTML' | 'Markdown';
   namespace?: string;
 }) {
   const entries = useMemo(
@@ -172,24 +189,40 @@ function FileArtifactVisualization({
     [artifacts],
   );
   const [selectedKey, setSelectedKey] = useState('');
-  const selectedEntry = entries.find(({ key }) => key === selectedKey);
+  const selectedEntry =
+    entries.find(({ key }) => key === selectedKey) ||
+    (entries.length === 1 ? entries[0] : undefined);
   const activeSelectedKey = selectedEntry?.key || '';
   const selectedArtifact = selectedEntry?.artifact;
+
+  if (!entries.length) {
+    return null;
+  }
+
+  if (entries.length === 1 && selectedArtifact) {
+    return (
+      <div className={padding(20, 'lrt')}>
+        <RuntimeArtifactVisualization artifact={selectedArtifact} namespace={namespace} />
+      </div>
+    );
+  }
 
   return (
     <div className={padding(20, 'lrt')}>
       <FormControl variant='standard' style={{ minWidth: 240 }}>
-        <InputLabel id='file-visualization-label'>File visualization</InputLabel>
+        <InputLabel id={`${kind.toLowerCase()}-visualization-label`}>
+          {kind} visualization
+        </InputLabel>
         <Select
-          labelId='file-visualization-label'
+          labelId={`${kind.toLowerCase()}-visualization-label`}
           value={activeSelectedKey}
           onChange={(event) => setSelectedKey(event.target.value as string)}
-          inputProps={{ 'aria-label': 'File visualization' }}
+          inputProps={{ 'aria-label': `${kind} visualization` }}
         >
           <MenuItem value=''>Choose an artifact</MenuItem>
           {entries.map(({ artifact, key }) => (
             <MenuItem key={key} value={key}>
-              {getArtifactDisplayName(artifact)} ({isHtmlArtifact(artifact) ? 'HTML' : 'Markdown'})
+              {getArtifactDisplayName(artifact)}
             </MenuItem>
           ))}
         </Select>
@@ -368,25 +401,47 @@ export function expandClassificationMetrics(
 export function buildConfusionMatrices(
   visualizations: ClassificationVisualization[],
 ): Array<{ visualization: ClassificationVisualization; configs: ConfusionMatrixConfig[] }> {
-  return visualizations.flatMap((visualization) => {
-    const matrix = unwrapStruct(visualization.metadata?.confusionMatrix);
-    if (!isConfusionMatrix(matrix)) {
-      return [];
+  return buildConfusionMatrixResult(visualizations).matrices;
+}
+
+export function buildConfusionMatrixResult(visualizations: ClassificationVisualization[]): {
+  matrices: Array<{
+    visualization: ClassificationVisualization;
+    configs: ConfusionMatrixConfig[];
+  }>;
+  errors: string[];
+} {
+  const matrices: Array<{
+    visualization: ClassificationVisualization;
+    configs: ConfusionMatrixConfig[];
+  }> = [];
+  const errors: string[] = [];
+
+  for (const visualization of visualizations) {
+    const rawMatrix = visualization.metadata?.confusionMatrix;
+    if (rawMatrix === undefined) {
+      continue;
     }
-    return [
-      {
-        visualization,
-        configs: [
-          {
-            type: PlotType.CONFUSION_MATRIX,
-            axes: ['True label', 'Predicted label'],
-            labels: matrix.annotationSpecs.map((annotation) => annotation.displayName),
-            data: matrix.rows.map((row) => row.row),
-          },
-        ],
-      },
-    ];
-  });
+    const matrix = unwrapStruct(rawMatrix);
+    const error = validateConfusionMatrix(matrix);
+    if (error) {
+      errors.push(`${visualization.displayName}: ${error}`);
+      continue;
+    }
+    const validMatrix = matrix as ConfusionMatrixValue;
+    matrices.push({
+      visualization,
+      configs: [
+        {
+          type: PlotType.CONFUSION_MATRIX,
+          axes: ['True label', 'Predicted label'],
+          labels: validMatrix.annotationSpecs.map((annotation) => annotation.displayName),
+          data: validMatrix.rows.map((row) => row.row),
+        },
+      ],
+    });
+  }
+  return { errors, matrices };
 }
 
 async function downloadVisualization(
@@ -424,18 +479,32 @@ interface ConfusionMatrixValue {
   rows: Array<{ row: number[] }>;
 }
 
-function isConfusionMatrix(value: unknown): value is ConfusionMatrixValue {
+function validateConfusionMatrix(value: unknown): string | undefined {
   if (!isRecord(value) || !Array.isArray(value.annotationSpecs) || !Array.isArray(value.rows)) {
-    return false;
+    return 'confusionMatrix must contain annotationSpecs and rows arrays. Correct the logged metric data and rerun the pipeline.';
   }
-  return (
-    value.annotationSpecs.every(
+  if (
+    !value.annotationSpecs.every(
       (annotation) => isRecord(annotation) && typeof annotation.displayName === 'string',
-    ) &&
-    value.rows.every(
-      (row) => isRecord(row) && Array.isArray(row.row) && row.row.every(Number.isFinite),
     )
-  );
+  ) {
+    return 'every annotationSpec must have a string displayName. Correct the logged metric data and rerun the pipeline.';
+  }
+  if (value.annotationSpecs.length !== value.rows.length) {
+    return `annotationSpecs has length ${value.annotationSpecs.length}, but rows has length ${value.rows.length}. Log one row per annotation and rerun the pipeline.`;
+  }
+  for (const row of value.rows) {
+    if (!isRecord(row) || !Array.isArray(row.row)) {
+      return 'every confusion matrix row must contain a row array. Correct the logged metric data and rerun the pipeline.';
+    }
+    if (row.row.length !== value.rows.length) {
+      return `a confusion matrix row has length ${row.row.length}, but the matrix dimension is ${value.rows.length}. Log a square matrix and rerun the pipeline.`;
+    }
+    if (!row.row.every(Number.isFinite)) {
+      return 'confusion matrix cells must be finite numbers. Correct the logged metric data and rerun the pipeline.';
+    }
+  }
+  return undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -20,6 +20,7 @@ import userEvent from '@testing-library/user-event';
 import {
   ArtifactArtifactType,
   PipelineTaskTaskState,
+  PipelineTaskTaskPodType,
   PipelineTaskTaskType,
   V2beta1PipelineTask,
   V2beta1Run,
@@ -28,6 +29,7 @@ import {
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
@@ -163,7 +165,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
-    const updateFlowElementsStateSpy = vi.spyOn(DynamicFlow, 'updateFlowElementsState');
+    const reconcileRuntimeFlowElementsSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
     const props = generateProps();
 
     const view = render(
@@ -172,8 +174,8 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => expect(updateFlowElementsStateSpy).toHaveBeenCalled());
-    const callCountAfterLoad = updateFlowElementsStateSpy.mock.calls.length;
+    await waitFor(() => expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalled());
+    const callCountAfterLoad = reconcileRuntimeFlowElementsSpy.mock.calls.length;
 
     view.rerender(
       <CommonTestWrapper>
@@ -182,7 +184,7 @@ describe('RunDetailsV2', () => {
     );
 
     await act(async () => {});
-    expect(updateFlowElementsStateSpy).toHaveBeenCalledTimes(callCountAfterLoad);
+    expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalledTimes(callCountAfterLoad);
   });
 
   it('Shows error banner when tasks cannot be retrieved', async () => {
@@ -234,6 +236,43 @@ describe('RunDetailsV2', () => {
           mode: 'warning',
         }),
       ),
+    );
+  });
+
+  it('uses the selected namespace for pod logs when experiment lookup fails', async () => {
+    vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockRejectedValue(
+      new Error('Experiment not found'),
+    );
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({
+      tasks: TEST_TASKS.map((task) =>
+        task.name === 'preprocess'
+          ? {
+              ...task,
+              create_time: new Date('2026-08-12T12:00:00Z'),
+              pods: [{ name: 'preprocess-pod', type: PipelineTaskTaskPodType.EXECUTOR }],
+            }
+          : task,
+      ),
+    });
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('live logs');
+
+    render(
+      <NamespaceContext.Provider value='team-a'>
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>
+      </NamespaceContext.Provider>,
+    );
+
+    fireEvent.click(await screen.findByText('preprocess'));
+    fireEvent.click(await screen.findByText('Logs'));
+
+    await waitFor(() =>
+      expect(getPodLogsSpy).toHaveBeenCalledWith(RUN_ID, 'preprocess-pod', 'team-a', '2026-08-12'),
     );
   });
 

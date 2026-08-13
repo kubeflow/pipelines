@@ -163,6 +163,31 @@ export function updateFlowElementsState(
   });
 }
 
+export function reconcileRuntimeFlowElements(
+  spec: PipelineSpec,
+  layers: string[],
+  elements: PipelineFlowElement[],
+  tasks: V2beta1PipelineTask[],
+  existingFlowContext?: RuntimeFlowContext,
+): PipelineFlowElement[] {
+  const runtimeStructure = convertSubDagToRuntimeFlowElements(spec, layers, tasks);
+  const currentStructure = new Set(
+    elements.map((element) => `${element.id}:${element.type || ''}`),
+  );
+  const hasCurrentRuntimeStructure =
+    elements.length === runtimeStructure.length &&
+    runtimeStructure.every((element) =>
+      currentStructure.has(`${element.id}:${element.type || ''}`),
+    );
+
+  return updateFlowElementsState(
+    layers,
+    hasCurrentRuntimeStructure ? elements : runtimeStructure,
+    tasks,
+    existingFlowContext,
+  );
+}
+
 export function getNodeRuntimeInfo(
   element: PipelineFlowElement | null,
   tasks: V2beta1PipelineTask[],

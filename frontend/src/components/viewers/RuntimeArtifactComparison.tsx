@@ -37,7 +37,7 @@ import { stylesheet } from 'typestyle';
 import { ConfusionMatrixConfig } from './ConfusionMatrix';
 import ROCCurve, { lineColors, ROCCurveConfig } from './ROCCurve';
 import {
-  buildConfusionMatrices,
+  buildConfusionMatrixResult,
   buildRocCurves,
   ClassificationVisualization,
   expandClassificationMetrics,
@@ -221,15 +221,17 @@ function ClassificationComparison({
     () => buildRocComparisonEntries(visualizations),
     [visualizations],
   );
-  const matrixEntries = useMemo<ComparisonPanelEntry[]>(
-    () =>
-      buildConfusionMatrices(visualizations).map(({ visualization, configs }) => ({
+  const { matrixEntries, matrixErrors } = useMemo(() => {
+    const result = buildConfusionMatrixResult(visualizations);
+    return {
+      matrixEntries: result.matrices.map(({ visualization, configs }) => ({
         configs,
         key: visualization.key,
         label: visualization.displayName,
       })),
-    [visualizations],
-  );
+      matrixErrors: result.errors,
+    };
+  }, [visualizations]);
 
   return (
     <>
@@ -257,7 +259,14 @@ function ClassificationComparison({
           updatePanelSelection={updatePanelSelection}
         />
       )}
-      {!rocEntries.length && !rocErrors.length && !matrixEntries.length && (
+      {!!matrixErrors.length && (
+        <Banner
+          message='The selected runs contain invalid confusion matrix artifacts.'
+          mode='error'
+          additionalInfo={matrixErrors.join('\n')}
+        />
+      )}
+      {!rocEntries.length && !rocErrors.length && !matrixEntries.length && !matrixErrors.length && (
         <p>There are no ROC curves or confusion matrices available on the selected runs.</p>
       )}
     </>
