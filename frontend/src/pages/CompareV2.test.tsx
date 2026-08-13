@@ -490,6 +490,9 @@ describe('CompareV2', () => {
     vi.useFakeTimers();
     const runningRun = { ...runs[0], state: V2beta1RuntimeState.RUNNING };
     const succeededRun = { ...runs[0], state: V2beta1RuntimeState.SUCCEEDED };
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: [{ ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.SUCCEEDED }],
+    });
     vi.mocked(Apis.runServiceApiV2.getRun)
       .mockResolvedValueOnce(runningRun)
       .mockResolvedValue(succeededRun);
@@ -513,6 +516,68 @@ describe('CompareV2', () => {
       await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
     });
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not poll a terminal run with a complete empty task snapshot', async () => {
+    vi.useFakeTimers();
+    vi.mocked(Apis.runServiceApiV2.getRun).mockResolvedValue({
+      ...runs[0],
+      state: V2beta1RuntimeState.SUCCEEDED,
+    });
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({ tasks: [] });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps polling a terminal run until its stale running task snapshot catches up', async () => {
+    vi.useFakeTimers();
+    const runningTask = { ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING };
+    const succeededTask = { ...runningTask, state: PipelineTaskTaskState.SUCCEEDED };
+    vi.mocked(Apis.runServiceApiV2.getRun)
+      .mockResolvedValueOnce({ ...runs[0], state: V2beta1RuntimeState.RUNNING })
+      .mockResolvedValue({ ...runs[0], state: V2beta1RuntimeState.SUCCEEDED });
+    vi.mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: [runningTask] })
+      .mockResolvedValueOnce({ tasks: [runningTask] })
+      .mockResolvedValue({ tasks: [succeededTask] });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
   });
 
   it('keeps polling a terminal run until its failed task refresh recovers', async () => {

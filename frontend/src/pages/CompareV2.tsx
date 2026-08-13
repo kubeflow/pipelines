@@ -199,9 +199,11 @@ export function CompareV2(props: CompareV2Props) {
         refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
           const data = query.state.data;
           const state = data?.run.state;
-          return data?.taskError !== undefined || (state !== undefined && !hasFinishedV2(state))
-            ? ACTIVE_COMPARISON_REFRESH_INTERVAL
-            : false;
+          const snapshotIsIncomplete =
+            data?.taskError !== undefined ||
+            data?.tasks.some((task) => !isTaskFinished(task.state)) === true ||
+            (state !== undefined && !hasFinishedV2(state));
+          return snapshotIsIncomplete ? ACTIVE_COMPARISON_REFRESH_INTERVAL : false;
         },
       })),
     [queryClient, runIds],
