@@ -103,7 +103,7 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: false, reason: 'artifact-not-found' });
   });
 
-  it('accepts an exact namespace and URI match from ArtifactService', async () => {
+  it('accepts a custom-root ArtifactService match only for namespace-isolated reads', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -113,9 +113,15 @@ describe('artifact-validator', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     await expect(
-      validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a', {
-        'kubeflow-userid': 'user@example.com',
-      }),
+      validateArtifactNamespace(
+        'http://api-server',
+        's3://bucket/shared/output',
+        'team-a',
+        {
+          'kubeflow-userid': 'user@example.com',
+        },
+        true,
+      ),
     ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
 
     const [requestUrl, requestInit] = fetchSpy.mock.calls[0] as [string, RequestInit];
@@ -127,6 +133,25 @@ describe('artifact-validator', () => {
     });
     expect(new Headers(requestInit.headers).get('kubeflow-userid')).toBe('user@example.com');
     expect(requestInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('rejects a custom-root row when the central server would read it directly', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      ),
+    );
+
+    await expect(
+      validateArtifactNamespace('http://api-server', 's3://bucket/shared/output', 'team-a'),
+    ).resolves.toEqual({
+      reason: 'custom-root-requires-namespace-isolation',
+      valid: false,
+    });
   });
 
   it('rejects a caller-owned record that points into another namespace prefix', async () => {

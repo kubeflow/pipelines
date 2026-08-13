@@ -209,7 +209,7 @@ describe('/artifacts', () => {
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
     });
 
-    it('reconstructs provider info from the namespace launcher config', async () => {
+    it('uses the server namespace for launcher config when standalone sends an empty namespace', async () => {
       const mockedMinioClient: Mock = minio.Client as any;
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('launcher-secret');
@@ -244,7 +244,7 @@ s3:
       app = new UIServer(configs);
 
       await requests(app.app)
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=kubeflow')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=')
         .expect(200, artifactContent);
 
       expect(getConfigMap).toHaveBeenCalledWith('kfp-launcher', 'kubeflow');

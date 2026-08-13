@@ -135,6 +135,7 @@ export function getArtifactsAuthMiddleware(
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
   apiServerAddress?: string,
+  allowNamespaceIsolatedCustomRoots = false,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     const queryError = validateArtifactQueryParameters(request.query);
@@ -215,12 +216,21 @@ export function getArtifactsAuthMiddleware(
       }
       if (requiresArtifactOwnershipValidation(coords.source) && coords.bucket && coords.key) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
-        const validation = await validateArtifactNamespace(
-          apiServerAddress,
-          artifactUri,
-          namespace,
-          { [kubeflowUserIdHeader]: userId },
-        );
+        const validationHeaders = { [kubeflowUserIdHeader]: userId };
+        const validation = allowNamespaceIsolatedCustomRoots
+          ? await validateArtifactNamespace(
+              apiServerAddress,
+              artifactUri,
+              namespace,
+              validationHeaders,
+              true,
+            )
+          : await validateArtifactNamespace(
+              apiServerAddress,
+              artifactUri,
+              namespace,
+              validationHeaders,
+            );
 
         if (!validation.valid) {
           console.warn(
@@ -462,7 +472,7 @@ function parseArtifactRequest(
     key: key.value,
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
-    namespace: namespace.value ?? defaultNamespace,
+    namespace: namespace.value || defaultNamespace,
   };
 }
 

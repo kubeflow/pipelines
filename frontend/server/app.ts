@@ -168,6 +168,7 @@ function createUIServer(options: UIConfigs) {
     options.auth.enabled,
     options.auth.kubeflowUserIdHeader,
     apiServerAddress,
+    options.artifacts.proxy.enabled,
   );
 
   /** Artifact */

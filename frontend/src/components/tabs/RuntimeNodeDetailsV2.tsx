@@ -288,10 +288,9 @@ export async function getLogsInfo(
     return logsInfo;
   }
 
-  const pod =
-    task.pods?.find((candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR) ||
-    task.pods?.find((candidate) => candidate.type === PipelineTaskTaskPodType.DRIVER) ||
-    task.pods?.[0];
+  // Driver pods have different logs from the task executor. If no executor pod is available,
+  // use the executor-logs artifact fallback rather than presenting driver output as task logs.
+  const pod = task.pods?.find((candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR);
   const createdAt = (task.create_time || new Date()).toISOString().split('T')[0];
   let podLogsError: unknown;
   if (runId && pod?.name) {

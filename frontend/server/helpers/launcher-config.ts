@@ -21,6 +21,7 @@ import {
 } from './artifact-sources.js';
 
 const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
+const DEFAULT_PIPELINE_ROOT = 'minio://mlpipeline/v2/artifacts';
 
 interface SecretRef {
   secretName?: string;
@@ -112,32 +113,67 @@ export async function getLauncherProviderInfo(
         `${LAUNCHER_CONFIG_MAP} ConfigMap and retry the artifact request.`,
     );
   }
+  const defaultPipelineRoot = configMap?.data?.defaultPipelineRoot || DEFAULT_PIPELINE_ROOT;
+  const { key, query } = splitKeyAndQuery(coordinates.key);
+  const normalizedCoordinates = { ...coordinates, key };
+
+  let providers: LauncherProviders = {};
   const providersYaml = configMap?.data?.providers;
-  if (!providersYaml) {
-    return undefined;
+  if (providersYaml) {
+    let parsed: unknown;
+    try {
+      parsed = load(providersYaml);
+    } catch (error) {
+      throw new LauncherConfigParseError(
+        `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
+      );
+    }
+    if (!isRecord(parsed)) {
+      throw new LauncherConfigParseError(
+        'kfp-launcher providers must be a YAML object. Correct the providers entry and retry.',
+      );
+    }
+    providers = parsed as LauncherProviders;
   }
 
-  let parsed: unknown;
-  try {
-    parsed = load(providersYaml);
-  } catch (error) {
-    throw new LauncherConfigParseError(
-      `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
-    );
-  }
-  if (!isRecord(parsed)) {
-    throw new LauncherConfigParseError(
-      'kfp-launcher providers must be a YAML object. Correct the providers entry and retry.',
-    );
-  }
-  const providers = parsed as LauncherProviders;
-  const provider = artifactProviderForSource(coordinates.source);
+  const provider = artifactProviderForSource(normalizedCoordinates.source);
   const config = providers[provider];
+  const override = findOverride(config, normalizedCoordinates.bucket, normalizedCoordinates.key);
+  const artifactUri = buildCoordinateUri(normalizedCoordinates);
+  const underPipelineRoot = isWithinPipelineRoot(artifactUri, defaultPipelineRoot);
+  if (!underPipelineRoot && !query && !override) {
+    throw new LauncherConfigValidationError(
+      `Artifact URI ${artifactUri} is outside defaultPipelineRoot and has no explicit provider ` +
+        'query or matching override. Move the artifact under the configured pipeline root, add ' +
+        'an override, or add explicit provider query parameters and retry.',
+    );
+  }
+
+  // Launcher replaces an under-root artifact's query with defaultPipelineRoot's query. An
+  // artifact URI's own query is used only outside that root.
+  const effectiveQuery = underPipelineRoot ? getUriQuery(defaultPipelineRoot) : query;
+  if (effectiveQuery) {
+    return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
+  }
   if (!config) {
     return undefined;
   }
 
-  return JSON.stringify(buildSessionInfo(provider, coordinates.bucket, coordinates.key, config));
+  return JSON.stringify(
+    buildSessionInfo(provider, normalizedCoordinates.bucket, normalizedCoordinates.key, config),
+  );
+}
+
+function findOverride(
+  config: ProviderConfig | undefined,
+  bucket: string,
+  key: string,
+): ProviderEntry | undefined {
+  const configuredOverrides = config?.Overrides ?? config?.overrides;
+  const overrides = Array.isArray(configuredOverrides) ? configuredOverrides : [];
+  return overrides.find(
+    (entry) => entry.bucketName === bucket && prefixMatches(key, entry.keyPrefix || ''),
+  );
 }
 
 function buildSessionInfo(
@@ -147,10 +183,7 @@ function buildSessionInfo(
   config: ProviderConfig,
 ): StoreSessionInfo {
   const configuredOverrides = config.Overrides ?? config.overrides;
-  const overrides = Array.isArray(configuredOverrides) ? configuredOverrides : [];
-  const override = overrides.find(
-    (entry) => entry.bucketName === bucket && prefixMatches(key, entry.keyPrefix || ''),
-  );
+  const override = findOverride(config, bucket, key);
 
   if (!config.default && configuredOverrides === undefined) {
     return { Provider: provider, Params: { fromEnv: 'true' } };
@@ -185,6 +218,59 @@ function buildSessionInfo(
   }
 
   return { Provider: provider, Params: params };
+}
+
+function buildQuerySessionInfo(provider: ArtifactProvider, query: string): StoreSessionInfo {
+  const params: Record<string, string> = {};
+  new URLSearchParams(query).forEach((value, key) => {
+    params[key] = value;
+  });
+  // URI queries configure the provider but never authorize namespace Secret reads.
+  params.fromEnv = 'true';
+  return { Provider: provider, Params: params };
+}
+
+function splitKeyAndQuery(key: string): { key: string; query: string } {
+  const queryStart = key.indexOf('?');
+  return queryStart < 0
+    ? { key, query: '' }
+    : { key: key.slice(0, queryStart), query: key.slice(queryStart + 1) };
+}
+
+function buildCoordinateUri(coordinates: ArtifactCoordinates): string {
+  const scheme = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
+  return `${scheme}://${coordinates.bucket}/${coordinates.key}`;
+}
+
+function getUriQuery(uri: string): string {
+  try {
+    return new URL(uri).search.slice(1);
+  } catch (error) {
+    throw new LauncherConfigValidationError(
+      `kfp-launcher defaultPipelineRoot is invalid. Correct it and retry: ${error}`,
+    );
+  }
+}
+
+function isWithinPipelineRoot(artifactUri: string, pipelineRoot: string): boolean {
+  let artifact: URL;
+  let root: URL;
+  try {
+    artifact = new URL(artifactUri);
+    root = new URL(pipelineRoot);
+  } catch (error) {
+    throw new LauncherConfigValidationError(
+      `Unable to compare the artifact URI with defaultPipelineRoot. Correct the launcher ` +
+        `configuration and retry: ${error}`,
+    );
+  }
+  const artifactPath = artifact.pathname.replace(/\/+$/, '');
+  const rootPath = root.pathname.replace(/\/+$/, '');
+  return (
+    artifact.protocol === root.protocol &&
+    artifact.host === root.host &&
+    (artifactPath === rootPath || artifactPath.startsWith(`${rootPath}/`))
+  );
 }
 
 function applyS3Settings(params: Record<string, string>, entry: ProviderEntry): void {

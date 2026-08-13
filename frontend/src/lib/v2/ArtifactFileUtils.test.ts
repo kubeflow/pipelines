@@ -14,7 +14,7 @@
 
 import { Apis } from 'src/lib/Apis';
 import { StorageService } from 'src/lib/WorkflowParser';
-import { readArtifactFile } from './ArtifactFileUtils';
+import { parseArtifactFileLocation, readArtifactFile } from './ArtifactFileUtils';
 
 describe('readArtifactFile', () => {
   it('uses server-side provider resolution and the explicit namespace', async () => {
@@ -48,6 +48,26 @@ describe('readArtifactFile', () => {
     expect(readFileSpy).toHaveBeenCalledWith({
       path: { bucket: 'reports', key: 'output.html', source: StorageService.GCS },
       namespace: 'artifact-namespace',
+    });
+  });
+
+  it('removes provider query parameters from the object key and forwards them separately', async () => {
+    const location = parseArtifactFileLocation(
+      's3://reports/output.html?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+    );
+
+    expect(location.path).toEqual({
+      bucket: 'reports',
+      key: 'output.html',
+      source: StorageService.S3,
+    });
+    expect(JSON.parse(location.providerInfo || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://ceph.example:9443',
+        fromEnv: 'true',
+        region: 'ceph',
+      },
     });
   });
 });

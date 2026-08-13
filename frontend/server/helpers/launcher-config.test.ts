@@ -80,10 +80,114 @@ s3:
     });
   });
 
+  it('rejects default credentials for an artifact outside defaultPipelineRoot', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket/pipelines/team-a',
+          providers: `
+s3:
+  default:
+    credentials:
+      fromEnv: false
+      secretRef:
+        secretName: broad-store
+        accessKeyKey: access-key
+        secretKeyKey: secret-key
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-b/run/artifact' },
+        'team-a',
+      ),
+    ).rejects.toThrow('is outside defaultPipelineRoot and has no explicit provider query');
+  });
+
+  it('inherits explicit endpoint settings from defaultPipelineRoot', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://team-bucket/pipelines/team-a?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph&disableSSL=false',
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/run/artifact' },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        disableSSL: 'false',
+        endpoint: 'https://ceph.example:9443',
+        fromEnv: 'true',
+        region: 'ceph',
+      },
+    });
+  });
+
+  it('prefers the pipeline-root query for artifacts under that root', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://team-bucket/pipelines/team-a?endpoint=https%3A%2F%2Ftrusted.example',
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'team-bucket',
+        key: 'pipelines/team-a/model?endpoint=https%3A%2F%2Funtrusted.example',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params.endpoint).toBe('https://trusted.example');
+  });
+
+  it('uses explicit artifact query settings outside defaultPipelineRoot', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'external-bucket',
+        key: 'model?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://ceph.example:9443',
+        fromEnv: 'true',
+        region: 'ceph',
+      },
+    });
+  });
+
   it('maps gcs artifacts to the launcher gs provider format', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {
         data: {
+          defaultPipelineRoot: 'gs://bucket',
           providers: `
 gs:
   default:
@@ -152,6 +256,7 @@ gs:
     mockedGetConfigMap.mockResolvedValue([
       {
         data: {
+          defaultPipelineRoot: 's3://bucket',
           providers: `
 s3:
   Overrides:
@@ -173,6 +278,7 @@ s3:
     mockedGetConfigMap.mockResolvedValue([
       {
         data: {
+          defaultPipelineRoot: 's3://bucket',
           providers: `
 s3:
   default:

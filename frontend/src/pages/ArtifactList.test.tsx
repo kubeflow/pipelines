@@ -53,6 +53,14 @@ describe('ArtifactList', () => {
     );
   }
 
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    return { promise, resolve };
+  }
+
   beforeEach(() => {
     vi.spyOn(Apis.artifactServiceApiV2, 'artifacts').mockResolvedValue({
       artifacts: generateArtifacts(5),
@@ -130,5 +138,26 @@ describe('ArtifactList', () => {
         expect.objectContaining({ additionalInfo: 'Artifact service unavailable', mode: 'error' }),
       ),
     );
+  });
+
+  it('ignores an older response when reload requests overlap', async () => {
+    const first = deferred<{ artifacts: V2beta1Artifact[] }>();
+    const second = deferred<{ artifacts: V2beta1Artifact[] }>();
+    vi.mocked(Apis.artifactServiceApiV2.artifacts)
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+
+    render(
+      <MemoryRouter>
+        <ArtifactList {...generateProps()} />
+      </MemoryRouter>,
+    );
+    await waitFor(() => expect(Apis.artifactServiceApiV2.artifacts).toHaveBeenCalledTimes(2));
+
+    second.resolve({ artifacts: [{ ...generateArtifacts(1)[0], name: 'new response' }] });
+    await screen.findByText('new response');
+    first.resolve({ artifacts: [{ ...generateArtifacts(1)[0], name: 'stale response' }] });
+    await waitFor(() => expect(screen.queryByText('stale response')).toBeNull());
+    screen.getByText('new response');
   });
 });

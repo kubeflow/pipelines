@@ -104,14 +104,7 @@ export async function createMinioClient(
     if (!providerInfo) {
       throw new Error('Failed to parse provider info.');
     }
-    // If fromEnv == false, we rely on the default credentials or env to provide credentials (e.g. IRSA)
-    if (providerInfo.Params.fromEnv === 'false') {
-      if (!namespace) {
-        throw new Error('Artifact Store provider given, but no namespace provided.');
-      } else {
-        config = await parseS3ProviderInfo(config, providerInfo, namespace);
-      }
-    }
+    config = await applyS3ProviderInfo(config, providerInfo, namespace);
   }
 
   // If using s3 and sourcing credentials from environment (currently only aws is supported)
@@ -231,37 +224,42 @@ function parseEndpoint(
  * environment credentials or the per-namespace artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
  */
-async function parseS3ProviderInfo(
+async function applyS3ProviderInfo(
   config: MinioClientOptionsWithOptionalSecrets,
   providerInfo: S3ProviderInfo,
-  namespace: string,
+  namespace?: string,
 ): Promise<MinioClientOptionsWithOptionalSecrets> {
-  if (
-    !providerInfo.Params.accessKeyKey ||
-    !providerInfo.Params.secretKeyKey ||
-    !providerInfo.Params.secretName
-  ) {
-    throw new Error(
-      'Provider info with fromEnv:false supplied with incomplete secret credential info.',
-    );
-  }
+  if (providerInfo.Params.fromEnv === 'false') {
+    if (!namespace) {
+      throw new Error('Artifact Store provider given, but no namespace provided.');
+    }
+    if (
+      !providerInfo.Params.accessKeyKey ||
+      !providerInfo.Params.secretKeyKey ||
+      !providerInfo.Params.secretName
+    ) {
+      throw new Error(
+        'Provider info with fromEnv:false supplied with incomplete secret credential info.',
+      );
+    }
 
-  try {
-    config.accessKey = await getK8sSecret(
-      providerInfo.Params.secretName,
-      providerInfo.Params.accessKeyKey,
-      namespace,
-    );
-    config.secretKey = await getK8sSecret(
-      providerInfo.Params.secretName,
-      providerInfo.Params.secretKeyKey,
-      namespace,
-    );
-  } catch (e) {
-    throw new Error(
-      `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
-      { cause: e },
-    );
+    try {
+      config.accessKey = await getK8sSecret(
+        providerInfo.Params.secretName,
+        providerInfo.Params.accessKeyKey,
+        namespace,
+      );
+      config.secretKey = await getK8sSecret(
+        providerInfo.Params.secretName,
+        providerInfo.Params.secretKeyKey,
+        namespace,
+      );
+    } catch (e) {
+      throw new Error(
+        `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
+        { cause: e },
+      );
+    }
   }
 
   if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
@@ -300,12 +298,12 @@ async function parseS3ProviderInfo(
       config.port = port ? Number(port) : undefined;
     }
 
-    config.region = providerInfo.Params.region ? providerInfo.Params.region : undefined;
+    if (providerInfo.Params.region !== undefined) {
+      config.region = providerInfo.Params.region;
+    }
 
-    if (providerInfo.Params.disableSSL) {
+    if (providerInfo.Params.disableSSL !== undefined) {
       config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
-    } else {
-      config.useSSL = undefined;
     }
   }
   return config;

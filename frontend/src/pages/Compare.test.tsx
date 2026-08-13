@@ -100,6 +100,28 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     expect(screen.queryByRole('progressbar')).toBeNull();
   });
 
+  it('renders the V2 comparison when one requested run fails to load', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
+    getRunSpy.mockImplementation((id: string) => {
+      if (id === MOCK_RUN_2_ID) {
+        return Promise.reject(new Error('run deleted'));
+      }
+      return Promise.resolve(newMockRun(id, true));
+    });
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('Scalar Metrics');
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+  });
+
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     runs = [

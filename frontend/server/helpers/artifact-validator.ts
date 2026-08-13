@@ -112,6 +112,7 @@ export async function validateArtifactNamespace(
   artifactUri: string,
   claimedNamespace: string,
   authenticationHeaders?: Record<string, string>,
+  allowNamespaceIsolatedCustomRoots = false,
 ): Promise<ValidationResult> {
   // A database row in the caller's namespace must not override ownership encoded by the
   // standard multi-user object key. Otherwise a tenant could import another namespace's
@@ -138,7 +139,12 @@ export async function validateArtifactNamespace(
       { headers: authenticationHeaders, signal: abortController.signal },
     );
     if (response.artifacts?.length) {
-      return { valid: true, reason: 'artifact-api-match' };
+      // A namespaced Artifact API row alone is not proof that a custom-root URI belongs to the
+      // namespace: a tenant can import an arbitrary URI into its own run. Custom roots are safe
+      // only when the actual read is delegated to the namespace-isolated artifact proxy.
+      return keyPrefixValidation.valid || allowNamespaceIsolatedCustomRoots
+        ? { valid: true, reason: 'artifact-api-match' }
+        : { valid: false, reason: 'custom-root-requires-namespace-isolation' };
     }
     return validateArtifactNotFound(artifactUri, claimedNamespace);
   } catch (error) {

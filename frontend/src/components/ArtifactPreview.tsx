@@ -20,7 +20,8 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
-import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
+import { StoragePath } from 'src/lib/WorkflowParser';
+import { parseArtifactFileLocation } from 'src/lib/v2/ArtifactFileUtils';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
@@ -74,11 +75,13 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
   const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
-  const providerInfo = typeof value === 'object' && value !== null ? value.providerInfo : undefined;
+  let providerInfo = typeof value === 'object' && value !== null ? value.providerInfo : undefined;
 
   if (uri) {
     try {
-      storage = WorkflowParser.parseStoragePath(uri);
+      const location = parseArtifactFileLocation(uri);
+      storage = location.path;
+      providerInfo ||= location.providerInfo;
     } catch (error) {
       logger.error(error);
     }

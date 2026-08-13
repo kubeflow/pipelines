@@ -30,6 +30,7 @@ import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 vi.mock('minio');
 vi.mock('@aws-sdk/credential-providers');
+vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
 describe('minio-helper', () => {
   const MockedMinioClient: Mock = MinioClient as any;
@@ -97,6 +98,31 @@ describe('minio-helper', () => {
       expect(client).toBeInstanceOf(MinioClient);
       expect(MockedMinioClient).toHaveBeenCalledWith({
         endPoint: 'minio.kubeflow:80',
+      });
+    });
+
+    it('applies endpoint and region settings when credentials come from the environment', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'https://ceph.example:9443',
+            fromEnv: 'true',
+            region: 'ceph',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9443,
+        region: 'ceph',
+        secretKey: 'secretkey',
+        useSSL: true,
       });
     });
 

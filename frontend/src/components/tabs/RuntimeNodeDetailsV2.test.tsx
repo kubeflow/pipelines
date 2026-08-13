@@ -120,6 +120,21 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(getPodLogsSpy).toHaveBeenCalledWith(TEST_RUN_ID, TEST_POD_NAME, '', '2026-08-11');
   });
 
+  it('does not present driver pod output as executor logs', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
+
+    const logsInfo = await getLogsInfo(
+      createTask({ pods: [{ name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER }] }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(getPodLogsSpy).not.toHaveBeenCalled();
+    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
+      'Task pod information is not available.',
+    );
+  });
+
   it('falls back to the native executor-logs artifact when pod logs fail', async () => {
     vi.spyOn(Apis, 'getPodLogs').mockRejectedValue(new Error('Pod logs unavailable'));
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact-log-details');

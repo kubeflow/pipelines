@@ -16,6 +16,8 @@
 
 import { act, fireEvent, queryByText, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter } from 'react-router-dom';
 
 import {
   ArtifactArtifactType,
@@ -32,6 +34,7 @@ import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import { queryKeys } from 'src/hooks/queryKeys';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
@@ -490,6 +493,81 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
+  });
+
+  it('invalidates the run query after a successful retry', async () => {
+    const invalidateQueriesSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    vi.spyOn(Apis.runServiceApiV2, 'retryRun').mockResolvedValue({});
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...generateProps()}
+        />
+      </CommonTestWrapper>,
+    );
+
+    const getRetryAction = () => {
+      const actionUpdates = updateToolbarSpy.mock.calls.filter(([update]: any[]) => update.actions);
+      return actionUpdates.at(-1)?.[0].actions.retry.action;
+    };
+    await waitFor(() => expect(getRetryAction()).toBeDefined());
+    getRetryAction()();
+    const confirmButton = updateDialogSpy.mock.calls
+      .at(-1)?.[0]
+      .buttons.find((button: { text: string }) => button.text === 'Retry');
+    await confirmButton.onClick();
+
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.v2RunDetail(RUN_ID),
+    });
+  });
+
+  it('refetches a fresh cached task snapshot when mounting a terminal run', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: Infinity } },
+    });
+    queryClient.setQueryData(queryKeys.runTasks(RUN_ID), TEST_TASKS);
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalled());
+  });
+
+  it('keeps cached task data in the graph when a background refresh fails', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.runTasks(RUN_ID), TEST_TASKS);
+    vi.mocked(Apis.runServiceApiV2.tasks).mockRejectedValue(new Error('temporary task outage'));
+    const reconcileSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...generateProps()} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ additionalInfo: 'temporary task outage', mode: 'error' }),
+      ),
+    );
+    expect(reconcileSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      TEST_TASKS,
+      expect.anything(),
+    );
   });
 
   it('refetches tasks once when an active run becomes terminal', async () => {

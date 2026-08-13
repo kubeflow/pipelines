@@ -47,28 +47,39 @@ export default function Compare(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
-  const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>({
-    queryKey: queryKeys.runDetails(runIds),
-    queryFn: () => Promise.all(runIds.map(async (id) => await Apis.runServiceApi.getRun(id))),
-    staleTime: Infinity,
-  });
+  const { isLoading, isError, error, data } = useQuery<PromiseSettledResult<ApiRunDetail>[], Error>(
+    {
+      queryKey: queryKeys.runDetails(runIds),
+      queryFn: () => Promise.allSettled(runIds.map((id) => Apis.runServiceApi.getRun(id))),
+      staleTime: Infinity,
+      retry: false,
+    },
+  );
 
+  const successfulRuns = data?.flatMap((result) =>
+    result.status === 'fulfilled' ? [result.value] : [],
+  );
+  const failedRunLoad = data?.find((result) => result.status === 'rejected');
+  const failedRunLoadReason =
+    failedRunLoad?.status === 'rejected' ? failedRunLoad.reason : undefined;
   const compareVersion = !data
     ? CompareVersion.Unknown
-    : data.length < 2 || data.length > 10
+    : runIds.length < 2 || runIds.length > 10
       ? CompareVersion.InvalidRunCount
-      : (() => {
-          const v2runs = data.filter(
-            (run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}),
-          );
-          if (v2runs.length === 0) {
-            return CompareVersion.V1;
-          }
-          if (v2runs.length === data.length) {
-            return CompareVersion.V2;
-          }
-          return CompareVersion.Mixed;
-        })();
+      : !successfulRuns?.length
+        ? CompareVersion.Unknown
+        : (() => {
+            const v2runs = successfulRuns.filter(
+              (run) => 'pipeline_manifest' in (run.run?.pipeline_spec ?? {}),
+            );
+            if (v2runs.length === 0) {
+              return CompareVersion.V1;
+            }
+            if (v2runs.length === successfulRuns.length) {
+              return CompareVersion.V2;
+            }
+            return CompareVersion.Mixed;
+          })();
 
   useEffect(() => {
     if (isLoading) {
@@ -76,9 +87,13 @@ export default function Compare(props: PageProps) {
     }
 
     // Update banner based on error, feature flag, run versions, and run count.
-    if (isError) {
+    const routeCannotRenderPartialResults =
+      !!failedRunLoad &&
+      (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
+    if (isError || routeCannotRenderPartialResults) {
       (async function () {
-        const errorMessage = await errorToMessage(error);
+        const loadError = error || failedRunLoadReason;
+        const errorMessage = await errorToMessage(loadError);
         updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
           message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
@@ -105,11 +120,24 @@ export default function Compare(props: PageProps) {
           'Error: failed loading the Run Comparison page. Click Details for more information.',
         mode: 'error',
       });
-    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA) && compareVersion !== CompareVersion.V1) {
+    } else if (
+      isFeatureEnabled(FeatureKey.V2_ALPHA) &&
+      compareVersion !== CompareVersion.V1 &&
+      compareVersion !== CompareVersion.V2
+    ) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [compareVersion, isError, error, isLoading, updateBanner, runIds.length]);
+  }, [
+    compareVersion,
+    failedRunLoad,
+    failedRunLoadReason,
+    isError,
+    error,
+    isLoading,
+    updateBanner,
+    runIds.length,
+  ]);
 
   if (isLoading) {
     return (
@@ -119,7 +147,11 @@ export default function Compare(props: PageProps) {
     );
   }
 
-  if (isError) {
+  if (
+    isError ||
+    (!!failedRunLoad &&
+      (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2))
+  ) {
     return <></>;
   }
 

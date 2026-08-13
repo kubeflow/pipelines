@@ -16,12 +16,42 @@ import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import WorkflowParser from 'src/lib/WorkflowParser';
 
+export interface ArtifactFileLocation {
+  path: ReturnType<typeof WorkflowParser.parseStoragePath>;
+  providerInfo?: string;
+}
+
+export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
+  const queryStart = uri.indexOf('?');
+  const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
+  const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
+  const path = WorkflowParser.parseStoragePath(uriWithoutQuery);
+  if (!query || !['gcs', 'minio', 's3'].includes(path.source)) {
+    return { path };
+  }
+
+  const params: Record<string, string> = {};
+  new URLSearchParams(query).forEach((value, key) => {
+    params[key] = value;
+  });
+  params.fromEnv = 'true';
+  return {
+    path,
+    providerInfo: JSON.stringify({
+      Provider: path.source === 'gcs' ? 'gs' : path.source,
+      Params: params,
+    }),
+  };
+}
+
 export function readArtifactFile(artifact: V2beta1Artifact, namespace?: string): Promise<string> {
   if (!artifact.uri) {
     return Promise.reject(new Error('Artifact has no URI. Verify the artifact output location.'));
   }
+  const location = parseArtifactFileLocation(artifact.uri);
   return Apis.readFile({
-    path: WorkflowParser.parseStoragePath(artifact.uri),
+    path: location.path,
     namespace: namespace || artifact.namespace,
+    providerInfo: location.providerInfo,
   });
 }

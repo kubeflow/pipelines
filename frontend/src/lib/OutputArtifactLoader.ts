@@ -25,6 +25,7 @@ import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
+import { parseArtifactFileLocation } from './v2/ArtifactFileUtils';
 export interface PlotMetadata {
   format?: 'csv';
   header?: string[];
@@ -317,9 +318,11 @@ async function readSourceContent(
   if (storage === 'inline') {
     return source;
   }
+  const location = parseArtifactFileLocation(source);
   return await Apis.readFile({
-    path: WorkflowParser.parseStoragePath(source),
+    path: location.path,
     namespace,
+    providerInfo: location.providerInfo,
   });
 }
 

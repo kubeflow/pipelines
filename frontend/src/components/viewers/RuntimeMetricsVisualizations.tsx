@@ -32,8 +32,7 @@ import {
   isMarkdownArtifact,
   isScalarMetricArtifact,
 } from 'src/lib/v2/RuntimeArtifactUtils';
-import { readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
-import WorkflowParser from 'src/lib/WorkflowParser';
+import { parseArtifactFileLocation, readArtifactFile } from 'src/lib/v2/ArtifactFileUtils';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
 import { MarkdownViewerConfig } from './MarkdownViewer';
@@ -327,8 +326,10 @@ async function loadLegacyUiMetadataVisualization(
       `${getArtifactDisplayName(artifact)} has no URI. Verify that the component produced the UI metadata artifact at a valid location.`,
     );
   }
-  return OutputArtifactLoader.load(WorkflowParser.parseStoragePath(artifact.uri), namespace, {
+  const location = parseArtifactFileLocation(artifact.uri);
+  return OutputArtifactLoader.load(location.path, namespace, {
     throwOnError: true,
+    providerInfo: location.providerInfo,
   });
 }
 
@@ -337,6 +338,7 @@ export function buildRocCurves(visualizations: ClassificationVisualization[]): {
   error?: string;
 } {
   const configs: ROCCurveConfig[] = [];
+  const errors: string[] = [];
   for (const visualization of visualizations) {
     const confidenceMetrics = unwrapList(visualization.metadata?.confidenceMetrics);
     if (!confidenceMetrics) {
@@ -344,13 +346,14 @@ export function buildRocCurves(visualizations: ClassificationVisualization[]): {
     }
     const { error } = validateConfidenceMetrics(confidenceMetrics);
     if (error) {
-      return { configs, error: `${visualization.displayName}: ${error}` };
+      errors.push(`${visualization.displayName}: ${error}`);
+      continue;
     }
     configs.push(
       buildRocCurveConfig(confidenceMetrics as Parameters<typeof buildRocCurveConfig>[0]),
     );
   }
-  return { configs };
+  return { configs, error: errors.length ? errors.join('\n') : undefined };
 }
 
 export function expandClassificationMetrics(

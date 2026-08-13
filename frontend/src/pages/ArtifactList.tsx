@@ -47,6 +47,7 @@ const COLUMNS: Column[] = [
 
 export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
+  private activeReloadGeneration = 0;
 
   public state: ArtifactListState = { rows: [] };
 
@@ -80,6 +81,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   }
 
   private reload = async (request: ListRequest): Promise<string> => {
+    const reloadGeneration = ++this.activeReloadGeneration;
     try {
       const response = await Apis.artifactServiceApiV2.artifacts(
         this.props.namespace,
@@ -88,25 +90,29 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
         request.sortBy,
         request.filter,
       );
-      this.setStateSafe({
-        rows: (response.artifacts || []).map((artifact) => ({
-          id: artifact.artifact_id || '',
-          otherFields: [
-            artifact.name || '[unnamed]',
-            artifact.artifact_id || '-',
-            getArtifactTypeName(artifact),
-            artifact.uri || '',
-            artifact.namespace || '-',
-            formatDateString(artifact.created_at),
-          ],
-        })),
-      });
-      this.clearBanner();
+      if (reloadGeneration === this.activeReloadGeneration) {
+        this.setStateSafe({
+          rows: (response.artifacts || []).map((artifact) => ({
+            id: artifact.artifact_id || '',
+            otherFields: [
+              artifact.name || '[unnamed]',
+              artifact.artifact_id || '-',
+              getArtifactTypeName(artifact),
+              artifact.uri || '',
+              artifact.namespace || '-',
+              formatDateString(artifact.created_at),
+            ],
+          })),
+        });
+        this.clearBanner();
+      }
       return response.next_page_token || '';
     } catch (error) {
       const message = await errorToMessage(error);
-      this.showPageError(message || 'Error: failed to list artifacts.', error);
-      this.setStateSafe({ rows: [] });
+      if (reloadGeneration === this.activeReloadGeneration) {
+        this.showPageError(message || 'Error: failed to list artifacts.', error);
+        this.setStateSafe({ rows: [] });
+      }
       return '';
     }
   };

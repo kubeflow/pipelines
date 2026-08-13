@@ -21,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
@@ -82,6 +82,7 @@ export type RunDetailsV2Props = RunDetailsV2Info &
 export function RunDetailsV2(props: RunDetailsV2Props) {
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
+  const queryClient = useQueryClient();
   const run = props.run;
   const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
@@ -113,6 +114,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryFn: () => listAllRunTasks(runId),
     staleTime: QUERY_STALE_TIME,
     refetchInterval: runFinished ? false : QUERY_REFETCH_INTERVAL,
+    // Terminal run data can arrive while the cached task snapshot is still fresh. Always verify
+    // task state on a terminal mount instead of preserving a potentially running graph forever.
+    refetchOnMount: runIsTerminal ? 'always' : true,
   });
 
   // The terminal run update stops polling immediately, so fetch once more to capture the final
@@ -172,7 +176,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 
   const dynamicFlowElements = useMemo(() => {
-    if (!isSuccess || !tasks) {
+    if (!tasks) {
       return flowElements;
     }
 
@@ -183,7 +187,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       tasks,
       runtimeFlowContext,
     );
-  }, [flowElements, isSuccess, layers, pipelineSpec, runtimeFlowContext, tasks]);
+  }, [flowElements, layers, pipelineSpec, runtimeFlowContext, tasks]);
 
   const selectedNodeRuntimeInfo = useMemo(
     () => getNodeRuntimeInfo(selectedNode, tasks || [], layers, runtimeFlowContext),
@@ -213,10 +217,21 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       (_selectedIds, success) => {
         if (success) {
           setRetriedCurrentRunState(true);
+          // Retrying changes the existing run resource back to an active state. Refresh it now so
+          // the router resumes run-state polling without waiting for focus or a remount.
+          void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runIdFromParams) });
         }
       },
     );
-  }, [buttons, runIdFromParams, run, runFinished, props.updateToolbar, setRetriedCurrentRunState]);
+  }, [
+    buttons,
+    queryClient,
+    runIdFromParams,
+    run,
+    runFinished,
+    props.updateToolbar,
+    setRetriedCurrentRunState,
+  ]);
 
   return (
     <>

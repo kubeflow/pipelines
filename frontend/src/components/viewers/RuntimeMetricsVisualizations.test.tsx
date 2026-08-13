@@ -57,6 +57,29 @@ describe('RuntimeMetricsVisualizations', () => {
     });
   });
 
+  it('keeps valid ROC curves after an invalid artifact', () => {
+    const invalid: V2beta1Artifact = {
+      name: 'invalid ROC',
+      type: ArtifactArtifactType.ClassificationMetric,
+      metadata: {
+        confidenceMetrics: [{ confidenceThreshold: 0.8, falsePositiveRate: 0.1 }],
+      },
+    };
+    const valid: V2beta1Artifact = {
+      name: 'valid ROC',
+      type: ArtifactArtifactType.ClassificationMetric,
+      metadata: {
+        confidenceMetrics: [{ confidenceThreshold: 0.5, falsePositiveRate: 0.2, recall: 0.9 }],
+      },
+    };
+
+    const result = buildRocCurves(expandClassificationMetrics([invalid, valid]));
+
+    expect(result.configs).toHaveLength(1);
+    expect(result.configs[0].data).toEqual([{ label: 0.5, x: 0.2, y: 0.9 }]);
+    expect(result.error).toContain('invalid ROC');
+  });
+
   it('builds confusion matrices from wrapped and direct native metadata', () => {
     const matrix = {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
