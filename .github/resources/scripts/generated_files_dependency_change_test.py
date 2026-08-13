@@ -19,9 +19,9 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from generated_files_dependency_change import module_version
-from generated_files_dependency_change import generated_path_patterns
 from generated_files_dependency_change import generated_paths_are_allowed
 from generated_files_dependency_change import requires_validation
 from generated_files_dependency_change import supports_auto_regeneration
@@ -112,38 +112,52 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
             ['go.mod', 'go.sum'], manifests(), manifests(root=updated)
         ))
 
-    def test_generated_paths_must_be_nonempty_and_allowlisted(self):
-        patterns = generated_path_patterns("""
-backend/api/v1beta1/go_client/** linguist-generated dependabot-auto-generated
-backend/api/v2beta1/swagger/** linguist-generated dependabot-auto-generated
-api/v2alpha1/go/** linguist-generated dependabot-auto-generated
-go.sum linguist-generated
-""")
-        self.assertTrue(generated_paths_are_allowed([
-            'backend/api/v1beta1/go_client/run.pb.gw.go',
-            'backend/api/v2beta1/swagger/filter.swagger.json',
-            'api/v2alpha1/go/pipelinespec/pipeline_spec.pb.go',
-        ], patterns))
-        self.assertFalse(generated_paths_are_allowed([], patterns))
-        self.assertFalse(generated_paths_are_allowed([
-            'backend/api/v1beta1/go_client/run.pb.gw.go',
-            '.github/workflows/validate-generated-files.yml',
-        ], patterns))
+    def test_generated_paths_follow_git_attribute_pattern_semantics(self):
+        isolated_git_environment = {
+            'GIT_CONFIG_GLOBAL': os.devnull,
+            'GIT_CONFIG_NOSYSTEM': '1',
+        }
+        with mock.patch.dict(os.environ, isolated_git_environment), \
+                tempfile.TemporaryDirectory() as temp_directory:
+            repository = Path(temp_directory)
+            (repository / '.gitattributes').write_text(
+                '*.pb.go dependabot-auto-generated\n'
+                'generated/*.json dependabot-auto-generated\n',
+                encoding='utf-8',
+            )
+            subprocess.run(('git', 'init', '-q'), cwd=repository, check=True)
+            self.assertTrue(generated_paths_are_allowed([
+                'nested/output.pb.go',
+                'generated/output.json',
+            ], repository))
+            self.assertFalse(generated_paths_are_allowed([], repository))
+            self.assertFalse(generated_paths_are_allowed([
+                'generated/nested/output.json',
+            ], repository))
 
     def test_repository_attributes_are_the_generated_path_source_of_truth(self):
-        attributes = (REPOSITORY_ROOT / '.gitattributes').read_text(
-            encoding='utf-8'
-        )
-        patterns = generated_path_patterns(attributes)
         self.assertTrue(generated_paths_are_allowed([
             'backend/api/v1beta1/go_client/run.pb.gw.go',
             'backend/api/v2beta1/swagger/filter.swagger.json',
             'kubernetes_platform/go/kubernetesplatform/config.pb.go',
-        ], patterns))
-        self.assertFalse(generated_paths_are_allowed(['go.sum'], patterns))
+        ]))
+        self.assertFalse(generated_paths_are_allowed(['go.sum']))
+        self.assertFalse(generated_paths_are_allowed([
+            'backend/api/v1beta1/swagger/pipeline.upload.swagger.json',
+            'kubernetes_platform/python/kfp/kubernetes/common.py',
+        ]))
+        self.assertTrue(generated_paths_are_allowed([
+            'kubernetes_platform/python/kfp/kubernetes/'
+            'kubernetes_executor_config_pb2.py',
+        ]))
 
     def test_worktree_paths_include_tracked_deleted_and_untracked_files(self):
-        with tempfile.TemporaryDirectory() as temp_directory:
+        isolated_git_environment = {
+            'GIT_CONFIG_GLOBAL': os.devnull,
+            'GIT_CONFIG_NOSYSTEM': '1',
+        }
+        with mock.patch.dict(os.environ, isolated_git_environment), \
+                tempfile.TemporaryDirectory() as temp_directory:
             repository = Path(temp_directory)
             subprocess.run(('git', 'init', '-q'), cwd=repository, check=True)
             subprocess.run(
@@ -221,6 +235,9 @@ go.sum linguist-generated
         self.assertIn('generate-and-check:', workflow)
         self.assertIn('validate-generated-files:', workflow)
         self.assertIn('dependabot-generated-files-', workflow)
+        self.assertIn(
+            'uses: ./.github/actions/upload-artifact-with-retry', workflow
+        )
         self.assertIn('overwrite: true', workflow)
         self.assertIn("github.actor == 'dependabot[bot]'", workflow)
 
@@ -237,6 +254,9 @@ go.sum linguist-generated
         )
         self.assertIn(
             'listPullRequestsAssociatedWithCommit', updater_workflow
+        )
+        self.assertIn(
+            'pullRequest.state === "open"', updater_workflow
         )
         self.assertIn('persist-credentials: false', updater_workflow)
         self.assertNotIn('ssh-key:', updater_workflow)

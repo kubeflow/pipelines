@@ -60,17 +60,27 @@ jobs:
               return;
             }
 
-            let pullRequests = run.pull_requests;
-            if (pullRequests.length === 0) {
+            let pullRequestReferences = run.pull_requests;
+            if (pullRequestReferences.length === 0) {
               core.info(`Workflow run ${run.id} did not include a pull request; resolving ${run.head_sha} through the API.`);
               const response = await github.rest.repos.listPullRequestsAssociatedWithCommit({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 commit_sha: run.head_sha,
               });
-              pullRequests = response.data;
+              pullRequestReferences = response.data;
             }
-            const openPullRequests = pullRequests.filter((pullRequest) => pullRequest.state !== "closed");
+            const pullRequests = await Promise.all(
+              pullRequestReferences.map(async ({ number }) => {
+                const response = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: number,
+                });
+                return response.data;
+              })
+            );
+            const openPullRequests = pullRequests.filter((pullRequest) => pullRequest.state === "open");
             if (openPullRequests.length !== 1) {
               core.setFailed(
                 `Expected one open pull request for workflow run ${run.id}; found ${openPullRequests.length}.`
@@ -78,16 +88,8 @@ jobs:
               return;
             }
 
-            const pullNumber = openPullRequests[0].number;
-            const { data: pullRequest } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pullNumber,
-            });
-            if (pullRequest.state !== "open") {
-              core.info(`PR #${pullNumber} is ${pullRequest.state}; skipping.`);
-              return;
-            }
+            const pullRequest = openPullRequests[0];
+            const pullNumber = pullRequest.number;
             if (pullRequest.user.login !== "dependabot[bot]") {
               core.setFailed(`PR #${pullNumber} is not authored by dependabot[bot].`);
               return;

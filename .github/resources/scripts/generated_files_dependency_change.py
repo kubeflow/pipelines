@@ -14,8 +14,10 @@
 # limitations under the License.
 """Detect dependency-only changes that require generated-file validation."""
 
+from __future__ import annotations
+
 import argparse
-import fnmatch
+import os
 from pathlib import Path
 from pathlib import PurePosixPath
 import subprocess
@@ -94,24 +96,42 @@ def supports_auto_regeneration(
     return False
 
 
-def generated_path_patterns(attributes: str) -> tuple[str, ...]:
-    """Return patterns marked as Dependabot-generated in .gitattributes."""
-    patterns = []
-    for line in attributes.splitlines():
-        fields = line.split()
-        if fields and not fields[0].startswith('#'):
-            if GENERATED_ATTRIBUTE in fields[1:]:
-                patterns.append(fields[0])
-    return tuple(patterns)
-
-
 def generated_paths_are_allowed(
-    paths: list[str], patterns: tuple[str, ...]
+    paths: list[str], repository_root: Path = REPOSITORY_ROOT
 ) -> bool:
-    """Return whether every path is a known committed generator output."""
-    return bool(paths) and bool(patterns) and all(
-        any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
-        for path in paths
+    """Return whether Git attributes mark every path as generated."""
+    if not paths:
+        return False
+
+    git_environment = os.environ.copy()
+    git_environment['GIT_ATTR_NOSYSTEM'] = '1'
+    result = subprocess.run(
+        (
+            'git',
+            '-c',
+            'core.attributesFile=/dev/null',
+            '-C',
+            str(repository_root),
+            'check-attr',
+            '-z',
+            '--stdin',
+            GENERATED_ATTRIBUTE,
+        ),
+        check=True,
+        env=git_environment,
+        input=''.join(f'{path}\0' for path in paths),
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    fields = result.stdout.split('\0')
+    if fields and fields[-1] == '':
+        fields.pop()
+    if len(fields) != len(paths) * 3:
+        return False
+    return all(
+        fields[index : index + 3]
+        == [path, GENERATED_ATTRIBUTE, 'set']
+        for index, path in zip(range(0, len(fields), 3), paths)
     )
 
 
@@ -173,10 +193,7 @@ def main() -> int:
     if args.check_generated_paths:
         with open(args.check_generated_paths, encoding='utf-8') as path_file:
             paths = path_file.read().splitlines()
-        patterns = generated_path_patterns(
-            (REPOSITORY_ROOT / '.gitattributes').read_text(encoding='utf-8')
-        )
-        if generated_paths_are_allowed(paths, patterns):
+        if generated_paths_are_allowed(paths):
             return 0
         print(
             'Generated patch contains an empty or non-allowlisted path set:',

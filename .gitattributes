@@ -5,12 +5,14 @@ backend/api/v1beta1/go_client/** linguist-generated dependabot-auto-generated
 backend/api/v1beta1/go_http_client/** linguist-generated dependabot-auto-generated
 backend/api/v1beta1/python_http_client/** linguist-generated dependabot-auto-generated
 backend/api/v1beta1/swagger/** linguist-generated dependabot-auto-generated
+backend/api/v1beta1/swagger/pipeline.upload.swagger.json -linguist-generated -dependabot-auto-generated
 backend/api/v2beta1/go_client/** linguist-generated dependabot-auto-generated
 backend/api/v2beta1/go_http_client/** linguist-generated dependabot-auto-generated
 backend/api/v2beta1/python_http_client/** linguist-generated dependabot-auto-generated
 backend/api/v2beta1/swagger/** linguist-generated dependabot-auto-generated
+backend/api/v2beta1/swagger/pipeline.upload.swagger.json -linguist-generated -dependabot-auto-generated
 kubernetes_platform/go/** linguist-generated dependabot-auto-generated
-kubernetes_platform/python/kfp/kubernetes/** linguist-generated dependabot-auto-generated
+kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py linguist-generated dependabot-auto-generated
 
 # Ignore go.sum
 go.sum linguist-generated
