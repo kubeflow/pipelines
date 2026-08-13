@@ -11,22 +11,16 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
-      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
-      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
-      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
   pull_request:
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
-      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
-      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
-      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 concurrency:
   group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
@@ -34,23 +28,26 @@ concurrency:
 
 jobs:
   produce-runtime-base-images:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.arch.runs_on }}
     timeout-minutes: 15
     permissions:
       contents: read
-    outputs:
-      cache-key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arch_name: amd64
+            runs_on: ubuntu-latest
+          - arch_name: arm64
+            runs_on: ubuntu-24.04-arm
     env:
-      ARTIFACTS_PATH: "runtime-base-images-cache"
+      ARCH_NAME: ${{ matrix.arch.arch_name }}
       MODELCAR_IMAGE_ARCHIVE: "modelcar.tar"
-      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
+      ARTIFACTS_PATH: "runtime-base-images-cache-${{ matrix.arch.arch_name }}"
+      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images-${{ matrix.arch.arch_name }}.tar"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
-
-      - name: Configure Docker Hub mirror
-        shell: bash
-        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+        uses: actions/checkout@v6
 
       - name: Configure runtime base images
         id: configure-runtime-base-images
@@ -64,18 +61,16 @@ jobs:
             .github/workflows/runtime-base-images.yml \
             test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
           {
-            echo "artifact-name=runtime-base-images-${archive_fingerprint}"
-            echo "cache-key=runtime-base-images-${archive_fingerprint}-$(date -u +%F)"
+            echo "artifact-name=runtime-base-images-${ARCH_NAME}-${archive_fingerprint}"
+            echo "cache-key=runtime-base-images-${ARCH_NAME}-${archive_fingerprint}-$(date -u +%F)"
           } >> "$GITHUB_OUTPUT"
           mkdir -p "${ARTIFACTS_PATH}"
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v5
         with:
-          path: |
-            ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
-            ${{ env.ARTIFACTS_PATH }}/${{ env.MODELCAR_IMAGE_ARCHIVE }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
 
       - name: Pull and save runtime base images
@@ -88,36 +83,21 @@ jobs:
             .github/resources/runtime-base-images.txt \
             "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
 
-      - name: Build and save the sample Modelcar fixture image
-        if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          source .github/resources/scripts/helper-functions.sh
-          retry 3 30 env DOCKER_BUILDKIT=1 docker build \
-            --file test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
-            --tag registry.domain.local/modelcar:test \
-            .
-          docker save registry.domain.local/modelcar:test \
-            --output "${ARTIFACTS_PATH}/${MODELCAR_IMAGE_ARCHIVE}"
-
       - name: Save runtime base images to cache
         if: >-
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/master' &&
           steps.cache-runtime-base-images.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@v5
         with:
-          path: |
-            ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
-            ${{ env.ARTIFACTS_PATH }}/${{ env.MODELCAR_IMAGE_ARCHIVE }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
 
       - name: Upload runtime base image producer artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
-          path: ${{ env.ARTIFACTS_PATH }}
+          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
           if-no-files-found: error
           retention-days: 3
 
@@ -125,21 +105,33 @@ jobs:
     needs: produce-runtime-base-images
     if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arch_name: amd64
+          - arch_name: arm64
     timeout-minutes: 5
     permissions:
       actions: write
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
       - name: Prune superseded runtime base image caches
         shell: bash
         env:
-          CURRENT_CACHE_KEY: ${{ needs.produce-runtime-base-images.outputs.cache-key }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+
+          archive_fingerprint=$(python3 \
+            .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
+            .github/resources/runtime-base-images.txt \
+            .github/resources/scripts/helper-functions.sh \
+            .github/workflows/runtime-base-images.yml)
+          current_cache_key="runtime-base-images-${{ matrix.arch.arch_name }}-${archive_fingerprint}-$(date -u +%F)"
 
           cache_pages=$(mktemp)
           cache_ids=$(mktemp)
@@ -148,11 +140,11 @@ jobs:
           for attempt in $(seq 1 6); do
             gh api --method GET --paginate --slurp \
               "repos/${GITHUB_REPOSITORY}/actions/caches" \
-              -f key='runtime-base-images-' \
+              -f key="runtime-base-images-${{ matrix.arch.arch_name }}-" \
               -f per_page=100 > "${cache_pages}"
 
             if python3 .github/resources/scripts/prune_runtime_base_image_caches.py \
-                --current-key "${CURRENT_CACHE_KEY}" \
+                --current-key "${current_cache_key}" \
                 --current-ref 'refs/heads/master' \
                 < "${cache_pages}" > "${cache_ids}"; then
               current_cache_found=true
