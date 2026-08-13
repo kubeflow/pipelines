@@ -60,6 +60,7 @@ exclude_patterns = [
     "__pycache__",
     # Pre-existing docs/ content that is not part of the website.
     "diagram",
+    "agents/**",
     "sdk/Architecture.md",
     "sdk/README.md",
     # Superseded by the top-level docs/index.rst.
