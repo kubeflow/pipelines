@@ -402,4 +402,45 @@ describe('RuntimeNodeDetailsV2', () => {
     expect(await screen.findByText('restored')).toBeVisible();
     expect(loadSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('refreshes an artifact visualization when the producing task finishes', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    const artifactElement = {
+      data: { label: 'report' },
+      id: 'artifact.preprocess.report',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    const view = (state: PipelineTaskTaskState) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask({ state }),
+            artifactGroup: {
+              artifact_key: 'report',
+              artifacts: [
+                {
+                  artifact_id: 'live-report',
+                  name: 'report',
+                  type: ArtifactArtifactType.HTML,
+                  uri: 's3://reports/output.html',
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(PipelineTaskTaskState.RUNNING));
+    fireEvent.click(screen.getByText('Visualization'));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(PipelineTaskTaskState.SUCCEEDED));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+  });
 });

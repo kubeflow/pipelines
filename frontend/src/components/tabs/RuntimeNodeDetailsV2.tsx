@@ -444,6 +444,7 @@ function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDeta
               artifacts={artifacts}
               artifactKey={artifactGroup.artifact_key}
               namespace={namespace}
+              sourceFinished={isTaskFinished(task.state)}
             />
           </div>
         )}

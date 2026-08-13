@@ -18,7 +18,7 @@ import WorkflowParser from 'src/lib/WorkflowParser';
 
 export interface ArtifactFileLocation {
   path: ReturnType<typeof WorkflowParser.parseStoragePath>;
-  providerInfo?: string;
+  artifactUriQuery?: string;
 }
 
 export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
@@ -30,18 +30,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
     return { path };
   }
 
-  const params: Record<string, string> = {};
-  new URLSearchParams(query).forEach((value, key) => {
-    params[key] = value;
-  });
-  params.fromEnv = 'true';
-  return {
-    path,
-    providerInfo: JSON.stringify({
-      Provider: path.source === 'gcs' ? 'gs' : path.source,
-      Params: params,
-    }),
-  };
+  return { path, artifactUriQuery: query };
 }
 
 export function readArtifactFile(artifact: V2beta1Artifact, namespace?: string): Promise<string> {
@@ -52,6 +41,6 @@ export function readArtifactFile(artifact: V2beta1Artifact, namespace?: string):
   return Apis.readFile({
     path: location.path,
     namespace: namespace || artifact.namespace,
-    providerInfo: location.providerInfo,
+    artifactUriQuery: location.artifactUriQuery,
   });
 }

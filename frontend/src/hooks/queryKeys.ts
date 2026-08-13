@@ -91,19 +91,30 @@ export const queryKeys = {
 
   // --- Viewer configs ---
 
-  runtimeArtifactVisualization: (artifactId: string | undefined, namespace?: string) =>
-    ['runtime_artifact_visualization', artifactId, namespace] as const,
+  runtimeArtifactVisualization: (
+    artifactId: string | undefined,
+    namespace?: string,
+    sourceFinished?: boolean,
+  ) => ['runtime_artifact_visualization', artifactId, namespace, sourceFinished] as const,
 
-  legacyRuntimeUiMetadata: (artifactId: string | undefined, namespace?: string) =>
-    ['legacy_runtime_ui_metadata', artifactId, namespace] as const,
+  legacyRuntimeUiMetadata: (
+    artifactId: string | undefined,
+    namespace?: string,
+    sourceFinished?: boolean,
+  ) => ['legacy_runtime_ui_metadata', artifactId, namespace, sourceFinished] as const,
 
   // --- Misc ---
 
   artifactPreview: (
     value: string | undefined,
     namespace: string | undefined,
+    artifactUriQuery: string | undefined,
     providerInfo: string | undefined,
     maxbytes: number,
     maxlines: number,
-  ) => ['artifact_preview', { value, namespace, providerInfo, maxbytes, maxlines }] as const,
+  ) =>
+    [
+      'artifact_preview',
+      { value, namespace, artifactUriQuery, providerInfo, maxbytes, maxlines },
+    ] as const,
 };

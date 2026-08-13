@@ -77,21 +77,30 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
   const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
+  let artifactUriQuery: string | undefined;
   let providerInfo = typeof value === 'object' && value !== null ? value.providerInfo : undefined;
 
   if (uri) {
     try {
       const location = parseArtifactFileLocation(uri);
       storage = location.path;
-      providerInfo ||= location.providerInfo;
+      artifactUriQuery = location.artifactUriQuery;
     } catch (error) {
       logger.error(error);
     }
   }
 
-  const { isSuccess, isError, data, error } = useQuery<string, Error>({
-    queryKey: queryKeys.artifactPreview(uri, namespace, providerInfo, maxbytes, maxlines),
-    queryFn: () => getPreview(storage, providerInfo, namespace, maxbytes, maxlines),
+  const { isSuccess, isError, data, error, refetch } = useQuery<string, Error>({
+    queryKey: queryKeys.artifactPreview(
+      uri,
+      namespace,
+      artifactUriQuery,
+      providerInfo,
+      maxbytes,
+      maxlines,
+    ),
+    queryFn: () =>
+      getPreview(storage, artifactUriQuery, providerInfo, namespace, maxbytes, maxlines),
     enabled: previewRequested && !!storage,
     retry: false,
     staleTime: Infinity,
@@ -107,10 +116,16 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const artifactDownloadUrl = Apis.buildReadFileUrl({
     path: storage,
     namespace,
+    artifactUriQuery,
     providerInfo,
     isDownload: true,
   });
-  const artifactViewUrl = Apis.buildReadFileUrl({ path: storage, namespace, providerInfo });
+  const artifactViewUrl = Apis.buildReadFileUrl({
+    path: storage,
+    namespace,
+    artifactUriQuery,
+    providerInfo,
+  });
 
   return (
     <div className={css.root}>
@@ -129,11 +144,16 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         </Button>
       )}
       {isError && (
-        <Banner
-          message='Error in retrieving artifact preview.'
-          mode='error'
-          additionalInfo={error ? error.message : 'No error message'}
-        />
+        <>
+          <Banner
+            message='Error in retrieving artifact preview.'
+            mode='error'
+            additionalInfo={error ? error.message : 'No error message'}
+          />
+          <Button size='small' onClick={() => void refetch()}>
+            Retry preview
+          </Button>
+        </>
       )}
       {isSuccess && data && (
         <div className={css.preview}>
@@ -150,6 +170,7 @@ export default ArtifactPreview;
 
 async function getPreview(
   storagePath: StoragePath | undefined,
+  artifactUriQuery: string | undefined,
   providerInfo: string | undefined,
   namespace: string | undefined,
   maxbytes: number,
@@ -161,6 +182,7 @@ async function getPreview(
   // TODO how to handle binary data (can probably use magic number to id common mime types)
   let data = await Apis.readFile({
     path: storagePath,
+    artifactUriQuery,
     providerInfo: providerInfo,
     namespace: namespace,
     peek: maxbytes + 1,

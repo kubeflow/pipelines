@@ -64,6 +64,7 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
   'bucket',
   'key',
+  'artifactUriQuery',
   'providerInfo',
   'namespace',
   'peek',
@@ -214,6 +215,19 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
+    if (!coords || !isArtifactSource(coords.source) || !coords.bucket || !coords.key) {
+      console.warn(
+        `[SECURITY] Rejected artifact request with coordinates that cannot be authorized. ` +
+          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
+      );
+      response
+        .status(403)
+        .send(
+          'Artifact source, bucket, and key are required and must use a supported storage source',
+        );
+      return;
+    }
+
     if (coords.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
       console.warn(
         `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
@@ -226,7 +240,7 @@ export function getArtifactsAuthMiddleware(
     }
 
     if (apiServerAddress) {
-      if (requiresArtifactOwnershipValidation(coords.source) && coords.bucket && coords.key) {
+      if (requiresArtifactOwnershipValidation(coords.source)) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
         const validation = allowNamespaceIsolatedCustomRoots
@@ -294,7 +308,8 @@ export function getArtifactsHandler({
       res.status(artifactRequest.error.status).send(artifactRequest.error.message);
       return;
     }
-    const { source, bucket, key, peek, providerInfo, namespace } = artifactRequest;
+    const { source, bucket, key, artifactUriQuery, peek, providerInfo, namespace } =
+      artifactRequest;
     if (!isAllowedResourceName(bucket)) {
       res.status(500).send('Invalid bucket name');
       return;
@@ -319,12 +334,21 @@ export function getArtifactsHandler({
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
     const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
-    let resolvedProviderInfo = providerInfo;
-    if (allowProviderSecrets && !resolvedProviderInfo && isLauncherArtifactSource(source)) {
+    let resolvedProviderInfo = '';
+    if (allowProviderSecrets && isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
-          (await getLauncherProviderInfo({ source, bucket, key }, namespace)) || '';
+          (await getLauncherProviderInfo(
+            {
+              source,
+              bucket,
+              key: artifactUriQuery ? `${key}?${artifactUriQuery}` : key,
+            },
+            namespace,
+          )) || '';
       } catch (error) {
+        // Direct mode would otherwise substitute the central UI server's environment
+        // credentials for an unreadable or invalid namespace storage policy.
         res
           .status(500)
           .send(
@@ -332,6 +356,13 @@ export function getArtifactsHandler({
           );
         return;
       }
+    }
+
+    // Preserve legacy single-user store_session_info links only when trusted launcher
+    // configuration does not select a provider. Authenticated and proxied requests never
+    // accept browser-supplied provider authority.
+    if (!options.auth.enabled && !resolvedProviderInfo) {
+      resolvedProviderInfo = providerInfo;
     }
 
     if (!allowProviderSecrets && resolvedProviderInfo) {
@@ -422,6 +453,7 @@ type ArtifactRequest =
       source: ArtifactSource;
       bucket: string;
       key: string;
+      artifactUriQuery: string;
       peek: number;
       providerInfo: string;
       namespace: string;
@@ -468,6 +500,11 @@ function parseArtifactRequest(
     return providerInfo;
   }
 
+  const artifactUriQuery = getOptionalRequestString(req.query.artifactUriQuery, 'artifactUriQuery');
+  if ('error' in artifactUriQuery) {
+    return artifactUriQuery;
+  }
+
   const namespace = getOptionalRequestString(req.query.namespace, 'namespace');
   if ('error' in namespace) {
     return namespace;
@@ -482,6 +519,7 @@ function parseArtifactRequest(
     source: source.value,
     bucket: bucket.value,
     key: key.value,
+    artifactUriQuery: artifactUriQuery.value ?? '',
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
     namespace: namespace.value || defaultNamespace,
@@ -1088,55 +1126,64 @@ export function getArtifactsProxyHandler({
     }
     if (namespace) {
       const url = new URL(req.url || '', DUMMY_BASE_PATH);
-      if (!url.searchParams.get('providerInfo')) {
-        const resolvedCoordinates = resolveArtifactCoordinates({
-          path: url.pathname,
-          query: {
-            source: url.searchParams.get('source') || undefined,
-            bucket: url.searchParams.get('bucket') || undefined,
-            key: url.searchParams.get('key') || undefined,
-          },
-        });
-        if (resolvedCoordinates === null) {
-          res.status(400).send('Malformed URL encoding in artifact path');
-          return;
-        }
-        const coordinates: ArtifactCoordinates | undefined =
-          resolvedCoordinates &&
-          isLauncherArtifactSource(resolvedCoordinates.source) &&
-          resolvedCoordinates.bucket &&
-          resolvedCoordinates.key
-            ? { ...resolvedCoordinates, source: resolvedCoordinates.source }
-            : undefined;
-        if (coordinates) {
-          try {
-            const providerInfo = await getLauncherProviderInfo(coordinates, namespace);
-            if (providerInfo) {
-              url.searchParams.set('providerInfo', providerInfo);
-              req.url = url.pathname + url.search;
-            }
-          } catch (error) {
-            if (error instanceof LauncherConfigError) {
-              console.warn(
-                `Unable to resolve the ${namespace} kfp-launcher providers configuration; ` +
-                  `forwarding the request without providerInfo so the namespaced artifact ` +
-                  `service can use its environment credentials. ${error.message}`,
-              );
-              proxy(req, res, next);
-              return;
-            }
-            res
-              .status(500)
-              .send(
-                `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
-              );
+      url.searchParams.delete('providerInfo');
+      const resolvedCoordinates = resolveArtifactCoordinates({
+        path: url.pathname,
+        query: {
+          source: url.searchParams.get('source') || undefined,
+          bucket: url.searchParams.get('bucket') || undefined,
+          key: url.searchParams.get('key') || undefined,
+          artifactUriQuery: url.searchParams.get('artifactUriQuery') || undefined,
+        },
+      });
+      if (resolvedCoordinates === null) {
+        res.status(400).send('Malformed URL encoding in artifact path');
+        return;
+      }
+      const coordinates: ArtifactCoordinates | undefined =
+        resolvedCoordinates &&
+        isLauncherArtifactSource(resolvedCoordinates.source) &&
+        resolvedCoordinates.bucket &&
+        resolvedCoordinates.key
+          ? { ...resolvedCoordinates, source: resolvedCoordinates.source }
+          : undefined;
+      if (coordinates) {
+        try {
+          const providerInfo = await getLauncherProviderInfo(coordinates, namespace);
+          if (providerInfo) {
+            url.searchParams.set('providerInfo', providerInfo);
+          }
+          updateProxyRequestUrl(req, url);
+        } catch (error) {
+          if (error instanceof LauncherConfigError) {
+            // The namespace-isolated service owns credential resolution, so omitting
+            // providerInfo delegates to credentials inside the same namespace boundary.
+            console.warn(
+              `Unable to resolve the ${namespace} kfp-launcher providers configuration; ` +
+                `forwarding the request without providerInfo so the namespaced artifact ` +
+                `service can use its environment credentials. ${error.message}`,
+            );
+            updateProxyRequestUrl(req, url);
+            proxy(req, res, next);
             return;
           }
+          res
+            .status(500)
+            .send(
+              `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+            );
+          return;
         }
       }
     }
     proxy(req, res, next);
   };
+}
+
+function updateProxyRequestUrl(request: Request, url: URL): void {
+  const rewrittenUrl = url.pathname + url.search;
+  request.url = rewrittenUrl;
+  request.originalUrl = rewrittenUrl;
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {

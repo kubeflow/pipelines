@@ -187,7 +187,7 @@ describe('/artifacts/get namespaced proxy', () => {
     ]);
   });
 
-  it('preserves providerInfo when proxying a download request (issue #13717)', async () => {
+  it('discards caller-supplied providerInfo when proxying a download request', async () => {
     const { receivedUrls } = await setUpNamespacedArtifactService({
       namespace: 'ns2',
     });
@@ -205,10 +205,41 @@ describe('/artifacts/get namespaced proxy', () => {
         })}`,
       )
       .expect(200, 'artifact service in ns2');
-    expect(receivedUrls).toEqual(
-      // same url, except the namespace query is omitted and providerInfo is kept
-      ['/artifacts/s3/mlpipeline/model?providerInfo=%7B%22Provider%22%3A%22s3%22%7D'],
-    );
+    expect(receivedUrls).toEqual(['/artifacts/s3/mlpipeline/model']);
+  });
+
+  it('replaces caller providerInfo with trusted launcher-root query settings', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://mlpipeline/models?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+        },
+      },
+      undefined,
+    ]);
+    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/s3/mlpipeline/models/model${buildQuery({
+          namespace: 'ns2',
+          providerInfo: '{"Provider":"s3","Params":{"endpoint":"https://attacker.example"}}',
+        })}`,
+      )
+      .expect(200, 'artifact service in ns2');
+
+    const received = new URL(receivedUrls[0], 'http://artifact.test');
+    expect(JSON.parse(received.searchParams.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://trusted.example',
+        fromEnv: 'true',
+        region: 'trusted',
+      },
+    });
   });
 
   it.each([
@@ -297,7 +328,7 @@ s3:
     expect(res.text).not.toContain('stack');
   });
 
-  it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+  it.each(['source', 'bucket', 'key', 'artifactUriQuery', 'providerInfo', 'namespace', 'peek'])(
     'rejects ambiguous %s query parameters before proxying',
     async (parameterName) => {
       const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns-a' });
@@ -309,6 +340,7 @@ s3:
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello.txt',
+        artifactUriQuery: 'region=first',
         providerInfo: '{}',
         namespace: 'ns-a',
         peek: '10',

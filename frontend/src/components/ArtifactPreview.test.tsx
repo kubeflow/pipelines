@@ -63,6 +63,26 @@ describe('ArtifactPreview', () => {
     await waitFor(() => screen.getByText('Error in retrieving artifact preview.'));
   });
 
+  it('allows a failed lazy preview to be retried', async () => {
+    const readFileSpy = vi
+      .spyOn(Apis, 'readFile')
+      .mockRejectedValueOnce(new Error('temporary storage failure'))
+      .mockResolvedValueOnce('recovered preview');
+
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/key' namespace='kubeflow' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    await screen.findByText('Error in retrieving artifact preview.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry preview' }));
+
+    expect(await screen.findByText('recovered preview')).toBeVisible();
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('handles gcs artifact', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
     render(

@@ -87,7 +87,7 @@ describe('ArtifactList', () => {
     screen.getByText('kubeflow');
   });
 
-  it('includes the artifact namespace and separates provider query from the URI path', async () => {
+  it('includes the artifact namespace and separates the stored query from the URI path', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({
       artifacts: [
         {
@@ -110,13 +110,8 @@ describe('ArtifactList', () => {
     expect(path).toBe('artifacts/s3/reports/output.csv');
     const params = new URLSearchParams(query);
     expect(params.get('namespace')).toBe('team-a');
-    expect(JSON.parse(params.get('providerInfo') || '')).toEqual({
-      Provider: 's3',
-      Params: {
-        endpoint: 'https://ceph.example:9443',
-        fromEnv: 'true',
-      },
-    });
+    expect(params.get('artifactUriQuery')).toBe('endpoint=https%3A%2F%2Fceph.example%3A9443');
+    expect(params.has('providerInfo')).toBe(false);
   });
 
   it('uses the native API page token and page size', async () => {

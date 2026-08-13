@@ -326,16 +326,25 @@ export class Apis {
    */
   public static readFile({
     path,
+    artifactUriQuery,
     providerInfo,
     namespace,
     peek,
   }: {
     path: StoragePath;
+    artifactUriQuery?: string;
     namespace?: string;
     providerInfo?: string;
     peek?: number;
   }): Promise<string> {
-    let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false });
+    let query = this.buildReadFileUrl({
+      path,
+      namespace,
+      artifactUriQuery,
+      providerInfo,
+      peek,
+      isDownload: false,
+    });
     return this._fetch(query);
   }
 
@@ -349,12 +358,14 @@ export class Apis {
    */
   public static buildReadFileUrl({
     path,
+    artifactUriQuery,
     namespace,
     providerInfo,
     peek,
     isDownload,
   }: {
     path: StoragePath;
+    artifactUriQuery?: string;
     namespace?: string;
     providerInfo?: string;
     peek?: number;
@@ -364,11 +375,20 @@ export class Apis {
     if (isDownload) {
       return `artifacts/${source}/${bucket}/${key}${buildQuery({
         namespace,
+        artifactUriQuery,
         providerInfo,
         peek,
       })}`;
     } else {
-      return `artifacts/get${buildQuery({ source, namespace, providerInfo, peek, bucket, key })}`;
+      return `artifacts/get${buildQuery({
+        source,
+        namespace,
+        artifactUriQuery,
+        providerInfo,
+        peek,
+        bucket,
+        key,
+      })}`;
     }
   }
 

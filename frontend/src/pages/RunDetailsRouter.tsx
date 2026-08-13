@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
@@ -117,14 +117,15 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     },
     refetchOnMount: false,
   });
+  const onRetryStarted = useCallback(() => {
+    waitingForPostRetryState.current = true;
+    void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runId) });
+  }, [queryClient, runId]);
 
   return (
     <RunDetailsV2
       {...props}
-      onRetryStarted={() => {
-        waitingForPostRetryState.current = true;
-        void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runId) });
-      }}
+      onRetryStarted={onRetryStarted}
       run={refreshedRun || props.run}
       runRefreshError={isRefetchError ? runRefreshError : undefined}
     />

@@ -47,6 +47,7 @@ export interface OutputMetadata {
 }
 
 export interface OutputArtifactLoadOptions {
+  artifactUriQuery?: string;
   providerInfo?: string;
   throwOnError?: boolean;
 }
@@ -77,6 +78,7 @@ export class OutputArtifactLoader {
       const metadataFile = await Apis.readFile({
         path: outputPath,
         namespace,
+        artifactUriQuery: options.artifactUriQuery,
         providerInfo: options.providerInfo,
       });
       if (metadataFile) {
@@ -348,7 +350,7 @@ async function readSourceContent(
   return await Apis.readFile({
     path: location.path,
     namespace,
-    providerInfo: location.providerInfo,
+    artifactUriQuery: location.artifactUriQuery,
   });
 }
 

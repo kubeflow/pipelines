@@ -139,6 +139,9 @@ export async function getLauncherProviderInfo(
   const artifactUri = buildCoordinateUri(normalizedCoordinates);
   const underPipelineRoot = isWithinPipelineRoot(artifactUri, defaultPipelineRoot);
   if (!underPipelineRoot && !query && !override) {
+    if (!configMap) {
+      return undefined;
+    }
     throw new LauncherConfigValidationError(
       `Artifact URI ${artifactUri} is outside defaultPipelineRoot and has no explicit provider ` +
         'query or matching override. Move the artifact under the configured pipeline root, add ' +

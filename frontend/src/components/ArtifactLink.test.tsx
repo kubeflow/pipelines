@@ -69,7 +69,7 @@ describe('ArtifactLink', () => {
     expect(screen.queryByRole('link')).toBeNull();
   });
 
-  it('separates S3 provider parameters from the object key and includes the namespace', () => {
+  it('separates the S3 artifact URI query from the object key and includes the namespace', () => {
     render(
       <ArtifactLink
         artifactUri='s3://my-bucket/my-object?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph'
@@ -82,14 +82,10 @@ describe('ArtifactLink', () => {
     expect(path).toBe('artifacts/s3/my-bucket/my-object');
     const params = new URLSearchParams(query);
     expect(params.get('namespace')).toBe('team-a');
-    expect(JSON.parse(params.get('providerInfo') || '')).toEqual({
-      Provider: 's3',
-      Params: {
-        endpoint: 'https://ceph.example:9443',
-        fromEnv: 'true',
-        region: 'ceph',
-      },
-    });
+    expect(params.get('artifactUriQuery')).toBe(
+      'endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+    );
+    expect(params.has('providerInfo')).toBe(false);
   });
 
   it('renders a clickable link for minio:// URIs with generated href', () => {

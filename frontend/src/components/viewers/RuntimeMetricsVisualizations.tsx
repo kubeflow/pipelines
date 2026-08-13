@@ -46,6 +46,7 @@ interface RuntimeMetricsVisualizationsProps {
   artifacts: V2beta1Artifact[];
   artifactKey?: string;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
 export interface ClassificationVisualization {
@@ -67,6 +68,7 @@ export function RuntimeMetricsVisualizations({
   artifacts,
   artifactKey,
   namespace,
+  sourceFinished,
 }: RuntimeMetricsVisualizationsProps) {
   const { scalarMetrics, classificationMetrics, fileArtifacts, legacyUiMetadataArtifacts } =
     useMemo(() => {
@@ -158,17 +160,20 @@ export function RuntimeMetricsVisualizations({
         artifacts={fileArtifacts.filter(isHtmlArtifact)}
         kind='HTML'
         namespace={namespace}
+        sourceFinished={sourceFinished}
       />
       <FileArtifactVisualization
         artifacts={fileArtifacts.filter(isMarkdownArtifact)}
         kind='Markdown'
         namespace={namespace}
+        sourceFinished={sourceFinished}
       />
       {legacyUiMetadataArtifacts.map((artifact, index) => (
         <LegacyUiMetadataVisualization
           artifact={artifact}
           key={artifact.artifact_id || artifact.uri || `legacy-ui-metadata-${index}`}
           namespace={artifact.namespace || namespace}
+          sourceFinished={sourceFinished}
         />
       ))}
     </>
@@ -179,10 +184,12 @@ function FileArtifactVisualization({
   artifacts,
   kind,
   namespace,
+  sourceFinished,
 }: {
   artifacts: V2beta1Artifact[];
   kind: 'HTML' | 'Markdown';
   namespace?: string;
+  sourceFinished?: boolean;
 }) {
   const entries = useMemo(
     () =>
@@ -206,7 +213,11 @@ function FileArtifactVisualization({
   if (entries.length === 1 && selectedArtifact) {
     return (
       <div className={padding(20, 'lrt')}>
-        <RuntimeArtifactVisualization artifact={selectedArtifact} namespace={namespace} />
+        <RuntimeArtifactVisualization
+          artifact={selectedArtifact}
+          namespace={namespace}
+          sourceFinished={sourceFinished}
+        />
       </div>
     );
   }
@@ -232,7 +243,11 @@ function FileArtifactVisualization({
         </Select>
       </FormControl>
       {selectedArtifact && (
-        <RuntimeArtifactVisualization artifact={selectedArtifact} namespace={namespace} />
+        <RuntimeArtifactVisualization
+          artifact={selectedArtifact}
+          namespace={namespace}
+          sourceFinished={sourceFinished}
+        />
       )}
     </div>
   );
@@ -241,15 +256,17 @@ function FileArtifactVisualization({
 export function RuntimeArtifactVisualization({
   artifact,
   namespace,
+  sourceFinished,
   title,
 }: {
   artifact: V2beta1Artifact;
   namespace?: string;
+  sourceFinished?: boolean;
   title?: string;
 }) {
   const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
   const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
-    queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace),
+    queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace, sourceFinished),
     queryFn: () => downloadVisualization(artifact, namespace),
     retry: false,
     staleTime: Infinity,
@@ -277,13 +294,15 @@ export function RuntimeArtifactVisualization({
 function LegacyUiMetadataVisualization({
   artifact,
   namespace,
+  sourceFinished,
 }: {
   artifact: V2beta1Artifact;
   namespace?: string;
+  sourceFinished?: boolean;
 }) {
   const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
   const { data, error, isLoading } = useQuery<LegacyUiMetadataVisualizationResult, Error>({
-    queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace),
+    queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace, sourceFinished),
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
     retry: false,
     staleTime: Infinity,
@@ -342,7 +361,7 @@ async function loadLegacyUiMetadataVisualization(
   const location = parseArtifactFileLocation(artifact.uri);
   return OutputArtifactLoader.loadResult(location.path, namespace, {
     throwOnError: true,
-    providerInfo: location.providerInfo,
+    artifactUriQuery: location.artifactUriQuery,
   });
 }
 

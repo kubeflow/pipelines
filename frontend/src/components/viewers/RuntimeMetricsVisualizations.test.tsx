@@ -315,6 +315,38 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(screen.queryByRole('combobox', { name: 'HTML visualization' })).toBeNull();
   });
 
+  it('refetches a file visualization once when its source task finishes', async () => {
+    const readFileSpy = vi
+      .spyOn(Apis, 'readFile')
+      .mockResolvedValueOnce('<h1>Running</h1>')
+      .mockResolvedValueOnce('<h1>Complete</h1>');
+    readFileSpy.mockClear();
+    const artifact: V2beta1Artifact = {
+      artifact_id: 'live-html',
+      name: 'report',
+      type: ArtifactArtifactType.HTML,
+      uri: 's3://reports/output.html',
+    };
+    const view = (sourceFinished: boolean) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[artifact]}
+          namespace='team-a'
+          sourceFinished={sourceFinished}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(false));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(true));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+
+    rerender(view(true));
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('renders one HTML and one Markdown artifact together', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('content');
     readFileSpy.mockClear();
@@ -404,6 +436,37 @@ describe('RuntimeMetricsVisualizations', () => {
       'team-a',
       { throwOnError: true },
     );
+  });
+
+  it('refetches legacy UI metadata once when its source task finishes', async () => {
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['updated']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+    loadSpy.mockClear();
+    const artifact: V2beta1Artifact = {
+      artifact_id: 'live-legacy-metadata',
+      name: 'mlpipeline-ui-metadata',
+      uri: 's3://reports/metadata.json',
+    };
+    const view = (sourceFinished: boolean) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[artifact]}
+          namespace='team-a'
+          sourceFinished={sourceFinished}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(false));
+    await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(true));
+    await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(2));
+
+    rerender(view(true));
+    expect(loadSpy).toHaveBeenCalledTimes(2);
   });
 
   it('isolates a legacy UI metadata loading failure behind an actionable banner', async () => {

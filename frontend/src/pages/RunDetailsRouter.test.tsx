@@ -29,19 +29,24 @@ import RunDetailsRouter, { RUN_DETAILS_REFETCH_INTERVAL } from './RunDetailsRout
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { vi } from 'vitest';
 
+const observedRetryCallbacks = vi.hoisted(() => [] as Array<() => void>);
+
 vi.mock('src/pages/RunDetailsV2', () => ({
-  RunDetailsV2: (props: any) => (
-    <>
-      <div
-        data-testid='run-details-v2'
-        data-pipeline-job={props.pipeline_job}
-        data-run-refresh-error={props.runRefreshError?.message}
-        data-run-state={props.run.state}
-      />
-      <input data-testid='run-details-mount' defaultValue={props.run.run_id} />
-      <button onClick={props.onRetryStarted}>Retry started</button>
-    </>
-  ),
+  RunDetailsV2: (props: any) => {
+    observedRetryCallbacks.push(props.onRetryStarted);
+    return (
+      <>
+        <div
+          data-testid='run-details-v2'
+          data-pipeline-job={props.pipeline_job}
+          data-run-refresh-error={props.runRefreshError?.message}
+          data-run-state={props.run.state}
+        />
+        <input data-testid='run-details-mount' defaultValue={props.run.run_id} />
+        <button onClick={props.onRetryStarted}>Retry started</button>
+      </>
+    );
+  },
 }));
 
 vi.mock('src/pages/RunDetails', () => ({
@@ -81,6 +86,7 @@ describe('RunDetailsRouter', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    observedRetryCallbacks.length = 0;
     getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
@@ -123,6 +129,31 @@ describe('RunDetailsRouter', () => {
     await waitFor(() => {
       expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
     });
+  });
+
+  it('keeps the retry callback stable across parent rerenders', async () => {
+    const v2Run: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    getRunSpy.mockResolvedValue(v2Run);
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByTestId('run-details-v2');
+    const firstCallback = observedRetryCallbacks.at(-1);
+
+    rerender(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await waitFor(() => expect(observedRetryCallbacks.length).toBeGreaterThan(1));
+
+    expect(observedRetryCallbacks.at(-1)).toBe(firstCallback);
   });
 
   it('polls an active v2 run and stops after observing its terminal state', async () => {

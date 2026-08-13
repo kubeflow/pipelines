@@ -260,6 +260,42 @@ s3:
       });
     });
 
+    it('prefers trusted launcher-root settings over caller providerInfo', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline/hello?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${encodeURIComponent(
+            JSON.stringify({
+              Provider: 's3',
+              Params: { endpoint: 'https://attacker.example', fromEnv: 'true' },
+            }),
+          )}`,
+        )
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'trusted.example', region: 'trusted' }),
+      );
+      expect(mockedMinioClient).not.toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'attacker.example' }),
+      );
+    });
+
     it('does not resolve discarded provider info for a customer namespace', async () => {
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',

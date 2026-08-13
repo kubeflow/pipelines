@@ -75,7 +75,7 @@ function generateArtifactDownloadUrl(
   return Apis.buildReadFileUrl({
     path: location.path,
     namespace,
-    providerInfo: location.providerInfo,
+    artifactUriQuery: location.artifactUriQuery,
     isDownload: true,
   });
 }

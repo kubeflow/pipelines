@@ -15,7 +15,7 @@
  */
 
 import { CircularProgress } from '@mui/material';
-import { useQueries, type UseQueryResult } from '@tanstack/react-query';
+import { useQueries, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   useCallback,
   useContext,
@@ -105,7 +105,10 @@ interface RunArtifactEntry extends RuntimeArtifactEntry {
 
 export type CompareV2Props = PageProps & { namespace?: string };
 
-async function loadRunComparisonData(runId: string): Promise<RunComparisonData> {
+async function loadRunComparisonData(
+  runId: string,
+  previousData?: RunComparisonData,
+): Promise<RunComparisonData> {
   const [runResult, tasksResult] = await Promise.allSettled([
     Apis.runServiceApiV2.getRun(runId),
     listAllRunTasks(runId),
@@ -115,7 +118,7 @@ async function loadRunComparisonData(runId: string): Promise<RunComparisonData> 
   }
   return {
     run: runResult.value,
-    tasks: tasksResult.status === 'fulfilled' ? tasksResult.value : [],
+    tasks: tasksResult.status === 'fulfilled' ? tasksResult.value : previousData?.tasks || [],
     taskError: tasksResult.status === 'rejected' ? toError(tasksResult.reason) : undefined,
   };
 }
@@ -154,6 +157,7 @@ function CompareTableSection({
 export function CompareV2(props: CompareV2Props) {
   const { updateBanner, updateToolbar, namespace } = props;
   const runlistRef = useRef<RunList>(null);
+  const queryClient = useQueryClient();
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = useMemo(
     () => (queryParamRunIds ? queryParamRunIds.split(',').filter(Boolean) : []),
@@ -173,7 +177,11 @@ export function CompareV2(props: CompareV2Props) {
     () =>
       runIds.map((runId) => ({
         queryKey: queryKeys.v2RunComparison(runId),
-        queryFn: () => loadRunComparisonData(runId),
+        queryFn: () =>
+          loadRunComparisonData(
+            runId,
+            queryClient.getQueryData<RunComparisonData>(queryKeys.v2RunComparison(runId)),
+          ),
         retry: false,
         staleTime: (query: { state: { data?: RunComparisonData } }) => {
           const state = query.state.data?.run.state;
@@ -188,7 +196,7 @@ export function CompareV2(props: CompareV2Props) {
             : false;
         },
       })),
-    [runIds],
+    [queryClient, runIds],
   );
   const combineComparisonQueries = useCallback(
     (results: RunComparisonQueryResult[]) => {
@@ -471,14 +479,38 @@ export function buildParamsTableProps(
 export function buildScalarMetricsTableProps(
   comparisonData: RunComparisonData[],
 ): CompareTableProps | undefined {
-  const metricsByRun = comparisonData.map(({ tasks }) => {
+  const scalarMetricsByRun = comparisonData.map(({ tasks }) =>
+    collectOutputArtifacts(tasks).filter(({ artifact }) => isScalarMetricArtifact(artifact)),
+  );
+  const labelsNeedingArtifactKey = new Set<string>();
+  scalarMetricsByRun.forEach((entries) => {
+    const labelCounts = new Map<string, number>();
+    entries.forEach((entry) => {
+      const label = getScalarMetricBaseLabel(entry);
+      labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+    });
+    labelCounts.forEach((count, label) => {
+      if (count > 1) {
+        labelsNeedingArtifactKey.add(label);
+      }
+    });
+  });
+
+  const metricsByRun = scalarMetricsByRun.map((entries) => {
     const metrics = new Map<string, string>();
-    collectOutputArtifacts(tasks)
-      .filter(({ artifact }) => isScalarMetricArtifact(artifact))
-      .forEach(({ artifact, artifactKey, taskName }) => {
-        const label = `${taskName} / ${artifact.name || artifactKey || 'Metric'}`;
-        metrics.set(label, getScalarMetricValue(artifact));
-      });
+    const labelOccurrences = new Map<string, number>();
+    entries.forEach((entry) => {
+      const { artifact, artifactKey, taskName } = entry;
+      const baseLabel = getScalarMetricBaseLabel(entry);
+      const disambiguatedLabel =
+        labelsNeedingArtifactKey.has(baseLabel) && artifactKey
+          ? `${taskName} / ${artifactKey} / ${getScalarMetricArtifactLabel(entry)}`
+          : baseLabel;
+      const occurrence = (labelOccurrences.get(disambiguatedLabel) || 0) + 1;
+      labelOccurrences.set(disambiguatedLabel, occurrence);
+      const label = occurrence === 1 ? disambiguatedLabel : `${disambiguatedLabel} (${occurrence})`;
+      metrics.set(label, getScalarMetricValue(artifact));
+    });
     return metrics;
   });
   const metricNames = new Set(metricsByRun.flatMap((metrics) => [...metrics.keys()]));
@@ -491,6 +523,19 @@ export function buildScalarMetricsTableProps(
     yLabels,
     rows: yLabels.map((metricName) => metricsByRun.map((metrics) => metrics.get(metricName) || '')),
   };
+}
+
+function getScalarMetricArtifactLabel({
+  artifact,
+  artifactKey,
+  group,
+  index,
+}: RunArtifactEntry): string {
+  return getArtifactDisplayName(artifact, artifactKey, index, group.artifacts);
+}
+
+function getScalarMetricBaseLabel(entry: RunArtifactEntry): string {
+  return `${entry.taskName} / ${getScalarMetricArtifactLabel(entry)}`;
 }
 
 function EnhancedCompareV2(props: PageProps) {

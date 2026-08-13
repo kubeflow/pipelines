@@ -16,29 +16,41 @@ import type { Request } from 'express';
 
 export function resolveArtifactCoordinates(
   request: Pick<Request, 'path' | 'query'>,
-): { source: string; bucket: string; key: string } | null {
+): { source: string; bucket: string; key: string } | null | undefined {
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
-  if (!isExactGetEndpoint) {
-    const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
-    if (downloadPathMatch) {
-      try {
-        return {
-          source: decodeURIComponent(downloadPathMatch[1]),
-          bucket: decodeURIComponent(downloadPathMatch[2]),
-          key: decodeURIComponent(downloadPathMatch[3]),
-        };
-      } catch {
-        return null;
-      }
-    }
+  if (isExactGetEndpoint) {
+    const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+    return {
+      source: asString(request.query.source),
+      bucket: asString(request.query.bucket),
+      key: appendArtifactUriQuery(
+        asString(request.query.key),
+        asString(request.query.artifactUriQuery),
+      ),
+    };
   }
-  const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-  return {
-    source: asString(request.query.source),
-    bucket: asString(request.query.bucket),
-    key: asString(request.query.key),
-  };
+
+  const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
+  if (!downloadPathMatch) {
+    return undefined;
+  }
+  try {
+    return {
+      source: decodeURIComponent(downloadPathMatch[1]),
+      bucket: decodeURIComponent(downloadPathMatch[2]),
+      key: appendArtifactUriQuery(
+        decodeURIComponent(downloadPathMatch[3]),
+        typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
+      ),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function appendArtifactUriQuery(key: string, artifactUriQuery: string): string {
+  return key && artifactUriQuery ? `${key}?${artifactUriQuery}` : key;
 }

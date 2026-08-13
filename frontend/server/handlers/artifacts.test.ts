@@ -82,8 +82,8 @@ describe('resolveArtifactCoordinates', () => {
     });
   });
 
-  describe('query-based fallback (/artifacts/get and unrecognized paths)', () => {
-    it('falls back to query when path is /artifacts/get', () => {
+  describe('query-based /artifacts/get route', () => {
+    it('uses query coordinates when path is /artifacts/get', () => {
       const req = makeRequest('/artifacts/get', {
         source: 'minio',
         bucket: 'ml-pipeline',
@@ -96,7 +96,21 @@ describe('resolveArtifactCoordinates', () => {
       });
     });
 
-    it('falls back to query when path is /pipeline/artifacts/get', () => {
+    it('reconstructs a query-bearing artifact identity without changing its object key', () => {
+      const req = makeRequest('/artifacts/get', {
+        source: 's3',
+        bucket: 'reports',
+        key: 'output.html',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example&region=ceph',
+      });
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'output.html?endpoint=https%3A%2F%2Fceph.example&region=ceph',
+      });
+    });
+
+    it('uses query coordinates when path is /pipeline/artifacts/get', () => {
       const req = makeRequest('/pipeline/artifacts/get', {
         source: 's3',
         bucket: 'my-bucket',
@@ -109,17 +123,13 @@ describe('resolveArtifactCoordinates', () => {
       });
     });
 
-    it('falls back to query when path does not match the artifact patterns', () => {
+    it('does not trust query coordinates on an unrecognized path', () => {
       const req = makeRequest('/foo/bar', {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'k',
       });
-      expect(resolveArtifactCoordinates(req)).toEqual({
-        source: 'minio',
-        bucket: 'ml-pipeline',
-        key: 'k',
-      });
+      expect(resolveArtifactCoordinates(req)).toBeUndefined();
     });
   });
 
@@ -172,6 +182,17 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'victim-bucket',
         key: 'secret.txt',
+      });
+    });
+
+    it('adds the stored artifact query to path coordinates', () => {
+      const req = makeRequest('/artifacts/s3/reports/output.html', {
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example',
+      });
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'output.html?endpoint=https%3A%2F%2Fceph.example',
       });
     });
 

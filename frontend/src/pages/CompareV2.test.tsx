@@ -304,6 +304,64 @@ describe('CompareV2', () => {
     });
   });
 
+  it('keeps same-named metrics from different artifact keys distinct across runs', () => {
+    const comparisonData = runs.map((run, runIndex) => ({
+      run,
+      tasks: [
+        {
+          name: 'evaluate',
+          outputs: {
+            artifacts: ['train-metrics', 'validation-metrics'].map((artifactKey, metricIndex) => ({
+              artifact_key: artifactKey,
+              artifacts: [
+                {
+                  name: 'accuracy',
+                  type: ArtifactArtifactType.Metric,
+                  number_value: 0.8 + runIndex / 10 + metricIndex / 100,
+                },
+              ],
+            })),
+          },
+        },
+      ],
+    }));
+
+    expect(buildScalarMetricsTableProps(comparisonData)).toEqual({
+      xLabels: ['First run', 'Second run'],
+      yLabels: ['evaluate / train-metrics / accuracy', 'evaluate / validation-metrics / accuracy'],
+      rows: [
+        ['0.8', '0.9'],
+        ['0.81', '0.91'],
+      ],
+    });
+  });
+
+  it('keeps duplicate same-named metrics within one artifact group', () => {
+    const tasks: V2beta1PipelineTask[] = [
+      {
+        name: 'evaluate',
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'metrics',
+              artifacts: [0.8, 0.9].map((numberValue) => ({
+                name: 'accuracy',
+                type: ArtifactArtifactType.Metric,
+                number_value: numberValue,
+              })),
+            },
+          ],
+        },
+      },
+    ];
+
+    expect(buildScalarMetricsTableProps([{ run: runs[0], tasks }])).toEqual({
+      xLabels: ['First run'],
+      yLabels: ['evaluate / accuracy', 'evaluate / accuracy (2)'],
+      rows: [['0.8'], ['0.9']],
+    });
+  });
+
   it('builds stable native comparison labels with run, task, and artifact provenance', () => {
     expect(
       collectRuntimeComparisonArtifacts(
@@ -364,6 +422,36 @@ describe('CompareV2', () => {
       await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
     });
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves cached task metrics when a background task refresh fails', async () => {
+    vi.useFakeTimers();
+    vi.mocked(Apis.runServiceApiV2.getRun).mockResolvedValue({
+      ...runs[0],
+      state: V2beta1RuntimeState.RUNNING,
+    });
+    vi.mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: tasksByRun['run-1'] })
+      .mockRejectedValueOnce(new Error('Task service unavailable'));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(screen.getByText('0.91')).toBeVisible();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+
+    expect(screen.getByText('0.91')).toBeVisible();
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ additionalInfo: 'run-1 tasks: Task service unavailable' }),
+    );
   });
 
   it('passes artifacts from all selected runs to the native comparison surface', async () => {

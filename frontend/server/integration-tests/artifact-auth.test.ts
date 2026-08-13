@@ -197,7 +197,7 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('Authentication required');
     });
 
-    it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+    it.each(['source', 'bucket', 'key', 'artifactUriQuery', 'providerInfo', 'namespace', 'peek'])(
       'rejects duplicate %s parameters before authorization',
       async (parameterName) => {
         const configurations = loadConfigs(argv, {
@@ -222,6 +222,7 @@ describe('/artifacts authorization', () => {
           source: 'minio',
           bucket: 'ml-pipeline',
           key: 'hello/world.txt',
+          artifactUriQuery: 'region=first',
           providerInfo: '{}',
           namespace: 'my-namespace',
           peek: '10',
@@ -566,6 +567,52 @@ describe('/artifacts authorization', () => {
       expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
     });
 
+    it('rejects incomplete artifact coordinates before ownership validation', async () => {
+      mockAuthPass();
+
+      app = new UIServer(authEnabledConfigs());
+
+      const response = await requests(app.app)
+        .get('/artifacts/get?source=minio&namespace=my-namespace')
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403);
+
+      expect(response.text).toContain('Artifact source, bucket, and key are required');
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
+    });
+
+    it('does not trust query coordinates on an unrecognized artifact route', async () => {
+      mockAuthPass();
+
+      app = new UIServer(authEnabledConfigs());
+
+      const response = await requests(app.app)
+        .get(
+          '/artifacts/unrecognized?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace',
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403);
+
+      expect(response.text).toContain('Artifact source, bucket, and key are required');
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
+    });
+
+    it('rejects unsupported storage sources before ownership validation', async () => {
+      mockAuthPass();
+
+      app = new UIServer(authEnabledConfigs());
+
+      const response = await requests(app.app)
+        .get(
+          '/artifacts/get?source=unsupported&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=my-namespace',
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403);
+
+      expect(response.text).toContain('must use a supported storage source');
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
+    });
+
     it('rejects when any artifact with same URI belongs to different namespace', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({
@@ -668,6 +715,27 @@ describe('/artifacts authorization', () => {
       expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
         expect.any(String),
         's3://ml-pipeline/hello/world.txt',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+      );
+    });
+
+    it('validates the complete stored URI for query-bearing artifacts', async () => {
+      mockAuthPass();
+      mockedValidateArtifactNamespace.mockResolvedValue({ valid: true });
+
+      app = new UIServer(authEnabledConfigs());
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Fceph.example%26region%3Dceph&namespace=my-namespace',
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200);
+
+      expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
+        expect.any(String),
+        's3://ml-pipeline/hello/world.txt?endpoint=https%3A%2F%2Fceph.example&region=ceph',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
       );

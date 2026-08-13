@@ -186,6 +186,22 @@ describe('Apis', () => {
     );
   });
 
+  it('buildReadFileUrl carries the stored artifact URI query separately', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.S3,
+        },
+        namespace: 'testnamespace',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Ftrusted.example&region=test',
+      }),
+    ).toEqual(
+      'artifacts/get?source=s3&namespace=testnamespace&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Ftrusted.example%26region%3Dtest&bucket=testbucket&key=testkey',
+    );
+  });
+
   it('buildArtifactLinkText', () => {
     expect(
       Apis.buildArtifactLinkText({

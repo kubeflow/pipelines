@@ -51,7 +51,7 @@ describe('readArtifactFile', () => {
     });
   });
 
-  it('removes provider query parameters from the object key and forwards them separately', async () => {
+  it('keeps the artifact URI query separate from the object key for server validation', async () => {
     const location = parseArtifactFileLocation(
       's3://reports/output.html?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
     );
@@ -61,13 +61,8 @@ describe('readArtifactFile', () => {
       key: 'output.html',
       source: StorageService.S3,
     });
-    expect(JSON.parse(location.providerInfo || '')).toEqual({
-      Provider: 's3',
-      Params: {
-        endpoint: 'https://ceph.example:9443',
-        fromEnv: 'true',
-        region: 'ceph',
-      },
-    });
+    expect(location.artifactUriQuery).toBe(
+      'endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+    );
   });
 });
