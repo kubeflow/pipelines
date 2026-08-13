@@ -182,17 +182,17 @@
 
       Understand pipelines, components, graphs, runs, experiments, and artifacts
 
-   .. grid-item-card:: User Guides
-      :link: user-guides/index
-      :link-type: doc
-
-      Author components and pipelines, pass data between tasks, and control flow
-
    .. grid-item-card:: Operator Guides
       :link: operator-guides/index
       :link-type: doc
 
       Install, configure, and operate Kubeflow Pipelines on a cluster
+
+   .. grid-item-card:: User Guides
+      :link: user-guides/index
+      :link-type: doc
+
+      Author components and pipelines, pass data between tasks, and control flow
 
    .. grid-item-card:: Python SDK
       :link: python-sdk
@@ -359,8 +359,8 @@
    Getting Started <getting-started>
    interfaces
    concepts/index
-   user-guides/index
    operator-guides/index
+   user-guides/index
    Python SDK <python-sdk>
    reference/index
    Contributor Guide <contributing/index>

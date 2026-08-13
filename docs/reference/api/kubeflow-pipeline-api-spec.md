@@ -36,3 +36,51 @@ The API reference is automatically generated from the [`2.17.0`](https://github.
 :::{note}
 The _try it out_ feature of Swagger UI does not work due to authentication and CORS, but it can help you construct the correct API calls.
 :::
+
+```{raw} html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui.css" crossorigin="anonymous">
+
+<style>
+#kfp-swagger-ui { background:#fff; border-radius:8px; padding:0.5rem 1.25rem; margin-top:0.75rem; }
+#kfp-swagger-ui .information-container { display:none; }
+#kfp-swagger-ui .scheme-container { display:none; }
+</style>
+
+<p style="margin-bottom:0.35rem;">Enter the base URL of your Kubeflow Pipelines API:</p>
+<input id="kfp-api-base-url" type="url" value="https://kubeflow.example.com/pipeline/" disabled
+       style="width:100%;box-sizing:border-box;padding:0.5rem;margin-bottom:1rem;font-family:monospace;">
+
+<div id="kfp-swagger-ui"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/swagger-ui-bundle.js" crossorigin="anonymous"></script>
+<script>
+(function () {
+  var input = document.getElementById("kfp-api-base-url");
+  var requestInterceptor = function (req) {
+    if (req.loadSpec) return req;
+    try {
+      var base = new URL(input.value);
+      var reqUrl = new URL(req.url);
+      base.pathname = base.pathname.replace(/\/$/, "") + reqUrl.pathname;
+      base.search = reqUrl.search;
+      req.url = base.toString();
+    } catch (e) {}
+    return req;
+  };
+  window.addEventListener("load", function () {
+    SwaggerUIBundle({
+      url: "../../_static/kfp_api_single_file.swagger.json",
+      dom_id: "#kfp-swagger-ui",
+      presets: [SwaggerUIBundle.presets.apis],
+      requestInterceptor: requestInterceptor,
+      syntaxHighlight: { activated: true, theme: "idea" }
+    });
+    input.disabled = false;
+    input.addEventListener("input", function () {
+      try { new URL(input.value); input.style.background = "#f3ffef"; }
+      catch (e) { input.style.background = "#ffefef"; }
+    });
+  });
+})();
+</script>
+```
