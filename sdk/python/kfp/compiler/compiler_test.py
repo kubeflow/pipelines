@@ -423,7 +423,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         @dsl.pipeline(description='Prefer me.')
         def my_pipeline():
-            """Don't prefer me"""
+            """Don't prefer me."""
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(my_pipeline.pipeline_spec.pipeline_info.description,
@@ -445,7 +445,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             """Docstring-specified description.
 
-            More information about this pipeline."""
+            More information about this pipeline.
+            """
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
         self.assertEqual(
@@ -2840,6 +2841,7 @@ class TestYamlComments(unittest.TestCase):
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
             """docstring short description.
+
             docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
@@ -2866,10 +2868,9 @@ class TestYamlComments(unittest.TestCase):
         def pipeline_with_multiline_definition(
                 sample_input1: bool = True,
                 sample_input2: str = 'string') -> str:
-            """
-            docstring long description.
-            docstring long description.
-            docstring long description.
+            """docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -2898,8 +2899,8 @@ class TestYamlComments(unittest.TestCase):
         def my_pipeline(sample_input1: bool = True,
                         sample_input2: str = 'string') -> str:
             """docstring short description.
-            docstring long description.
-            docstring long description.
+
+            docstring long description. docstring long description.
             """
             op1 = my_comp(string=sample_input2, model=sample_input1)
             result = op1.output
@@ -4465,7 +4466,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used and no workspace configured."""
+        """Tests that compilation fails if placeholder is used and no workspace
+        configured."""
 
         @dsl.component
         def uses_workspace(workspace_path: str) -> str:
@@ -4493,7 +4495,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_workspace_placeholder_used_in_nested_groups_without_workspace_config(
             self):
-        """Tests that compilation fails if placeholder is used within nested groups and no workspace configured."""
+        """Tests that compilation fails if placeholder is used within nested
+        groups and no workspace configured."""
 
         import os
         import tempfile
@@ -4533,7 +4536,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_fails_when_importer_download_to_workspace_without_workspace_config(
             self):
-        """Tests that compilation fails if importer uses download_to_workspace without workspace config."""
+        """Tests that compilation fails if importer uses download_to_workspace
+        without workspace config."""
 
         import os
         import tempfile
@@ -4562,7 +4566,8 @@ class TestPlatformConfig(unittest.TestCase):
 
     def test_compile_succeeds_when_importer_download_to_workspace_with_workspace_config(
             self):
-        """Tests that compilation succeeds with both download_to_workspace and workspace config."""
+        """Tests that compilation succeeds with both download_to_workspace and
+        workspace config."""
 
         import os
         import tempfile
@@ -4588,7 +4593,8 @@ class TestPlatformConfig(unittest.TestCase):
             self.assertTrue(os.path.exists(output_yaml))
 
     def test_pipeline_with_ttl_seconds_after_finished(self):
-        """ttl_seconds_after_finished → resource_ttl_on_completion (SecondsAfterCompletion)."""
+        """ttl_seconds_after_finished → resource_ttl_on_completion
+        (SecondsAfterCompletion)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_finished=300))
@@ -4607,7 +4613,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_success(self):
-        """ttl_seconds_after_success → resource_ttl_on_success (SecondsAfterSuccess)."""
+        """ttl_seconds_after_success → resource_ttl_on_success
+        (SecondsAfterSuccess)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_success=600))
@@ -4625,7 +4632,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_ttl_seconds_after_failure(self):
-        """ttl_seconds_after_failure → resource_ttl_on_failure (SecondsAfterFailure)."""
+        """ttl_seconds_after_failure → resource_ttl_on_failure
+        (SecondsAfterFailure)."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(ttl_seconds_after_failure=120))
@@ -4669,9 +4677,10 @@ class TestPlatformConfig(unittest.TestCase):
     def test_pipeline_with_ttl_zero(self):
         """TTL of 0 is accepted but treated as "not set" and not serialized.
 
-        A value of 0 is indistinguishable from the proto3 int32 default, so the
-        serializer skips it.  The resulting platform spec contains no
-        pipelineConfig entry at all, identical to not setting a TTL.
+        A value of 0 is indistinguishable from the proto3 int32 default,
+        so the serializer skips it.  The resulting platform spec
+        contains no pipelineConfig entry at all, identical to not
+        setting a TTL.
         """
 
         @dsl.pipeline(
@@ -4757,7 +4766,8 @@ class TestPlatformConfig(unittest.TestCase):
         self.assertEqual(loaded_pipeline.platform_spec, expected)
 
     def test_pipeline_with_active_deadline_none_omits_field(self):
-        """active_deadline_seconds=None (default) produces no platform spec entry."""
+        """active_deadline_seconds=None (default) produces no platform spec
+        entry."""
 
         @dsl.pipeline(
             pipeline_config=dsl.PipelineConfig(active_deadline_seconds=None))
@@ -5027,7 +5037,7 @@ class ExtractInputOutputDescription(unittest.TestCase):
             string: str,
             in_artifact: Input[Artifact],
         ) -> Outputs:
-            """Pipeline description. Returns
+            """Pipeline description. Returns.
 
             Args:
                 string: Return Pipeline input string. Returns
@@ -5490,7 +5500,9 @@ class TestDslOneOf(unittest.TestCase):
     # To help narrow the tests further (we already test lots of aspects in the following cases), we choose focus on the dsl.OneOf behavior, not the conditional logic if If/Elif/Else. This is more verbose, but more maintainable and the behavior under test is clearer.
 
     def test_if_else_returned(self):
-        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If and Else branches, parameters passed to dsl.OneOf, dsl.OneOf
+        returned from a pipeline, and different output keys on dsl.OneOf
+        channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -5551,7 +5563,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf returned from a pipeline, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf returned from a pipeline, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline() -> str:
@@ -5626,7 +5640,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_elif_else_consumed(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, dsl.OneOf passed to a consumer task, and different output keys on dsl.OneOf channels."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        dsl.OneOf passed to a consumer task, and different output keys on
+        dsl.OneOf channels."""
 
         @dsl.pipeline
         def roll_die_pipeline():
@@ -5703,7 +5719,9 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned(self):
-        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, parameters passed to dsl.OneOf,
+        and dsl.OneOf passed to a consumer task and returned from the
+        pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> str:
@@ -5776,7 +5794,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_if_else_consumed_and_returned_artifacts(self):
-        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and dsl.OneOf passed to a consumer task and returned from the pipeline."""
+        """Uses If, Elif, and Else branches, artifacts passed to dsl.OneOf, and
+        dsl.OneOf passed to a consumer task and returned from the pipeline."""
 
         @dsl.pipeline
         def flip_coin_pipeline() -> Artifact:
@@ -5943,7 +5962,8 @@ class TestDslOneOf(unittest.TestCase):
                                      print_task_2.outputs['a'])
 
     def test_deeply_nested_consumed(self):
-        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-DAGs."""
+        """Uses If, Elif, Else, and OneOf deeply nested within multiple dub-
+        DAGs."""
 
         @dsl.pipeline
         def flip_coin_pipeline(execute_pipeline: bool):
@@ -6042,7 +6062,8 @@ class TestDslOneOf(unittest.TestCase):
                                  print_task_2.outputs['a'])
 
     def test_oneof_in_condition(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested one level"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested one level."""
 
         @dsl.pipeline
         def roll_die_pipeline(repeat_on: str = 'Got heads!'):
@@ -6095,7 +6116,8 @@ class TestDslOneOf(unittest.TestCase):
         )
 
     def test_consumed_in_nested_groups(self):
-        """Tests that dsl.OneOf's channel can be consumed in a downstream group nested multiple levels"""
+        """Tests that dsl.OneOf's channel can be consumed in a downstream group
+        nested multiple levels."""
 
         @dsl.pipeline
         def roll_die_pipeline(
@@ -6656,6 +6678,157 @@ class TestPipelineSpecAttributeUniqueError(unittest.TestCase):
 
         # should compile without error
         self.assertTrue(my_pipeline.pipeline_spec)
+
+
+class TestNoneLiteralForOptionalParams(unittest.TestCase):
+    """Tests for passing None as an explicit literal argument to optional
+    parameters (Optional[T] / Union[T, None] / T | None)."""
+
+    def test_pass_none_to_optional_param_compiles(self):
+        """Pipeline can pass None literal to a component with Optional[T]."""
+
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        # Should compile without raising.
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        # The constant should be present as a null_value.
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pass_none_to_optional_str_param_compiles(self):
+        """Pipeline can pass None literal to a component with Optional[str]."""
+
+        @dsl.component
+        def my_comp(x: Optional[str] = None):
+            return x or 'default'
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pass_none_to_non_optional_param_raises(self):
+        """Passing None to a non-optional parameter should raise ValueError."""
+
+        @dsl.component
+        def my_comp(x: int):
+            print(x)
+
+        with self.assertRaisesRegex(ValueError, 'is not optional'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                my_comp(x=None)
+
+    def test_nested_none_in_dict_compiles(self):
+        """Nested None values inside a dict literal are preserved faithfully
+        via the null_value protobuf encoding."""
+
+        @dsl.component
+        def my_comp(cfg: dict = None):
+            print(cfg)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(cfg={'key': None, 'other': 42})
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['cfg'].runtime_value.constant
+        # The outer value is a struct; its 'key' field should be null.
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'struct_value')
+        key_field = runtime_value.struct_value.fields['key']
+        self.assertEqual(key_field.WhichOneof('kind'), 'null_value')
+
+    def test_nested_none_in_list_compiles(self):
+        """Nested None values inside a list literal are preserved faithfully
+        via the null_value protobuf encoding."""
+
+        @dsl.component
+        def my_comp(items: list = None):
+            print(items)
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(items=[1, None, 'hello'])
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['items'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'list_value')
+        second = runtime_value.list_value.values[1]
+        self.assertEqual(second.WhichOneof('kind'), 'null_value')
+
+    def test_union_with_none_annotation_compiles(self):
+        """Union[T, None] annotation is treated identically to Optional[T]."""
+        import typing
+
+        @dsl.component
+        def my_comp(x: typing.Union[str, None] = None):
+            return x or 'fallback'
+
+        @dsl.pipeline
+        def my_pipeline():
+            my_comp(x=None)
+
+        spec = my_pipeline.pipeline_spec
+        task_inputs = spec.root.dag.tasks['my-comp'].inputs
+        runtime_value = task_inputs.parameters['x'].runtime_value.constant
+        self.assertEqual(runtime_value.WhichOneof('kind'), 'null_value')
+
+    def test_pipeline_level_optional_param_is_marked_optional(self):
+        """Pipeline-level Optional[T] input is marked optional in the pipeline
+        spec."""
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def my_pipeline(x: Optional[int] = None):
+            my_comp(x=x)
+
+        spec = my_pipeline.pipeline_spec
+        # The pipeline root input 'x' should be optional.
+        root_param = spec.root.input_definitions.parameters['x']
+        self.assertTrue(root_param.is_optional)
+
+    def test_is_optional_preserved_on_optional_param(self):
+        """is_optional flag is set on the component's input spec."""
+
+        @dsl.component
+        def my_comp(x: Optional[int] = None):
+            print(x)
+
+        param_spec = my_comp.pipeline_spec.root.input_definitions.parameters[
+            'x']
+        self.assertTrue(param_spec.is_optional)
+
+    def test_pass_none_to_optional_artifact_raises(self):
+        """Passing None to an optional artifact input should raise
+        ValueError."""
+
+        @dsl.component
+        def my_comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"is an artifact input and cannot be set to None\. Omit the argument to leave it unset\."):
+
+            @dsl.pipeline
+            def my_pipeline():
+                my_comp(x=None)
 
 
 if __name__ == '__main__':

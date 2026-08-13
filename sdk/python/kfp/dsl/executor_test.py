@@ -982,6 +982,47 @@ class ExecutorTest(parameterized.TestCase):
                 },
             })
 
+    def test_function_with_explicit_none_inputs(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "first_message": "Hello",
+              "second_message": null
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(
+            first_message: str = 'default value',
+            second_message: Optional[str] = 'default second',
+            third_message: Optional[str] = 'default third',
+        ) -> str:
+            return (f'{first_message} ({type(first_message)}), '
+                    f'{second_message} ({type(second_message)}), '
+                    f'{third_message} ({type(third_message)}).')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'parameterValues': {
+                    'Output': "Hello (<class 'str'>), "
+                              "None (<class 'NoneType'>), "
+                              "default third (<class 'str'>)."
+                },
+            })
+
     def test_function_with_optional_input_artifact(self):
         executor_input = """\
         {
