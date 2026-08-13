@@ -15,8 +15,8 @@
  */
 
 import { CircularProgress } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import type * as React from 'react';
+import { QueryClient, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as React from 'react';
 import { Link, Route, Switch } from 'react-router-dom';
 import {
   ArtifactArtifactType,
@@ -28,16 +28,16 @@ import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import ArtifactPreview from 'src/components/ArtifactPreview';
 import Banner from 'src/components/Banner';
-import DetailsTable, { ValueComponentProps } from 'src/components/DetailsTable';
+import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
+import DetailsTable from 'src/components/DetailsTable';
 import { RoutePage, RoutePageFactory, RouteParams } from 'src/components/Router';
 import { ToolbarProps } from 'src/components/Toolbar';
 import { RuntimeMetricsVisualizations } from 'src/components/viewers/RuntimeMetricsVisualizations';
 import { commonCss, padding } from 'src/Css';
 import { queryKeys } from 'src/hooks/queryKeys';
-import { Apis } from 'src/lib/Apis';
+import { Apis, ListRequest } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
-import { listAllArtifactTasks } from 'src/lib/v2/ArtifactTaskUtils';
 import {
   getArtifactTypeName,
   isVisualizableArtifact,
@@ -59,6 +59,10 @@ const OUTPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
   V2beta1IOType.ONE_OF_OUTPUT,
   V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
 ]);
+const RELATED_TASK_COLUMNS: Column[] = [
+  { flex: 2, label: 'Relationship', sortKey: 'id' },
+  { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
+];
 
 interface ArtifactDetailsState {
   artifact?: V2beta1Artifact;
@@ -66,6 +70,8 @@ interface ArtifactDetailsState {
 }
 
 class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
+  private relationshipsTableRef = React.createRef<CustomTable>();
+
   public state: ArtifactDetailsState = {};
 
   private get id(): string {
@@ -97,7 +103,11 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
             <ArtifactOverview artifact={artifact} onSwitch={this.switchTab} />
           </Route>
           <Route path={`${this.props.match.path}/${RELATED_TASKS_PATH}`} exact={true}>
-            <ArtifactRelationshipsLoader artifactId={this.id} onSwitch={this.switchTab} />
+            <ArtifactRelationshipsLoader
+              artifactId={this.id}
+              onSwitch={this.switchTab}
+              tableRef={this.relationshipsTableRef}
+            />
           </Route>
         </Switch>
       </div>
@@ -113,7 +123,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   public async refresh(): Promise<void> {
-    await this.load();
+    await Promise.all([this.load(), this.relationshipsTableRef.current?.reload()]);
   }
 
   private load = async (): Promise<void> => {
@@ -244,80 +254,147 @@ async function findLegacyUiMetadataArtifactKey(artifactId: string): Promise<stri
     : undefined;
 }
 
-function ArtifactRelationshipsLoader({
-  artifactId,
-  onSwitch,
-}: {
+interface ArtifactRelationshipsLoaderProps {
   artifactId: string;
   onSwitch: (selectedTab: number) => void;
-}) {
-  const {
-    data: artifactTasks,
-    error,
-    isError,
-    isLoading,
-  } = useQuery<V2beta1ArtifactTask[], Error>({
-    queryKey: queryKeys.artifactTasks(artifactId),
-    queryFn: () => listAllArtifactTasks(artifactId),
-  });
-
-  if (isLoading) {
-    return (
-      <div className={commonCss.page}>
-        <CircularProgress className={commonCss.absoluteCenter} />
-      </div>
-    );
-  }
-  if (isError) {
-    return (
-      <Banner
-        message='Unable to load related tasks. Refresh the page to try again.'
-        additionalInfo={error.message}
-        mode='error'
-      />
-    );
-  }
-  return <ArtifactRelationships artifactTasks={artifactTasks || []} onSwitch={onSwitch} />;
+  tableRef: React.RefObject<CustomTable | null>;
 }
 
-function ArtifactRelationships({
-  artifactTasks,
-  onSwitch,
-}: {
-  artifactTasks: V2beta1ArtifactTask[];
-  onSwitch: (selectedTab: number) => void;
-}) {
-  const relationshipMap = new Map<string, V2beta1ArtifactTask>();
-  const fields: Array<KeyValue<string>> = artifactTasks.map((artifactTask, index) => {
-    const relationshipId = artifactTask.id || `relationship-${index}`;
-    relationshipMap.set(relationshipId, artifactTask);
-    return [relationshipLabel(artifactTask, index), relationshipId];
-  });
+function ArtifactRelationshipsLoader(props: ArtifactRelationshipsLoaderProps) {
+  const queryClient = useQueryClient();
+  return <ArtifactRelationshipsTable {...props} queryClient={queryClient} />;
+}
 
-  return (
-    <>
-      <ArtifactTabs selectedTab={ArtifactDetailsTab.RELATED_TASKS} onSwitch={onSwitch} />
-      <div className={classes(padding(20, 'lr'))}>
-        {fields.length ? (
-          <DetailsTable<string>
-            title='Producing and consuming tasks'
-            fields={fields}
-            valueComponent={RelatedTaskLink}
-            valueComponentProps={{ relationshipMap }}
+interface ArtifactRelationshipsTableProps extends ArtifactRelationshipsLoaderProps {
+  queryClient: QueryClient;
+}
+
+interface ArtifactRelationshipsLoaderState {
+  error?: string;
+  rows: Row[];
+}
+
+interface PageTokenChain {
+  nextTokens: Set<string>;
+  successors: Map<string, string>;
+}
+
+class ArtifactRelationshipsTable extends React.PureComponent<
+  ArtifactRelationshipsTableProps,
+  ArtifactRelationshipsLoaderState
+> {
+  public state: ArtifactRelationshipsLoaderState = { rows: [] };
+
+  private activeReloadGeneration = 0;
+  private pageTokenChains = new Map<number, PageTokenChain>();
+
+  public componentWillUnmount(): void {
+    this.activeReloadGeneration++;
+  }
+
+  public render(): React.JSX.Element {
+    return (
+      <>
+        <ArtifactTabs
+          selectedTab={ArtifactDetailsTab.RELATED_TASKS}
+          onSwitch={this.props.onSwitch}
+        />
+        <div className={classes(padding(20, 'lr'))}>
+          <div className={commonCss.header2}>Producing and consuming tasks</div>
+          {this.state.error && (
+            <Banner
+              message='Unable to load related tasks. Refresh the page to try again.'
+              additionalInfo={this.state.error}
+              mode='error'
+            />
+          )}
+          <CustomTable
+            ref={this.props.tableRef}
+            columns={RELATED_TASK_COLUMNS}
+            rows={this.state.rows}
+            disableSelection={true}
+            disableSorting={true}
+            emptyMessage={this.state.error ? undefined : 'No related tasks found.'}
+            initialSortColumn='id'
+            initialSortOrder='asc'
+            noFilterBox={true}
+            reload={this.reload}
           />
-        ) : (
-          <div className={commonCss.header2}>No related tasks found.</div>
-        )}
-      </div>
-    </>
-  );
+        </div>
+      </>
+    );
+  }
+
+  private reload = async (request: ListRequest): Promise<string> => {
+    const reloadGeneration = ++this.activeReloadGeneration;
+    try {
+      const response = await this.props.queryClient.fetchQuery({
+        queryKey: queryKeys.artifactTasksPage(
+          this.props.artifactId,
+          request.pageToken,
+          request.pageSize,
+        ),
+        queryFn: () =>
+          Apis.artifactServiceApiV2.artifactTasks(
+            undefined,
+            undefined,
+            [this.props.artifactId],
+            undefined,
+            request.pageToken,
+            request.pageSize,
+            'id asc',
+          ),
+      });
+      const nextPageToken = response.next_page_token || '';
+      if (reloadGeneration !== this.activeReloadGeneration) {
+        return nextPageToken;
+      }
+      const repeatedPageToken = this.isRepeatedPageToken(request, nextPageToken);
+      this.setState({
+        error: repeatedPageToken
+          ? `Artifact service returned a repeated page token: ${nextPageToken}`
+          : undefined,
+        rows: (response.artifact_tasks || []).map((artifactTask, index) => ({
+          id: artifactTask.id || `${request.pageToken || 'first-page'}-${index}`,
+          otherFields: [relationshipLabel(artifactTask, index), artifactTask],
+        })),
+      });
+      return repeatedPageToken ? '' : nextPageToken;
+    } catch (error) {
+      const message = await errorToMessage(error);
+      if (reloadGeneration === this.activeReloadGeneration) {
+        this.setState({
+          error: message || 'Artifact service failed to list related tasks.',
+          rows: [],
+        });
+      }
+      return '';
+    }
+  };
+
+  private isRepeatedPageToken(request: ListRequest, nextPageToken: string): boolean {
+    if (!nextPageToken) {
+      return false;
+    }
+    const pageSize = request.pageSize || 0;
+    const requestPageToken = request.pageToken || '';
+    let chain = this.pageTokenChains.get(pageSize);
+    if (!chain) {
+      chain = { nextTokens: new Set(), successors: new Map() };
+      this.pageTokenChains.set(pageSize, chain);
+    }
+    if (chain.successors.get(requestPageToken) === nextPageToken) {
+      return false;
+    }
+    const repeated = requestPageToken === nextPageToken || chain.nextTokens.has(nextPageToken);
+    chain.successors.set(requestPageToken, nextPageToken);
+    chain.nextTokens.add(nextPageToken);
+    return repeated;
+  }
 }
 
-function RelatedTaskLink({
-  value,
-  relationshipMap,
-}: ValueComponentProps<string> & { relationshipMap?: Map<string, V2beta1ArtifactTask> }) {
-  const artifactTask = relationshipMap?.get(String(value));
+function RelatedTaskLink({ value }: CustomRendererProps<V2beta1ArtifactTask>) {
+  const artifactTask = value;
   if (!artifactTask?.run_id) {
     return <>{artifactTask?.task_id || '-'}</>;
   }

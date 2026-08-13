@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
@@ -76,6 +76,7 @@ describe('ArtifactDetails', () => {
   }
 
   beforeEach(() => {
+    localStorage.clear();
     vi.spyOn(Apis.artifactServiceApiV2, 'artifact_1').mockResolvedValue(artifact);
     vi.spyOn(Apis.artifactServiceApiV2, 'artifactTasks').mockResolvedValue({
       artifact_tasks: [
@@ -154,6 +155,145 @@ describe('ArtifactDetails', () => {
     expect(runLink).toHaveAttribute('href', '/runs/details/run-1');
     screen.getByText('Produced as dataset');
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      undefined,
+      '',
+      10,
+      'id asc',
+    );
+  });
+
+  it('requests and renders one relationship page at a time', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) =>
+        pageToken === 'next-page'
+          ? {
+              artifact_tasks: [
+                {
+                  id: 'relationship-2',
+                  run_id: 'run-2',
+                  task_id: 'task-2',
+                  key: 'consumer-input',
+                  type: V2beta1IOType.INPUT,
+                },
+              ],
+            }
+          : {
+              artifact_tasks: [
+                {
+                  id: 'relationship-1',
+                  run_id: 'run-1',
+                  task_id: 'task-1',
+                  key: 'producer-output',
+                  type: V2beta1IOType.OUTPUT,
+                },
+              ],
+              next_page_token: 'next-page',
+            },
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Produced as producer-output');
+    expect(screen.queryByText('Consumed as consumer-input')).not.toBeInTheDocument();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+
+    await screen.findByText('Consumed as consumer-input');
+    expect(screen.queryByText('Produced as producer-output')).not.toBeInTheDocument();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      undefined,
+      'next-page',
+      10,
+      'id asc',
+    );
+
+    fireEvent.click(screen.getByTestId('prev-page-btn'));
+
+    await screen.findByText('Produced as producer-output');
+    expect(screen.queryByText('Consumed as consumer-input')).not.toBeInTheDocument();
+  });
+
+  it('renders an empty related-task page', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({ artifact_tasks: [] });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('No related tasks found.');
+  });
+
+  it('shows an actionable error when a relationship page fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockRejectedValue(
+      new Error('Artifact service unavailable'),
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Unable to load related tasks. Refresh the page to try again.');
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    await screen.findByText('Artifact service unavailable');
+  });
+
+  it('stops pagination when the service repeats the current page token', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) => ({
+        artifact_tasks: [{ id: pageToken || 'first', key: pageToken || 'first' }],
+        next_page_token: pageToken || 'repeated-page',
+      }),
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await screen.findByText('Consumed as first');
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+
+    await screen.findByText('Unable to load related tasks. Refresh the page to try again.');
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    await screen.findByText('Artifact service returned a repeated page token: repeated-page');
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
+  });
+
+  it('does not replace a newer page-size result when an older request finishes later', async () => {
+    let resolveFirstPage!: (value: {
+      artifact_tasks: Array<{ id: string; key: string }>;
+      next_page_token: string;
+    }) => void;
+    const firstPage = new Promise<{
+      artifact_tasks: Array<{ id: string; key: string }>;
+      next_page_token: string;
+    }>((resolve) => {
+      resolveFirstPage = resolve;
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, _pageToken, pageSize) =>
+        pageSize === 10 ? firstPage : { artifact_tasks: [{ id: 'newer', key: 'newer-page-size' }] },
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1));
+
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByRole('option', { name: '20' }));
+    await screen.findByText('Consumed as newer-page-size');
+
+    await act(async () => {
+      resolveFirstPage({
+        artifact_tasks: [{ id: 'older', key: 'older-page-size' }],
+        next_page_token: 'older-next-page',
+      });
+      await firstPage;
+    });
+
+    expect(screen.queryByText('Consumed as older-page-size')).not.toBeInTheDocument();
+    screen.getByText('Consumed as newer-page-size');
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
   });
 
   it.each([

@@ -54,7 +54,8 @@ export const queryKeys = {
 
   runTasks: (runId: string) => ['run_tasks', { id: runId }] as const,
 
-  artifactTasks: (artifactId: string) => ['artifact_tasks', { id: artifactId }] as const,
+  artifactTasksPage: (artifactId: string, pageToken?: string, pageSize?: number) =>
+    ['artifact_tasks', { artifactId, pageSize, pageToken }] as const,
 
   artifactVisualizationKey: (artifactId: string) =>
     ['artifact_visualization_key', { id: artifactId }] as const,

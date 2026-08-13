@@ -43,14 +43,15 @@ describe('queryKeys', () => {
     expect(queryKeys.v2RunDetails(['r1', 'r2'])).toEqual(['v2_run_details', { ids: ['r1', 'r2'] }]);
   });
 
-  it('artifactVisualizationKey stays separate from the complete relationship list', () => {
+  it('artifact metadata query keys include their page or visualization identity', () => {
+    expect(queryKeys.artifactTasksPage('artifact-1', 'page-2', 20)).toEqual([
+      'artifact_tasks',
+      { artifactId: 'artifact-1', pageSize: 20, pageToken: 'page-2' },
+    ]);
     expect(queryKeys.artifactVisualizationKey('artifact-1')).toEqual([
       'artifact_visualization_key',
       { id: 'artifact-1' },
     ]);
-    expect(queryKeys.artifactVisualizationKey('artifact-1')).not.toEqual(
-      queryKeys.artifactTasks('artifact-1'),
-    );
   });
 
   it('v2RecurringRunDetail includes the recurring run ID', () => {
