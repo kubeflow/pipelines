@@ -180,6 +180,39 @@ describe('RuntimeArtifactComparison', () => {
     expect(screen.getByTitle('Second run / Report / second report')).toBeVisible();
   });
 
+  it('refetches a selected file when its producer finishes', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    readFileSpy.mockClear();
+    const artifact: RuntimeComparisonArtifact = {
+      artifact: {
+        artifact_id: 'live-html',
+        name: 'report',
+        type: ArtifactArtifactType.HTML,
+        uri: 's3://reports/report.html',
+      },
+      key: 'run-1:live-html',
+      label: 'First run / Report / report',
+      namespace: 'team-a',
+      sourceFinished: false,
+    };
+    const view = (entry: RuntimeComparisonArtifact) => (
+      <CommonTestWrapper>
+        <RuntimeArtifactComparison artifacts={[entry]} kind='html' />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(artifact));
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
+    fireEvent.click(await screen.findByRole('option', { name: artifact.label }));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view({ ...artifact, sourceFinished: true }));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+
+    rerender(view({ ...artifact, sourceFinished: true }));
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('preserves selected artifacts while switching comparison tabs', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
     const htmlEntry: RuntimeComparisonArtifact = {

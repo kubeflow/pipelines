@@ -93,6 +93,7 @@ export interface RuntimeComparisonArtifact {
   key: string;
   label: string;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
 interface ComparisonPanelEntry {
@@ -101,6 +102,7 @@ interface ComparisonPanelEntry {
   key: string;
   label: string;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
 interface RocComparisonEntry {
@@ -428,6 +430,7 @@ function TwoPanelComparison({
                 <RuntimeArtifactVisualization
                   artifact={entry.artifact}
                   namespace={entry.namespace}
+                  sourceFinished={entry.sourceFinished}
                   title={entry.label}
                 />
               )}

@@ -55,6 +55,7 @@ import {
   getArtifactDisplayName,
   getScalarMetricEntries,
   isScalarMetricArtifact,
+  isTaskFinished,
   type RuntimeArtifactEntry,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
@@ -99,6 +100,7 @@ type RunComparisonQueryResult = Pick<
 >;
 
 interface RunArtifactEntry extends RuntimeArtifactEntry {
+  sourceFinished: boolean;
   taskKey: string;
   taskName: string;
 }
@@ -416,6 +418,7 @@ function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[
   return tasks.flatMap((task, taskIndex) =>
     flattenArtifactGroups(task.outputs?.artifacts).map((entry) => ({
       ...entry,
+      sourceFinished: isTaskFinished(task.state),
       taskKey: task.task_id || task.name || String(taskIndex),
       taskName: getTaskComparisonLabel(task),
     })),
@@ -437,7 +440,7 @@ export function collectRuntimeComparisonArtifacts(
   return comparisonData.flatMap(({ run, tasks }) => {
     const runLabel = run.display_name || run.run_id || 'Run';
     return collectOutputArtifacts(tasks).map(
-      ({ artifact, artifactKey, group, index, taskKey, taskName }) => ({
+      ({ artifact, artifactKey, group, index, sourceFinished, taskKey, taskName }) => ({
         artifact,
         key: [
           run.run_id || runLabel,
@@ -453,6 +456,7 @@ export function collectRuntimeComparisonArtifacts(
           group.artifacts,
         )}`,
         namespace: artifact.namespace || defaultNamespace,
+        sourceFinished,
       }),
     );
   });
@@ -496,19 +500,19 @@ export function buildScalarMetricsTableProps(
       ),
   );
   const labelsNeedingArtifactKey = new Set<string>();
+  const artifactKeysByLabel = new Map<string, Set<string>>();
   scalarMetricsByRun.forEach((entries) => {
-    const artifactKeysByLabel = new Map<string, Set<string>>();
     entries.forEach((entry) => {
       const label = getScalarMetricBaseLabel(entry);
       const artifactKeys = artifactKeysByLabel.get(label) || new Set<string>();
       artifactKeys.add(entry.artifactKey || '');
       artifactKeysByLabel.set(label, artifactKeys);
     });
-    artifactKeysByLabel.forEach((artifactKeys, label) => {
-      if (artifactKeys.size > 1) {
-        labelsNeedingArtifactKey.add(label);
-      }
-    });
+  });
+  artifactKeysByLabel.forEach((artifactKeys, label) => {
+    if (artifactKeys.size > 1) {
+      labelsNeedingArtifactKey.add(label);
+    }
   });
 
   const metricsByRun = scalarMetricsByRun.map((entries) => {

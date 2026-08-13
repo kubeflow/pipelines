@@ -20,6 +20,7 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import {
   ArtifactArtifactType,
+  PipelineTaskTaskState,
   PipelineTaskTaskType,
   V2beta1PipelineTask,
   V2beta1Run,
@@ -385,6 +386,40 @@ describe('CompareV2', () => {
     });
   });
 
+  it('keeps asymmetric metric groups distinct across runs', () => {
+    const comparisonData = runs.map((run, runIndex) => ({
+      run,
+      tasks: [
+        {
+          name: 'evaluate',
+          outputs: {
+            artifacts: [
+              {
+                artifact_key: runIndex === 0 ? 'train-metrics' : 'validation-metrics',
+                artifacts: [
+                  {
+                    name: 'accuracy',
+                    type: ArtifactArtifactType.Metric,
+                    number_value: 0.9 + runIndex / 100,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    }));
+
+    expect(buildScalarMetricsTableProps(comparisonData)).toEqual({
+      xLabels: ['First run', 'Second run'],
+      yLabels: ['evaluate / train-metrics / accuracy', 'evaluate / validation-metrics / accuracy'],
+      rows: [
+        ['0.9', ''],
+        ['', '0.91'],
+      ],
+    });
+  });
+
   it('keeps duplicate same-named metrics within one artifact group', () => {
     const tasks: V2beta1PipelineTask[] = [
       {
@@ -412,17 +447,24 @@ describe('CompareV2', () => {
   });
 
   it('builds stable native comparison labels with run, task, and artifact provenance', () => {
-    expect(
-      collectRuntimeComparisonArtifacts(
-        runs.map((run) => ({ run, tasks: tasksByRun[run.run_id!] })),
-        'team-a',
-      ),
-    ).toEqual(
+    const comparisonData = runs.map((run, index) => ({
+      run,
+      tasks: tasksByRun[run.run_id!].map((task) => ({
+        ...task,
+        state: index === 0 ? PipelineTaskTaskState.RUNNING : PipelineTaskTaskState.SUCCEEDED,
+      })),
+    }));
+    expect(collectRuntimeComparisonArtifacts(comparisonData, 'team-a')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: 'run-1:task-1:classification:0:classification-1',
           label: 'First run / Train / evaluation',
           namespace: 'team-a',
+          sourceFinished: false,
+        }),
+        expect.objectContaining({
+          key: 'run-2:task-2:accuracy:0:metric-2',
+          sourceFinished: true,
         }),
       ]),
     );
