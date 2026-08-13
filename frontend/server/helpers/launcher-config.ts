@@ -68,21 +68,23 @@ export interface ArtifactCoordinates {
   key: string;
 }
 
-export class LauncherConfigParseError extends Error {
+export class LauncherConfigError extends Error {}
+
+export class LauncherConfigParseError extends LauncherConfigError {
   constructor(message: string) {
     super(message);
     this.name = 'LauncherConfigParseError';
   }
 }
 
-export class LauncherConfigReadError extends Error {
+export class LauncherConfigReadError extends LauncherConfigError {
   constructor(message: string) {
     super(message);
     this.name = 'LauncherConfigReadError';
   }
 }
 
-export class LauncherConfigValidationError extends Error {
+export class LauncherConfigValidationError extends LauncherConfigError {
   constructor(message: string) {
     super(message);
     this.name = 'LauncherConfigValidationError';

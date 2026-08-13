@@ -57,7 +57,7 @@ import {
 import {
   ArtifactCoordinates,
   getLauncherProviderInfo,
-  LauncherConfigParseError,
+  LauncherConfigError,
 } from '../helpers/launcher-config.js';
 
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
@@ -1094,9 +1094,9 @@ export function getArtifactsProxyHandler({
               req.url = url.pathname + url.search;
             }
           } catch (error) {
-            if (error instanceof LauncherConfigParseError) {
+            if (error instanceof LauncherConfigError) {
               console.warn(
-                `Unable to parse the ${namespace} kfp-launcher providers configuration; ` +
+                `Unable to resolve the ${namespace} kfp-launcher providers configuration; ` +
                   `forwarding the request without providerInfo so the namespaced artifact ` +
                   `service can use its environment credentials. ${error.message}`,
               );

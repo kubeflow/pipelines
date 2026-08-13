@@ -176,12 +176,40 @@ describe('/artifacts/get namespaced proxy', () => {
     );
   });
 
-  it('forwards without providerInfo when launcher providers YAML is malformed', async () => {
+  it.each([
+    ['providers YAML is malformed', [{ data: { providers: 's3: [unterminated' } }, undefined]],
+    [
+      'the ConfigMap read fails',
+      [
+        undefined,
+        {
+          additionalInfo: { code: 403, reason: 'Forbidden' },
+          message: 'Could not read kfp-launcher',
+        },
+      ],
+    ],
+    [
+      'the provider configuration is invalid',
+      [
+        {
+          data: {
+            providers: `
+s3:
+  Overrides:
+    - bucketName: another-bucket
+      credentials:
+        fromEnv: true
+`,
+          },
+        },
+        undefined,
+      ],
+    ],
+  ] as const)('forwards without providerInfo when %s', async (_description, configMapResult) => {
     const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
-    vi.mocked(getConfigMap).mockResolvedValueOnce([
-      { data: { providers: 's3: [unterminated' } },
-      undefined,
-    ]);
+    vi.mocked(getConfigMap).mockResolvedValueOnce(
+      configMapResult as unknown as Awaited<ReturnType<typeof getConfigMap>>,
+    );
     const configs = loadConfigs(argv, {
       ARTIFACTS_SERVICE_PROXY_NAME: 'artifact-svc',
       ARTIFACTS_SERVICE_PROXY_PORT: '80',
