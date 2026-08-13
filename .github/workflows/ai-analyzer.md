@@ -26,8 +26,10 @@ safe-outputs:
     target: triggering
     max: 1
     hide-older-comments: true
+  threat-detection:
+    max-ai-credits: 20
 
-max-ai-credits: 50
+max-ai-credits: 30
 max-daily-ai-credits: 500
 max-turns: 3
 ---
