@@ -197,8 +197,9 @@ export function CompareV2(props: CompareV2Props) {
             : ACTIVE_COMPARISON_STALE_TIME;
         },
         refetchInterval: (query: { state: { data?: RunComparisonData } }) => {
-          const state = query.state.data?.run.state;
-          return state !== undefined && !hasFinishedV2(state)
+          const data = query.state.data;
+          const state = data?.run.state;
+          return data?.taskError !== undefined || (state !== undefined && !hasFinishedV2(state))
             ? ACTIVE_COMPARISON_REFRESH_INTERVAL
             : false;
         },

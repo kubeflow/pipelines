@@ -515,6 +515,50 @@ describe('CompareV2', () => {
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps polling a terminal run until its failed task refresh recovers', async () => {
+    vi.useFakeTimers();
+    const runningTask = { ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING };
+    const succeededTask = { ...runningTask, state: PipelineTaskTaskState.SUCCEEDED };
+    vi.mocked(Apis.runServiceApiV2.getRun)
+      .mockResolvedValueOnce({ ...runs[0], state: V2beta1RuntimeState.RUNNING })
+      .mockResolvedValue({ ...runs[0], state: V2beta1RuntimeState.SUCCEEDED });
+    vi.mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: [runningTask] })
+      .mockRejectedValueOnce(new Error('Task service unavailable'))
+      .mockResolvedValue({ tasks: [succeededTask] });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1'])} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ additionalInfo: 'run-1 tasks: Task service unavailable' }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL);
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ACTIVE_COMPARISON_REFRESH_INTERVAL * 2);
+    });
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+  });
+
   it('preserves cached task metrics when a background task refresh fails', async () => {
     vi.useFakeTimers();
     vi.mocked(Apis.runServiceApiV2.getRun).mockResolvedValue({
