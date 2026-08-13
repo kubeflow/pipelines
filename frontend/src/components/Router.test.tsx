@@ -22,6 +22,10 @@ import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
 
+vi.mock('src/pages/RunDetailsRouter', () => ({
+  default: () => <div>Run details</div>,
+}));
+
 describe('Router', () => {
   it('initial render', () => {
     const renderResult = render(
@@ -78,5 +82,21 @@ describe('Router', () => {
     expect(getSafeReturnPath('https://example.com')).toBeUndefined();
     expect(getSafeReturnPath('//example.com')).toBeUndefined();
     expect(getSafeReturnPath(null)).toBeUndefined();
+  });
+
+  it('redirects legacy run execution links to canonical run details', async () => {
+    const history = createMemoryHistory({
+      initialEntries: ['/runs/details/run-1/execution/123?view=graph#node'],
+    });
+    render(
+      <ReactRouter history={history}>
+        <Router />
+      </ReactRouter>,
+    );
+
+    await waitFor(() => expect(history.location.pathname).toBe('/runs/details/run-1'));
+    expect(history.location.search).toBe('?view=graph');
+    expect(history.location.hash).toBe('#node');
+    expect(screen.getByText('Run details')).toBeVisible();
   });
 });

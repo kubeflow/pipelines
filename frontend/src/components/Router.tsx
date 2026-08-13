@@ -16,7 +16,7 @@
 
 import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -170,6 +170,24 @@ const DEFAULT_ROUTE =
 
 const RemovedExecutionRoute = () => <Redirect to={RoutePage.RUNS} />;
 
+type LegacyRunExecutionRouteParams = {
+  [RouteParams.runId]: string;
+  [RouteParams.executionId]: string;
+};
+
+const LegacyRunExecutionRoute = ({
+  location,
+  match,
+}: RouteComponentProps<LegacyRunExecutionRouteParams>) => (
+  <Redirect
+    to={{
+      pathname: RoutePageFactory.runDetails(match.params[RouteParams.runId]),
+      search: location.search,
+      hash: location.hash,
+    }}
+  />
+);
+
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
@@ -215,7 +233,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsPage },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetailsRouter },
     { path: RoutePage.RUN_DETAILS, Component: RunDetailsRouter },
-    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: LegacyRunExecutionRoute },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
