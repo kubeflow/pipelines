@@ -162,7 +162,7 @@ def _maybe_unwrap_optional_subscript(
     if isinstance(annotation, ast.Subscript):
         return annotation.slice
     if isinstance(annotation, ast.BinOp) and isinstance(annotation.op,
-                                                         ast.BitOr):
+                                                        ast.BitOr):
         if isinstance(annotation.left,
                       ast.Constant) and annotation.left.value is None:
             return annotation.right
@@ -179,8 +179,9 @@ def get_pydantic_basemodel_base_symbol_for_parameter(func: Callable,
     module_node = ast.parse(
         component_factory._get_function_source_definition(func))
     function_args = module_node.body[0].args
-    args = (function_args.posonlyargs + function_args.args +
-            function_args.kwonlyargs)
+    args = (
+        function_args.posonlyargs + function_args.args +
+        function_args.kwonlyargs)
     args = {arg.arg: arg for arg in args}
     annotation = _maybe_unwrap_optional_subscript(args[arg_name].annotation)
     return traverse_ast_node_values_to_get_id(annotation)

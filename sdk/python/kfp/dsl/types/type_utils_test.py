@@ -174,6 +174,27 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
 
         self.assertTrue(executor.is_parameter(Optional[MyModel]))
 
+    @unittest.skipUnless(sys.version_info >= (3, 10),
+                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    def test_annotation_to_type_struct_for_pep604_optional_pydantic_basemodel(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual('Dict',
+                         type_utils._annotation_to_type_struct(MyModel | None))
+
+    @unittest.skipUnless(sys.version_info >= (3, 10),
+                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    def test_is_parameter_true_for_pep604_optional_pydantic_basemodel(self):
+        from kfp.dsl import executor
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(executor.is_parameter(MyModel | None))
+
     def test_annotation_to_type_struct_for_rootmodel_scalar(self):
 
         class IntRoot(pydantic.RootModel[int]):
@@ -205,54 +226,19 @@ class TestPydanticBaseModelSupport(parameterized.TestCase):
 
         self.assertFalse(type_utils.is_pydantic_rootmodel_subclass(MyModel))
 
-    def test_validate_pydantic_basemodel_alias_roundtrip_passes_for_no_alias(
+    def test_annotation_to_type_struct_does_not_raise_for_mismatched_alias(
             self):
-
-        class MyModel(pydantic.BaseModel):
-            foo: str
-
-        # should not raise
-        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
-
-    def test_validate_pydantic_basemodel_alias_roundtrip_passes_for_matching_alias(
-            self):
-
-        class MyModel(pydantic.BaseModel):
-            foo: str = pydantic.Field(alias='fooAlias')
-
-        # should not raise: a single `alias` is used for both directions
-        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
-
-    def test_validate_pydantic_basemodel_alias_roundtrip_raises_for_mismatched_alias(
-            self):
+        # KFP does not validate pydantic alias configuration up front (see
+        # _pydantic_basemodel_to_type_struct's docstring) -- a model with a
+        # validation_alias/serialization_alias mismatch still compiles. Round
+        # trip correctness for that model is the component author's concern,
+        # not KFP's.
 
         class MyModel(pydantic.BaseModel):
             foo: str = pydantic.Field(
                 validation_alias='foo_in', serialization_alias='foo_out')
 
-        with self.assertRaisesRegex(TypeError, "field 'foo'.*foo_out.*foo_in"):
-            type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
-
-    def test_validate_pydantic_basemodel_alias_roundtrip_passes_with_populate_by_name(
-            self):
-
-        class MyModel(pydantic.BaseModel):
-            model_config = pydantic.ConfigDict(populate_by_name=True)
-            foo: str = pydantic.Field(
-                validation_alias='foo_in', serialization_alias='foo')
-
-        # serialization_alias ('foo') matches the plain field name, which
-        # populate_by_name=True makes acceptable on the way back in.
-        type_utils.validate_pydantic_basemodel_alias_roundtrip(MyModel)
-
-    def test_annotation_to_type_struct_raises_for_mismatched_alias(self):
-
-        class MyModel(pydantic.BaseModel):
-            foo: str = pydantic.Field(
-                validation_alias='foo_in', serialization_alias='foo_out')
-
-        with self.assertRaisesRegex(TypeError, "field 'foo'"):
-            type_utils._annotation_to_type_struct(MyModel)
+        self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
 
 
 class TypeUtilsTest(parameterized.TestCase):

@@ -746,6 +746,47 @@ class TestGetPydanticBasemodelBaseSymbolForParameter(
             func, 'a')
         self.assertEqual(actual, 'MyModelAlias')
 
+    def test_keyword_only_param(self):
+        from my_pydantic_models import MyModel
+
+        def func(*, a: MyModel):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'MyModel')
+
+    def test_positional_only_param(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: MyModel, /):
+            pass
+
+        actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'MyModel')
+
+    def test_pep604_optional_simple_name(self):
+        from my_pydantic_models import MyModel
+
+        def func(a: typing.Optional[MyModel] = None):
+            pass
+
+        # can't write `MyModel | None` directly in this test file's source
+        # since it's collected on Python 3.9 too, where evaluating `|` on a
+        # bare type raises TypeError; exercise the AST path itself instead by
+        # parsing an equivalent PEP 604 signature as a string.
+        import unittest.mock
+
+        pep604_source = 'def func(a: MyModel | None = None):\n    pass\n'
+        with unittest.mock.patch.object(
+                custom_artifact_types.component_factory,
+                '_get_function_source_definition',
+                return_value=pep604_source):
+            actual = custom_artifact_types.get_pydantic_basemodel_base_symbol_for_parameter(
+                func, 'a')
+        self.assertEqual(actual, 'MyModel')
+
 
 @unittest.skipIf(pydantic is None, 'pydantic is not installed')
 class TestGetPydanticBasemodelBaseSymbolForReturn(_TestCaseWithThirdPartyPackage

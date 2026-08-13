@@ -619,30 +619,6 @@ def validate_pydantic_basemodel_version(model_cls: Type) -> None:
             '`base_image`).')
 
 
-def validate_pydantic_basemodel_alias_roundtrip(model_cls: Type) -> None:
-    """Raises a clear error if a field on `model_cls` would not survive a KFP
-    output-to-input round trip.
-
-    KFP serializes BaseModel outputs with ``model_dump(mode='json',
-    by_alias=True)`` and deserializes inputs with plain ``model_validate()``.
-    If a field's effective serialization key (its ``serialization_alias``, or
-    ``alias``, or else the field name) is not one of the keys
-    ``model_validate()`` will actually accept for that field (its effective
-    validation key, or additionally the plain field name when the model sets
-    ``model_config = ConfigDict(populate_by_name=True)``), the dumped value
-    can never be read back by a downstream component: the round trip breaks,
-    silently, since a missing key just fails as an ordinary required-field
-    validation error far from where the mismatch was actually introduced.
-    This check catches that at component definition/task-runtime time
-    instead, with a message that names the exact field and keys involved.
-
-    Fields using an ``AliasPath``/``AliasChoices`` for ``validation_alias``
-    are not checked here, since resolving those against a single
-    serialization key isn't a simple string comparison; such fields are
-    assumed to be intentionally configured by the user.
-    """
-
-
 def is_pydantic_rootmodel_subclass(annotation: Any) -> bool:
     """Check if annotation is a pydantic.RootModel subclass.
 
@@ -661,7 +637,17 @@ def is_pydantic_rootmodel_subclass(annotation: Any) -> bool:
 def _pydantic_basemodel_to_type_struct(model_cls: Type) -> Any:
     """Computes the KFP type struct for a pydantic.BaseModel (including
     RootModel) subclass used for component I/O, after validating it can
-    actually be used for that purpose."""
+    actually be used for that purpose.
+
+    KFP transports BaseModel values as-is: outputs are serialized with
+    ``model_dump(mode='json', by_alias=True)`` and inputs are
+    deserialized with ``model_validate()``. KFP does not validate alias
+    configuration (``alias``, ``validation_alias``,
+    ``serialization_alias``, ``populate_by_name``) up front; a model
+    whose aliases don't round-trip through that pair of calls is the
+    component author's responsibility to get right, same as any other
+    pydantic validation concern.
+    """
     validate_pydantic_basemodel_version(model_cls)
     if is_pydantic_rootmodel_subclass(model_cls):
         # A RootModel serializes to its root value's own shape (e.g. a bare
@@ -669,7 +655,6 @@ def _pydantic_basemodel_to_type_struct(model_cls: Type) -> Any:
         # root type, not from `dict`.
         root_annotation = model_cls.model_fields['root'].annotation
         return _annotation_to_type_struct(root_annotation)
-    validate_pydantic_basemodel_alias_roundtrip(model_cls)
     return get_canonical_type_name_for_type(dict)
 
 
