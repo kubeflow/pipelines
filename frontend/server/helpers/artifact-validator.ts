@@ -36,10 +36,15 @@ export function normalizeArtifactOwnershipMode(value?: string): ArtifactOwnershi
 const NAMESPACE_OWNERSHIP_MODE = normalizeArtifactOwnershipMode(
   process.env.ARTIFACT_NAMESPACE_OWNERSHIP_MODE,
 );
-const VALIDATION_TIMEOUT_MS = (() => {
-  const configured = Number(process.env.ARTIFACT_VALIDATION_TIMEOUT_MS);
+export function resolveArtifactValidationTimeoutMs(
+  environment: NodeJS.ProcessEnv = process.env,
+): number {
+  const configured = Number(
+    environment.ARTIFACT_VALIDATION_TIMEOUT_MS || environment.MLMD_VALIDATION_TIMEOUT_MS,
+  );
   return Number.isFinite(configured) && configured > 0 ? configured : 5000;
-})();
+}
+const VALIDATION_TIMEOUT_MS = resolveArtifactValidationTimeoutMs();
 
 export interface ValidationResult {
   valid: boolean;
@@ -108,6 +113,14 @@ export async function validateArtifactNamespace(
   claimedNamespace: string,
   authenticationHeaders?: Record<string, string>,
 ): Promise<ValidationResult> {
+  // A database row in the caller's namespace must not override ownership encoded by the
+  // standard multi-user object key. Otherwise a tenant could import another namespace's
+  // URI into its own run and make the namespace-scoped Artifact API lookup succeed.
+  const keyPrefixValidation = validateArtifactKeyPrefix(artifactUri, claimedNamespace);
+  if (!keyPrefixValidation.valid && keyPrefixValidation.reason !== 'artifact-not-found') {
+    return keyPrefixValidation;
+  }
+
   const artifactService = new ArtifactServiceApi(new Configuration({ basePath: apiServerAddress }));
   const filter = JSON.stringify({
     predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],

@@ -17,6 +17,7 @@ import {
   namespaceFromArtifactUri,
   normalizeArtifactOwnershipMode,
   requiresArtifactOwnershipValidation,
+  resolveArtifactValidationTimeoutMs,
   validateArtifactKeyPrefix,
   validateArtifactNamespace,
   validateArtifactNotFound,
@@ -128,6 +129,24 @@ describe('artifact-validator', () => {
     expect(requestInit.signal).toBeInstanceOf(AbortSignal);
   });
 
+  it('rejects a caller-owned record that points into another namespace prefix', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace(
+        'http://api-server',
+        'minio://mlpipeline/private-artifacts/team-b/run/model',
+        'team-a',
+      ),
+    ).resolves.toEqual({
+      actualNamespace: 'team-b',
+      reason: 'prefix-namespace-mismatch',
+      valid: false,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('uses the namespace prefix for an object absent from ArtifactService', async () => {
     vi.stubGlobal(
       'fetch',
@@ -190,6 +209,19 @@ describe('artifact-validator', () => {
       ).resolves.toEqual({ valid: false, reason: 'artifact-api-unavailable' });
     },
   );
+
+  it('preserves the legacy MLMD timeout and prefers the replacement setting', () => {
+    expect(resolveArtifactValidationTimeoutMs({ MLMD_VALIDATION_TIMEOUT_MS: '30000' })).toBe(30000);
+    expect(
+      resolveArtifactValidationTimeoutMs({
+        ARTIFACT_VALIDATION_TIMEOUT_MS: '12000',
+        MLMD_VALIDATION_TIMEOUT_MS: '30000',
+      }),
+    ).toBe(12000);
+    expect(resolveArtifactValidationTimeoutMs({ ARTIFACT_VALIDATION_TIMEOUT_MS: 'invalid' })).toBe(
+      5000,
+    );
+  });
 
   it('normalizes the GCS scheme when constructing an artifact URI', () => {
     expect(buildArtifactUri('gcs', 'bucket', 'path/output')).toBe('gs://bucket/path/output');

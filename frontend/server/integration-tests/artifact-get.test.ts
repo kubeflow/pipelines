@@ -260,6 +260,25 @@ s3:
       });
     });
 
+    it('does not resolve discarded provider info for a customer namespace', async () => {
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+        FRONTEND_SERVER_NAMESPACE: 'kubeflow',
+      });
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        { data: { providers: 's3: [unterminated' } },
+        undefined,
+      ]);
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(200, artifactContent);
+
+      expect(getConfigMap).not.toHaveBeenCalled();
+    });
+
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', async () => {
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       mockedGetK8sSecret.mockResolvedValue('somevalue');

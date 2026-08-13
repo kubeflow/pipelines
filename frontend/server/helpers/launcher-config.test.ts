@@ -114,7 +114,10 @@ gs:
   });
 
   it('uses normal server defaults when the optional launcher config is absent', async () => {
-    mockedGetConfigMap.mockResolvedValue([undefined, { message: 'not found' }]);
+    mockedGetConfigMap.mockResolvedValue([
+      undefined,
+      { additionalInfo: { code: 404, reason: 'NotFound' }, message: 'not found' },
+    ]);
 
     await expect(
       getLauncherProviderInfo(
@@ -122,6 +125,48 @@ gs:
         'kubeflow',
       ),
     ).resolves.toBeUndefined();
+  });
+
+  it('surfaces ConfigMap read failures instead of silently using environment credentials', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      undefined,
+      { additionalInfo: { code: 403, reason: 'Forbidden' }, message: 'read denied' },
+    ]);
+
+    await expect(
+      getLauncherProviderInfo({ source: 'minio', bucket: 'mlpipeline', key: 'artifact' }, 'team-a'),
+    ).rejects.toThrow(
+      'read denied. Verify that the UI service account can read the kfp-launcher ConfigMap',
+    );
+  });
+
+  it('rejects invalid providers YAML with a corrective action', async () => {
+    mockedGetConfigMap.mockResolvedValue([{ data: { providers: 's3: [unterminated' } }, undefined]);
+
+    await expect(
+      getLauncherProviderInfo({ source: 's3', bucket: 'bucket', key: 'artifact' }, 'team-a'),
+    ).rejects.toThrow('contains invalid YAML. Correct the providers entry and retry');
+  });
+
+  it('matches launcher behavior for an overrides-only provider without a default', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          providers: `
+s3:
+  Overrides:
+    - bucketName: another-bucket
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo({ source: 's3', bucket: 'bucket', key: 'artifact' }, 'team-a'),
+    ).rejects.toThrow('provider is missing default credentials');
   });
 
   it('rejects secret-backed provider entries with incomplete secret references', async () => {

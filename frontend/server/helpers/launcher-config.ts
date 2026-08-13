@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { load } from 'js-yaml';
-import { getConfigMap } from '../k8s-helper.js';
+import { getConfigMap, K8sError } from '../k8s-helper.js';
 import {
   ArtifactProvider,
   artifactProviderForSource,
@@ -68,6 +68,27 @@ export interface ArtifactCoordinates {
   key: string;
 }
 
+export class LauncherConfigParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LauncherConfigParseError';
+  }
+}
+
+export class LauncherConfigReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LauncherConfigReadError';
+  }
+}
+
+export class LauncherConfigValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'LauncherConfigValidationError';
+  }
+}
+
 /**
  * Reconstructs the launcher store session information for an artifact URI.
  *
@@ -79,16 +100,33 @@ export async function getLauncherProviderInfo(
   coordinates: ArtifactCoordinates,
   namespace: string,
 ): Promise<string | undefined> {
-  const configMapResult = await getConfigMap(LAUNCHER_CONFIG_MAP, namespace);
-  const [configMap] = configMapResult;
+  const [configMap, configMapError] = await getConfigMap(LAUNCHER_CONFIG_MAP, namespace);
+  if (configMapError) {
+    if (isNotFoundError(configMapError)) {
+      return undefined;
+    }
+    throw new LauncherConfigReadError(
+      `${configMapError.message}. Verify that the UI service account can read the ` +
+        `${LAUNCHER_CONFIG_MAP} ConfigMap and retry the artifact request.`,
+    );
+  }
   const providersYaml = configMap?.data?.providers;
   if (!providersYaml) {
     return undefined;
   }
 
-  const parsed = load(providersYaml);
+  let parsed: unknown;
+  try {
+    parsed = load(providersYaml);
+  } catch (error) {
+    throw new LauncherConfigParseError(
+      `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
+    );
+  }
   if (!isRecord(parsed)) {
-    throw new Error('kfp-launcher providers must be a YAML object');
+    throw new LauncherConfigParseError(
+      'kfp-launcher providers must be a YAML object. Correct the providers entry and retry.',
+    );
   }
   const providers = parsed as LauncherProviders;
   const provider = artifactProviderForSource(coordinates.source);
@@ -112,11 +150,14 @@ function buildSessionInfo(
     (entry) => entry.bucketName === bucket && prefixMatches(key, entry.keyPrefix || ''),
   );
 
-  if (!config.default && !override) {
+  if (!config.default && configuredOverrides === undefined) {
     return { Provider: provider, Params: { fromEnv: 'true' } };
   }
   if (!config.default?.credentials) {
-    throw new Error(`kfp-launcher ${provider} provider is missing default credentials`);
+    throw new LauncherConfigValidationError(
+      `kfp-launcher ${provider} provider is missing default credentials. ` +
+        'Add default credentials or remove the provider configuration and retry.',
+    );
   }
 
   const params: Record<string, string> = {};
@@ -132,7 +173,10 @@ function buildSessionInfo(
 
   if (override) {
     if (!override.credentials) {
-      throw new Error(`kfp-launcher ${provider} override is missing credentials`);
+      throw new LauncherConfigValidationError(
+        `kfp-launcher ${provider} override is missing credentials. ` +
+          'Add override credentials and retry.',
+      );
     }
     applyS3Settings(params, override);
     applyCredentials(params, override.credentials, provider);
@@ -166,18 +210,26 @@ function applyCredentials(
   }
   const secretRef = credentials.secretRef;
   if (!secretRef?.secretName) {
-    throw new Error(`kfp-launcher ${provider} credentials are missing secretRef`);
+    throw new LauncherConfigValidationError(
+      `kfp-launcher ${provider} credentials are missing secretRef. ` +
+        'Add a secretRef or set fromEnv to true and retry.',
+    );
   }
   params.secretName = secretRef.secretName;
   if (provider === 'gs') {
     if (!secretRef.tokenKey) {
-      throw new Error('kfp-launcher gs credentials are missing tokenKey');
+      throw new LauncherConfigValidationError(
+        'kfp-launcher gs credentials are missing tokenKey. Add tokenKey and retry.',
+      );
     }
     params.tokenKey = secretRef.tokenKey;
     return;
   }
   if (!secretRef.accessKeyKey || !secretRef.secretKeyKey) {
-    throw new Error(`kfp-launcher ${provider} credentials are missing access/secret key names`);
+    throw new LauncherConfigValidationError(
+      `kfp-launcher ${provider} credentials are missing access/secret key names. ` +
+        'Add accessKeyKey and secretKeyKey and retry.',
+    );
   }
   params.accessKeyKey = secretRef.accessKeyKey;
   params.secretKeyKey = secretRef.secretKeyKey;
@@ -195,4 +247,16 @@ function prefixMatches(key: string, overridePrefix: string): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isNotFoundError(error: K8sError): boolean {
+  const details = error.additionalInfo;
+  const statusCode =
+    details?.statusCode ?? details?.code ?? details?.response?.statusCode ?? details?.body?.code;
+  return (
+    Number(statusCode) === 404 ||
+    details?.reason === 'NotFound' ||
+    details?.body?.reason === 'NotFound' ||
+    error.message.trim().toLowerCase() === 'not found'
+  );
 }

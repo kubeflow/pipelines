@@ -361,12 +361,15 @@ describe('k8s-helper', () => {
     });
 
     it('returns error when configmap not found', async () => {
-      readNamespacedConfigMapSpy.mockRejectedValue({ body: { message: 'not found' } });
+      readNamespacedConfigMapSpy.mockRejectedValue({
+        body: { code: 404, message: 'not found', reason: 'NotFound' },
+      });
 
       const [configMap, error] = await getConfigMap('nonexistent', 'test-namespace');
 
       expect(configMap).toBeUndefined();
       expect(error).toEqual({
+        additionalInfo: { code: 404, message: 'not found', reason: 'NotFound' },
         message: 'Could not get configMap nonexistent in namespace test-namespace',
       });
     });

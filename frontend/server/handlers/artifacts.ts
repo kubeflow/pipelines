@@ -54,7 +54,11 @@ import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
-import { ArtifactCoordinates, getLauncherProviderInfo } from '../helpers/launcher-config.js';
+import {
+  ArtifactCoordinates,
+  getLauncherProviderInfo,
+  LauncherConfigParseError,
+} from '../helpers/launcher-config.js';
 
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
@@ -292,8 +296,9 @@ export function getArtifactsHandler({
     // A missing namespace only occurs when auth is disabled (single-tenant): the
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
+    const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
     let resolvedProviderInfo = providerInfo;
-    if (!resolvedProviderInfo && isLauncherArtifactSource(source)) {
+    if (allowProviderSecrets && !resolvedProviderInfo && isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
           (await getLauncherProviderInfo({ source, bucket, key }, namespace)) || '';
@@ -307,7 +312,6 @@ export function getArtifactsHandler({
       }
     }
 
-    const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
     if (!allowProviderSecrets && resolvedProviderInfo) {
       console.warn(
         `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
@@ -1090,6 +1094,15 @@ export function getArtifactsProxyHandler({
               req.url = url.pathname + url.search;
             }
           } catch (error) {
+            if (error instanceof LauncherConfigParseError) {
+              console.warn(
+                `Unable to parse the ${namespace} kfp-launcher providers configuration; ` +
+                  `forwarding the request without providerInfo so the namespaced artifact ` +
+                  `service can use its environment credentials. ${error.message}`,
+              );
+              proxy(req, res, next);
+              return;
+            }
             res
               .status(500)
               .send(

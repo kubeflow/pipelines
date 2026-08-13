@@ -176,6 +176,33 @@ describe('/artifacts/get namespaced proxy', () => {
     );
   });
 
+  it('forwards without providerInfo when launcher providers YAML is malformed', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce([
+      { data: { providers: 's3: [unterminated' } },
+      undefined,
+    ]);
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_NAME: 'artifact-svc',
+      ARTIFACTS_SERVICE_PROXY_PORT: '80',
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+    });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 's3',
+          bucket: 'ml-pipeline',
+          key: 'hello.txt',
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(200, 'artifact service in ns2');
+
+    expect(receivedUrls).toEqual(['/artifacts/get?source=s3&bucket=ml-pipeline&key=hello.txt']);
+  });
+
   it('does not proxy requests without namespace argument', async () => {
     setupMinioArtifactDeps({ content: 'text-data2' });
     const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
