@@ -204,16 +204,28 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
+    const coords = resolveArtifactCoordinates(request);
+    if (coords === null) {
+      console.warn(
+        `[SECURITY] Malformed percent-encoding in artifact path. ` +
+          `User: ${userId}, Path: ${request.path}`,
+      );
+      response.status(400).send('Malformed URL encoding in artifact path');
+      return;
+    }
+
+    if (coords.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
+      console.warn(
+        `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
+          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
+      );
+      response
+        .status(403)
+        .send('Volume artifacts require a namespace-isolated artifact service in multi-user mode');
+      return;
+    }
+
     if (apiServerAddress) {
-      const coords = resolveArtifactCoordinates(request);
-      if (coords === null) {
-        console.warn(
-          `[SECURITY] Malformed percent-encoding in artifact path. ` +
-            `User: ${userId}, Path: ${request.path}`,
-        );
-        response.status(400).send('Malformed URL encoding in artifact path');
-        return;
-      }
       if (requiresArtifactOwnershipValidation(coords.source) && coords.bucket && coords.key) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };

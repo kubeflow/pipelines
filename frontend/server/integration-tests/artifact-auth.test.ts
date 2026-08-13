@@ -20,6 +20,7 @@ import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import { commonSetup } from './test-helper.js';
 import { getConfigMap } from '../k8s-helper.js';
+import * as serverInfo from '../helpers/server-info.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
@@ -83,7 +84,10 @@ describe('/artifacts authorization', () => {
         getObject: async (bucket: string, key: string) => {
           const objStream = new PassThrough();
           objStream.end(artifactContent);
-          if (bucket === 'ml-pipeline' && key === 'hello/world.txt') {
+          if (
+            (bucket === 'ml-pipeline' && key === 'hello/world.txt') ||
+            (bucket === 'mlpipeline' && key === 'v2/artifacts/hello/world.txt')
+          ) {
             return objStream;
           } else {
             throw new Error(`Unable to retrieve ${bucket}/${key} artifact.`);
@@ -117,7 +121,7 @@ describe('/artifacts authorization', () => {
 
       const request = requests(app.app);
       await request
-        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .get('/artifacts/get?source=minio&bucket=mlpipeline&key=v2%2Fartifacts%2Fhello%2Fworld.txt')
         .expect(200, artifactContent);
     });
 
@@ -540,6 +544,26 @@ describe('/artifacts authorization', () => {
         )
         .set('kubeflow-userid', 'user@example.com')
         .expect(200, artifactContent);
+    });
+
+    it('rejects direct volume access before reading a shared UI pod mount', async () => {
+      mockAuthPass();
+      const getHostPodSpy = vi.spyOn(serverInfo, 'getHostPod');
+
+      app = new UIServer(authEnabledConfigs());
+
+      const response = await requests(app.app)
+        .get(
+          '/artifacts/get?source=volume&bucket=config-volume&key=viewer-pod-template.json&namespace=my-namespace',
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(403);
+
+      expect(response.text).toContain(
+        'Volume artifacts require a namespace-isolated artifact service',
+      );
+      expect(getHostPodSpy).not.toHaveBeenCalled();
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
     });
 
     it('rejects when any artifact with same URI belongs to different namespace', async () => {

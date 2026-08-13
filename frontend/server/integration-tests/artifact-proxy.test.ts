@@ -152,6 +152,41 @@ describe('/artifacts/get namespaced proxy', () => {
     );
   });
 
+  it('proxies authenticated volume access to the namespace-isolated artifact service', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    } as Response);
+    const configs = loadConfigs(argv, {
+      ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+      KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
+      KUBEFLOW_USERID_PREFIX: '',
+      ML_PIPELINE_SERVICE_HOST: 'localhost',
+      ML_PIPELINE_SERVICE_PORT: '8888',
+    });
+    configs.auth.enabled = true;
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 'volume',
+          bucket: 'artifact',
+          key: 'outputs/result.txt',
+          namespace: 'ns2',
+        })}`,
+      )
+      .set('kubeflow-userid', 'user@example.com')
+      .expect(200, 'artifact service in ns2');
+
+    expect(receivedUrls).toEqual([
+      '/artifacts/get?source=volume&bucket=artifact&key=outputs%2Fresult.txt',
+    ]);
+  });
+
   it('preserves providerInfo when proxying a download request (issue #13717)', async () => {
     const { receivedUrls } = await setUpNamespacedArtifactService({
       namespace: 'ns2',
@@ -238,7 +273,9 @@ s3:
     await requests(app.app)
       .get(
         `/artifacts/get${buildQuery({
-          ...commonParams,
+          source: 'minio',
+          bucket: 'mlpipeline',
+          key: 'v2/artifacts/hello.txt',
           namespace: undefined,
         })}`,
       )
