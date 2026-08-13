@@ -16,7 +16,7 @@ on:
         ISSUE_NUMBER: ${{ github.event.issue.number }}
         ISSUE_TITLE: ${{ github.event.issue.title }}
       run: |
-        title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*(.+)$'
+        title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
         if [[ ! "$ISSUE_TITLE" =~ $title_pattern ]]; then
           gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body $'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.'
           echo "valid=false" >> "$GITHUB_OUTPUT"
