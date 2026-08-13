@@ -25,7 +25,7 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
-  getScalarMetricValue,
+  getScalarMetricEntries,
   isClassificationMetricArtifact,
   isHtmlArtifact,
   isLegacyUiMetadataArtifact,
@@ -145,10 +145,9 @@ export function RuntimeMetricsVisualizations({
           <PagedTable
             configs={[
               {
-                data: scalarMetrics.map((artifact) => [
-                  artifact.name || '-',
-                  getScalarMetricValue(artifact),
-                ]),
+                data: scalarMetrics
+                  .flatMap(getScalarMetricEntries)
+                  .map(({ name, value }) => [name, value]),
                 labels: ['name', 'value'],
                 type: PlotType.TABLE,
               },

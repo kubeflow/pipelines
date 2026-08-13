@@ -53,7 +53,7 @@ import {
   flattenArtifactGroups,
   formatParameterValue,
   getArtifactDisplayName,
-  getScalarMetricValue,
+  getScalarMetricEntries,
   isScalarMetricArtifact,
   type RuntimeArtifactEntry,
 } from 'src/lib/v2/RuntimeArtifactUtils';
@@ -101,6 +101,11 @@ type RunComparisonQueryResult = Pick<
 interface RunArtifactEntry extends RuntimeArtifactEntry {
   taskKey: string;
   taskName: string;
+}
+
+interface RunScalarMetricEntry extends RunArtifactEntry {
+  metricName: string;
+  metricValue: string;
 }
 
 export type CompareV2Props = PageProps & { namespace?: string };
@@ -480,17 +485,27 @@ export function buildScalarMetricsTableProps(
   comparisonData: RunComparisonData[],
 ): CompareTableProps | undefined {
   const scalarMetricsByRun = comparisonData.map(({ tasks }) =>
-    collectOutputArtifacts(tasks).filter(({ artifact }) => isScalarMetricArtifact(artifact)),
+    collectOutputArtifacts(tasks)
+      .filter(({ artifact }) => isScalarMetricArtifact(artifact))
+      .flatMap((entry) =>
+        getScalarMetricEntries(entry.artifact).map(({ name, value }) => ({
+          ...entry,
+          metricName: name,
+          metricValue: value,
+        })),
+      ),
   );
   const labelsNeedingArtifactKey = new Set<string>();
   scalarMetricsByRun.forEach((entries) => {
-    const labelCounts = new Map<string, number>();
+    const artifactKeysByLabel = new Map<string, Set<string>>();
     entries.forEach((entry) => {
       const label = getScalarMetricBaseLabel(entry);
-      labelCounts.set(label, (labelCounts.get(label) || 0) + 1);
+      const artifactKeys = artifactKeysByLabel.get(label) || new Set<string>();
+      artifactKeys.add(entry.artifactKey || '');
+      artifactKeysByLabel.set(label, artifactKeys);
     });
-    labelCounts.forEach((count, label) => {
-      if (count > 1) {
+    artifactKeysByLabel.forEach((artifactKeys, label) => {
+      if (artifactKeys.size > 1) {
         labelsNeedingArtifactKey.add(label);
       }
     });
@@ -500,16 +515,16 @@ export function buildScalarMetricsTableProps(
     const metrics = new Map<string, string>();
     const labelOccurrences = new Map<string, number>();
     entries.forEach((entry) => {
-      const { artifact, artifactKey, taskName } = entry;
+      const { artifactKey, metricName, metricValue, taskName } = entry;
       const baseLabel = getScalarMetricBaseLabel(entry);
       const disambiguatedLabel =
         labelsNeedingArtifactKey.has(baseLabel) && artifactKey
-          ? `${taskName} / ${artifactKey} / ${getScalarMetricArtifactLabel(entry)}`
+          ? `${taskName} / ${artifactKey} / ${metricName}`
           : baseLabel;
       const occurrence = (labelOccurrences.get(disambiguatedLabel) || 0) + 1;
       labelOccurrences.set(disambiguatedLabel, occurrence);
       const label = occurrence === 1 ? disambiguatedLabel : `${disambiguatedLabel} (${occurrence})`;
-      metrics.set(label, getScalarMetricValue(artifact));
+      metrics.set(label, metricValue);
     });
     return metrics;
   });
@@ -525,17 +540,8 @@ export function buildScalarMetricsTableProps(
   };
 }
 
-function getScalarMetricArtifactLabel({
-  artifact,
-  artifactKey,
-  group,
-  index,
-}: RunArtifactEntry): string {
-  return getArtifactDisplayName(artifact, artifactKey, index, group.artifacts);
-}
-
-function getScalarMetricBaseLabel(entry: RunArtifactEntry): string {
-  return `${entry.taskName} / ${getScalarMetricArtifactLabel(entry)}`;
+function getScalarMetricBaseLabel(entry: RunScalarMetricEntry): string {
+  return `${entry.taskName} / ${entry.metricName}`;
 }
 
 function EnhancedCompareV2(props: PageProps) {

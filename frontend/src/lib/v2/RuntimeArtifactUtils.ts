@@ -107,8 +107,29 @@ export function formatParameterValue(value: object | undefined): string {
   return JSON.stringify(value);
 }
 
-export function getScalarMetricValue(artifact: V2beta1Artifact): string {
-  return String(artifact.number_value ?? artifact.metadata?.[artifact.name || ''] ?? '-');
+export interface ScalarMetricEntry {
+  name: string;
+  value: string;
+}
+
+export function getScalarMetricEntries(artifact: V2beta1Artifact): ScalarMetricEntry[] {
+  const values = new Map<string, number>();
+  Object.entries(artifact.metadata || {}).forEach(([name, value]) => {
+    if (typeof value === 'number') {
+      values.set(name, value);
+    }
+  });
+  if (artifact.number_value !== undefined) {
+    values.set(artifact.name || '-', artifact.number_value);
+  }
+  if (values.size) {
+    return [...values.entries()]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([name, value]) => ({ name, value: String(value) }));
+  }
+
+  const name = artifact.name || '-';
+  return [{ name, value: String(artifact.metadata?.[artifact.name || ''] ?? '-') }];
 }
 
 export function isScalarMetricArtifact(artifact: V2beta1Artifact): boolean {

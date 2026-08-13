@@ -236,7 +236,7 @@ describe('CompareV2', () => {
     });
   });
 
-  it('uses the named metadata value and a dash fallback for scalar metrics', () => {
+  it('expands multi-key scalar metadata and retains a dash fallback', () => {
     const tasks: V2beta1PipelineTask[] = [
       {
         name: 'evaluate',
@@ -267,10 +267,59 @@ describe('CompareV2', () => {
       },
     ];
 
-    expect(buildScalarMetricsTableProps([{ run: runs[0], tasks }])?.rows).toEqual([
-      ['0.88'],
-      ['-'],
-    ]);
+    expect(buildScalarMetricsTableProps([{ run: runs[0], tasks }])).toEqual({
+      xLabels: ['First run'],
+      yLabels: ['evaluate / accuracy', 'evaluate / ignored', 'evaluate / loss'],
+      rows: [['0.88'], ['1'], ['-']],
+    });
+  });
+
+  it('aligns legacy multi-key and launcher-split scalar metrics across runs', () => {
+    const comparisonData = runs.map((run, runIndex) => ({
+      run,
+      tasks: [
+        {
+          name: 'evaluate',
+          outputs: {
+            artifacts: [
+              {
+                artifact_key: 'metrics',
+                artifacts:
+                  runIndex === 0
+                    ? [
+                        {
+                          name: 'metrics',
+                          type: ArtifactArtifactType.Metric,
+                          metadata: { accuracy: 0.9, loss: 0.1 },
+                        },
+                      ]
+                    : [
+                        {
+                          name: 'accuracy',
+                          type: ArtifactArtifactType.Metric,
+                          number_value: 0.95,
+                        },
+                        {
+                          name: 'loss',
+                          type: ArtifactArtifactType.Metric,
+                          number_value: 0.05,
+                        },
+                      ],
+              },
+            ],
+          },
+        },
+      ],
+    }));
+
+    expect(buildScalarMetricsTableProps(comparisonData)).toEqual({
+      xLabels: ['First run', 'Second run'],
+      yLabels: ['evaluate / accuracy', 'evaluate / loss'],
+      rows: [
+        ['0.9', '0.95'],
+        ['0.1', '0.05'],
+      ],
+    });
   });
 
   it('keeps metrics from separate loop iterations distinct', () => {

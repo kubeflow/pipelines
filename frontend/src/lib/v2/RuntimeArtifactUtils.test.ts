@@ -24,7 +24,7 @@ import {
   getArtifactDisplayName,
   getArtifactTypeName,
   getOutputArtifactByName,
-  getScalarMetricValue,
+  getScalarMetricEntries,
   isClassificationMetricArtifact,
   isLegacyUiMetadataArtifact,
   isVisualizableArtifact,
@@ -114,14 +114,30 @@ describe('RuntimeArtifactUtils', () => {
     );
   });
 
-  it('formats scalar metrics consistently and shares visualization predicates', () => {
+  it('expands every scalar metric value while preferring number_value for its name', () => {
     const metric = {
       name: 'accuracy',
       type: ArtifactArtifactType.Metric,
-      metadata: { accuracy: 0.91 },
+      number_value: 0.91,
+      metadata: { accuracy: 0.8, loss: 0.09 },
     };
-    expect(getScalarMetricValue(metric)).toBe('0.91');
-    expect(getScalarMetricValue({ ...metric, metadata: { accuracy: null as any } })).toBe('-');
+    expect(getScalarMetricEntries(metric)).toEqual([
+      { name: 'accuracy', value: '0.91' },
+      { name: 'loss', value: '0.09' },
+    ]);
+    expect(
+      getScalarMetricEntries({
+        name: 'metrics',
+        type: ArtifactArtifactType.Metric,
+        metadata: { accuracy: 0.91, loss: 0.09 },
+      }),
+    ).toEqual([
+      { name: 'accuracy', value: '0.91' },
+      { name: 'loss', value: '0.09' },
+    ]);
+    expect(
+      getScalarMetricEntries({ ...metric, number_value: undefined, metadata: { accuracy: null } }),
+    ).toEqual([{ name: 'accuracy', value: '-' }]);
     expect(isVisualizableArtifact(metric)).toBe(true);
     expect(
       isClassificationMetricArtifact({ type: ArtifactArtifactType.ClassificationMetric }),

@@ -204,6 +204,28 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
   });
 
+  it('renders every value from one multi-key scalar metric artifact', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              name: 'metrics',
+              type: ArtifactArtifactType.Metric,
+              metadata: { accuracy: 0.9, loss: 0.1 },
+            },
+          ]}
+        />
+      </CommonTestWrapper>,
+    );
+
+    screen.getByText('Scalar Metrics');
+    screen.getByText('accuracy');
+    screen.getByText('0.9');
+    screen.getByText('loss');
+    screen.getByText('0.1');
+  });
+
   it('expands sliced classification metrics into one visualization artifact per slice', () => {
     const artifact: V2beta1Artifact = {
       artifact_id: 'sliced-1',
