@@ -15,8 +15,16 @@
  */
 
 import { CircularProgress } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
-import { useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
+import { useQueries, type UseQueryResult } from '@tanstack/react-query';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { Redirect } from 'react-router-dom';
 import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
@@ -74,12 +82,30 @@ interface RunComparisonData {
   tasks: V2beta1PipelineTask[];
 }
 
+interface RunComparisonFailure {
+  runId: string;
+  error: Error;
+}
+
+type RunComparisonQueryResult = Pick<
+  UseQueryResult<RunComparisonData, Error>,
+  'data' | 'error' | 'isPending' | 'refetch'
+>;
+
 interface RunArtifactEntry extends RuntimeArtifactEntry {
   taskKey: string;
   taskName: string;
 }
 
 export type CompareV2Props = PageProps & { namespace?: string };
+
+async function loadRunComparisonData(runId: string): Promise<RunComparisonData> {
+  const [run, tasks] = await Promise.all([
+    Apis.runServiceApiV2.getRun(runId),
+    listAllRunTasks(runId),
+  ]);
+  return { run, tasks };
+}
 
 function CompareTableSection({
   isLoading,
@@ -126,40 +152,47 @@ export function CompareV2(props: CompareV2Props) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const {
-    data: comparisonData,
-    error,
-    isError,
-    isLoading,
-    refetch,
-  } = useQuery<RunComparisonData[], Error>({
-    queryKey: queryKeys.v2RunComparison(runIds),
-    queryFn: () =>
-      Promise.all(
-        runIds.map(async (runId) => {
-          const [run, tasks] = await Promise.all([
-            Apis.runServiceApiV2.getRun(runId),
-            listAllRunTasks(runId),
-          ]);
-          return { run, tasks };
-        }),
-      ),
-    staleTime: Infinity,
+  const comparisonQueryOptions = useMemo(
+    () =>
+      runIds.map((runId) => ({
+        queryKey: queryKeys.v2RunComparison(runId),
+        queryFn: () => loadRunComparisonData(runId),
+        retry: false,
+        staleTime: Infinity,
+      })),
+    [runIds],
+  );
+  const combineComparisonQueries = useCallback(
+    (results: RunComparisonQueryResult[]) => {
+      const comparisonData: RunComparisonData[] = [];
+      const failures: RunComparisonFailure[] = [];
+      results.forEach((result, index) => {
+        if (result.data) {
+          comparisonData.push(result.data);
+        }
+        if (result.error) {
+          failures.push({ runId: runIds[index], error: result.error });
+        }
+      });
+      return {
+        comparisonData,
+        failures,
+        isLoading: results.some((result) => result.isPending),
+        refetch: () => Promise.all(results.map((result) => result.refetch())),
+      };
+    },
+    [runIds],
+  );
+  const { comparisonData, failures, isLoading, refetch } = useQueries({
+    queries: comparisonQueryOptions,
+    combine: combineComparisonQueries,
   });
 
-  const selectedIds = useMemo(() => {
-    if (!comparisonData) {
-      return selectedIdsState;
-    }
-    const validRunIds = new Set(
-      comparisonData.map(({ run }) => run.run_id).filter((id): id is string => !!id),
-    );
-    return selectedIdsState.filter((id) => validRunIds.has(id));
-  }, [comparisonData, selectedIdsState]);
+  const selectedIds = selectedIdsState;
 
   const selectedData = useMemo(() => {
     const selectedIdSet = new Set(selectedIds);
-    return (comparisonData || []).filter(({ run }) => selectedIdSet.has(run.run_id || ''));
+    return comparisonData.filter(({ run }) => selectedIdSet.has(run.run_id || ''));
   }, [comparisonData, selectedIds]);
 
   const paramsTableProps = useMemo(() => buildParamsTableProps(selectedData), [selectedData]);
@@ -172,17 +205,19 @@ export function CompareV2(props: CompareV2Props) {
     if (isLoading) {
       return;
     }
-    if (isError) {
+    if (failures.length) {
+      const failedRunLabel = failures.length === 1 ? 'run' : 'runs';
       updateBanner({
-        additionalInfo: error?.message,
-        message:
-          'Cannot get native task and artifact data for the selected runs. Refresh the page to try again.',
-        mode: 'error',
+        additionalInfo: failures.map(({ runId, error }) => `${runId}: ${error.message}`).join('\n'),
+        message: comparisonData.length
+          ? `Cannot get comparison data for ${failures.length} selected ${failedRunLabel}. Available runs are still shown. Refresh the page to try again.`
+          : 'Cannot get comparison data for the selected runs. Refresh the page to try again.',
+        mode: comparisonData.length ? 'warning' : 'error',
       });
     } else {
       updateBanner({});
     }
-  }, [error, isError, isLoading, updateBanner]);
+  }, [comparisonData.length, failures, isLoading, updateBanner]);
 
   const updateComparisonToolbar = useEffectEvent(() => {
     const refresh = async () => {
@@ -269,9 +304,7 @@ export function CompareV2(props: CompareV2Props) {
           <Separator orientation='vertical' />
           <MD2Tabs tabs={METRICS_TAB_NAMES} selectedTab={metricsTab} onSwitch={setMetricsTab} />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {isError ? (
-              <p>An error is preventing metrics from being displayed.</p>
-            ) : metricsTab === NativeMetricsTab.SCALAR ? (
+            {metricsTab === NativeMetricsTab.SCALAR ? (
               <CompareTableSection
                 isLoading={isLoading}
                 compareTableProps={scalarMetricsTableProps}

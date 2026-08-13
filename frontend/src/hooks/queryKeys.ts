@@ -40,7 +40,7 @@ export const queryKeys = {
 
   v2RunDetails: (runIds: string[]) => ['v2_run_details', { ids: runIds }] as const,
 
-  v2RunComparison: (runIds: string[]) => ['v2_run_comparison', { ids: runIds }] as const,
+  v2RunComparison: (runId: string) => ['v2_run_comparison', { id: runId }] as const,
 
   v2RecurringRunDetail: (recurringRunId: string | null | undefined) =>
     ['v2_recurring_run_detail', { id: recurringRunId }] as const,

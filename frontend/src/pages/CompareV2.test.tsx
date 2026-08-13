@@ -15,7 +15,9 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { forwardRef, useImperativeHandle } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import {
   ArtifactArtifactType,
   PipelineTaskTaskType,
@@ -93,6 +95,11 @@ describe('CompareV2', () => {
       runtime_config: { parameters: { epochs: 10 } },
     },
   ];
+  const thirdRun: V2beta1Run = {
+    run_id: 'run-3',
+    display_name: 'Third run',
+    runtime_config: { parameters: { epochs: 15 } },
+  };
   const tasksByRun: Record<string, V2beta1PipelineTask[]> = {
     'run-1': [
       {
@@ -153,12 +160,35 @@ describe('CompareV2', () => {
         },
       },
     ],
+    'run-3': [
+      {
+        task_id: 'task-3',
+        name: 'train',
+        display_name: 'Train',
+        type: PipelineTaskTaskType.RUNTIME,
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'accuracy',
+              artifacts: [
+                {
+                  artifact_id: 'metric-3',
+                  name: 'accuracy',
+                  type: ArtifactArtifactType.Metric,
+                  number_value: 0.99,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ],
   };
 
-  function generateProps(): PageProps {
+  function generateProps(runIds = ['run-1', 'run-2']): PageProps {
     return {
       history: { push: vi.fn(), replace: vi.fn() } as any,
-      location: { pathname: '/compare', search: '?runlist=run-1,run-2' } as any,
+      location: { pathname: '/compare', search: `?runlist=${runIds.join(',')}` } as any,
       match: { params: {}, isExact: true, path: '/compare', url: '/compare' } as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
@@ -170,7 +200,7 @@ describe('CompareV2', () => {
 
   beforeEach(() => {
     vi.spyOn(Apis.runServiceApiV2, 'getRun').mockImplementation(
-      async (runId) => runs.find((run) => run.run_id === runId)!,
+      async (runId) => [...runs, thirdRun].find((run) => run.run_id === runId)!,
     );
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockImplementation(async (runId) => ({
       tasks: tasksByRun[runId] || [],
@@ -333,7 +363,62 @@ describe('CompareV2', () => {
     expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
   });
 
-  it('shows an actionable banner when native task retrieval fails', async () => {
+  it('keeps available runs visible when one comparison query fails', async () => {
+    vi.mocked(Apis.runServiceApiV2.getRun).mockImplementation(async (runId) => {
+      if (runId === 'run-2') {
+        throw new Error('Permission denied');
+      }
+      return [...runs, thirdRun].find((run) => run.run_id === runId)!;
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: 3, retryDelay: 0 } },
+    });
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <CompareV2 {...generateProps(['run-1', 'run-2', 'run-3'])} />
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+
+    await screen.findByText('0.91');
+    screen.getByText('0.99');
+    expect(screen.queryByText('0.95')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith({
+        additionalInfo: 'run-2: Permission denied',
+        message:
+          'Cannot get comparison data for 1 selected run. Available runs are still shown. Refresh the page to try again.',
+        mode: 'warning',
+      }),
+    );
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+  });
+
+  it('reuses cached comparison data when the selected run list changes', async () => {
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByText('0.95');
+
+    rerender(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps(['run-1', 'run-3'])} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('0.99');
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run-1');
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run-2');
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledWith('run-3');
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows an actionable banner when every comparison query fails', async () => {
     vi.mocked(Apis.runServiceApiV2.tasks).mockRejectedValue(new Error('Task service unavailable'));
     render(
       <CommonTestWrapper>
@@ -343,11 +428,12 @@ describe('CompareV2', () => {
 
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenCalledWith({
-        additionalInfo: 'Task service unavailable',
-        message:
-          'Cannot get native task and artifact data for the selected runs. Refresh the page to try again.',
+        additionalInfo: 'run-1: Task service unavailable\nrun-2: Task service unavailable',
+        message: 'Cannot get comparison data for the selected runs. Refresh the page to try again.',
         mode: 'error',
       }),
     );
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(2);
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
   });
 });
