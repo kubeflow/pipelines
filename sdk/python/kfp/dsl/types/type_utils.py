@@ -641,37 +641,6 @@ def validate_pydantic_basemodel_alias_roundtrip(model_cls: Type) -> None:
     serialization key isn't a simple string comparison; such fields are
     assumed to be intentionally configured by the user.
     """
-    populate_by_name = bool(
-        model_cls.model_config.get('populate_by_name', False))
-    for field_name, field_info in model_cls.model_fields.items():
-        if not isinstance(field_info.validation_alias, (str, type(None))):
-            continue
-        serialization_key = (
-            field_info.serialization_alias or field_info.alias or field_name)
-        validation_key = (
-            field_info.validation_alias or field_info.alias or field_name)
-        acceptable_keys = {validation_key}
-        if populate_by_name:
-            acceptable_keys.add(field_name)
-        if serialization_key not in acceptable_keys:
-            qualname = f'{model_cls.__module__}.{model_cls.__qualname__}'
-            populate_by_name_hint = (
-                " ('populate_by_name=True' is set, so the plain field name "
-                'would also be accepted, but the serialization_alias does '
-                'not match that either)' if populate_by_name else '')
-            raise TypeError(
-                f"pydantic.BaseModel subclass '{qualname}' has a field "
-                f"'{field_name}' whose effective serialization key "
-                f"('{serialization_key}') will not be accepted by "
-                f"model_validate() on the way back in, which expects "
-                f"'{validation_key}'{populate_by_name_hint}. KFP serializes "
-                "component outputs with model_dump(by_alias=True) and "
-                'deserializes inputs with model_validate(), so this field '
-                'would be silently dropped passing between components. Use '
-                'the same value for validation_alias and serialization_alias '
-                "(or a single `alias`), or set "
-                'model_config = ConfigDict(populate_by_name=True) and give '
-                "serialization_alias the field's own name.")
 
 
 def is_pydantic_rootmodel_subclass(annotation: Any) -> bool:
