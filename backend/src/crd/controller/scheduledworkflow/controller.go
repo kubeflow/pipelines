@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -37,7 +36,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -542,7 +540,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 		processNextItemOperationDuration.WithLabelValues("swfsubmit", "ok").Observe(time.Since(startTime).Seconds())
 	}
 
-	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
+	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch)
 	if err != nil {
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't update swf status: %v", name, err)
@@ -722,13 +720,12 @@ func (c *Controller) updateStatus(
 	submitted bool,
 	active []swfapi.WorkflowStatus,
 	completed []swfapi.WorkflowStatus,
-	nextScheduledEpoch int64,
-	nowEpoch int64) error {
+	nextScheduledEpoch int64) error {
 	// NEVER modify objects from the store. It's a read-only, local cache.
 	// You can use DeepCopy() to make a deep copy of original object and modify this copy
 	// Or create a copy manually for better performance
 	swfCopy := util.NewScheduledWorkflow(swf.Get().DeepCopy())
-	swfCopy.UpdateStatus(nowEpoch, submitted, nextScheduledEpoch, active, completed, c.location)
+	swfCopy.UpdateStatus(submitted, nextScheduledEpoch, active, completed, c.location)
 
 	// Pre-update check: determine if the Workflow (wf) object has actually changed
 	// by comparing its Status.Conditions, Status.WorkflowHistory, and Labels
@@ -762,37 +759,10 @@ func (c *Controller) updateStatus(
 	return nil
 }
 
-// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
-// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
-func isV1PipelineBlocked(namespace string) bool {
-	blockV1Value := viper.GetString(util.BlockV1Pipelines)
-	blockV1, err := strconv.ParseBool(blockV1Value)
-	if err != nil {
-		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
-		blockV1 = false
-	}
-	if !blockV1 {
-		return false
-	}
-
-	allowedNamespaces := viper.GetString(util.AllowedNamespaces)
-	if allowedNamespaces == "" {
-		return true
-	}
-
-	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
-	for _, n := range strings.Split(allowedNamespaces, ",") {
-		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
-			return false
-		}
-	}
-	return true
-}
-
 // shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
 // are present on the pod metadata. Returns false if the workflow is v1.
 func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
-	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
+	if swf == nil || !commonutil.IsV1PipelinesBlocked(swf.Namespace) {
 		return false
 	}
 

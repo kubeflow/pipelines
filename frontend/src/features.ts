@@ -44,7 +44,7 @@ export function initFeatures() {
   }
   if (localStorage.getItem('flags')) {
     const originalFlags = localStorage.getItem('flags');
-    let originalFlagsJSON: Feature[] = [];
+    let originalFlagsJSON: Feature[];
     try {
       originalFlagsJSON = JSON.parse(originalFlags!);
       let originalFlagsMap = new Map(

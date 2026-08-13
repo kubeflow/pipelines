@@ -13,10 +13,12 @@
 # limitations under the License.
 import base64
 import dataclasses
+import errno
 import gzip
 import inspect
 import io
 import itertools
+import os
 import pathlib
 import re
 import tarfile
@@ -94,12 +96,10 @@ def make_index_url_options(pip_index_urls: Optional[List[str]],
             - '--index-url url ' if pip_index_urls contains 1 URL.
             - The above followed by '--extra-index-url url ' for each additional URL in pip_index_urls
             if pip_index_urls contains more than 1 URL.
-            - If pip_trusted_hosts is None:
-                - The above followed by '--trusted-host url ' for each URL in pip_index_urls.
-            - If pip_trusted_hosts is an empty List.
-                - No --trusted-host information will be added
-            - If pip_trusted_hosts contains any URLs:
-                - The above followed by '--trusted-host url ' for each URL in pip_trusted_hosts.
+            - If pip_trusted_hosts is None or an empty List:
+                - No --trusted-host information will be added.
+            - If pip_trusted_hosts contains any hosts:
+                - The above followed by '--trusted-host host ' for each host in pip_trusted_hosts.
     Note:
         In case pip_index_urls is not empty, the returned string will contain a space at the end.
     """
@@ -113,11 +113,7 @@ def make_index_url_options(pip_index_urls: Optional[List[str]],
     options.extend(f'--extra-index-url {extra_index_url}'
                    for extra_index_url in extra_index_urls)
 
-    if pip_trusted_hosts is None:
-        options.extend([f'--trusted-host {index_url}'])
-        options.extend(f'--trusted-host {extra_index_url}'
-                       for extra_index_url in extra_index_urls)
-    elif len(pip_trusted_hosts) > 0:
+    if pip_trusted_hosts:
         options.extend(f'--trusted-host {trusted_host}'
                        for trusted_host in pip_trusted_hosts)
 
@@ -190,8 +186,12 @@ def _get_packages_to_install_command(
         if use_venv:
             pip_install_strings.append(_use_venv_script_template)
         if kfp_package_path:
+            install_parts = [kfp_package_path]
+            if (os.path.exists(kfp_package_path) or
+                    '@refs/pull/' in kfp_package_path):
+                install_parts.append('--no-deps')
             kfp_pip_install_command = make_pip_install_command(
-                install_parts=[kfp_package_path],
+                install_parts=install_parts,
                 index_url_options=index_url_options,
             )
         else:
@@ -503,6 +503,73 @@ CONTAINERIZED_PYTHON_COMPONENT_COMMAND = [
 ]
 
 
+def _safe_add_to_tar(
+    tar: tarfile.TarFile,
+    root: pathlib.Path,
+    arcname: str = '.',
+) -> None:
+    """Add a file or directory to a tar archive with controlled symlink
+    resolution.
+
+    Resolves the top-level *root* path, then walks its contents:
+    - Regular files are added directly.
+    - In-tree file symlinks are dereferenced (archived as regular files).
+    - Dangling symlinks raise ``ValueError``.
+    - Files whose resolved path escapes the artifact tree raise
+      ``ValueError``.
+    - Directory symlinks are rejected unconditionally.
+
+    This helper operates on trusted local input and does not attempt to
+    enforce source-tree immutability against concurrent modification.
+    """
+    resolved_root = root.resolve()
+
+    if resolved_root.is_file():
+        tar.add(str(resolved_root), arcname=arcname)
+        return
+
+    if not resolved_root.is_dir():
+        raise ValueError(f'Embedded artifact path does not exist or is not a '
+                         f'file/directory: {root}')
+
+    def _walk(
+        current: pathlib.Path,
+        arc_prefix: str,
+    ) -> None:
+        try:
+            resolved = current.resolve(strict=True)
+        except RuntimeError:
+            raise ValueError(f'Symlink cycle detected at: {current}')
+        except OSError as e:
+            if e.errno == errno.ELOOP:
+                raise ValueError(f'Symlink cycle detected at: {current}')
+            if e.errno in (errno.ENOENT, errno.ENOTDIR):
+                raise ValueError(f'Dangling symlink: {current}')
+            raise
+
+        if resolved.is_dir():
+            if current != resolved:
+                raise ValueError(
+                    f'Directory symlinks are not supported: {current}')
+
+            tar.add(str(resolved), arcname=arc_prefix, recursive=False)
+            for child in sorted(resolved.iterdir()):
+                child_arc = (f'{arc_prefix}/{child.name}'
+                             if arc_prefix != '.' else child.name)
+                _walk(child, child_arc)
+        elif resolved.is_file():
+            try:
+                resolved.relative_to(resolved_root)
+            except ValueError:
+                raise ValueError(
+                    f'Path escapes artifact tree: {current} -> {resolved}')
+            tar.add(str(resolved), arcname=arc_prefix)
+        else:
+            raise ValueError(f'Unsupported file type: {current}')
+
+    _walk(resolved_root, arcname)
+
+
 def _get_command_and_args_for_lightweight_component(
     func: Callable,
     additional_funcs: Optional[List[Callable]] = None,
@@ -534,9 +601,9 @@ def _get_command_and_args_for_lightweight_component(
         buf = io.BytesIO()
         with tarfile.open(fileobj=buf, mode='w') as tar:
             if asset_path.is_dir():
-                tar.add(asset_path, arcname='.')
+                _safe_add_to_tar(tar, asset_path, arcname='.')
             else:
-                tar.add(asset_path, arcname=asset_path.name)
+                _safe_add_to_tar(tar, asset_path, arcname=asset_path.name)
 
         archive_bytes = buf.getvalue()
 
@@ -662,7 +729,11 @@ def create_notebook_component_from_func(
     # Resolve default packages for notebooks when not specified
     if packages_to_install is None:
         packages_to_install = [
-            'nbclient>=0.10,<1', 'ipykernel>=6,<7', 'jupyter_client>=7,<9'
+            'nbclient>=0.10,<1',
+            'ipykernel>=6,<7',
+            'jupyter_client>=7,<9',
+            # 2.22.0 uses Python 3.10 union syntax but permits Python 3.9.
+            'fastjsonschema<2.22; python_version < "3.10"',
         ]
 
     # Validate notebook path and determine relpath

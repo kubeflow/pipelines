@@ -46,12 +46,12 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment")
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to get default experiment")
 	}
 	next := rows.Next()
-	defer rows.Close()
 
 	// If the table is not initialized, then set the default value.
 	if !next {

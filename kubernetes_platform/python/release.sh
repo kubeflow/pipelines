@@ -16,7 +16,7 @@
 
 # run from within ./kubernetes_platform/python
 # set environment variable KFP_KUBERNETES_VERSION
-# ensure you are on the correct release branch, created by create_release_branch.sh
+# ensure you are on the correct release branch, created by the kfpr docs branch step
 
 PKG_ROOT=$(pwd)
 REPO_ROOT=$(dirname $(dirname $PKG_ROOT))

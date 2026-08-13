@@ -50,7 +50,7 @@ class Metric extends React.PureComponent<MetricProps> {
     }
 
     const displayString = MetricUtils.getMetricDisplayString(metric);
-    let width = '';
+    let width: string;
 
     if (metric.format === RunMetricFormat.PERCENTAGE) {
       width = `calc(${displayString})`;
