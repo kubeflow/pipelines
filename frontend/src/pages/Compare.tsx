@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import { useQueries } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
 import { ApiRunDetail } from 'src/apis/run';
@@ -61,7 +61,7 @@ export default function Compare(props: PageProps) {
   const successfulRuns = runLoadQueries.flatMap((query) =>
     query.data ? [query.data as ApiRunDetail] : [],
   );
-  const failedRunLoad = runLoadQueries.find((query) => query.isError);
+  const failedRunError = runLoadQueries.find((query) => query.isError)?.error;
   const compareVersion = isLoading
     ? CompareVersion.Unknown
     : runIds.length < 2 || runIds.length > 10
@@ -81,24 +81,18 @@ export default function Compare(props: PageProps) {
             return CompareVersion.Mixed;
           })();
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
+  const updateComparisonBanner = useEffectEvent(async () => {
     // Update banner based on error, feature flag, run versions, and run count.
     const routeCannotRenderPartialResults =
-      !!failedRunLoad &&
+      !!failedRunError &&
       (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
     if (routeCannotRenderPartialResults) {
-      (async function () {
-        const errorMessage = await errorToMessage(failedRunLoad?.error);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
-          mode: 'error',
-        });
-      })();
+      const errorMessage = await errorToMessage(failedRunError);
+      updateBanner({
+        additionalInfo: errorMessage ? errorMessage : undefined,
+        message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+        mode: 'error',
+      });
     } else if (
       isFeatureEnabled(FeatureKey.V2_ALPHA) &&
       compareVersion === CompareVersion.InvalidRunCount
@@ -127,7 +121,13 @@ export default function Compare(props: PageProps) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [compareVersion, failedRunLoad, isLoading, updateBanner, runIds.length]);
+  });
+
+  useEffect(() => {
+    if (!isLoading) {
+      void updateComparisonBanner();
+    }
+  }, [compareVersion, failedRunError, isLoading, runIds.length]);
 
   if (isLoading) {
     return (
@@ -138,7 +138,7 @@ export default function Compare(props: PageProps) {
   }
 
   if (
-    !!failedRunLoad &&
+    !!failedRunError &&
     (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2)
   ) {
     return <></>;

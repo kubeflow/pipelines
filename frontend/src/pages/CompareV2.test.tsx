@@ -28,6 +28,7 @@ import {
 } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import { ButtonKeys } from 'src/lib/Buttons';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { PageProps } from 'src/pages/Page';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
@@ -40,9 +41,17 @@ import {
 } from './CompareV2';
 
 vi.mock('src/pages/RunList', () => ({
-  default: forwardRef(function MockRunList(_props, ref) {
+  default: forwardRef(function MockRunList(
+    { onSelectionChange }: { onSelectionChange: (selectedIds: string[]) => void },
+    ref,
+  ) {
     useImperativeHandle(ref, () => ({ refresh: vi.fn() }));
-    return <div>Run list</div>;
+    return (
+      <div>
+        Run list
+        <button onClick={() => onSelectionChange(['run-1'])}>Select only run-1</button>
+      </div>
+    );
   }),
 }));
 
@@ -843,6 +852,41 @@ describe('CompareV2', () => {
     );
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(3);
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(3);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select only run-1' }));
+    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
+  });
+
+  it('counts one selected run once when both its run and task refreshes fail', async () => {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(
+      queryKeys.v2RunComparison('run-1'),
+      {
+        run: { ...runs[0], state: V2beta1RuntimeState.FAILED },
+        tasks: [{ ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING }],
+        terminalTaskReconciliationPending: true,
+      },
+      { updatedAt: 0 },
+    );
+    vi.mocked(Apis.runServiceApiV2.getRun).mockRejectedValue(new Error('Run service unavailable'));
+    vi.mocked(Apis.runServiceApiV2.tasks).mockRejectedValue(new Error('Task service unavailable'));
+
+    render(
+      <BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+          <CompareV2 {...generateProps(['run-1'])} />
+        </QueryClientProvider>
+      </BrowserRouter>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith({
+        additionalInfo: 'run-1: Run service unavailable\nrun-1 tasks: Task service unavailable',
+        message:
+          'Cannot get comparison data for 1 selected run. Available runs are still shown. Refresh the page to try again.',
+        mode: 'warning',
+      }),
+    );
   });
 
   it('reuses cached comparison data when the selected run list changes', async () => {

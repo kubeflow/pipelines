@@ -280,28 +280,36 @@ export function CompareV2(props: CompareV2Props) {
     [selectedData],
   );
 
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-    if (failures.length) {
-      const failedRunLabel = failures.length === 1 ? 'run' : 'runs';
+  const selectedIdSet = new Set(selectedIds);
+  const selectedFailures = failures.filter(({ runId }) => selectedIdSet.has(runId));
+  const selectedFailureAdditionalInfo = selectedFailures
+    .map(
+      ({ runId, source, error }) =>
+        `${runId}${source === 'tasks' ? ' tasks' : ''}: ${error.message}`,
+    )
+    .join('\n');
+  const selectedFailedRunCount = new Set(selectedFailures.map(({ runId }) => runId)).size;
+
+  const updateComparisonBanner = useEffectEvent(() => {
+    if (selectedFailedRunCount) {
+      const failedRunLabel = selectedFailedRunCount === 1 ? 'run' : 'runs';
       updateBanner({
-        additionalInfo: failures
-          .map(
-            ({ runId, source, error }) =>
-              `${runId}${source === 'tasks' ? ' tasks' : ''}: ${error.message}`,
-          )
-          .join('\n'),
-        message: comparisonData.length
-          ? `Cannot get comparison data for ${failures.length} selected ${failedRunLabel}. Available runs are still shown. Refresh the page to try again.`
+        additionalInfo: selectedFailureAdditionalInfo,
+        message: selectedData.length
+          ? `Cannot get comparison data for ${selectedFailedRunCount} selected ${failedRunLabel}. Available runs are still shown. Refresh the page to try again.`
           : 'Cannot get comparison data for the selected runs. Refresh the page to try again.',
-        mode: comparisonData.length ? 'warning' : 'error',
+        mode: selectedData.length ? 'warning' : 'error',
       });
     } else {
       updateBanner({});
     }
-  }, [comparisonData.length, failures, isLoading, updateBanner]);
+  });
+
+  useEffect(() => {
+    if (!isLoading) {
+      updateComparisonBanner();
+    }
+  }, [isLoading, selectedData.length, selectedFailedRunCount, selectedFailureAdditionalInfo]);
 
   const updateComparisonToolbar = useEffectEvent(() => {
     const refresh = async () => {

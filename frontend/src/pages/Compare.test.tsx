@@ -23,6 +23,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import Compare from './Compare';
 import * as features from 'src/features';
 import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
+import { useCallback, useState } from 'react';
 
 vi.mock('./CompareV1', () => ({ default: () => <div>V1 Comparison</div> }));
 vi.mock('./CompareV2', () => ({ default: () => <div>Scalar Metrics</div> }));
@@ -98,6 +99,38 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     });
 
     expect(screen.queryByRole('progressbar')).toBeNull();
+  });
+
+  it('updates the routing failure banner once when its owner rerenders', async () => {
+    vi.spyOn(Apis.runServiceApi, 'getRun').mockRejectedValue(new Error('route unavailable'));
+    vi.spyOn(features, 'isFeatureEnabled').mockReturnValue(true);
+    const bannerUpdates: object[] = [];
+
+    function StatefulOwner() {
+      const [bannerUpdateCount, setBannerUpdateCount] = useState(0);
+      const updateBanner = useCallback<PageProps['updateBanner']>((banner) => {
+        bannerUpdates.push(banner);
+        if (bannerUpdates.length < 10) {
+          setBannerUpdateCount((count) => count + 1);
+        }
+      }, []);
+      return (
+        <>
+          <span data-testid='banner-update-count'>{bannerUpdateCount}</span>
+          <Compare {...generateProps()} updateBanner={updateBanner} />
+        </>
+      );
+    }
+
+    render(
+      <CommonTestWrapper>
+        <StatefulOwner />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('banner-update-count')).toHaveTextContent('1'));
+    await flushPromisesInAct();
+    expect(bannerUpdates).toHaveLength(1);
   });
 
   it('renders the V2 comparison when one requested run fails to load', async () => {

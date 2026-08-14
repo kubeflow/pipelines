@@ -90,6 +90,60 @@ describe('getLauncherProviderInfo', () => {
     nowSpy.mockRestore();
   });
 
+  it('prunes expired entries when another namespace is requested', async () => {
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    mockedGetConfigMap.mockImplementation(async (_name, namespace) => [
+      { data: { defaultPipelineRoot: `s3://${namespace}-bucket/root` } },
+      undefined,
+    ]);
+
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-a-bucket', key: 'root/artifact' },
+      'team-a',
+    );
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-b-bucket', key: 'root/artifact' },
+      'team-b',
+    );
+    nowSpy.mockReturnValue(31_001);
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-c-bucket', key: 'root/artifact' },
+      'team-c',
+    );
+
+    expect(TEST_ONLY.getLauncherConfigurationCacheKeys()).toEqual(['team-c']);
+    nowSpy.mockRestore();
+  });
+
+  it('bounds namespace churn with least-recently-used eviction', async () => {
+    const maxEntries = TEST_ONLY.launcherConfigurationCacheMaxEntries;
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://bucket/root' } },
+      undefined,
+    ]);
+
+    await Promise.all(
+      Array.from({ length: maxEntries + 1 }, (_, index) =>
+        getLauncherProviderInfo(
+          { source: 's3', bucket: 'bucket', key: 'root/artifact' },
+          `team-${index}`,
+        ),
+      ),
+    );
+
+    const cacheKeys = TEST_ONLY.getLauncherConfigurationCacheKeys();
+    expect(cacheKeys).toHaveLength(maxEntries);
+    expect(cacheKeys).not.toContain('team-0');
+    expect(cacheKeys).toContain(`team-${maxEntries}`);
+
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'bucket', key: 'root/artifact' },
+      'team-0',
+    );
+    expect(mockedGetConfigMap).toHaveBeenCalledTimes(maxEntries + 2);
+    expect(TEST_ONLY.getLauncherConfigurationCacheKeys()).not.toContain('team-1');
+  });
+
   it('selects the first matching S3 override for the artifact path', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

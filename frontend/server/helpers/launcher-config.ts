@@ -24,6 +24,7 @@ import {
 const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
 const DEFAULT_PIPELINE_ROOT = 'minio://mlpipeline/v2/artifacts';
 const LAUNCHER_CONFIG_CACHE_TTL_MS = 30_000;
+const LAUNCHER_CONFIG_CACHE_MAX_ENTRIES = 1_000;
 
 interface SecretRef {
   secretName?: string;
@@ -160,8 +161,12 @@ export async function getLauncherProviderInfo(
 
 async function getLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
   const now = Date.now();
+  pruneExpiredLauncherConfigurationCacheEntries(now);
   const cached = launcherConfigurationCache.get(namespace);
-  if (cached && cached.expiresAt > now) {
+  if (cached) {
+    // Refresh insertion order so the size cap evicts the least recently used namespace.
+    launcherConfigurationCache.delete(namespace);
+    launcherConfigurationCache.set(namespace, cached);
     return cached.value;
   }
 
@@ -170,12 +175,31 @@ async function getLauncherConfiguration(namespace: string): Promise<LauncherConf
     expiresAt: now + LAUNCHER_CONFIG_CACHE_TTL_MS,
     value,
   });
+  evictLauncherConfigurationCacheOverflow();
   void value.catch(() => {
     if (launcherConfigurationCache.get(namespace)?.value === value) {
       launcherConfigurationCache.delete(namespace);
     }
   });
   return value;
+}
+
+function pruneExpiredLauncherConfigurationCacheEntries(now: number): void {
+  launcherConfigurationCache.forEach((entry, namespace) => {
+    if (entry.expiresAt <= now) {
+      launcherConfigurationCache.delete(namespace);
+    }
+  });
+}
+
+function evictLauncherConfigurationCacheOverflow(): void {
+  while (launcherConfigurationCache.size > LAUNCHER_CONFIG_CACHE_MAX_ENTRIES) {
+    const leastRecentlyUsedNamespace = launcherConfigurationCache.keys().next().value;
+    if (leastRecentlyUsedNamespace === undefined) {
+      return;
+    }
+    launcherConfigurationCache.delete(leastRecentlyUsedNamespace);
+  }
 }
 
 async function loadLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
@@ -391,4 +415,6 @@ function isNotFoundError(error: K8sError): boolean {
 
 export const TEST_ONLY = {
   clearLauncherConfigurationCache: () => launcherConfigurationCache.clear(),
+  getLauncherConfigurationCacheKeys: () => [...launcherConfigurationCache.keys()],
+  launcherConfigurationCacheMaxEntries: LAUNCHER_CONFIG_CACHE_MAX_ENTRIES,
 };
