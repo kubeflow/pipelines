@@ -278,6 +278,44 @@ describe('CompareV1', () => {
     loggerErrorSpy.mockRestore();
   });
 
+  it('shows an error banner when a visualization source fails', async () => {
+    const workflow = {
+      status: {
+        nodes: {
+          node1: {
+            outputs: {
+              artifacts: [
+                {
+                  name: 'mlpipeline-ui-metadata',
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const run = newMockRun(MOCK_RUN_1_ID);
+    run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
+    runs = [run];
+    getRunSpy.mockResolvedValue(run);
+    outputArtifactLoaderSpy.mockRejectedValue(new Error('missing visualization source'));
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID}`;
+
+    await renderCompare(props);
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'missing visualization source',
+          message: 'Error: failed loading run visualizations. Click Details for more information.',
+          mode: 'error',
+        }),
+      ),
+    );
+  });
+
   it('shows an info banner if all runs are v2', async () => {
     runs = [
       newMockRun(MOCK_RUN_1_ID, true),

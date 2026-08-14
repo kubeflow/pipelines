@@ -355,6 +355,22 @@ The `Visualization` Nav in `RuntimeNodeDetailsV2.tsx` will also need to be updat
 
 The Artifact Node in the UI should also no longer display an `Artifact URI` for metrics, as this is not applicable.
 
+#### Visualization compatibility
+
+The native Run Details page preserves scalar/classification metrics and the documented
+`mlpipeline-ui-metadata` viewers (table, ROC-from-CSV, static HTML, TensorBoard, and web app) through
+Task and Artifact API data. Source failures remain isolated so one bad legacy viewer does not hide
+valid siblings.
+
+The old V2 route also inherited the V1 page's **Create visualizations manually** control, which sent
+arbitrary visualization arguments to the Python visualization service. That control is not carried
+to the native Run Details page. TFDV was selectable through it; TFMA existed in the API enum but was
+already filtered out of the old selector. This is an explicit compatibility boundary, separate from
+`mlpipeline-ui-metadata`, and must not be described as native artifact-viewer parity. Reintroducing
+it requires a product and security decision about the server-side Python visualization API, task
+source identity, authorization, and supported lifecycle. That decision is tracked in
+[#14028](https://github.com/kubeflow/pipelines/issues/14028).
+
 The `CompareV2.tsx` also makes various calls to MLMD, much like `RuntimeNodeDetailsV2`:
 
 ```typescript

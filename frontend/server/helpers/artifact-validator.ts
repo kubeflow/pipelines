@@ -127,9 +127,14 @@ export async function validateArtifactNamespace(
   }
 
   const artifactService = new ArtifactServiceApi(new Configuration({ basePath: apiServerAddress }));
-  const filter = JSON.stringify({
-    predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
-  });
+  // The generated client encodes query parameters once, and the API server deliberately
+  // QueryUnescapes filters after the gateway has decoded the request. Pre-encode the JSON so URI
+  // characters such as `%` and `+` survive both decoding stages unchanged.
+  const filter = encodeURIComponent(
+    JSON.stringify({
+      predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
+    }),
+  );
   const abortController = new AbortController();
   const timeout = setTimeout(() => abortController.abort(), VALIDATION_TIMEOUT_MS);
 

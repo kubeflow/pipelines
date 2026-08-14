@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as JsYaml from 'js-yaml';
+import { isEqual } from 'lodash';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
@@ -30,6 +31,11 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
+const MAX_UNCHANGED_POST_RETRY_SNAPSHOTS = 3;
+
+function preserveDeepEqualData<T>(previous: T | undefined, next: T): T {
+  return previous !== undefined && isEqual(previous, next) ? previous : next;
+}
 
 // This is a router to determine whether to show V1 or V2 run detail page.
 export default function RunDetailsRouter(
@@ -37,17 +43,18 @@ export default function RunDetailsRouter(
 ) {
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
-  let pipelineManifest: string | undefined;
 
   // Retrieves v2 run detail.
   const { isLoading: runIsLoading, data: v2Run } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    structuralSharing: preserveDeepEqualData,
   });
 
-  if (v2Run?.pipeline_spec) {
-    pipelineManifest = JsYaml.dump(v2Run.pipeline_spec);
-  }
+  const pipelineManifest = useMemo(
+    () => (v2Run?.pipeline_spec ? JsYaml.dump(v2Run.pipeline_spec) : undefined),
+    [v2Run],
+  );
 
   const pipelineId = v2Run?.pipeline_version_reference?.pipeline_id;
   const pipelineVersionId = v2Run?.pipeline_version_reference?.pipeline_version_id;
@@ -106,13 +113,22 @@ export default function RunDetailsRouter(
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
-  const postRetryRefreshPending = useRef(false);
+  const postRetryRefreshPending = useRef<{
+    baseline: V2beta1Run;
+    unchangedSnapshotsRemaining: number;
+  } | null>(null);
   const [retryRefreshVersion, setRetryRefreshVersion] = useState(0);
   const loadRun = useCallback(async () => {
     const run = await Apis.runServiceApiV2.getRun(runId);
-    if (postRetryRefreshPending.current) {
-      postRetryRefreshPending.current = false;
+    const pending = postRetryRefreshPending.current;
+    if (pending && !isEqual(run, pending.baseline)) {
+      postRetryRefreshPending.current = null;
       setRetryRefreshVersion((version) => version + 1);
+    } else if (pending) {
+      pending.unchangedSnapshotsRemaining -= 1;
+      if (pending.unchangedSnapshotsRemaining <= 0) {
+        postRetryRefreshPending.current = null;
+      }
     }
     return run;
   }, [runId]);
@@ -124,6 +140,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: loadRun,
+    structuralSharing: preserveDeepEqualData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       const runIsActive = state !== undefined && !hasFinishedV2(state);
@@ -132,11 +149,14 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     refetchOnMount: false,
   });
   const onRetryStarted = useCallback(() => {
-    // Keep discovery alive across transient failures, but clear it on the first successful
-    // post-retry snapshot even when a fast retry has already returned to a terminal state.
-    postRetryRefreshPending.current = true;
+    // Retry persistence can lag the mutation response. Continue through a few unchanged terminal
+    // snapshots, but keep the recovery bounded when a fast retry remains terminal throughout.
+    postRetryRefreshPending.current = {
+      baseline: refreshedRun || props.run,
+      unchangedSnapshotsRemaining: MAX_UNCHANGED_POST_RETRY_SNAPSHOTS,
+    };
     void refetchRun();
-  }, [refetchRun]);
+  }, [props.run, refreshedRun, refetchRun]);
 
   return (
     <RunDetailsV2

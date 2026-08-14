@@ -205,6 +205,48 @@ describe('RuntimeNodeDetailsV2', () => {
     );
   });
 
+  it('keeps prior logs visible while a newly discovered source is loading', async () => {
+    let resolveRetryLogs: ((logs: string) => void) | undefined;
+    const retryLogs = new Promise<string>((resolve) => {
+      resolveRetryLogs = resolve;
+    });
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockResolvedValueOnce('first attempt logs')
+      .mockReturnValueOnce(retryLogs);
+    const initialTask = createTask({ state: PipelineTaskTaskState.RUNNING });
+    const view = renderTask(initialTask);
+
+    fireEvent.click(await screen.findByText('Logs'));
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={executionElement}
+          elementRuntimeInfo={{
+            task: createTask({
+              state: PipelineTaskTaskState.RUNNING,
+              pods: [
+                { name: TEST_POD_NAME, type: PipelineTaskTaskPodType.EXECUTOR },
+                { name: 'retry-pod', type: PipelineTaskTaskPodType.EXECUTOR },
+              ],
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+    await act(async () => resolveRetryLogs?.('retry logs'));
+  });
+
   it('stops log polling when the parent run is terminal', async () => {
     vi.useFakeTimers();
     const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('final output');

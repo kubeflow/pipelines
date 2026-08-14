@@ -1166,7 +1166,9 @@ const VisualizationsTabContent: React.FC<{
       const builtConfigs = (
         await Promise.all([
           ...outputPaths.map((path) =>
-            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
+            OutputArtifactLoader.load(path, namespace, { throwOnError: true }).catch(
+              reportErrorAndReturnEmpty,
+            ),
           ),
         ])
       ).flatMap((configs) => configs);

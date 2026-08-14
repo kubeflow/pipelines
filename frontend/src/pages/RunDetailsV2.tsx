@@ -22,6 +22,7 @@ import {
   useState,
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { isEqual } from 'lodash';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
@@ -114,6 +115,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runFinished = runIsTerminal;
   const retryRefreshVersion = props.retryRefreshVersion || 0;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
+  const appliedLinkedTaskId = useRef<string | null>(null);
 
   const {
     isSuccess,
@@ -125,6 +127,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryKey: queryKeys.runTasks(runId, retryRefreshVersion || undefined),
     queryFn: () => listAllRunTasks(runId),
     placeholderData: (previousTasks) => previousTasks,
+    structuralSharing: (previousTasks, nextTasks) =>
+      previousTasks && isEqual(previousTasks, nextTasks) ? previousTasks : nextTasks,
     staleTime: QUERY_STALE_TIME,
     refetchInterval: (query) => {
       if (!runFinished) {
@@ -176,6 +180,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     if (!linkedTaskId) {
       return;
     }
+    appliedLinkedTaskId.current = null;
     const search = new URLSearchParams(props.location.search);
     search.delete(QUERY_PARAMS.taskId);
     const nextSearch = search.toString();
@@ -228,30 +233,45 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   }, [flowElements, layers, runtimeFlowContext, tasks]);
 
   const linkedTask = tasks?.find((task) => task.task_id === linkedTaskId);
-  const linkedTaskElement = useMemo(
-    () => (linkedTask ? buildLinkedTaskElement(linkedTask) : null),
-    [linkedTask],
-  );
-  const linkedTaskLayers = useMemo(
-    () => (linkedTask ? getTaskRuntimeLayers(linkedTask, tasks || []) : layers),
-    [layers, linkedTask, tasks],
-  );
-  const activeSelectedNode = selectedNode || linkedTaskElement;
-  const activeLayers = selectedNode ? layers : linkedTaskLayers;
+  useEffect(() => {
+    if (!linkedTaskId) {
+      appliedLinkedTaskId.current = null;
+      return;
+    }
+    if (!linkedTask || appliedLinkedTaskId.current === linkedTaskId) {
+      return;
+    }
+
+    // The query parameter is external navigation state. Materialize it through the same real
+    // runtime layer and element set used by ordinary canvas navigation so the target is visible,
+    // selected, and backed by its actual graph node rather than a detached details-only object.
+    const targetLayers = getTaskRuntimeLayers(linkedTask, tasks || []);
+    const targetElements = convertSubDagToRuntimeFlowElements(
+      pipelineSpec,
+      targetLayers,
+      tasks || [],
+    );
+    const targetNodeId = getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task');
+    const targetElement =
+      targetElements.find((element) => element.id === targetNodeId) ||
+      buildLinkedTaskElement(linkedTask);
+    appliedLinkedTaskId.current = linkedTaskId;
+    setLayers(targetLayers);
+    setFlowElements(targetElements);
+    setSelectedNode(targetElement);
+  }, [linkedTask, linkedTaskId, pipelineSpec, tasks]);
+
+  const activeSelectedNode = selectedNode;
+  const activeLayers = layers;
   const selectedNodeRuntimeInfo = useMemo(() => {
-    if (!selectedNode && activeSelectedNode === linkedTaskElement && linkedTask) {
+    const linkedTaskNodeId = linkedTask
+      ? getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task')
+      : undefined;
+    if (linkedTask && activeSelectedNode?.id === linkedTaskNodeId) {
       return { task: linkedTask };
     }
     return getNodeRuntimeInfo(activeSelectedNode, tasks || [], layers, runtimeFlowContext);
-  }, [
-    activeSelectedNode,
-    layers,
-    linkedTask,
-    linkedTaskElement,
-    runtimeFlowContext,
-    selectedNode,
-    tasks,
-  ]);
+  }, [activeSelectedNode, layers, linkedTask, runtimeFlowContext, tasks]);
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
     clearLinkedTaskQuery();
@@ -302,6 +322,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               layers={layers}
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
+              selectedNodeId={activeSelectedNode?.id}
+              focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}
               setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>

@@ -141,6 +141,22 @@ describe('OutputArtifactLoader', () => {
         errors: ['missing source'],
       });
     });
+
+    it('surfaces referenced-source failures when a legacy caller requests errors', async () => {
+      fileToRead = JSON.stringify({
+        outputs: [{ type: PlotType.MARKDOWN, source: 'gs://bucket/missing.md', storage: 'gcs' }],
+      });
+      readFileSpy.mockImplementation(async ({ path }) => {
+        if (path.key === 'k') {
+          return fileToRead;
+        }
+        throw new Error('missing source');
+      });
+
+      await expect(
+        OutputArtifactLoader.load(storagePath, undefined, { throwOnError: true }),
+      ).rejects.toThrow('missing source');
+    });
   });
 
   describe('buildConfusionMatrixConfig', () => {

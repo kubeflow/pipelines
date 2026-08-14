@@ -196,6 +196,9 @@ describe('RunDetailsV2', () => {
 
     fireEvent.click(await screen.findByText('Task Details'));
     await screen.findByText('preprocess-task');
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'close' }));
     expect(historyReplaceSpy).toHaveBeenCalledWith({
       ...props.location,
@@ -241,6 +244,46 @@ describe('RunDetailsV2', () => {
 
     await act(async () => {});
     expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalledTimes(callCountAfterLoad);
+  });
+
+  it('preserves task identity when a poll returns byte-equivalent timestamps', async () => {
+    vi.useFakeTimers();
+    const reconcileRuntimeFlowElementsSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
+    const tasksSpy = vi.spyOn(Apis.runServiceApiV2, 'tasks').mockImplementation(async () => ({
+      tasks: TEST_TASKS.map((task) => ({
+        ...task,
+        create_time: new Date('2026-08-14T12:00:00Z'),
+      })),
+    }));
+    const runningRun = {
+      ...TEST_RUN,
+      finished_at: undefined,
+      state: V2beta1RuntimeState.RUNNING,
+    };
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={runningRun} {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalled();
+    const reconciliationsAfterLoad = reconcileRuntimeFlowElementsSpy.mock.calls.length;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect(reconcileRuntimeFlowElementsSpy).toHaveBeenCalledTimes(reconciliationsAfterLoad);
+    reconcileRuntimeFlowElementsSpy.mockRestore();
+    vi.useRealTimers();
   });
 
   it('Shows error banner when tasks cannot be retrieved', async () => {

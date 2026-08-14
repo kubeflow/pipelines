@@ -102,7 +102,7 @@ export function convertSubDagToRuntimeFlowElements(
     runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
     runtimeContext.iterationIndex === undefined
   ) {
-    return buildParallelForDag(runtimeContext.task, taskIndex);
+    return buildParallelForDag(runtimeContext.task, taskIndex) || buildDag(spec, componentSpec);
   }
   return buildDag(spec, componentSpec);
 }
@@ -178,7 +178,11 @@ export function reconcileRuntimeFlowElements(
     runtimeContext.iterationIndex === undefined &&
     !hasParallelForStructure(elements, runtimeContext.task)
   ) {
-    runtimeStructure = buildParallelForDag(runtimeContext.task, flowContext.taskIndex);
+    // A LOOP row can exist before the driver has persisted iteration_count (including driver
+    // failure and non-triggered paths). Keep the declarative body visible until runtime iteration
+    // structure is authoritative instead of replacing it with an empty graph.
+    runtimeStructure =
+      buildParallelForDag(runtimeContext.task, flowContext.taskIndex) || runtimeStructure;
   }
 
   return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
@@ -188,7 +192,10 @@ function hasParallelForStructure(
   elements: PipelineFlowElement[],
   loopTask: V2beta1PipelineTask,
 ): boolean {
-  const iterationCount = Number(loopTask.type_attributes?.iteration_count || 0);
+  const iterationCount = getParallelForIterationCount(loopTask);
+  if (iterationCount === undefined) {
+    return false;
+  }
   if (elements.length !== iterationCount) {
     return false;
   }
@@ -408,9 +415,24 @@ function getTasksUnderContext(
   );
 }
 
-function buildParallelForDag(loopTask: V2beta1PipelineTask, taskIndex: TaskIndex) {
+function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | undefined {
+  const value = loopTask.type_attributes?.iteration_count;
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 ? count : undefined;
+}
+
+function buildParallelForDag(
+  loopTask: V2beta1PipelineTask,
+  taskIndex: TaskIndex,
+): PipelineFlowElement[] | undefined {
   const flowGraph: PipelineFlowElement[] = [];
-  const iterationCount = Number(loopTask.type_attributes?.iteration_count || 0);
+  const iterationCount = getParallelForIterationCount(loopTask);
+  if (iterationCount === undefined) {
+    return undefined;
+  }
   const children = taskIndex.childrenByParentId.get(loopTask.task_id || '') || [];
   for (let index = 0; index < iterationCount; index++) {
     const iterationNodeName = `${loopTask.name}.${index}`;

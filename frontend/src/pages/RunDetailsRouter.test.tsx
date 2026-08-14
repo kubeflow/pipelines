@@ -30,10 +30,12 @@ import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_
 import { vi } from 'vitest';
 
 const observedRetryCallbacks = vi.hoisted(() => [] as Array<() => void>);
+const observedRunReferences = vi.hoisted(() => [] as V2beta1Run[]);
 
 vi.mock('src/pages/RunDetailsV2', () => ({
   RunDetailsV2: (props: any) => {
     observedRetryCallbacks.push(props.onRetryStarted);
+    observedRunReferences.push(props.run);
     return (
       <>
         <div
@@ -89,6 +91,7 @@ describe('RunDetailsRouter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     observedRetryCallbacks.length = 0;
+    observedRunReferences.length = 0;
     getRunSpy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
     getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
     vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
@@ -135,6 +138,43 @@ describe('RunDetailsRouter', () => {
       'data-pipeline-name',
       v2PipelineSpec.pipelineInfo.name,
     );
+  });
+
+  it('does not rerender V2 details for a byte-equivalent active-run poll', async () => {
+    vi.useFakeTimers();
+    const runningRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.RUNNING,
+      created_at: new Date('2026-08-14T12:00:00Z'),
+    };
+    getRunSpy.mockImplementation(async () => ({
+      ...runningRun,
+      created_at: new Date('2026-08-14T12:00:00Z'),
+      pipeline_spec: structuredClone(v2PipelineSpec),
+    }));
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
+    const rendersAfterLoad = observedRunReferences.length;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    expect(observedRunReferences).toHaveLength(rendersAfterLoad);
   });
 
   it('keeps the retry callback stable across parent rerenders', async () => {
@@ -311,7 +351,55 @@ describe('RunDetailsRouter', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 3);
     });
-    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps discovering a retry while successful snapshots still match the pre-retry run', async () => {
+    vi.useFakeTimers();
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+      state_history: [
+        { state: V2beta1RuntimeState.FAILED, update_time: new Date('2026-08-14T12:00:00Z') },
+      ],
+    };
+    const retriedFailedRun: V2beta1Run = {
+      ...failedRun,
+      state_history: [
+        ...failedRun.state_history!,
+        { state: V2beta1RuntimeState.RUNNING, update_time: new Date('2026-08-14T12:01:00Z') },
+        { state: V2beta1RuntimeState.FAILED, update_time: new Date('2026-08-14T12:02:00Z') },
+      ],
+    };
+    getRunSpy
+      .mockResolvedValueOnce(failedRun)
+      .mockResolvedValueOnce({ ...failedRun })
+      .mockResolvedValueOnce({ ...failedRun })
+      .mockResolvedValue(retriedFailedRun);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute('data-retry-refresh-version', '0');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute('data-retry-refresh-version', '1');
   });
 
   it('keeps discovering a retried run after the first post-retry refresh fails', async () => {
@@ -324,7 +412,7 @@ describe('RunDetailsRouter', () => {
     getRunSpy
       .mockResolvedValueOnce(failedRun)
       .mockRejectedValueOnce(new Error('Run service unavailable'))
-      .mockResolvedValue(failedRun);
+      .mockResolvedValue({ ...failedRun, state: V2beta1RuntimeState.RUNNING });
 
     render(
       <CommonTestWrapper>
@@ -352,9 +440,6 @@ describe('RunDetailsRouter', () => {
     expect(getRunSpy).toHaveBeenCalledTimes(3);
     expect(screen.getByTestId('run-details-v2')).toHaveAttribute('data-retry-refresh-version', '1');
     expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
-
-    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 2));
-    expect(getRunSpy).toHaveBeenCalledTimes(3);
   });
 
   it('remounts the v2 detail subtree when the run ID changes', async () => {

@@ -392,6 +392,48 @@ describe('DynamicFlow', () => {
       ).toEqual(['task.loop.0', 'task.loop.1']);
     });
 
+    it('keeps the static loop body when iteration_count is not yet available', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+      };
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: {
+          'loop-component': {
+            dag: {
+              tasks: {
+                body: {
+                  taskInfo: { name: 'body' },
+                  componentRef: { name: 'body-component' },
+                },
+              },
+            },
+          },
+          'body-component': { executorLabel: 'exec' },
+        },
+      });
+      const layers = ['root', 'loop'];
+      const staticElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, []);
+
+      expect(
+        reconcileRuntimeFlowElements(layers, staticElements, [rootTask, loopTask]).map(
+          (element) => element.id,
+        ),
+      ).toEqual(staticElements.map((element) => element.id));
+    });
+
     it('does not rerun graph layout when the ParallelFor structure is unchanged', () => {
       const loopTask: V2beta1PipelineTask = {
         task_id: 'loop-task',

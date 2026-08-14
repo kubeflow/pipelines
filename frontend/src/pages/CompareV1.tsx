@@ -282,10 +282,16 @@ class CompareV1 extends Page<{}, CompareState> {
     await Promise.all(
       outputPathsList.map(async (pathList, i) => {
         for (const path of pathList) {
-          const configs = await OutputArtifactLoader.load(
-            path,
-            workflowObjects[0]?.metadata?.namespace,
-          );
+          let configs: ViewerConfig[] = [];
+          try {
+            configs = await OutputArtifactLoader.load(
+              path,
+              workflowObjects[0]?.metadata?.namespace,
+              { throwOnError: true },
+            );
+          } catch (error) {
+            await this.showPageError('Error: failed loading run visualizations.', error);
+          }
           configs.forEach((config) => {
             const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
             currentList.push({

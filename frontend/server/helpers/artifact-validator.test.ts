@@ -137,7 +137,7 @@ describe('artifact-validator', () => {
     const url = new URL(requestUrl);
     expect(url.pathname).toBe('/apis/v2beta1/artifacts');
     expect(url.searchParams.get('namespace')).toBe('team-a');
-    expect(JSON.parse(url.searchParams.get('filter') || '{}')).toEqual({
+    expect(JSON.parse(decodeURIComponent(url.searchParams.get('filter') || '{}'))).toEqual({
       predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: 's3://bucket/shared/output' }],
     });
     expect(new Headers(requestInit.headers).get('kubeflow-userid')).toBe('user@example.com');
@@ -145,7 +145,8 @@ describe('artifact-validator', () => {
   });
 
   it('preserves a provider query in the exact ArtifactService ownership lookup', async () => {
-    const artifactUri = 's3://bucket/shared/output?endpoint=https://ceph.example:9443';
+    const artifactUri =
+      's3://bucket/shared/output%25+plus?endpoint=https://ceph.example:9443&token=a%2Bb';
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
         headers: { 'Content-Type': 'application/json' },
@@ -159,7 +160,7 @@ describe('artifact-validator', () => {
     ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
 
     const requestUrl = new URL(fetchSpy.mock.calls[0][0] as string);
-    expect(JSON.parse(requestUrl.searchParams.get('filter') || '{}')).toEqual({
+    expect(JSON.parse(decodeURIComponent(requestUrl.searchParams.get('filter') || '{}'))).toEqual({
       predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
     });
   });
