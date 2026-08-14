@@ -16,7 +16,10 @@ import { PipelineSpec } from 'src/generated/pipeline_spec';
 
 export function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
   let currentDag = pipelineSpec.root?.dag;
-  const taskLayers = [...layers.slice(1), taskKey];
+  const specLayers = layers.filter(
+    (layer, index) => !isRuntimeIterationLayer(layer, layers[index - 1]),
+  );
+  const taskLayers = [...specLayers.slice(1), taskKey];
   let componentSpec;
   for (let i = 0; i < taskLayers.length; i++) {
     const pipelineTaskSpec = currentDag?.tasks[taskLayers[i]];
@@ -31,4 +34,11 @@ export function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], t
     currentDag = componentSpec.dag;
   }
   return componentSpec;
+}
+
+function isRuntimeIterationLayer(layer: string, parentLayer?: string): boolean {
+  if (!parentLayer || !layer.startsWith(`${parentLayer}.`)) {
+    return false;
+  }
+  return /^\d+$/.test(layer.slice(parentLayer.length + 1));
 }

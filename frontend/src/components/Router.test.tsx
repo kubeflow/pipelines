@@ -18,6 +18,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
 import { MemoryRouter } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
+import { useEffect, useState } from 'react';
 import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
@@ -75,6 +76,35 @@ describe('Router', () => {
       history.push('/pear');
     });
     await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
+  });
+
+  it('preserves page state when only the query changes', async () => {
+    let mountCount = 0;
+    const StatefulPage = () => {
+      const [selection, setSelection] = useState('initial');
+      useEffect(() => {
+        mountCount++;
+      }, []);
+      return <button onClick={() => setSelection('selected')}>{selection}</button>;
+    };
+    const history = createMemoryHistory({
+      initialEntries: ['/runs/details/run-1?task=task-1'],
+    });
+    const initialLocationKey = history.location.key;
+    render(
+      <ReactRouter history={history}>
+        <Router configs={[{ path: RoutePage.RUN_DETAILS, Component: StatefulPage }]} />
+      </ReactRouter>,
+    );
+
+    act(() => screen.getByRole('button', { name: 'initial' }).click());
+    const mountCountBeforeReplace = mountCount;
+    act(() => history.replace('/runs/details/run-1'));
+
+    await waitFor(() => expect(history.location.search).toBe(''));
+    expect(history.location.key).not.toBe(initialLocationKey);
+    expect(screen.getByRole('button', { name: 'selected' })).toBeVisible();
+    expect(mountCount).toBe(mountCountBeforeReplace);
   });
 
   it('only accepts same-app return paths', () => {

@@ -261,14 +261,13 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
         {routes.map((route, i) => {
           const { path } = { ...route };
           return (
-            // Setting a key here, so that two different routes are considered two instances from
-            // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
-            // network response handlers.
+            // Treat different paths as separate page instances so they do not share toolbar state
+            // or dangling network handlers. Query-only changes belong to the same page instance.
             <Route
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => <RoutedPage key={props.location.pathname} route={route} />}
             />
           );
         })}
