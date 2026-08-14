@@ -835,6 +835,25 @@ describe('CompareV2', () => {
     expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
   });
 
+  it('preserves artifact selections while the Metrics section is collapsed', async () => {
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByText('Train / accuracy');
+
+    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select comparison artifact' }));
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Metrics' }));
+    expect(screen.queryByTestId('comparison-selection')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Metrics' }));
+
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
+  });
+
   it('discards artifact selections when the selected run set changes', async () => {
     render(
       <CommonTestWrapper>

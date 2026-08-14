@@ -238,6 +238,56 @@ export function buildRuntimeFlowContext(
   return { taskIndex, runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex) };
 }
 
+export function getTaskRuntimeLayers(
+  task: V2beta1PipelineTask,
+  tasks: V2beta1PipelineTask[],
+): string[] {
+  const tasksById = new Map<string, V2beta1PipelineTask>();
+  for (const candidate of tasks) {
+    if (candidate.task_id) {
+      tasksById.set(candidate.task_id, candidate);
+    }
+  }
+  const ancestry: V2beta1PipelineTask[] = [];
+  const visited = new Set<string>();
+  let current: V2beta1PipelineTask | undefined = task;
+  while (current) {
+    ancestry.unshift(current);
+    if (current.type === PipelineTaskTaskType.ROOT || !current.parent_task_id) {
+      break;
+    }
+    if (visited.has(current.parent_task_id)) {
+      break;
+    }
+    visited.add(current.parent_task_id);
+    current = tasksById.get(current.parent_task_id);
+  }
+
+  if (ancestry[0]?.type !== PipelineTaskTaskType.ROOT && task.scope_path) {
+    const scopeLayers = task.scope_path.split('.').filter(Boolean).slice(0, -1);
+    return scopeLayers[0] === 'root' ? scopeLayers : ['root', ...scopeLayers];
+  }
+
+  const runtimeTasks =
+    ancestry[0]?.type === PipelineTaskTaskType.ROOT ? ancestry.slice(1) : ancestry;
+  const layers = ['root'];
+  for (let index = 0; index < runtimeTasks.length - 1; index++) {
+    const contextTask = runtimeTasks[index];
+    const childTask = runtimeTasks[index + 1];
+    if (!contextTask.name) {
+      continue;
+    }
+    layers.push(contextTask.name);
+    if (
+      contextTask.type === PipelineTaskTaskType.LOOP &&
+      childTask.type_attributes?.iteration_index !== undefined
+    ) {
+      layers.push(`${contextTask.name}.${childTask.type_attributes.iteration_index}`);
+    }
+  }
+  return layers;
+}
+
 function buildTaskIndex(tasks: V2beta1PipelineTask[]): TaskIndex {
   const tasksById = new Map<string, V2beta1PipelineTask>();
   const childrenByParentId = new Map<string, V2beta1PipelineTask[]>();

@@ -54,10 +54,11 @@ describe('RunDetailsV2', () => {
   let updateSnackbarSpy: any;
   let updateToolbarSpy: any;
   let historyPushSpy: any;
+  let historyReplaceSpy: any;
 
   function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
+      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: '' as any,
       match: {
         params: {
@@ -149,10 +150,13 @@ describe('RunDetailsV2', () => {
     updateSnackbarSpy = vi.fn();
     updateToolbarSpy = vi.fn();
     historyPushSpy = vi.fn();
+    historyReplaceSpy = vi.fn();
 
     vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: TEST_TASKS });
     vi.spyOn(Apis.experimentServiceApiV2, 'getExperiment').mockResolvedValue(TEST_EXPERIMENT);
   });
+
+  afterEach(() => vi.useRealTimers());
 
   it('Render detail page with reactflow', async () => {
     render(
@@ -170,9 +174,9 @@ describe('RunDetailsV2', () => {
   it('opens the native task targeted by a related-task link', async () => {
     const props = generateProps();
     props.location = {
-      hash: '',
+      hash: '#logs',
       pathname: `/runs/details/${RUN_ID}`,
-      search: '?task=preprocess-task',
+      search: '?task=preprocess-task&view=graph',
       state: undefined,
     } as any;
 
@@ -184,6 +188,11 @@ describe('RunDetailsV2', () => {
 
     fireEvent.click(await screen.findByText('Task Details'));
     await screen.findByText('preprocess-task');
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    expect(historyReplaceSpy).toHaveBeenCalledWith({
+      ...props.location,
+      search: '?view=graph',
+    });
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
@@ -514,17 +523,18 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
   });
 
-  it('notifies the polling owner and reconciles tasks after a successful retry', async () => {
+  it('reconciles tasks only after the polling owner discovers the retried run', async () => {
     const onRetryStarted = vi.fn();
     const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
     vi.spyOn(Apis.runServiceApiV2, 'retryRun').mockResolvedValue({});
-    render(
+    const props = generateProps();
+    const view = render(
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
           onRetryStarted={onRetryStarted}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
-          {...generateProps()}
+          {...props}
         />
       </CommonTestWrapper>,
     );
@@ -542,7 +552,54 @@ describe('RunDetailsV2', () => {
     await confirmButton.onClick();
 
     expect(onRetryStarted).toHaveBeenCalledTimes(1);
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          onRetryStarted={onRetryStarted}
+          retryRefreshVersion={1}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...props}
+        />
+      </CommonTestWrapper>,
+    );
     await waitFor(() => expect(tasksSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it('recovers retry task reconciliation and bounds terminal intermediate snapshots', async () => {
+    vi.useFakeTimers();
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+    const unfinishedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
+    );
+    tasksSpy
+      .mockRejectedValueOnce(new Error('Task service unavailable'))
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValue({ tasks: TEST_TASKS });
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          retryRefreshVersion={1}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...generateProps()}
+        />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
   it('refetches a fresh cached task snapshot when mounting a terminal run', async () => {

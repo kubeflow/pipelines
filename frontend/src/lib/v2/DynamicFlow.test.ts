@@ -27,6 +27,7 @@ import { convertFlowElements, NodeTypeNames } from './StaticFlow';
 import {
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
+  getTaskRuntimeLayers,
   reconcileRuntimeFlowElements,
   updateFlowElementsState,
 } from './DynamicFlow';
@@ -273,6 +274,44 @@ describe('DynamicFlow', () => {
           ['root', 'loop', 'loop.1', 'body'],
         ),
       ).toEqual({ task: iterationOneChild });
+    });
+  });
+
+  describe('getTaskRuntimeLayers', () => {
+    it('resolves nested DAG and ParallelFor iteration layers from task ancestry', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+      };
+      const iterationDag: V2beta1PipelineTask = {
+        task_id: 'body-1',
+        parent_task_id: loopTask.task_id,
+        name: 'body',
+        type: PipelineTaskTaskType.DAG,
+        type_attributes: { iteration_index: '1' },
+      };
+      const nestedTask: V2beta1PipelineTask = {
+        task_id: 'nested-task',
+        parent_task_id: iterationDag.task_id,
+        name: 'train',
+        type: PipelineTaskTaskType.RUNTIME,
+      };
+
+      expect(
+        getTaskRuntimeLayers(nestedTask, [rootTask, loopTask, iterationDag, nestedTask]),
+      ).toEqual(['root', 'loop', 'loop.1', 'body']);
+    });
+
+    it('falls back to scope_path when parent task records are unavailable', () => {
+      const nestedTask: V2beta1PipelineTask = {
+        task_id: 'nested-task',
+        name: 'train',
+        scope_path: 'root.outer.inner.train',
+      };
+
+      expect(getTaskRuntimeLayers(nestedTask, [nestedTask])).toEqual(['root', 'outer', 'inner']);
     });
   });
 

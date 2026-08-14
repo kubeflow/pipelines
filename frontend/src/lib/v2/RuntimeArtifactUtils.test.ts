@@ -88,6 +88,27 @@ describe('RuntimeArtifactUtils', () => {
     expect(getOutputArtifactByName(task, 'missing')).toBeUndefined();
   });
 
+  it('selects executor logs by retry index rather than Artifact API order', () => {
+    const retryLogsTask: V2beta1PipelineTask = {
+      outputs: {
+        artifacts: [
+          {
+            artifact_key: EXECUTOR_LOGS_ARTIFACT_KEY,
+            artifacts: [
+              { artifact_id: 'artifact-a', uri: 's3://logs/executor-logs-2' },
+              { artifact_id: 'artifact-b', uri: 's3://logs/executor-logs-0' },
+              { artifact_id: 'artifact-c', uri: 's3://logs/executor-logs-1' },
+            ],
+          },
+        ],
+      },
+    };
+
+    expect(getOutputArtifactByName(retryLogsTask, EXECUTOR_LOGS_ARTIFACT_KEY)?.artifact_id).toBe(
+      'artifact-a',
+    );
+  });
+
   it('formats native parameter values and preserves falsey values', () => {
     expect(
       formatParameters([

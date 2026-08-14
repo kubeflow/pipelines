@@ -41,6 +41,7 @@ export interface RuntimeArtifactEntry {
 
 export const EXECUTOR_LOGS_ARTIFACT_KEY = 'executor-logs';
 export const LEGACY_UI_METADATA_ARTIFACT_KEY = 'mlpipeline-ui-metadata';
+const RETRY_INDEX_SUFFIX = /-(\d+)$/;
 
 export function flattenArtifactGroups(
   groups: InputOutputsIOArtifact[] | undefined,
@@ -83,14 +84,39 @@ export function getOutputArtifactByName(
   task: V2beta1PipelineTask,
   name: string,
 ): V2beta1Artifact | undefined {
-  const entries = flattenArtifactGroups(task.outputs?.artifacts);
-  for (let index = entries.length - 1; index >= 0; index--) {
-    const { artifact, artifactKey } = entries[index];
-    if (artifactKey === name || artifact.name === name) {
+  const matches = flattenArtifactGroups(task.outputs?.artifacts).filter(
+    ({ artifact, artifactKey }) => artifactKey === name || artifact.name === name,
+  );
+  if (name !== EXECUTOR_LOGS_ARTIFACT_KEY) {
+    return matches.at(-1)?.artifact;
+  }
+
+  // The launcher qualifies each attempt as executor-logs-0, executor-logs-1, and so on. Artifact
+  // hydration sorts by UUID, so use that explicit attempt identity instead of response position.
+  return matches.reduce<V2beta1Artifact | undefined>((latest, { artifact }) => {
+    if (!latest) {
       return artifact;
     }
-  }
-  return undefined;
+    const latestRetryIndex = getExecutorLogsRetryIndex(latest);
+    const candidateRetryIndex = getExecutorLogsRetryIndex(artifact);
+    if (candidateRetryIndex !== latestRetryIndex) {
+      if (candidateRetryIndex === undefined) {
+        return latest;
+      }
+      if (latestRetryIndex === undefined || candidateRetryIndex > latestRetryIndex) {
+        return artifact;
+      }
+      return latest;
+    }
+    const latestCreatedAt = latest.created_at?.getTime() || 0;
+    const candidateCreatedAt = artifact.created_at?.getTime() || 0;
+    return candidateCreatedAt >= latestCreatedAt ? artifact : latest;
+  }, undefined);
+}
+
+function getExecutorLogsRetryIndex(artifact: V2beta1Artifact): number | undefined {
+  const match = artifact.uri?.match(RETRY_INDEX_SUFFIX);
+  return match ? Number(match[1]) : undefined;
 }
 
 export function formatParameters(

@@ -26,6 +26,7 @@ import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
 import {
+  PipelineTaskTaskType,
   V2beta1PipelineTask,
   V2beta1Run,
   V2beta1RuntimeState,
@@ -50,8 +51,10 @@ import {
   buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
+  getTaskRuntimeLayers,
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
+import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
 import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
   convertFlowElements,
@@ -76,6 +79,7 @@ interface RunDetailsV2Info {
   onRetryStarted?: () => void;
   pipeline_job: string;
   parsedPipelineSpec?: PipelineSpec;
+  retryRefreshVersion?: number;
   run: V2beta1Run;
   runRefreshError?: Error | null;
 }
@@ -105,10 +109,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
-  const [dismissedLinkedTaskId, setDismissedLinkedTaskId] = useState<string | null>(null);
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
   const runFinished = runIsTerminal;
+  const retryRefreshVersion = props.retryRefreshVersion || 0;
+  const retryTaskReconciliation = useRef({
+    successfulFetches: 0,
+    version: retryRefreshVersion,
+  });
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
 
   const {
@@ -118,13 +126,45 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     data: tasks,
     refetch: refetchTasks,
   } = useQuery<V2beta1PipelineTask[], Error>({
-    queryKey: queryKeys.runTasks(runId),
-    queryFn: () => listAllRunTasks(runId),
+    queryKey: queryKeys.runTasks(runId, retryRefreshVersion || undefined),
+    queryFn: async () => {
+      if (retryTaskReconciliation.current.version !== retryRefreshVersion) {
+        retryTaskReconciliation.current = { successfulFetches: 0, version: retryRefreshVersion };
+      }
+      const nextTasks = await listAllRunTasks(runId);
+      if (
+        retryRefreshVersion > 0 &&
+        retryTaskReconciliation.current.version === retryRefreshVersion
+      ) {
+        retryTaskReconciliation.current.successfulFetches++;
+      }
+      return nextTasks;
+    },
+    placeholderData: (previousTasks) => previousTasks,
     staleTime: QUERY_STALE_TIME,
-    refetchInterval: runFinished ? false : QUERY_REFETCH_INTERVAL,
+    refetchInterval: (query) => {
+      if (!runFinished) {
+        return QUERY_REFETCH_INTERVAL;
+      }
+      if (
+        retryRefreshVersion === 0 ||
+        retryTaskReconciliation.current.version !== retryRefreshVersion
+      ) {
+        return false;
+      }
+      if (retryTaskReconciliation.current.successfulFetches === 0) {
+        return QUERY_REFETCH_INTERVAL;
+      }
+      const hasUnfinishedTask = (query.state.data || []).some(
+        (task) => !isTaskFinished(task.state),
+      );
+      return retryTaskReconciliation.current.successfulFetches === 1 && hasUnfinishedTask
+        ? QUERY_REFETCH_INTERVAL
+        : false;
+    },
     // Terminal run data can arrive while the cached task snapshot is still fresh. Always verify
     // task state on a terminal mount instead of preserving a potentially running graph forever.
-    refetchOnMount: runIsTerminal ? 'always' : true,
+    refetchOnMount: retryRefreshVersion > 0 || runIsTerminal ? 'always' : true,
   });
 
   // The terminal run update stops polling immediately, so fetch once more to capture the final
@@ -150,6 +190,18 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   });
   const namespace = experiment?.namespace || selectedNamespace;
   const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
+  const clearLinkedTaskQuery = useCallback(() => {
+    if (!linkedTaskId) {
+      return;
+    }
+    const search = new URLSearchParams(props.location.search);
+    search.delete(QUERY_PARAMS.taskId);
+    const nextSearch = search.toString();
+    props.history.replace({
+      ...props.location,
+      search: nextSearch ? `?${nextSearch}` : '',
+    });
+  }, [linkedTaskId, props.history, props.location]);
 
   // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
@@ -172,12 +224,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const layerChange = useCallback(
     (layers: string[]) => {
-      setDismissedLinkedTaskId(linkedTaskId);
+      clearLinkedTaskQuery();
       setSelectedNode(null);
       setLayers(layers);
       setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
     },
-    [linkedTaskId, pipelineSpec, tasks],
+    [clearLinkedTaskQuery, pipelineSpec, tasks],
   );
 
   const runtimeFlowContext = useMemo(
@@ -198,8 +250,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => (linkedTask ? buildLinkedTaskElement(linkedTask) : null),
     [linkedTask],
   );
-  const activeSelectedNode =
-    selectedNode || (linkedTaskId !== dismissedLinkedTaskId ? linkedTaskElement : null);
+  const linkedTaskLayers = useMemo(
+    () => (linkedTask ? getTaskRuntimeLayers(linkedTask, tasks || []) : layers),
+    [layers, linkedTask, tasks],
+  );
+  const activeSelectedNode = selectedNode || linkedTaskElement;
+  const activeLayers = selectedNode ? layers : linkedTaskLayers;
   const selectedNodeRuntimeInfo = useMemo(() => {
     if (!selectedNode && activeSelectedNode === linkedTaskElement && linkedTask) {
       return { task: linkedTask };
@@ -216,7 +272,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   ]);
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
-    setDismissedLinkedTaskId(linkedTaskId);
+    clearLinkedTaskQuery();
     setSelectedNode(element);
   };
 
@@ -238,14 +294,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       () => forceUpdate,
       (_selectedIds, success) => {
         if (success) {
-          // A retry can finish before the run poll observes RUNNING. Reconcile tasks directly from
-          // this completed mutation rather than keeping both queries alive until a state change.
-          void refetchTasks();
+          // The polling owner first discovers a fresh run snapshot, then advances the task query's
+          // reconciliation generation. This prevents a concurrent stale task read from winning.
           onRetryStarted?.();
         }
       },
     );
-  }, [buttons, runIdFromParams, run, runFinished, updateToolbar, onRetryStarted, refetchTasks]);
+  }, [buttons, runIdFromParams, run, runFinished, updateToolbar, onRetryStarted]);
 
   return (
     <>
@@ -275,13 +330,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 isOpen={!!activeSelectedNode}
                 title={getNodeName(activeSelectedNode)}
                 onClose={() => {
-                  setDismissedLinkedTaskId(linkedTaskId);
+                  clearLinkedTaskQuery();
                   setSelectedNode(null);
                 }}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
-                  layers={layers}
+                  layers={activeLayers}
                   onLayerChange={layerChange}
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
@@ -324,11 +379,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 }
 
 function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement {
+  const isSubDag =
+    task.type === PipelineTaskTaskType.DAG ||
+    task.type === PipelineTaskTaskType.LOOP ||
+    task.type === PipelineTaskTaskType.ROOT;
   return {
     data: { label: getTaskDisplayName(task) },
     id: getTaskNodeKey(task.name || task.task_id || 'task'),
     position: { x: 0, y: 0 },
-    type: NodeTypeNames.EXECUTION,
+    type: isSubDag ? NodeTypeNames.SUB_DAG : NodeTypeNames.EXECUTION,
   };
 }
 

@@ -53,7 +53,10 @@ export const queryKeys = {
 
   // --- Runtime metadata ---
 
-  runTasks: (runId: string) => ['run_tasks', { id: runId }] as const,
+  runTasks: (runId: string, retryRefreshVersion?: number) =>
+    retryRefreshVersion === undefined
+      ? (['run_tasks', { id: runId }] as const)
+      : (['run_tasks', { id: runId, retryRefreshVersion }] as const),
 
   artifactTasksPage: (artifactId: string, pageToken?: string, pageSize?: number) =>
     ['artifact_tasks', { artifactId, pageSize, pageToken }] as const,

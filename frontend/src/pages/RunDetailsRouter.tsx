@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
@@ -106,6 +106,16 @@ export default function RunDetailsRouter(
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
+  const postRetryRefreshPending = useRef(false);
+  const [retryRefreshVersion, setRetryRefreshVersion] = useState(0);
+  const loadRun = useCallback(async () => {
+    const run = await Apis.runServiceApiV2.getRun(runId);
+    if (postRetryRefreshPending.current) {
+      postRetryRefreshPending.current = false;
+      setRetryRefreshVersion((version) => version + 1);
+    }
+    return run;
+  }, [runId]);
   const {
     data: refreshedRun,
     error: runRefreshError,
@@ -113,18 +123,18 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     refetch: refetchRun,
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
-    queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    queryFn: loadRun,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       const runIsActive = state !== undefined && !hasFinishedV2(state);
-      return runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
+      return postRetryRefreshPending.current || runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
     },
     refetchOnMount: false,
   });
   const onRetryStarted = useCallback(() => {
-    // The retry mutation has completed, so one explicit refresh is sufficient to discover an
-    // active attempt. If the run already returned to a terminal state, do not poll forever waiting
-    // for a RUNNING state that can no longer be observed.
+    // Keep discovery alive across transient failures, but clear it on the first successful
+    // post-retry snapshot even when a fast retry has already returned to a terminal state.
+    postRetryRefreshPending.current = true;
     void refetchRun();
   }, [refetchRun]);
 
@@ -132,6 +142,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     <RunDetailsV2
       {...props}
       onRetryStarted={onRetryStarted}
+      retryRefreshVersion={retryRefreshVersion}
       run={refreshedRun || props.run}
       runRefreshError={isRefetchError ? runRefreshError : undefined}
     />

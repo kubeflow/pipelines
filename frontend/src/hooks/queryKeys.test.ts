@@ -83,6 +83,14 @@ describe('queryKeys', () => {
     expect(runTasksKey[0]).not.toEqual(pipelineKey[0]);
   });
 
+  it('scopes retried task snapshots without changing the initial cache key', () => {
+    expect(queryKeys.runTasks('run-1')).toEqual(['run_tasks', { id: 'run-1' }]);
+    expect(queryKeys.runTasks('run-1', 2)).toEqual([
+      'run_tasks',
+      { id: 'run-1', retryRefreshVersion: 2 },
+    ]);
+  });
+
   it('pipelineVersions defaults to empty string when pipelineId is null', () => {
     expect(queryKeys.pipelineVersions(null)).toEqual(['pipeline_versions', '']);
   });

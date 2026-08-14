@@ -201,6 +201,7 @@ export function CompareV2(props: CompareV2Props) {
   );
   const runIdsKey = runIds.join(',');
   const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
+  const selectedRunSetKey = JSON.stringify([...selectedIds].sort());
   const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
@@ -388,24 +389,60 @@ export function CompareV2(props: CompareV2Props) {
         collapseSection={isMetricsCollapsed}
         collapseSectionUpdate={setIsMetricsCollapsed}
       />
-      {!isMetricsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
-          <Separator orientation='vertical' />
-          <MD2Tabs tabs={METRICS_TAB_NAMES} selectedTab={metricsTab} onSwitch={setMetricsTab} />
-          <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            <NativeMetricsContent
-              key={JSON.stringify([...selectedIds].sort())}
-              comparisonData={selectedData}
-              isLoading={isLoading}
-              metricsTab={metricsTab}
-              namespace={namespace}
-              scalarMetricsTableProps={scalarMetricsTableProps}
-            />
-          </div>
-        </div>
-      )}
+      <NativeMetricsSection
+        key={selectedRunSetKey}
+        comparisonData={selectedData}
+        isCollapsed={isMetricsCollapsed}
+        isLoading={isLoading}
+        metricsTab={metricsTab}
+        namespace={namespace}
+        scalarMetricsTableProps={scalarMetricsTableProps}
+        setMetricsTab={setMetricsTab}
+      />
 
       <Separator orientation='vertical' />
+    </div>
+  );
+}
+
+function NativeMetricsSection({
+  comparisonData,
+  isCollapsed,
+  isLoading,
+  metricsTab,
+  namespace,
+  scalarMetricsTableProps,
+  setMetricsTab,
+}: {
+  comparisonData: RunComparisonData[];
+  isCollapsed: boolean;
+  isLoading: boolean;
+  metricsTab: NativeMetricsTab;
+  namespace?: string;
+  scalarMetricsTableProps?: CompareTableProps;
+  setMetricsTab: (tab: number) => void;
+}) {
+  const [selectionState, setSelectionState] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
+  if (isCollapsed) {
+    return null;
+  }
+  return (
+    <div className={classes(commonCss.noShrink, css.outputsRow)}>
+      <Separator orientation='vertical' />
+      <MD2Tabs tabs={METRICS_TAB_NAMES} selectedTab={metricsTab} onSwitch={setMetricsTab} />
+      <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
+        <NativeMetricsContent
+          comparisonData={comparisonData}
+          isLoading={isLoading}
+          metricsTab={metricsTab}
+          namespace={namespace}
+          selectionState={selectionState}
+          setSelectionState={setSelectionState}
+          scalarMetricsTableProps={scalarMetricsTableProps}
+        />
+      </div>
     </div>
   );
 }
@@ -415,17 +452,18 @@ function NativeMetricsContent({
   isLoading,
   metricsTab,
   namespace,
+  selectionState,
+  setSelectionState,
   scalarMetricsTableProps,
 }: {
   comparisonData: RunComparisonData[];
   isLoading: boolean;
   metricsTab: NativeMetricsTab;
   namespace?: string;
+  selectionState: RuntimeArtifactComparisonSelectionState;
+  setSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
   scalarMetricsTableProps?: CompareTableProps;
 }) {
-  const [selectionState, setSelectionState] = useState(
-    createRuntimeArtifactComparisonSelectionState,
-  );
   if (metricsTab === NativeMetricsTab.SCALAR) {
     return (
       <CompareTableSection

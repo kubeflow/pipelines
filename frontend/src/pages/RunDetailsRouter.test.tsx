@@ -41,6 +41,7 @@ vi.mock('src/pages/RunDetailsV2', () => ({
           data-pipeline-job={props.pipeline_job}
           data-pipeline-name={props.parsedPipelineSpec?.pipelineInfo?.name}
           data-run-refresh-error={props.runRefreshError?.message}
+          data-retry-refresh-version={props.retryRefreshVersion}
           data-run-state={props.run.state}
         />
         <input data-testid='run-details-mount' defaultValue={props.run.run_id} />
@@ -311,6 +312,49 @@ describe('RunDetailsRouter', () => {
       await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 3);
     });
     expect(getRunSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps discovering a retried run after the first post-retry refresh fails', async () => {
+    vi.useFakeTimers();
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    getRunSpy
+      .mockResolvedValueOnce(failedRun)
+      .mockRejectedValueOnce(new Error('Run service unavailable'))
+      .mockResolvedValue(failedRun);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-run-refresh-error',
+      'Run service unavailable',
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute('data-retry-refresh-version', '1');
+    expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
+
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 2));
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
   });
 
   it('remounts the v2 detail subtree when the run ID changes', async () => {
