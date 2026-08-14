@@ -32,6 +32,12 @@ import { hasFinishedV2 } from 'src/lib/StatusUtils';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 const MAX_UNCHANGED_POST_RETRY_SNAPSHOTS = 3;
+let latestRetryRefreshVersion = 0;
+
+function nextRetryRefreshVersion(): number {
+  latestRetryRefreshVersion += 1;
+  return latestRetryRefreshVersion;
+}
 
 function preserveDeepEqualData<T>(previous: T | undefined, next: T): T {
   return previous !== undefined && isEqual(previous, next) ? previous : next;
@@ -123,7 +129,9 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     const pending = postRetryRefreshPending.current;
     if (pending && !isEqual(run, pending.baseline)) {
       postRetryRefreshPending.current = null;
-      setRetryRefreshVersion((version) => version + 1);
+      // Query cache entries can outlive this component. Use a process-unique generation so a
+      // remounted details page cannot reuse task snapshots from an earlier retry.
+      setRetryRefreshVersion(nextRetryRefreshVersion());
     } else if (pending) {
       pending.unchangedSnapshotsRemaining -= 1;
       if (pending.unchangedSnapshotsRemaining <= 0) {
