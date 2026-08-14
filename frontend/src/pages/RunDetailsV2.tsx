@@ -85,6 +85,11 @@ interface RunDetailsV2Info {
   runRefreshError?: Error | null;
 }
 
+interface SelectedNodeState {
+  element: PipelineFlowElement;
+  linkedTaskId?: string;
+}
+
 export interface RunDetailsV2Params {
   [RouteParams.runId]: string;
 }
@@ -109,7 +114,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
+  const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
   const runFinished = runIsTerminal;
@@ -212,7 +217,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const layerChange = useCallback(
     (layers: string[]) => {
       clearLinkedTaskQuery();
-      setSelectedNode(null);
+      setSelectedNodeState(null);
       setLayers(layers);
       setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
     },
@@ -238,7 +243,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       appliedLinkedTaskId.current = null;
       return;
     }
-    if (!linkedTask || appliedLinkedTaskId.current === linkedTaskId) {
+    if (!linkedTask) {
+      return;
+    }
+    if (appliedLinkedTaskId.current === linkedTaskId) {
       return;
     }
 
@@ -258,10 +266,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     appliedLinkedTaskId.current = linkedTaskId;
     setLayers(targetLayers);
     setFlowElements(targetElements);
-    setSelectedNode(targetElement);
+    setSelectedNodeState({ element: targetElement, linkedTaskId });
   }, [linkedTask, linkedTaskId, pipelineSpec, tasks]);
 
-  const activeSelectedNode = selectedNode;
+  const linkedSelectionMatchesUrl =
+    !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;
+  const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
+  const activeSelectedNode =
+    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
   const activeLayers = layers;
   const selectedNodeRuntimeInfo = useMemo(() => {
     const linkedTaskNodeId = linkedTask
@@ -275,7 +287,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
     clearLinkedTaskQuery();
-    setSelectedNode(element);
+    setSelectedNodeState({ element });
   };
 
   // Update page title and experiment information.
@@ -335,7 +347,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 title={getNodeName(activeSelectedNode)}
                 onClose={() => {
                   clearLinkedTaskQuery();
-                  setSelectedNode(null);
+                  setSelectedNodeState(null);
                 }}
                 defaultWidth={'50%'}
               >

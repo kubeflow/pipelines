@@ -150,6 +150,25 @@ describe('RunDetailsV2', () => {
       },
     },
   ];
+
+  function renderRunDetailsWithSearch(search: string) {
+    const props = generateProps();
+    const renderPage = (nextSearch: string) => (
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...props}
+          location={{ pathname: `/runs/details/${RUN_ID}`, search: nextSearch } as any}
+        />
+      </CommonTestWrapper>
+    );
+    const view = render(renderPage(search));
+    return {
+      rerenderWithSearch: (nextSearch: string) => view.rerender(renderPage(nextSearch)),
+    };
+  }
+
   beforeEach(() => {
     mockResizeObserver();
 
@@ -203,6 +222,68 @@ describe('RunDetailsV2', () => {
     expect(historyReplaceSpy).toHaveBeenCalledWith({
       ...props.location,
       search: '?view=graph',
+    });
+  });
+
+  it('selects a new task when query-only navigation changes the deep-link target', async () => {
+    const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task');
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
+    );
+
+    rerenderWithSearch('?task=train-task');
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.train"]')).toHaveClass('selected');
+      expect(document.querySelector('[data-id="task.preprocess"]')).not.toHaveClass('selected');
+    });
+  });
+
+  it('clears a deep-linked selection when query-only navigation removes the task target', async () => {
+    const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task&view=graph');
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
+    );
+
+    rerenderWithSearch('?view=graph');
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.preprocess"]')).not.toHaveClass('selected');
+    });
+  });
+
+  it('preserves a canvas selection when selecting a node clears the task query', async () => {
+    const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task');
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
+    );
+
+    fireEvent.click(document.querySelector('[data-id="task.train"]')!);
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.train"]')).toHaveClass('selected'),
+    );
+    expect(historyReplaceSpy).toHaveBeenCalledWith({
+      pathname: `/runs/details/${RUN_ID}`,
+      search: '',
+    });
+
+    rerenderWithSearch('');
+    await act(async () => {});
+
+    expect(document.querySelector('[data-id="task.train"]')).toHaveClass('selected');
+    expect(document.querySelector('[data-id="task.preprocess"]')).not.toHaveClass('selected');
+  });
+
+  it('clears stale task details when query-only navigation targets an unknown task', async () => {
+    const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task');
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected'),
+    );
+
+    rerenderWithSearch('?task=missing-task');
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.preprocess"]')).not.toHaveClass('selected');
     });
   });
 
