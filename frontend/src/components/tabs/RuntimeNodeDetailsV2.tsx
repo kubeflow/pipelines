@@ -204,7 +204,11 @@ function TaskNodeDetail({
     enabled: !!task && selectedTab === 2,
     // Pod/artifact identity changes identify a new attempt or a newly available log source. Keep
     // the last readable output visible while that source is fetched instead of blanking the tab.
-    placeholderData: (previousLogs) => previousLogs,
+    placeholderData: (previousLogs, previousQuery) => {
+      const previousTaskId = (previousQuery?.queryKey[1] as { taskId?: string } | undefined)
+        ?.taskId;
+      return task?.task_id && previousTaskId === task.task_id ? previousLogs : undefined;
+    },
     // Live logs and transient "not available yet" responses must recover while the task runs.
     refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });

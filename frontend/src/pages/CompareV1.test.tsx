@@ -55,7 +55,7 @@ describe('CompareV1', () => {
   let historyPushSpy: ReturnType<typeof vi.fn>;
 
   const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
-  const outputArtifactLoaderSpy = vi.spyOn(OutputArtifactLoader, 'load');
+  const outputArtifactLoaderSpy = vi.spyOn(OutputArtifactLoader, 'loadResult');
   const getRunV2Spy = vi.spyOn(Apis.runServiceApiV2, 'getRun');
   const listExperimentsSpy = vi.spyOn(Apis.experimentServiceApiV2, 'listExperiments');
   const getPipelineVersionSpy = vi.spyOn(Apis.pipelineServiceApiV2, 'getPipelineVersion');
@@ -148,10 +148,13 @@ describe('CompareV1', () => {
   }
 
   async function setUpViewersAndRender(): Promise<void> {
-    outputArtifactLoaderSpy.mockImplementation(() => [
-      { type: PlotType.TENSORBOARD, url: 'gs://path' },
-      { data: [[]], labels: ['col1, col2'], type: PlotType.TABLE },
-    ]);
+    outputArtifactLoaderSpy.mockResolvedValue({
+      configs: [
+        { type: PlotType.TENSORBOARD, url: 'gs://path' },
+        { data: [[]], labels: ['col1, col2'], type: PlotType.TABLE },
+      ],
+      errors: [],
+    });
 
     const workflow = {
       status: {
@@ -202,7 +205,7 @@ describe('CompareV1', () => {
     getRunSpy.mockImplementation(
       (id: string) => runs.find((r) => r.run!.id === id) || newMockRun(id),
     );
-    outputArtifactLoaderSpy.mockResolvedValue([]);
+    outputArtifactLoaderSpy.mockResolvedValue({ configs: [], errors: [] });
     getRunV2Spy.mockImplementation((id: string) => Promise.resolve(newMockRunV2(id)));
     listExperimentsSpy.mockResolvedValue({ experiments: [] } as any);
     getPipelineVersionSpy.mockResolvedValue({
@@ -305,6 +308,49 @@ describe('CompareV1', () => {
 
     await renderCompare(props);
 
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'missing visualization source',
+          message: 'Error: failed loading run visualizations. Click Details for more information.',
+          mode: 'error',
+        }),
+      ),
+    );
+  });
+
+  it('keeps valid visualizations when a sibling source fails', async () => {
+    const workflow = {
+      status: {
+        nodes: {
+          node1: {
+            outputs: {
+              artifacts: [
+                {
+                  name: 'mlpipeline-ui-metadata',
+                  s3: { s3Bucket: { bucket: 'test bucket' }, key: 'test key' },
+                },
+              ],
+            },
+          },
+        },
+      },
+    };
+    const run = newMockRun(MOCK_RUN_1_ID);
+    run.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow);
+    runs = [run];
+    getRunSpy.mockResolvedValue(run);
+    outputArtifactLoaderSpy.mockResolvedValue({
+      configs: [{ data: [['valid']], labels: ['value'], type: PlotType.TABLE }],
+      errors: ['missing visualization source'],
+    });
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID}`;
+
+    await renderCompare(props);
+
+    await waitForViewersMap(1);
+    expect(getInstance().state.viewersMap.get(PlotType.TABLE)).toHaveLength(1);
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -512,10 +558,13 @@ describe('CompareV1', () => {
   });
 
   it('creates a map of viewers', async () => {
-    outputArtifactLoaderSpy.mockImplementation(() => [
-      { type: PlotType.TENSORBOARD, url: 'gs://path' },
-      { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
-    ]);
+    outputArtifactLoaderSpy.mockResolvedValue({
+      configs: [
+        { type: PlotType.TENSORBOARD, url: 'gs://path' },
+        { data: [['test']], labels: ['col1, col2'], type: PlotType.TABLE },
+      ],
+      errors: [],
+    });
 
     const workflow = {
       status: {
@@ -690,10 +739,13 @@ describe('CompareV1', () => {
   });
 
   it('creates an extra aggregation plot for compatible viewers', async () => {
-    outputArtifactLoaderSpy.mockImplementation(() => [
-      { type: PlotType.TENSORBOARD, url: 'gs://path' },
-      { data: [], type: PlotType.ROC },
-    ]);
+    outputArtifactLoaderSpy.mockResolvedValue({
+      configs: [
+        { type: PlotType.TENSORBOARD, url: 'gs://path' },
+        { data: [], type: PlotType.ROC },
+      ],
+      errors: [],
+    });
 
     const workflow = {
       status: {

@@ -15,7 +15,7 @@
  */
 
 import { act, render, screen, waitFor } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
 import { CommonTestWrapper } from 'src/TestWrapper';
@@ -348,10 +348,55 @@ describe('RunDetailsRouter', () => {
     await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
     expect(getRunSpy).toHaveBeenCalledTimes(2);
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 3);
-    });
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
     expect(getRunSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('does not consume retry discovery attempts for cancelled run snapshots', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    let resolveCancelledRequest!: (run: V2beta1Run) => void;
+    const cancelledRequest = new Promise<V2beta1Run>((resolve) => {
+      resolveCancelledRequest = resolve;
+    });
+    getRunSpy
+      .mockResolvedValueOnce(failedRun)
+      .mockReturnValueOnce(cancelledRequest)
+      .mockResolvedValue(failedRun);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RunDetailsRouter {...generateProps()} />
+      </QueryClientProvider>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+
+    const runQueryKey = queryKeys.v2RunDetail(TEST_RUN_ID);
+    await act(async () => queryClient.cancelQueries({ queryKey: runQueryKey }));
+    let replacementRefetch!: Promise<void>;
+    act(() => {
+      replacementRefetch = queryClient.refetchQueries({ queryKey: runQueryKey });
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+
+    resolveCancelledRequest(failedRun);
+    await act(async () => replacementRefetch);
+
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    expect(getRunSpy).toHaveBeenCalledTimes(5);
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 2));
+    expect(getRunSpy).toHaveBeenCalledTimes(5);
   });
 
   it('keeps discovering a retry while successful snapshots still match the pre-retry run', async () => {

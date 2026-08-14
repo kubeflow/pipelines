@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as JsYaml from 'js-yaml';
 import { isEqual } from 'lodash';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -119,34 +119,22 @@ export default function RunDetailsRouter(
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
+  const queryClient = useQueryClient();
+  const runQueryKey = useMemo(() => queryKeys.v2RunDetail(runId), [runId]);
   const postRetryRefreshPending = useRef<{
     baseline: V2beta1Run;
     unchangedSnapshotsRemaining: number;
   } | null>(null);
   const [retryRefreshVersion, setRetryRefreshVersion] = useState(0);
-  const loadRun = useCallback(async () => {
-    const run = await Apis.runServiceApiV2.getRun(runId);
-    const pending = postRetryRefreshPending.current;
-    if (pending && !isEqual(run, pending.baseline)) {
-      postRetryRefreshPending.current = null;
-      // Query cache entries can outlive this component. Use a process-unique generation so a
-      // remounted details page cannot reuse task snapshots from an earlier retry.
-      setRetryRefreshVersion(nextRetryRefreshVersion());
-    } else if (pending) {
-      pending.unchangedSnapshotsRemaining -= 1;
-      if (pending.unchangedSnapshotsRemaining <= 0) {
-        postRetryRefreshPending.current = null;
-      }
-    }
-    return run;
-  }, [runId]);
+  const [, refreshRetryPolling] = useState(0);
+  const loadRun = useCallback(() => Apis.runServiceApiV2.getRun(runId), [runId]);
   const {
     data: refreshedRun,
     error: runRefreshError,
     isRefetchError,
     refetch: refetchRun,
   } = useQuery<V2beta1Run, Error>({
-    queryKey: queryKeys.v2RunDetail(runId),
+    queryKey: runQueryKey,
     queryFn: loadRun,
     structuralSharing: preserveDeepEqualData,
     refetchInterval: (query) => {
@@ -156,6 +144,40 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     },
     refetchOnMount: false,
   });
+
+  useLayoutEffect(() => {
+    const queryCache = queryClient.getQueryCache();
+    const runQuery = queryCache.find({ exact: true, queryKey: runQueryKey });
+    if (!runQuery) {
+      return undefined;
+    }
+    // Query-cache success events represent results TanStack accepted. Query functions can still
+    // resolve after cancellation, but those discarded results never consume this bounded budget.
+    return queryCache.subscribe((event) => {
+      if (event.type !== 'updated' || event.query !== runQuery || event.action.type !== 'success') {
+        return;
+      }
+      const pending = postRetryRefreshPending.current;
+      if (!pending) {
+        return;
+      }
+      const acceptedRun = event.query.state.data as V2beta1Run | undefined;
+      if (acceptedRun && !isEqual(acceptedRun, pending.baseline)) {
+        postRetryRefreshPending.current = null;
+        // Query cache entries can outlive this component. Use a process-unique generation so a
+        // remounted details page cannot reuse task snapshots from an earlier retry.
+        setRetryRefreshVersion(nextRetryRefreshVersion());
+        return;
+      }
+      pending.unchangedSnapshotsRemaining -= 1;
+      if (pending.unchangedSnapshotsRemaining <= 0) {
+        postRetryRefreshPending.current = null;
+        // QueryObserver computes its next interval before QueryCache subscribers run. Rerender
+        // once so the exhausted budget cancels the timer it just scheduled.
+        refreshRetryPolling((revision) => revision + 1);
+      }
+    });
+  }, [queryClient, runQueryKey]);
   const onRetryStarted = useCallback(() => {
     // Retry persistence can lag the mutation response. Continue through a few unchanged terminal
     // snapshots, but keep the recovery bounded when a fast retry remains terminal throughout.

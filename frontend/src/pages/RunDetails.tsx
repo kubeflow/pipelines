@@ -1157,19 +1157,24 @@ const VisualizationsTabContent: React.FC<{
       }
       // Load runtime outputs from the selected Node
       const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
-      const reportErrorAndReturnEmpty = (error: Error): [] => {
-        onError(error);
-        return [];
-      };
 
       // Load the viewer configurations from the output paths
       const builtConfigs = (
         await Promise.all([
-          ...outputPaths.map((path) =>
-            OutputArtifactLoader.load(path, namespace, { throwOnError: true }).catch(
-              reportErrorAndReturnEmpty,
-            ),
-          ),
+          ...outputPaths.map(async (path) => {
+            try {
+              const result = await OutputArtifactLoader.loadResult(path, namespace, {
+                throwOnError: true,
+              });
+              if (result.errors.length) {
+                onError(new Error(result.errors.join('\n')));
+              }
+              return result.configs;
+            } catch (error) {
+              onError(error as Error);
+              return [];
+            }
+          }),
         ])
       ).flatMap((configs) => configs);
       if (aborted) {

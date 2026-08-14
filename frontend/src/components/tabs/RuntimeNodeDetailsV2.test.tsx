@@ -247,6 +247,47 @@ describe('RuntimeNodeDetailsV2', () => {
     await act(async () => resolveRetryLogs?.('retry logs'));
   });
 
+  it('does not show placeholder logs from a previously selected task', async () => {
+    let resolveSecondTaskLogs: ((logs: string) => void) | undefined;
+    const secondTaskLogs = new Promise<string>((resolve) => {
+      resolveSecondTaskLogs = resolve;
+    });
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockResolvedValueOnce('first task logs')
+      .mockReturnValueOnce(secondTaskLogs);
+    const view = renderTask(createTask());
+
+    fireEvent.click(await screen.findByText('Logs'));
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, id: 'task.train', data: { label: 'train' } }}
+          elementRuntimeInfo={{
+            task: createTask({
+              task_id: 'second-task-id',
+              name: 'train',
+              pods: [{ name: 'second-pod', type: PipelineTaskTaskPodType.EXECUTOR }],
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(2));
+    expect(screen.queryByTestId(TEST_LOG_VIEW_ID)).not.toBeInTheDocument();
+
+    await act(async () => resolveSecondTaskLogs?.('second task logs'));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+  });
+
   it('stops log polling when the parent run is terminal', async () => {
     vi.useFakeTimers();
     const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('final output');

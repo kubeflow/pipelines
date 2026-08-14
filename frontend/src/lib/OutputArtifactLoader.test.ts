@@ -140,6 +140,9 @@ describe('OutputArtifactLoader', () => {
         configs: [{ markdownContent: '# valid', type: PlotType.MARKDOWN }],
         errors: ['missing source'],
       });
+      await expect(
+        OutputArtifactLoader.load(storagePath, undefined, { throwOnError: true }),
+      ).resolves.toEqual([{ markdownContent: '# valid', type: PlotType.MARKDOWN }]);
     });
 
     it('surfaces referenced-source failures when a legacy caller requests errors', async () => {

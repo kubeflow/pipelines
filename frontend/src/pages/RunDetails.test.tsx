@@ -104,6 +104,7 @@ describe('RunDetails', () => {
   let pathsParser: any;
   let pathsWithStepsParser: any;
   let loaderSpy: any;
+  let loaderResultSpy: any;
   let retryRunSpy: any;
   let terminateRunSpy: any;
   let formatDateStringSpy: any;
@@ -225,6 +226,7 @@ describe('RunDetails', () => {
     pathsParser = vi.spyOn(WorkflowParser, 'loadNodeOutputPaths');
     pathsWithStepsParser = vi.spyOn(WorkflowParser, 'loadAllOutputPathsWithStepNames');
     loaderSpy = vi.spyOn(OutputArtifactLoader, 'load');
+    loaderResultSpy = vi.spyOn(OutputArtifactLoader, 'loadResult');
     retryRunSpy = vi.spyOn(Apis.runServiceApiV2, 'retryRun');
     terminateRunSpy = vi.spyOn(Apis.runServiceApiV2, 'terminateRun');
     // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
@@ -246,6 +248,7 @@ describe('RunDetails', () => {
     pathsParser.mockImplementation(() => []);
     pathsWithStepsParser.mockImplementation(() => []);
     loaderSpy.mockImplementation(() => Promise.resolve([]));
+    loaderResultSpy.mockResolvedValue({ configs: [], errors: [] });
     formatDateStringSpy.mockImplementation(() => '1/2/2019, 12:34:56 PM');
   });
 

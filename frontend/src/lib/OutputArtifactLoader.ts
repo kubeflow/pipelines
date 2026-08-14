@@ -66,7 +66,7 @@ export class OutputArtifactLoader {
     options: OutputArtifactLoadOptions = {},
   ): Promise<ViewerConfig[]> {
     const result = await this.loadResult(outputPath, namespace, options);
-    if (options.throwOnError && result.errors.length) {
+    if (options.throwOnError && result.errors.length && !result.configs.length) {
       throw new Error(result.errors.join('\n'));
     }
     return result.configs;

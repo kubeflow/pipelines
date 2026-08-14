@@ -284,11 +284,18 @@ class CompareV1 extends Page<{}, CompareState> {
         for (const path of pathList) {
           let configs: ViewerConfig[] = [];
           try {
-            configs = await OutputArtifactLoader.load(
+            const result = await OutputArtifactLoader.loadResult(
               path,
               workflowObjects[0]?.metadata?.namespace,
               { throwOnError: true },
             );
+            configs = result.configs;
+            if (result.errors.length) {
+              await this.showPageError(
+                'Error: failed loading run visualizations.',
+                new Error(result.errors.join('\n')),
+              );
+            }
           } catch (error) {
             await this.showPageError('Error: failed loading run visualizations.', error);
           }
