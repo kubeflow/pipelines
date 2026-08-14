@@ -25,6 +25,7 @@ import { Apis, ListRequest } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { errorToMessage, formatDateString } from 'src/lib/Utils';
 import { getArtifactTypeName } from 'src/lib/v2/RuntimeArtifactUtils';
+import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
 
@@ -41,12 +42,6 @@ interface ArtifactUriCell {
   uri: string;
 }
 
-interface PageTokenChain {
-  invalidRequests: Set<string>;
-  nextTokens: Set<string>;
-  successors: Map<string, string>;
-}
-
 const COLUMNS: Column[] = [
   { customRenderer: artifactNameRenderer, flex: 2, label: 'Name', sortKey: 'name' },
   { flex: 2, label: 'ID', sortKey: 'artifact_id' },
@@ -60,7 +55,7 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
   private tableRef = React.createRef<CustomTable>();
   private activeReloadGeneration = 0;
   private lastSuccessfulRequestKey?: string;
-  private pageTokenChains = new Map<string, PageTokenChain>();
+  private pageTokenTracker = new PageTokenTracker();
 
   public state: ArtifactListState = { rows: [] };
 
@@ -106,7 +101,11 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
       );
       const nextPageToken = response.next_page_token || '';
       if (reloadGeneration === this.activeReloadGeneration) {
-        const repeatedPageToken = this.isRepeatedPageToken(request, nextPageToken);
+        const repeatedPageToken = this.pageTokenTracker.isRepeated(
+          this.getPaginationContextKey(request),
+          request.pageToken,
+          nextPageToken,
+        );
         this.lastSuccessfulRequestKey = requestKey;
         this.setStateSafe({
           rows: (response.artifacts || []).map((artifact) => ({
@@ -153,35 +152,13 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
     });
   }
 
-  private isRepeatedPageToken(request: ListRequest, nextPageToken: string): boolean {
-    if (!nextPageToken) {
-      return false;
-    }
-    const contextKey = JSON.stringify({
+  private getPaginationContextKey(request: ListRequest): string {
+    return JSON.stringify({
       filter: request.filter || '',
       namespace: this.props.namespace || '',
       pageSize: request.pageSize || 0,
       sortBy: request.sortBy || '',
     });
-    const requestPageToken = request.pageToken || '';
-    let chain = this.pageTokenChains.get(contextKey);
-    if (!chain) {
-      chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
-      this.pageTokenChains.set(contextKey, chain);
-    }
-    if (chain.invalidRequests.has(requestPageToken)) {
-      return true;
-    }
-    if (chain.successors.get(requestPageToken) === nextPageToken) {
-      return false;
-    }
-    const repeated = requestPageToken === nextPageToken || chain.nextTokens.has(nextPageToken);
-    chain.successors.set(requestPageToken, nextPageToken);
-    chain.nextTokens.add(nextPageToken);
-    if (repeated) {
-      chain.invalidRequests.add(requestPageToken);
-    }
-    return repeated;
   }
 }
 

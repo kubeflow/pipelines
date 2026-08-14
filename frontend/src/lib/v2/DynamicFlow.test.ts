@@ -347,11 +347,44 @@ describe('DynamicFlow', () => {
 
       expect(preTaskElements.map((element) => element.id)).toContain('task.body');
       expect(
-        reconcileRuntimeFlowElements(pipelineSpec, layers, preTaskElements, [
-          rootTask,
-          loopTask,
-        ]).map((element) => element.id),
+        reconcileRuntimeFlowElements(layers, preTaskElements, [rootTask, loopTask]).map(
+          (element) => element.id,
+        ),
       ).toEqual(['task.loop.0', 'task.loop.1']);
+    });
+
+    it('does not rerun graph layout when the ParallelFor structure is unchanged', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '2' },
+      };
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: { 'loop-component': { dag: { tasks: {} } } },
+      });
+      const layers = ['root', 'loop'];
+      const elements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, [
+        rootTask,
+        loopTask,
+      ]);
+      const randomSpy = vi.spyOn(Math, 'random');
+
+      reconcileRuntimeFlowElements(layers, elements, [rootTask, loopTask]);
+
+      expect(randomSpy).not.toHaveBeenCalled();
+      randomSpy.mockRestore();
     });
   });
 });

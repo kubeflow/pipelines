@@ -164,27 +164,41 @@ export function updateFlowElementsState(
 }
 
 export function reconcileRuntimeFlowElements(
-  spec: PipelineSpec,
   layers: string[],
   elements: PipelineFlowElement[],
   tasks: V2beta1PipelineTask[],
   existingFlowContext?: RuntimeFlowContext,
 ): PipelineFlowElement[] {
-  const runtimeStructure = convertSubDagToRuntimeFlowElements(spec, layers, tasks);
-  const currentStructure = new Set(
-    elements.map((element) => `${element.id}:${element.type || ''}`),
-  );
-  const hasCurrentRuntimeStructure =
-    elements.length === runtimeStructure.length &&
-    runtimeStructure.every((element) =>
-      currentStructure.has(`${element.id}:${element.type || ''}`),
-    );
+  const flowContext = existingFlowContext || buildRuntimeFlowContext(layers, tasks);
+  const runtimeContext = flowContext.runtimeLayerContext;
+  let runtimeStructure = elements;
+  if (
+    runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
+    runtimeContext.iterationIndex === undefined &&
+    !hasParallelForStructure(elements, runtimeContext.task)
+  ) {
+    runtimeStructure = buildParallelForDag(runtimeContext.task, flowContext.taskIndex);
+  }
 
-  return updateFlowElementsState(
-    layers,
-    hasCurrentRuntimeStructure ? elements : runtimeStructure,
-    tasks,
-    existingFlowContext,
+  return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
+}
+
+function hasParallelForStructure(
+  elements: PipelineFlowElement[],
+  loopTask: V2beta1PipelineTask,
+): boolean {
+  const iterationCount = Number(loopTask.type_attributes?.iteration_count || 0);
+  if (elements.length !== iterationCount) {
+    return false;
+  }
+  const expectedNodeIds = new Set(
+    Array.from({ length: iterationCount }, (_, index) =>
+      getTaskNodeKey(`${loopTask.name}.${index}`),
+    ),
+  );
+  return elements.every(
+    (element) =>
+      isNode(element) && element.type === NodeTypeNames.SUB_DAG && expectedNodeIds.has(element.id),
   );
 }
 

@@ -181,14 +181,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       return flowElements;
     }
 
-    return reconcileRuntimeFlowElements(
-      pipelineSpec,
-      layers,
-      flowElements,
-      tasks,
-      runtimeFlowContext,
-    );
-  }, [flowElements, layers, pipelineSpec, runtimeFlowContext, tasks]);
+    return reconcileRuntimeFlowElements(layers, flowElements, tasks, runtimeFlowContext);
+  }, [flowElements, layers, runtimeFlowContext, tasks]);
 
   const selectedNodeRuntimeInfo = useMemo(
     () => getNodeRuntimeInfo(selectedNode, tasks || [], layers, runtimeFlowContext),

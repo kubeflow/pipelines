@@ -43,6 +43,7 @@ import {
   isVisualizableArtifact,
   LEGACY_UI_METADATA_ARTIFACT_KEY,
 } from 'src/lib/v2/RuntimeArtifactUtils';
+import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
 
@@ -313,12 +314,6 @@ interface ArtifactRelationshipsLoaderState {
 
 type ArtifactTasksResponse = Awaited<ReturnType<typeof Apis.artifactServiceApiV2.artifactTasks>>;
 
-interface PageTokenChain {
-  invalidRequests: Set<string>;
-  nextTokens: Set<string>;
-  successors: Map<string, string>;
-}
-
 class ArtifactRelationshipsTable extends React.PureComponent<
   ArtifactRelationshipsTableProps,
   ArtifactRelationshipsLoaderState
@@ -326,7 +321,7 @@ class ArtifactRelationshipsTable extends React.PureComponent<
   public state: ArtifactRelationshipsLoaderState = { rows: [] };
 
   private activeReloadGeneration = 0;
-  private pageTokenChains = new Map<number, PageTokenChain>();
+  private pageTokenTracker = new PageTokenTracker();
 
   public componentWillUnmount(): void {
     this.activeReloadGeneration++;
@@ -390,7 +385,11 @@ class ArtifactRelationshipsTable extends React.PureComponent<
       if (reloadGeneration !== this.activeReloadGeneration) {
         return nextPageToken;
       }
-      const repeatedPageToken = this.isRepeatedPageToken(request, nextPageToken);
+      const repeatedPageToken = this.pageTokenTracker.isRepeated(
+        String(request.pageSize || 0),
+        request.pageToken,
+        nextPageToken,
+      );
       this.setState({
         error: repeatedPageToken
           ? `Artifact service returned a repeated page token: ${nextPageToken}`
@@ -410,32 +409,6 @@ class ArtifactRelationshipsTable extends React.PureComponent<
       return '';
     }
   };
-
-  private isRepeatedPageToken(request: ListRequest, nextPageToken: string): boolean {
-    if (!nextPageToken) {
-      return false;
-    }
-    const pageSize = request.pageSize || 0;
-    const requestPageToken = request.pageToken || '';
-    let chain = this.pageTokenChains.get(pageSize);
-    if (!chain) {
-      chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
-      this.pageTokenChains.set(pageSize, chain);
-    }
-    if (chain.invalidRequests.has(requestPageToken)) {
-      return true;
-    }
-    if (chain.successors.get(requestPageToken) === nextPageToken) {
-      return false;
-    }
-    const repeated = requestPageToken === nextPageToken || chain.nextTokens.has(nextPageToken);
-    chain.successors.set(requestPageToken, nextPageToken);
-    chain.nextTokens.add(nextPageToken);
-    if (repeated) {
-      chain.invalidRequests.add(requestPageToken);
-    }
-    return repeated;
-  }
 }
 
 function buildArtifactTaskRows(response: ArtifactTasksResponse, pageToken?: string): Row[] {

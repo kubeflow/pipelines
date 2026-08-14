@@ -48,7 +48,8 @@ export const queryKeys = {
   recurringRun: (recurringRunId: string | null | undefined) =>
     ['recurringRun', recurringRunId] as const,
 
-  runDetails: (runIds: string[]) => ['run_details', { ids: runIds }] as const,
+  runDetailForComparisonRouting: (runId: string) =>
+    ['run_detail_for_comparison_routing', { id: runId }] as const,
 
   // --- Runtime metadata ---
 

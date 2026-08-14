@@ -15,7 +15,7 @@
  */
 
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { CircularProgress } from '@mui/material';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
@@ -46,23 +46,23 @@ export default function Compare(props: PageProps) {
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
-  // Retrieves run details, set page version on success.
-  const { isLoading, isError, error, data } = useQuery<PromiseSettledResult<ApiRunDetail>[], Error>(
-    {
-      queryKey: queryKeys.runDetails(runIds),
-      queryFn: () => Promise.allSettled(runIds.map((id) => Apis.runServiceApi.getRun(id))),
+  // Route each run independently so one rejection is not cached as successful aggregate data.
+  const runLoadQueries = useQueries({
+    queries: runIds.map((id) => ({
+      queryKey: queryKeys.runDetailForComparisonRouting(id),
+      queryFn: () => Apis.runServiceApi.getRun(id),
+      retry: 1,
+      retryDelay: 0,
       staleTime: Infinity,
-      retry: false,
-    },
-  );
+    })),
+  });
 
-  const successfulRuns = data?.flatMap((result) =>
-    result.status === 'fulfilled' ? [result.value] : [],
+  const isLoading = runLoadQueries.some((query) => query.isPending);
+  const successfulRuns = runLoadQueries.flatMap((query) =>
+    query.data ? [query.data as ApiRunDetail] : [],
   );
-  const failedRunLoad = data?.find((result) => result.status === 'rejected');
-  const failedRunLoadReason =
-    failedRunLoad?.status === 'rejected' ? failedRunLoad.reason : undefined;
-  const compareVersion = !data
+  const failedRunLoad = runLoadQueries.find((query) => query.isError);
+  const compareVersion = isLoading
     ? CompareVersion.Unknown
     : runIds.length < 2 || runIds.length > 10
       ? CompareVersion.InvalidRunCount
@@ -90,10 +90,9 @@ export default function Compare(props: PageProps) {
     const routeCannotRenderPartialResults =
       !!failedRunLoad &&
       (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
-    if (isError || routeCannotRenderPartialResults) {
+    if (routeCannotRenderPartialResults) {
       (async function () {
-        const loadError = error || failedRunLoadReason;
-        const errorMessage = await errorToMessage(loadError);
+        const errorMessage = await errorToMessage(failedRunLoad?.error);
         updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
           message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
@@ -128,16 +127,7 @@ export default function Compare(props: PageProps) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [
-    compareVersion,
-    failedRunLoad,
-    failedRunLoadReason,
-    isError,
-    error,
-    isLoading,
-    updateBanner,
-    runIds.length,
-  ]);
+  }, [compareVersion, failedRunLoad, isLoading, updateBanner, runIds.length]);
 
   if (isLoading) {
     return (
@@ -148,9 +138,8 @@ export default function Compare(props: PageProps) {
   }
 
   if (
-    isError ||
-    (!!failedRunLoad &&
-      (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2))
+    !!failedRunLoad &&
+    (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2)
   ) {
     return <></>;
   }

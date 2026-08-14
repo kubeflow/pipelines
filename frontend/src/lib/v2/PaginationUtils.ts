@@ -17,6 +17,45 @@ interface Page<T> {
   nextPageToken?: string;
 }
 
+interface PageTokenChain {
+  invalidRequests: Set<string>;
+  nextTokens: Set<string>;
+  successors: Map<string, string>;
+}
+
+export class PageTokenTracker {
+  private chains = new Map<string, PageTokenChain>();
+
+  public isRepeated(
+    contextKey: string,
+    requestPageToken: string | undefined,
+    nextPageToken: string,
+  ): boolean {
+    if (!nextPageToken) {
+      return false;
+    }
+    const requestToken = requestPageToken || '';
+    let chain = this.chains.get(contextKey);
+    if (!chain) {
+      chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
+      this.chains.set(contextKey, chain);
+    }
+    if (chain.invalidRequests.has(requestToken)) {
+      return true;
+    }
+    if (chain.successors.get(requestToken) === nextPageToken) {
+      return false;
+    }
+    const repeated = requestToken === nextPageToken || chain.nextTokens.has(nextPageToken);
+    chain.successors.set(requestToken, nextPageToken);
+    chain.nextTokens.add(nextPageToken);
+    if (repeated) {
+      chain.invalidRequests.add(requestToken);
+    }
+    return repeated;
+  }
+}
+
 export async function listAllPages<T>(
   fetchPage: (pageToken?: string) => Promise<Page<T>>,
   sourceName: string,

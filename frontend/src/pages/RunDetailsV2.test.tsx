@@ -563,7 +563,6 @@ describe('RunDetailsV2', () => {
     expect(reconcileSpy).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
-      expect.anything(),
       TEST_TASKS,
       expect.anything(),
     );

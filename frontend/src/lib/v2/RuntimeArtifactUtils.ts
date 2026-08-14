@@ -129,7 +129,18 @@ export function getScalarMetricEntries(artifact: V2beta1Artifact): ScalarMetricE
   }
 
   const name = artifact.name || '-';
-  return [{ name, value: String(artifact.metadata?.[artifact.name || ''] ?? '-') }];
+  const fallbackValue = artifact.metadata?.[artifact.name || ''];
+  return [
+    {
+      name,
+      value:
+        fallbackValue === undefined || fallbackValue === null
+          ? '-'
+          : typeof fallbackValue === 'object'
+            ? JSON.stringify(fallbackValue)
+            : String(fallbackValue),
+    },
+  ];
 }
 
 export function isScalarMetricArtifact(artifact: V2beta1Artifact): boolean {

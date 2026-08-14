@@ -22,7 +22,7 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import TestUtils, { expectErrors, flushPromisesInAct, testBestPractices } from 'src/TestUtils';
+import TestUtils, { flushPromisesInAct, testBestPractices } from 'src/TestUtils';
 
 vi.mock('./CompareV1', () => ({ default: () => <div>V1 Comparison</div> }));
 vi.mock('./CompareV2', () => ({ default: () => <div>Scalar Metrics</div> }));
@@ -119,7 +119,31 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     );
 
     await screen.findByText('Scalar Metrics');
-    expect(getRunSpy).toHaveBeenCalledTimes(3);
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('retries only the run whose routing request fails transiently', async () => {
+    const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
+    let failedRunAttempts = 0;
+    getRunSpy.mockImplementation((id: string) => {
+      if (id === MOCK_RUN_2_ID && failedRunAttempts++ === 0) {
+        return Promise.reject(new Error('temporary outage'));
+      }
+      return Promise.resolve(newMockRun(id, true));
+    });
+    vi.spyOn(features, 'isFeatureEnabled').mockImplementation(
+      (featureKey) => featureKey === features.FeatureKey.V2_ALPHA,
+    );
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('Scalar Metrics');
+    expect(getRunSpy.mock.calls.filter(([id]) => id === MOCK_RUN_2_ID)).toHaveLength(2);
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
   });
 
   it('getRun is called with query param IDs', async () => {
@@ -405,7 +429,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   });
 
   it('Show page error on page when getRun request fails', async () => {
-    const assertErrors = expectErrors();
     const getRunSpy = vi.spyOn(Apis.runServiceApi, 'getRun');
     runs = [
       newMockRun(MOCK_RUN_1_ID, true),
@@ -440,6 +463,5 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         mode: 'error',
       }),
     );
-    assertErrors();
   });
 });

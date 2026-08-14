@@ -138,6 +138,13 @@ describe('RuntimeArtifactUtils', () => {
     expect(
       getScalarMetricEntries({ ...metric, number_value: undefined, metadata: { accuracy: null } }),
     ).toEqual([{ name: 'accuracy', value: '-' }]);
+    expect(
+      getScalarMetricEntries({
+        ...metric,
+        number_value: undefined,
+        metadata: { accuracy: { source: 'legacy-client' } },
+      }),
+    ).toEqual([{ name: 'accuracy', value: '{"source":"legacy-client"}' }]);
     expect(isVisualizableArtifact(metric)).toBe(true);
     expect(
       isClassificationMetricArtifact({ type: ArtifactArtifactType.ClassificationMetric }),
