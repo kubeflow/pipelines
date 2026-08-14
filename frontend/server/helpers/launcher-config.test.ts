@@ -254,6 +254,39 @@ s3:
     });
   });
 
+  it.each([
+    ['percent-encoded spaces', 'root%20dir', 'root dir/run/artifact'],
+    ['percent-encoded Unicode', '%E6%A8%A1%E5%9E%8B', '模型/run/artifact'],
+  ])(
+    'matches %s in defaultPipelineRoot against decoded artifact coordinates',
+    async (_description, encodedRoot, artifactKey) => {
+      mockedGetConfigMap.mockResolvedValue([
+        {
+          data: {
+            defaultPipelineRoot:
+              `s3://team-bucket/${encodedRoot}` +
+              '?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+          },
+        },
+        undefined,
+      ]);
+
+      const result = await getLauncherProviderInfo(
+        { source: 's3', bucket: 'team-bucket', key: artifactKey },
+        'team-a',
+      );
+
+      expect(JSON.parse(result || '')).toEqual({
+        Provider: 's3',
+        Params: {
+          endpoint: 'https://ceph.example:9443',
+          fromEnv: 'true',
+          region: 'ceph',
+        },
+      });
+    },
+  );
+
   it('prefers the pipeline-root query for artifacts under that root', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

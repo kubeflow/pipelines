@@ -313,7 +313,16 @@ function isWithinPipelineRoot(
   }
   const artifactScheme = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
   const artifactPath = `/${coordinates.key}`.replace(/\/+$/, '');
-  const rootPath = root.pathname.replace(/\/+$/, '');
+  let rootPath: string;
+  try {
+    // Artifact request coordinates are decoded at the HTTP boundary. Decode URL.pathname once so
+    // encoded spaces and Unicode in the configured root use the same representation.
+    rootPath = decodeURIComponent(root.pathname).replace(/\/+$/, '');
+  } catch (error) {
+    throw new LauncherConfigValidationError(
+      `kfp-launcher defaultPipelineRoot contains invalid path encoding. Correct it and retry: ${error}`,
+    );
+  }
   return (
     `${artifactScheme}:` === root.protocol &&
     coordinates.bucket === root.host &&
