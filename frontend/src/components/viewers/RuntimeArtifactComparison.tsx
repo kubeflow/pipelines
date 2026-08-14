@@ -21,7 +21,7 @@ import {
   Select,
   SelectChangeEvent,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import Banner from 'src/components/Banner';
@@ -139,21 +139,15 @@ export function RuntimeArtifactComparison({
 }: {
   artifacts: RuntimeComparisonArtifact[];
   kind: RuntimeArtifactComparisonKind;
-  selectionState?: RuntimeArtifactComparisonSelectionState;
-  setSelectionState?: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
+  selectionState: RuntimeArtifactComparisonSelectionState;
+  setSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
-  const [internalSelectionState, setInternalSelectionState] = useState(
-    createRuntimeArtifactComparisonSelectionState,
-  );
-  const isControlled = selectionState !== undefined && setSelectionState !== undefined;
-  const activeSelectionState = isControlled ? selectionState : internalSelectionState;
-  const updateSelectionState = isControlled ? setSelectionState : setInternalSelectionState;
   const updatePanelSelection = (
     panelKind: ComparisonPanelKind,
     panelIndex: number,
     key: string,
   ) => {
-    updateSelectionState((current) => {
+    setSelectionState((current) => {
       const nextSelection = [...current.panelSelections[panelKind]] as [string, string];
       nextSelection[panelIndex] = key;
       return {
@@ -173,10 +167,10 @@ export function RuntimeArtifactComparison({
     return (
       <ClassificationComparison
         artifacts={classificationArtifacts}
-        panelSelections={activeSelectionState.panelSelections['confusion matrix']}
-        rocColorByKey={activeSelectionState.rocColorByKey}
-        rocSelectedKeys={activeSelectionState.rocSelectedKeys}
-        updateSelectionState={updateSelectionState}
+        panelSelections={selectionState.panelSelections['confusion matrix']}
+        rocColorByKey={selectionState.rocColorByKey}
+        rocSelectedKeys={selectionState.rocSelectedKeys}
+        updateSelectionState={setSelectionState}
         updatePanelSelection={updatePanelSelection}
       />
     );
@@ -194,7 +188,7 @@ export function RuntimeArtifactComparison({
     <TwoPanelComparison
       entries={fileArtifacts}
       kind={kind}
-      selectedKeys={activeSelectionState.panelSelections[kind]}
+      selectedKeys={selectionState.panelSelections[kind]}
       updatePanelSelection={updatePanelSelection}
     />
   );

@@ -200,7 +200,7 @@ export function CompareV2(props: CompareV2Props) {
     [queryParamRunIds],
   );
   const runIdsKey = runIds.join(',');
-  const [selectedIdsState, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
+  const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
   const [artifactComparisonSelection, setArtifactComparisonSelection] = useState(
     createRuntimeArtifactComparisonSelectionState,
@@ -268,8 +268,6 @@ export function CompareV2(props: CompareV2Props) {
     queries: comparisonQueryOptions,
     combine: combineComparisonQueries,
   });
-
-  const selectedIds = selectedIdsState;
 
   const selectedData = useMemo(() => {
     const selectedIdSet = new Set(selectedIds);

@@ -21,9 +21,8 @@ import { ApiTrigger } from 'src/apis/job';
 import { V2beta1RecurringRunStatus, V2beta1Trigger } from 'src/apisv2beta1/recurringrun';
 import { ApiRun } from 'src/apis/run';
 import { Column, Row } from 'src/components/CustomTable';
-import { Apis, ListRequest } from './Apis';
+import { ListRequest } from './Apis';
 import { hasFinished, hasFinishedV2, NodePhase } from './StatusUtils';
-import { StorageService } from './WorkflowParser';
 import { ApiParameter } from 'src/apis/pipeline';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 
@@ -290,54 +289,6 @@ export function generateGcsConsoleUri(gcsUri: string): string | undefined {
   }
 
   return GCS_CONSOLE_BASE + gcsUri.substring(GCS_URI_PREFIX.length);
-}
-
-const MINIO_URI_PREFIX = 'minio://';
-
-/**
- * Generates an HTTPS API URL from minio:// uri
- *
- * @param minioUri Minio uri that starts with minio://, like minio://ml-pipeline/path/file
- * @returns A URL that leads to the artifact data. Returns undefined when minioUri is not valid.
- */
-export function generateMinioArtifactUrl(minioUri: string, peek?: number): string | undefined {
-  if (!minioUri.startsWith(MINIO_URI_PREFIX)) {
-    return undefined;
-  }
-
-  // eslint-disable-next-line no-useless-escape
-  const matches = minioUri.match(/^minio:\/\/([^\/]+)\/(.+)$/);
-  if (matches == null) {
-    return undefined;
-  }
-  return Apis.buildReadFileUrl({
-    path: { source: StorageService.MINIO, bucket: matches[1], key: matches[2] },
-    peek,
-    isDownload: true,
-  });
-}
-
-const S3_URI_PREFIX = 's3://';
-/**
- * Generates an HTTPS API URL from s3:// uri
- *
- * @param s3Uri S3 uri that starts with s3://, like s3://ml-pipeline/path/file
- * @returns A URL that leads to the artifact data. Returns undefined when s3Uri is not valid.
- */
-export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
-  if (!s3Uri.startsWith(S3_URI_PREFIX)) {
-    return undefined;
-  }
-
-  // eslint-disable-next-line no-useless-escape
-  const matches = s3Uri.match(/^s3:\/\/([^\/]+)\/(.+)$/);
-  if (matches == null) {
-    return undefined;
-  }
-  return Apis.buildReadFileUrl({
-    path: { source: StorageService.S3, bucket: matches[1], key: matches[2] },
-    isDownload: true,
-  });
 }
 
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {

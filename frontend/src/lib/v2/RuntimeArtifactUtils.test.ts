@@ -152,6 +152,23 @@ describe('RuntimeArtifactUtils', () => {
     expect(isVisualizableArtifact({ type: ArtifactArtifactType.Dataset })).toBe(false);
   });
 
+  it('limits multi-key expansion to numeric metrics and preserves a named legacy fallback', () => {
+    expect(
+      getScalarMetricEntries({
+        name: 'metrics',
+        type: ArtifactArtifactType.Metric,
+        metadata: { accuracy: 0.91, model_type: 'resnet', reported_accuracy: '0.95' },
+      }),
+    ).toEqual([{ name: 'accuracy', value: '0.91' }]);
+    expect(
+      getScalarMetricEntries({
+        name: 'reported_accuracy',
+        type: ArtifactArtifactType.Metric,
+        metadata: { reported_accuracy: '0.95' },
+      }),
+    ).toEqual([{ name: 'reported_accuracy', value: '0.95' }]);
+  });
+
   it('recognizes legacy UI metadata by artifact name or output key', () => {
     expect(isLegacyUiMetadataArtifact({ name: 'mlpipeline-ui-metadata' })).toBe(true);
     expect(isLegacyUiMetadataArtifact({}, 'mlpipeline_ui_metadata')).toBe(true);

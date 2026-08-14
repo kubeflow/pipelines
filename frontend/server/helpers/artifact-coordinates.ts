@@ -51,6 +51,6 @@ export function resolveArtifactCoordinates(
   }
 }
 
-function appendArtifactUriQuery(key: string, artifactUriQuery: string): string {
+export function appendArtifactUriQuery(key: string, artifactUriQuery: string): string {
   return key && artifactUriQuery ? `${key}?${artifactUriQuery}` : key;
 }

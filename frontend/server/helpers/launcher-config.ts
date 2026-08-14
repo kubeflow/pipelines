@@ -17,6 +17,7 @@ import { getConfigMap, K8sError } from '../k8s-helper.js';
 import {
   ArtifactProvider,
   artifactProviderForSource,
+  buildArtifactUri,
   LauncherArtifactSource,
 } from './artifact-sources.js';
 
@@ -125,7 +126,11 @@ export async function getLauncherProviderInfo(
   const provider = artifactProviderForSource(normalizedCoordinates.source);
   const config = providers[provider];
   const override = findOverride(config, normalizedCoordinates.bucket, normalizedCoordinates.key);
-  const artifactUri = buildCoordinateUri(normalizedCoordinates);
+  const artifactUri = buildArtifactUri(
+    normalizedCoordinates.source,
+    normalizedCoordinates.bucket,
+    normalizedCoordinates.key,
+  );
   const underPipelineRoot = isWithinPipelineRoot(artifactUri, defaultPipelineRoot);
   if (!underPipelineRoot && !query && !override) {
     if (!configMapPresent) {
@@ -275,11 +280,6 @@ function splitKeyAndQuery(key: string): { key: string; query: string } {
   return queryStart < 0
     ? { key, query: '' }
     : { key: key.slice(0, queryStart), query: key.slice(queryStart + 1) };
-}
-
-function buildCoordinateUri(coordinates: ArtifactCoordinates): string {
-  const scheme = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
-  return `${scheme}://${coordinates.bucket}/${coordinates.key}`;
 }
 
 function getUriQuery(uri: string): string {

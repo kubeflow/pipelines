@@ -13,16 +13,36 @@
 // limitations under the License.
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { ComponentProps, useState } from 'react';
 import { ArtifactArtifactType } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import { StorageService } from 'src/lib/WorkflowParser';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
 import {
+  createRuntimeArtifactComparisonSelectionState,
   RuntimeArtifactComparison,
   RuntimeComparisonArtifact,
   TEST_ONLY,
 } from './RuntimeArtifactComparison';
+
+function StatefulRuntimeArtifactComparison(
+  props: Omit<
+    ComponentProps<typeof RuntimeArtifactComparison>,
+    'selectionState' | 'setSelectionState'
+  >,
+) {
+  const [selectionState, setSelectionState] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
+  return (
+    <RuntimeArtifactComparison
+      {...props}
+      selectionState={selectionState}
+      setSelectionState={setSelectionState}
+    />
+  );
+}
 
 vi.mock('./ROCCurve', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./ROCCurve')>();
@@ -71,7 +91,7 @@ describe('RuntimeArtifactComparison', () => {
 
     render(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
       </CommonTestWrapper>,
     );
 
@@ -98,7 +118,7 @@ describe('RuntimeArtifactComparison', () => {
 
     render(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
       </CommonTestWrapper>,
     );
 
@@ -156,7 +176,7 @@ describe('RuntimeArtifactComparison', () => {
 
     render(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={artifacts} kind='html' />
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='html' />
       </CommonTestWrapper>,
     );
 
@@ -197,7 +217,7 @@ describe('RuntimeArtifactComparison', () => {
     };
     const view = (entry: RuntimeComparisonArtifact) => (
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={[entry]} kind='html' />
+        <StatefulRuntimeArtifactComparison artifacts={[entry]} kind='html' />
       </CommonTestWrapper>
     );
 
@@ -239,7 +259,7 @@ describe('RuntimeArtifactComparison', () => {
     };
     const { rerender } = render(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='html' />
+        <StatefulRuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='html' />
       </CommonTestWrapper>,
     );
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'First comparison artifact' }));
@@ -248,12 +268,12 @@ describe('RuntimeArtifactComparison', () => {
 
     rerender(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='markdown' />
+        <StatefulRuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='markdown' />
       </CommonTestWrapper>,
     );
     rerender(
       <CommonTestWrapper>
-        <RuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='html' />
+        <StatefulRuntimeArtifactComparison artifacts={[htmlEntry, markdownEntry]} kind='html' />
       </CommonTestWrapper>,
     );
 

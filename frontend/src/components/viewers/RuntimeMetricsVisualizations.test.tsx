@@ -20,7 +20,6 @@ import { StorageService } from 'src/lib/WorkflowParser';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType, ViewerConfig } from './Viewer';
 import {
-  buildConfusionMatrices,
   buildConfusionMatrixResult,
   buildRocCurves,
   expandClassificationMetrics,
@@ -101,7 +100,7 @@ describe('RuntimeMetricsVisualizations', () => {
     ];
 
     const visualizations = expandClassificationMetrics(artifacts);
-    expect(buildConfusionMatrices(visualizations)).toEqual([
+    expect(buildConfusionMatrixResult(visualizations).matrices).toEqual([
       {
         visualization: {
           key: 'matrix-1',

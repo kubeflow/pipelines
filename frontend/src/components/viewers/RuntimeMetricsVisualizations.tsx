@@ -432,12 +432,6 @@ export function expandClassificationMetrics(
   });
 }
 
-export function buildConfusionMatrices(
-  visualizations: ClassificationVisualization[],
-): Array<{ visualization: ClassificationVisualization; configs: ConfusionMatrixConfig[] }> {
-  return buildConfusionMatrixResult(visualizations).matrices;
-}
-
 export function buildConfusionMatrixResult(visualizations: ClassificationVisualization[]): {
   matrices: Array<{
     visualization: ClassificationVisualization;

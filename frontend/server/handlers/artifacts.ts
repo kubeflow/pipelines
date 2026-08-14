@@ -42,7 +42,10 @@ import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
-import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import {
+  appendArtifactUriQuery,
+  resolveArtifactCoordinates,
+} from '../helpers/artifact-coordinates.js';
 import {
   ArtifactSource,
   buildArtifactUri,
@@ -342,7 +345,7 @@ export function getArtifactsHandler({
             {
               source,
               bucket,
-              key: artifactUriQuery ? `${key}?${artifactUriQuery}` : key,
+              key: appendArtifactUriQuery(key, artifactUriQuery),
             },
             namespace,
           )) || '';

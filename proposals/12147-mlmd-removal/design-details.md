@@ -412,6 +412,34 @@ A few more notes:
 * the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization. 
   * As such, the Pipeline Runner SA will need the appropriate namespace-level access to such resources for the Driver & Launcher to communicate with the API Server.
 
+#### Frontend artifact-content compatibility
+
+Removing MLMD also removes the trusted store session attached to legacy artifact records. The
+frontend reconstructs native provider configuration from the namespace `kfp-launcher` ConfigMap,
+but the existing URI-based content endpoint does not carry a trusted native-versus-legacy
+provenance signal. The following rollout constraints are therefore intentional:
+
+* Read-only multi-user roles receive native Artifact API `get` and `list`; mutation remains
+  edit-only.
+* Authenticated `volume://` requests are rejected by the shared central UI. They remain supported
+  in single-user mode and through a namespace-isolated artifact service, where the serving pod's
+  mounts share the caller's namespace boundary.
+* Direct custom-root reads are denied unless ownership is independently established by the
+  standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
+  privileged credentials for an arbitrary URI.
+* Ownership lookup failures fail closed for non-prefix/custom-root reads. In the default
+  `artifact-then-prefix` mode, a canonical `private-artifacts/<namespace>/...` key can be accepted
+  without an Artifact API request; strict `artifact-only` mode always requires the native record.
+* In single-user direct mode, a legacy outside-root link with stored provider information can still
+  fail when a `kfp-launcher` ConfigMap is present. ConfigMap presence and browser-supplied provider
+  information cannot safely distinguish a legacy link from a native artifact attempting to bypass
+  launcher-root policy. The durable replacement is an artifact-ID content API backed by trusted
+  persisted storage provenance rather than a frontend heuristic.
+
+These compatibility boundaries and the longer-term content API are tracked in
+[#14031](https://github.com/kubeflow/pipelines/issues/14031). Multi-user RBAC and direct-volume
+decisions are recorded in [#14034](https://github.com/kubeflow/pipelines/issues/14034).
+
 ### Manifests
 
 The following changes will need to be made:

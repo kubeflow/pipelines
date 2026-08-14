@@ -39,6 +39,7 @@ vi.mock('src/pages/RunDetailsV2', () => ({
         <div
           data-testid='run-details-v2'
           data-pipeline-job={props.pipeline_job}
+          data-pipeline-name={props.parsedPipelineSpec?.pipelineInfo?.name}
           data-run-refresh-error={props.runRefreshError?.message}
           data-run-state={props.run.state}
         />
@@ -129,6 +130,10 @@ describe('RunDetailsRouter', () => {
     await waitFor(() => {
       expect(screen.getByTestId('run-details-v2')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('run-details-v2')).toHaveAttribute(
+      'data-pipeline-name',
+      v2PipelineSpec.pipelineInfo.name,
+    );
   });
 
   it('keeps the retry callback stable across parent rerenders', async () => {

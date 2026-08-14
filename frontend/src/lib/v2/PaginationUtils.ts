@@ -23,6 +23,8 @@ interface PageTokenChain {
   successors: Map<string, string>;
 }
 
+const MAX_PAGES = 10_000;
+
 export class PageTokenTracker {
   private chains = new Map<string, PageTokenChain>();
 
@@ -59,12 +61,20 @@ export class PageTokenTracker {
 export async function listAllPages<T>(
   fetchPage: (pageToken?: string) => Promise<Page<T>>,
   sourceName: string,
+  maxPages = MAX_PAGES,
 ): Promise<T[]> {
   const items: T[] = [];
   const seenPageTokens = new Set<string>();
   let pageToken: string | undefined;
+  let pageCount = 0;
   do {
+    if (pageCount >= maxPages) {
+      throw new Error(
+        `${sourceName} returned more than ${maxPages} pages. Narrow the request and retry.`,
+      );
+    }
     const page = await fetchPage(pageToken);
+    pageCount += 1;
     items.push(...(page.items || []));
     pageToken = page.nextPageToken || undefined;
     if (pageToken) {

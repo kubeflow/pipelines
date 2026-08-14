@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as JsYaml from 'js-yaml';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
@@ -83,14 +83,22 @@ export default function RunDetailsRouter(
   }, [templateStrIsError, templateStrError, updateBanner]);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
+  const pipelineSpec = useMemo(
+    () =>
+      templateString ? WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) : undefined,
+    [templateString],
+  );
 
-  if (v2Run && templateString) {
-    const isV2Pipeline = WorkflowUtils.isPipelineSpec(templateString);
-    if (isV2Pipeline) {
-      return (
-        <PolledRunDetailsV2 key={runId} pipeline_job={templateString} run={v2Run} {...props} />
-      );
-    }
+  if (v2Run && templateString && pipelineSpec) {
+    return (
+      <PolledRunDetailsV2
+        key={runId}
+        pipeline_job={templateString}
+        parsedPipelineSpec={pipelineSpec}
+        run={v2Run}
+        {...props}
+      />
+    );
   }
 
   return <EnhancedRunDetails {...props} isLoading={runIsLoading || templateStrIsLoading} />;

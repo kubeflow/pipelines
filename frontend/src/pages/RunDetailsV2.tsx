@@ -23,6 +23,7 @@ import {
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { useKeyedState } from 'src/hooks/useKeyedState';
 import {
@@ -68,6 +69,7 @@ const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 interface RunDetailsV2Info {
   onRetryStarted?: () => void;
   pipeline_job: string;
+  parsedPipelineSpec?: PipelineSpec;
   run: V2beta1Run;
   runRefreshError?: Error | null;
 }
@@ -88,8 +90,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = useMemo(
-    () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
-    [pipelineJobStr],
+    () => props.parsedPipelineSpec || WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
+    [pipelineJobStr, props.parsedPipelineSpec],
   );
   const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
