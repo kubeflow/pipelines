@@ -53,6 +53,7 @@ import {
   flattenArtifactGroups,
   formatParameterValue,
   getArtifactDisplayName,
+  getArtifactIdentity,
   getScalarMetricEntries,
   isScalarMetricArtifact,
   isTaskFinished,
@@ -559,7 +560,7 @@ export function collectRuntimeComparisonArtifacts(
           taskKey,
           artifactKey,
           index,
-          artifact.artifact_id || artifact.uri || artifact.name || 'artifact',
+          getArtifactIdentity(artifact) || 'artifact',
         ].join(':'),
         label: `${runLabel} / ${taskName} / ${getArtifactDisplayName(
           artifact,

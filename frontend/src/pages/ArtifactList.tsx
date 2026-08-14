@@ -144,21 +144,22 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
 
   private getRequestKey(request: ListRequest): string {
     return JSON.stringify({
-      filter: request.filter || '',
-      namespace: this.props.namespace || '',
-      pageSize: request.pageSize || 0,
+      ...this.getPaginationContext(request),
       pageToken: request.pageToken || '',
-      sortBy: request.sortBy || '',
     });
   }
 
   private getPaginationContextKey(request: ListRequest): string {
-    return JSON.stringify({
+    return JSON.stringify(this.getPaginationContext(request));
+  }
+
+  private getPaginationContext(request: ListRequest) {
+    return {
       filter: request.filter || '',
       namespace: this.props.namespace || '',
       pageSize: request.pageSize || 0,
       sortBy: request.sortBy || '',
-    });
+    };
   }
 }
 

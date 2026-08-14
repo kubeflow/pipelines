@@ -30,12 +30,14 @@ import {
 } from 'src/apisv2beta1/run';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
 import { RoutePage, RouteParams } from 'src/components/Router';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { mockResizeObserver, testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { queryKeys } from 'src/hooks/queryKeys';
 import * as DynamicFlow from 'src/lib/v2/DynamicFlow';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { PageProps } from './Page';
 import { RunDetailsInternalProps } from './RunDetails';
 import { RunDetailsV2 } from './RunDetailsV2';
@@ -48,6 +50,7 @@ vi.mock('src/components/Editor', () => ({
 testBestPractices();
 describe('RunDetailsV2', () => {
   const RUN_ID = '1';
+  const TEST_PIPELINE_SPEC = convertYamlToV2PipelineSpec(v2YamlTemplateString);
 
   let updateBannerSpy: any;
   let updateDialogSpy: any;
@@ -64,7 +67,8 @@ describe('RunDetailsV2', () => {
     return { promise, resolve };
   }
 
-  function generateProps(): RunDetailsInternalProps & PageProps {
+  function generateProps(): RunDetailsInternalProps &
+    PageProps & { parsedPipelineSpec: PipelineSpec } {
     const pageProps: PageProps = {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: '' as any,
@@ -84,6 +88,7 @@ describe('RunDetailsV2', () => {
     };
     return Object.assign(pageProps, {
       gkeMetadata: {},
+      parsedPipelineSpec: TEST_PIPELINE_SPEC,
     });
   }
   const TEST_RUN: V2beta1Run = {

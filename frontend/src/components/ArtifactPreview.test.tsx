@@ -110,55 +110,6 @@ describe('ArtifactPreview', () => {
     );
   });
 
-  it('carries row-specific providerInfo into download and view links', async () => {
-    vi.spyOn(Apis, 'readFile').mockResolvedValueOnce('s3 content');
-    render(
-      <CommonTestWrapper>
-        <ArtifactPreview
-          value={{ uri: 's3://bucket/key', providerInfo: '{"Provider":"s3"}' }}
-          namespace={'kubeflow'}
-        />
-      </CommonTestWrapper>,
-    );
-    await waitFor(() =>
-      expect(screen.getByText('View All').getAttribute('href')).toEqual(
-        'artifacts/get?source=s3&namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=bucket&key=key',
-      ),
-    );
-    expect(screen.getByText('s3://bucket/key').getAttribute('href')).toEqual(
-      'artifacts/s3/bucket/key?namespace=kubeflow&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
-    );
-  });
-
-  it('keeps previews with the same URI but different providers in separate cache entries', async () => {
-    const readFileSpy = vi
-      .spyOn(Apis, 'readFile')
-      .mockResolvedValueOnce('first content')
-      .mockResolvedValueOnce('second content');
-    render(
-      <CommonTestWrapper>
-        <ArtifactPreview value={{ uri: 's3://bucket/key', providerInfo: 'session-a' }} />
-        <ArtifactPreview value={{ uri: 's3://bucket/key', providerInfo: 'session-b' }} />
-      </CommonTestWrapper>,
-    );
-
-    expect(readFileSpy).not.toHaveBeenCalled();
-    screen
-      .getAllByRole('button', { name: 'Load preview' })
-      .forEach((button) => fireEvent.click(button));
-
-    await screen.findByText('first content');
-    await screen.findByText('second content');
-    expect(readFileSpy).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ providerInfo: 'session-a' }),
-    );
-    expect(readFileSpy).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ providerInfo: 'session-b' }),
-    );
-  });
-
   it('handles artifact that previews with maxlines', async () => {
     const data = `012\n345\n678\n910`;
     vi.spyOn(Apis, 'readFile').mockResolvedValueOnce(data);

@@ -80,12 +80,12 @@ export default function Compare(props: PageProps) {
             }
             return CompareVersion.Mixed;
           })();
+  const routeCannotRenderPartialResults =
+    !!failedRunError &&
+    (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
 
   const updateComparisonBanner = useEffectEvent(async () => {
     // Update banner based on error, feature flag, run versions, and run count.
-    const routeCannotRenderPartialResults =
-      !!failedRunError &&
-      (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2);
     if (routeCannotRenderPartialResults) {
       const errorMessage = await errorToMessage(failedRunError);
       updateBanner({
@@ -137,10 +137,7 @@ export default function Compare(props: PageProps) {
     );
   }
 
-  if (
-    !!failedRunError &&
-    (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion !== CompareVersion.V2)
-  ) {
+  if (routeCannotRenderPartialResults) {
     return <></>;
   }
 

@@ -25,6 +25,7 @@ import { queryKeys } from 'src/hooks/queryKeys';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
+  getArtifactIdentity,
   getScalarMetricEntries,
   isHtmlArtifact,
   isLegacyUiMetadataArtifact,
@@ -169,7 +170,7 @@ export function RuntimeMetricsVisualizations({
       {legacyUiMetadataArtifacts.map((artifact, index) => (
         <LegacyUiMetadataVisualization
           artifact={artifact}
-          key={artifact.artifact_id || artifact.uri || `legacy-ui-metadata-${index}`}
+          key={getArtifactIdentity(artifact) || `legacy-ui-metadata-${index}`}
           namespace={artifact.namespace || namespace}
           sourceFinished={sourceFinished}
         />
@@ -191,10 +192,14 @@ function FileArtifactVisualization({
 }) {
   const entries = useMemo(
     () =>
-      artifacts.map((artifact, index) => ({
-        artifact,
-        key: artifact.artifact_id || artifact.uri || `${artifact.name || 'artifact'}-${index}`,
-      })),
+      artifacts.map((artifact, index) => {
+        const identity = getArtifactIdentity(artifact);
+        return {
+          artifact,
+          key:
+            artifact.artifact_id || artifact.uri ? identity! : `${identity || 'artifact'}-${index}`,
+        };
+      }),
     [artifacts],
   );
   const [selectedKey, setSelectedKey] = useState('');
@@ -262,7 +267,7 @@ export function RuntimeArtifactVisualization({
   sourceFinished?: boolean;
   title?: string;
 }) {
-  const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
+  const artifactKey = getArtifactIdentity(artifact);
   const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
     queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace, sourceFinished),
     queryFn: () => downloadVisualization(artifact, namespace),
@@ -298,7 +303,7 @@ function LegacyUiMetadataVisualization({
   namespace?: string;
   sourceFinished?: boolean;
 }) {
-  const artifactKey = artifact.artifact_id || artifact.uri || artifact.name;
+  const artifactKey = getArtifactIdentity(artifact);
   const { data, error, isLoading } = useQuery<LegacyUiMetadataVisualizationResult, Error>({
     queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace, sourceFinished),
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
@@ -390,8 +395,7 @@ export function expandClassificationMetrics(
   artifacts: V2beta1Artifact[],
 ): ClassificationVisualization[] {
   return artifacts.flatMap((artifact, artifactIndex) => {
-    const sourceKey =
-      artifact.artifact_id || artifact.uri || artifact.name || `classification-${artifactIndex}`;
+    const sourceKey = getArtifactIdentity(artifact) || `classification-${artifactIndex}`;
     if (artifact.type === ArtifactArtifactType.ClassificationMetric) {
       return [
         {

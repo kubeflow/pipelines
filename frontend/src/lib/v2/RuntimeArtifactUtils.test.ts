@@ -22,6 +22,7 @@ import {
   EXECUTOR_LOGS_ARTIFACT_KEY,
   formatParameters,
   getArtifactDisplayName,
+  getArtifactIdentity,
   getArtifactTypeName,
   getOutputArtifactByName,
   getScalarMetricEntries,
@@ -80,6 +81,15 @@ describe('RuntimeArtifactUtils', () => {
 
   it('defines the native executor logs output key', () => {
     expect(EXECUTOR_LOGS_ARTIFACT_KEY).toBe('executor-logs');
+  });
+
+  it('uses the stable artifact identity fields in priority order', () => {
+    expect(getArtifactIdentity({ artifact_id: 'id', uri: 's3://bucket/key', name: 'name' })).toBe(
+      'id',
+    );
+    expect(getArtifactIdentity({ uri: 's3://bucket/key', name: 'name' })).toBe('s3://bucket/key');
+    expect(getArtifactIdentity({ name: 'name' })).toBe('name');
+    expect(getArtifactIdentity({})).toBeUndefined();
   });
 
   it('finds the latest output artifact by either output key or artifact name', () => {

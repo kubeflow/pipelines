@@ -40,6 +40,11 @@ import {
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
+import {
+  formatRuntimeIterationLayer,
+  isRuntimeIterationLayer,
+  parseRuntimeIterationLayer,
+} from 'src/lib/v2/RuntimeLayerUtils';
 
 export interface NodeRuntimeInfo {
   task?: V2beta1PipelineTask;
@@ -62,8 +67,6 @@ interface RuntimeFlowContext {
   runtimeLayerContext: RuntimeLayerContext;
 }
 
-const ITERATION_LAYER_PATTERN = /^(.*)\.(\d+)$/;
-
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
@@ -79,7 +82,7 @@ export function convertSubDagToRuntimeFlowElements(
   const componentsMap = spec.components;
 
   for (let index = 1; index < layers.length; index++) {
-    if (isIterationLayer(layers[index])) {
+    if (isRuntimeIterationLayer(layers[index])) {
       continue;
     }
 
@@ -289,7 +292,12 @@ export function getTaskRuntimeLayers(
       contextTask.type === PipelineTaskTaskType.LOOP &&
       childTask.type_attributes?.iteration_index !== undefined
     ) {
-      layers.push(`${contextTask.name}.${childTask.type_attributes.iteration_index}`);
+      layers.push(
+        formatRuntimeIterationLayer(
+          contextTask.name,
+          Number(childTask.type_attributes.iteration_index),
+        ),
+      );
     }
   }
   return layers;
@@ -330,13 +338,9 @@ function getRuntimeLayerContext(layers: string[], taskIndex: TaskIndex): Runtime
     if (!contextTask) {
       return {};
     }
-    const iterationMatch = layer.match(ITERATION_LAYER_PATTERN);
-    if (
-      iterationMatch &&
-      contextTask.type === PipelineTaskTaskType.LOOP &&
-      iterationMatch[1] === contextTask.name
-    ) {
-      context = { task: contextTask, iterationIndex: Number(iterationMatch[2]) };
+    const iterationLayer = parseRuntimeIterationLayer(layer, contextTask.name);
+    if (iterationLayer && contextTask.type === PipelineTaskTaskType.LOOP) {
+      context = { task: contextTask, iterationIndex: iterationLayer.iterationIndex };
       continue;
     }
 
@@ -435,7 +439,7 @@ function buildParallelForDag(
   }
   const children = taskIndex.childrenByParentId.get(loopTask.task_id || '') || [];
   for (let index = 0; index < iterationCount; index++) {
-    const iterationNodeName = `${loopTask.name}.${index}`;
+    const iterationNodeName = formatRuntimeIterationLayer(loopTask.name || '', index);
     const node: Node<FlowElementDataBase> = {
       id: getTaskNodeKey(iterationNodeName),
       data: {
@@ -485,10 +489,6 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
-}
-
-function isIterationLayer(layer: string): boolean {
-  return ITERATION_LAYER_PATTERN.test(layer);
 }
 
 function cloneFlowElement(element: PipelineFlowElement): PipelineFlowElement {

@@ -32,7 +32,6 @@ export type ArtifactPreviewValue =
   | string
   | {
       uri: string;
-      providerInfo?: string;
     };
 
 const css = stylesheet({
@@ -78,7 +77,6 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
   let artifactUriQuery: string | undefined;
-  let providerInfo = typeof value === 'object' && value !== null ? value.providerInfo : undefined;
 
   if (uri) {
     try {
@@ -91,16 +89,8 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   }
 
   const { isSuccess, isError, data, error, refetch } = useQuery<string, Error>({
-    queryKey: queryKeys.artifactPreview(
-      uri,
-      namespace,
-      artifactUriQuery,
-      providerInfo,
-      maxbytes,
-      maxlines,
-    ),
-    queryFn: () =>
-      getPreview(storage, artifactUriQuery, providerInfo, namespace, maxbytes, maxlines),
+    queryKey: queryKeys.artifactPreview(uri, namespace, artifactUriQuery, maxbytes, maxlines),
+    queryFn: () => getPreview(storage, artifactUriQuery, namespace, maxbytes, maxlines),
     enabled: previewRequested && !!storage,
     retry: false,
     staleTime: Infinity,
@@ -117,14 +107,12 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     path: storage,
     namespace,
     artifactUriQuery,
-    providerInfo,
     isDownload: true,
   });
   const artifactViewUrl = Apis.buildReadFileUrl({
     path: storage,
     namespace,
     artifactUriQuery,
-    providerInfo,
   });
 
   return (
@@ -171,7 +159,6 @@ export default ArtifactPreview;
 async function getPreview(
   storagePath: StoragePath | undefined,
   artifactUriQuery: string | undefined,
-  providerInfo: string | undefined,
   namespace: string | undefined,
   maxbytes: number,
   maxlines?: number,
@@ -183,7 +170,6 @@ async function getPreview(
   let data = await Apis.readFile({
     path: storagePath,
     artifactUriQuery,
-    providerInfo: providerInfo,
     namespace: namespace,
     peek: maxbytes + 1,
   });

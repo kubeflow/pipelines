@@ -18,12 +18,7 @@ import { ArtifactArtifactType, V2beta1PipelineTask } from 'src/apisv2beta1/run';
 import { RuntimeInputOutputTab } from './RuntimeInputOutputTab';
 
 vi.mock('src/components/ArtifactPreview', () => ({
-  default: ({ value }: { value: { uri: string; providerInfo?: string } }) => (
-    <div>
-      Preview {value.uri}
-      {value.providerInfo ? ` with ${value.providerInfo}` : ''}
-    </div>
-  ),
+  default: ({ value }: { value: { uri: string } }) => <div>Preview {value.uri}</div>,
 }));
 
 describe('RuntimeInputOutputTab', () => {

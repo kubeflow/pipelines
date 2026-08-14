@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { PipelineSpec } from 'src/generated/pipeline_spec';
+import { isRuntimeIterationLayer } from './RuntimeLayerUtils';
 
 export function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], taskKey: string) {
   let currentDag = pipelineSpec.root?.dag;
@@ -34,11 +35,4 @@ export function getComponentSpec(pipelineSpec: PipelineSpec, layers: string[], t
     currentDag = componentSpec.dag;
   }
   return componentSpec;
-}
-
-function isRuntimeIterationLayer(layer: string, parentLayer?: string): boolean {
-  if (!parentLayer || !layer.startsWith(`${parentLayer}.`)) {
-    return false;
-  }
-  return /^\d+$/.test(layer.slice(parentLayer.length + 1));
 }

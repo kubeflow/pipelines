@@ -21,7 +21,6 @@ import {
   PlatformSpec,
 } from 'src/generated/pipeline_spec';
 import * as StaticGraphParser from 'src/lib/StaticGraphParser';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { Workflow } from 'src/third_party/argo/argo_template';
 
@@ -76,7 +75,7 @@ export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
 
 function convertPipelineSpecDef(pipelineSpecDef: unknown): PipelineSpec {
   const pipelineSpec = PipelineSpec.fromJSON(pipelineSpecDef);
-  if (!pipelineSpec.root || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
+  if (!pipelineSpec.root?.dag || !pipelineSpec.pipelineInfo || !pipelineSpec.deploymentSpec) {
     throw new Error('Important infomation is missing. Pipeline Spec is invalid.');
   }
   return pipelineSpec;
@@ -103,7 +102,6 @@ export function tryConvertYamlToV2PipelineSpec(templateString: string): Pipeline
       return undefined;
     }
     const pipelineSpec = convertPipelineSpecDef(template);
-    convertFlowElements(pipelineSpec);
     return pipelineSpec;
   } catch {
     return undefined;

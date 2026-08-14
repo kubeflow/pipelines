@@ -76,6 +76,10 @@ export function getArtifactDisplayName(
   return needsSuffix ? `${baseName} (${index + 1})` : baseName;
 }
 
+export function getArtifactIdentity(artifact: V2beta1Artifact): string | undefined {
+  return artifact.artifact_id || artifact.uri || artifact.name;
+}
+
 export function getArtifactTypeName(artifact: V2beta1Artifact): string {
   return artifact.type ? ARTIFACT_SCHEMA_TITLES[artifact.type] || artifact.type : '-';
 }

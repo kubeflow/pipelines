@@ -64,7 +64,6 @@ import {
   NodeTypeNames,
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
-import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
 import { RouteComponentProps } from 'react-router-dom';
@@ -79,7 +78,7 @@ const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 interface RunDetailsV2Info {
   onRetryStarted?: () => void;
   pipeline_job: string;
-  parsedPipelineSpec?: PipelineSpec;
+  parsedPipelineSpec: PipelineSpec;
   retryRefreshVersion?: number;
   run: V2beta1Run;
   runRefreshError?: Error | null;
@@ -105,10 +104,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const run = props.run;
   const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = useMemo(
-    () => props.parsedPipelineSpec || WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
-    [pipelineJobStr, props.parsedPipelineSpec],
-  );
+  const pipelineSpec = props.parsedPipelineSpec;
   const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
   const [flowElements, setFlowElements] = useState(initialElements);
@@ -117,7 +113,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
-  const runFinished = runIsTerminal;
   const retryRefreshVersion = props.retryRefreshVersion || 0;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
@@ -136,7 +131,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       previousTasks && isEqual(previousTasks, nextTasks) ? previousTasks : nextTasks,
     staleTime: QUERY_STALE_TIME,
     refetchInterval: (query) => {
-      if (!runFinished) {
+      if (!runIsTerminal) {
         return QUERY_REFETCH_INTERVAL;
       }
       if (retryRefreshVersion === 0) {
@@ -303,7 +298,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       buttons,
       runIdFromParams,
       run,
-      runFinished,
+      runIsTerminal,
       updateToolbar,
       () => forceUpdate,
       (_selectedIds, success) => {
@@ -314,7 +309,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         }
       },
     );
-  }, [buttons, runIdFromParams, run, runFinished, updateToolbar, onRetryStarted]);
+  }, [buttons, runIdFromParams, run, runIsTerminal, updateToolbar, onRetryStarted]);
 
   return (
     <>

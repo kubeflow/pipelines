@@ -118,12 +118,7 @@ export const queryKeys = {
     value: string | undefined,
     namespace: string | undefined,
     artifactUriQuery: string | undefined,
-    providerInfo: string | undefined,
     maxbytes: number,
     maxlines: number,
-  ) =>
-    [
-      'artifact_preview',
-      { value, namespace, artifactUriQuery, providerInfo, maxbytes, maxlines },
-    ] as const,
+  ) => ['artifact_preview', { value, namespace, artifactUriQuery, maxbytes, maxlines }] as const,
 };
