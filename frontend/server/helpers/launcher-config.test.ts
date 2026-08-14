@@ -269,7 +269,8 @@ s3:
       {
         source: 's3',
         bucket: 'team-bucket',
-        key: 'pipelines/team-a/model?endpoint=https%3A%2F%2Funtrusted.example',
+        key: 'pipelines/team-a/model',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Funtrusted.example',
       },
       'team-a',
     );
@@ -287,7 +288,8 @@ s3:
       {
         source: 's3',
         bucket: 'external-bucket',
-        key: 'model?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
+        key: 'model',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
       },
       'team-a',
     );
@@ -300,6 +302,24 @@ s3:
         region: 'ceph',
       },
     });
+  });
+
+  it('treats a fragment marker as object-key data when checking the pipeline root', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a/model' } },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        {
+          source: 's3',
+          bucket: 'team-bucket',
+          key: 'pipelines/team-a/model#checkpoint',
+        },
+        'team-a',
+      ),
+    ).rejects.toThrow('is outside defaultPipelineRoot and has no explicit provider query');
   });
 
   it('maps gcs artifacts to the launcher gs provider format', async () => {

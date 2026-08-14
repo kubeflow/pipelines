@@ -43,26 +43,23 @@ import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
 import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
 import {
-  appendArtifactUriQuery,
+  ArtifactCoordinates,
+  buildArtifactCoordinateUri,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
 import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from '../helpers/artifact-path.js';
 import {
   ArtifactSource,
-  buildArtifactUri,
   isArtifactSource,
   isLauncherArtifactSource,
+  LauncherArtifactSource,
   requiresArtifactOwnershipValidation,
 } from '../helpers/artifact-sources.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
-import {
-  ArtifactCoordinates,
-  getLauncherProviderInfo,
-  LauncherConfigError,
-} from '../helpers/launcher-config.js';
+import { getLauncherProviderInfo, LauncherConfigError } from '../helpers/launcher-config.js';
 
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
@@ -245,7 +242,7 @@ export function getArtifactsAuthMiddleware(
 
     if (apiServerAddress) {
       if (requiresArtifactOwnershipValidation(coords.source)) {
-        const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
+        const artifactUri = buildArtifactCoordinateUri(coords);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
         const validation = await validateArtifactNamespace(
           apiServerAddress,
@@ -270,11 +267,7 @@ export function getArtifactsAuthMiddleware(
       }
     }
 
-    response.locals.authorizedArtifactUri = buildArtifactUri(
-      coords.source,
-      coords.bucket,
-      coords.key,
-    );
+    response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coords);
 
     next();
   };
@@ -313,11 +306,13 @@ export function getArtifactsHandler({
     }
     const { source, bucket, key, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
-    const requestedArtifactUri = buildArtifactUri(
+    const coordinates: ArtifactCoordinates<ArtifactSource> = {
       source,
       bucket,
-      appendArtifactUriQuery(key, artifactUriQuery),
-    );
+      key,
+      artifactUriQuery,
+    };
+    const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);
     // The authorization middleware and storage handler parse independently. Pin the handler to
     // the exact canonical URI that was authorized so future route/parser changes cannot create a
     // validate-A/fetch-B gap.
@@ -356,14 +351,7 @@ export function getArtifactsHandler({
     if (allowProviderSecrets && isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
-          (await getLauncherProviderInfo(
-            {
-              source,
-              bucket,
-              key: appendArtifactUriQuery(key, artifactUriQuery),
-            },
-            namespace,
-          )) || '';
+          (await getLauncherProviderInfo({ ...coordinates, source }, namespace)) || '';
       } catch (error) {
         // Direct mode would otherwise substitute the central UI server's environment
         // credentials for an unreadable or invalid namespace storage policy.
@@ -1153,12 +1141,17 @@ export function getArtifactsProxyHandler({
         res.status(400).send('Malformed URL encoding in artifact path');
         return;
       }
-      const coordinates: ArtifactCoordinates | undefined =
+      const coordinates: ArtifactCoordinates<LauncherArtifactSource> | undefined =
         resolvedCoordinates &&
         isLauncherArtifactSource(resolvedCoordinates.source) &&
         resolvedCoordinates.bucket &&
         resolvedCoordinates.key
-          ? { ...resolvedCoordinates, source: resolvedCoordinates.source }
+          ? {
+              source: resolvedCoordinates.source,
+              bucket: resolvedCoordinates.bucket,
+              key: resolvedCoordinates.key,
+              artifactUriQuery: resolvedCoordinates.artifactUriQuery,
+            }
           : undefined;
       if (coordinates) {
         try {

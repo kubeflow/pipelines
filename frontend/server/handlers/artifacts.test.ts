@@ -14,7 +14,10 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import type { Request } from 'express';
-import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import {
+  buildArtifactCoordinateUri,
+  resolveArtifactCoordinates,
+} from '../helpers/artifact-coordinates.js';
 import { getArtifactsHandler } from './artifacts.js';
 
 vi.mock('../k8s-helper.js', () => ({
@@ -35,6 +38,8 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        artifactUriQuery: '',
+        artifactUriQuery: '',
       });
     });
 
@@ -44,6 +49,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'my-bucket',
         key: 'path/to/file.csv',
+        artifactUriQuery: '',
       });
     });
 
@@ -53,6 +59,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'my-bucket',
         key: 'some/key',
+        artifactUriQuery: '',
       });
     });
 
@@ -62,6 +69,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        artifactUriQuery: '',
       });
     });
 
@@ -71,6 +79,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello%2Fworld.txt',
+        artifactUriQuery: '',
       });
     });
 
@@ -85,6 +94,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'gcs',
         bucket: 'my-bucket',
         key: 'a/b/c/d.json',
+        artifactUriQuery: '',
       });
     });
   });
@@ -95,11 +105,13 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        artifactUriQuery: '',
       });
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        artifactUriQuery: '',
       });
     });
 
@@ -113,7 +125,8 @@ describe('resolveArtifactCoordinates', () => {
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'reports',
-        key: 'output.html?endpoint=https%3A%2F%2Fceph.example&region=ceph',
+        key: 'output.html',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example&region=ceph',
       });
     });
 
@@ -122,11 +135,13 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'my-bucket',
         key: 'data.csv',
+        artifactUriQuery: '',
       });
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'my-bucket',
         key: 'data.csv',
+        artifactUriQuery: '',
       });
     });
 
@@ -147,6 +162,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: '',
         key: '',
+        artifactUriQuery: '',
       });
     });
 
@@ -160,6 +176,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
+        artifactUriQuery: '',
       });
     });
 
@@ -173,6 +190,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
+        artifactUriQuery: '',
       });
     });
   });
@@ -189,6 +207,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'victim-bucket',
         key: 'secret.txt',
+        artifactUriQuery: '',
       });
     });
 
@@ -199,7 +218,8 @@ describe('resolveArtifactCoordinates', () => {
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'reports',
-        key: 'output.html?endpoint=https%3A%2F%2Fceph.example',
+        key: 'output.html',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example',
       });
     });
 
@@ -217,8 +237,20 @@ describe('resolveArtifactCoordinates', () => {
         source: 'get',
         bucket: 'some-bucket',
         key: 'some-key',
+        artifactUriQuery: '',
       });
     });
+  });
+
+  it('builds the canonical artifact URI without interpreting key fragments as query data', () => {
+    expect(
+      buildArtifactCoordinateUri({
+        source: 's3',
+        bucket: 'reports',
+        key: 'models/checkpoint#latest',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example',
+      }),
+    ).toBe('s3://reports/models/checkpoint#latest?endpoint=https%3A%2F%2Fceph.example');
   });
 });
 

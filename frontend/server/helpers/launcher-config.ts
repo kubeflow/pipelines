@@ -14,6 +14,7 @@
 
 import { load } from 'js-yaml';
 import { getConfigMap, K8sError } from '../k8s-helper.js';
+import type { ArtifactCoordinates } from './artifact-coordinates.js';
 import {
   ArtifactProvider,
   artifactProviderForSource,
@@ -79,12 +80,6 @@ interface StoreSessionInfo {
   Params: Record<string, string>;
 }
 
-export interface ArtifactCoordinates {
-  source: LauncherArtifactSource;
-  bucket: string;
-  key: string;
-}
-
 export class LauncherConfigError extends Error {}
 
 export class LauncherConfigParseError extends LauncherConfigError {
@@ -116,24 +111,18 @@ export class LauncherConfigValidationError extends LauncherConfigError {
  * from the namespace's kfp-launcher ConfigMap before downloading an artifact.
  */
 export async function getLauncherProviderInfo(
-  coordinates: ArtifactCoordinates,
+  coordinates: ArtifactCoordinates<LauncherArtifactSource>,
   namespace: string,
 ): Promise<string | undefined> {
   const { configMapPresent, defaultPipelineRoot, providers } =
     await getLauncherConfiguration(namespace);
-  const { key, query } = splitKeyAndQuery(coordinates.key);
-  const normalizedCoordinates = { ...coordinates, key };
 
-  const provider = artifactProviderForSource(normalizedCoordinates.source);
+  const provider = artifactProviderForSource(coordinates.source);
   const config = providers[provider];
-  const override = findOverride(config, normalizedCoordinates.bucket, normalizedCoordinates.key);
-  const artifactUri = buildArtifactUri(
-    normalizedCoordinates.source,
-    normalizedCoordinates.bucket,
-    normalizedCoordinates.key,
-  );
-  const underPipelineRoot = isWithinPipelineRoot(artifactUri, defaultPipelineRoot);
-  if (!underPipelineRoot && !query && !override) {
+  const override = findOverride(config, coordinates.bucket, coordinates.key);
+  const artifactUri = buildArtifactUri(coordinates.source, coordinates.bucket, coordinates.key);
+  const underPipelineRoot = isWithinPipelineRoot(coordinates, defaultPipelineRoot);
+  if (!underPipelineRoot && !coordinates.artifactUriQuery && !override) {
     if (!configMapPresent) {
       return undefined;
     }
@@ -146,7 +135,9 @@ export async function getLauncherProviderInfo(
 
   // Launcher replaces an under-root artifact's query with defaultPipelineRoot's query. An
   // artifact URI's own query is used only outside that root.
-  const effectiveQuery = underPipelineRoot ? getUriQuery(defaultPipelineRoot) : query;
+  const effectiveQuery = underPipelineRoot
+    ? getUriQuery(defaultPipelineRoot)
+    : coordinates.artifactUriQuery;
   if (effectiveQuery) {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }
@@ -154,9 +145,7 @@ export async function getLauncherProviderInfo(
     return undefined;
   }
 
-  return JSON.stringify(
-    buildSessionInfo(provider, normalizedCoordinates.bucket, normalizedCoordinates.key, config),
-  );
+  return JSON.stringify(buildSessionInfo(provider, coordinates.bucket, coordinates.key, config));
 }
 
 async function getLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
@@ -299,13 +288,6 @@ function buildQuerySessionInfo(provider: ArtifactProvider, query: string): Store
   return { Provider: provider, Params: params };
 }
 
-function splitKeyAndQuery(key: string): { key: string; query: string } {
-  const queryStart = key.indexOf('?');
-  return queryStart < 0
-    ? { key, query: '' }
-    : { key: key.slice(0, queryStart), query: key.slice(queryStart + 1) };
-}
-
 function getUriQuery(uri: string): string {
   try {
     return new URL(uri).search.slice(1);
@@ -316,11 +298,12 @@ function getUriQuery(uri: string): string {
   }
 }
 
-function isWithinPipelineRoot(artifactUri: string, pipelineRoot: string): boolean {
-  let artifact: URL;
+function isWithinPipelineRoot(
+  coordinates: ArtifactCoordinates<LauncherArtifactSource>,
+  pipelineRoot: string,
+): boolean {
   let root: URL;
   try {
-    artifact = new URL(artifactUri);
     root = new URL(pipelineRoot);
   } catch (error) {
     throw new LauncherConfigValidationError(
@@ -328,11 +311,12 @@ function isWithinPipelineRoot(artifactUri: string, pipelineRoot: string): boolea
         `configuration and retry: ${error}`,
     );
   }
-  const artifactPath = artifact.pathname.replace(/\/+$/, '');
+  const artifactScheme = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
+  const artifactPath = `/${coordinates.key}`.replace(/\/+$/, '');
   const rootPath = root.pathname.replace(/\/+$/, '');
   return (
-    artifact.protocol === root.protocol &&
-    artifact.host === root.host &&
+    `${artifactScheme}:` === root.protocol &&
+    coordinates.bucket === root.host &&
     (artifactPath === rootPath || artifactPath.startsWith(`${rootPath}/`))
   );
 }

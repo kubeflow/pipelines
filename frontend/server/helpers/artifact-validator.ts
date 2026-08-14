@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/artifact/index.js';
+import { stripArtifactUriQuery } from './artifact-coordinates.js';
 import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
 export { buildArtifactUri, requiresArtifactOwnershipValidation } from './artifact-sources.js';
 
@@ -73,7 +74,7 @@ export function validateArtifactKeyPrefix(
 ): ValidationResult {
   // A launcher provider query is part of artifact identity, not the object key. Endpoint values
   // can contain '/' and must not be interpreted as object-key segments by this prefix check.
-  const artifactUriWithoutQuery = artifactUri.split('?', 1)[0];
+  const artifactUriWithoutQuery = stripArtifactUriQuery(artifactUri);
   const objectKey = artifactUriWithoutQuery.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
   if (applyArtifactPathPolicy(objectKey, ARTIFACT_PATH_POLICIES.ownership) === undefined) {
     return { valid: false, reason: 'key-not-normalized' };

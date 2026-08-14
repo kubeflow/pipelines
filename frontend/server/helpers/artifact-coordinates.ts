@@ -13,10 +13,18 @@
 // limitations under the License.
 
 import type { Request } from 'express';
+import { buildArtifactUri } from './artifact-sources.js';
+
+export interface ArtifactCoordinates<TSource extends string = string> {
+  source: TSource;
+  bucket: string;
+  key: string;
+  artifactUriQuery?: string;
+}
 
 export function resolveArtifactCoordinates(
   request: Pick<Request, 'path' | 'query'>,
-): { source: string; bucket: string; key: string } | null | undefined {
+): ArtifactCoordinates | null | undefined {
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
@@ -26,10 +34,8 @@ export function resolveArtifactCoordinates(
     return {
       source: asString(request.query.source),
       bucket: asString(request.query.bucket),
-      key: appendArtifactUriQuery(
-        asString(request.query.key),
-        asString(request.query.artifactUriQuery),
-      ),
+      key: asString(request.query.key),
+      artifactUriQuery: asString(request.query.artifactUriQuery),
     };
   }
 
@@ -41,16 +47,23 @@ export function resolveArtifactCoordinates(
     return {
       source: decodeURIComponent(downloadPathMatch[1]),
       bucket: decodeURIComponent(downloadPathMatch[2]),
-      key: appendArtifactUriQuery(
-        decodeURIComponent(downloadPathMatch[3]),
+      key: decodeURIComponent(downloadPathMatch[3]),
+      artifactUriQuery:
         typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
-      ),
     };
   } catch {
     return null;
   }
 }
 
-export function appendArtifactUriQuery(key: string, artifactUriQuery: string): string {
-  return key && artifactUriQuery ? `${key}?${artifactUriQuery}` : key;
+export function buildArtifactCoordinateUri(coordinates: ArtifactCoordinates): string {
+  const artifactUri = buildArtifactUri(coordinates.source, coordinates.bucket, coordinates.key);
+  return coordinates.key && coordinates.artifactUriQuery
+    ? `${artifactUri}?${coordinates.artifactUriQuery}`
+    : artifactUri;
+}
+
+export function stripArtifactUriQuery(artifactUri: string): string {
+  const queryStart = artifactUri.indexOf('?');
+  return queryStart < 0 ? artifactUri : artifactUri.slice(0, queryStart);
 }
