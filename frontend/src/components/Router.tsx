@@ -261,13 +261,20 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
         {routes.map((route, i) => {
           const { path } = { ...route };
           return (
-            // Treat different paths as separate page instances so they do not share toolbar state
-            // or dangling network handlers. Query-only changes belong to the same page instance.
+            // Keep canonical Run Details mounted while its task-selection query changes. Other
+            // routes retain query-sensitive identity because some initialize state from the URL.
             <Route
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.pathname} route={route} />}
+              render={(props) => {
+                const routeIdentity =
+                  route.path === RoutePage.RUN_DETAILS
+                    ? props.location.pathname
+                    : props.location.key ||
+                      `${props.location.pathname}${props.location.search}${props.location.hash}`;
+                return <RoutedPage key={routeIdentity} route={route} />;
+              }}
             />
           );
         })}

@@ -78,7 +78,7 @@ describe('Router', () => {
     await waitFor(() => expect(screen.getByTestId('page-title')).toHaveTextContent(''));
   });
 
-  it('preserves page state when only the query changes', async () => {
+  it('preserves Run Details state when only the query changes', async () => {
     let mountCount = 0;
     const StatefulPage = () => {
       const [selection, setSelection] = useState('initial');
