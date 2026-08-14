@@ -756,6 +756,40 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('allows two unfinished retry snapshots before accepting the finished tasks', async () => {
+    vi.useFakeTimers();
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+    const unfinishedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
+    );
+    tasksSpy
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValue({ tasks: TEST_TASKS });
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          retryRefreshVersion={1}
+          run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+          {...generateProps()}
+        />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+  });
+
   it('does not count a cancelled task request as an accepted reconciliation snapshot', async () => {
     vi.useFakeTimers();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

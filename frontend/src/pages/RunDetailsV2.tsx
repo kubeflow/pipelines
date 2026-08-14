@@ -73,6 +73,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
+const MAX_POST_RETRY_TASK_SNAPSHOTS = 3;
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface RunDetailsV2Info {
@@ -146,7 +147,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       const hasUnfinishedTask = (query.state.data || []).some(
         (task) => !isTaskFinished(task.state),
       );
-      return acceptedSnapshotCount === 1 && hasUnfinishedTask ? QUERY_REFETCH_INTERVAL : false;
+      return acceptedSnapshotCount < MAX_POST_RETRY_TASK_SNAPSHOTS && hasUnfinishedTask
+        ? QUERY_REFETCH_INTERVAL
+        : false;
     },
     // Terminal run data can arrive while the cached task snapshot is still fresh. Always verify
     // task state on a terminal mount instead of preserving a potentially running graph forever.
