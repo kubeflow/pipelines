@@ -51,6 +51,15 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: true, reason: 'prefix-match' });
   });
 
+  it('does not interpret an artifact provider query as object-key path segments', () => {
+    expect(
+      validateArtifactKeyPrefix(
+        's3://bucket/private-artifacts/team-a/model?endpoint=https://ceph.example:9443',
+        'team-a',
+      ),
+    ).toEqual({ valid: true, reason: 'prefix-match' });
+  });
+
   it('rejects mismatched, absent, and non-normalized prefixes', () => {
     expect(
       validateArtifactKeyPrefix('minio://bucket/private-artifacts/team-b/output', 'team-a'),
@@ -133,6 +142,26 @@ describe('artifact-validator', () => {
     });
     expect(new Headers(requestInit.headers).get('kubeflow-userid')).toBe('user@example.com');
     expect(requestInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('preserves a provider query in the exact ArtifactService ownership lookup', async () => {
+    const artifactUri = 's3://bucket/shared/output?endpoint=https://ceph.example:9443';
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a', undefined, true),
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+
+    const requestUrl = new URL(fetchSpy.mock.calls[0][0] as string);
+    expect(JSON.parse(requestUrl.searchParams.get('filter') || '{}')).toEqual({
+      predicates: [{ key: 'uri', operation: 'EQUALS', stringValue: artifactUri }],
+    });
   });
 
   it('rejects a custom-root row when the central server would read it directly', async () => {

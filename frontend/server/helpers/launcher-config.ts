@@ -22,6 +22,7 @@ import {
 
 const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
 const DEFAULT_PIPELINE_ROOT = 'minio://mlpipeline/v2/artifacts';
+const LAUNCHER_CONFIG_CACHE_TTL_MS = 30_000;
 
 interface SecretRef {
   secretName?: string;
@@ -57,6 +58,19 @@ interface LauncherProviders {
   s3?: ProviderConfig;
   gs?: ProviderConfig;
 }
+
+interface LauncherConfiguration {
+  configMapPresent: boolean;
+  defaultPipelineRoot: string;
+  providers: LauncherProviders;
+}
+
+interface LauncherConfigurationCacheEntry {
+  expiresAt: number;
+  value: Promise<LauncherConfiguration>;
+}
+
+const launcherConfigurationCache = new Map<string, LauncherConfigurationCacheEntry>();
 
 interface StoreSessionInfo {
   Provider: ArtifactProvider;
@@ -103,35 +117,10 @@ export async function getLauncherProviderInfo(
   coordinates: ArtifactCoordinates,
   namespace: string,
 ): Promise<string | undefined> {
-  const [configMap, configMapError] = await getConfigMap(LAUNCHER_CONFIG_MAP, namespace);
-  if (configMapError && !isNotFoundError(configMapError)) {
-    throw new LauncherConfigReadError(
-      `${configMapError.message}. Verify that the UI service account can read the ` +
-        `${LAUNCHER_CONFIG_MAP} ConfigMap and retry the artifact request.`,
-    );
-  }
-  const defaultPipelineRoot = configMap?.data?.defaultPipelineRoot || DEFAULT_PIPELINE_ROOT;
+  const { configMapPresent, defaultPipelineRoot, providers } =
+    await getLauncherConfiguration(namespace);
   const { key, query } = splitKeyAndQuery(coordinates.key);
   const normalizedCoordinates = { ...coordinates, key };
-
-  let providers: LauncherProviders = {};
-  const providersYaml = configMap?.data?.providers;
-  if (providersYaml) {
-    let parsed: unknown;
-    try {
-      parsed = load(providersYaml);
-    } catch (error) {
-      throw new LauncherConfigParseError(
-        `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
-      );
-    }
-    if (!isRecord(parsed)) {
-      throw new LauncherConfigParseError(
-        'kfp-launcher providers must be a YAML object. Correct the providers entry and retry.',
-      );
-    }
-    providers = parsed as LauncherProviders;
-  }
 
   const provider = artifactProviderForSource(normalizedCoordinates.source);
   const config = providers[provider];
@@ -139,7 +128,7 @@ export async function getLauncherProviderInfo(
   const artifactUri = buildCoordinateUri(normalizedCoordinates);
   const underPipelineRoot = isWithinPipelineRoot(artifactUri, defaultPipelineRoot);
   if (!underPipelineRoot && !query && !override) {
-    if (!configMap) {
+    if (!configMapPresent) {
       return undefined;
     }
     throw new LauncherConfigValidationError(
@@ -162,6 +151,57 @@ export async function getLauncherProviderInfo(
   return JSON.stringify(
     buildSessionInfo(provider, normalizedCoordinates.bucket, normalizedCoordinates.key, config),
   );
+}
+
+async function getLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
+  const now = Date.now();
+  const cached = launcherConfigurationCache.get(namespace);
+  if (cached && cached.expiresAt > now) {
+    return cached.value;
+  }
+
+  const value = loadLauncherConfiguration(namespace);
+  launcherConfigurationCache.set(namespace, {
+    expiresAt: now + LAUNCHER_CONFIG_CACHE_TTL_MS,
+    value,
+  });
+  void value.catch(() => {
+    if (launcherConfigurationCache.get(namespace)?.value === value) {
+      launcherConfigurationCache.delete(namespace);
+    }
+  });
+  return value;
+}
+
+async function loadLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
+  const [configMap, configMapError] = await getConfigMap(LAUNCHER_CONFIG_MAP, namespace);
+  if (configMapError && !isNotFoundError(configMapError)) {
+    throw new LauncherConfigReadError(
+      `${configMapError.message}. Verify that the UI service account can read the ` +
+        `${LAUNCHER_CONFIG_MAP} ConfigMap and retry the artifact request.`,
+    );
+  }
+  const defaultPipelineRoot = configMap?.data?.defaultPipelineRoot || DEFAULT_PIPELINE_ROOT;
+
+  let providers: LauncherProviders = {};
+  const providersYaml = configMap?.data?.providers;
+  if (providersYaml) {
+    let parsed: unknown;
+    try {
+      parsed = load(providersYaml);
+    } catch (error) {
+      throw new LauncherConfigParseError(
+        `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
+      );
+    }
+    if (!isRecord(parsed)) {
+      throw new LauncherConfigParseError(
+        'kfp-launcher providers must be a YAML object. Correct the providers entry and retry.',
+      );
+    }
+    providers = parsed as LauncherProviders;
+  }
+  return { configMapPresent: !!configMap, defaultPipelineRoot, providers };
 }
 
 function findOverride(
@@ -348,3 +388,7 @@ function isNotFoundError(error: K8sError): boolean {
     error.message.trim().toLowerCase() === 'not found'
   );
 }
+
+export const TEST_ONLY = {
+  clearLauncherConfigurationCache: () => launcherConfigurationCache.clear(),
+};

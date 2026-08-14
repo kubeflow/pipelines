@@ -70,7 +70,10 @@ export function validateArtifactKeyPrefix(
   artifactUri: string,
   claimedNamespace: string,
 ): ValidationResult {
-  const objectKey = artifactUri.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
+  // A launcher provider query is part of artifact identity, not the object key. Endpoint values
+  // can contain '/' and must not be interpreted as object-key segments by this prefix check.
+  const artifactUriWithoutQuery = artifactUri.split('?', 1)[0];
+  const objectKey = artifactUriWithoutQuery.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
   const hasUnsafeSegment = objectKey
     .split('/')
     .some((segment) => segment === '' || segment === '.' || segment === '..');
@@ -78,7 +81,7 @@ export function validateArtifactKeyPrefix(
     return { valid: false, reason: 'key-not-normalized' };
   }
 
-  const actualNamespace = namespaceFromArtifactUri(artifactUri);
+  const actualNamespace = namespaceFromArtifactUri(artifactUriWithoutQuery);
   if (actualNamespace === undefined) {
     return { valid: false, reason: 'artifact-not-found' };
   }

@@ -26,6 +26,7 @@ import * as serverInfo from '../helpers/server-info.js';
 import { commonSetup, mkTempDir } from './test-helper.js';
 import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { downloadGCSObjectStream, getGCSClient, listGCSObjectNames } from '../gcs-helper.js';
+import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
@@ -59,6 +60,7 @@ describe('/artifacts', () => {
 
   let artifactContent: any = 'hello world';
   beforeEach(() => {
+    launcherConfigTestOnly.clearLauncherConfigurationCache();
     artifactContent = 'hello world'; // reset
     vi.mocked(getConfigMap)
       .mockReset()

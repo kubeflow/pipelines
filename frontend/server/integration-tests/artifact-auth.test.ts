@@ -21,6 +21,7 @@ import { loadConfigs } from '../configs.js';
 import { commonSetup } from './test-helper.js';
 import { getConfigMap } from '../k8s-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
+import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
@@ -65,6 +66,7 @@ describe('/artifacts authorization', () => {
   const { argv } = commonSetup();
 
   beforeEach(() => {
+    launcherConfigTestOnly.clearLauncherConfigurationCache();
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
   });
 

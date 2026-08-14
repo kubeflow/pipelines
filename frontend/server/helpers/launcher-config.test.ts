@@ -14,7 +14,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getConfigMap } from '../k8s-helper.js';
-import { getLauncherProviderInfo } from './launcher-config.js';
+import { getLauncherProviderInfo, TEST_ONLY } from './launcher-config.js';
 
 vi.mock('../k8s-helper.js', () => ({ getConfigMap: vi.fn() }));
 
@@ -23,6 +23,71 @@ const mockedGetConfigMap = vi.mocked(getConfigMap);
 describe('getLauncherProviderInfo', () => {
   beforeEach(() => {
     mockedGetConfigMap.mockReset();
+    TEST_ONLY.clearLauncherConfigurationCache();
+  });
+
+  it('coalesces and caches launcher configuration reads by namespace', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    await Promise.all([
+      getLauncherProviderInfo(
+        { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/first' },
+        'team-a',
+      ),
+      getLauncherProviderInfo(
+        { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/second' },
+        'team-a',
+      ),
+    ]);
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/third' },
+      'team-a',
+    );
+
+    expect(mockedGetConfigMap).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps launcher configuration caches isolated by namespace', async () => {
+    mockedGetConfigMap.mockImplementation(async (_name, namespace) => [
+      { data: { defaultPipelineRoot: `s3://${namespace}-bucket/root` } },
+      undefined,
+    ]);
+
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-a-bucket', key: 'root/artifact' },
+      'team-a',
+    );
+    await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-b-bucket', key: 'root/artifact' },
+      'team-b',
+    );
+
+    expect(mockedGetConfigMap).toHaveBeenCalledTimes(2);
+    expect(mockedGetConfigMap).toHaveBeenNthCalledWith(1, 'kfp-launcher', 'team-a');
+    expect(mockedGetConfigMap).toHaveBeenNthCalledWith(2, 'kfp-launcher', 'team-b');
+  });
+
+  it('refreshes cached launcher configuration after the TTL', async () => {
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+    const coordinates = {
+      source: 's3' as const,
+      bucket: 'team-bucket',
+      key: 'pipelines/team-a/artifact',
+    };
+
+    await getLauncherProviderInfo(coordinates, 'team-a');
+    nowSpy.mockReturnValue(31_001);
+    await getLauncherProviderInfo(coordinates, 'team-a');
+
+    expect(mockedGetConfigMap).toHaveBeenCalledTimes(2);
+    nowSpy.mockRestore();
   });
 
   it('selects the first matching S3 override for the artifact path', async () => {
@@ -246,16 +311,28 @@ gs:
   });
 
   it('surfaces ConfigMap read failures instead of silently using environment credentials', async () => {
-    mockedGetConfigMap.mockResolvedValue([
-      undefined,
-      { additionalInfo: { code: 403, reason: 'Forbidden' }, message: 'read denied' },
-    ]);
+    mockedGetConfigMap
+      .mockResolvedValueOnce([
+        undefined,
+        { additionalInfo: { code: 403, reason: 'Forbidden' }, message: 'read denied' },
+      ])
+      .mockResolvedValueOnce([
+        undefined,
+        { additionalInfo: { code: 404, reason: 'NotFound' }, message: 'not found' },
+      ]);
 
     await expect(
       getLauncherProviderInfo({ source: 'minio', bucket: 'mlpipeline', key: 'artifact' }, 'team-a'),
     ).rejects.toThrow(
       'read denied. Verify that the UI service account can read the kfp-launcher ConfigMap',
     );
+    await expect(
+      getLauncherProviderInfo(
+        { source: 'minio', bucket: 'mlpipeline', key: 'v2/artifacts/artifact' },
+        'team-a',
+      ),
+    ).resolves.toBeUndefined();
+    expect(mockedGetConfigMap).toHaveBeenCalledTimes(2);
   });
 
   it('rejects invalid providers YAML with a corrective action', async () => {

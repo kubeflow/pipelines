@@ -9,6 +9,7 @@ import express from 'express';
 import { Server } from 'http';
 import * as artifactsHandler from '../handlers/artifacts.js';
 import { getConfigMap } from '../k8s-helper.js';
+import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
 
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
@@ -36,6 +37,7 @@ describe('/artifacts/get namespaced proxy', () => {
   const { argv } = commonSetup();
 
   beforeEach(() => {
+    launcherConfigTestOnly.clearLauncherConfigurationCache();
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
   });
 
