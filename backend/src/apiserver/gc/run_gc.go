@@ -54,7 +54,8 @@ func NewRunGarbageCollector(
 	}
 }
 
-// Start launches the GC loop. It blocks until ctx is canceled.
+// Start launches the GC loop. It blocks until ctx is canceled and
+// runLoop has finished draining its current batch.
 func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	archiveRetention := common.GetRunsRetentionTime()
 	deleteRetention := common.GetArchivedRunsRetentionTime()
@@ -88,6 +89,11 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		},
 	}
 
+	// loopDone is closed when runLoop exits so OnStoppedLeading can
+	// wait for the current batch to drain.
+	loopDone := make(chan struct{})
+	loopStarted := false
+
 	leaderElector, electionError := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:            lock,
 		LeaseDuration:   15 * time.Second,
@@ -97,11 +103,17 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(leaderContext context.Context) {
 				glog.Info("Run GC: acquired leader lease, starting collection loop")
+				loopStarted = true
 				gc.runLoop(leaderContext)
+				close(loopDone)
 			},
 			OnStoppedLeading: func() {
 				if ctx.Err() != nil {
-					glog.Info("Run GC: leader lease released during graceful shutdown")
+					glog.Info("Run GC: leader lease released during graceful shutdown, waiting for collection loop to drain")
+					if loopStarted {
+						<-loopDone
+					}
+					glog.Info("Run GC: collection loop drained, shutdown complete")
 					return
 				}
 				// Terminate to guarantee no concurrent collection (matches

@@ -81,6 +81,12 @@ func (f *fakeRunStore) TerminateRun(_ string) error                             
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
 }
+func (f *fakeRunStore) ClaimRunForRetry(_ string) (string, string, int64, error) {
+	return "", "", 0, nil
+}
+func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64) error {
+	return nil
+}
 
 func resetGCConfig() {
 	viper.Set(common.RunsRetentionTime, "")

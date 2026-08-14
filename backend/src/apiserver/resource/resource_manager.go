@@ -1091,25 +1091,33 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrapf(err, "Failed to retry run %s", runId)
 	}
 
-	// Claim the row before external ops so GC cannot delete it mid-retry.
-	// FinishedAtInSec=0 makes the row invisible to both GC predicates.
-	run.FinishedAtInSec = 0
-	run.State = model.RuntimeStatePending
-	run.Conditions = string(model.RuntimeStatePending.ToV1())
-	if claimError := r.runStore.UpdateRun(run); claimError != nil {
+	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
+	// from overwriting with a stale terminal state.
+	originalState, originalConditions, originalFinishedAtInSec, claimError := r.runStore.ClaimRunForRetry(runId)
+	if claimError != nil {
 		return util.NewInternalServerError(claimError,
 			"Failed to retry run %s: could not claim database row before workflow operation", runId)
 	}
+	// Update the in-memory run to reflect the claimed state.
+	run.FinishedAtInSec = 0
+	run.State = model.RuntimeStatePending
+	run.Conditions = string(model.RuntimeStatePending.ToV1())
 
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
 	}
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
+		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec); rollbackError != nil {
+			glog.Errorf("Failed to rollback retry claim for run %s after pod deletion failure: %v", runId, rollbackError)
+		}
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
+		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec); rollbackError != nil {
+			glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
+		}
 		return err
 	}
 	// Notify plugins of retry
@@ -1612,6 +1620,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
 	if updateError == nil {
+		// Skip stale terminal reports if a retry has claimed this row.
+		// The persistence agent will re-report after the retry starts.
+		if run.State == model.RuntimeStatePending && run.FinishedAtInSec == 0 && execStatus.IsInFinalState() {
+			return nil, util.NewUnavailableServerError(
+				fmt.Errorf("run %s is being retried (State=PENDING, FinishedAtInSec=0)", runId),
+				"Skipping stale terminal report for run %s — retry in progress", runId)
+		}
 		run.State = state
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()

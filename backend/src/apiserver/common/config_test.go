@@ -588,6 +588,14 @@ func TestRunGarbageCollectionConfigEnvVars(t *testing.T) {
 		assert.Equal(t, 6*time.Hour, GetRunsGCInterval())
 		assert.Equal(t, 100, GetRunsGCBatchSize())
 	})
+
+	t.Run("batch size exceeding upper bound is clamped to 1000", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_BATCH_SIZE", "5000")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 1000, GetRunsGCBatchSize())
+	})
 }
 
 func TestGetClusterDomain(t *testing.T) {

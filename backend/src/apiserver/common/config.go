@@ -320,5 +320,12 @@ func GetRunsGCBatchSize() int {
 	if configuredBatchSize <= 0 {
 		return 100
 	}
+	// Upper bound: DeleteExpiredArchivedRuns uses batch UUIDs in IN-clauses
+	// across 4 tables (run_metrics, tasks, resource_references, run_details).
+	// MySQL/PostgreSQL bind parameter limit is 65535; 1000 per batch stays
+	// well within that ceiling while remaining efficient.
+	if configuredBatchSize > 1000 {
+		return 1000
+	}
 	return configuredBatchSize
 }

@@ -112,6 +112,13 @@ type RunStoreInterface interface {
 
 	// Deletes archived runs older than the cutoff, including dependent tables. Returns count.
 	DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error)
+
+	// Atomically claims a terminal run for retry (database-side CAS).
+	// Returns the original State, Conditions, and FinishedAtInSec for rollback.
+	ClaimRunForRetry(runId string) (originalState string, originalConditions string, originalFinishedAtInSec int64, err error)
+
+	// Restores a run's pre-retry state after a failed retry attempt.
+	RollbackRetryClaim(runId string, originalState string, originalConditions string, originalFinishedAtInSec int64) error
 }
 
 type RunStore struct {
@@ -820,6 +827,82 @@ func (s *RunStore) DeleteRun(id string) error {
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to commit deletion of run %s", id)
+	}
+	return nil
+}
+
+func (s *RunStore) ClaimRunForRetry(runId string) (string, string, int64, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return "", "", 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runId)
+	}
+
+	// Lock the row and read current state.
+	selectSQL, selectArgs, err := sq.
+		Select("State", "Conditions", "FinishedAtInSec").
+		From("run_details").
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return "", "", 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runId)
+	}
+	row := tx.QueryRow(s.db.SelectForUpdate(selectSQL), selectArgs...)
+	var originalState, originalConditions string
+	var originalFinishedAtInSec int64
+	if err := row.Scan(&originalState, &originalConditions, &originalFinishedAtInSec); err != nil {
+		tx.Rollback()
+		return "", "", 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runId)
+	}
+
+	// Verify the row is still eligible: must be terminal with a positive finish time.
+	if originalFinishedAtInSec == 0 {
+		tx.Rollback()
+		return "", "", 0, util.NewInternalServerError(
+			errors.New("run already claimed for retry or still running"),
+			"Cannot claim run %s: FinishedAtInSec is 0", runId)
+	}
+
+	// Atomically transition to PENDING.
+	claimSQL, claimArgs, err := sq.
+		Update("run_details").
+		Set("State", model.RuntimeStatePending.ToString()).
+		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
+		Set("FinishedAtInSec", 0).
+		Where(sq.Eq{"UUID": runId}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return "", "", 0, util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runId)
+	}
+	if _, err := tx.Exec(claimSQL, claimArgs...); err != nil {
+		tx.Rollback()
+		return "", "", 0, util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runId)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", "", 0, util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runId)
+	}
+	return originalState, originalConditions, originalFinishedAtInSec, nil
+}
+
+func (s *RunStore) RollbackRetryClaim(runId string, originalState string, originalConditions string, originalFinishedAtInSec int64) error {
+	rollbackSQL, rollbackArgs, err := sq.
+		Update("run_details").
+		Set("State", originalState).
+		Set("Conditions", originalConditions).
+		Set("FinishedAtInSec", originalFinishedAtInSec).
+		Where(sq.And{
+			sq.Eq{"UUID": runId},
+			sq.Eq{"FinishedAtInSec": 0},
+		}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runId)
+	}
+	_, err = s.db.DB.Exec(rollbackSQL, rollbackArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runId)
 	}
 	return nil
 }

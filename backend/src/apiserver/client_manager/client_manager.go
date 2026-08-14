@@ -385,27 +385,60 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
 	gcIndexReady := false
 	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
 		if db.Migrator().HasTable("run_details") {
-			if db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
-				gcIndexReady = true
-			} else {
-				quoteIdentifier := dialect.QuoteIdentifier
-				var indexSQL string
-				if dialect.Name == "pgx" {
-					// CONCURRENTLY avoids blocking writes; IF NOT EXISTS handles replica races.
-					indexSQL = fmt.Sprintf("CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s, %s)",
-						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
-						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
-				} else {
-					// MySQL InnoDB CREATE INDEX is online by default.
-					indexSQL = fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
-						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
-						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
-				}
-				if err := db.Exec(indexSQL).Error; err != nil {
-					glog.Errorf("Failed to create GC lifecycle index: %v. "+
-						"GC disabled; create the index manually to enable.", err)
-				} else {
+			quoteIdentifier := dialect.QuoteIdentifier
+			if dialect.Name == "pgx" {
+				// Query pg_index directly; HasIndex includes invalid indexes.
+				var validIndexCount int64
+				validationErr := db.Raw(
+					`SELECT COUNT(*) FROM pg_index i `+
+						`JOIN pg_class c ON i.indexrelid = c.oid `+
+						`WHERE c.relname = 'idx_run_gc_lifecycle' `+
+						`AND i.indisvalid = true AND i.indisready = true`,
+				).Row().Scan(&validIndexCount)
+				if validationErr != nil {
+					glog.Errorf("Failed to validate GC lifecycle index: %v. GC disabled.", validationErr)
+				} else if validIndexCount > 0 {
 					gcIndexReady = true
+				} else {
+					// Drop any invalid index remnant before re-creating.
+					db.Exec(`DROP INDEX IF EXISTS "idx_run_gc_lifecycle"`)
+					indexSQL := fmt.Sprintf("CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s, %s)",
+						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
+						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
+					if err := db.Exec(indexSQL).Error; err != nil {
+						glog.Errorf("Failed to create GC lifecycle index: %v. "+
+							"GC disabled; create the index manually to enable.", err)
+					} else {
+						// Re-validate: CONCURRENTLY can leave invalid indexes.
+						var postCreateCount int64
+						postErr := db.Raw(
+							`SELECT COUNT(*) FROM pg_index i `+
+								`JOIN pg_class c ON i.indexrelid = c.oid `+
+								`WHERE c.relname = 'idx_run_gc_lifecycle' `+
+								`AND i.indisvalid = true AND i.indisready = true`,
+						).Row().Scan(&postCreateCount)
+						if postErr != nil || postCreateCount == 0 {
+							glog.Errorf("GC lifecycle index created but not valid (indisvalid/indisready check failed). "+
+								"GC disabled; inspect pg_index manually and REINDEX if needed.")
+						} else {
+							gcIndexReady = true
+						}
+					}
+				}
+			} else {
+				// MySQL: HasIndex is reliable; CREATE INDEX is online by default.
+				if db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
+					gcIndexReady = true
+				} else {
+					indexSQL := fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
+						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
+						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
+					if err := db.Exec(indexSQL).Error; err != nil {
+						glog.Errorf("Failed to create GC lifecycle index: %v. "+
+							"GC disabled; create the index manually to enable.", err)
+					} else {
+						gcIndexReady = true
+					}
 				}
 			}
 		}

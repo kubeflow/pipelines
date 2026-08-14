@@ -326,7 +326,11 @@ func main() {
 			clientManager.KubernetesCoreClient().GetClientSet(),
 			common.GetPodNamespace(),
 		)
-		go runGC.Start(backgroundCtx)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			runGC.Start(backgroundCtx)
+		}()
 	}
 
 	go startRPCServer(resourceManager, tlsCfg)
