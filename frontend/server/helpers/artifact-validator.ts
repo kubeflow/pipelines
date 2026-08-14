@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { ArtifactServiceApi, Configuration } from '../src/generated/apisv2beta1/artifact/index.js';
+import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
 export { buildArtifactUri, requiresArtifactOwnershipValidation } from './artifact-sources.js';
 
 const NAMESPACE_KEY_PREFIX = (process.env.ARTIFACT_NAMESPACE_KEY_PREFIX || 'private-artifacts')
@@ -74,10 +75,7 @@ export function validateArtifactKeyPrefix(
   // can contain '/' and must not be interpreted as object-key segments by this prefix check.
   const artifactUriWithoutQuery = artifactUri.split('?', 1)[0];
   const objectKey = artifactUriWithoutQuery.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
-  const hasUnsafeSegment = objectKey
-    .split('/')
-    .some((segment) => segment === '' || segment === '.' || segment === '..');
-  if (hasUnsafeSegment) {
+  if (applyArtifactPathPolicy(objectKey, ARTIFACT_PATH_POLICIES.ownership) === undefined) {
     return { valid: false, reason: 'key-not-normalized' };
   }
 

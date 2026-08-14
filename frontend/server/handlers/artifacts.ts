@@ -46,6 +46,7 @@ import {
   appendArtifactUriQuery,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
+import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from '../helpers/artifact-path.js';
 import {
   ArtifactSource,
   buildArtifactUri,
@@ -246,20 +247,13 @@ export function getArtifactsAuthMiddleware(
       if (requiresArtifactOwnershipValidation(coords.source)) {
         const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
-        const validation = allowNamespaceIsolatedCustomRoots
-          ? await validateArtifactNamespace(
-              apiServerAddress,
-              artifactUri,
-              namespace,
-              validationHeaders,
-              true,
-            )
-          : await validateArtifactNamespace(
-              apiServerAddress,
-              artifactUri,
-              namespace,
-              validationHeaders,
-            );
+        const validation = await validateArtifactNamespace(
+          apiServerAddress,
+          artifactUri,
+          namespace,
+          validationHeaders,
+          allowNamespaceIsolatedCustomRoots,
+        );
 
         if (!validation.valid) {
           console.warn(
@@ -275,6 +269,12 @@ export function getArtifactsAuthMiddleware(
         }
       }
     }
+
+    response.locals.authorizedArtifactUri = buildArtifactUri(
+      coords.source,
+      coords.bucket,
+      coords.key,
+    );
 
     next();
   };
@@ -313,6 +313,21 @@ export function getArtifactsHandler({
     }
     const { source, bucket, key, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
+    const requestedArtifactUri = buildArtifactUri(
+      source,
+      bucket,
+      appendArtifactUriQuery(key, artifactUriQuery),
+    );
+    // The authorization middleware and storage handler parse independently. Pin the handler to
+    // the exact canonical URI that was authorized so future route/parser changes cannot create a
+    // validate-A/fetch-B gap.
+    if (options.auth.enabled && res.locals.authorizedArtifactUri !== requestedArtifactUri) {
+      console.warn(
+        '[SECURITY] Rejected artifact request whose coordinates changed after authorization',
+      );
+      res.status(403).send('Artifact request coordinates changed after authorization');
+      return;
+    }
     if (!isAllowedResourceName(bucket)) {
       res.status(500).send('Invalid bucket name');
       return;
@@ -591,13 +606,11 @@ function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, k
   }
   try {
     const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
-    if (
-      key.includes('\\') ||
-      key.split('/').some((segment) => segment === '.' || segment === '..')
-    ) {
+    const safeKey = applyArtifactPathPolicy(key, ARTIFACT_PATH_POLICIES.http);
+    if (safeKey === undefined) {
       return undefined;
     }
-    const escapedKey = key.replace(/%/g, '%25');
+    const escapedKey = safeKey.replace(/%/g, '%25');
     artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
       .filter(Boolean)
       .join('/');
@@ -856,10 +869,7 @@ function buildAttachmentDisposition(filename: string): string {
 // result is empty (e.g. for directory-marker objects whose key equals the
 // prefix, or paths consisting entirely of unsafe segments).
 function sanitizeTarEntryName(name: string): string | null {
-  const segments = name
-    .split('/')
-    .filter((segment) => segment !== '' && segment !== '.' && segment !== '..');
-  return segments.length > 0 ? segments.join('/') : null;
+  return applyArtifactPathPolicy(name, ARTIFACT_PATH_POLICIES.tarEntry) || null;
 }
 
 /**

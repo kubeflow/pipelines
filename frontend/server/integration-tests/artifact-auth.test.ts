@@ -697,6 +697,7 @@ describe('/artifacts authorization', () => {
         'http://internal.example.com/victim/secret.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
@@ -719,6 +720,7 @@ describe('/artifacts authorization', () => {
         's3://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
@@ -740,6 +742,7 @@ describe('/artifacts authorization', () => {
         's3://ml-pipeline/hello/world.txt?endpoint=https%3A%2F%2Fceph.example&region=ceph',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
@@ -762,6 +765,7 @@ describe('/artifacts authorization', () => {
         'gs://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
@@ -782,6 +786,7 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
@@ -809,6 +814,7 @@ describe('/artifacts authorization', () => {
         'minio://ml-pipeline/hello/world.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
+        false,
       );
     });
 
