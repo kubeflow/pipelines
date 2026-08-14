@@ -126,6 +126,39 @@ describe('minio-helper', () => {
       });
     });
 
+    it('does not mutate shared defaults when applying per-request provider settings', async () => {
+      const sharedConfig = {
+        accessKey: 'default-access-key',
+        endPoint: 'default-store',
+        port: 9000,
+        secretKey: 'default-secret-key',
+        useSSL: false,
+      };
+
+      await createMinioClient(
+        sharedConfig,
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'https://tenant-store.example:9443',
+            fromEnv: 'true',
+          },
+        }),
+      );
+      await createMinioClient(sharedConfig, 'minio');
+
+      expect(sharedConfig).toEqual({
+        accessKey: 'default-access-key',
+        endPoint: 'default-store',
+        port: 9000,
+        secretKey: 'default-secret-key',
+        useSSL: false,
+      });
+      expect(MockedMinioClient).toHaveBeenNthCalledWith(2, sharedConfig);
+    });
+
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
       (fromNodeProviderChain as Mock).mockImplementation(
         () => () =>

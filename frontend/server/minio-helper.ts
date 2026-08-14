@@ -75,6 +75,10 @@ export async function createMinioClient(
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
 ) {
+  // Handler configuration is shared by every request. Provider resolution below adds credentials
+  // and endpoint overrides, so always work on a request-local copy.
+  config = { ...config };
+
   if (customCredentialProvider) {
     try {
       const creds = await customCredentialProvider();
