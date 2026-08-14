@@ -1331,8 +1331,9 @@ func toModelRun(r interface{}) (*model.Run, error) {
 
 		specMap := apiRunV2.GetPipelineSpec().AsMap()
 		if pv, ok := specMap["PipelineInfo"]; ok {
-			if pName, ok := pv.(map[string]interface{})["Name"]; ok {
-				resources := common.ParseResourceIdsFromFullName(pName.(string))
+			pvMap, pvIsMap := pv.(map[string]interface{})
+			if pName, ok := pvMap["Name"].(string); pvIsMap && ok {
+				resources := common.ParseResourceIdsFromFullName(pName)
 				if namespace == "" {
 					namespace = resources["Namespace"]
 				}
