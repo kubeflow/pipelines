@@ -58,7 +58,7 @@ import {
   isTaskFinished,
   type RuntimeArtifactEntry,
 } from 'src/lib/v2/RuntimeArtifactUtils';
-import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
+import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { classes, stylesheet } from 'typestyle';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { PageProps } from './Page';
@@ -468,7 +468,7 @@ function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[
 
 function getTaskComparisonLabel(task: V2beta1PipelineTask): string {
   const scope = task.scope_path?.replace(/^root\.?/, '');
-  const baseLabel = scope || task.display_name || task.name || 'Task';
+  const baseLabel = scope || getTaskDisplayName(task);
   return task.type_attributes?.iteration_index === undefined
     ? baseLabel
     : `${baseLabel} [iteration ${task.type_attributes.iteration_index}]`;
@@ -479,7 +479,7 @@ export function collectRuntimeComparisonArtifacts(
   defaultNamespace?: string,
 ): RuntimeComparisonArtifact[] {
   return comparisonData.flatMap(({ run, tasks, terminalTaskReconciliationPending }) => {
-    const runLabel = run.display_name || run.run_id || 'Run';
+    const runLabel = getRunDisplayName(run);
     // After the bounded reconciliation, a terminal run is the authoritative signal that artifact
     // production has stopped even when fail-fast leaves a sibling task row marked RUNNING.
     const terminalRunFinishedSources =
@@ -521,7 +521,7 @@ export function buildParamsTableProps(
   }
   const yLabels = [...parameterNames];
   return {
-    xLabels: comparisonData.map(({ run }) => run.display_name || run.run_id || 'Run'),
+    xLabels: comparisonData.map(({ run }) => getRunDisplayName(run)),
     yLabels,
     rows: yLabels.map((parameterName) =>
       comparisonData.map(({ run }) => {
@@ -585,7 +585,7 @@ export function buildScalarMetricsTableProps(
   }
   const yLabels = [...metricNames];
   return {
-    xLabels: comparisonData.map(({ run }) => run.display_name || run.run_id || 'Run'),
+    xLabels: comparisonData.map(({ run }) => getRunDisplayName(run)),
     yLabels,
     rows: yLabels.map((metricName) => metricsByRun.map((metrics) => metrics.get(metricName) || '')),
   };

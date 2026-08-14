@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1PipelineTask } from 'src/apisv2beta1/run';
+import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import { listAllPages } from './PaginationUtils';
 
@@ -30,4 +30,12 @@ export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
     );
     return { items: response.tasks, nextPageToken: response.next_page_token };
   }, 'Task service');
+}
+
+export function getTaskDisplayName(task: V2beta1PipelineTask, fallback = 'Task'): string {
+  return task.display_name || task.name || fallback;
+}
+
+export function getRunDisplayName(run: V2beta1Run, fallback = 'Run'): string {
+  return run.display_name || run.run_id || fallback;
 }

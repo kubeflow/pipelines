@@ -34,6 +34,7 @@ import {
 import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { PlotType } from 'src/components/viewers/Viewer';
@@ -273,6 +274,44 @@ describe('RuntimeNodeDetailsV2', () => {
 
     screen.getByText('/data');
     screen.getByText('createpvc');
+  });
+
+  it('does not reparse the pipeline job when task polling rerenders the details tab', async () => {
+    const convertPipelineSpy = vi.spyOn(WorkflowUtils, 'convertYamlToV2PipelineSpec');
+    const convertPlatformSpy = vi.spyOn(WorkflowUtils, 'convertYamlToPlatformSpec');
+    const layers = ['root'];
+    const producerElement = {
+      ...executionElement,
+      data: { label: 'producer' },
+      id: 'task.producer',
+    };
+    const view = (task: V2beta1PipelineTask) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          element={producerElement}
+          elementRuntimeInfo={{ task }}
+          layers={layers}
+          namespace={TEST_NAMESPACE}
+          onLayerChange={() => {}}
+          pipelineJobString={V2_PVC_TEMPLATE_STRING}
+          runId={TEST_RUN_ID}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(createTask({ state: PipelineTaskTaskState.RUNNING })));
+    fireEvent.click(await screen.findByText('Task Details'));
+    const initialPipelineParses = convertPipelineSpy.mock.calls.length;
+    const initialPlatformParses = convertPlatformSpy.mock.calls.length;
+    expect(initialPipelineParses).toBeGreaterThan(0);
+    expect(initialPlatformParses).toBeGreaterThan(0);
+
+    rerender(view(createTask({ state: PipelineTaskTaskState.SUCCEEDED })));
+    expect(convertPipelineSpy).toHaveBeenCalledTimes(initialPipelineParses);
+    expect(convertPlatformSpy).toHaveBeenCalledTimes(initialPlatformParses);
+
+    convertPipelineSpy.mockRestore();
+    convertPlatformSpy.mockRestore();
   });
 
   it('formats task timestamps consistently with other details pages', () => {

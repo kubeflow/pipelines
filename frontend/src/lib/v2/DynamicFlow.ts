@@ -39,6 +39,7 @@ import {
   PipelineFlowElement,
   TaskType,
 } from 'src/lib/v2/StaticFlow';
+import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
 export interface NodeRuntimeInfo {
   task?: V2beta1PipelineTask;
@@ -147,12 +148,12 @@ export function updateFlowElementsState(
       const data = updatedElement.data as ExecutionFlowElementData;
       data.state = runtimeInfo.task.state;
       data.taskId = runtimeInfo.task.task_id;
-      data.label = runtimeInfo.task.display_name || runtimeInfo.task.name || data.label;
+      data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
       data.state = runtimeInfo.task.state;
       data.taskId = runtimeInfo.task.task_id;
-      data.label = runtimeInfo.task.display_name || runtimeInfo.task.name || data.label;
+      data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
       const data = updatedElement.data as ArtifactFlowElementData;
       data.hasArtifact = !!runtimeInfo.artifactGroup.artifacts?.some(

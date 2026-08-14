@@ -16,7 +16,7 @@
 
 import { Button } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   InputOutputsIOArtifact,
   PipelineTaskTaskPodType,
@@ -52,6 +52,7 @@ import {
   isTaskFinished,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { NodeRuntimeInfo } from 'src/lib/v2/DynamicFlow';
+import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { convertYamlToPlatformSpec, convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 
@@ -207,9 +208,10 @@ function TaskNodeDetail({
         {selectedTab === 1 && (
           <div className={padding(20)}>
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, task)} />
-            <DetailsTable
-              title='Volume Mounts'
-              fields={getNodeVolumeMounts(layers, pipelineJobString, element)}
+            <TaskVolumeMountsDetails
+              element={element}
+              layers={layers}
+              pipelineJobString={pipelineJobString}
             />
           </div>
         )}
@@ -245,7 +247,7 @@ export function getTaskDetailsFields(
   if (!task) {
     return details;
   }
-  details.push(['Task name', task.display_name || task.name || '-']);
+  details.push(['Task name', getTaskDisplayName(task, '-')]);
   details.push(['Task type', task.type || '-']);
   details.push(['Status', formatTaskState(task.state)]);
   details.push(['Created At', formatDateString(task.create_time)]);
@@ -323,6 +325,24 @@ function getNodeVolumeMounts(
   return Object.values(executor.pvcMount)
     .map((mount) => PvcMount.fromJSON(mount))
     .map((mount) => [mount.mountPath, mount.taskOutputParameter?.producerTask]);
+}
+
+interface TaskVolumeMountsDetailsProps {
+  element?: PipelineFlowElement | null;
+  layers: string[];
+  pipelineJobString?: string;
+}
+
+function TaskVolumeMountsDetails({
+  element,
+  layers,
+  pipelineJobString,
+}: TaskVolumeMountsDetailsProps) {
+  const fields = useMemo(
+    () => getNodeVolumeMounts(layers, pipelineJobString, element),
+    [element, layers, pipelineJobString],
+  );
+  return <DetailsTable title='Volume Mounts' fields={fields} />;
 }
 
 export async function getLogsInfo(
@@ -463,7 +483,7 @@ function ArtifactInfo({
   const uriRows = buildRuntimeArtifactRows([artifactGroup]);
   const firstArtifact = artifactEntries[0].artifact;
   const artifactInfo: Array<KeyValue<string>> = [
-    ['Upstream Task Name', task.display_name || task.name || '-'],
+    ['Upstream Task Name', getTaskDisplayName(task, '-')],
     ['Artifact Name', getArtifactDisplayName(firstArtifact, artifactGroup.artifact_key)],
     ['Artifact Type', getArtifactTypeName(firstArtifact)],
     ['Created At', formatDateString(firstArtifact.created_at)],

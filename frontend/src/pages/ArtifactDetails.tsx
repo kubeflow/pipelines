@@ -39,6 +39,11 @@ import { Apis, ListRequest } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { errorToMessage, formatDateString, logger } from 'src/lib/Utils';
 import {
+  isInputArtifactTaskType,
+  isOutputArtifactTaskType,
+  OUTPUT_ARTIFACT_TASK_TYPES,
+} from 'src/lib/v2/ArtifactTaskUtils';
+import {
   getArtifactTypeName,
   isVisualizableArtifact,
   LEGACY_UI_METADATA_ARTIFACT_KEY,
@@ -54,21 +59,6 @@ export enum ArtifactDetailsTab {
 
 const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
-const OUTPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
-  V2beta1IOType.OUTPUT,
-  V2beta1IOType.ITERATOR_OUTPUT,
-  V2beta1IOType.ONE_OF_OUTPUT,
-  V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
-]);
-const INPUT_RELATIONSHIP_TYPES = new Set<V2beta1IOType>([
-  V2beta1IOType.COMPONENT_DEFAULT_INPUT,
-  V2beta1IOType.TASK_OUTPUT_INPUT,
-  V2beta1IOType.COMPONENT_INPUT,
-  V2beta1IOType.RUNTIME_VALUE_INPUT,
-  V2beta1IOType.COLLECTED_INPUTS,
-  V2beta1IOType.ITERATOR_INPUT,
-  V2beta1IOType.ITERATOR_INPUT_RAW,
-]);
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -254,7 +244,9 @@ async function findLegacyUiMetadataArtifactKey(
     ],
   };
   const results = await Promise.allSettled(
-    [...OUTPUT_RELATIONSHIP_TYPES].map((type) =>
+    // The API accepts only one IO type per request. Query each known producing type rather than
+    // using an untyped first page, where a same-key input could hide the producing relationship.
+    OUTPUT_ARTIFACT_TASK_TYPES.map((type) =>
       Apis.artifactServiceApiV2.artifactTasks(
         undefined,
         undefined,
@@ -273,17 +265,14 @@ async function findLegacyUiMetadataArtifactKey(
     if (result.status === 'fulfilled') {
       responses.push(result.value);
     } else {
-      errors.push(
-        `${[...OUTPUT_RELATIONSHIP_TYPES][index]}: ${await errorToMessage(result.reason)}`,
-      );
+      errors.push(`${OUTPUT_ARTIFACT_TASK_TYPES[index]}: ${await errorToMessage(result.reason)}`);
     }
   }
   const hasProducingRelationship = responses.some((response) =>
     response.artifact_tasks?.some(
       (artifactTask) =>
         artifactTask.key === LEGACY_UI_METADATA_ARTIFACT_KEY &&
-        !!artifactTask.type &&
-        OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type),
+        isOutputArtifactTaskType(artifactTask.type),
     ),
   );
   return {
@@ -447,10 +436,10 @@ function ArtifactTabs({
 
 function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): string {
   const relationshipName = artifactTask.key || artifactTask.producer?.task_name || index + 1;
-  if (artifactTask.type && OUTPUT_RELATIONSHIP_TYPES.has(artifactTask.type)) {
+  if (isOutputArtifactTaskType(artifactTask.type)) {
     return `Produced as ${relationshipName}`;
   }
-  if (artifactTask.type && INPUT_RELATIONSHIP_TYPES.has(artifactTask.type)) {
+  if (isInputArtifactTaskType(artifactTask.type)) {
     return `Consumed as ${relationshipName}`;
   }
   const relationshipType =

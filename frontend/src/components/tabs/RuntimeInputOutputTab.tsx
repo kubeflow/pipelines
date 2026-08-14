@@ -20,6 +20,7 @@ import DetailsTable from 'src/components/DetailsTable';
 import { buildRuntimeArtifactRows } from 'src/components/RuntimeArtifactRows';
 import { commonCss, padding } from 'src/Css';
 import { formatParameters } from 'src/lib/v2/RuntimeArtifactUtils';
+import { getTaskDisplayName } from 'src/lib/v2/RunTaskUtils';
 
 export interface RuntimeInputOutputTabProps {
   task: V2beta1PipelineTask;
@@ -41,7 +42,7 @@ export function RuntimeInputOutputTab({ task, namespace }: RuntimeInputOutputTab
     <ErrorBoundary>
       <div className={commonCss.page}>
         <div className={padding(20)}>
-          <h3>{task.display_name || task.name || 'Task'}</h3>
+          <h3>{getTaskDisplayName(task)}</h3>
           {isEmpty && (
             <Banner message='There is no input/output parameter or artifact.' mode='info' />
           )}

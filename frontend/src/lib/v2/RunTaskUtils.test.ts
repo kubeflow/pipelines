@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Apis } from 'src/lib/Apis';
-import { listAllRunTasks } from './RunTaskUtils';
+import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from './RunTaskUtils';
 
 describe('listAllRunTasks', () => {
   afterEach(() => {
@@ -60,5 +60,19 @@ describe('listAllRunTasks', () => {
       'Task service returned a repeated page token: repeated-page',
     );
     expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('runtime display names', () => {
+  it('prefers task display name, then name, then the supplied fallback', () => {
+    expect(getTaskDisplayName({ display_name: 'Display', name: 'name' })).toBe('Display');
+    expect(getTaskDisplayName({ name: 'name' })).toBe('name');
+    expect(getTaskDisplayName({}, '-')).toBe('-');
+  });
+
+  it('prefers run display name, then ID, then the supplied fallback', () => {
+    expect(getRunDisplayName({ display_name: 'Display', run_id: 'run-id' })).toBe('Display');
+    expect(getRunDisplayName({ run_id: 'run-id' })).toBe('run-id');
+    expect(getRunDisplayName({}, '-')).toBe('-');
   });
 });

@@ -26,7 +26,6 @@ import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import {
   getArtifactDisplayName,
   getScalarMetricEntries,
-  isClassificationMetricArtifact,
   isHtmlArtifact,
   isLegacyUiMetadataArtifact,
   isMarkdownArtifact,
@@ -393,10 +392,7 @@ export function expandClassificationMetrics(
   return artifacts.flatMap((artifact, artifactIndex) => {
     const sourceKey =
       artifact.artifact_id || artifact.uri || artifact.name || `classification-${artifactIndex}`;
-    if (
-      isClassificationMetricArtifact(artifact) &&
-      artifact.type === ArtifactArtifactType.ClassificationMetric
-    ) {
+    if (artifact.type === ArtifactArtifactType.ClassificationMetric) {
       return [
         {
           key: sourceKey,
