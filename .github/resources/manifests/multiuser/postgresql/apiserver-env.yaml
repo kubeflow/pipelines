@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-pipeline
+spec:
+  template:
+    spec:
+      containers:
+        - name: ml-pipeline-api-server
+          env:
+            - name: V2_DRIVER_IMAGE
+              value: kind-registry:5000/driver:ci
+            - name: V2_LAUNCHER_IMAGE
+              value: kind-registry:5000/launcher:ci
+            - name: LOG_LEVEL
+              value: "debug"
+            # The base platform-agnostic-multi-user-postgresql overlay
+            # intentionally leaves sslmode unset so that CreatePostgreSQLConfig
+            # fails fast (secure-by-default). CI explicitly opts into
+            # sslmode=disable.
+            - name: DBCONFIG_POSTGRESQLCONFIG_EXTRAPARAMS
+              value: '{"sslmode":"disable"}'

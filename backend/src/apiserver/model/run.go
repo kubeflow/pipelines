@@ -477,3 +477,13 @@ func (r *Run) GetSortByFieldPrefix(name string) string {
 func (r *Run) GetKeyFieldPrefix() string {
 	return r.GetModelName()
 }
+
+var runCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (r *Run) CaseInsensitiveFields() map[string]struct{} {
+	return runCaseInsensitiveFields
+}
