@@ -113,10 +113,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const runIsTerminal = hasFinishedV2(run.state);
   const runFinished = runIsTerminal;
   const retryRefreshVersion = props.retryRefreshVersion || 0;
-  const retryTaskReconciliation = useRef({
-    successfulFetches: 0,
-    version: retryRefreshVersion,
-  });
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
 
   const {
@@ -127,40 +123,26 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     refetch: refetchTasks,
   } = useQuery<V2beta1PipelineTask[], Error>({
     queryKey: queryKeys.runTasks(runId, retryRefreshVersion || undefined),
-    queryFn: async () => {
-      if (retryTaskReconciliation.current.version !== retryRefreshVersion) {
-        retryTaskReconciliation.current = { successfulFetches: 0, version: retryRefreshVersion };
-      }
-      const nextTasks = await listAllRunTasks(runId);
-      if (
-        retryRefreshVersion > 0 &&
-        retryTaskReconciliation.current.version === retryRefreshVersion
-      ) {
-        retryTaskReconciliation.current.successfulFetches++;
-      }
-      return nextTasks;
-    },
+    queryFn: () => listAllRunTasks(runId),
     placeholderData: (previousTasks) => previousTasks,
     staleTime: QUERY_STALE_TIME,
     refetchInterval: (query) => {
       if (!runFinished) {
         return QUERY_REFETCH_INTERVAL;
       }
-      if (
-        retryRefreshVersion === 0 ||
-        retryTaskReconciliation.current.version !== retryRefreshVersion
-      ) {
+      if (retryRefreshVersion === 0) {
         return false;
       }
-      if (retryTaskReconciliation.current.successfulFetches === 0) {
+      // Count only results accepted into TanStack Query state. A cancelled request may still
+      // resolve when the task service ignores its abort signal, but its result is discarded.
+      const acceptedSnapshotCount = query.state.dataUpdateCount;
+      if (acceptedSnapshotCount === 0) {
         return QUERY_REFETCH_INTERVAL;
       }
       const hasUnfinishedTask = (query.state.data || []).some(
         (task) => !isTaskFinished(task.state),
       );
-      return retryTaskReconciliation.current.successfulFetches === 1 && hasUnfinishedTask
-        ? QUERY_REFETCH_INTERVAL
-        : false;
+      return acceptedSnapshotCount === 1 && hasUnfinishedTask ? QUERY_REFETCH_INTERVAL : false;
     },
     // Terminal run data can arrive while the cached task snapshot is still fresh. Always verify
     // task state on a terminal mount instead of preserving a potentially running graph forever.
@@ -380,9 +362,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
 function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement {
   const isSubDag =
-    task.type === PipelineTaskTaskType.DAG ||
-    task.type === PipelineTaskTaskType.LOOP ||
-    task.type === PipelineTaskTaskType.ROOT;
+    task.type === PipelineTaskTaskType.DAG || task.type === PipelineTaskTaskType.LOOP;
   return {
     data: { label: getTaskDisplayName(task) },
     id: getTaskNodeKey(task.name || task.task_id || 'task'),

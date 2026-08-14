@@ -56,6 +56,14 @@ describe('RunDetailsV2', () => {
   let historyPushSpy: any;
   let historyReplaceSpy: any;
 
+  function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+      resolve = resolvePromise;
+    });
+    return { promise, resolve };
+  }
+
   function generateProps(): RunDetailsInternalProps & PageProps {
     const pageProps: PageProps = {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
@@ -193,6 +201,23 @@ describe('RunDetailsV2', () => {
       ...props.location,
       search: '?view=graph',
     });
+  });
+
+  it('does not expose sub-DAG navigation for a linked root task', async () => {
+    const props = generateProps();
+    props.location = {
+      pathname: `/runs/details/${RUN_ID}`,
+      search: '?task=root-task',
+    } as any;
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+      </CommonTestWrapper>,
+    );
+
+    expect(await screen.findByText('Task Details')).toBeVisible();
+    expect(screen.queryByText('Open Sub-DAG')).toBeNull();
   });
 
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
@@ -599,6 +624,51 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(3);
 
     await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not count a cancelled task request as an accepted reconciliation snapshot', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const firstRequest = deferred<{ tasks: V2beta1PipelineTask[] }>();
+    const replacementRequest = deferred<{ tasks: V2beta1PipelineTask[] }>();
+    const unfinishedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
+    );
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+    tasksSpy
+      .mockReturnValueOnce(firstRequest.promise)
+      .mockReturnValueOnce(replacementRequest.promise)
+      .mockResolvedValue({ tasks: TEST_TASKS });
+    const taskQueryKey = queryKeys.runTasks(RUN_ID, 1);
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            retryRefreshVersion={1}
+            run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+            {...generateProps()}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => queryClient.cancelQueries({ queryKey: taskQueryKey }));
+    let replacementRefetch!: Promise<void>;
+    act(() => {
+      replacementRefetch = queryClient.refetchQueries({ queryKey: taskQueryKey });
+    });
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    firstRequest.resolve({ tasks: unfinishedTasks });
+    replacementRequest.resolve({ tasks: unfinishedTasks });
+    await act(async () => replacementRefetch);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
     expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
