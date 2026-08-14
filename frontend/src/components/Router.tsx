@@ -73,6 +73,7 @@ export enum QUERY_PARAMS {
   fromRunId = 'fromRun',
   fromRecurringRunId = 'fromRecurringRun',
   runlist = 'runlist',
+  taskId = 'task',
   view = 'view',
 }
 
@@ -126,6 +127,10 @@ export const RoutePageFactory = {
   },
   runDetails: (runId: string) => {
     return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
+  },
+  runDetailsTask: (runId: string, taskId: string) => {
+    const search = new URLSearchParams({ [QUERY_PARAMS.taskId]: taskId });
+    return `${RoutePageFactory.runDetails(runId)}?${search.toString()}`;
   },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);

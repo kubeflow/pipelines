@@ -25,7 +25,6 @@ import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
-import { useKeyedState } from 'src/hooks/useKeyedState';
 import {
   V2beta1PipelineTask,
   V2beta1Run,
@@ -36,7 +35,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
-import { RoutePage, RouteParams } from 'src/components/Router';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -46,15 +45,22 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
+import { URLParser } from 'src/lib/URLParser';
 import {
   buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
   reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
+import {
+  convertFlowElements,
+  getNodeName,
+  getTaskNodeKey,
+  NodeTypeNames,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
 import { RouteComponentProps } from 'react-router-dom';
@@ -99,11 +105,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
+  const [dismissedLinkedTaskId, setDismissedLinkedTaskId] = useState<string | null>(null);
   const [, forceUpdate] = useState();
-  const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
-  const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
-  const runFinished = hasFinishedV2(run.state) && !retriedCurrentRunState;
   const runIsTerminal = hasFinishedV2(run.state);
+  const runFinished = runIsTerminal;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
 
   const {
@@ -144,6 +149,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryFn: () => getExperiment(experimentId),
   });
   const namespace = experiment?.namespace || selectedNamespace;
+  const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
 
   // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
@@ -166,11 +172,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const layerChange = useCallback(
     (layers: string[]) => {
+      setDismissedLinkedTaskId(linkedTaskId);
       setSelectedNode(null);
       setLayers(layers);
       setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
     },
-    [pipelineSpec, tasks],
+    [linkedTaskId, pipelineSpec, tasks],
   );
 
   const runtimeFlowContext = useMemo(
@@ -186,12 +193,30 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return reconcileRuntimeFlowElements(layers, flowElements, tasks, runtimeFlowContext);
   }, [flowElements, layers, runtimeFlowContext, tasks]);
 
-  const selectedNodeRuntimeInfo = useMemo(
-    () => getNodeRuntimeInfo(selectedNode, tasks || [], layers, runtimeFlowContext),
-    [layers, runtimeFlowContext, selectedNode, tasks],
+  const linkedTask = tasks?.find((task) => task.task_id === linkedTaskId);
+  const linkedTaskElement = useMemo(
+    () => (linkedTask ? buildLinkedTaskElement(linkedTask) : null),
+    [linkedTask],
   );
+  const activeSelectedNode =
+    selectedNode || (linkedTaskId !== dismissedLinkedTaskId ? linkedTaskElement : null);
+  const selectedNodeRuntimeInfo = useMemo(() => {
+    if (!selectedNode && activeSelectedNode === linkedTaskElement && linkedTask) {
+      return { task: linkedTask };
+    }
+    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], layers, runtimeFlowContext);
+  }, [
+    activeSelectedNode,
+    layers,
+    linkedTask,
+    linkedTaskElement,
+    runtimeFlowContext,
+    selectedNode,
+    tasks,
+  ]);
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
+    setDismissedLinkedTaskId(linkedTaskId);
     setSelectedNode(element);
   };
 
@@ -213,20 +238,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       () => forceUpdate,
       (_selectedIds, success) => {
         if (success) {
-          setRetriedCurrentRunState(true);
+          // A retry can finish before the run poll observes RUNNING. Reconcile tasks directly from
+          // this completed mutation rather than keeping both queries alive until a state change.
+          void refetchTasks();
           onRetryStarted?.();
         }
       },
     );
-  }, [
-    buttons,
-    runIdFromParams,
-    run,
-    runFinished,
-    updateToolbar,
-    onRetryStarted,
-    setRetriedCurrentRunState,
-  ]);
+  }, [buttons, runIdFromParams, run, runFinished, updateToolbar, onRetryStarted, refetchTasks]);
 
   return (
     <>
@@ -253,9 +272,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
             <div className='z-20'>
               <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                isOpen={!!activeSelectedNode}
+                title={getNodeName(activeSelectedNode)}
+                onClose={() => {
+                  setDismissedLinkedTaskId(linkedTaskId);
+                  setSelectedNode(null);
+                }}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
@@ -263,9 +285,10 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                   onLayerChange={layerChange}
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
-                  element={selectedNode}
+                  element={activeSelectedNode}
                   elementRuntimeInfo={selectedNodeRuntimeInfo}
                   namespace={namespace}
+                  sourceFinished={runIsTerminal}
                 ></RuntimeNodeDetailsV2>
               </SidePanel>
             </div>
@@ -298,6 +321,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       </div>
     </>
   );
+}
+
+function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement {
+  return {
+    data: { label: getTaskDisplayName(task) },
+    id: getTaskNodeKey(task.name || task.task_id || 'task'),
+    position: { x: 0, y: 0 },
+    type: NodeTypeNames.EXECUTION,
+  };
 }
 
 async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {

@@ -83,9 +83,14 @@ export function getOutputArtifactByName(
   task: V2beta1PipelineTask,
   name: string,
 ): V2beta1Artifact | undefined {
-  return flattenArtifactGroups(task.outputs?.artifacts).find(
-    ({ artifact, artifactKey }) => artifactKey === name || artifact.name === name,
-  )?.artifact;
+  const entries = flattenArtifactGroups(task.outputs?.artifacts);
+  for (let index = entries.length - 1; index >= 0; index--) {
+    const { artifact, artifactKey } = entries[index];
+    if (artifactKey === name || artifact.name === name) {
+      return artifact;
+    }
+  }
+  return undefined;
 }
 
 export function formatParameters(

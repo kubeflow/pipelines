@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import {
   InputOutputsIOArtifact,
+  PipelineTaskTaskPod,
   PipelineTaskTaskPodType,
   PipelineTaskTaskState,
   V2beta1PipelineTask,
@@ -85,6 +86,7 @@ interface RuntimeNodeDetailsV2Props {
   element?: PipelineFlowElement | null;
   elementRuntimeInfo?: NodeRuntimeInfo | null;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
 export function RuntimeNodeDetailsV2({
@@ -95,6 +97,7 @@ export function RuntimeNodeDetailsV2({
   element,
   elementRuntimeInfo,
   namespace,
+  sourceFinished,
 }: RuntimeNodeDetailsV2Props) {
   if (!element) {
     return NODE_INFO_UNKNOWN;
@@ -108,6 +111,7 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         layers={layers}
         namespace={namespace}
+        sourceFinished={sourceFinished}
       />
     );
   }
@@ -117,6 +121,7 @@ export function RuntimeNodeDetailsV2({
         task={elementRuntimeInfo?.task}
         artifactGroup={elementRuntimeInfo?.artifactGroup}
         namespace={namespace}
+        sourceFinished={sourceFinished}
       />
     );
   }
@@ -141,6 +146,20 @@ interface TaskNodeDetailProps {
   task?: V2beta1PipelineTask;
   layers: string[];
   namespace?: string;
+  sourceFinished?: boolean;
+}
+
+function getLatestTaskPod(
+  task: V2beta1PipelineTask | undefined,
+  type: PipelineTaskTaskPodType,
+): PipelineTaskTaskPod | undefined {
+  const pods = task?.pods || [];
+  for (let index = pods.length - 1; index >= 0; index--) {
+    if (pods[index].type === type) {
+      return pods[index];
+    }
+  }
+  return undefined;
 }
 
 function TaskNodeDetail({
@@ -150,14 +169,11 @@ function TaskNodeDetail({
   task,
   layers,
   namespace,
+  sourceFinished,
 }: TaskNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
-  const executorPod = task?.pods?.find(
-    (candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR,
-  );
-  const driverPod = task?.pods?.find(
-    (candidate) => candidate.type === PipelineTaskTaskPodType.DRIVER,
-  );
+  const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
+  const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
   const executorLogsArtifact = task
     ? getOutputArtifactByName(task, EXECUTOR_LOGS_ARTIFACT_KEY)
     : undefined;
@@ -172,7 +188,13 @@ function TaskNodeDetail({
     isError: logsQueryFailed,
     error: logsQueryError,
   } = useQuery<Map<string, string>, Error>({
-    queryKey: queryKeys.taskLogs(task?.task_id, task?.state, namespace, logsSourceIdentity),
+    queryKey: queryKeys.taskLogs(
+      task?.task_id,
+      task?.state,
+      namespace,
+      logsSourceIdentity,
+      sourceFinished,
+    ),
     queryFn: () => {
       if (!task) {
         throw new Error('No task is found.');
@@ -181,7 +203,7 @@ function TaskNodeDetail({
     },
     enabled: !!task && selectedTab === 2,
     // Live logs and transient "not available yet" responses must recover while the task runs.
-    refetchInterval: task && !isTaskFinished(task.state) ? 10000 : false,
+    refetchInterval: task && !sourceFinished && !isTaskFinished(task.state) ? 10000 : false,
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
@@ -356,12 +378,8 @@ export async function getLogsInfo(
     return logsInfo;
   }
 
-  const executorPod = task.pods?.find(
-    (candidate) => candidate.type === PipelineTaskTaskPodType.EXECUTOR,
-  );
-  const driverPod = task.pods?.find(
-    (candidate) => candidate.type === PipelineTaskTaskPodType.DRIVER,
-  );
+  const executorPod = getLatestTaskPod(task, PipelineTaskTaskPodType.EXECUTOR);
+  const driverPod = getLatestTaskPod(task, PipelineTaskTaskPodType.DRIVER);
   const createdAt = (task.create_time || new Date()).toISOString().split('T')[0];
   let podLogsError: unknown;
   if (runId && executorPod?.name) {
@@ -433,9 +451,15 @@ interface ArtifactNodeDetailProps {
   task?: V2beta1PipelineTask;
   artifactGroup?: InputOutputsIOArtifact;
   namespace?: string;
+  sourceFinished?: boolean;
 }
 
-function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDetailProps) {
+function ArtifactNodeDetail({
+  task,
+  artifactGroup,
+  namespace,
+  sourceFinished,
+}: ArtifactNodeDetailProps) {
   const [selectedTab, setSelectedTab] = useState(0);
   const [hasOpenedVisualization, setHasOpenedVisualization] = useState(false);
   const artifacts = artifactGroup?.artifacts || [];
@@ -464,7 +488,7 @@ function ArtifactNodeDetail({ task, artifactGroup, namespace }: ArtifactNodeDeta
               artifacts={artifacts}
               artifactKey={artifactGroup.artifact_key}
               namespace={namespace}
-              sourceFinished={isTaskFinished(task.state)}
+              sourceFinished={sourceFinished || isTaskFinished(task.state)}
             />
           </div>
         )}

@@ -61,8 +61,13 @@ export const queryKeys = {
   artifactVisualizationKey: (artifactId: string) =>
     ['artifact_visualization_key', { id: artifactId }] as const,
 
-  taskLogs: (taskId?: string, taskState?: string, namespace?: string, sourceIdentity?: string) =>
-    ['task_logs', { taskId, taskState, namespace, sourceIdentity }] as const,
+  taskLogs: (
+    taskId?: string,
+    taskState?: string,
+    namespace?: string,
+    sourceIdentity?: string,
+    sourceFinished?: boolean,
+  ) => ['task_logs', { taskId, taskState, namespace, sourceIdentity, sourceFinished }] as const,
 
   // --- Pipeline & version ---
 

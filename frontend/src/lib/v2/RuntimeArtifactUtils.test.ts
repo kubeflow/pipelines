@@ -82,9 +82,9 @@ describe('RuntimeArtifactUtils', () => {
     expect(EXECUTOR_LOGS_ARTIFACT_KEY).toBe('executor-logs');
   });
 
-  it('finds output artifacts by either output key or artifact name', () => {
-    expect(getOutputArtifactByName(task, 'models')?.artifact_id).toBe('model-1');
-    expect(getOutputArtifactByName(task, 'model')?.artifact_id).toBe('model-1');
+  it('finds the latest output artifact by either output key or artifact name', () => {
+    expect(getOutputArtifactByName(task, 'models')?.artifact_id).toBe('model-2');
+    expect(getOutputArtifactByName(task, 'model')?.artifact_id).toBe('model-2');
     expect(getOutputArtifactByName(task, 'missing')).toBeUndefined();
   });
 

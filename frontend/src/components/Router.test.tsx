@@ -18,7 +18,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { Router as ReactRouter } from 'react-router';
 import { MemoryRouter } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import Router, { getSafeReturnPath, RouteConfig, RoutePage } from './Router';
+import Router, { getSafeReturnPath, RouteConfig, RoutePage, RoutePageFactory } from './Router';
 import { Page } from '../pages/Page';
 import { ToolbarProps } from './Toolbar';
 
@@ -82,6 +82,12 @@ describe('Router', () => {
     expect(getSafeReturnPath('https://example.com')).toBeUndefined();
     expect(getSafeReturnPath('//example.com')).toBeUndefined();
     expect(getSafeReturnPath(null)).toBeUndefined();
+  });
+
+  it('builds native task links without putting task IDs in the path', () => {
+    expect(RoutePageFactory.runDetailsTask('run-1', 'task/iteration 1')).toBe(
+      '/runs/details/run-1?task=task%2Fiteration+1',
+    );
   });
 
   it('redirects legacy run execution links to canonical run details', async () => {

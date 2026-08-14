@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import * as JsYaml from 'js-yaml';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
@@ -106,29 +106,27 @@ export default function RunDetailsRouter(
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const runId = props.match.params[RouteParams.runId];
-  const queryClient = useQueryClient();
-  const waitingForPostRetryState = useRef(false);
   const {
     data: refreshedRun,
     error: runRefreshError,
     isRefetchError,
+    refetch: refetchRun,
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       const runIsActive = state !== undefined && !hasFinishedV2(state);
-      if (waitingForPostRetryState.current && runIsActive) {
-        waitingForPostRetryState.current = false;
-      }
-      return waitingForPostRetryState.current || runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
+      return runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
     },
     refetchOnMount: false,
   });
   const onRetryStarted = useCallback(() => {
-    waitingForPostRetryState.current = true;
-    void queryClient.invalidateQueries({ queryKey: queryKeys.v2RunDetail(runId) });
-  }, [queryClient, runId]);
+    // The retry mutation has completed, so one explicit refresh is sufficient to discover an
+    // active attempt. If the run already returned to a terminal state, do not poll forever waiting
+    // for a RUNNING state that can no longer be observed.
+    void refetchRun();
+  }, [refetchRun]);
 
   return (
     <RunDetailsV2

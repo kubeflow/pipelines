@@ -167,6 +167,25 @@ describe('RunDetailsV2', () => {
     expect(screen.getByTestId('DagCanvas')).not.toBeNull();
   });
 
+  it('opens the native task targeted by a related-task link', async () => {
+    const props = generateProps();
+    props.location = {
+      hash: '',
+      pathname: `/runs/details/${RUN_ID}`,
+      search: '?task=preprocess-task',
+      state: undefined,
+    } as any;
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(await screen.findByText('Task Details'));
+    await screen.findByText('preprocess-task');
+  });
+
   it('keeps runtime flow elements stable across same-props rerenders', async () => {
     const reconcileRuntimeFlowElementsSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
     const props = generateProps();
@@ -495,8 +514,9 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(getLatestTerminateDisabled()).toBe(false));
   });
 
-  it('notifies the polling owner after a successful retry', async () => {
+  it('notifies the polling owner and reconciles tasks after a successful retry', async () => {
     const onRetryStarted = vi.fn();
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
     vi.spyOn(Apis.runServiceApiV2, 'retryRun').mockResolvedValue({});
     render(
       <CommonTestWrapper>
@@ -508,6 +528,7 @@ describe('RunDetailsV2', () => {
         />
       </CommonTestWrapper>,
     );
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalledTimes(1));
 
     const getRetryAction = () => {
       const actionUpdates = updateToolbarSpy.mock.calls.filter(([update]: any[]) => update.actions);
@@ -521,6 +542,7 @@ describe('RunDetailsV2', () => {
     await confirmButton.onClick();
 
     expect(onRetryStarted).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(tasksSpy).toHaveBeenCalledTimes(2));
   });
 
   it('refetches a fresh cached task snapshot when mounting a terminal run', async () => {

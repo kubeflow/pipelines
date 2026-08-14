@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { dump, loadAll } from 'js-yaml';
 import {
   ArtifactArtifactType,
@@ -52,6 +52,8 @@ describe('RuntimeNodeDetailsV2', () => {
   const TEST_POD_NAME = 'test-pod-name';
   const TEST_NAMESPACE = 'kubeflow';
   const TEST_LOG_VIEW_ID = 'logs-view-window';
+
+  afterEach(() => vi.useRealTimers());
 
   const executionElement = {
     data: { label: 'preprocess' },
@@ -179,6 +181,42 @@ describe('RuntimeNodeDetailsV2', () => {
     );
     expect(logsInfo.get(LOGS_DETAILS)).toBe('executor output');
     expect(logsInfo.has(LOGS_BANNER_MESSAGE)).toBe(false);
+  });
+
+  it('uses the latest executor pod appended for a retried task', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('latest output');
+
+    await getLogsInfo(
+      createTask({
+        pods: [
+          { name: 'first-attempt-executor', type: PipelineTaskTaskPodType.EXECUTOR },
+          { name: 'retry-executor', type: PipelineTaskTaskPodType.EXECUTOR },
+        ],
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      'retry-executor',
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+  });
+
+  it('stops log polling when the parent run is terminal', async () => {
+    vi.useFakeTimers();
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('final output');
+    renderTask(createTask({ state: PipelineTaskTaskState.RUNNING }), { sourceFinished: true });
+
+    fireEvent.click(screen.getByText('Logs'));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
   });
 
   it('falls back to the native executor-logs artifact when pod logs fail', async () => {
@@ -480,6 +518,48 @@ describe('RuntimeNodeDetailsV2', () => {
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
 
     rerender(view(PipelineTaskTaskState.SUCCEEDED));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it('finalizes an artifact visualization when the parent run finishes first', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    const artifactElement = {
+      data: { label: 'report' },
+      id: 'artifact.preprocess.report',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    const view = (sourceFinished: boolean) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          element={artifactElement}
+          elementRuntimeInfo={{
+            artifactGroup: {
+              artifact_key: 'report',
+              artifacts: [
+                {
+                  artifact_id: 'live-report',
+                  name: 'report',
+                  type: ArtifactArtifactType.HTML,
+                  uri: 's3://reports/output.html',
+                },
+              ],
+            },
+            task: createTask({ state: PipelineTaskTaskState.RUNNING }),
+          }}
+          layers={['root']}
+          namespace={TEST_NAMESPACE}
+          onLayerChange={() => {}}
+          sourceFinished={sourceFinished}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(false));
+    fireEvent.click(screen.getByText('Visualization'));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(true));
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
   });
 });

@@ -225,7 +225,7 @@ describe('ArtifactDetails', () => {
 
     await screen.findByText('Producing and consuming tasks');
     const runLink = await screen.findByRole('link', { name: 'Run run-1 · Task task-1' });
-    expect(runLink).toHaveAttribute('href', '/runs/details/run-1');
+    expect(runLink).toHaveAttribute('href', '/runs/details/run-1?task=task-1');
     screen.getByText('Produced as dataset');
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
     expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(

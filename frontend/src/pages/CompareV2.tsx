@@ -202,9 +202,6 @@ export function CompareV2(props: CompareV2Props) {
   const runIdsKey = runIds.join(',');
   const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
   const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
-  const [artifactComparisonSelection, setArtifactComparisonSelection] = useState(
-    createRuntimeArtifactComparisonSelectionState,
-  );
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -396,29 +393,59 @@ export function CompareV2(props: CompareV2Props) {
           <Separator orientation='vertical' />
           <MD2Tabs tabs={METRICS_TAB_NAMES} selectedTab={metricsTab} onSwitch={setMetricsTab} />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === NativeMetricsTab.SCALAR ? (
-              <CompareTableSection
-                isLoading={isLoading}
-                compareTableProps={scalarMetricsTableProps}
-                dataTypeName='scalar metrics artifacts'
-              />
-            ) : isLoading ? (
-              <CompareTableSection isLoading={true} dataTypeName='artifacts' />
-            ) : (
-              <NativeArtifactComparison
-                comparisonData={selectedData}
-                metricsTab={metricsTab}
-                namespace={namespace}
-                selectionState={artifactComparisonSelection}
-                setSelectionState={setArtifactComparisonSelection}
-              />
-            )}
+            <NativeMetricsContent
+              key={JSON.stringify([...selectedIds].sort())}
+              comparisonData={selectedData}
+              isLoading={isLoading}
+              metricsTab={metricsTab}
+              namespace={namespace}
+              scalarMetricsTableProps={scalarMetricsTableProps}
+            />
           </div>
         </div>
       )}
 
       <Separator orientation='vertical' />
     </div>
+  );
+}
+
+function NativeMetricsContent({
+  comparisonData,
+  isLoading,
+  metricsTab,
+  namespace,
+  scalarMetricsTableProps,
+}: {
+  comparisonData: RunComparisonData[];
+  isLoading: boolean;
+  metricsTab: NativeMetricsTab;
+  namespace?: string;
+  scalarMetricsTableProps?: CompareTableProps;
+}) {
+  const [selectionState, setSelectionState] = useState(
+    createRuntimeArtifactComparisonSelectionState,
+  );
+  if (metricsTab === NativeMetricsTab.SCALAR) {
+    return (
+      <CompareTableSection
+        isLoading={isLoading}
+        compareTableProps={scalarMetricsTableProps}
+        dataTypeName='scalar metrics artifacts'
+      />
+    );
+  }
+  if (isLoading) {
+    return <CompareTableSection isLoading={true} dataTypeName='artifacts' />;
+  }
+  return (
+    <NativeArtifactComparison
+      comparisonData={comparisonData}
+      metricsTab={metricsTab}
+      namespace={namespace}
+      selectionState={selectionState}
+      setSelectionState={setSelectionState}
+    />
   );
 }
 

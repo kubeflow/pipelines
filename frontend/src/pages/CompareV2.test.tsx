@@ -50,6 +50,7 @@ vi.mock('src/pages/RunList', () => ({
       <div>
         Run list
         <button onClick={() => onSelectionChange(['run-1'])}>Select only run-1</button>
+        <button onClick={() => onSelectionChange(['run-1', 'run-2'])}>Select both runs</button>
       </div>
     );
   }),
@@ -85,6 +86,19 @@ vi.mock('src/components/viewers/RuntimeArtifactComparison', () => ({
         }
       >
         Select comparison artifact
+      </button>
+      <button
+        onClick={() =>
+          setSelectionState((current) => ({
+            ...current,
+            panelSelections: {
+              ...current.panelSelections,
+              html: ['run-2:html-2', ''],
+            },
+          }))
+        }
+      >
+        Select run-2 artifact
       </button>
       <span data-testid='comparison-selection'>{selectionState.panelSelections.html[0]}</span>
     </div>
@@ -819,6 +833,25 @@ describe('CompareV2', () => {
     fireEvent.click(screen.getByText('HTML'));
 
     expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
+  });
+
+  it('discards artifact selections when the selected run set changes', async () => {
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByText('Train / accuracy');
+
+    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByRole('button', { name: 'Select run-2 artifact' }));
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-2:html-2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select only run-1' }));
+    expect(screen.getByTestId('comparison-selection')).toBeEmptyDOMElement();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Select both runs' }));
+    expect(screen.getByTestId('comparison-selection')).toBeEmptyDOMElement();
   });
 
   it('keeps available runs visible when one comparison query fails', async () => {

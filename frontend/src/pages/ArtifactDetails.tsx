@@ -413,7 +413,14 @@ function RelatedTaskLink({ value }: CustomRendererProps<V2beta1ArtifactTask>) {
     return <>{artifactTask?.task_id || '-'}</>;
   }
   return (
-    <Link className={commonCss.link} to={RoutePageFactory.runDetails(artifactTask.run_id)}>
+    <Link
+      className={commonCss.link}
+      to={
+        artifactTask.task_id
+          ? RoutePageFactory.runDetailsTask(artifactTask.run_id, artifactTask.task_id)
+          : RoutePageFactory.runDetails(artifactTask.run_id)
+      }
+    >
       Run {artifactTask.run_id}
       {artifactTask.task_id ? ` · Task ${artifactTask.task_id}` : ''}
     </Link>

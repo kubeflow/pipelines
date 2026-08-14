@@ -256,7 +256,7 @@ describe('RunDetailsRouter', () => {
     expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
   });
 
-  it('keeps polling after retry until a fresh active run state is observed', async () => {
+  it('starts normal polling when the post-retry refresh observes an active run', async () => {
     vi.useFakeTimers();
     const failedRun: V2beta1Run = {
       run_id: TEST_RUN_ID,
@@ -264,7 +264,7 @@ describe('RunDetailsRouter', () => {
       state: V2beta1RuntimeState.FAILED,
     };
     const runningRun = { ...failedRun, state: V2beta1RuntimeState.RUNNING };
-    getRunSpy.mockResolvedValueOnce(failedRun).mockRejectedValueOnce(new Error('temporary outage'));
+    getRunSpy.mockResolvedValueOnce(failedRun).mockResolvedValue(runningRun);
 
     render(
       <CommonTestWrapper>
@@ -275,7 +275,6 @@ describe('RunDetailsRouter', () => {
     await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
     expect(getRunSpy).toHaveBeenCalledTimes(2);
 
-    getRunSpy.mockResolvedValue(runningRun);
     await act(async () => {
       await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL);
       await Promise.resolve();
@@ -288,6 +287,30 @@ describe('RunDetailsRouter', () => {
       'data-run-state',
       V2beta1RuntimeState.RUNNING,
     );
+  });
+
+  it('does not poll forever when a fast retry is terminal before the refresh observes it', async () => {
+    vi.useFakeTimers();
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    getRunSpy.mockResolvedValue(failedRun);
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 3);
+    });
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
   });
 
   it('remounts the v2 detail subtree when the run ID changes', async () => {
