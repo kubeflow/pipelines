@@ -688,13 +688,24 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 			}
 		}
 		for _, input := range task.GetInputs().GetArtifacts() {
-			switch input.GetKind().(type) {
-			case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
-				if err := addDep(input.GetTaskOutputArtifact().GetProducerTask()); err != nil {
-					return wrap(err)
+			var addArtifactDependencies func(*pipelinespec.TaskInputsSpec_InputArtifactSpec) error
+			addArtifactDependencies = func(artifactInput *pipelinespec.TaskInputsSpec_InputArtifactSpec) error {
+				switch artifactInput.GetKind().(type) {
+				case *pipelinespec.TaskInputsSpec_InputArtifactSpec_TaskOutputArtifact:
+					return addDep(artifactInput.GetTaskOutputArtifact().GetProducerTask())
+				case *pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSources:
+					for _, source := range artifactInput.GetArtifactSources().GetArtifacts() {
+						if err := addArtifactDependencies(source); err != nil {
+							return err
+						}
+					}
+				default:
+					// Other artifact input types do not introduce implicit dependencies.
 				}
-			default:
-				// other artifact input types do not introduce implicit dependencies
+				return nil
+			}
+			if err := addArtifactDependencies(input); err != nil {
+				return wrap(err)
 			}
 		}
 		// Dependencies are collected by iterating input maps, whose order is not

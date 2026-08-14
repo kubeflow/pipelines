@@ -145,6 +145,33 @@ def build_task_spec_for_task(
         if val and pipeline_channel.extract_pipeline_channels_from_any(val):
             task.inputs['base_image'] = val
 
+    def set_artifact_source(
+        artifact_spec: pipeline_spec_pb2.TaskInputsSpec.InputArtifactSpec,
+        channel: pipeline_channel.PipelineArtifactChannel,
+    ) -> None:
+        """Sets an artifact source, punching through a parent DAG if needed."""
+        if channel.task_name:
+            if channel.task_name in tasks_in_current_dag:
+                artifact_spec.task_output_artifact.producer_task = (
+                    utils.sanitize_task_name(channel.task_name))
+                artifact_spec.task_output_artifact.output_artifact_key = (
+                    channel.name)
+            else:
+                component_input_artifact = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        channel))
+                assert component_input_artifact in parent_component_inputs.artifacts, \
+                    f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
+                artifact_spec.component_input_artifact = (
+                    component_input_artifact)
+        else:
+            component_input_artifact = channel.full_name
+            if component_input_artifact not in parent_component_inputs.artifacts:
+                component_input_artifact = (
+                    compiler_utils.additional_input_name_for_pipeline_channel(
+                        channel))
+            artifact_spec.component_input_artifact = component_input_artifact
+
     for input_name, input_value in task.inputs.items():
         # Since LoopParameterArgument and LoopArtifactArgument and LoopArgumentVariable are narrower
         # types than PipelineParameterChannel, start with them.
@@ -184,40 +211,24 @@ def build_task_spec_for_task(
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
                     f'parseJson(string_value)["{input_value.subvar_name}"]')
+        elif isinstance(input_value, pipeline_channel.UnionArtifact):
+            artifact_sources = pipeline_task_spec.inputs.artifacts[
+                input_name].artifact_sources
+            for channel in input_value.channels:
+                set_artifact_source(
+                    artifact_spec=artifact_sources.artifacts.add(),
+                    channel=channel,
+                )
+
         elif isinstance(input_value,
                         pipeline_channel.PipelineArtifactChannel) or (
                             isinstance(input_value, dsl.Collected) and
                             input_value.is_artifact_channel):
 
-            if input_value.task_name:
-                # Value is produced by an upstream task.
-                if input_value.task_name in tasks_in_current_dag:
-                    # Dependent task within the same DAG.
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.producer_task = (
-                            utils.sanitize_task_name(input_value.task_name))
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].task_output_artifact.output_artifact_key = (
-                            input_value.name)
-                else:
-                    # Dependent task not from the same DAG.
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                    assert component_input_artifact in parent_component_inputs.artifacts, \
-                        f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
-                    pipeline_task_spec.inputs.artifacts[
-                        input_name].component_input_artifact = (
-                            component_input_artifact)
-            else:
-                component_input_artifact = input_value.full_name
-                if component_input_artifact not in parent_component_inputs.artifacts:
-                    component_input_artifact = (
-                        compiler_utils.
-                        additional_input_name_for_pipeline_channel(input_value))
-                pipeline_task_spec.inputs.artifacts[
-                    input_name].component_input_artifact = (
-                        component_input_artifact)
+            set_artifact_source(
+                artifact_spec=pipeline_task_spec.inputs.artifacts[input_name],
+                channel=input_value,
+            )
 
         elif isinstance(input_value,
                         pipeline_channel.PipelineParameterChannel) or (
