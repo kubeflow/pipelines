@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+//      https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,13 +17,16 @@ package gc
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fakeRunStore records GC method calls; supports multi-batch sequences via archiveReturnSequence/deleteReturnSequence.
@@ -81,10 +84,10 @@ func (f *fakeRunStore) TerminateRun(_ string) error                             
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
 }
-func (f *fakeRunStore) ClaimRunForRetry(_ string) (string, string, int64, error) {
-	return "", "", 0, nil
+func (f *fakeRunStore) ClaimRunForRetry(_ string) (string, string, int64, int64, error) {
+	return "", "", 0, 0, nil
 }
-func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64) error {
+func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64, _ int64) error {
 	return nil
 }
 
@@ -114,10 +117,8 @@ func TestCollect_ArchiveOnlyEnabled(t *testing.T) {
 	resetGCConfig()
 	defer resetGCConfig()
 
-	// 720h = 30 days = 2592000 seconds.
 	viper.Set(common.RunsRetentionTime, "720h")
 
-	// Return < batchSize so the drain loop exits after one call.
 	fake := &fakeRunStore{archiveReturn: 5}
 	now := int64(3000000)
 	gc := &RunGarbageCollector{
@@ -137,7 +138,6 @@ func TestCollect_DeleteOnlyEnabled(t *testing.T) {
 	resetGCConfig()
 	defer resetGCConfig()
 
-	// 2160h = 90 days = 7776000 seconds.
 	viper.Set(common.ArchivedRunsRetentionTime, "2160h")
 
 	fake := &fakeRunStore{deleteReturn: 3}
@@ -193,6 +193,7 @@ func TestCollect_ArchiveErrorDoesNotBlockDeletePass(t *testing.T) {
 		archiveErr:    fmt.Errorf("db connection lost"),
 		deleteReturn:  4,
 	}
+
 	gc := &RunGarbageCollector{
 		runStore: fake,
 		nowFunc:  func() int64 { return 10000000 },
@@ -218,6 +219,7 @@ func TestCollect_CanceledContextExitsEarly(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
+
 	gc.collect(ctx)
 
 	assert.Equal(t, 0, fake.archiveCalls, "canceled context should skip archive pass")
@@ -230,8 +232,6 @@ func TestCollect_ArchiveDrainsMultipleBatches(t *testing.T) {
 	viper.Set(common.RunsRetentionTime, "720h")
 	viper.Set(common.RunsGCBatchSize, "100")
 
-	// First call returns exactly batchSize (100) → drain loop continues.
-	// Second call returns 30 (< batchSize) → drain loop exits.
 	fake := &fakeRunStore{
 		archiveReturnSequence: []int64{100, 30},
 	}
@@ -253,8 +253,6 @@ func TestCollect_DeleteDrainsMultipleBatches(t *testing.T) {
 	viper.Set(common.ArchivedRunsRetentionTime, "2160h")
 	viper.Set(common.RunsGCBatchSize, "100")
 
-	// First call returns exactly batchSize (100) → drain loop continues.
-	// Second call returns 15 (< batchSize) → drain loop exits.
 	fake := &fakeRunStore{
 		deleteReturnSequence: []int64{100, 15},
 	}
@@ -278,9 +276,6 @@ func TestCollect_ContextCancelStopsDrainBetweenBatches(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// cancellingFakeRunStore cancels the context after the first archive call
-	// returns batchSize (100). The drain loop checks ctx.Err() at the top of
-	// the next iteration and exits before making a second call.
 	cancelOnFirstCall := &cancellingFakeRunStore{
 		fakeRunStore: fakeRunStore{
 			archiveReturnSequence: []int64{100, 0},
@@ -288,6 +283,7 @@ func TestCollect_ContextCancelStopsDrainBetweenBatches(t *testing.T) {
 		cancelAfterArchiveN: 1,
 		cancelFunc:          cancel,
 	}
+
 	gc := &RunGarbageCollector{
 		runStore: cancelOnFirstCall,
 		nowFunc:  func() int64 { return 10000000 },
@@ -312,4 +308,127 @@ func (f *cancellingFakeRunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, ba
 		f.cancelFunc()
 	}
 	return result, archiveError
+}
+
+type blockingRunStore struct {
+	fakeRunStore
+	archiveStarted chan struct{}
+	releaseArchive chan struct{}
+}
+
+func (f *blockingRunStore) ArchiveExpiredRuns(_ int64, _ int) (int64, error) {
+	close(f.archiveStarted)
+	<-f.releaseArchive
+	return 0, nil
+}
+
+func TestLeaderLifecycle_ShutdownKeepsElectionActiveUntilCollectionDrains(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+	viper.Set(common.RunsRetentionTime, "1h")
+
+	store := &blockingRunStore{
+		archiveStarted: make(chan struct{}),
+		releaseArchive: make(chan struct{}),
+	}
+	collector := &RunGarbageCollector{
+		runStore: store,
+		nowFunc:  func() int64 { return 1000000 },
+	}
+
+	shutdownCtx, cancelShutdown := context.WithCancel(context.Background())
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	defer cancelElection()
+
+	lifecycle := newLeaderLifecycle(shutdownCtx, electionCtx, cancelElection, collector.runLoop)
+	stopShutdownHook := context.AfterFunc(shutdownCtx, lifecycle.onShutdown)
+	defer stopShutdownHook()
+
+	callbackDone := make(chan struct{})
+	go func() {
+		defer close(callbackDone)
+		lifecycle.onStartedLeading(electionCtx)
+	}()
+
+	requireSignal(t, store.archiveStarted, "collection did not reach the blocking store")
+
+	cancelShutdown()
+
+	require.Never(t, func() bool { return electionCtx.Err() != nil }, 50*time.Millisecond, time.Millisecond,
+		"election stopped before the active collection drained")
+
+	close(store.releaseArchive)
+
+	requireSignal(t, callbackDone, "collection callback did not drain")
+	requireSignal(t, electionCtx.Done(), "election did not stop after the collection drained")
+	assert.True(t, lifecycle.isGracefulStop())
+}
+
+func TestLeaderLifecycle_ShutdownBeforeCallbackPreventsCollectionStart(t *testing.T) {
+	shutdownCtx, cancelShutdown := context.WithCancel(context.Background())
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	defer cancelElection()
+
+	var runLoopCalled atomic.Bool
+	lifecycle := newLeaderLifecycle(shutdownCtx, electionCtx, cancelElection, func(context.Context) {
+		runLoopCalled.Store(true)
+	})
+	stopShutdownHook := context.AfterFunc(shutdownCtx, lifecycle.onShutdown)
+	defer stopShutdownHook()
+
+	cancelShutdown()
+
+	requireSignal(t, electionCtx.Done(), "idle election did not stop during shutdown")
+
+	lifecycle.onStartedLeading(electionCtx)
+
+	assert.False(t, runLoopCalled.Load(), "late callback started collection after shutdown")
+	assert.True(t, lifecycle.isGracefulStop())
+}
+
+func TestLeaderLifecycle_UnexpectedLossDuringShutdownRemainsFatal(t *testing.T) {
+	shutdownCtx, cancelShutdown := context.WithCancel(context.Background())
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	defer cancelElection()
+
+	leaderCtx, cancelLeader := context.WithCancel(context.Background())
+	defer cancelLeader()
+
+	runLoopStarted := make(chan struct{})
+	releaseRunLoop := make(chan struct{})
+	lifecycle := newLeaderLifecycle(shutdownCtx, electionCtx, cancelElection, func(ctx context.Context) {
+		close(runLoopStarted)
+		<-ctx.Done()
+		<-releaseRunLoop
+	})
+	stopShutdownHook := context.AfterFunc(shutdownCtx, lifecycle.onShutdown)
+	defer stopShutdownHook()
+
+	callbackDone := make(chan struct{})
+	go func() {
+		defer close(callbackDone)
+		lifecycle.onStartedLeading(leaderCtx)
+	}()
+
+	requireSignal(t, runLoopStarted, "collection callback did not start")
+
+	cancelLeader()
+	cancelShutdown()
+
+	require.Never(t, lifecycle.isGracefulStop, 50*time.Millisecond, time.Millisecond,
+		"shutdown masked an unexpected lease loss while collection was active")
+
+	close(releaseRunLoop)
+
+	requireSignal(t, callbackDone, "collection callback did not exit")
+	assert.False(t, lifecycle.isGracefulStop(), "unexpected lease loss was classified as graceful")
+}
+
+func requireSignal(t *testing.T, signal <-chan struct{}, message string) {
+	t.Helper()
+	select {
+	case <-signal:
+	case <-time.After(time.Second):
+		t.Fatal(message)
+	}
 }

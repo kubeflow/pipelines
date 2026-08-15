@@ -329,6 +329,10 @@ type RunDetails struct {
 	PipelineContextId int64 `gorm:"column:PipelineContextId; default:0;"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
 	PipelineRunContextId int64 `gorm:"column:PipelineRunContextId; default:0;"`
+	// RetryGeneration is incremented by ClaimRunForRetry to fence stale
+	// workflow reporters. UpdateRun checks this value to reject terminal
+	// state writes from reporters that passed version checks before the claim.
+	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
 	// Add gorm:"-" so that GORM ignores TaskDetails when generating schema.
 	// This avoids GORM auto-detecting the circular relationship (RunDetails <--> Tasks) and blocking the FK on tasks.RunUUID → run_details.UUID.
 	TaskDetails []*Task `gorm:"-"`

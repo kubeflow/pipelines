@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// https://www.apache.org/licenses/LICENSE-2.0
+//      https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,6 +18,7 @@ package gc
 import (
 	"context"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -41,6 +42,82 @@ type RunGarbageCollector struct {
 	nowFunc   func() int64
 }
 
+// leaderLifecycle keeps lease renewal active until a graceful shutdown has
+// drained the current collection. Its state also distinguishes that path from
+// an unexpected lease loss, where the process must terminate immediately.
+type leaderLifecycle struct {
+	shutdownCtx    context.Context
+	electionCtx    context.Context
+	cancelElection context.CancelFunc
+	runLoop        func(context.Context)
+
+	mu               sync.Mutex
+	callbackStarted  bool
+	cancelCollection context.CancelFunc
+	gracefulStop     bool
+}
+
+func newLeaderLifecycle(
+	shutdownCtx context.Context,
+	electionCtx context.Context,
+	cancelElection context.CancelFunc,
+	runLoop func(context.Context),
+) *leaderLifecycle {
+	return &leaderLifecycle{
+		shutdownCtx:    shutdownCtx,
+		electionCtx:    electionCtx,
+		cancelElection: cancelElection,
+		runLoop:        runLoop,
+	}
+}
+
+func (l *leaderLifecycle) onShutdown() {
+	l.mu.Lock()
+	if l.callbackStarted {
+		l.cancelCollection()
+		l.mu.Unlock()
+		return
+	}
+	l.gracefulStop = true
+	l.mu.Unlock()
+	l.cancelElection()
+}
+
+func (l *leaderLifecycle) onStartedLeading(leaderCtx context.Context) {
+	collectionCtx, cancelCollection := context.WithCancel(leaderCtx)
+	defer cancelCollection()
+
+	l.mu.Lock()
+	if l.gracefulStop || l.electionCtx.Err() != nil {
+		l.mu.Unlock()
+		return
+	}
+	l.callbackStarted = true
+	l.cancelCollection = cancelCollection
+	if l.shutdownCtx.Err() != nil {
+		cancelCollection()
+	}
+	l.mu.Unlock()
+
+	l.runLoop(collectionCtx)
+
+	// leaderCtx remains active while this process still holds the lease. If it
+	// was canceled first, the lease was lost unexpectedly and OnStoppedLeading
+	// must retain its fatal fallback even when shutdown arrives concurrently.
+	if l.shutdownCtx.Err() != nil && leaderCtx.Err() == nil {
+		l.mu.Lock()
+		l.gracefulStop = true
+		l.mu.Unlock()
+		l.cancelElection()
+	}
+}
+
+func (l *leaderLifecycle) isGracefulStop() bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.gracefulStop
+}
+
 func NewRunGarbageCollector(
 	runStore storage.RunStoreInterface,
 	clientset kubernetes.Interface,
@@ -54,12 +131,11 @@ func NewRunGarbageCollector(
 	}
 }
 
-// Start launches the GC loop. It blocks until ctx is canceled and
-// runLoop has finished draining its current batch.
+// Start launches the GC loop. It blocks until ctx is canceled and runLoop has
+// finished draining its current batch while the leader lease is still renewed.
 func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	archiveRetention := common.GetRunsRetentionTime()
 	deleteRetention := common.GetArchivedRunsRetentionTime()
-
 	if archiveRetention == 0 && deleteRetention == 0 {
 		glog.Info("Run GC disabled: both RUNS_RETENTION_TIME and ARCHIVED_RUNS_RETENTION_TIME are empty")
 		return
@@ -89,10 +165,14 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		},
 	}
 
-	// loopDone is closed when runLoop exits so OnStoppedLeading can
-	// wait for the current batch to drain.
-	loopDone := make(chan struct{})
-	loopStarted := false
+	// Do not stop lease renewal when shutdown begins. The collection callback
+	// cancels this context only after its in-flight database operation returns.
+	electionCtx, cancelElection := context.WithCancel(context.WithoutCancel(ctx))
+	defer cancelElection()
+
+	lifecycle := newLeaderLifecycle(ctx, electionCtx, cancelElection, gc.runLoop)
+	stopShutdownHook := context.AfterFunc(ctx, lifecycle.onShutdown)
+	defer stopShutdownHook()
 
 	leaderElector, electionError := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 		Lock:            lock,
@@ -103,17 +183,11 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		Callbacks: leaderelection.LeaderCallbacks{
 			OnStartedLeading: func(leaderContext context.Context) {
 				glog.Info("Run GC: acquired leader lease, starting collection loop")
-				loopStarted = true
-				gc.runLoop(leaderContext)
-				close(loopDone)
+				lifecycle.onStartedLeading(leaderContext)
 			},
 			OnStoppedLeading: func() {
-				if ctx.Err() != nil {
-					glog.Info("Run GC: leader lease released during graceful shutdown, waiting for collection loop to drain")
-					if loopStarted {
-						<-loopDone
-					}
-					glog.Info("Run GC: collection loop drained, shutdown complete")
+				if lifecycle.isGracefulStop() {
+					glog.Info("Run GC: collection loop drained, graceful shutdown complete")
 					return
 				}
 				// Terminate to guarantee no concurrent collection (matches
@@ -132,7 +206,7 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		return
 	}
 
-	leaderElector.Run(ctx)
+	leaderElector.Run(electionCtx)
 }
 
 func (gc *RunGarbageCollector) runLoop(ctx context.Context) {

@@ -1092,8 +1092,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
-	// from overwriting with a stale terminal state.
-	originalState, originalConditions, originalFinishedAtInSec, claimError := r.runStore.ClaimRunForRetry(runId)
+	// from overwriting with a stale terminal state. The returned claimGeneration
+	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
+	// and RollbackRetryClaim checks it to prevent ABA rollback of a later retry.
+	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId)
 	if claimError != nil {
 		return util.NewInternalServerError(claimError,
 			"Failed to retry run %s: could not claim database row before workflow operation", runId)
@@ -1102,12 +1104,15 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.FinishedAtInSec = 0
 	run.State = model.RuntimeStatePending
 	run.Conditions = string(model.RuntimeStatePending.ToV1())
+	run.RetryGeneration = claimGeneration
 
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
 	}
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
-		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec); rollbackError != nil {
+		// Pod deletion is a local operation that precedes any workflow mutation.
+		// Safe to rollback unconditionally — no external state was changed.
+		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
 			glog.Errorf("Failed to rollback retry claim for run %s after pod deletion failure: %v", runId, rollbackError)
 		}
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
@@ -1115,7 +1120,25 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
-		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec); rollbackError != nil {
+		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
+		// are ambiguous: the API server may have applied the running workflow
+		// even after the client exhausted retries. Re-read the live workflow
+		// to determine whether the mutation was applied.
+		workflowClient := r.getWorkflowClient(namespace)
+		liveWorkflow, readError := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		if readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState() {
+			// Workflow exists and is running. The mutation was applied despite
+			// the error. Preserve the claimed (non-GC-eligible) row for
+			// reconciliation — the persistence agent will report the correct
+			// state once the workflow progresses.
+			glog.Warningf("Retry workflow for run %s returned error but workflow is live (not terminal). "+
+				"Preserving claimed row for reconciliation. Original error: %v", runId, err)
+			return util.NewUnavailableServerError(err,
+				"Retry workflow for run %s returned error but workflow is live; claim preserved for reconciliation", runId)
+		}
+		// Workflow either does not exist or is still in a terminal state — the
+		// mutation was provably not applied. Safe to rollback.
+		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
 			glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
 		}
 		return err

@@ -338,6 +338,105 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
+const (
+	garbageCollectorIndexName    = "idx_run_gc_lifecycle"
+	garbageCollectorTableName    = "run_details"
+	garbageCollectorIndexColumns = "StorageState,FinishedAtInSec"
+)
+
+type garbageCollectorIndexStatus struct {
+	currentSchema string
+	tableSchema   string
+	tableName     string
+	indexName     string
+	columns       string
+	valid         bool
+	ready         bool
+	unconditional bool
+}
+
+func (status garbageCollectorIndexStatus) isReady() bool {
+	return status.currentSchema != "" &&
+		status.tableSchema == status.currentSchema &&
+		status.tableName == garbageCollectorTableName &&
+		status.indexName == garbageCollectorIndexName &&
+		status.columns == garbageCollectorIndexColumns &&
+		status.valid && status.ready && status.unconditional
+}
+
+// validateGarbageCollectorIndex only reads database catalog metadata. Index
+// creation is an explicit operator migration so API-server startup never runs
+// heavyweight DDL from every replica.
+func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error) {
+	var status garbageCollectorIndexStatus
+	var row *sql.Row
+
+	switch dialect.Name {
+	case "pgx":
+		row = db.Raw(`
+			SELECT current_schema(), table_namespace.nspname, table_class.relname,
+			       index_class.relname,
+			       string_agg(attribute.attname, ',' ORDER BY index_key.ordinality),
+			       index_metadata.indisvalid, index_metadata.indisready,
+			       bool_and(index_metadata.indpred IS NULL AND access_method.amname = 'btree')
+			FROM pg_index AS index_metadata
+			JOIN pg_class AS index_class
+			  ON index_class.oid = index_metadata.indexrelid
+			JOIN pg_class AS table_class
+			  ON table_class.oid = index_metadata.indrelid
+			JOIN pg_namespace AS table_namespace
+			  ON table_namespace.oid = table_class.relnamespace
+			JOIN pg_namespace AS index_namespace
+			  ON index_namespace.oid = index_class.relnamespace
+			JOIN pg_am AS access_method
+			  ON access_method.oid = index_class.relam
+			CROSS JOIN LATERAL unnest(index_metadata.indkey::smallint[])
+			  WITH ORDINALITY AS index_key(attnum, ordinality)
+			JOIN pg_attribute AS attribute
+			  ON attribute.attrelid = table_class.oid
+			 AND attribute.attnum = index_key.attnum
+			WHERE table_namespace.nspname = current_schema()
+			  AND index_namespace.nspname = table_namespace.nspname
+			  AND table_class.relname = ?
+			  AND index_class.relname = ?
+			  AND index_metadata.indexprs IS NULL
+			GROUP BY table_namespace.nspname, table_class.relname, index_class.relname,
+			         index_metadata.indisvalid, index_metadata.indisready`, garbageCollectorTableName, garbageCollectorIndexName).Row()
+	case "mysql":
+		row = db.Raw(`
+			SELECT DATABASE(), TABLE_SCHEMA, TABLE_NAME, INDEX_NAME,
+			       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ','),
+			       TRUE, TRUE,
+			       SUM(SUB_PART IS NULL AND INDEX_TYPE = 'BTREE') = COUNT(*)
+			FROM information_schema.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = ?
+			  AND INDEX_NAME = ?
+			GROUP BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME`, garbageCollectorTableName, garbageCollectorIndexName).Row()
+	default:
+		return false, fmt.Errorf("garbage collector index validation is not supported for dialect %q", dialect.Name)
+	}
+
+	err := row.Scan(
+		&status.currentSchema,
+		&status.tableSchema,
+		&status.tableName,
+		&status.indexName,
+		&status.columns,
+		&status.valid,
+		&status.ready,
+		&status.unconditional,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("query garbage collector index metadata: %w", err)
+	}
+
+	return status.isReady(), nil
+}
+
 func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
@@ -380,67 +479,15 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
 		util.TerminateIfError(autoMigrate(db))
 	}
 
-	// GC lifecycle index: covers (StorageState, FinishedAtInSec) for
-	// ArchiveExpiredRuns and DeleteExpiredArchivedRuns queries.
 	gcIndexReady := false
 	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
-		if db.Migrator().HasTable("run_details") {
-			quoteIdentifier := dialect.QuoteIdentifier
-			if dialect.Name == "pgx" {
-				// Query pg_index directly; HasIndex includes invalid indexes.
-				var validIndexCount int64
-				validationErr := db.Raw(
-					`SELECT COUNT(*) FROM pg_index i `+
-						`JOIN pg_class c ON i.indexrelid = c.oid `+
-						`WHERE c.relname = 'idx_run_gc_lifecycle' `+
-						`AND i.indisvalid = true AND i.indisready = true`,
-				).Row().Scan(&validIndexCount)
-				if validationErr != nil {
-					glog.Errorf("Failed to validate GC lifecycle index: %v. GC disabled.", validationErr)
-				} else if validIndexCount > 0 {
-					gcIndexReady = true
-				} else {
-					// Drop any invalid index remnant before re-creating.
-					db.Exec(`DROP INDEX IF EXISTS "idx_run_gc_lifecycle"`)
-					indexSQL := fmt.Sprintf("CREATE INDEX CONCURRENTLY IF NOT EXISTS %s ON %s (%s, %s)",
-						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
-						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
-					if err := db.Exec(indexSQL).Error; err != nil {
-						glog.Errorf("Failed to create GC lifecycle index: %v. "+
-							"GC disabled; create the index manually to enable.", err)
-					} else {
-						// Re-validate: CONCURRENTLY can leave invalid indexes.
-						var postCreateCount int64
-						postErr := db.Raw(
-							`SELECT COUNT(*) FROM pg_index i `+
-								`JOIN pg_class c ON i.indexrelid = c.oid `+
-								`WHERE c.relname = 'idx_run_gc_lifecycle' `+
-								`AND i.indisvalid = true AND i.indisready = true`,
-						).Row().Scan(&postCreateCount)
-						if postErr != nil || postCreateCount == 0 {
-							glog.Errorf("GC lifecycle index created but not valid (indisvalid/indisready check failed). "+
-								"GC disabled; inspect pg_index manually and REINDEX if needed.")
-						} else {
-							gcIndexReady = true
-						}
-					}
-				}
-			} else {
-				// MySQL: HasIndex is reliable; CREATE INDEX is online by default.
-				if db.Migrator().HasIndex(&model.Run{}, "idx_run_gc_lifecycle") {
-					gcIndexReady = true
-				} else {
-					indexSQL := fmt.Sprintf("CREATE INDEX %s ON %s (%s, %s)",
-						quoteIdentifier("idx_run_gc_lifecycle"), quoteIdentifier("run_details"),
-						quoteIdentifier("StorageState"), quoteIdentifier("FinishedAtInSec"))
-					if err := db.Exec(indexSQL).Error; err != nil {
-						glog.Errorf("Failed to create GC lifecycle index: %v. "+
-							"GC disabled; create the index manually to enable.", err)
-					} else {
-						gcIndexReady = true
-					}
-				}
-			}
+		var indexValidationError error
+		gcIndexReady, indexValidationError = validateGarbageCollectorIndex(db, dialect)
+		if indexValidationError != nil {
+			glog.Errorf("Failed to validate GC lifecycle index: %v. GC disabled.", indexValidationError)
+		} else if !gcIndexReady {
+			glog.Warning("Run GC disabled: idx_run_gc_lifecycle is missing or incompatible. " +
+				"Apply the online index migration in docs/agents/development.md.")
 		}
 	}
 

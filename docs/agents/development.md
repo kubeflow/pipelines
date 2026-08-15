@@ -46,4 +46,43 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 | `RUNS_GC_INTERVAL` | Poll interval for the run garbage collector; defaults to `6h` |
 | `RUNS_GC_BATCH_SIZE` | Maximum rows per GC batch; defaults to `100` |
 
+## Run garbage collection database migration
+
+Before enabling either retention setting, create the required lifecycle index
+once using the same database and schema as the API server. The API server only
+validates the index at startup; it does not run heavyweight DDL from every
+replica.
+
+For PostgreSQL, inspect the existing index first. Replace `public` if the API
+server's current schema is different:
+
+```sql
+SELECT index_metadata.indisvalid, index_metadata.indisready,
+       pg_get_indexdef(index_metadata.indexrelid)
+FROM pg_index AS index_metadata
+JOIN pg_class AS index_class ON index_class.oid = index_metadata.indexrelid
+JOIN pg_namespace AS index_namespace ON index_namespace.oid = index_class.relnamespace
+WHERE index_namespace.nspname = 'public'
+  AND index_class.relname = 'idx_run_gc_lifecycle';
+```
+
+If no row is returned, create the index outside a transaction:
+
+```sql
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_run_gc_lifecycle ON public.run_details ("StorageState", "FinishedAtInSec");
+```
+
+For MySQL, explicitly require online DDL so the command fails instead of falling
+back to a table-copying or write-blocking operation:
+
+```sql
+ALTER TABLE run_details ADD INDEX idx_run_gc_lifecycle (StorageState, FinishedAtInSec), ALGORITHM=INPLACE, LOCK=NONE;
+```
+
+If a same-named index has different columns, remove it in a coordinated
+maintenance operation before applying the command above. A failed PostgreSQL
+concurrent build can leave an invalid index; remove only that invalid index with
+`DROP INDEX CONCURRENTLY public.idx_run_gc_lifecycle` before retrying. For
+MySQL, use `SHOW INDEX FROM run_details` first and run the `ALTER TABLE` only
+when the exact index is absent.
 `TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.
