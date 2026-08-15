@@ -298,6 +298,41 @@ s3:
       );
     });
 
+    it('uses trusted launcher-root settings for URI-escaped preview keys', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      const getObject = vi.fn(async () => {
+        const objStream = new PassThrough();
+        objStream.end(artifactContent);
+        return objStream;
+      });
+      mockedMinioClient.mockImplementationOnce(function () {
+        return { getObject };
+      });
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline/root%20dir?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=root%2520dir%2Fartifact.txt')
+        .expect(200, artifactContent);
+
+      expect(getObject).toHaveBeenCalledWith('ml-pipeline', 'root%20dir/artifact.txt');
+      expect(mockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'trusted.example', region: 'trusted' }),
+      );
+    });
+
     it('does not resolve discarded provider info for a customer namespace', async () => {
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',

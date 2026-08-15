@@ -244,6 +244,43 @@ describe('/artifacts/get namespaced proxy', () => {
     });
   });
 
+  it('applies trusted launcher-root settings to URI-escaped preview keys', async () => {
+    const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns2' });
+    vi.mocked(getConfigMap).mockResolvedValueOnce([
+      {
+        data: {
+          defaultPipelineRoot:
+            's3://mlpipeline/models%20dir?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+        },
+      },
+      undefined,
+    ]);
+    const configs = loadConfigs(argv, { ARTIFACTS_SERVICE_PROXY_ENABLED: 'true' });
+    app = new UIServer(configs);
+
+    await requests(app.app)
+      .get(
+        `/artifacts/get${buildQuery({
+          source: 's3',
+          bucket: 'mlpipeline',
+          key: 'models%20dir/model',
+          namespace: 'ns2',
+        })}`,
+      )
+      .expect(200, 'artifact service in ns2');
+
+    const received = new URL(receivedUrls[0], 'http://artifact.test');
+    expect(received.searchParams.get('key')).toBe('models%20dir/model');
+    expect(JSON.parse(received.searchParams.get('providerInfo') || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        endpoint: 'https://trusted.example',
+        fromEnv: 'true',
+        region: 'trusted',
+      },
+    });
+  });
+
   it.each([
     ['providers YAML is malformed', [{ data: { providers: 's3: [unterminated' } }, undefined]],
     [

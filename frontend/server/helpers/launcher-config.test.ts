@@ -255,10 +255,12 @@ s3:
   });
 
   it.each([
-    ['percent-encoded spaces', 'root%20dir', 'root dir/run/artifact'],
-    ['percent-encoded Unicode', '%E6%A8%A1%E5%9E%8B', '模型/run/artifact'],
+    ['URI-escaped spaces', 'root%20dir', 'root%20dir/run/artifact'],
+    ['decoded spaces', 'root%20dir', 'root dir/run/artifact'],
+    ['URI-escaped Unicode', '%E6%A8%A1%E5%9E%8B', '%E6%A8%A1%E5%9E%8B/run/artifact'],
+    ['decoded Unicode', '%E6%A8%A1%E5%9E%8B', '模型/run/artifact'],
   ])(
-    'matches %s in defaultPipelineRoot against decoded artifact coordinates',
+    'matches %s in defaultPipelineRoot against artifact coordinates',
     async (_description, encodedRoot, artifactKey) => {
       mockedGetConfigMap.mockResolvedValue([
         {
