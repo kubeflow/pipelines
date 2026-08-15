@@ -818,6 +818,58 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('does not accept a terminal task snapshot from before the retry', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const retryRefreshVersion = 1;
+    queryClient.setQueryData(
+      queryKeys.runTaskRetryBaseline(RUN_ID, retryRefreshVersion),
+      TEST_TASKS,
+    );
+    const refreshedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task'
+        ? {
+            ...task,
+            state_history: [
+              ...(task.state_history || []),
+              {
+                state: PipelineTaskTaskState.RUNNING,
+                update_time: new Date('2026-08-15T12:00:00Z'),
+              },
+              {
+                state: PipelineTaskTaskState.SUCCEEDED,
+                update_time: new Date('2026-08-15T12:00:01Z'),
+              },
+            ],
+          }
+        : task,
+    );
+    const tasksSpy = vi
+      .mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: TEST_TASKS })
+      .mockResolvedValue({ tasks: refreshedTasks });
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            retryRefreshVersion={retryRefreshVersion}
+            run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
+            {...generateProps()}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('does not count a cancelled task request as an accepted reconciliation snapshot', async () => {
     vi.useFakeTimers();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });

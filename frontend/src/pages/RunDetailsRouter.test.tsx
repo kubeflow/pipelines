@@ -559,6 +559,75 @@ describe('RunDetailsRouter', () => {
     expect(screen.getByTestId('run-details-v2')).not.toHaveAttribute('data-run-refresh-error');
   });
 
+  it('bounds retry discovery when every run refresh fails', async () => {
+    vi.useFakeTimers();
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    getRunSpy
+      .mockResolvedValueOnce(failedRun)
+      .mockRejectedValue(new Error('Run service unavailable'));
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(getRunSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    expect(getRunSpy).toHaveBeenCalledTimes(3);
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL));
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+    await act(async () => vi.advanceTimersByTimeAsync(RUN_DETAILS_REFETCH_INTERVAL * 3));
+    expect(getRunSpy).toHaveBeenCalledTimes(4);
+  });
+
+  it('resumes pending retry discovery after Run Details navigation', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+    };
+    const retriedRun: V2beta1Run = {
+      ...failedRun,
+      state: V2beta1RuntimeState.RUNNING,
+      state_history: [
+        { state: V2beta1RuntimeState.RUNNING, update_time: new Date('2026-08-15T12:00:00Z') },
+      ],
+    };
+    let apiRun = failedRun;
+    getRunSpy.mockImplementation(async () => apiRun);
+    const props = generateProps();
+    const renderHarness = (mounted: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        {mounted ? <RunDetailsRouter {...props} /> : <div data-testid='details-unmounted' />}
+      </QueryClientProvider>
+    );
+    const view = render(renderHarness(true));
+    await screen.findByTestId('run-details-v2');
+
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(queryClient.getQueryData(queryKeys.runRetryDiscovery(TEST_RUN_ID))).toBeDefined();
+    view.rerender(renderHarness(false));
+    await screen.findByTestId('details-unmounted');
+
+    apiRun = retriedRun;
+    view.rerender(renderHarness(true));
+
+    await waitFor(() =>
+      expect(
+        Number(screen.getByTestId('run-details-v2').dataset.retryRefreshVersion),
+      ).toBeGreaterThan(0),
+    );
+    expect(queryClient.getQueryData(queryKeys.runRetryDiscovery(TEST_RUN_ID))).toBeUndefined();
+  });
+
   it('remounts the v2 detail subtree when the run ID changes', async () => {
     const runOne: V2beta1Run = { run_id: 'run-1', pipeline_spec: v2PipelineSpec };
     const runTwo: V2beta1Run = { run_id: 'run-2', pipeline_spec: v2PipelineSpec };

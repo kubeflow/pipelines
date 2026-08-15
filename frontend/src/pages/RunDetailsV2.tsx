@@ -122,6 +122,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
     [retryRefreshVersion, runId],
   );
+  const preRetryTasks =
+    retryRefreshVersion > 0
+      ? queryClient.getQueryData<V2beta1PipelineTask[]>(
+          queryKeys.runTaskRetryBaseline(runId, retryRefreshVersion),
+        )
+      : undefined;
   const terminalTaskReconciliation = useRef<{
     dataUpdateBaseline: number;
     errorUpdateBaseline: number;
@@ -183,7 +189,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       }
       const needsTaskReconciliation =
         query.state.data === undefined ||
-        query.state.data.some((task) => !isTaskFinished(task.state));
+        query.state.data.some((task) => !isTaskFinished(task.state)) ||
+        (retryRefreshVersion > 0 &&
+          (preRetryTasks === undefined || isEqual(query.state.data, preRetryTasks)));
       return completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
         needsTaskReconciliation
         ? QUERY_REFETCH_INTERVAL

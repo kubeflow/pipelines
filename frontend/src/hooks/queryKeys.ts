@@ -58,6 +58,13 @@ export const queryKeys = {
       ? (['run_tasks', { id: runId }] as const)
       : (['run_tasks', { id: runId, retryRefreshVersion }] as const),
 
+  runRetryDiscovery: (runId: string) => ['run_retry_discovery', { id: runId }] as const,
+
+  runRetryRefreshVersion: (runId: string) => ['run_retry_refresh_version', { id: runId }] as const,
+
+  runTaskRetryBaseline: (runId: string, retryRefreshVersion: number) =>
+    ['run_task_retry_baseline', { id: runId, retryRefreshVersion }] as const,
+
   artifactTasksPage: (artifactId: string, pageToken?: string, pageSize?: number) =>
     ['artifact_tasks', { artifactId, pageSize, pageToken }] as const,
 
