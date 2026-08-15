@@ -171,6 +171,28 @@ describe('ArtifactList', () => {
     );
   });
 
+  it('rejects an artifact response without its server-generated ID', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({
+      artifacts: [{ ...generateArtifacts(1)[0], artifact_id: undefined }],
+    });
+    render(
+      <MemoryRouter>
+        <ArtifactList {...generateProps()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          additionalInfo:
+            'Artifact service returned an artifact without an ID. Refresh the page; if the problem persists, contact your administrator.',
+          mode: 'error',
+        }),
+      ),
+    );
+    expect(screen.queryByRole('link', { name: 'test artifact 1' })).toBeNull();
+  });
+
   it('keeps matching rows visible when a refresh fails', async () => {
     const listRef = React.createRef<ArtifactList>();
     vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({

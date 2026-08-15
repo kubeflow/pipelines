@@ -101,25 +101,32 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
       );
       const nextPageToken = response.next_page_token || '';
       if (reloadGeneration === this.activeReloadGeneration) {
+        const rows = (response.artifacts || []).map((artifact) => {
+          const artifactId = artifact.artifact_id;
+          if (!artifactId) {
+            throw new Error(
+              'Artifact service returned an artifact without an ID. Refresh the page; if the problem persists, contact your administrator.',
+            );
+          }
+          return {
+            id: artifactId,
+            otherFields: [
+              artifact.name || '[unnamed]',
+              artifactId,
+              getArtifactTypeName(artifact),
+              { namespace: artifact.namespace || this.props.namespace, uri: artifact.uri || '' },
+              artifact.namespace || '-',
+              formatDateString(artifact.created_at),
+            ],
+          };
+        });
         const repeatedPageToken = this.pageTokenTracker.isRepeated(
           this.getPaginationContextKey(request),
           request.pageToken,
           nextPageToken,
         );
         this.lastSuccessfulRequestKey = requestKey;
-        this.setStateSafe({
-          rows: (response.artifacts || []).map((artifact) => ({
-            id: artifact.artifact_id || '',
-            otherFields: [
-              artifact.name || '[unnamed]',
-              artifact.artifact_id || '-',
-              getArtifactTypeName(artifact),
-              { namespace: artifact.namespace || this.props.namespace, uri: artifact.uri || '' },
-              artifact.namespace || '-',
-              formatDateString(artifact.created_at),
-            ],
-          })),
-        });
+        this.setStateSafe({ rows });
         if (repeatedPageToken) {
           this.showPageError(
             `Artifact service returned a repeated page token: ${nextPageToken}`,

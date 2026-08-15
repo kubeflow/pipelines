@@ -638,6 +638,8 @@ export function buildScalarMetricsTableProps(
         labelsNeedingArtifactKey.has(baseLabel) && artifactKey
           ? `${taskName} / ${artifactKey} / ${metricName}`
           : baseLabel;
+      // Retry reuses a logical task row and replaces its attempt-local artifact links. Repeated
+      // labels here are distinct artifacts in the current task output, not historical attempts.
       const occurrence = (labelOccurrences.get(disambiguatedLabel) || 0) + 1;
       labelOccurrences.set(disambiguatedLabel, occurrence);
       const label = occurrence === 1 ? disambiguatedLabel : `${disambiguatedLabel} (${occurrence})`;
