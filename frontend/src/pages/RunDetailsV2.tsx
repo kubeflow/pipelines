@@ -73,7 +73,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
-const MAX_TERMINAL_TASK_RECONCILIATION_SNAPSHOTS = 3;
+const MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS = 3;
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface RunDetailsV2Info {
@@ -123,13 +123,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     [retryRefreshVersion, runId],
   );
   const terminalTaskReconciliation = useRef<{
-    baseline: number;
+    dataUpdateBaseline: number;
+    errorUpdateBaseline: number;
     retryRefreshVersion: number;
     runId: string;
   } | null>(
     runIsTerminal
       ? {
-          baseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+          dataUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+          errorUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.errorUpdateCount || 0,
           retryRefreshVersion,
           runId,
         }
@@ -154,26 +156,36 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         return QUERY_REFETCH_INTERVAL;
       }
       const reconciliation = terminalTaskReconciliation.current;
-      const baseline =
+      const dataUpdateBaseline =
         reconciliation?.runId === runId &&
         reconciliation.retryRefreshVersion === retryRefreshVersion
-          ? reconciliation.baseline
+          ? reconciliation.dataUpdateBaseline
           : retryRefreshVersion > 0
             ? 0
             : undefined;
-      if (baseline === undefined) {
+      const errorUpdateBaseline =
+        reconciliation?.runId === runId &&
+        reconciliation.retryRefreshVersion === retryRefreshVersion
+          ? reconciliation.errorUpdateBaseline
+          : retryRefreshVersion > 0
+            ? 0
+            : undefined;
+      if (dataUpdateBaseline === undefined || errorUpdateBaseline === undefined) {
         return false;
       }
-      // Count only results accepted into TanStack Query state. A cancelled request may still
-      // resolve when the task service ignores its abort signal, but its result is discarded.
-      const acceptedSnapshotCount = query.state.dataUpdateCount - baseline;
-      if (acceptedSnapshotCount === 0) {
+      // Count accepted data and terminal errors. Cancelled requests update neither counter, while
+      // persistent failures must still consume this bounded reconciliation budget.
+      const completedAttemptCount =
+        Math.max(0, query.state.dataUpdateCount - dataUpdateBaseline) +
+        Math.max(0, query.state.errorUpdateCount - errorUpdateBaseline);
+      if (completedAttemptCount === 0) {
         return QUERY_REFETCH_INTERVAL;
       }
-      const hasUnfinishedTask = (query.state.data || []).some(
-        (task) => !isTaskFinished(task.state),
-      );
-      return acceptedSnapshotCount < MAX_TERMINAL_TASK_RECONCILIATION_SNAPSHOTS && hasUnfinishedTask
+      const needsTaskReconciliation =
+        query.state.data === undefined ||
+        query.state.data.some((task) => !isTaskFinished(task.state));
+      return completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
+        needsTaskReconciliation
         ? QUERY_REFETCH_INTERVAL
         : false;
     },
@@ -191,7 +203,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
     if (previousStatus.runId === runId && !previousStatus.isTerminal && runIsTerminal) {
       terminalTaskReconciliation.current = {
-        baseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+        dataUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+        errorUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.errorUpdateCount || 0,
         retryRefreshVersion,
         runId,
       };

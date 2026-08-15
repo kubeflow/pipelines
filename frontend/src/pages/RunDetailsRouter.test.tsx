@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as JsYaml from 'js-yaml';
 import * as features from 'src/features';
@@ -56,7 +56,13 @@ vi.mock('src/pages/RunDetailsV2', () => ({
 vi.mock('src/pages/RunDetails', () => ({
   __esModule: true,
   default: (props: any) => (
-    <div data-testid='enhanced-run-details' data-is-loading={String(props.isLoading)} />
+    <>
+      <div data-testid='enhanced-run-details' data-is-loading={String(props.isLoading)} />
+      <button
+        data-testid='show-newer-banner'
+        onClick={() => props.updateBanner({ message: 'A newer workflow error', mode: 'error' })}
+      />
+    </>
   ),
 }));
 
@@ -628,11 +634,49 @@ describe('RunDetailsRouter', () => {
 
     view.rerender(
       <CommonTestWrapper>
-        <RunDetailsRouter {...generateProps()} />
+        <RunDetailsRouter {...props} location={{ ...props.location, search: '' }} />
       </CommonTestWrapper>,
     );
 
     await waitFor(() => expect(props.updateBanner).toHaveBeenLastCalledWith({}));
+  });
+
+  it('does not clear a newer page error when removing a legacy task link', async () => {
+    const argoWorkflow = {
+      apiVersion: 'argoproj.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: { name: 'test' },
+      spec: { arguments: { parameters: [{ name: 'output' }] } },
+    };
+    getRunSpy.mockResolvedValue({ run_id: TEST_RUN_ID, pipeline_spec: argoWorkflow });
+    const props = generateProps();
+    props.location.search = '?task=native-task-id';
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+    await screen.findByTestId('enhanced-run-details');
+    await waitFor(() =>
+      expect(props.updateBanner).toHaveBeenCalledWith({
+        message:
+          'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
+        mode: 'warning',
+      }),
+    );
+
+    fireEvent.click(screen.getByTestId('show-newer-banner'));
+    const newerBanner = { message: 'A newer workflow error', mode: 'error' };
+    expect(props.updateBanner).toHaveBeenLastCalledWith(newerBanner);
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...props} location={{ ...props.location, search: '' }} />
+      </CommonTestWrapper>,
+    );
+
+    await act(async () => {});
+    expect(props.updateBanner).toHaveBeenLastCalledWith(newerBanner);
   });
 
   it('does not add a router poller for an active v1 run', async () => {

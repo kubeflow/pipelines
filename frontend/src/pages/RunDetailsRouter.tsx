@@ -29,10 +29,16 @@ import { RunDetailsV2, RunDetailsV2Params, RunDetailsV2Props } from 'src/pages/R
 import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
+import { BannerProps } from 'src/components/Banner';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 const MAX_UNCHANGED_POST_RETRY_SNAPSHOTS = 3;
 let latestRetryRefreshVersion = 0;
+const LEGACY_TASK_LINK_WARNING: BannerProps = {
+  message:
+    'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
+  mode: 'warning',
+};
 
 function nextRetryRefreshVersion(): number {
   latestRetryRefreshVersion += 1;
@@ -48,6 +54,14 @@ export default function RunDetailsRouter(
   props: RunDetailsProps & RouteComponentProps<RunDetailsV2Params>,
 ) {
   const { updateBanner } = props;
+  const currentPageBanner = useRef<BannerProps>({});
+  const updatePageBanner = useCallback(
+    (banner: BannerProps) => {
+      currentPageBanner.current = banner;
+      updateBanner(banner);
+    },
+    [updateBanner],
+  );
   const runId = props.match.params[RouteParams.runId];
 
   // Retrieves v2 run detail.
@@ -80,7 +94,7 @@ export default function RunDetailsRouter(
       let cancelled = false;
       errorToMessage(templateStrError).then((msg) => {
         if (!cancelled) {
-          updateBanner({
+          updatePageBanner({
             message:
               'Error: failed to retrieve pipeline version template. Click Details for more information.',
             mode: 'error',
@@ -93,7 +107,7 @@ export default function RunDetailsRouter(
       };
     }
     return undefined;
-  }, [templateStrIsError, templateStrError, updateBanner]);
+  }, [templateStrIsError, templateStrError, updatePageBanner]);
 
   const templateString = pipelineManifest ?? templateStrFromPipelineVersion;
   const pipelineSpec = useMemo(
@@ -107,15 +121,15 @@ export default function RunDetailsRouter(
 
   useEffect(() => {
     if (linkedTaskId && !runDetailsIsLoading && !renderV2Details && !templateStrIsError) {
-      updateBanner({
-        message:
-          'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
-        mode: 'warning',
-      });
-      return () => updateBanner({});
+      updatePageBanner(LEGACY_TASK_LINK_WARNING);
+      return () => {
+        if (currentPageBanner.current === LEGACY_TASK_LINK_WARNING) {
+          updatePageBanner({});
+        }
+      };
     }
     return undefined;
-  }, [linkedTaskId, renderV2Details, runDetailsIsLoading, templateStrIsError, updateBanner]);
+  }, [linkedTaskId, renderV2Details, runDetailsIsLoading, templateStrIsError, updatePageBanner]);
 
   if (v2Run && templateString && pipelineSpec) {
     return (
@@ -125,11 +139,18 @@ export default function RunDetailsRouter(
         parsedPipelineSpec={pipelineSpec}
         run={v2Run}
         {...props}
+        updateBanner={updatePageBanner}
       />
     );
   }
 
-  return <EnhancedRunDetails {...props} isLoading={runDetailsIsLoading} />;
+  return (
+    <EnhancedRunDetails
+      {...props}
+      isLoading={runDetailsIsLoading}
+      updateBanner={updatePageBanner}
+    />
+  );
 }
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {
