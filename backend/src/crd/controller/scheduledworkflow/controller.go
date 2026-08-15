@@ -698,7 +698,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 			PipelineSource: &api.Run_PipelineVersionReference{
 				PipelineVersionReference: &api.PipelineVersionReference{
 					PipelineId: swf.Spec.PipelineId,
-					// This can be empty, which causes the latest pipeline version to be selected.
+					// This can be empty, which causes the pipeline's default version to be selected.
 					PipelineVersionId: swf.Spec.PipelineVersionId,
 				},
 			},

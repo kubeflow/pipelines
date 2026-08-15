@@ -721,7 +721,7 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
-	pipelineVersion2, err := clientManager.PipelineStore().GetLatestPipelineVersion(DefaultFakeUUID)
+	pipelineVersion2, err := clientManager.PipelineStore().GetDefaultPipelineVersion(DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineVersion2.UUID, fakeVersionUUID)
 }
