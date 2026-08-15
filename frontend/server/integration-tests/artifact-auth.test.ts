@@ -148,6 +148,22 @@ describe('/artifacts authorization', () => {
         )
         .expect(200, artifactContent);
     });
+
+    it('rejects a noncanonical launcher key before an auth-disabled preview read', async () => {
+      const configurations = loadConfigs(argv, {
+        MINIO_ACCESS_KEY: 'minio',
+        MINIO_HOST: 'minio-service',
+        MINIO_NAMESPACE: 'kubeflow',
+        MINIO_PORT: '9000',
+        MINIO_SECRET_KEY: 'minio123',
+        MINIO_SSL: 'false',
+      });
+      app = new UIServer(configurations);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=root%2F%2573ecret')
+        .expect(400);
+    });
   });
 
   describe('when auth is enabled', () => {

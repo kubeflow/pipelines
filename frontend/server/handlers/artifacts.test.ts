@@ -319,6 +319,7 @@ describe('getArtifactsHandler authorization handoff', () => {
 
     await handler(
       {
+        path: '/artifacts/get',
         params: {},
         query: { bucket: 'reports', key: 'changed.csv', source: 's3' },
       } as never,

@@ -311,7 +311,10 @@ export function getArtifactsHandler({
     }
     const { source, bucket, key, keyEncoding, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
-    const routeCoordinates = useParameter ? resolveArtifactCoordinates(req) : undefined;
+    const routeCoordinates =
+      useParameter || isLauncherArtifactSource(source)
+        ? resolveArtifactCoordinates(req)
+        : undefined;
     if (routeCoordinates === null) {
       res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
       return;

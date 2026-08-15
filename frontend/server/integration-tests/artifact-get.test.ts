@@ -1789,7 +1789,9 @@ s3:
         const request = requests(app.app);
         const res = await captureBinaryResponse(
           request.get(
-            `/artifacts/get?source=minio&bucket=ml-pipeline&key=${encodeURIComponent(trickyKey)}`,
+            `/artifacts/get?source=minio&bucket=ml-pipeline&key=${encodeURIComponent(
+              encodeURI(trickyKey),
+            )}`,
           ),
         ).expect(200);
 

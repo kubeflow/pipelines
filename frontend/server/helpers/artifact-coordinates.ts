@@ -31,6 +31,7 @@ export function isCanonicalArtifactUriKey(key: string): boolean {
   try {
     const decodedKey = decodeURIComponent(key);
     // Query and fragment delimiters are not supported inside native KFP object keys.
+    // Uppercase escapes provide one authorization identity for each decoded storage object.
     return !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
   } catch {
     return false;
