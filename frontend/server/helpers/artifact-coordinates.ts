@@ -26,6 +26,17 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   artifactUriQuery?: string;
 }
 
+/** Rejects alternate URI spellings that decode to an object key with a different identity. */
+export function isCanonicalArtifactUriKey(key: string): boolean {
+  try {
+    const decodedKey = decodeURIComponent(key);
+    // Query and fragment delimiters are not supported inside native KFP object keys.
+    return !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
+  } catch {
+    return false;
+  }
+}
+
 /** Converts a URI-path key to the object-store key representation used by the launcher. */
 export function normalizeArtifactStorageCoordinates<TSource extends string>(
   coordinates: ArtifactCoordinates<TSource>,
@@ -49,10 +60,14 @@ export function resolveArtifactCoordinates(
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
   if (isExactGetEndpoint) {
     const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+    const key = asString(request.query.key);
+    if (!isCanonicalArtifactUriKey(key)) {
+      return null;
+    }
     return {
       source: asString(request.query.source),
       bucket: asString(request.query.bucket),
-      key: asString(request.query.key),
+      key,
       keyEncoding: 'uri',
       artifactUriQuery: asString(request.query.artifactUriQuery),
     };
@@ -64,6 +79,9 @@ export function resolveArtifactCoordinates(
   }
   try {
     const uriKey = downloadPathMatch[3];
+    if (!isCanonicalArtifactUriKey(uriKey)) {
+      return null;
+    }
     const key = decodeURIComponent(uriKey);
     return {
       source: decodeURIComponent(downloadPathMatch[1]),

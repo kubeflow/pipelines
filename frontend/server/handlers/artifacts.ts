@@ -72,7 +72,9 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'peek',
 ] as const;
 const MALFORMED_ARTIFACT_KEY_MESSAGE =
-  'Artifact storage key contains malformed URI path encoding. Correct the artifact URI and retry.';
+  'Artifact storage key contains malformed or noncanonical URI path encoding. Use the canonical artifact URI and retry.';
+const INVALID_ARTIFACT_PATH_ENCODING_MESSAGE =
+  'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.';
 
 export interface S3ProviderInfo {
   Provider: string;
@@ -212,10 +214,10 @@ export function getArtifactsAuthMiddleware(
     const coords = resolveArtifactCoordinates(request);
     if (coords === null) {
       console.warn(
-        `[SECURITY] Malformed percent-encoding in artifact path. ` +
+        `[SECURITY] Malformed or noncanonical percent-encoding in artifact path. ` +
           `User: ${userId}, Path: ${request.path}`,
       );
-      response.status(400).send('Malformed URL encoding in artifact path');
+      response.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
       return;
     }
 
@@ -311,7 +313,7 @@ export function getArtifactsHandler({
       artifactRequest;
     const routeCoordinates = useParameter ? resolveArtifactCoordinates(req) : undefined;
     if (routeCoordinates === null) {
-      res.status(400).send('Malformed URL encoding in artifact path');
+      res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
       return;
     }
     const coordinates: ArtifactCoordinates<ArtifactSource> = {
@@ -1162,7 +1164,7 @@ export function getArtifactsProxyHandler({
         },
       });
       if (resolvedCoordinates === null) {
-        res.status(400).send('Malformed URL encoding in artifact path');
+        res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
         return;
       }
       const coordinates: ArtifactCoordinates<LauncherArtifactSource> | undefined =

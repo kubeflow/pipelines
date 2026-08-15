@@ -14,9 +14,29 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+  isCanonicalArtifactUriKey,
   normalizeArtifactStorageCoordinates,
   stripArtifactUriQuery,
 } from './artifact-coordinates.js';
+
+describe('isCanonicalArtifactUriKey', () => {
+  it.each(['root%20dir/artifact', 'caf%C3%A9/model', '100%25complete', 'literal/path'])(
+    'accepts canonical key %s',
+    (key) => expect(isCanonicalArtifactUriKey(key)).toBe(true),
+  );
+
+  it.each([
+    '%73ecret',
+    'path%2Fsecret',
+    'caf%c3%a9',
+    'raw space',
+    'raw-café',
+    'query%3Fkey',
+    'bad%ZZkey',
+  ])('rejects alias or malformed key %s', (key) =>
+    expect(isCanonicalArtifactUriKey(key)).toBe(false),
+  );
+});
 
 describe('normalizeArtifactStorageCoordinates', () => {
   it('decodes URI-path keys exactly once for storage', () => {

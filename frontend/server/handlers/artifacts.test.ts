@@ -65,16 +65,9 @@ describe('resolveArtifactCoordinates', () => {
       });
     });
 
-    it('decodes percent-encoded path segments once (matching Express req.params semantics)', () => {
+    it('rejects an encoded slash alias for a literal storage path delimiter', () => {
       const req = makeRequest('/artifacts/minio/ml-pipeline/hello%2Fworld.txt');
-      expect(resolveArtifactCoordinates(req)).toEqual({
-        source: 'minio',
-        bucket: 'ml-pipeline',
-        key: 'hello/world.txt',
-        keyEncoding: 'storage',
-        uriKey: 'hello%2Fworld.txt',
-        artifactUriQuery: '',
-      });
+      expect(resolveArtifactCoordinates(req)).toBeNull();
     });
 
     it('preserves a literal %2F when the URL is double-encoded (%252F)', () => {
@@ -110,6 +103,15 @@ describe('resolveArtifactCoordinates', () => {
     it('returns null on malformed percent-encoding (fail-closed)', () => {
       const req = makeRequest('/artifacts/minio/ml-pipeline/bad%ZZkey');
       expect(resolveArtifactCoordinates(req)).toBeNull();
+    });
+
+    it('rejects encoded aliases for URI-path literal characters', () => {
+      expect(
+        resolveArtifactCoordinates(makeRequest('/artifacts/s3/shared/root/%73ecret')),
+      ).toBeNull();
+      expect(
+        resolveArtifactCoordinates(makeRequest('/artifacts/s3/shared/root/%2fsecret')),
+      ).toBeNull();
     });
 
     it('handles keys that contain multiple slashes', () => {
@@ -155,6 +157,18 @@ describe('resolveArtifactCoordinates', () => {
         keyEncoding: 'uri',
         artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example&region=ceph',
       });
+    });
+
+    it('rejects an encoded alias supplied through the preview query', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 's3',
+            bucket: 'shared',
+            key: 'root/%73ecret',
+          }),
+        ),
+      ).toBeNull();
     });
 
     it('uses query coordinates when path is /pipeline/artifacts/get', () => {

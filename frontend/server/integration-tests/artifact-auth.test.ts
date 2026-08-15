@@ -381,11 +381,11 @@ describe('/artifacts authorization', () => {
       app = new UIServer(configurations);
 
       const request = requests(app.app);
+      const canonicalXssKey = encodeURI('<script>alert(1)</script>') + 'a'.repeat(1025);
       await request
         .get(
           '/artifacts/get?source=s3&namespace=my-namespace&bucket=ml-pipeline&key=' +
-            '<script>alert(1)</script>' +
-            'a'.repeat(1025),
+            encodeURIComponent(canonicalXssKey),
         )
         .set('kubeflow-userid', 'user@example.com')
         .expect(500, 'Object key too long');
@@ -809,6 +809,20 @@ describe('/artifacts authorization', () => {
         { 'kubeflow-userid': 'user@example.com' },
         false,
       );
+    });
+
+    it('rejects an encoded key alias before artifact ownership validation', async () => {
+      mockAuthPass();
+      app = new UIServer(authEnabledConfigs());
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=s3&bucket=shared&key=root%2F%2573ecret&namespace=attacker-namespace',
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(400);
+
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
     });
 
     it('rejects path-based route even if query params point to a valid artifact', async () => {
