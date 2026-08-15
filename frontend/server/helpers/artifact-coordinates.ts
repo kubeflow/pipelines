@@ -60,6 +60,8 @@ export function resolveArtifactCoordinates(
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
   if (isExactGetEndpoint) {
     const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+    // Express has removed query-transport escaping, but canonical artifact-URI path escapes remain
+    // (for example `%2520` on the wire becomes `%20` here) until storage normalization.
     const key = asString(request.query.key);
     if (!isCanonicalArtifactUriKey(key)) {
       return null;

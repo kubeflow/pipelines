@@ -89,6 +89,8 @@ describe('/artifacts authorization', () => {
           if (
             (bucket === 'ml-pipeline' && key === 'hello/world.txt') ||
             (bucket === 'ml-pipeline' && key === 'root dir/artifact.txt') ||
+            (bucket === 'ml-pipeline' && key === 'café/model.txt') ||
+            (bucket === 'ml-pipeline' && key === '100%complete/output.txt') ||
             (bucket === 'mlpipeline' && key === 'v2/artifacts/hello/world.txt')
           ) {
             return objStream;
@@ -811,13 +813,46 @@ describe('/artifacts authorization', () => {
       );
     });
 
-    it('rejects an encoded key alias before artifact ownership validation', async () => {
+    it.each([
+      ['space', 'root%20dir/artifact.txt'],
+      ['Unicode', 'caf%C3%A9/model.txt'],
+      ['literal percent', '100%25complete/output.txt'],
+    ])(
+      'preserves canonical %s escapes through preview query transport',
+      async (_description, uriKey) => {
+        mockAuthPass();
+        app = new UIServer(authEnabledConfigs());
+
+        await requests(app.app)
+          .get(
+            '/artifacts/get?source=minio&bucket=ml-pipeline&namespace=my-namespace&key=' +
+              encodeURIComponent(uriKey),
+          )
+          .set('kubeflow-userid', 'user@example.com')
+          .expect(200, artifactContent);
+
+        expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
+          expect.any(String),
+          `minio://ml-pipeline/${uriKey}`,
+          'my-namespace',
+          { 'kubeflow-userid': 'user@example.com' },
+          false,
+        );
+      },
+    );
+
+    it.each([
+      ['encoded literal alias', 'root/%73ecret'],
+      ['encoded query delimiter', 'root/query%3Fkey'],
+      ['encoded fragment delimiter', 'root/fragment%23key'],
+    ])('rejects %s before artifact ownership validation', async (_description, uriKey) => {
       mockAuthPass();
       app = new UIServer(authEnabledConfigs());
 
       await requests(app.app)
         .get(
-          '/artifacts/get?source=s3&bucket=shared&key=root%2F%2573ecret&namespace=attacker-namespace',
+          '/artifacts/get?source=s3&bucket=shared&namespace=attacker-namespace&key=' +
+            encodeURIComponent(uriKey),
         )
         .set('kubeflow-userid', 'user@example.com')
         .expect(400);
