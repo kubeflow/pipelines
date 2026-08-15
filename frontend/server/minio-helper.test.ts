@@ -126,6 +126,33 @@ describe('minio-helper', () => {
       });
     });
 
+    it('uses the secure default when provider info does not specify disableSSL', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'default-store',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            endpoint: 'https://ceph.example:9443',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9443,
+        secretKey: 'secretkey',
+        useSSL: undefined,
+      });
+    });
+
     it('does not mutate shared defaults when applying per-request provider settings', async () => {
       const sharedConfig = {
         accessKey: 'default-access-key',

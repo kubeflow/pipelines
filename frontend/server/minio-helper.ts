@@ -308,6 +308,8 @@ async function applyS3ProviderInfo(
 
     if (providerInfo.Params.disableSSL !== undefined) {
       config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
+    } else {
+      config.useSSL = undefined;
     }
   }
   return config;
