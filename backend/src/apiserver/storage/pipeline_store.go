@@ -1010,7 +1010,8 @@ func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.Pipe
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").
 		Where(sq.And{sq.Eq{"pipeline_versions.PipelineId": pipelineId}, sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}).
-		OrderBy("pipeline_versions.CreatedAtInSec DESC").
+		// CreatedAtInSec has second granularity; UUID breaks ties so results are stable.
+		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipeline_versions.UUID DESC").
 		Limit(1).
 		ToSql()
 	if err != nil {
