@@ -45,6 +45,7 @@ import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
 import {
   ArtifactCoordinates,
   buildArtifactCoordinateUri,
+  normalizeArtifactStorageCoordinates,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
 import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from '../helpers/artifact-path.js';
@@ -70,6 +71,8 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'namespace',
   'peek',
 ] as const;
+const MALFORMED_ARTIFACT_KEY_MESSAGE =
+  'Artifact storage key contains malformed URI path encoding. Correct the artifact URI and retry.';
 
 export interface S3ProviderInfo {
   Provider: string;
@@ -304,18 +307,19 @@ export function getArtifactsHandler({
       res.status(artifactRequest.error.status).send(artifactRequest.error.message);
       return;
     }
-    const { source, bucket, key, artifactUriQuery, peek, providerInfo, namespace } =
+    const { source, bucket, key, keyEncoding, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
     const coordinates: ArtifactCoordinates<ArtifactSource> = {
       source,
       bucket,
       key,
+      keyEncoding,
       artifactUriQuery,
     };
     const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);
-    // The authorization middleware and storage handler parse independently. Pin the handler to
-    // the exact canonical URI that was authorized so future route/parser changes cannot create a
-    // validate-A/fetch-B gap.
+    // The authorization middleware and storage handler parse independently. Pin artifact identity
+    // to the exact URI that was authorized; storage-key decoding below is then determined only by
+    // this route's trusted keyEncoding classification.
     if (options.auth.enabled && res.locals.authorizedArtifactUri !== requestedArtifactUri) {
       console.warn(
         '[SECURITY] Rejected artifact request whose coordinates changed after authorization',
@@ -331,7 +335,16 @@ export function getArtifactsHandler({
       res.status(500).send('Object key too long');
       return;
     }
-    console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
+    let storageKey = key;
+    if (isLauncherArtifactSource(source)) {
+      try {
+        storageKey = normalizeArtifactStorageCoordinates({ ...coordinates, source }).key;
+      } catch {
+        res.status(400).send(MALFORMED_ARTIFACT_KEY_MESSAGE);
+        return;
+      }
+    }
+    console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
 
     // Security: The ml-pipeline-ui service account is only permitted to read
     // Secrets from its own (server) namespace. Secret-backed provider info
@@ -351,7 +364,10 @@ export function getArtifactsHandler({
     if (allowProviderSecrets && isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
-          (await getLauncherProviderInfo({ ...coordinates, source }, namespace)) || '';
+          (await getLauncherProviderInfo(
+            { ...coordinates, key: storageKey, keyEncoding: 'storage', source },
+            namespace,
+          )) || '';
       } catch (error) {
         // Direct mode would otherwise substitute the central UI server's environment
         // credentials for an unreadable or invalid namespace storage policy.
@@ -383,7 +399,7 @@ export function getArtifactsHandler({
     switch (source) {
       case 'gcs':
         await getGCSArtifactHandler(
-          { bucket, key },
+          { bucket, key: storageKey },
           peek,
           effectiveProviderInfo,
           namespace,
@@ -400,7 +416,7 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key,
+            key: storageKey,
             tryExtract,
           },
           peek,
@@ -417,7 +433,7 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key,
+            key: storageKey,
           },
           peek,
         )(req, res);
@@ -459,6 +475,7 @@ type ArtifactRequest =
       source: ArtifactSource;
       bucket: string;
       key: string;
+      keyEncoding: 'storage' | 'uri';
       artifactUriQuery: string;
       peek: number;
       providerInfo: string;
@@ -525,6 +542,7 @@ function parseArtifactRequest(
     source: source.value,
     bucket: bucket.value,
     key: key.value,
+    keyEncoding: useParameter ? 'storage' : 'uri',
     artifactUriQuery: artifactUriQuery.value ?? '',
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
@@ -1150,12 +1168,20 @@ export function getArtifactsProxyHandler({
               source: resolvedCoordinates.source,
               bucket: resolvedCoordinates.bucket,
               key: resolvedCoordinates.key,
+              keyEncoding: resolvedCoordinates.keyEncoding,
               artifactUriQuery: resolvedCoordinates.artifactUriQuery,
             }
           : undefined;
       if (coordinates) {
+        let storageCoordinates: ArtifactCoordinates<LauncherArtifactSource>;
         try {
-          const providerInfo = await getLauncherProviderInfo(coordinates, namespace);
+          storageCoordinates = normalizeArtifactStorageCoordinates(coordinates);
+        } catch {
+          res.status(400).send(MALFORMED_ARTIFACT_KEY_MESSAGE);
+          return;
+        }
+        try {
+          const providerInfo = await getLauncherProviderInfo(storageCoordinates, namespace);
           if (providerInfo) {
             url.searchParams.set('providerInfo', providerInfo);
           }

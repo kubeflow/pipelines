@@ -14,7 +14,10 @@
 
 import { load } from 'js-yaml';
 import { getConfigMap, K8sError } from '../k8s-helper.js';
-import type { ArtifactCoordinates } from './artifact-coordinates.js';
+import {
+  ArtifactCoordinates,
+  normalizeArtifactStorageCoordinates,
+} from './artifact-coordinates.js';
 import {
   ArtifactProvider,
   artifactProviderForSource,
@@ -114,15 +117,20 @@ export async function getLauncherProviderInfo(
   coordinates: ArtifactCoordinates<LauncherArtifactSource>,
   namespace: string,
 ): Promise<string | undefined> {
+  const storageCoordinates = normalizeArtifactStorageCoordinates(coordinates);
   const { configMapPresent, defaultPipelineRoot, providers } =
     await getLauncherConfiguration(namespace);
 
-  const provider = artifactProviderForSource(coordinates.source);
+  const provider = artifactProviderForSource(storageCoordinates.source);
   const config = providers[provider];
-  const override = findOverride(config, coordinates.bucket, coordinates.key);
-  const artifactUri = buildArtifactUri(coordinates.source, coordinates.bucket, coordinates.key);
-  const underPipelineRoot = isWithinPipelineRoot(coordinates, defaultPipelineRoot);
-  if (!underPipelineRoot && !coordinates.artifactUriQuery && !override) {
+  const override = findOverride(config, storageCoordinates.bucket, storageCoordinates.key);
+  const artifactUri = buildArtifactUri(
+    storageCoordinates.source,
+    storageCoordinates.bucket,
+    storageCoordinates.key,
+  );
+  const underPipelineRoot = isWithinPipelineRoot(storageCoordinates, defaultPipelineRoot);
+  if (!underPipelineRoot && !storageCoordinates.artifactUriQuery && !override) {
     if (!configMapPresent) {
       return undefined;
     }
@@ -137,7 +145,7 @@ export async function getLauncherProviderInfo(
   // artifact URI's own query is used only outside that root.
   const effectiveQuery = underPipelineRoot
     ? getUriQuery(defaultPipelineRoot)
-    : coordinates.artifactUriQuery;
+    : storageCoordinates.artifactUriQuery;
   if (effectiveQuery) {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }
@@ -145,7 +153,9 @@ export async function getLauncherProviderInfo(
     return undefined;
   }
 
-  return JSON.stringify(buildSessionInfo(provider, coordinates.bucket, coordinates.key, config));
+  return JSON.stringify(
+    buildSessionInfo(provider, storageCoordinates.bucket, storageCoordinates.key, config),
+  );
 }
 
 async function getLauncherConfiguration(namespace: string): Promise<LauncherConfiguration> {
@@ -313,23 +323,18 @@ function isWithinPipelineRoot(
   }
   const artifactScheme = coordinates.source === 'gcs' ? 'gs' : coordinates.source;
   const artifactPath = `/${coordinates.key}`.replace(/\/+$/, '');
-  const escapedRootPath = root.pathname.replace(/\/+$/, '');
-  let decodedRootPath: string;
+  let rootPath: string;
   try {
-    // Download-path coordinates are decoded by the HTTP route, while /artifacts/get preserves
-    // URI-path escapes in its query key. Match the trusted root in either representation.
-    decodedRootPath = decodeURIComponent(root.pathname).replace(/\/+$/, '');
+    rootPath = decodeURIComponent(root.pathname).replace(/\/+$/, '');
   } catch (error) {
     throw new LauncherConfigValidationError(
       `kfp-launcher defaultPipelineRoot contains invalid path encoding. Correct it and retry: ${error}`,
     );
   }
-  const isWithinRootPath = (rootPath: string) =>
-    artifactPath === rootPath || artifactPath.startsWith(`${rootPath}/`);
   return (
     `${artifactScheme}:` === root.protocol &&
     coordinates.bucket === root.host &&
-    (isWithinRootPath(escapedRootPath) || isWithinRootPath(decodedRootPath))
+    (artifactPath === rootPath || artifactPath.startsWith(`${rootPath}/`))
   );
 }
 

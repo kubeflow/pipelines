@@ -19,7 +19,23 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   source: TSource;
   bucket: string;
   key: string;
+  // Query-based preview routes carry the artifact URI path; download routes are already decoded.
+  keyEncoding?: 'storage' | 'uri';
   artifactUriQuery?: string;
+}
+
+/** Converts a URI-path key to the object-store key representation used by the launcher. */
+export function normalizeArtifactStorageCoordinates<TSource extends string>(
+  coordinates: ArtifactCoordinates<TSource>,
+): ArtifactCoordinates<TSource> {
+  if (coordinates.keyEncoding !== 'uri') {
+    return coordinates;
+  }
+  return {
+    ...coordinates,
+    key: decodeURIComponent(coordinates.key),
+    keyEncoding: 'storage',
+  };
 }
 
 export function resolveArtifactCoordinates(
@@ -35,6 +51,7 @@ export function resolveArtifactCoordinates(
       source: asString(request.query.source),
       bucket: asString(request.query.bucket),
       key: asString(request.query.key),
+      keyEncoding: 'uri',
       artifactUriQuery: asString(request.query.artifactUriQuery),
     };
   }
@@ -48,6 +65,7 @@ export function resolveArtifactCoordinates(
       source: decodeURIComponent(downloadPathMatch[1]),
       bucket: decodeURIComponent(downloadPathMatch[2]),
       key: decodeURIComponent(downloadPathMatch[3]),
+      keyEncoding: 'storage',
       artifactUriQuery:
         typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
     };

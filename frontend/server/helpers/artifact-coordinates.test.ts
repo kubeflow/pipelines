@@ -1,0 +1,56 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { describe, expect, it } from 'vitest';
+import { normalizeArtifactStorageCoordinates } from './artifact-coordinates.js';
+
+describe('normalizeArtifactStorageCoordinates', () => {
+  it('decodes URI-path keys exactly once for storage', () => {
+    expect(
+      normalizeArtifactStorageCoordinates({
+        source: 's3',
+        bucket: 'bucket',
+        key: 'root%20dir/100%25complete',
+        keyEncoding: 'uri',
+      }),
+    ).toEqual({
+      source: 's3',
+      bucket: 'bucket',
+      key: 'root dir/100%complete',
+      keyEncoding: 'storage',
+    });
+  });
+
+  it('does not decode an already-normalized storage key again', () => {
+    const coordinates = {
+      source: 's3',
+      bucket: 'bucket',
+      key: 'root dir/100%complete',
+      keyEncoding: 'storage' as const,
+    };
+
+    expect(normalizeArtifactStorageCoordinates(coordinates)).toBe(coordinates);
+  });
+
+  it('rejects malformed URI-path encoding', () => {
+    expect(() =>
+      normalizeArtifactStorageCoordinates({
+        source: 's3',
+        bucket: 'bucket',
+        key: 'root%2/artifact',
+        keyEncoding: 'uri',
+      }),
+    ).toThrow(URIError);
+  });
+});

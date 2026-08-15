@@ -255,13 +255,13 @@ s3:
   });
 
   it.each([
-    ['URI-escaped spaces', 'root%20dir', 'root%20dir/run/artifact'],
-    ['decoded spaces', 'root%20dir', 'root dir/run/artifact'],
-    ['URI-escaped Unicode', '%E6%A8%A1%E5%9E%8B', '%E6%A8%A1%E5%9E%8B/run/artifact'],
-    ['decoded Unicode', '%E6%A8%A1%E5%9E%8B', '模型/run/artifact'],
+    ['URI-escaped spaces', 'root%20dir', 'root%20dir/run/artifact', 'uri'],
+    ['decoded spaces', 'root%20dir', 'root dir/run/artifact', 'storage'],
+    ['URI-escaped Unicode', '%E6%A8%A1%E5%9E%8B', '%E6%A8%A1%E5%9E%8B/run/artifact', 'uri'],
+    ['decoded Unicode', '%E6%A8%A1%E5%9E%8B', '模型/run/artifact', 'storage'],
   ])(
     'matches %s in defaultPipelineRoot against artifact coordinates',
-    async (_description, encodedRoot, artifactKey) => {
+    async (_description, encodedRoot, artifactKey, keyEncoding) => {
       mockedGetConfigMap.mockResolvedValue([
         {
           data: {
@@ -274,7 +274,12 @@ s3:
       ]);
 
       const result = await getLauncherProviderInfo(
-        { source: 's3', bucket: 'team-bucket', key: artifactKey },
+        {
+          source: 's3',
+          bucket: 'team-bucket',
+          key: artifactKey,
+          keyEncoding: keyEncoding as 'storage' | 'uri',
+        },
         'team-a',
       );
 
@@ -288,6 +293,29 @@ s3:
       });
     },
   );
+
+  it('does not treat a literal escaped sibling as the decoded pipeline root', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket/root%20dir',
+        },
+      },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        {
+          source: 's3',
+          bucket: 'team-bucket',
+          key: 'root%20dir/run/artifact',
+          keyEncoding: 'storage',
+        },
+        'team-a',
+      ),
+    ).rejects.toThrow('is outside defaultPipelineRoot and has no explicit provider query');
+  });
 
   it('prefers the pipeline-root query for artifacts under that root', async () => {
     mockedGetConfigMap.mockResolvedValue([

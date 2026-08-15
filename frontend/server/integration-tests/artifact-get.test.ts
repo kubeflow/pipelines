@@ -298,14 +298,14 @@ s3:
       );
     });
 
-    it('uses trusted launcher-root settings for URI-escaped preview keys', async () => {
+    it('uses the same decoded launcher-root key for previews and downloads', async () => {
       const mockedMinioClient: Mock = minio.Client as any;
       const getObject = vi.fn(async () => {
         const objStream = new PassThrough();
         objStream.end(artifactContent);
         return objStream;
       });
-      mockedMinioClient.mockImplementationOnce(function () {
+      mockedMinioClient.mockImplementation(function () {
         return { getObject };
       });
       vi.mocked(getConfigMap).mockResolvedValueOnce([
@@ -326,8 +326,12 @@ s3:
       await requests(app.app)
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=root%2520dir%2Fartifact.txt')
         .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/s3/ml-pipeline/root%20dir/artifact.txt')
+        .expect(200, artifactContent);
 
-      expect(getObject).toHaveBeenCalledWith('ml-pipeline', 'root%20dir/artifact.txt');
+      expect(getObject).toHaveBeenNthCalledWith(1, 'ml-pipeline', 'root dir/artifact.txt');
+      expect(getObject).toHaveBeenNthCalledWith(2, 'ml-pipeline', 'root dir/artifact.txt');
       expect(mockedMinioClient).toHaveBeenCalledWith(
         expect.objectContaining({ endPoint: 'trusted.example', region: 'trusted' }),
       );

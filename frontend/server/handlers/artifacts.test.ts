@@ -38,7 +38,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
-        artifactUriQuery: '',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -49,6 +49,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'my-bucket',
         key: 'path/to/file.csv',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -59,6 +60,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'my-bucket',
         key: 'some/key',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -69,6 +71,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -79,6 +82,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello%2Fworld.txt',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -94,6 +98,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'gcs',
         bucket: 'my-bucket',
         key: 'a/b/c/d.json',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -111,6 +116,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
+        keyEncoding: 'uri',
         artifactUriQuery: '',
       });
     });
@@ -126,6 +132,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'reports',
         key: 'output.html',
+        keyEncoding: 'uri',
         artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example&region=ceph',
       });
     });
@@ -141,6 +148,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'my-bucket',
         key: 'data.csv',
+        keyEncoding: 'uri',
         artifactUriQuery: '',
       });
     });
@@ -162,6 +170,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: '',
         key: '',
+        keyEncoding: 'uri',
         artifactUriQuery: '',
       });
     });
@@ -176,6 +185,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
+        keyEncoding: 'uri',
         artifactUriQuery: '',
       });
     });
@@ -190,6 +200,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
+        keyEncoding: 'uri',
         artifactUriQuery: '',
       });
     });
@@ -207,6 +218,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'victim-bucket',
         key: 'secret.txt',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -219,6 +231,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'reports',
         key: 'output.html',
+        keyEncoding: 'storage',
         artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example',
       });
     });
@@ -237,6 +250,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'get',
         bucket: 'some-bucket',
         key: 'some-key',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
