@@ -1185,7 +1185,6 @@ export function getArtifactsProxyHandler({
           if (providerInfo) {
             url.searchParams.set('providerInfo', providerInfo);
           }
-          updateProxyRequestUrl(req, url);
         } catch (error) {
           if (error instanceof LauncherConfigError) {
             // The namespace-isolated service owns credential resolution, so omitting
@@ -1195,18 +1194,17 @@ export function getArtifactsProxyHandler({
                 `forwarding the request without providerInfo so the namespaced artifact ` +
                 `service can use its environment credentials. ${error.message}`,
             );
-            updateProxyRequestUrl(req, url);
-            proxy(req, res, next);
+          } else {
+            res
+              .status(500)
+              .send(
+                `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+              );
             return;
           }
-          res
-            .status(500)
-            .send(
-              `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
-            );
-          return;
         }
       }
+      updateProxyRequestUrl(req, url);
     }
     proxy(req, res, next);
   };

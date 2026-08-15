@@ -179,6 +179,7 @@ describe('/artifacts/get namespaced proxy', () => {
           bucket: 'artifact',
           key: 'outputs/result.txt',
           namespace: 'ns2',
+          providerInfo: '{"Provider":"s3","Params":{"endpoint":"https://attacker.example"}}',
         })}`,
       )
       .set('kubeflow-userid', 'user@example.com')
