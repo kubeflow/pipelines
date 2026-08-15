@@ -197,7 +197,7 @@ func TestCreateJob_WrongInput(t *testing.T) {
 					{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiv1beta1.Relationship_OWNER},
 				},
 			},
-			"Failed to fetch a pipeline version from pipeline not_exist_pipeline: Failed to get the latest " +
+			"Failed to fetch a pipeline version from pipeline not_exist_pipeline: Failed to get the default " +
 				"pipeline version as pipeline was not found: ResourceNotFoundError: Pipeline not_exist_pipeline not found",
 		},
 		{
