@@ -600,6 +600,33 @@ describe('RunDetailsRouter', () => {
     expect(element).toBeInTheDocument();
   });
 
+  it('explains that a native task link cannot select a task on V1 Run Details', async () => {
+    const argoWorkflow = {
+      apiVersion: 'argoproj.io/v1alpha1',
+      kind: 'Workflow',
+      metadata: { name: 'test' },
+      spec: { arguments: { parameters: [{ name: 'output' }] } },
+    };
+    getRunSpy.mockResolvedValue({ run_id: TEST_RUN_ID, pipeline_spec: argoWorkflow });
+    const props = generateProps();
+    props.location.search = '?task=native-task-id';
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByTestId('enhanced-run-details');
+    await waitFor(() =>
+      expect(props.updateBanner).toHaveBeenCalledWith({
+        message:
+          'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
+        mode: 'warning',
+      }),
+    );
+  });
+
   it('does not add a router poller for an active v1 run', async () => {
     vi.useFakeTimers();
     const argoWorkflow = {

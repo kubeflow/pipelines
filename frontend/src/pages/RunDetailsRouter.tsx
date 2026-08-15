@@ -19,7 +19,7 @@ import * as JsYaml from 'js-yaml';
 import { isEqual } from 'lodash';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { V2beta1Run } from 'src/apisv2beta1/run';
-import { RouteParams } from 'src/components/Router';
+import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -101,6 +101,19 @@ export default function RunDetailsRouter(
       templateString ? WorkflowUtils.tryConvertYamlToV2PipelineSpec(templateString) : undefined,
     [templateString],
   );
+  const linkedTaskId = new URLSearchParams(props.location.search).get(QUERY_PARAMS.taskId);
+  const renderV2Details = !!(v2Run && templateString && pipelineSpec);
+  const runDetailsIsLoading = runIsLoading || templateStrIsLoading;
+
+  useEffect(() => {
+    if (linkedTaskId && !runDetailsIsLoading && !renderV2Details && !templateStrIsError) {
+      updateBanner({
+        message:
+          'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
+        mode: 'warning',
+      });
+    }
+  }, [linkedTaskId, renderV2Details, runDetailsIsLoading, templateStrIsError, updateBanner]);
 
   if (v2Run && templateString && pipelineSpec) {
     return (
@@ -114,7 +127,7 @@ export default function RunDetailsRouter(
     );
   }
 
-  return <EnhancedRunDetails {...props} isLoading={runIsLoading || templateStrIsLoading} />;
+  return <EnhancedRunDetails {...props} isLoading={runDetailsIsLoading} />;
 }
 
 function PolledRunDetailsV2(props: RunDetailsV2Props) {

@@ -42,12 +42,13 @@ export class PageTokenTracker {
       chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
       this.chains.set(contextKey, chain);
     }
-    if (chain.invalidRequests.has(requestToken)) {
-      return true;
+    const previousSuccessor = chain.successors.get(requestToken);
+    if (previousSuccessor === nextPageToken) {
+      return chain.invalidRequests.has(requestToken);
     }
-    if (chain.successors.get(requestToken) === nextPageToken) {
-      return false;
-    }
+    // A changed successor means this request recovered. Keep detecting other cycles, but do not
+    // permanently latch the request to its earlier bad response.
+    chain.invalidRequests.delete(requestToken);
     const repeated = requestToken === nextPageToken || chain.nextTokens.has(nextPageToken);
     chain.successors.set(requestToken, nextPageToken);
     chain.nextTokens.add(nextPageToken);

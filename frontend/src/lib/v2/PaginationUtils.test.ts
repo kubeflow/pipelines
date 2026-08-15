@@ -24,6 +24,17 @@ describe('PageTokenTracker', () => {
     expect(tracker.isRepeated('first-query', 'page-3', 'page-2')).toBe(true);
     expect(tracker.isRepeated('second-query', 'page-2', 'page-2')).toBe(true);
   });
+
+  it('clears a repeated-token latch when the same request recovers with a new successor', () => {
+    const tracker = new PageTokenTracker();
+
+    expect(tracker.isRepeated('query', undefined, 'page-2')).toBe(false);
+    expect(tracker.isRepeated('query', 'page-2', 'page-3')).toBe(false);
+    expect(tracker.isRepeated('query', 'page-3', 'page-2')).toBe(true);
+    expect(tracker.isRepeated('query', 'page-3', 'page-2')).toBe(true);
+    expect(tracker.isRepeated('query', 'page-3', 'page-4')).toBe(false);
+    expect(tracker.isRepeated('query', 'page-3', 'page-4')).toBe(false);
+  });
 });
 
 describe('listAllPages', () => {
