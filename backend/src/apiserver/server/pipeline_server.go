@@ -328,7 +328,7 @@ func (s *BasePipelineServer) getPipeline(ctx context.Context, pipelineId string)
 }
 
 // Returns a pipeline.
-// Note, the default pipeline version will be set to be the latest pipeline version.
+// Note, the default pipeline version is the pinned one when set, otherwise the newest.
 // Supports v1beta behavior.
 func (s *PipelineServerV1) GetPipelineV1(ctx context.Context, request *apiv1beta1.GetPipelineRequest) (*apiv1beta1.Pipeline, error) {
 	if s.options.CollectMetrics {
@@ -340,9 +340,9 @@ func (s *PipelineServerV1) GetPipelineV1(ctx context.Context, request *apiv1beta
 		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s. Check error stack", pipelineId)
 	}
 
-	pipelineVersion, err := s.getLatestPipelineVersion(ctx, pipelineId)
+	pipelineVersion, err := s.getDefaultPipelineVersion(ctx, pipelineId)
 	if err != nil {
-		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the latest pipeline version", pipelineId)
+		return nil, util.Wrapf(err, "Failed to get a pipeline (v1beta1) %s due to error fetching the default pipeline version", pipelineId)
 	}
 
 	return toApiPipelineV1(pipeline, pipelineVersion), nil
@@ -677,19 +677,19 @@ func (s *PipelineServerV1) GetTemplate(ctx context.Context, request *apiv1beta1.
 	return &apiv1beta1.GetTemplateResponse{Template: string(template)}, nil
 }
 
-// Fetches the latest pipeline version for a given pipeline id.
-func (s *BasePipelineServer) getLatestPipelineVersion(ctx context.Context, pipelineId string) (*model.PipelineVersion, error) {
-	if pipelineId == "" {
-		return nil, util.NewInvalidInputError("Failed to get the latest pipeline version as pipeline id is empty")
+// Fetches the default pipeline version for a given pipeline id.
+func (s *BasePipelineServer) getDefaultPipelineVersion(ctx context.Context, pipelineID string) (*model.PipelineVersion, error) {
+	if pipelineID == "" {
+		return nil, util.NewInvalidInputError("Failed to get the default pipeline version as pipeline id is empty")
 	}
 	// Check authorization
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Verb: common.RbacResourceVerbGet,
 	}
-	if err := s.canAccessPipeline(ctx, pipelineId, resourceAttributes); err != nil {
-		return nil, util.Wrapf(err, "Failed to get the latest pipeline version due authorization error for pipeline id %v", pipelineId)
+	if err := s.canAccessPipeline(ctx, pipelineID, resourceAttributes); err != nil {
+		return nil, util.Wrapf(err, "Failed to get the default pipeline version due authorization error for pipeline id %v", pipelineID)
 	}
-	return s.resourceManager.GetLatestPipelineVersion(pipelineId)
+	return s.resourceManager.GetDefaultPipelineVersion(pipelineID)
 }
 
 // Validates a pipeline version before creating a record in the DB.

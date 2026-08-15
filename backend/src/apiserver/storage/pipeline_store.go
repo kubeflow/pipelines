@@ -106,7 +106,7 @@ type PipelineStoreInterface interface {
 	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
 	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
 	GetPipelineVersionByName(pipelineID, versionName string) (*model.PipelineVersion, error)
-	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
+	GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error)
 	ListPipelineVersions(pipelineID string, opts *list.Options, tagFilters map[string]string) ([]*model.PipelineVersion, int, string, error)
 	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
 	UpdatePipelineVersionFields(pipelineVersionID string, displayName string, tags map[string]string) error
@@ -1003,35 +1003,37 @@ func (s *PipelineStore) UpdatePipelineDefaultVersion(pipelineId string, versionI
 	return nil
 }
 
-// Returns the latest pipeline version with status PipelineVersionReady for a given pipeline id.
-func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
+// GetDefaultPipelineVersion returns the version used when a run does not name one: the newest with
+// status PipelineVersionReady.
+// The SQL store has no pin; only the Kubernetes store honors spec.defaultVersionName.
+func (s *PipelineStore) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
 	// Prepare a SQL query
 	sql, args, err := sq.
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").
-		Where(sq.And{sq.Eq{"pipeline_versions.PipelineId": pipelineId}, sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}).
+		Where(sq.And{sq.Eq{"pipeline_versions.PipelineId": pipelineID}, sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}).
 		// CreatedAtInSec has second granularity; UUID breaks ties so results are stable.
 		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipeline_versions.UUID DESC").
 		Limit(1).
 		ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create query to fetch the latest pipeline version for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed to create query to fetch the latest pipeline version for pipeline %v", pipelineID)
 	}
 
 	// Execute the query
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed fetching the latest pipeline version for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed fetching the latest pipeline version for pipeline %v", pipelineID)
 	}
 	defer r.Close()
 
 	// Parse results
 	versions, err := s.scanPipelineVersionsRows(r)
 	if err != nil || len(versions) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to parse the latest pipeline version from SQL response for pipeline %v", pipelineId)
+		return nil, util.NewInternalServerError(err, "Failed to parse the latest pipeline version from SQL response for pipeline %v", pipelineID)
 	}
 	if len(versions) == 0 {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineId)
+		return nil, util.NewResourceNotFoundError("PipelineVersion", pipelineID)
 	}
 	version := versions[0]
 	tags, err := s.GetPipelineVersionTags(version.UUID)
