@@ -21,7 +21,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { isEqual } from 'lodash';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
@@ -73,7 +73,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
-const MAX_POST_RETRY_TASK_SNAPSHOTS = 3;
+const MAX_TERMINAL_TASK_RECONCILIATION_SNAPSHOTS = 3;
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface RunDetailsV2Info {
@@ -117,6 +117,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const retryRefreshVersion = props.retryRefreshVersion || 0;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const taskQueryKey = useMemo(
+    () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
+    [retryRefreshVersion, runId],
+  );
+  const terminalTaskReconciliation = useRef<{
+    baseline: number;
+    retryRefreshVersion: number;
+    runId: string;
+  } | null>(null);
 
   const {
     isSuccess,
@@ -125,7 +135,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     data: tasks,
     refetch: refetchTasks,
   } = useQuery<V2beta1PipelineTask[], Error>({
-    queryKey: queryKeys.runTasks(runId, retryRefreshVersion || undefined),
+    queryKey: taskQueryKey,
     queryFn: () => listAllRunTasks(runId),
     placeholderData: (previousTasks) => previousTasks,
     structuralSharing: (previousTasks, nextTasks) =>
@@ -135,19 +145,27 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       if (!runIsTerminal) {
         return QUERY_REFETCH_INTERVAL;
       }
-      if (retryRefreshVersion === 0) {
+      const reconciliation = terminalTaskReconciliation.current;
+      const baseline =
+        reconciliation?.runId === runId &&
+        reconciliation.retryRefreshVersion === retryRefreshVersion
+          ? reconciliation.baseline
+          : retryRefreshVersion > 0
+            ? 0
+            : undefined;
+      if (baseline === undefined) {
         return false;
       }
       // Count only results accepted into TanStack Query state. A cancelled request may still
       // resolve when the task service ignores its abort signal, but its result is discarded.
-      const acceptedSnapshotCount = query.state.dataUpdateCount;
+      const acceptedSnapshotCount = query.state.dataUpdateCount - baseline;
       if (acceptedSnapshotCount === 0) {
         return QUERY_REFETCH_INTERVAL;
       }
       const hasUnfinishedTask = (query.state.data || []).some(
         (task) => !isTaskFinished(task.state),
       );
-      return acceptedSnapshotCount < MAX_POST_RETRY_TASK_SNAPSHOTS && hasUnfinishedTask
+      return acceptedSnapshotCount < MAX_TERMINAL_TASK_RECONCILIATION_SNAPSHOTS && hasUnfinishedTask
         ? QUERY_REFETCH_INTERVAL
         : false;
     },
@@ -156,16 +174,24 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     refetchOnMount: retryRefreshVersion > 0 || runIsTerminal ? 'always' : true,
   });
 
-  // The terminal run update stops polling immediately, so fetch once more to capture the final
-  // task states. Initial terminal mounts and same-state rerenders use the normal query lifecycle.
+  // The terminal run update stops active polling. Capture an operation-scoped baseline before the
+  // first reconciliation fetch so the interval can accept a few eventually consistent snapshots
+  // without depending on this query's lifetime update count.
   useEffect(() => {
     const previousStatus = previousRunStatus.current;
     previousRunStatus.current = { runId, isTerminal: runIsTerminal };
 
     if (previousStatus.runId === runId && !previousStatus.isTerminal && runIsTerminal) {
+      terminalTaskReconciliation.current = {
+        baseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+        retryRefreshVersion,
+        runId,
+      };
       void refetchTasks();
+    } else if (!runIsTerminal) {
+      terminalTaskReconciliation.current = null;
     }
-  }, [refetchTasks, runId, runIsTerminal]);
+  }, [queryClient, refetchTasks, retryRefreshVersion, runId, runIsTerminal, taskQueryKey]);
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;

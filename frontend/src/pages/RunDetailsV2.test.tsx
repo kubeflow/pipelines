@@ -921,6 +921,46 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('bounds unfinished task reconciliation after an active run becomes terminal', async () => {
+    vi.useFakeTimers();
+    const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
+    const unfinishedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
+    );
+    tasksSpy
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValue({ tasks: TEST_TASKS });
+    const props = generateProps();
+    const runningRun = { ...TEST_RUN, state: V2beta1RuntimeState.RUNNING };
+    const failedRun = { ...TEST_RUN, state: V2beta1RuntimeState.FAILED };
+    const view = render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={runningRun} {...props} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={failedRun} {...props} />
+      </CommonTestWrapper>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(4);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(4);
+  });
+
   describe('topbar tabs', () => {
     it('switches to Detail tab', async () => {
       render(
