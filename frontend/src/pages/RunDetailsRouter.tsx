@@ -112,7 +112,9 @@ export default function RunDetailsRouter(
           'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
         mode: 'warning',
       });
+      return () => updateBanner({});
     }
+    return undefined;
   }, [linkedTaskId, renderV2Details, runDetailsIsLoading, templateStrIsError, updateBanner]);
 
   if (v2Run && templateString && pipelineSpec) {

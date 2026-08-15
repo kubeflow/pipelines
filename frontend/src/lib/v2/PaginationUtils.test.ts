@@ -35,6 +35,15 @@ describe('PageTokenTracker', () => {
     expect(tracker.isRepeated('query', 'page-3', 'page-4')).toBe(false);
     expect(tracker.isRepeated('query', 'page-3', 'page-4')).toBe(false);
   });
+
+  it('allows a refreshed traversal to reuse a cursor from an earlier snapshot', () => {
+    const tracker = new PageTokenTracker();
+
+    expect(tracker.isRepeated('query', undefined, 'page-2')).toBe(false);
+    expect(tracker.isRepeated('query', 'page-2', 'page-3')).toBe(false);
+
+    expect(tracker.isRepeated('query', undefined, 'page-3')).toBe(false);
+  });
 });
 
 describe('listAllPages', () => {

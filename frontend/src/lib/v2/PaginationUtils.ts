@@ -33,14 +33,14 @@ export class PageTokenTracker {
     requestPageToken: string | undefined,
     nextPageToken: string,
   ): boolean {
-    if (!nextPageToken) {
-      return false;
-    }
     const requestToken = requestPageToken || '';
     let chain = this.chains.get(contextKey);
-    if (!chain) {
+    if (!requestToken || !chain) {
       chain = { invalidRequests: new Set(), nextTokens: new Set(), successors: new Map() };
       this.chains.set(contextKey, chain);
+    }
+    if (!nextPageToken) {
+      return false;
     }
     const previousSuccessor = chain.successors.get(requestToken);
     if (previousSuccessor === nextPageToken) {

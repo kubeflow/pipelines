@@ -611,7 +611,7 @@ describe('RunDetailsRouter', () => {
     const props = generateProps();
     props.location.search = '?task=native-task-id';
 
-    render(
+    const view = render(
       <CommonTestWrapper>
         <RunDetailsRouter {...props} />
       </CommonTestWrapper>,
@@ -625,6 +625,14 @@ describe('RunDetailsRouter', () => {
         mode: 'warning',
       }),
     );
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RunDetailsRouter {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(props.updateBanner).toHaveBeenLastCalledWith({}));
   });
 
   it('does not add a router poller for an active v1 run', async () => {

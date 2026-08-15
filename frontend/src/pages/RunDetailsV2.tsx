@@ -126,7 +126,15 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     baseline: number;
     retryRefreshVersion: number;
     runId: string;
-  } | null>(null);
+  } | null>(
+    runIsTerminal
+      ? {
+          baseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+          retryRefreshVersion,
+          runId,
+        }
+      : null,
+  );
 
   const {
     isSuccess,

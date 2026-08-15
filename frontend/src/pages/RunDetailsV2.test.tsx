@@ -853,6 +853,45 @@ describe('RunDetailsV2', () => {
     await waitFor(() => expect(tasksSpy).toHaveBeenCalled());
   });
 
+  it('continues terminal task reconciliation after remounting with unfinished cached tasks', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const unfinishedTasks = TEST_TASKS.map((task) =>
+      task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
+    );
+    queryClient.setQueryData(queryKeys.runTasks(RUN_ID), unfinishedTasks);
+    const tasksSpy = vi
+      .mocked(Apis.runServiceApiV2.tasks)
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValueOnce({ tasks: unfinishedTasks })
+      .mockResolvedValue({ tasks: TEST_TASKS });
+    const props = generateProps();
+
+    const firstView = render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+    firstView.unmount();
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps cached task data in the graph when a background refresh fails', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     queryClient.setQueryData(queryKeys.runTasks(RUN_ID), TEST_TASKS);
