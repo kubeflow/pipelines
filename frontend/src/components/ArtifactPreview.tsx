@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import { Button } from '@mui/material';
+import { Button, CircularProgress } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { color } from 'src/Css';
@@ -88,7 +88,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     }
   }
 
-  const { isSuccess, isError, data, error, refetch } = useQuery<string, Error>({
+  const { isSuccess, isError, isFetching, data, error, refetch } = useQuery<string, Error>({
     queryKey: queryKeys.artifactPreview(uri, namespace, artifactUriQuery, maxbytes, maxlines),
     queryFn: () => getPreview(storage, artifactUriQuery, namespace, maxbytes, maxlines),
     enabled: previewRequested && !!storage,
@@ -131,7 +131,10 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
           Load preview
         </Button>
       )}
-      {isError && (
+      {previewRequested && isFetching && (
+        <CircularProgress aria-label='Loading artifact preview' size={20} />
+      )}
+      {isError && !isFetching && (
         <>
           <Banner
             message='Error in retrieving artifact preview.'
@@ -143,13 +146,17 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
           </Button>
         </>
       )}
-      {isSuccess && data && (
-        <div className={css.preview}>
-          <small>
-            <pre>{data}</pre>
-          </small>
-        </div>
-      )}
+      {isSuccess &&
+        !isFetching &&
+        (data ? (
+          <div className={css.preview}>
+            <small>
+              <pre>{data}</pre>
+            </small>
+          </div>
+        ) : (
+          <Banner message='Artifact preview is empty.' mode='info' />
+        ))}
     </div>
   );
 };

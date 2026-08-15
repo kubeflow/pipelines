@@ -203,6 +203,29 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
   });
 
+  it('renders an explicit error when an invalid ROC curve is the only visualization', () => {
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              name: 'broken ROC',
+              type: ArtifactArtifactType.ClassificationMetric,
+              metadata: {
+                confidenceMetrics: [{ confidenceThreshold: 0.8, falsePositiveRate: 0.1 }],
+              },
+            },
+          ]}
+        />
+      </CommonTestWrapper>,
+    );
+
+    screen.getByText('Invalid ROC curve artifact.');
+    fireEvent.click(screen.getByText('Details'));
+    screen.getByText(/broken ROC/);
+    expect(screen.queryByText('There is no metrics artifact available in this step.')).toBeNull();
+  });
+
   it('renders every value from one multi-key scalar metric artifact', () => {
     render(
       <CommonTestWrapper>

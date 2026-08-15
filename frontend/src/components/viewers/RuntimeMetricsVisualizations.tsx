@@ -94,6 +94,7 @@ export function RuntimeMetricsVisualizations({
   if (
     scalarMetrics.length === 0 &&
     rocCurves.configs.length === 0 &&
+    !rocCurves.error &&
     confusionMatrixResult.matrices.length === 0 &&
     confusionMatrixResult.errors.length === 0 &&
     fileArtifacts.length === 0 &&

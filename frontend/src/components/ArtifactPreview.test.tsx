@@ -83,6 +83,42 @@ describe('ArtifactPreview', () => {
     expect(readFileSpy).toHaveBeenCalledTimes(2);
   });
 
+  it('shows progress while a lazy preview is loading', async () => {
+    let resolvePreview!: (value: string) => void;
+    vi.spyOn(Apis, 'readFile').mockReturnValue(
+      new Promise((resolve) => {
+        resolvePreview = resolve;
+      }),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/key' namespace='kubeflow' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+
+    expect(
+      await screen.findByRole('progressbar', { name: 'Loading artifact preview' }),
+    ).toBeVisible();
+
+    resolvePreview('loaded preview');
+    expect(await screen.findByText('loaded preview')).toBeVisible();
+  });
+
+  it('renders an explicit state for an empty artifact preview', async () => {
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('');
+
+    render(
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/key' namespace='kubeflow' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+
+    expect(await screen.findByText('Artifact preview is empty.')).toBeVisible();
+  });
+
   it('handles gcs artifact', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
     render(
