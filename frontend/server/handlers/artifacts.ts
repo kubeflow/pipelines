@@ -309,11 +309,17 @@ export function getArtifactsHandler({
     }
     const { source, bucket, key, keyEncoding, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
+    const routeCoordinates = useParameter ? resolveArtifactCoordinates(req) : undefined;
+    if (routeCoordinates === null) {
+      res.status(400).send('Malformed URL encoding in artifact path');
+      return;
+    }
     const coordinates: ArtifactCoordinates<ArtifactSource> = {
       source,
       bucket,
       key,
       keyEncoding,
+      uriKey: routeCoordinates?.uriKey,
       artifactUriQuery,
     };
     const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);

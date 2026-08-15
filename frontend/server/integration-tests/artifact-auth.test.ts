@@ -88,6 +88,7 @@ describe('/artifacts authorization', () => {
           objStream.end(artifactContent);
           if (
             (bucket === 'ml-pipeline' && key === 'hello/world.txt') ||
+            (bucket === 'ml-pipeline' && key === 'root dir/artifact.txt') ||
             (bucket === 'mlpipeline' && key === 'v2/artifacts/hello/world.txt')
           ) {
             return objStream;
@@ -784,6 +785,26 @@ describe('/artifacts authorization', () => {
       expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
         expect.any(String),
         'minio://ml-pipeline/hello/world.txt',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+        false,
+      );
+    });
+
+    it('validates an encoded download against the canonical escaped artifact URI', async () => {
+      mockAuthPass();
+      mockedValidateArtifactNamespace.mockResolvedValue({ valid: true });
+
+      app = new UIServer(authEnabledConfigs());
+
+      await requests(app.app)
+        .get('/artifacts/minio/ml-pipeline/root%20dir/artifact.txt?namespace=my-namespace')
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, artifactContent);
+
+      expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
+        expect.any(String),
+        'minio://ml-pipeline/root%20dir/artifact.txt',
         'my-namespace',
         { 'kubeflow-userid': 'user@example.com' },
         false,

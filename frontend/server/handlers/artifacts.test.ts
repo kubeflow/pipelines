@@ -72,6 +72,7 @@ describe('resolveArtifactCoordinates', () => {
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
         keyEncoding: 'storage',
+        uriKey: 'hello%2Fworld.txt',
         artifactUriQuery: '',
       });
     });
@@ -83,8 +84,27 @@ describe('resolveArtifactCoordinates', () => {
         bucket: 'ml-pipeline',
         key: 'hello%2Fworld.txt',
         keyEncoding: 'storage',
+        uriKey: 'hello%252Fworld.txt',
         artifactUriQuery: '',
       });
+    });
+
+    it('builds download identity from the escaped path while preserving the decoded storage key', () => {
+      const coordinates = resolveArtifactCoordinates(
+        makeRequest('/artifacts/s3/ml-pipeline/root%20dir/artifact.txt'),
+      );
+
+      expect(coordinates).toEqual({
+        source: 's3',
+        bucket: 'ml-pipeline',
+        key: 'root dir/artifact.txt',
+        keyEncoding: 'storage',
+        uriKey: 'root%20dir/artifact.txt',
+        artifactUriQuery: '',
+      });
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        's3://ml-pipeline/root%20dir/artifact.txt',
+      );
     });
 
     it('returns null on malformed percent-encoding (fail-closed)', () => {

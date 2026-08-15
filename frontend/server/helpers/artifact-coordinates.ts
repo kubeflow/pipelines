@@ -21,6 +21,8 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   key: string;
   // Query-based preview routes carry the artifact URI path; download routes are already decoded.
   keyEncoding?: 'storage' | 'uri';
+  // Exact escaped path spelling used by persisted artifact identity when `key` is decoded storage.
+  uriKey?: string;
   artifactUriQuery?: string;
 }
 
@@ -61,11 +63,14 @@ export function resolveArtifactCoordinates(
     return undefined;
   }
   try {
+    const uriKey = downloadPathMatch[3];
+    const key = decodeURIComponent(uriKey);
     return {
       source: decodeURIComponent(downloadPathMatch[1]),
       bucket: decodeURIComponent(downloadPathMatch[2]),
-      key: decodeURIComponent(downloadPathMatch[3]),
+      key,
       keyEncoding: 'storage',
+      ...(uriKey === key ? {} : { uriKey }),
       artifactUriQuery:
         typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
     };
@@ -75,7 +80,11 @@ export function resolveArtifactCoordinates(
 }
 
 export function buildArtifactCoordinateUri(coordinates: ArtifactCoordinates): string {
-  const artifactUri = buildArtifactUri(coordinates.source, coordinates.bucket, coordinates.key);
+  const artifactUri = buildArtifactUri(
+    coordinates.source,
+    coordinates.bucket,
+    coordinates.uriKey ?? coordinates.key,
+  );
   return coordinates.key && coordinates.artifactUriQuery
     ? `${artifactUri}?${coordinates.artifactUriQuery}`
     : artifactUri;
