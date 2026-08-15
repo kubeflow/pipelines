@@ -13,7 +13,10 @@
 // limitations under the License.
 
 import { describe, expect, it } from 'vitest';
-import { normalizeArtifactStorageCoordinates } from './artifact-coordinates.js';
+import {
+  normalizeArtifactStorageCoordinates,
+  stripArtifactUriQuery,
+} from './artifact-coordinates.js';
 
 describe('normalizeArtifactStorageCoordinates', () => {
   it('decodes URI-path keys exactly once for storage', () => {
@@ -52,5 +55,15 @@ describe('normalizeArtifactStorageCoordinates', () => {
         keyEncoding: 'uri',
       }),
     ).toThrow(URIError);
+  });
+});
+
+describe('stripArtifactUriQuery', () => {
+  it('treats the first raw question mark as the provider-query boundary', () => {
+    expect(
+      stripArtifactUriQuery(
+        's3://bucket/root/model?endpoint=https%3A%2F%2Fstore.example%3A9443&token=a%3Fb',
+      ),
+    ).toBe('s3://bucket/root/model');
   });
 });

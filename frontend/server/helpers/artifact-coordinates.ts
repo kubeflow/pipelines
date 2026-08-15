@@ -81,6 +81,13 @@ export function buildArtifactCoordinateUri(coordinates: ArtifactCoordinates): st
     : artifactUri;
 }
 
+/**
+ * Removes launcher provider configuration from a KFP artifact URI.
+ *
+ * Raw `?` starts the provider query. Native object-store parsing rejects percent-encoded query
+ * delimiters in object paths, so object keys containing those delimiters are outside the supported
+ * KFP artifact URI contract.
+ */
 export function stripArtifactUriQuery(artifactUri: string): string {
   const queryStart = artifactUri.indexOf('?');
   return queryStart < 0 ? artifactUri : artifactUri.slice(0, queryStart);
