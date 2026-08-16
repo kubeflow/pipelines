@@ -1126,22 +1126,31 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		// to determine whether the mutation was applied.
 		workflowClient := r.getWorkflowClient(namespace)
 		liveWorkflow, readError := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
-		if readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState() {
-			// Workflow exists and is running. The mutation was applied despite
-			// the error. Preserve the claimed (non-GC-eligible) row for
-			// reconciliation — the persistence agent will report the correct
-			// state once the workflow progresses.
+		switch {
+		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState():
+			// Workflow exists and is running — mutation was applied.
+			// Preserve the claimed row for reconciliation.
 			glog.Warningf("Retry workflow for run %s returned error but workflow is live (not terminal). "+
 				"Preserving claimed row for reconciliation. Original error: %v", runId, err)
 			return util.NewUnavailableServerError(err,
 				"Retry workflow for run %s returned error but workflow is live; claim preserved for reconciliation", runId)
+		case readError != nil && !apierrors.IsNotFound(readError):
+			// Ambiguous: GET itself failed with a transient error. The
+			// workflow may be running despite the read failure. Preserve
+			// the claimed row for reconciliation rather than risking
+			// rollback to a GC-eligible timestamp.
+			glog.Warningf("Retry workflow for run %s failed and live workflow read also failed; "+
+				"preserving claimed row for reconciliation. Workflow error: %v, read error: %v", runId, err, readError)
+			return util.NewUnavailableServerError(err,
+				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
+		default:
+			// Workflow definitively absent (NotFound) or in terminal state.
+			// Mutation was provably not applied. Safe to rollback.
+			if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
+				glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
+			}
+			return err
 		}
-		// Workflow either does not exist or is still in a terminal state — the
-		// mutation was provably not applied. Safe to rollback.
-		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
-			glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
-		}
-		return err
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
@@ -1645,7 +1654,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	if updateError == nil {
 		// Skip stale terminal reports if a retry has claimed this row.
 		// The persistence agent will re-report after the retry starts.
-		if run.State == model.RuntimeStatePending && run.FinishedAtInSec == 0 && execStatus.IsInFinalState() {
+		// RetryGeneration > 0 distinguishes retry-claimed rows from fresh
+		// runs which are also created with State=PENDING, FinishedAtInSec=0.
+		if run.RetryGeneration > 0 && run.State == model.RuntimeStatePending && run.FinishedAtInSec == 0 && execStatus.IsInFinalState() {
 			return nil, util.NewUnavailableServerError(
 				fmt.Errorf("run %s is being retried (State=PENDING, FinishedAtInSec=0)", runId),
 				"Skipping stale terminal report for run %s — retry in progress", runId)

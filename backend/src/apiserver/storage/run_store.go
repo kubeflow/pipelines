@@ -116,12 +116,12 @@ type RunStoreInterface interface {
 	// Atomically claims a terminal run for retry (database-side CAS).
 	// Returns the original State, Conditions, FinishedAtInSec, and the new
 	// RetryGeneration claim token for rollback and reporter fencing.
-	ClaimRunForRetry(runId string) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+	ClaimRunForRetry(runID string) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
 	// The claimGeneration must match the value returned by ClaimRunForRetry
 	// to prevent ABA rollback of a later retry.
-	RollbackRetryClaim(runId string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
+	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
 }
 
 type RunStore struct {
@@ -840,10 +840,10 @@ func (s *RunStore) DeleteRun(id string) error {
 	return nil
 }
 
-func (s *RunStore) ClaimRunForRetry(runId string) (string, string, int64, int64, error) {
+func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
 	}
 
 	// Lock the row and read current state. Use sql.NullString for State
@@ -851,11 +851,11 @@ func (s *RunStore) ClaimRunForRetry(runId string) (string, string, int64, int64,
 	selectSQL, selectArgs, err := sq.
 		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration").
 		From("run_details").
-		Where(sq.Eq{"UUID": runId}).
+		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runID)
 	}
 	row := tx.QueryRow(s.db.SelectForUpdate(selectSQL), selectArgs...)
 	var nullableState sql.NullString
@@ -864,19 +864,39 @@ func (s *RunStore) ClaimRunForRetry(runId string) (string, string, int64, int64,
 	var currentGeneration int64
 	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration); err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runID)
 	}
 	originalState := ""
 	if nullableState.Valid {
 		originalState = nullableState.String
 	}
 
-	// Verify the row is still eligible: must not already be claimed or still pending.
-	if originalState == model.RuntimeStatePending.ToString() {
+	// Verify the locked row is still in a terminal state. Between the
+	// earlier CanRetry check and lock acquisition, another retry may have
+	// claimed the row (PENDING) or the run may have transitioned to an
+	// active state (RUNNING, PAUSED, CANCELING).
+	terminalStates := map[string]bool{
+		model.RuntimeStateSucceeded.ToString():   true,
+		model.RuntimeStateFailed.ToString():      true,
+		model.RuntimeStateSkipped.ToString():     true,
+		model.RuntimeStateCanceled.ToString():    true,
+		model.RuntimeStateSucceededV1.ToString(): true,
+		model.RuntimeStateFailedV1.ToString():    true,
+		model.RuntimeStateSkippedV1.ToString():   true,
+		model.RuntimeStateErrorV1.ToString():     true,
+		model.LegacyStateDone:                    true,
+		model.LegacyStateDisabled:                true,
+	}
+	isTerminal := terminalStates[originalState]
+	// Legacy v1 rows have State NULL/empty; derive terminal status from Conditions.
+	if !isTerminal && originalState == "" {
+		isTerminal = terminalStates[originalConditions]
+	}
+	if !isTerminal {
 		tx.Rollback()
 		return "", "", 0, 0, util.NewInternalServerError(
-			errors.New("run already claimed for retry or still pending"),
-			"Cannot claim run %s: State is PENDING", runId)
+			fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
+			"Cannot claim run %s for retry: not in a terminal state", runID)
 	}
 
 	// Atomically transition to PENDING and increment RetryGeneration.
@@ -889,40 +909,40 @@ func (s *RunStore) ClaimRunForRetry(runId string) (string, string, int64, int64,
 		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
 		Set("FinishedAtInSec", 0).
 		Set("RetryGeneration", newGeneration).
-		Where(sq.Eq{"UUID": runId}).
+		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runID)
 	}
 	if _, err := tx.Exec(claimSQL, claimArgs...); err != nil {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runID)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runId)
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runID)
 	}
 	return originalState, originalConditions, originalFinishedAtInSec, newGeneration, nil
 }
 
-func (s *RunStore) RollbackRetryClaim(runId string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
+func (s *RunStore) RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
 	rollbackSQL, rollbackArgs, err := sq.
 		Update("run_details").
 		Set("State", originalState).
 		Set("Conditions", originalConditions).
 		Set("FinishedAtInSec", originalFinishedAtInSec).
 		Where(sq.And{
-			sq.Eq{"UUID": runId},
+			sq.Eq{"UUID": runID},
 			sq.Eq{"RetryGeneration": claimGeneration},
 		}).
 		ToSql()
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runId)
+		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runID)
 	}
-	_, err = s.db.DB.Exec(rollbackSQL, rollbackArgs...)
+	_, err = s.db.Exec(rollbackSQL, rollbackArgs...)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runId)
+		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runID)
 	}
 	return nil
 }
