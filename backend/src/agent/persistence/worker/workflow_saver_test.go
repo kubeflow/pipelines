@@ -22,6 +22,7 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/diagnostics"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -268,4 +269,33 @@ func TestWorkflow_Save_SkippedDDueToMissingRunID(t *testing.T) {
 
 	assert.Equal(t, false, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.Equal(t, nil, err)
+}
+
+
+
+func TestWorkflowSaver_ExtractPodDiagnostics_OOMKilled(t *testing.T) {
+	workflowFake := client.NewWorkflowClientFake()
+	pipelineFake := client.NewPipelineClientFake()
+
+	saver := NewWorkflowSaver(workflowFake, pipelineFake, 100)
+	wf := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "MY_NAMESPACE",
+			Name: "MY_NAME",
+		},
+		Status: workflowapi.WorkflowStatus{
+			Nodes: map[string]workflowapi.NodeStatus{
+				"node-oom": {
+					Name: "node-oom",
+					Phase: workflowapi.NodeFailed,
+					Message: "OOMKilled",
+				},
+			},
+		},
+})
+    diags := saver.ExtractPodDiagnostics(wf)
+	assert.NotNil(t, diags)
+	assert.Contains(t, diags, "node-oom")
+	assert.Equal(t, diagnostics.CategoryRuntimeCrash, diags["node-oom"].Category)
+	assert.Equal(t, "OOMKilled", diags["node-oom"].ErrorCode)
 }

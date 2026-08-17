@@ -25,10 +25,15 @@ import TerminatedIcon from 'src/icons/statusTerminated';
 import UnknownIcon from '@mui/icons-material/Help';
 import { color } from 'src/Css';
 import { logger, formatDateString } from 'src/lib/Utils';
-import { checkIfTerminatedV2 } from 'src/lib/StatusUtils';
+import { checkIfTerminatedV2, getPodDiagnosticInfo } from 'src/lib/StatusUtils';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { Tooltip } from '@mui/material';
+
+export interface PodDiagnostics {
+  error_code?: string;
+  error_message?: string;
+}
 
 export function statusToIcon(
   state?: V2beta1RuntimeState,
@@ -36,8 +41,10 @@ export function statusToIcon(
   endDate?: Date | string,
   nodeMessage?: string,
   mlmdState?: metadataStorePb.Execution.State,
+  podDiagnostics?: PodDiagnostics,
 ): React.JSX.Element {
   state = checkIfTerminatedV2(state, nodeMessage);
+  const diagInfo = getPodDiagnosticInfo(podDiagnostics?.error_code);
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
@@ -45,13 +52,13 @@ export function statusToIcon(
   switch (state) {
     case V2beta1RuntimeState.FAILED:
       IconComponent = ErrorIcon;
-      iconColor = color.errorText;
-      title = 'Resource failed to execute';
+      iconColor = diagInfo ? diagInfo.badgeColor : color.errorText;
+      title = diagInfo ? `${diagInfo.label} (${diagInfo.code})` : 'Resource failed to execute';
       break;
     case V2beta1RuntimeState.PENDING:
       IconComponent = PendingIcon;
-      iconColor = color.weak;
-      title = 'Pending execution';
+      iconColor = diagInfo ? diagInfo.badgeColor : color.weak;
+      title = diagInfo ? `${diagInfo.label} (${diagInfo.code})` : 'Pending execution';
       break;
     case V2beta1RuntimeState.RUNNING:
       IconComponent = RunningIcon;
@@ -100,6 +107,11 @@ export function statusToIcon(
       title={
         <div>
           <div>{title}</div>
+          {diagInfo && (
+            <>
+              {podDiagnostics?.error_message && <div>Error: {podDiagnostics.error_message}</div>}
+            </>
+          )}
           {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
           {startDate && <div>Start: {formatDateString(startDate)}</div>}
           {endDate && <div>End: {formatDateString(endDate)}</div>}

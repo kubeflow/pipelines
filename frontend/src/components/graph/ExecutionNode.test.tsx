@@ -19,11 +19,32 @@ import { render, screen } from '@testing-library/react';
 import ExecutionNode, { getIcon, getExecutionIcon } from './ExecutionNode';
 import { Execution } from 'src/third_party/mlmd';
 import { ReactFlowProvider } from '@xyflow/react';
+import { expect, it } from 'vitest';
 
 describe('ExecutionNode', () => {
   const renderWithProvider = (component: React.ReactElement) => {
     return render(<ReactFlowProvider>{component}</ReactFlowProvider>);
   };
+
+  it('renders with IMAGE_PULL_BACKOFF and warning amber badge', () => {
+    renderWithProvider(
+      <ExecutionNode 
+      id='exec-1'
+      data={{ label: 'image-pull-step', state: Execution.State.RUNNING, errorCode: 'IMAGE_PULL_BACKOFF' }}
+      />,
+    );
+    expect(screen.getByTestId('WarningAmberIcon')).toBeInTheDocument();
+  });
+
+  it('renders with OOM_KILLED and error badge', () => {
+    renderWithProvider(
+      <ExecutionNode 
+        id='exec-1'
+        data={{ label: 'oom-step', state: Execution.State.FAILED, errorCode: 'OOM_KILLED' }}
+      />,
+    );
+    expect(screen.getByTestId('ErrorIcon')).toBeInTheDocument();
+  });
 
   it('renders the execution label', () => {
     renderWithProvider(

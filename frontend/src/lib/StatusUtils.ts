@@ -187,3 +187,46 @@ export function checkIfTerminatedV2(
   }
   return state;
 }
+
+
+export interface PodDiagnosticInfo {
+  code: string;
+  label: string;
+  badgeColor: string;
+}
+
+export const POD_DIAGNOSTIC_MAP: Record<string, PodDiagnosticInfo> = {
+  IMAGE_PULL_BACKOFF: {
+    code: 'IMAGE_PULL_BACKOFF',
+    label: 'Provisioning Failed',
+    badgeColor: '#e37400',
+  },
+  OOM_KILLED: {
+    code: 'OOM_KILLED',
+    label: 'Out of Memory',
+    badgeColor: '#d93025',
+  },
+  UNSCHEDULABLE: {
+    code: 'Scheduling Failed',
+    label: 'Provisioning Failed',
+    badgeColor: '#e37400',
+  },
+  CRASH_LOOP_BACKOFF: {
+    code: 'CRASH_LOOP_BACKOFF',
+    label: 'Runtime Crash',
+    badgeColor: '#d93025',
+  },
+  NODE_EVICTED: {
+    code: 'NODE_EVICTED',
+    label: 'Node Evicted',
+    badgeColor: '#7b1fa2',
+  },
+
+};
+
+export function getPodDiagnosticInfo(errorCode?: string): PodDiagnosticInfo | undefined {
+  if(!errorCode) {
+    return undefined;
+  }
+  return POD_DIAGNOSTIC_MAP[errorCode];
+}

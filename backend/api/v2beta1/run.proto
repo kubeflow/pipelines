@@ -383,6 +383,13 @@ message PipelineTaskDetail {
 
   // Sequence of dependen tasks.
   repeated ChildTask child_tasks = 16;
+
+  PodLifecycleDiagnostics pod_diagnostics = 17;
+}
+
+message PodLifecycleDiagnostics {
+  string error_code = 1;
+  string error_message = 2;
 }
 
 // Runtime information of a pipeline task executor.

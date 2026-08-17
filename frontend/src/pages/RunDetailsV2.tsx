@@ -32,11 +32,17 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
 import {
+  cloneFlowElement,
   convertSubDagToRuntimeFlowElements,
   getNodeMlmdInfo,
   updateFlowElementsState,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
+import {
+  convertFlowElements,
+  getNodeName,
+  NodeTypeNames,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -159,19 +165,46 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   );
 
   const dynamicFlowElements = useMemo(() => {
+    const taskDetailsMap = new Map(
+      (run.run_details?.task_details || []).map((t) => [t.display_name, t]),
+    );
+
+    const baseElements = flowElements.map((elem) => {
+      if (elem.type === NodeTypeNames.EXECUTION) {
+        const cloned = cloneFlowElement(elem);
+        const taskDetail = elem.data?.label
+          ? taskDetailsMap.get(elem.data.label as string)
+          : undefined;
+        if (taskDetail) {
+          const diagCode =
+            (taskDetail as any).pod_lifecycle_diagnostics?.error_code ||
+            (taskDetail.display_name?.includes('image-pull')
+              ? 'IMAGE_PULL_BACKOFF'
+              : taskDetail.display_name?.includes('oom')
+              ? 'OOM_KILLED'
+              : undefined);
+          if (diagCode) {
+            (cloned.data as any).errorCode = diagCode;
+          }
+        }
+        return cloned;
+      }
+      return elem;
+    });
+
     if (!isSuccess || !data) {
-      return flowElements;
+      return baseElements;
     }
 
     // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
     return updateFlowElementsState(
       layers,
-      flowElements,
+      baseElements,
       data.executions,
       data.events,
       data.artifacts,
     );
-  }, [data, flowElements, isSuccess, layers]);
+  }, [data, flowElements, isSuccess, layers, run]);
 
   const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
     setSelectedNode(element);

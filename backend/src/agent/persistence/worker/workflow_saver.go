@@ -21,6 +21,10 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	"github.com/kubeflow/pipelines/backend/src/agent/persistence/diagnostics"
+	v1 "k8s.io/api/core/v1"
 )
 
 // WorkflowSaver provides a function to persist a workflow to a database.
@@ -88,4 +92,29 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
 	return s.metricsReporter.ReportMetrics(wf)
+}
+
+
+func (s *WorkflowSaver) ExtractPodDiagnostics(wf *util.Workflow) map[string]*diagnostics.PodLifecycleDiagnostics {
+	if wf == nil || wf.Workflow == nil || wf.Workflow.Status.Nodes ==  nil {
+		return nil
+	}
+
+	results := make(map[string]*diagnostics.PodLifecycleDiagnostics)
+	for nodeID, node := range wf.Workflow.Status.Nodes {
+		if node.Phase == workflowapi.NodeFailed || node.Phase == workflowapi.NodeError || node.Phase == workflowapi.NodePending {
+			podStatus := &v1.PodStatus{
+                Reason: node.Message,
+				Message: node.Message,
+			}
+			if diag := diagnostics.ClassifyPodStatus(podStatus); diag != nil {
+				results[nodeID] = diag
+			}
+		}
+	}
+
+	if len(results) == 0 {
+		return nil
+	}
+	return results
 }

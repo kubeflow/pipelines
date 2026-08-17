@@ -1,0 +1,53 @@
+# PIPELINE DEFINITION
+# Name: image-pull-failure-pipeline
+# Description: Pipeline to test and verify ImagePullBackOff diagnostic detection in KFP UI.
+components:
+  comp-fail-image-pull-task:
+    executorLabel: exec-fail-image-pull-task
+deploymentSpec:
+  executors:
+    exec-fail-image-pull-task:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - fail_image_pull_task
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'kfp==2.15.2'\
+          \ '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"3.9\"' && \"\
+          $0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef fail_image_pull_task():\n    print(\"This task will fail during\
+          \ pod provisioning with ImagePullBackOff.\")\n\n"
+        image: nonexistent.registry.io/kfp-diagnostics/inavlid-image:v999
+pipelineInfo:
+  description: Pipeline to test and verify ImagePullBackOff diagnostic detection in
+    KFP UI.
+  name: image-pull-failure-pipeline
+root:
+  dag:
+    tasks:
+      fail-image-pull-task:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-fail-image-pull-task
+        taskInfo:
+          name: fail-image-pull-task
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
