@@ -1184,8 +1184,10 @@ func (c *Client) GetInputArtifactsByExecutionID(ctx context.Context, executionID
 		runtimeArtifactByID[artifact.GetId()] = runtimeArtifact
 	}
 	// Rebuild each list in the order its INPUT events were recorded, rather than
-	// whatever order GetArtifacts returns them in, so a dsl.Collected() fan-in
-	// comes back in the same order every run.
+	// whatever order GetArtifacts returns them in. MLMD does not document an
+	// ordering guarantee for GetEventsByExecutionIDs either, but this at least
+	// ties list order to the recorded events instead of an unrelated RPC's
+	// response order.
 	inputs = make(map[string]*pipelinespec.ArtifactList)
 	for name, ids := range orderedIDsByName {
 		artifactList := &pipelinespec.ArtifactList{}
