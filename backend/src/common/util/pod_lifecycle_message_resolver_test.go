@@ -167,3 +167,158 @@ func TestResolveNodeLifecycleMessage_IntegratesWithClassifyPodFailure(t *testing
 	assert.Equal(t, PodFailureCategoryRuntime, category)
 	assert.Equal(t, "OOMKilled", reason)
 }
+
+func TestLastNameSegment(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+	}{
+		{"my-wf(0).root(0).heavy-task-driver", "heavy-task-driver"},
+		{"my-wf(0).root(0).heavy-task-driver(0)", "heavy-task-driver(0)"},
+		{"my-wf(0).root(0).heavy-task", "heavy-task"},
+		{"my-wf", "my-wf"},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, lastNameSegment(tt.name))
+		})
+	}
+}
+
+// Node shapes below are modeled directly on a real workflow's live status.nodes, captured with
+// `kubectl get wf -o json` against a KFP v2 pipeline with a single component task named
+// "heavy-task", not reconstructed from compiler source alone:
+//
+//	id=...-2792668430 name=wf(0).root(0).heavy-task-driver         type=Retry  phase=Succeeded
+//	id=...-297853757  name=wf(0).root(0).heavy-task-driver(0)      type=Pod    phase=Succeeded
+//	id=...-435981245  name=wf(0).root(0).heavy-task                type=Retry  phase=Running
+//
+// The driver is itself Retry-wrapped, not a bare Pod node directly -- both the "-driver" group
+// node and its "(0)" attempt child exist, same as any other retried task.
+func TestResolveMissingTaskDriverFailure(t *testing.T) {
+	// realDagChildren mirrors "root(0)"'s actual Children from the same captured workflow: the
+	// driver group node's ID, and (only once the driver succeeds) the executor group node's ID.
+	t.Run("driver failed: no executor node exists yet, driver's message surfaces", func(t *testing.T) {
+		nodes := map[string]workflowapi.NodeStatus{
+			"root": {
+				Type: workflowapi.NodeTypeDAG, Phase: workflowapi.NodeRunning,
+				// Only the driver child exists -- the executor was never created, since it
+				// Depends on the driver and the driver never succeeded.
+				Children: []string{"driver-group"},
+			},
+			"driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeFailed,
+				Name:     "wf(0).root(0).heavy-task-driver",
+				Children: []string{"driver-attempt-0"},
+			},
+			"driver-attempt-0": {
+				Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeFailed,
+				Name: "wf(0).root(0).heavy-task-driver(0)",
+				Message: "failed to create PVC \"typo-name\": " +
+					"persistentvolumeclaims \"typo-name\" not found",
+			},
+		}
+		got := ResolveMissingTaskDriverFailure(nodes, "root", "heavy-task")
+		assert.Contains(t, got, "persistentvolumeclaims \"typo-name\" not found")
+	})
+
+	t.Run("driver succeeded and executor already exists: defers, returns empty", func(t *testing.T) {
+		nodes := map[string]workflowapi.NodeStatus{
+			"root": {
+				Type:     workflowapi.NodeTypeDAG,
+				Phase:    workflowapi.NodeRunning,
+				Children: []string{"driver-group", "executor-group"},
+			},
+			"driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeSucceeded,
+				Name:     "wf(0).root(0).heavy-task-driver",
+				Children: []string{"driver-attempt-0"},
+			},
+			"driver-attempt-0": {
+				Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeSucceeded,
+				Name: "wf(0).root(0).heavy-task-driver(0)",
+			},
+			"executor-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeRunning,
+				Name: "wf(0).root(0).heavy-task",
+			},
+		}
+		got := ResolveMissingTaskDriverFailure(nodes, "root", "heavy-task")
+		assert.Equal(t, "", got,
+			"the executor node exists, so ResolveNodeLifecycleMessage owns this, not the driver check")
+	})
+
+	t.Run("driver still running, executor doesn't exist yet: not a failure, returns empty", func(t *testing.T) {
+		nodes := map[string]workflowapi.NodeStatus{
+			"root": {
+				Type: workflowapi.NodeTypeDAG, Phase: workflowapi.NodeRunning,
+				Children: []string{"driver-group"},
+			},
+			"driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeRunning,
+				Name:     "wf(0).root(0).heavy-task-driver",
+				Children: []string{"driver-attempt-0"},
+			},
+			"driver-attempt-0": {
+				Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeRunning,
+				Name: "wf(0).root(0).heavy-task-driver(0)",
+			},
+		}
+		got := ResolveMissingTaskDriverFailure(nodes, "root", "heavy-task")
+		assert.Equal(t, "", got)
+	})
+
+	t.Run("unrelated task name under the same parent: no match, returns empty", func(t *testing.T) {
+		nodes := map[string]workflowapi.NodeStatus{
+			"root": {
+				Type: workflowapi.NodeTypeDAG, Phase: workflowapi.NodeRunning,
+				Children: []string{"driver-group"},
+			},
+			"driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeFailed,
+				Name:     "wf(0).root(0).heavy-task-driver",
+				Children: []string{"driver-attempt-0"},
+			},
+			"driver-attempt-0": {
+				Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeFailed,
+				Name: "wf(0).root(0).heavy-task-driver(0)", Message: "some driver failure",
+			},
+		}
+		got := ResolveMissingTaskDriverFailure(nodes, "root", "some-other-task")
+		assert.Equal(t, "", got)
+	})
+
+	t.Run("unknown parent node: returns empty rather than panicking", func(t *testing.T) {
+		got := ResolveMissingTaskDriverFailure(map[string]workflowapi.NodeStatus{}, "does-not-exist", "heavy-task")
+		assert.Equal(t, "", got)
+	})
+
+	t.Run("two tasks sharing a parent are not confused with each other", func(t *testing.T) {
+		nodes := map[string]workflowapi.NodeStatus{
+			"root": {
+				Type: workflowapi.NodeTypeDAG, Phase: workflowapi.NodeRunning,
+				Children: []string{"a-driver-group", "b-driver-group", "b-executor-group"},
+			},
+			"a-driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeFailed,
+				Name:     "wf(0).root(0).task-a-driver",
+				Children: []string{"a-driver-attempt-0"},
+			},
+			"a-driver-attempt-0": {
+				Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeFailed,
+				Name: "wf(0).root(0).task-a-driver(0)", Message: "task A's driver failed",
+			},
+			"b-driver-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeSucceeded,
+				Name: "wf(0).root(0).task-b-driver",
+			},
+			"b-executor-group": {
+				Type: workflowapi.NodeTypeRetry, Phase: workflowapi.NodeRunning,
+				Name: "wf(0).root(0).task-b",
+			},
+		}
+		assert.Contains(t, ResolveMissingTaskDriverFailure(nodes, "root", "task-a"), "task A's driver failed")
+		assert.Equal(t, "", ResolveMissingTaskDriverFailure(nodes, "root", "task-b"))
+	})
+}

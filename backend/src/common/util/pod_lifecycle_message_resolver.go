@@ -14,7 +14,27 @@
 
 package util
 
-import workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+import (
+	"strings"
+
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+)
+
+// driverTaskNameSuffix is the fixed suffix the compiler appends to a task's own name to name its
+// paired driver DAGTask. See containerDriverTask's caller in
+// backend/src/v2/compiler/argocompiler/dag.go: `driverTaskName := name + "-driver"`.
+const driverTaskNameSuffix = "-driver"
+
+// lastNameSegment returns the final dot-separated segment of an Argo node's hierarchical Name
+// (e.g. "my-wf(0).root(0).heavy-task-driver" -> "heavy-task-driver"), which is the DAGTask's own
+// name within its parent DAG, independent of the workflow's name or how deeply the task is
+// nested. Confirmed against a live workflow's actual node names, not just compiler source.
+func lastNameSegment(name string) string {
+	if idx := strings.LastIndex(name, "."); idx != -1 {
+		return name[idx+1:]
+	}
+	return name
+}
 
 // nonFailureNodePhases are terminal/benign Argo node phases that never represent a pod lifecycle
 // failure, even when the node has a leftover message (e.g. a Skipped node's skip-reason, or a
@@ -113,4 +133,59 @@ func resolveNodeLifecycleMessage(
 
 	resolved[nodeID] = ""
 	return ""
+}
+
+// ResolveMissingTaskDriverFailure checks whether taskName's own executor node was never created
+// because its paired driver task failed first, and if so, returns the driver's own resolved
+// failure message.
+//
+// KFP's compiler emits two separate DAGTasks per component task, in the same parent DAG: the
+// driver ("<name>-driver", resolves inputs, builds the pod spec, and handles Kubernetes-specific
+// config such as PVC/Secret mounts referenced via kfp-kubernetes) and the executor ("<name>",
+// the node the UI renders) -- and the executor Depends on the driver
+// (backend/src/v2/compiler/argocompiler/dag.go, containerDriverTask/executor.Depends). That is a
+// sibling relationship via a scheduling dependency, not parent/child containment, so
+// ResolveNodeLifecycleMessage's tree walk never reaches it: it only walks Children.
+//
+// If the driver fails, Argo never creates the executor node at all, since its dependency never
+// resolved. There is then no Pod-type node anywhere in the tree for ResolveNodeLifecycleMessage
+// to find -- the task simply never appears to have started, and the real failure (for example, a
+// kubernetes.mount_pvc() reference to a PVC that doesn't exist) is entirely invisible to it.
+//
+// parentNodeID must be a node already known to exist -- the enclosing DAG node is always
+// instantiated before either of a task's driver/executor children are, so it is always a safe
+// starting point even when the task itself has no node yet. taskName is the plain DAGTask name
+// as written in the compiled template, not the hierarchical Argo node Name.
+func ResolveMissingTaskDriverFailure(
+	nodes map[string]workflowapi.NodeStatus,
+	parentNodeID string,
+	taskName string,
+) string {
+	parent, ok := nodes[parentNodeID]
+	if !ok {
+		return ""
+	}
+
+	var driverChildID string
+	for _, childID := range parent.Children {
+		child, ok := nodes[childID]
+		if !ok {
+			continue
+		}
+		switch lastNameSegment(child.Name) {
+		case taskName:
+			// The executor already has its own node; whatever happened to it is
+			// ResolveNodeLifecycleMessage's job, not this function's.
+			return ""
+		case taskName + driverTaskNameSuffix:
+			driverChildID = childID
+		}
+	}
+
+	if driverChildID == "" {
+		// No driver child for taskName under this parent at all -- taskName doesn't belong here.
+		return ""
+	}
+
+	return ResolveNodeLifecycleMessage(nodes, driverChildID)
 }
