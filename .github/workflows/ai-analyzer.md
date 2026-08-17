@@ -86,6 +86,7 @@ engine:
 checkout: false
 
 tools:
+  bash: []
   github:
     toolsets: [issues]
     min-integrity: none
