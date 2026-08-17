@@ -4,6 +4,7 @@ description: Review the quality of new Kubeflow Pipelines issues
 on:
   issues:
     types: [opened, edited]
+  needs: [title_change]
   roles: all
   status-comment: false
   permissions:
@@ -11,7 +12,6 @@ on:
   steps:
     - name: Validate and classify issue title
       id: validate_title
-      if: github.event.action == 'opened' || github.event.changes.title.from != ''
       env:
         GH_TOKEN: ${{ github.token }}
         ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -70,6 +70,12 @@ user-rate-limit:
   window: 60
 
 jobs:
+  title_change:
+    if: github.event.action == 'opened' || github.event.changes.title.from != ''
+    runs-on: ubuntu-slim
+    steps:
+      - name: Allow new issues and title edits
+        run: echo "Issue title requires analysis."
   pre-activation:
     outputs:
       issue_type: ${{ steps.validate_title.outputs.issue_type }}
