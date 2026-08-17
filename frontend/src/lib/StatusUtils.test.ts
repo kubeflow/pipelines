@@ -38,20 +38,64 @@ describe('classifyPodFailure', () => {
   });
 
   const cases: Array<[string, string, PodFailureCategory]> = [
-    ['Failed to pull image "bad-tag:latest": ImagePullBackOff', 'ImagePullBackOff', PodFailureCategory.PROVISIONING],
+    [
+      'Failed to pull image "bad-tag:latest": ImagePullBackOff',
+      'ImagePullBackOff',
+      PodFailureCategory.PROVISIONING,
+    ],
     ['rpc error: ErrImagePull: failed to pull', 'ErrImagePull', PodFailureCategory.PROVISIONING],
-    ['ErrImageNeverPull: image not present locally', 'ErrImageNeverPull', PodFailureCategory.PROVISIONING],
-    ['InvalidImageName: could not parse reference', 'InvalidImageName', PodFailureCategory.PROVISIONING],
-    ['0/1 nodes are available: 1 Insufficient cpu. Unschedulable', 'Unschedulable', PodFailureCategory.PROVISIONING],
-    ['back-off restarting failed container: CrashLoopBackOff', 'CrashLoopBackOff', PodFailureCategory.RUNTIME],
-    ['container terminated with reason OOMKilled, exit code 137', 'OOMKilled', PodFailureCategory.RUNTIME],
-    ['pod ci-step exceeded active deadline: DeadlineExceeded', 'DeadlineExceeded', PodFailureCategory.RUNTIME],
+    [
+      'ErrImageNeverPull: image not present locally',
+      'ErrImageNeverPull',
+      PodFailureCategory.PROVISIONING,
+    ],
+    [
+      'InvalidImageName: could not parse reference',
+      'InvalidImageName',
+      PodFailureCategory.PROVISIONING,
+    ],
+    [
+      '0/1 nodes are available: 1 Insufficient cpu. Unschedulable',
+      'Unschedulable',
+      PodFailureCategory.PROVISIONING,
+    ],
+    [
+      'back-off restarting failed container: CrashLoopBackOff',
+      'CrashLoopBackOff',
+      PodFailureCategory.RUNTIME,
+    ],
+    [
+      'container terminated with reason OOMKilled, exit code 137',
+      'OOMKilled',
+      PodFailureCategory.RUNTIME,
+    ],
+    [
+      'pod ci-step exceeded active deadline: DeadlineExceeded',
+      'DeadlineExceeded',
+      PodFailureCategory.RUNTIME,
+    ],
     ['ContainerCannotRun: exec format error', 'ContainerCannotRun', PodFailureCategory.RUNTIME],
-    ['CreateContainerConfigError: secret "foo" not found', 'CreateContainerConfigError', PodFailureCategory.RUNTIME],
-    ['CreateContainerError: failed to create containerd task', 'CreateContainerError', PodFailureCategory.RUNTIME],
-    ['RunContainerError: failed to start container', 'RunContainerError', PodFailureCategory.RUNTIME],
+    [
+      'CreateContainerConfigError: secret "foo" not found',
+      'CreateContainerConfigError',
+      PodFailureCategory.RUNTIME,
+    ],
+    [
+      'CreateContainerError: failed to create containerd task',
+      'CreateContainerError',
+      PodFailureCategory.RUNTIME,
+    ],
+    [
+      'RunContainerError: failed to start container',
+      'RunContainerError',
+      PodFailureCategory.RUNTIME,
+    ],
     ['node has been marked NodeLost by the controller', 'NodeLost', PodFailureCategory.NODE],
-    ['pod was Preempted to make room for a higher priority pod', 'Preempted', PodFailureCategory.NODE],
+    [
+      'pod was Preempted to make room for a higher priority pod',
+      'Preempted',
+      PodFailureCategory.NODE,
+    ],
     ['pod Evicted due to node memory pressure', 'Evicted', PodFailureCategory.NODE],
   ];
 
@@ -73,7 +117,9 @@ describe('classifyPodFailure', () => {
 
 describe('isPodLifecycleFailure', () => {
   it('returns true for a recognized pod lifecycle failure message', () => {
-    expect(isPodLifecycleFailure('back-off restarting failed container: CrashLoopBackOff')).toBe(true);
+    expect(isPodLifecycleFailure('back-off restarting failed container: CrashLoopBackOff')).toBe(
+      true,
+    );
   });
 
   it('returns false for an unrecognized message', () => {
@@ -102,7 +148,10 @@ describe('statusToBgColor with pod failure categories', () => {
   });
 
   it('falls back to the generic error color for an unrecognized failure message', () => {
-    const color = statusToBgColor(NodePhase.FAILED, 'exit status 1: division by zero in user script');
+    const color = statusToBgColor(
+      NodePhase.FAILED,
+      'exit status 1: division by zero in user script',
+    );
     expect(color).toBe(statusBgColors.error);
   });
 
