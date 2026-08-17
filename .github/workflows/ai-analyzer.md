@@ -3,7 +3,7 @@ description: Review the quality of new Kubeflow Pipelines issues
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
   roles: all
   status-comment: false
   permissions:
@@ -11,6 +11,7 @@ on:
   steps:
     - name: Validate and classify issue title
       id: validate_title
+      if: github.event.action == 'opened' || github.event.changes.title.from != ''
       env:
         GH_TOKEN: ${{ github.token }}
         ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -18,7 +19,7 @@ on:
       run: |
         title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
         if [[ ! "$ISSUE_TITLE" =~ $title_pattern ]]; then
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body $'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.'
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body $'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.\n\nRename the issue with a valid title to retry the quality review automatically.\n\n<!-- gh-aw-workflow-id: ai-analyzer -->'
           echo "valid=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
