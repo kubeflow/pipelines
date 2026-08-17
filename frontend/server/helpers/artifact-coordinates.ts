@@ -13,32 +13,112 @@
 // limitations under the License.
 
 import type { Request } from 'express';
+import { buildArtifactUri } from './artifact-sources.js';
+
+export interface ArtifactCoordinates<TSource extends string = string> {
+  source: TSource;
+  bucket: string;
+  key: string;
+  // Query-based preview routes carry the artifact URI path; download routes are already decoded.
+  keyEncoding?: 'storage' | 'uri';
+  // Exact escaped path spelling used by persisted artifact identity when `key` is decoded storage.
+  uriKey?: string;
+  artifactUriQuery?: string;
+}
+
+/** Rejects alternate URI spellings that decode to an object key with a different identity. */
+export function isCanonicalArtifactUriKey(key: string): boolean {
+  try {
+    const decodedKey = decodeURIComponent(key);
+    // Query and fragment delimiters are not supported inside native KFP object keys.
+    // Uppercase escapes provide one authorization identity for each decoded storage object.
+    return !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
+  } catch {
+    return false;
+  }
+}
+
+/** Converts a URI-path key to the object-store key representation used by the launcher. */
+export function normalizeArtifactStorageCoordinates<TSource extends string>(
+  coordinates: ArtifactCoordinates<TSource>,
+): ArtifactCoordinates<TSource> {
+  if (coordinates.keyEncoding !== 'uri') {
+    return coordinates;
+  }
+  return {
+    ...coordinates,
+    key: decodeURIComponent(coordinates.key),
+    keyEncoding: 'storage',
+  };
+}
 
 export function resolveArtifactCoordinates(
-  request: Request,
-): { source: string; bucket: string; key: string } | null {
+  request: Pick<Request, 'path' | 'query'>,
+): ArtifactCoordinates | null | undefined {
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
-  if (!isExactGetEndpoint) {
-    const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
-    if (downloadPathMatch) {
-      try {
-        return {
-          source: decodeURIComponent(downloadPathMatch[1]),
-          bucket: decodeURIComponent(downloadPathMatch[2]),
-          key: decodeURIComponent(downloadPathMatch[3]),
-        };
-      } catch {
-        return null;
-      }
+  if (isExactGetEndpoint) {
+    const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+    // Express has removed query-transport escaping, but canonical artifact-URI path escapes remain
+    // (for example `%2520` on the wire becomes `%20` here) until storage normalization.
+    const key = asString(request.query.key);
+    if (!isCanonicalArtifactUriKey(key)) {
+      return null;
     }
+    return {
+      source: asString(request.query.source),
+      bucket: asString(request.query.bucket),
+      key,
+      keyEncoding: 'uri',
+      artifactUriQuery: asString(request.query.artifactUriQuery),
+    };
   }
-  const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-  return {
-    source: asString(request.query.source),
-    bucket: asString(request.query.bucket),
-    key: asString(request.query.key),
-  };
+
+  const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
+  if (!downloadPathMatch) {
+    return undefined;
+  }
+  try {
+    const uriKey = downloadPathMatch[3];
+    if (!isCanonicalArtifactUriKey(uriKey)) {
+      return null;
+    }
+    const key = decodeURIComponent(uriKey);
+    return {
+      source: decodeURIComponent(downloadPathMatch[1]),
+      bucket: decodeURIComponent(downloadPathMatch[2]),
+      key,
+      keyEncoding: 'storage',
+      ...(uriKey === key ? {} : { uriKey }),
+      artifactUriQuery:
+        typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function buildArtifactCoordinateUri(coordinates: ArtifactCoordinates): string {
+  const artifactUri = buildArtifactUri(
+    coordinates.source,
+    coordinates.bucket,
+    coordinates.uriKey ?? coordinates.key,
+  );
+  return coordinates.key && coordinates.artifactUriQuery
+    ? `${artifactUri}?${coordinates.artifactUriQuery}`
+    : artifactUri;
+}
+
+/**
+ * Removes launcher provider configuration from a KFP artifact URI.
+ *
+ * Raw `?` starts the provider query. Native object-store parsing rejects percent-encoded query
+ * delimiters in object paths, so object keys containing those delimiters are outside the supported
+ * KFP artifact URI contract.
+ */
+export function stripArtifactUriQuery(artifactUri: string): string {
+  const queryStart = artifactUri.indexOf('?');
+  return queryStart < 0 ? artifactUri : artifactUri.slice(0, queryStart);
 }

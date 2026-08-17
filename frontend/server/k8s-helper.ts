@@ -335,9 +335,9 @@ export async function getConfigMap(
   } catch (error) {
     let userMessage = `Could not get configMap ${configMapName} in namespace ${configMapNamespace}`;
     if (!isAllowedResourceName(configMapName) || !isAllowedResourceName(configMapNamespace)) {
-      userMessage = `Invalid resource name`;
+      return [undefined, { message: 'Invalid resource name' }];
     }
-    return [undefined, { message: userMessage }];
+    return [undefined, { message: userMessage, additionalInfo: (error as any)?.body || error }];
   }
 }
 

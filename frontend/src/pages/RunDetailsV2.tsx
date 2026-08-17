@@ -12,16 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import {
+  MouseEvent as ReactMouseEvent,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { isEqual } from 'lodash';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { queryKeys } from 'src/hooks/queryKeys';
-import { useKeyedState } from 'src/hooks/useKeyedState';
-import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
+import {
+  PipelineTaskTaskType,
+  V2beta1PipelineTask,
+  V2beta1Run,
+  V2beta1RuntimeState,
+  V2beta1RunStorageState,
+} from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import Banner from 'src/components/Banner';
 import DetailsTable from 'src/components/DetailsTable';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
-import { RoutePage, RouteParams } from 'src/components/Router';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
 import { ToolbarProps } from 'src/components/Toolbar';
@@ -31,21 +47,24 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinishedV2, statusProtoMap } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationV2 } from 'src/lib/Utils';
+import { URLParser } from 'src/lib/URLParser';
 import {
+  buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
-  getNodeMlmdInfo,
-  updateFlowElementsState,
+  getNodeRuntimeInfo,
+  getTaskRuntimeLayers,
+  reconcileRuntimeFlowElements,
 } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements, getNodeName, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
-import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import { isTaskFinished } from 'src/lib/v2/RuntimeArtifactUtils';
+import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import {
-  getArtifactsFromContext,
-  getEventsByExecutions,
-  getExecutionsFromContext,
-  getKfpV2RunContext,
-  LinkedArtifact,
-} from 'src/mlmd/MlmdUtils';
-import { Artifact, Event, Execution } from 'src/third_party/mlmd';
+  convertFlowElements,
+  getNodeName,
+  getTaskNodeKey,
+  NodeTypeNames,
+  PipelineFlowElement,
+} from 'src/lib/v2/StaticFlow';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 import { classes } from 'typestyle';
 import { RouteComponentProps } from 'react-router-dom';
 import { RunDetailsProps } from './RunDetails';
@@ -54,22 +73,21 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERVAL = 10000; // 10000 milliseconds == 10 seconds.
+const MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS = 3;
 const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
-interface MlmdPackage {
-  executions: Execution[];
-  artifacts: Artifact[];
-  events: Event[];
-}
-
-export interface NodeMlmdInfo {
-  execution?: Execution;
-  linkedArtifact?: LinkedArtifact;
-}
-
 interface RunDetailsV2Info {
+  onRetryStarted?: () => void;
   pipeline_job: string;
+  parsedPipelineSpec: PipelineSpec;
+  retryRefreshVersion?: number;
   run: V2beta1Run;
+  runRefreshError?: Error | null;
+}
+
+interface SelectedNodeState {
+  element: PipelineFlowElement;
+  linkedTaskId?: string;
 }
 
 export interface RunDetailsV2Params {
@@ -81,40 +99,128 @@ export type RunDetailsV2Props = RunDetailsV2Info &
   RouteComponentProps<RunDetailsV2Params>;
 
 export function RunDetailsV2(props: RunDetailsV2Props) {
+  const { onRetryStarted, updateToolbar } = props;
   const { updateBanner } = props;
   const runId = props.match.params[RouteParams.runId];
   const run = props.run;
+  const selectedNamespace = useContext(NamespaceContext);
   const pipelineJobStr = props.pipeline_job;
-  const pipelineSpec = useMemo(
-    () => WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr),
-    [pipelineJobStr],
-  );
+  const pipelineSpec = props.parsedPipelineSpec;
   const initialElements = useMemo(() => convertFlowElements(pipelineSpec), [pipelineSpec]);
 
   const [flowElements, setFlowElements] = useState(initialElements);
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
-  const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
+  const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [, forceUpdate] = useState();
-  const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
-  const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
-  const runFinished = hasFinishedV2(run.state) && !retriedCurrentRunState;
+  const runIsTerminal = hasFinishedV2(run.state);
+  const retryRefreshVersion = props.retryRefreshVersion || 0;
+  const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
+  const appliedLinkedTaskId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+  const taskQueryKey = useMemo(
+    () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
+    [retryRefreshVersion, runId],
+  );
+  const preRetryTasks =
+    retryRefreshVersion > 0
+      ? queryClient.getQueryData<V2beta1PipelineTask[]>(
+          queryKeys.runTaskRetryBaseline(runId, retryRefreshVersion),
+        )
+      : undefined;
+  const terminalTaskReconciliation = useRef<{
+    dataUpdateBaseline: number;
+    errorUpdateBaseline: number;
+    retryRefreshVersion: number;
+    runId: string;
+  } | null>(
+    runIsTerminal
+      ? {
+          dataUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+          errorUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.errorUpdateCount || 0,
+          retryRefreshVersion,
+          runId,
+        }
+      : null,
+  );
 
-  // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
-    queryKey: queryKeys.mlmdPackage(runId),
-    queryFn: async () => {
-      const context = await getKfpV2RunContext(runId);
-      const executions = await getExecutionsFromContext(context);
-      const artifacts = await getArtifactsFromContext(context);
-      const events = await getEventsByExecutions(executions);
-
-      return { executions, artifacts, events };
-    },
+  const {
+    isSuccess,
+    isError,
+    error,
+    data: tasks,
+    refetch: refetchTasks,
+  } = useQuery<V2beta1PipelineTask[], Error>({
+    queryKey: taskQueryKey,
+    queryFn: () => listAllRunTasks(runId),
+    placeholderData: (previousTasks) => previousTasks,
+    structuralSharing: (previousTasks, nextTasks) =>
+      previousTasks && isEqual(previousTasks, nextTasks) ? previousTasks : nextTasks,
     staleTime: QUERY_STALE_TIME,
-    refetchInterval: QUERY_REFETCH_INTERVAL,
+    refetchInterval: (query) => {
+      if (!runIsTerminal) {
+        return QUERY_REFETCH_INTERVAL;
+      }
+      const reconciliation = terminalTaskReconciliation.current;
+      const dataUpdateBaseline =
+        reconciliation?.runId === runId &&
+        reconciliation.retryRefreshVersion === retryRefreshVersion
+          ? reconciliation.dataUpdateBaseline
+          : retryRefreshVersion > 0
+            ? 0
+            : undefined;
+      const errorUpdateBaseline =
+        reconciliation?.runId === runId &&
+        reconciliation.retryRefreshVersion === retryRefreshVersion
+          ? reconciliation.errorUpdateBaseline
+          : retryRefreshVersion > 0
+            ? 0
+            : undefined;
+      if (dataUpdateBaseline === undefined || errorUpdateBaseline === undefined) {
+        return false;
+      }
+      // Count accepted data and terminal errors. Cancelled requests update neither counter, while
+      // persistent failures must still consume this bounded reconciliation budget.
+      const completedAttemptCount =
+        Math.max(0, query.state.dataUpdateCount - dataUpdateBaseline) +
+        Math.max(0, query.state.errorUpdateCount - errorUpdateBaseline);
+      if (completedAttemptCount === 0) {
+        return QUERY_REFETCH_INTERVAL;
+      }
+      const needsTaskReconciliation =
+        query.state.data === undefined ||
+        query.state.data.some((task) => !isTaskFinished(task.state)) ||
+        (retryRefreshVersion > 0 &&
+          (preRetryTasks === undefined || isEqual(query.state.data, preRetryTasks)));
+      return completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
+        needsTaskReconciliation
+        ? QUERY_REFETCH_INTERVAL
+        : false;
+    },
+    // Terminal run data can arrive while the cached task snapshot is still fresh. Always verify
+    // task state on a terminal mount instead of preserving a potentially running graph forever.
+    refetchOnMount: retryRefreshVersion > 0 || runIsTerminal ? 'always' : true,
   });
+
+  // The terminal run update stops active polling. Capture an operation-scoped baseline before the
+  // first reconciliation fetch so the interval can accept a few eventually consistent snapshots
+  // without depending on this query's lifetime update count.
+  useEffect(() => {
+    const previousStatus = previousRunStatus.current;
+    previousRunStatus.current = { runId, isTerminal: runIsTerminal };
+
+    if (previousStatus.runId === runId && !previousStatus.isTerminal && runIsTerminal) {
+      terminalTaskReconciliation.current = {
+        dataUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
+        errorUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.errorUpdateCount || 0,
+        retryRefreshVersion,
+        runId,
+      };
+      void refetchTasks();
+    } else if (!runIsTerminal) {
+      terminalTaskReconciliation.current = null;
+    }
+  }, [queryClient, refetchTasks, retryRefreshVersion, runId, runIsTerminal, taskQueryKey]);
 
   // Retrieves experiment detail.
   const experimentId = run.experiment_id || null;
@@ -126,13 +232,27 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     queryKey: queryKeys.runDetailsV2Experiment(runId, experimentId),
     queryFn: () => getExperiment(experimentId),
   });
-  const namespace = experiment?.namespace;
+  const namespace = experiment?.namespace || selectedNamespace;
+  const linkedTaskId = new URLParser(props).get(QUERY_PARAMS.taskId);
+  const clearLinkedTaskQuery = useCallback(() => {
+    if (!linkedTaskId) {
+      return;
+    }
+    appliedLinkedTaskId.current = null;
+    const search = new URLSearchParams(props.location.search);
+    search.delete(QUERY_PARAMS.taskId);
+    const nextSearch = search.toString();
+    props.history.replace({
+      ...props.location,
+      search: nextSearch ? `?${nextSearch}` : '',
+    });
+  }, [linkedTaskId, props.history, props.location]);
 
-  // Single banner effect with clear precedence: MLMD error > experiment error > clear on success.
+  // Query errors take precedence over experiment errors; clear only after both recover.
   useEffect(() => {
     if (isError && error) {
       updateBanner({
-        message: 'Cannot get MLMD objects from Metadata store.',
+        message: 'Cannot get tasks for this run. Refresh the page to try again.',
         additionalInfo: error.message,
         mode: 'error',
       });
@@ -149,43 +269,84 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const layerChange = useCallback(
     (layers: string[]) => {
-      setSelectedNode(null);
+      clearLinkedTaskQuery();
+      setSelectedNodeState(null);
       setLayers(layers);
-      setFlowElements(
-        convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
-      ); // render elements in the sub-layer.
+      setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
     },
-    [data, pipelineSpec],
+    [clearLinkedTaskQuery, pipelineSpec, tasks],
+  );
+
+  const runtimeFlowContext = useMemo(
+    () => buildRuntimeFlowContext(layers, tasks || []),
+    [layers, tasks],
   );
 
   const dynamicFlowElements = useMemo(() => {
-    if (!isSuccess || !data) {
+    if (!tasks) {
       return flowElements;
     }
 
-    // Keep React Flow node references stable between unrelated rerenders after MLMD data arrives.
-    return updateFlowElementsState(
-      layers,
-      flowElements,
-      data.executions,
-      data.events,
-      data.artifacts,
-    );
-  }, [data, flowElements, isSuccess, layers]);
+    return reconcileRuntimeFlowElements(layers, flowElements, tasks, runtimeFlowContext);
+  }, [flowElements, layers, runtimeFlowContext, tasks]);
 
-  const onElementSelection = (event: ReactMouseEvent, element: PipelineFlowElement) => {
-    setSelectedNode(element);
-    if (data) {
-      setSelectedNodeMlmdInfo(
-        getNodeMlmdInfo(element, data.executions, data.events, data.artifacts),
-      );
+  const linkedTask = tasks?.find((task) => task.task_id === linkedTaskId);
+  useEffect(() => {
+    if (!linkedTaskId) {
+      appliedLinkedTaskId.current = null;
+      return;
     }
+    if (!linkedTask) {
+      return;
+    }
+    if (appliedLinkedTaskId.current === linkedTaskId) {
+      return;
+    }
+
+    // The query parameter is external navigation state. Materialize it through the same real
+    // runtime layer and element set used by ordinary canvas navigation so the target is visible,
+    // selected, and backed by its actual graph node rather than a detached details-only object.
+    const targetLayers = getTaskRuntimeLayers(linkedTask, tasks || []);
+    const targetElements = convertSubDagToRuntimeFlowElements(
+      pipelineSpec,
+      targetLayers,
+      tasks || [],
+    );
+    const targetNodeId = getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task');
+    const targetElement =
+      targetElements.find((element) => element.id === targetNodeId) ||
+      buildLinkedTaskElement(linkedTask);
+    appliedLinkedTaskId.current = linkedTaskId;
+    setLayers(targetLayers);
+    setFlowElements(targetElements);
+    setSelectedNodeState({ element: targetElement, linkedTaskId });
+  }, [linkedTask, linkedTaskId, pipelineSpec, tasks]);
+
+  const linkedSelectionMatchesUrl =
+    !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;
+  const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
+  const activeSelectedNode =
+    linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
+  const activeLayers = layers;
+  const selectedNodeRuntimeInfo = useMemo(() => {
+    const linkedTaskNodeId = linkedTask
+      ? getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task')
+      : undefined;
+    if (linkedTask && activeSelectedNode?.id === linkedTaskNodeId) {
+      return { task: linkedTask };
+    }
+    return getNodeRuntimeInfo(activeSelectedNode, tasks || [], layers, runtimeFlowContext);
+  }, [activeSelectedNode, layers, linkedTask, runtimeFlowContext, tasks]);
+
+  const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
+    clearLinkedTaskQuery();
+    setSelectedNodeState({ element });
   };
 
   // Update page title and experiment information.
   useEffect(() => {
-    updateToolBar(run, experiment, props.updateToolbar);
-  }, [run, experiment, props.updateToolbar]);
+    updateToolBar(run, experiment, updateToolbar);
+  }, [run, experiment, updateToolbar]);
 
   // Update buttons for managing runs.
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
@@ -195,19 +356,28 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       buttons,
       runIdFromParams,
       run,
-      runFinished,
-      props.updateToolbar,
+      runIsTerminal,
+      updateToolbar,
       () => forceUpdate,
       (_selectedIds, success) => {
         if (success) {
-          setRetriedCurrentRunState(true);
+          // The polling owner first discovers a fresh run snapshot, then advances the task query's
+          // reconciliation generation. This prevents a concurrent stale task read from winning.
+          onRetryStarted?.();
         }
       },
     );
-  }, [buttons, runIdFromParams, run, runFinished, props.updateToolbar, setRetriedCurrentRunState]);
+  }, [buttons, runIdFromParams, run, runIsTerminal, updateToolbar, onRetryStarted]);
 
   return (
     <>
+      {props.runRefreshError && (
+        <Banner
+          message='Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.'
+          additionalInfo={props.runRefreshError.message}
+          mode='warning'
+        />
+      )}
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
         {/* DAG tab */}
@@ -217,6 +387,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               layers={layers}
               onLayersUpdate={layerChange}
               elements={dynamicFlowElements}
+              selectedNodeId={activeSelectedNode?.id}
+              focusNodeId={linkedTaskId ? activeSelectedNode?.id : undefined}
               onElementClick={onElementSelection}
               setFlowElements={(elems) => setFlowElements(elems)}
             ></DagCanvas>
@@ -224,19 +396,23 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             {/* Side panel for Execution, Artifact, Sub-DAG. */}
             <div className='z-20'>
               <SidePanel
-                isOpen={!!selectedNode}
-                title={getNodeName(selectedNode)}
-                onClose={() => setSelectedNode(null)}
+                isOpen={!!activeSelectedNode}
+                title={getNodeName(activeSelectedNode)}
+                onClose={() => {
+                  clearLinkedTaskQuery();
+                  setSelectedNodeState(null);
+                }}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
-                  layers={layers}
+                  layers={activeLayers}
                   onLayerChange={layerChange}
                   pipelineJobString={pipelineJobStr}
                   runId={runId}
-                  element={selectedNode}
-                  elementMlmdInfo={selectedNodeMlmdInfo}
+                  element={activeSelectedNode}
+                  elementRuntimeInfo={selectedNodeRuntimeInfo}
                   namespace={namespace}
+                  sourceFinished={runIsTerminal}
                 ></RuntimeNodeDetailsV2>
               </SidePanel>
             </div>
@@ -269,6 +445,17 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       </div>
     </>
   );
+}
+
+function buildLinkedTaskElement(task: V2beta1PipelineTask): PipelineFlowElement {
+  const isSubDag =
+    task.type === PipelineTaskTaskType.DAG || task.type === PipelineTaskTaskType.LOOP;
+  return {
+    data: { label: getTaskDisplayName(task) },
+    id: getTaskNodeKey(task.name || task.task_id || 'task'),
+    position: { x: 0, y: 0 },
+    type: isSubDag ? NodeTypeNames.SUB_DAG : NodeTypeNames.EXECUTION,
+  };
 }
 
 async function getExperiment(experimentId: string | null): Promise<V2beta1Experiment> {

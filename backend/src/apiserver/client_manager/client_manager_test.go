@@ -108,10 +108,26 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 func TestFieldMeta_TaskRunId(t *testing.T) {
 	// FieldMeta only inspects schema; sqlite driver is sufficient.
 	db := getTestSQLite(t)
-	table, dbCol, err := FieldMeta(db, &model.Task{}, "RunID")
+	table, dbCol, err := FieldMeta(db, &model.Task{}, "RunUUID")
 	require.NoError(t, err)
 	assert.Equal(t, "tasks", table)
 	assert.Equal(t, "RunUUID", dbCol)
+}
+
+func TestAutoMigrateCreatesTaskLogicalKeyUniqueIndex(t *testing.T) {
+	db := getTestSQLite(t)
+
+	require.NoError(t, autoMigrate(db))
+	assert.True(t, db.Migrator().HasColumn(&model.Task{}, "LogicalKey"))
+	assert.True(t, db.Migrator().HasIndex(&model.Task{}, "idx_tasks_logical_key"))
+}
+
+func TestAutoMigrateCreatesTaskUUIDRunUniqueIndex(t *testing.T) {
+	db := getTestSQLite(t)
+
+	require.NoError(t, autoMigrate(db))
+	assert.True(t, db.Migrator().HasIndex(&model.Task{}, "idx_tasks_uuid_run"))
+	assert.True(t, db.Migrator().HasIndex(&model.Artifact{}, "idx_artifact_identity"))
 }
 
 func TestValidateRequiredConfig(t *testing.T) {

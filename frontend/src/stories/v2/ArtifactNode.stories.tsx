@@ -18,8 +18,6 @@ import { Meta, StoryObj } from '@storybook/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import 'src/build/tailwind.output.css';
-import { color } from 'src/Css';
-import { Artifact } from 'src/third_party/mlmd';
 import ArtifactNode from '../../components/graph/ArtifactNode';
 
 const nodeTypes = {
@@ -29,16 +27,16 @@ const nodeTypes = {
 interface WrappedArtifactNodeProps {
   id: string;
   label: string;
-  state: Artifact.State;
+  hasArtifact: boolean;
 }
 
-function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
+function WrappedArtifactNode({ id, label, hasArtifact }: WrappedArtifactNodeProps) {
   const nodes = [
     {
       id: id,
       type: 'artifact',
       position: { x: 100, y: 100 },
-      data: { label, state },
+      data: { label, hasArtifact },
     },
   ];
 
@@ -82,7 +80,7 @@ export const Primary: Story = {
   args: {
     id: 'id',
     label: 'This is an ArtifactNode',
-    state: Artifact.State.LIVE,
+    hasArtifact: true,
   },
 };
 

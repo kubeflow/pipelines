@@ -609,9 +609,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     newCurrentPage = Math.max(0, newCurrentPage);
     newCurrentPage = Math.min(this.state.maxPageIndex, newCurrentPage);
 
+    const reloadGeneration = this._activeReloadGeneration + 1;
     const newPageToken = await this.reload({
       pageToken: this.state.tokenList[newCurrentPage],
     });
+    if (!this._isMounted || reloadGeneration !== this._activeReloadGeneration) {
+      return;
+    }
 
     if (newPageToken) {
       // If we're using the greatest yet known page, then the pageToken will be new.

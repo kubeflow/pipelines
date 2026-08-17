@@ -31,6 +31,12 @@ import {
 } from '../src/apis/pipeline';
 import { ApiListRunsResponse, ApiResourceType, ApiRun, ApiRunStorageState } from '../src/apis/run';
 import {
+  ArtifactArtifactType,
+  V2beta1Artifact,
+  V2beta1ArtifactTask,
+  V2beta1IOType,
+} from '../src/apisv2beta1/artifact';
+import {
   V2beta1Experiment,
   V2beta1ExperimentStorageState,
   V2beta1ListExperimentsResponse,
@@ -49,7 +55,11 @@ import {
   V2beta1Trigger,
 } from '../src/apisv2beta1/recurringrun';
 import {
+  PipelineTaskTaskPodType,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
   V2beta1ListRunsResponse,
+  V2beta1PipelineTask,
   V2beta1Run,
   V2beta1RunStorageState,
   V2beta1RuntimeState,
@@ -85,6 +95,117 @@ const helloWorldBigHtmlPath = './model-output/hello-world-big.html';
 
 const v1beta1Prefix = '/apis/v1beta1';
 const v2beta1Prefix = '/apis/v2beta1';
+const mockNativeRunId = 'e0115ac1-0479-4194-a22d-01e65e09a32b';
+
+const mockV2Artifacts: V2beta1Artifact[] = [
+  {
+    artifact_id: 'mock-artifact-1',
+    created_at: new Date('2026-01-01T00:00:00.000Z'),
+    description: 'Representative native artifact for local frontend development.',
+    name: 'mock-dataset',
+    namespace: 'kubeflow-user-example-com',
+    type: ArtifactArtifactType.Dataset,
+    uri: 's3://mlpipeline/private-artifacts/kubeflow-user-example-com/mock-run/mock-dataset',
+  },
+];
+const mockV2Tasks: V2beta1PipelineTask[] = [
+  {
+    child_tasks: [
+      { name: 'chicago-taxi-trips-dataset', task_id: 'mock-task-producer' },
+      { name: 'convert-csv-to-apache-parquet', task_id: 'mock-task-consumer' },
+    ],
+    create_time: new Date('2026-01-01T00:00:00.000Z'),
+    display_name: 'xgboost-sample-pipeline',
+    end_time: new Date('2026-01-01T00:03:00.000Z'),
+    name: 'root',
+    run_id: mockNativeRunId,
+    scope_path: 'root',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-root',
+    type: PipelineTaskTaskType.ROOT,
+  },
+  {
+    create_time: new Date('2026-01-01T00:00:10.000Z'),
+    display_name: 'Chicago taxi trips dataset',
+    end_time: new Date('2026-01-01T00:01:00.000Z'),
+    name: 'chicago-taxi-trips-dataset',
+    outputs: {
+      artifacts: [
+        {
+          artifact_key: 'table',
+          artifacts: mockV2Artifacts,
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
+    },
+    parent_task_id: 'mock-task-root',
+    pods: [
+      {
+        name: 'mock-chicago-taxi-trips-dataset-executor',
+        type: PipelineTaskTaskPodType.EXECUTOR,
+        uid: 'mock-producer-pod-uid',
+      },
+    ],
+    run_id: mockNativeRunId,
+    scope_path: 'root.chicago-taxi-trips-dataset',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-producer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
+  {
+    create_time: new Date('2026-01-01T00:01:05.000Z'),
+    display_name: 'Convert CSV to Apache Parquet',
+    end_time: new Date('2026-01-01T00:02:00.000Z'),
+    inputs: {
+      artifacts: [
+        {
+          artifact_key: 'data',
+          artifacts: mockV2Artifacts,
+          producer: { task_name: 'chicago-taxi-trips-dataset' },
+          type: V2beta1IOType.TASK_OUTPUT_INPUT,
+        },
+      ],
+    },
+    name: 'convert-csv-to-apache-parquet',
+    parent_task_id: 'mock-task-root',
+    pods: [
+      {
+        name: 'mock-convert-csv-to-apache-parquet-driver',
+        type: PipelineTaskTaskPodType.DRIVER,
+        uid: 'mock-consumer-driver-pod-uid',
+      },
+      {
+        name: 'mock-convert-csv-to-apache-parquet-executor',
+        type: PipelineTaskTaskPodType.EXECUTOR,
+        uid: 'mock-consumer-executor-pod-uid',
+      },
+    ],
+    run_id: mockNativeRunId,
+    scope_path: 'root.convert-csv-to-apache-parquet',
+    state: PipelineTaskTaskState.SUCCEEDED,
+    task_id: 'mock-task-consumer',
+    type: PipelineTaskTaskType.RUNTIME,
+  },
+];
+const mockV2ArtifactTasks: V2beta1ArtifactTask[] = [
+  {
+    artifact_id: 'mock-artifact-1',
+    id: 'mock-artifact-task-output',
+    key: 'table',
+    run_id: mockNativeRunId,
+    task_id: 'mock-task-producer',
+    type: V2beta1IOType.OUTPUT,
+  },
+  {
+    artifact_id: 'mock-artifact-1',
+    id: 'mock-artifact-task-input',
+    key: 'data',
+    producer: { task_name: 'chicago-taxi-trips-dataset' },
+    run_id: mockNativeRunId,
+    task_id: 'mock-task-consumer',
+    type: V2beta1IOType.TASK_OUTPUT_INPUT,
+  },
+];
 
 let tensorboardPod = '';
 
@@ -569,6 +690,29 @@ export default (app: express.Application) => {
       return;
     }
     res.json(toV2Run(run.run!));
+  });
+
+  app.get(v2beta1Prefix + '/runs/:rid/tasks', (req, res) => {
+    res.json({ tasks: req.params.rid === mockNativeRunId ? mockV2Tasks : [] });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts', (_req, res) => {
+    res.json({ artifacts: mockV2Artifacts, total_size: mockV2Artifacts.length });
+  });
+
+  app.get(v2beta1Prefix + '/artifacts/:artifactId', (req, res) => {
+    const artifact = mockV2Artifacts.find(
+      (candidate) => candidate.artifact_id === req.params.artifactId,
+    );
+    if (!artifact) {
+      res.status(404).send(`No artifact was found with ID: ${req.params.artifactId}`);
+      return;
+    }
+    res.json(artifact);
+  });
+
+  app.get(v2beta1Prefix + '/artifact_tasks', (_req, res) => {
+    res.json({ artifact_tasks: mockV2ArtifactTasks });
   });
 
   app.get(v2beta1Prefix + '/recurringruns', (req, res) => {

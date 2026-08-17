@@ -41,42 +41,40 @@ import { isAllowedDomain } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
-import { validateArtifactNamespace, buildArtifactUri } from '../helpers/mlmd-validator.js';
-import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import { validateArtifactNamespace } from '../helpers/artifact-validator.js';
+import {
+  ArtifactCoordinates,
+  buildArtifactCoordinateUri,
+  normalizeArtifactStorageCoordinates,
+  resolveArtifactCoordinates,
+} from '../helpers/artifact-coordinates.js';
+import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from '../helpers/artifact-path.js';
+import {
+  ArtifactSource,
+  isArtifactSource,
+  isLauncherArtifactSource,
+  LauncherArtifactSource,
+  requiresArtifactOwnershipValidation,
+} from '../helpers/artifact-sources.js';
 import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
+import { getLauncherProviderInfo, LauncherConfigError } from '../helpers/launcher-config.js';
 
-/**
- * ArtifactsQueryStrings describes the expected query strings key value pairs
- * in the artifact request object.
- */
-interface ArtifactsQueryStrings {
-  /** artifact source. */
-  source: 'minio' | 's3' | 'gcs' | 'http' | 'https' | 'volume';
-  /** bucket name. */
-  bucket: string;
-  /** artifact key/path that is uri encoded.  */
-  key: string;
-  /** return only the first x characters or bytes. */
-  peek?: number;
-  /** optional provider info to use to query object store */
-  providerInfo?: string;
-  namespace?: string;
-}
-
-type ArtifactSource = ArtifactsQueryStrings['source'];
-
-const ARTIFACT_SOURCES = new Set<ArtifactSource>(['minio', 's3', 'gcs', 'http', 'https', 'volume']);
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
   'bucket',
   'key',
+  'artifactUriQuery',
   'providerInfo',
   'namespace',
   'peek',
 ] as const;
+const MALFORMED_ARTIFACT_KEY_MESSAGE =
+  'Artifact storage key contains malformed or noncanonical URI path encoding. Use the canonical artifact URI and retry.';
+const INVALID_ARTIFACT_PATH_ENCODING_MESSAGE =
+  'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.';
 
 export interface S3ProviderInfo {
   Provider: string;
@@ -137,14 +135,14 @@ export interface GCSProviderInfo {
  * @param authorizeFn The authorization function to validate permissions
  * @param authEnabled Whether authorization is enabled
  * @param kubeflowUserIdHeader The header name containing the user identity
- * @param envoyAddress MLMD Envoy address used for namespace-ownership
- *   validation (#9889). When omitted, the IDOR check is skipped.
+ * @param apiServerAddress KFP API server address used for namespace-ownership validation (#9889).
  */
 export function getArtifactsAuthMiddleware(
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
   kubeflowUserIdHeader: string,
-  envoyAddress?: string,
+  apiServerAddress?: string,
+  allowNamespaceIsolatedCustomRoots = false,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
     const queryError = validateArtifactQueryParameters(request.query);
@@ -157,7 +155,8 @@ export function getArtifactsAuthMiddleware(
       return next();
     }
 
-    const userId = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    const userIdHeader = request.headers[kubeflowUserIdHeader.toLowerCase()];
+    const userId = Array.isArray(userIdHeader) ? userIdHeader[0] : userIdHeader;
     if (!userId) {
       console.warn(
         `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
@@ -212,20 +211,51 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (envoyAddress) {
-      const coords = resolveArtifactCoordinates(request);
-      if (coords === null) {
-        console.warn(
-          `[SECURITY] Malformed percent-encoding in artifact path. ` +
-            `User: ${userId}, Path: ${request.path}`,
+    const coords = resolveArtifactCoordinates(request);
+    if (coords === null) {
+      console.warn(
+        `[SECURITY] Malformed or noncanonical percent-encoding in artifact path. ` +
+          `User: ${userId}, Path: ${request.path}`,
+      );
+      response.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
+      return;
+    }
+
+    if (!coords || !isArtifactSource(coords.source) || !coords.bucket || !coords.key) {
+      console.warn(
+        `[SECURITY] Rejected artifact request with coordinates that cannot be authorized. ` +
+          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
+      );
+      response
+        .status(403)
+        .send(
+          'Artifact source, bucket, and key are required and must use a supported storage source',
         );
-        response.status(400).send('Malformed URL encoding in artifact path');
-        return;
-      }
-      const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
-      if (mlmdTrackedSources.has(coords.source) && coords.bucket && coords.key) {
-        const artifactUri = buildArtifactUri(coords.source, coords.bucket, coords.key);
-        const validation = await validateArtifactNamespace(envoyAddress, artifactUri, namespace);
+      return;
+    }
+
+    if (coords.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
+      console.warn(
+        `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
+          `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
+      );
+      response
+        .status(403)
+        .send('Volume artifacts require a namespace-isolated artifact service in multi-user mode');
+      return;
+    }
+
+    if (apiServerAddress) {
+      if (requiresArtifactOwnershipValidation(coords.source)) {
+        const artifactUri = buildArtifactCoordinateUri(coords);
+        const validationHeaders = { [kubeflowUserIdHeader]: userId };
+        const validation = await validateArtifactNamespace(
+          apiServerAddress,
+          artifactUri,
+          namespace,
+          validationHeaders,
+          allowNamespaceIsolatedCustomRoots,
+        );
 
         if (!validation.valid) {
           console.warn(
@@ -241,6 +271,8 @@ export function getArtifactsAuthMiddleware(
         }
       }
     }
+
+    response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coords);
 
     next();
   };
@@ -277,7 +309,35 @@ export function getArtifactsHandler({
       res.status(artifactRequest.error.status).send(artifactRequest.error.message);
       return;
     }
-    const { source, bucket, key, peek, providerInfo, namespace } = artifactRequest;
+    const { source, bucket, key, keyEncoding, artifactUriQuery, peek, providerInfo, namespace } =
+      artifactRequest;
+    const routeCoordinates =
+      useParameter || isLauncherArtifactSource(source)
+        ? resolveArtifactCoordinates(req)
+        : undefined;
+    if (routeCoordinates === null) {
+      res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
+      return;
+    }
+    const coordinates: ArtifactCoordinates<ArtifactSource> = {
+      source,
+      bucket,
+      key,
+      keyEncoding,
+      uriKey: routeCoordinates?.uriKey,
+      artifactUriQuery,
+    };
+    const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);
+    // The authorization middleware and storage handler parse independently. Pin artifact identity
+    // to the exact URI that was authorized; storage-key decoding below is then determined only by
+    // this route's trusted keyEncoding classification.
+    if (options.auth.enabled && res.locals.authorizedArtifactUri !== requestedArtifactUri) {
+      console.warn(
+        '[SECURITY] Rejected artifact request whose coordinates changed after authorization',
+      );
+      res.status(403).send('Artifact request coordinates changed after authorization');
+      return;
+    }
     if (!isAllowedResourceName(bucket)) {
       res.status(500).send('Invalid bucket name');
       return;
@@ -286,7 +346,16 @@ export function getArtifactsHandler({
       res.status(500).send('Object key too long');
       return;
     }
-    console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
+    let storageKey = key;
+    if (isLauncherArtifactSource(source)) {
+      try {
+        storageKey = normalizeArtifactStorageCoordinates({ ...coordinates, source }).key;
+      } catch {
+        res.status(400).send(MALFORMED_ARTIFACT_KEY_MESSAGE);
+        return;
+      }
+    }
+    console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
 
     // Security: The ml-pipeline-ui service account is only permitted to read
     // Secrets from its own (server) namespace. Secret-backed provider info
@@ -302,19 +371,46 @@ export function getArtifactsHandler({
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
     const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
-    if (!allowProviderSecrets && providerInfo) {
+    let resolvedProviderInfo = '';
+    if (allowProviderSecrets && isLauncherArtifactSource(source)) {
+      try {
+        resolvedProviderInfo =
+          (await getLauncherProviderInfo(
+            { ...coordinates, key: storageKey, keyEncoding: 'storage', source },
+            namespace,
+          )) || '';
+      } catch (error) {
+        // Direct mode would otherwise substitute the central UI server's environment
+        // credentials for an unreadable or invalid namespace storage policy.
+        res
+          .status(500)
+          .send(
+            `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+          );
+        return;
+      }
+    }
+
+    // Preserve legacy single-user store_session_info links only when trusted launcher
+    // configuration does not select a provider. Authenticated and proxied requests never
+    // accept browser-supplied provider authority.
+    if (!options.auth.enabled && !resolvedProviderInfo) {
+      resolvedProviderInfo = providerInfo;
+    }
+
+    if (!allowProviderSecrets && resolvedProviderInfo) {
       console.warn(
         `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
           `only be read from the server namespace; falling back to environment credentials.`,
       );
     }
-    const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+    const effectiveProviderInfo = allowProviderSecrets ? resolvedProviderInfo : '';
 
     let client: MinioClient;
     switch (source) {
       case 'gcs':
         await getGCSArtifactHandler(
-          { bucket, key },
+          { bucket, key: storageKey },
           peek,
           effectiveProviderInfo,
           namespace,
@@ -331,7 +427,7 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key,
+            key: storageKey,
             tryExtract,
           },
           peek,
@@ -348,7 +444,7 @@ export function getArtifactsHandler({
           {
             bucket,
             client,
-            key,
+            key: storageKey,
           },
           peek,
         )(req, res);
@@ -390,6 +486,8 @@ type ArtifactRequest =
       source: ArtifactSource;
       bucket: string;
       key: string;
+      keyEncoding: 'storage' | 'uri';
+      artifactUriQuery: string;
       peek: number;
       providerInfo: string;
       namespace: string;
@@ -436,6 +534,11 @@ function parseArtifactRequest(
     return providerInfo;
   }
 
+  const artifactUriQuery = getOptionalRequestString(req.query.artifactUriQuery, 'artifactUriQuery');
+  if ('error' in artifactUriQuery) {
+    return artifactUriQuery;
+  }
+
   const namespace = getOptionalRequestString(req.query.namespace, 'namespace');
   if ('error' in namespace) {
     return namespace;
@@ -450,9 +553,11 @@ function parseArtifactRequest(
     source: source.value,
     bucket: bucket.value,
     key: key.value,
+    keyEncoding: useParameter ? 'storage' : 'uri',
+    artifactUriQuery: artifactUriQuery.value ?? '',
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
-    namespace: namespace.value ?? defaultNamespace,
+    namespace: namespace.value || defaultNamespace,
   };
 }
 
@@ -504,10 +609,6 @@ function parsePeekValue(value: string | undefined): number {
   return Number.isFinite(peek) && peek > 0 ? peek : 0;
 }
 
-function isArtifactSource(source: string): source is ArtifactSource {
-  return ARTIFACT_SOURCES.has(source as ArtifactSource);
-}
-
 /**
  * Returns the http/https url to retrieve a kfp artifact (of the form: `${source}://${baseUrl}${bucket}/${key}`)
  * @param source "http" or "https".
@@ -522,13 +623,11 @@ function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, k
   }
   try {
     const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
-    if (
-      key.includes('\\') ||
-      key.split('/').some((segment) => segment === '.' || segment === '..')
-    ) {
+    const safeKey = applyArtifactPathPolicy(key, ARTIFACT_PATH_POLICIES.http);
+    if (safeKey === undefined) {
       return undefined;
     }
-    const escapedKey = key.replace(/%/g, '%25');
+    const escapedKey = safeKey.replace(/%/g, '%25');
     artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
       .filter(Boolean)
       .join('/');
@@ -787,10 +886,7 @@ function buildAttachmentDisposition(filename: string): string {
 // result is empty (e.g. for directory-marker objects whose key equals the
 // prefix, or paths consisting entirely of unsafe segments).
 function sanitizeTarEntryName(name: string): string | null {
-  const segments = name
-    .split('/')
-    .filter((segment) => segment !== '' && segment !== '.' && segment !== '..');
-  return segments.length > 0 ? segments.join('/') : null;
+  return applyArtifactPathPolicy(name, ARTIFACT_PATH_POLICIES.tarEntry) || null;
 }
 
 /**
@@ -1052,14 +1148,83 @@ export function getArtifactsProxyHandler({
       headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
   );
-  return (req, res, next) => {
+  return async (req, res, next) => {
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
       res.status(400).send('Invalid namespace');
       return;
     }
+    if (namespace) {
+      const url = new URL(req.url || '', DUMMY_BASE_PATH);
+      url.searchParams.delete('providerInfo');
+      const resolvedCoordinates = resolveArtifactCoordinates({
+        path: url.pathname,
+        query: {
+          source: url.searchParams.get('source') || undefined,
+          bucket: url.searchParams.get('bucket') || undefined,
+          key: url.searchParams.get('key') || undefined,
+          artifactUriQuery: url.searchParams.get('artifactUriQuery') || undefined,
+        },
+      });
+      if (resolvedCoordinates === null) {
+        res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
+        return;
+      }
+      const coordinates: ArtifactCoordinates<LauncherArtifactSource> | undefined =
+        resolvedCoordinates &&
+        isLauncherArtifactSource(resolvedCoordinates.source) &&
+        resolvedCoordinates.bucket &&
+        resolvedCoordinates.key
+          ? {
+              source: resolvedCoordinates.source,
+              bucket: resolvedCoordinates.bucket,
+              key: resolvedCoordinates.key,
+              keyEncoding: resolvedCoordinates.keyEncoding,
+              artifactUriQuery: resolvedCoordinates.artifactUriQuery,
+            }
+          : undefined;
+      if (coordinates) {
+        let storageCoordinates: ArtifactCoordinates<LauncherArtifactSource>;
+        try {
+          storageCoordinates = normalizeArtifactStorageCoordinates(coordinates);
+        } catch {
+          res.status(400).send(MALFORMED_ARTIFACT_KEY_MESSAGE);
+          return;
+        }
+        try {
+          const providerInfo = await getLauncherProviderInfo(storageCoordinates, namespace);
+          if (providerInfo) {
+            url.searchParams.set('providerInfo', providerInfo);
+          }
+        } catch (error) {
+          if (error instanceof LauncherConfigError) {
+            // The namespace-isolated service owns credential resolution, so omitting
+            // providerInfo delegates to credentials inside the same namespace boundary.
+            console.warn(
+              `Unable to resolve the ${namespace} kfp-launcher providers configuration; ` +
+                `forwarding the request without providerInfo so the namespaced artifact ` +
+                `service can use its environment credentials. ${error.message}`,
+            );
+          } else {
+            res
+              .status(500)
+              .send(
+                `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+              );
+            return;
+          }
+        }
+      }
+      updateProxyRequestUrl(req, url);
+    }
     proxy(req, res, next);
   };
+}
+
+function updateProxyRequestUrl(request: Request, url: URL): void {
+  const rewrittenUrl = url.pathname + url.search;
+  request.url = rewrittenUrl;
+  request.originalUrl = rewrittenUrl;
 }
 
 function getNamespaceFromUrl(path: string): string | undefined {

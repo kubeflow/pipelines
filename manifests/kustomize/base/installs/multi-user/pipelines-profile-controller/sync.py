@@ -266,7 +266,7 @@ def server_factory(frontend_image,
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
+                    len(attachments["ConfigMap.v1"]) == 2 and
                     len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
@@ -284,19 +284,6 @@ def server_factory(frontend_image,
                     "data": {
                         "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
                         "clusterDomain": cluster_domain,
-                    },
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "metadata-grpc-configmap",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "METADATA_GRPC_SERVICE_HOST":
-                            "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT": "8080",
                     },
                 },
                 {

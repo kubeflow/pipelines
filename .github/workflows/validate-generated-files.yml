@@ -18,6 +18,7 @@ on:
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
+      - 'backend/api/**/python_http_client_smoke/**'
       - 'backend/api/**/swagger/**'
       - 'api/Makefile'
       - 'api/**/*.proto'
@@ -129,6 +130,10 @@ jobs:
         env:
           API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
+
+      - name: Smoke-test generated v2beta1 Python client
+        working-directory: ./backend/api/v2beta1/python_http_client_smoke
+        run: python3 -m unittest discover -v
 
       - name: Check for Changes
         run: make check-diff

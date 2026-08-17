@@ -80,11 +80,7 @@ function isUIServerRoute(requestPath: string, basePath: string): boolean {
     return true;
   }
 
-  return (
-    UI_SERVER_ROUTE_PREFIXES.some((routePrefix) => hasPathPrefix(requestPath, routePrefix)) ||
-    requestPath === '/ml_metadata' ||
-    requestPath.startsWith('/ml_metadata.')
-  );
+  return UI_SERVER_ROUTE_PREFIXES.some((routePrefix) => hasPathPrefix(requestPath, routePrefix));
 }
 
 /**

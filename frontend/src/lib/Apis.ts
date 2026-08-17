@@ -21,6 +21,10 @@ import {
   Configuration as ExperimentConfigurationV2,
   ExperimentServiceApi as ExperimentServiceApiV2,
 } from 'src/apisv2beta1/experiment';
+import {
+  ArtifactServiceApi as ArtifactServiceApiV2,
+  Configuration as ArtifactConfigurationV2,
+} from 'src/apisv2beta1/artifact';
 import { Configuration as JobConfiguration, JobServiceApi } from 'src/apis/job';
 import {
   Configuration as RecurringRunConfiguration,
@@ -206,6 +210,18 @@ export class Apis {
     return this._experimentServiceApiV2;
   }
 
+  public static get artifactServiceApiV2(): ArtifactServiceApiV2 {
+    if (!this._artifactServiceApiV2) {
+      this._artifactServiceApiV2 = new ArtifactServiceApiV2(
+        new ArtifactConfigurationV2({
+          basePath: this.basePath,
+          fetchApi: crossBrowserFetch,
+        }),
+      );
+    }
+    return this._artifactServiceApiV2;
+  }
+
   public static get jobServiceApi(): JobServiceApi {
     if (!this._jobServiceApi) {
       this._jobServiceApi = new JobServiceApi(
@@ -310,16 +326,25 @@ export class Apis {
    */
   public static readFile({
     path,
+    artifactUriQuery,
     providerInfo,
     namespace,
     peek,
   }: {
     path: StoragePath;
+    artifactUriQuery?: string;
     namespace?: string;
     providerInfo?: string;
     peek?: number;
   }): Promise<string> {
-    let query = this.buildReadFileUrl({ path, namespace, providerInfo, peek, isDownload: false });
+    let query = this.buildReadFileUrl({
+      path,
+      namespace,
+      artifactUriQuery,
+      providerInfo,
+      peek,
+      isDownload: false,
+    });
     return this._fetch(query);
   }
 
@@ -333,12 +358,14 @@ export class Apis {
    */
   public static buildReadFileUrl({
     path,
+    artifactUriQuery,
     namespace,
     providerInfo,
     peek,
     isDownload,
   }: {
     path: StoragePath;
+    artifactUriQuery?: string;
     namespace?: string;
     providerInfo?: string;
     peek?: number;
@@ -348,11 +375,20 @@ export class Apis {
     if (isDownload) {
       return `artifacts/${source}/${bucket}/${key}${buildQuery({
         namespace,
+        artifactUriQuery,
         providerInfo,
         peek,
       })}`;
     } else {
-      return `artifacts/get${buildQuery({ source, namespace, providerInfo, peek, bucket, key })}`;
+      return `artifacts/get${buildQuery({
+        source,
+        namespace,
+        artifactUriQuery,
+        providerInfo,
+        peek,
+        bucket,
+        key,
+      })}`;
     }
   }
 
@@ -552,6 +588,7 @@ export class Apis {
 
   private static _experimentServiceApi?: ExperimentServiceApi;
   private static _experimentServiceApiV2?: ExperimentServiceApiV2;
+  private static _artifactServiceApiV2?: ArtifactServiceApiV2;
   private static _jobServiceApi?: JobServiceApi;
   private static _recurringRunServiceApi?: RecurringRunServiceApi;
   private static _pipelineServiceApi?: PipelineServiceApi;

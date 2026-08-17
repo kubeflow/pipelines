@@ -62,6 +62,33 @@ echo "Removing unnecessary GitLab and TravisCI generated files"
 rm $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml
 rm $CURRENT_DIR/$API_VERSION/python_http_client/.travis.yml
 
+# openapi-generator can emit a phantom GooglerpcStatus import alongside the
+# real GoogleRpcStatus model. Drop the broken import so the package is
+# importable without a missing googlerpc_status module.
+CLIENT_ROOT="$CURRENT_DIR/$API_VERSION/python_http_client"
+python3 - "$CLIENT_ROOT" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+bad_import = "from kfp_server_api.models.googlerpc_status import GooglerpcStatus\n"
+for path in [
+    root / "kfp_server_api" / "__init__.py",
+    root / "kfp_server_api" / "models" / "__init__.py",
+]:
+    text = path.read_text()
+    if bad_import in text:
+        path.write_text(text.replace(bad_import, ""))
+readme = root / "README.md"
+if readme.exists():
+    readme.write_text(
+        readme.read_text().replace(
+            " - [GooglerpcStatus](docs/GooglerpcStatus.md)\n",
+            "",
+        )
+    )
+PY
+
 echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 

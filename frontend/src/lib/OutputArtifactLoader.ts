@@ -15,8 +15,6 @@
  */
 
 import { csvParseRows } from 'd3-dsv';
-import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
-import { ApiVisualization, ApiVisualizationType } from '../apis/visualization';
 import { ConfusionMatrixConfig } from '../components/viewers/ConfusionMatrix';
 import { HTMLViewerConfig } from '../components/viewers/HTMLViewer';
 import { MarkdownViewerConfig } from '../components/viewers/MarkdownViewer';
@@ -25,13 +23,9 @@ import { ROCCurveConfig } from '../components/viewers/ROCCurve';
 import { TensorboardViewerConfig } from '../components/viewers/Tensorboard';
 import { PlotType, ViewerConfig } from '../components/viewers/Viewer';
 import { Apis } from '../lib/Apis';
-import {
-  filterArtifactsByType,
-  getArtifactTypes,
-  getOutputArtifactsInExecution,
-} from 'src/mlmd/MlmdUtils';
 import { errorToMessage, logger } from './Utils';
 import WorkflowParser, { StoragePath } from './WorkflowParser';
+import { parseArtifactFileLocation } from './v2/ArtifactFileUtils';
 export interface PlotMetadata {
   format?: 'csv';
   header?: string[];
@@ -52,13 +46,45 @@ export interface OutputMetadata {
   outputs: PlotMetadata[];
 }
 
+export interface OutputArtifactLoadOptions {
+  artifactUriQuery?: string;
+  providerInfo?: string;
+  throwOnError?: boolean;
+}
+
+export interface OutputArtifactLoadResult {
+  configs: ViewerConfig[];
+  errors: string[];
+}
+
 type SourceContentGetter = (source: string, storage?: PlotMetadata['storage']) => Promise<string>;
 
 export class OutputArtifactLoader {
-  public static async load(outputPath: StoragePath, namespace?: string): Promise<ViewerConfig[]> {
+  public static async load(
+    outputPath: StoragePath,
+    namespace?: string,
+    options: OutputArtifactLoadOptions = {},
+  ): Promise<ViewerConfig[]> {
+    const result = await this.loadResult(outputPath, namespace, options);
+    if (options.throwOnError && result.errors.length && !result.configs.length) {
+      throw new Error(result.errors.join('\n'));
+    }
+    return result.configs;
+  }
+
+  public static async loadResult(
+    outputPath: StoragePath,
+    namespace?: string,
+    options: OutputArtifactLoadOptions = {},
+  ): Promise<OutputArtifactLoadResult> {
     let plotMetadataList: PlotMetadata[] = [];
     try {
-      const metadataFile = await Apis.readFile({ path: outputPath, namespace: namespace });
+      const metadataFile = await Apis.readFile({
+        path: outputPath,
+        namespace,
+        artifactUriQuery: options.artifactUriQuery,
+        providerInfo: options.providerInfo,
+      });
       if (metadataFile) {
         try {
           plotMetadataList = OutputArtifactLoader.parseOutputMetadataInJson(
@@ -80,13 +106,15 @@ export class OutputArtifactLoader {
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       logger.error('Error loading run outputs:', errorMessage);
-      // TODO: error dialog
+      if (options.throwOnError) {
+        throw err;
+      }
     }
 
     const getSourceContent: SourceContentGetter = async (source, storage) =>
       await readSourceContent(source, storage, namespace);
 
-    const configs: Array<ViewerConfig | null> = await Promise.all(
+    const results = await Promise.allSettled(
       plotMetadataList.map(async (metadata) => {
         switch (metadata.type) {
           case PlotType.CONFUSION_MATRIX:
@@ -108,7 +136,20 @@ export class OutputArtifactLoader {
       }),
     );
 
-    return configs.filter((c) => !!c) as ViewerConfig[];
+    const configs: ViewerConfig[] = [];
+    const errors: string[] = [];
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        if (result.value) {
+          configs.push(result.value);
+        }
+      } else {
+        const message = await errorToMessage(result.reason);
+        logger.error('Error loading run output:', message);
+        errors.push(message);
+      }
+    }
+    return { configs, errors };
   }
 
   private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {
@@ -245,157 +286,6 @@ export class OutputArtifactLoader {
     };
   }
 
-  /**
-   * @param reportProgress callback to report load progress, accepts [0, 100]
-   * @throws error on exceptions
-   * @returns config array, also returns empty array when expected erros happen
-   */
-  public static async buildTFXArtifactViewerConfig({
-    namespace,
-    execution,
-    reportProgress = () => null,
-  }: {
-    namespace: string;
-    execution: Execution;
-    reportProgress: (progress: number) => void;
-  }): Promise<HTMLViewerConfig[]> {
-    // Error handling assumptions:
-    // * Context/execution/artifact nodes are not expected to be in MLMD. Thus, any
-    // errors associated with the nodes not being found are expected.
-    // * RPC errors to MLMD are unexpected.
-    // * Being unable to find an execution node with a matching argoPodName is expected, as this should only work on TFX >= 0.21.
-    // * Once we have URIs for artifacts that we want to display, any errors displaying them are unexpected.
-    //
-    // With that in mind, buildTFXArtifactViewerConfig() returns an empty list for expected errors,
-    // and throws/forwards for unexpected errors.
-
-    // Since artifact types don't change per run, this can be optimized further so
-    // that we don't fetch them on every page load.
-    reportProgress(10);
-    const [artifactTypes, artifacts] = await Promise.all([
-      getArtifactTypes(),
-      getOutputArtifactsInExecution(execution),
-    ]);
-    if (artifactTypes.length === 0 || artifacts.length === 0) {
-      // There are no artifact types data or no artifacts.
-      return [];
-    }
-    reportProgress(70);
-
-    // TODO: Visualize non-TFDV artifacts, such as ModelEvaluation using TFMA
-    let viewers: Array<Promise<HTMLViewerConfig>> = [];
-    const exampleStatisticsArtifactUris = filterArtifactUrisByType(
-      'ExampleStatistics',
-      artifactTypes,
-      artifacts,
-    );
-    exampleStatisticsArtifactUris.forEach((uri) => {
-      // TFX Statistics has changed to different paths since TFX 1.0.0.
-      // https://github.com/tensorflow/tfx/issues/3933
-      const evalUri = uri + '/Split-eval';
-      const trainUri = uri + '/Split-train';
-      viewers = viewers.concat(
-        [evalUri, trainUri].map(async (specificUri) => {
-          const script = [
-            'import tensorflow_data_validation as tfdv',
-            'import os',
-            'import tensorflow as tf',
-            `files = tf.io.gfile.listdir('${specificUri}')`,
-            `filename = os.path.dirname(os.path.join(files[0], ''))`,
-            `filePath = os.path.join('${specificUri}', filename)`,
-            'stats = tfdv.load_stats_binary(filePath)',
-            'tfdv.visualize_statistics(stats)',
-          ];
-          return buildArtifactViewer({ script, namespace });
-        }),
-      );
-    });
-    const schemaGenArtifactUris = filterArtifactUrisByType('Schema', artifactTypes, artifacts);
-    viewers = viewers.concat(
-      schemaGenArtifactUris.map((uri) => {
-        uri = uri + '/schema.pbtxt';
-        const script = [
-          'import tensorflow_data_validation as tfdv',
-          `schema = tfdv.load_schema_text('${uri}')`,
-          'tfdv.display_schema(schema)',
-        ];
-        return buildArtifactViewer({ script, namespace });
-      }),
-    );
-    const anomaliesArtifacts = filterArtifactsByType('ExampleAnomalies', artifactTypes, artifacts);
-    viewers = viewers.concat(
-      anomaliesArtifacts
-        .map((artifact) => {
-          const splitNamesJSON = artifact.getPropertiesMap().get('split_names')?.getStringValue();
-          if (!splitNamesJSON) {
-            return [];
-          }
-          let splitNames;
-          try {
-            splitNames = JSON.parse(splitNamesJSON);
-          } catch (e) {
-            logger.warn('Failed to parse split names as a JSON array:', e);
-          }
-          if (!Array.isArray(splitNames)) {
-            return [];
-          }
-          return splitNames.map((name) => {
-            const script = [
-              'import tensorflow_data_validation as tfdv',
-              'from tensorflow_metadata.proto.v0 import anomalies_pb2',
-              'anomalies = anomalies_pb2.Anomalies()',
-              'import tensorflow as tf',
-              `with tf.io.gfile.GFile('${artifact.getUri()}/Split-${name}', mode='rb') as f:`,
-              `  anomalies_bytes = f.read()`,
-              '  anomalies.ParseFromString(anomalies_bytes)',
-              '  tfdv.display_anomalies(anomalies)',
-            ];
-            return buildArtifactViewer({ script, namespace });
-          });
-        })
-        .flat(),
-    );
-    const EvaluatorArtifactUris = filterArtifactUrisByType(
-      'ModelEvaluation',
-      artifactTypes,
-      artifacts,
-    );
-    viewers = viewers.concat(
-      EvaluatorArtifactUris.map((uri) => {
-        const configFilePath = uri + '/eval_config.json';
-        // The visualization of TFMA inside KFP UI depends a hack of TFMA widget js
-        // For context and future improvement, please refer to
-        // https://github.com/tensorflow/model-analysis/issues/10#issuecomment-587422929
-        const script = [
-          `import io`,
-          `import json`,
-          `import tensorflow as tf`,
-          `import tensorflow_model_analysis as tfma`,
-          `from ipywidgets.embed import embed_minimal_html`,
-          `from IPython.core.display import display, HTML`,
-          `config_file=tf.io.gfile.GFile('${configFilePath}', 'r')`,
-          `config=json.loads(config_file.read())`,
-          `featureKeys=list(filter(lambda x: 'featureKeys' in x, config['evalConfig']['slicingSpecs']))`,
-          `columns=[] if len(featureKeys) == 0 else featureKeys[0]['featureKeys']`,
-          `slicing_spec = tfma.slicer.SingleSliceSpec(columns=columns)`,
-          `for modelSpec in config['evalConfig']['modelSpecs']:`,
-          `  model_name = modelSpec.get('name')`,
-          `  eval_result = tfma.load_eval_result('${uri}', model_name=model_name)`,
-          `  slicing_metrics_view = tfma.view.render_slicing_metrics(eval_result, slicing_spec=slicing_spec)`,
-          `  view = io.StringIO()`,
-          `  embed_minimal_html(view, views=[slicing_metrics_view], title='Slicing Metrics')`,
-          `  if (model_name):`,
-          `    display(HTML('<h2>{}:</h2>'.format(model_name)))`,
-          `  display(HTML(view.getvalue()))`,
-        ];
-        return buildArtifactViewer({ script, namespace });
-      }),
-    );
-    // TODO(jingzhang36): maybe move the above built-in scripts to visualization server.
-
-    return Promise.all(viewers);
-  }
-
   public static async buildMarkdownViewerConfig(
     metadata: PlotMetadataContent,
     getSourceContent: SourceContentGetter,
@@ -452,58 +342,6 @@ export class OutputArtifactLoader {
   }
 }
 
-function filterArtifactUrisByType(
-  artifactTypeName: string,
-  artifactTypes: ArtifactType[],
-  artifacts: Artifact[],
-): string[] {
-  return filterArtifactsByType(artifactTypeName, artifactTypes, artifacts)
-    .map((artifact) => artifact.getUri())
-    .filter((uri) => uri); // uri not empty
-}
-
-async function buildArtifactViewer({
-  script,
-  namespace,
-}: {
-  script: string[];
-  namespace: string;
-}): Promise<HTMLViewerConfig> {
-  const visualizationData: ApiVisualization = {
-    arguments: JSON.stringify({ code: script }),
-    source: '',
-    type: ApiVisualizationType.CUSTOM,
-  };
-  const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
-  if (!visualization.htmlContent) {
-    // TODO: Improve error message with details.
-    throw new Error('Failed to build artifact viewer');
-  }
-  return {
-    htmlContent: visualization.htmlContent,
-    type: PlotType.WEB_APP,
-  };
-}
-
-// Deprecated approach because we switched to buildArtifactViewer for statistics.
-// async function buildArtifactViewerTfdvStatistics(
-//   url: string,
-//   namespace: string,
-// ): Promise<HTMLViewerConfig> {
-//   const visualizationData: ApiVisualization = {
-//     source: url,
-//     type: ApiVisualizationType.TFDV,
-//   };
-//   const visualization = await Apis.buildPythonVisualizationConfig(visualizationData, namespace);
-//   if (!visualization.htmlContent) {
-//     throw new Error('Failed to build artifact viewer, no value in visualization.htmlContent');
-//   }
-//   return {
-//     htmlContent: visualization.htmlContent,
-//     type: PlotType.WEB_APP,
-//   };
-// }
-
 async function readSourceContent(
   source: PlotMetadata['source'],
   storage: PlotMetadata['storage'] | undefined,
@@ -512,9 +350,11 @@ async function readSourceContent(
   if (storage === 'inline') {
     return source;
   }
+  const location = parseArtifactFileLocation(source);
   return await Apis.readFile({
-    path: WorkflowParser.parseStoragePath(source),
-    namespace: namespace,
+    path: location.path,
+    namespace,
+    artifactUriQuery: location.artifactUriQuery,
   });
 }
 

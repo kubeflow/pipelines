@@ -49,3 +49,8 @@ func (p MinioProviderConfig) ProvideSessionInfo(path string) (objectstore.Sessio
 	info.Provider = "minio"
 	return info, nil
 }
+
+func (p MinioProviderConfig) HasExplicitOverride(path string) (bool, error) {
+	s3ProviderConfig := S3ProviderConfig(p)
+	return s3ProviderConfig.HasExplicitOverride(path)
+}

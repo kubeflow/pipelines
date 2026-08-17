@@ -48,7 +48,7 @@ import Buttons from '../lib/Buttons';
 import RunUtils from '../lib/RunUtils';
 import { URLParser } from '../lib/URLParser';
 import { errorToMessage, logger, mergeApiParametersByNames } from '../lib/Utils';
-import { Workflow } from '../third_party/mlmd/argo_template';
+import { Workflow } from '../third_party/argo/argo_template';
 import { Page } from './Page';
 import ResourceSelector from './ResourceSelector';
 import PipelinesDialog from '../components/PipelinesDialog';

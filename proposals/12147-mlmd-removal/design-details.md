@@ -355,6 +355,22 @@ The `Visualization` Nav in `RuntimeNodeDetailsV2.tsx` will also need to be updat
 
 The Artifact Node in the UI should also no longer display an `Artifact URI` for metrics, as this is not applicable.
 
+#### Visualization compatibility
+
+The native Run Details page preserves scalar/classification metrics and the documented
+`mlpipeline-ui-metadata` viewers (table, ROC-from-CSV, static HTML, TensorBoard, and web app) through
+Task and Artifact API data. Source failures remain isolated so one bad legacy viewer does not hide
+valid siblings.
+
+The old V2 route also inherited the V1 page's **Create visualizations manually** control, which sent
+arbitrary visualization arguments to the Python visualization service. That control is not carried
+to the native Run Details page. TFDV was selectable through it; TFMA existed in the API enum but was
+already filtered out of the old selector. This is an explicit compatibility boundary, separate from
+`mlpipeline-ui-metadata`, and must not be described as native artifact-viewer parity. Reintroducing
+it requires a product and security decision about the server-side Python visualization API, task
+source identity, authorization, and supported lifecycle. That decision is tracked in
+[#14028](https://github.com/kubeflow/pipelines/issues/14028).
+
 The `CompareV2.tsx` also makes various calls to MLMD, much like `RuntimeNodeDetailsV2`:
 
 ```typescript
@@ -411,6 +427,34 @@ A few more notes:
 * the Driver/Launcher communicates with the KFP API Server via the CacheClient. This has no auth mechanism today and will need to be updated.
 * the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization. 
   * As such, the Pipeline Runner SA will need the appropriate namespace-level access to such resources for the Driver & Launcher to communicate with the API Server.
+
+#### Frontend artifact-content compatibility
+
+Removing MLMD also removes the trusted store session attached to legacy artifact records. The
+frontend reconstructs native provider configuration from the namespace `kfp-launcher` ConfigMap,
+but the existing URI-based content endpoint does not carry a trusted native-versus-legacy
+provenance signal. The following rollout constraints are therefore intentional:
+
+* Read-only multi-user roles receive native Artifact API `get` and `list`; mutation remains
+  edit-only.
+* Authenticated `volume://` requests are rejected by the shared central UI. They remain supported
+  in single-user mode and through a namespace-isolated artifact service, where the serving pod's
+  mounts share the caller's namespace boundary.
+* Direct custom-root reads are denied unless ownership is independently established by the
+  standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
+  privileged credentials for an arbitrary URI.
+* Ownership lookup failures fail closed for non-prefix/custom-root reads. In the default
+  `artifact-then-prefix` mode, a canonical `private-artifacts/<namespace>/...` key can be accepted
+  without an Artifact API request; strict `artifact-only` mode always requires the native record.
+* In single-user direct mode, a legacy outside-root link with stored provider information can still
+  fail when a `kfp-launcher` ConfigMap is present. ConfigMap presence and browser-supplied provider
+  information cannot safely distinguish a legacy link from a native artifact attempting to bypass
+  launcher-root policy. The durable replacement is an artifact-ID content API backed by trusted
+  persisted storage provenance rather than a frontend heuristic.
+
+These compatibility boundaries and the longer-term content API are tracked in
+[#14031](https://github.com/kubeflow/pipelines/issues/14031). Multi-user RBAC and direct-volume
+decisions are recorded in [#14034](https://github.com/kubeflow/pipelines/issues/14034).
 
 ### Manifests
 

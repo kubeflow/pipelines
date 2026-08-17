@@ -18,12 +18,12 @@ import { Meta, StoryObj } from '@storybook/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
-import { Execution } from 'src/third_party/mlmd';
+import { PipelineTaskTaskState } from 'src/apisv2beta1/run';
 
 interface WrappedExecutionNodeProps {
   id: string;
   label: string;
-  state: Execution.State;
+  state: PipelineTaskTaskState;
 }
 
 function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
@@ -72,7 +72,7 @@ export const Primary: Story = {
   args: {
     id: 'id',
     label: 'This is an ExecutionNode',
-    state: Execution.State.NEW,
+    state: PipelineTaskTaskState.RUNNING,
   },
 };
 

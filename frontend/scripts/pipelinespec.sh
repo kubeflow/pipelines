@@ -26,7 +26,6 @@ protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
 # Before confirming the ts-proto is useful for KFP use case, I keep the commands below in case we need to switch back to protobuf.js.
 
 # protoc --js_out="import_style=commonjs,binary:src/generated/pipeline_spec" \
-# --grpc-web_out="import_style=commonjs+dts,mode=grpcweb:src/generated/pipeline_spec" \
 # --proto_path="../api/v2alpha1" \
 # ../api/v2alpha1/pipeline_spec.proto \
 # ../api/v2alpha1/google/rpc/status.proto

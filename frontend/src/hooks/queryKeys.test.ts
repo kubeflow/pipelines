@@ -17,10 +17,6 @@
 import { queryKeys } from './queryKeys';
 
 describe('queryKeys', () => {
-  it('artifactTypes returns a stable key', () => {
-    expect(queryKeys.artifactTypes()).toEqual(['artifact_types']);
-  });
-
   it('pipelineVersionTemplate includes both IDs', () => {
     expect(queryKeys.pipelineVersionTemplate('p1', 'v1')).toEqual([
       'PipelineVersionTemplate',
@@ -47,21 +43,21 @@ describe('queryKeys', () => {
     expect(queryKeys.v2RunDetails(['r1', 'r2'])).toEqual(['v2_run_details', { ids: ['r1', 'r2'] }]);
   });
 
+  it('artifact metadata query keys include their page or visualization identity', () => {
+    expect(queryKeys.artifactTasksPage('artifact-1', 'page-2', 20)).toEqual([
+      'artifact_tasks',
+      { artifactId: 'artifact-1', pageSize: 20, pageToken: 'page-2' },
+    ]);
+    expect(queryKeys.artifactVisualizationKey('artifact-1')).toEqual([
+      'artifact_visualization_key',
+      { id: 'artifact-1' },
+    ]);
+  });
+
   it('v2RecurringRunDetail includes the recurring run ID', () => {
     expect(queryKeys.v2RecurringRunDetail('rr-1')).toEqual([
       'v2_recurring_run_detail',
       { id: 'rr-1' },
-    ]);
-  });
-
-  it('mlmdPackage includes the run ID', () => {
-    expect(queryKeys.mlmdPackage('run-456')).toEqual(['mlmd_package', { id: 'run-456' }]);
-  });
-
-  it('contextByExecution includes execution ID and state', () => {
-    expect(queryKeys.contextByExecution(42, 3)).toEqual([
-      'context_by_execution',
-      { id: 42, state: 3 },
     ]);
   });
 
@@ -82,19 +78,32 @@ describe('queryKeys', () => {
   });
 
   it('returns distinct keys for different factories', () => {
-    const artifactTypesKey = queryKeys.artifactTypes();
+    const runTasksKey = queryKeys.runTasks('run-1');
     const pipelineKey = queryKeys.pipeline('p1');
-    expect(artifactTypesKey[0]).not.toEqual(pipelineKey[0]);
+    expect(runTasksKey[0]).not.toEqual(pipelineKey[0]);
+  });
+
+  it('scopes retried task snapshots without changing the initial cache key', () => {
+    expect(queryKeys.runTasks('run-1')).toEqual(['run_tasks', { id: 'run-1' }]);
+    expect(queryKeys.runTasks('run-1', 2)).toEqual([
+      'run_tasks',
+      { id: 'run-1', retryRefreshVersion: 2 },
+    ]);
+  });
+
+  it('scopes retry discovery metadata by run and refresh generation', () => {
+    expect(queryKeys.runRetryDiscovery('run-1')).toEqual(['run_retry_discovery', { id: 'run-1' }]);
+    expect(queryKeys.runRetryRefreshVersion('run-1')).toEqual([
+      'run_retry_refresh_version',
+      { id: 'run-1' },
+    ]);
+    expect(queryKeys.runTaskRetryBaseline('run-1', 2)).toEqual([
+      'run_task_retry_baseline',
+      { id: 'run-1', retryRefreshVersion: 2 },
+    ]);
   });
 
   it('pipelineVersions defaults to empty string when pipelineId is null', () => {
     expect(queryKeys.pipelineVersions(null)).toEqual(['pipeline_versions', '']);
-  });
-
-  it('executionLogs includes executionId and namespace', () => {
-    expect(queryKeys.executionLogs(5, 'kubeflow')).toEqual([
-      'execution_logs',
-      { executionId: 5, namespace: 'kubeflow' },
-    ]);
   });
 });

@@ -18,7 +18,7 @@ import * as React from 'react';
 import { Redirect } from 'react-router-dom';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { classes, stylesheet } from 'typestyle';
-import { Workflow } from '../third_party/mlmd/argo_template';
+import { Workflow } from '../third_party/argo/argo_template';
 import { ApiRunDetail } from '../apis/run';
 import Hr from '../atoms/Hr';
 import Separator from '../atoms/Separator';
@@ -282,10 +282,23 @@ class CompareV1 extends Page<{}, CompareState> {
     await Promise.all(
       outputPathsList.map(async (pathList, i) => {
         for (const path of pathList) {
-          const configs = await OutputArtifactLoader.load(
-            path,
-            workflowObjects[0]?.metadata?.namespace,
-          );
+          let configs: ViewerConfig[] = [];
+          try {
+            const result = await OutputArtifactLoader.loadResult(
+              path,
+              workflowObjects[0]?.metadata?.namespace,
+              { throwOnError: true },
+            );
+            configs = result.configs;
+            if (result.errors.length) {
+              await this.showPageError(
+                'Error: failed loading run visualizations.',
+                new Error(result.errors.join('\n')),
+              );
+            }
+          } catch (error) {
+            await this.showPageError('Error: failed loading run visualizations.', error);
+          }
           configs.forEach((config) => {
             const currentList: TaggedViewerConfig[] = viewersMap.get(config.type) || [];
             currentList.push({
