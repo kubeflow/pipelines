@@ -116,6 +116,8 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
 
 // Substrings that indicate a Kubernetes pod lifecycle failure (the platform
 // couldn't run the step) rather than a failure in the user's own pipeline code.
+// Mirrors podFailurePatterns in backend/src/common/util/pod_failure_classifier.go;
+// keep the two in sync.
 const POD_LIFECYCLE_FAILURE_PATTERNS = [
   'ImagePullBackOff',
   'ErrImagePull',
@@ -125,9 +127,15 @@ const POD_LIFECYCLE_FAILURE_PATTERNS = [
   'CrashLoopBackOff',
   'OOMKilled',
   'DeadlineExceeded',
+  'ContainerCannotRun',
+  'CreateContainerConfigError',
+  'CreateContainerError',
+  'RunContainerError',
   'NodeLost',
   'Preempted',
+  'PreemptionByScheduler',
   'Evicted',
+  'TerminationByKubelet',
 ];
 
 // isPodLifecycleFailure returns true if nodeMessage looks like it was caused by
