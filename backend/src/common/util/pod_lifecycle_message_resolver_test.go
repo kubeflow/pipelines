@@ -127,6 +127,27 @@ func TestResolveNodeLifecycleMessage(t *testing.T) {
 			want:   "",
 		},
 		{
+			name: "a NodeError on a Pod node is Argo's own error, not a pod failure",
+			nodes: map[string]workflowapi.NodeStatus{
+				"pod": {
+					Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeError,
+					Message: "pods \"my-task\" is forbidden: error looking up service account",
+				},
+			},
+			nodeID:  "pod",
+			want:    "",
+			comment: "NodeError means the controller failed to manage the pod, not the pod itself",
+		},
+		{
+			name: "a NodeFailed Pod message still surfaces normally",
+			nodes: map[string]workflowapi.NodeStatus{
+				"pod": {Type: workflowapi.NodeTypePod, Phase: workflowapi.NodeFailed, Message: "OOMKilled"},
+			},
+			nodeID:  "pod",
+			want:    "OOMKilled",
+			comment: "regression guard: NodeFailed must still work after the NodeError exclusion",
+		},
+		{
 			name: "cyclic children do not cause infinite recursion",
 			nodes: map[string]workflowapi.NodeStatus{
 				"a": {Type: workflowapi.NodeTypeDAG, Phase: workflowapi.NodeFailed, Children: []string{"b"}},

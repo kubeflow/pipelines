@@ -45,6 +45,17 @@ var nonFailureNodePhases = map[workflowapi.NodePhase]bool{
 	workflowapi.NodeOmitted:   true,
 }
 
+// nonPodFailurePhases are Pod-node phases whose message is never a genuine pod lifecycle
+// failure, even though the node is Pod-type and has a non-empty message. NodeError specifically
+// means Argo's own controller failed to manage the pod, for example a Kubernetes API error
+// while creating it, which is distinct from the pod itself failing. Confirmed against Argo's own
+// NodePhase constants (workflow_types.go), which define NodeFailed and NodeError as separate
+// values, and against Argo's own retryStrategy.retryPolicy evaluation, which treats them as
+// different trigger conditions rather than one combined failure state.
+var nonPodFailurePhases = map[workflowapi.NodePhase]bool{
+	workflowapi.NodeError: true,
+}
+
 // ResolveNodeLifecycleMessage returns the pod lifecycle failure message that should be
 // attributed to nodeID, or an empty string if none applies. Feed the result into
 // ClassifyPodFailure to get a category.
@@ -68,6 +79,11 @@ var nonFailureNodePhases = map[workflowapi.NodePhase]bool{
 //     the first non-empty message -- in either direction -- can resurface a stale failure from
 //     an earlier attempt even while the latest attempt is currently healthy and running. Only
 //     the latest attempt reflects what is happening right now.
+//  3. A Pod-type node's message is only trusted when the node's own phase is not NodeError.
+//     NodeFailed means the container itself failed, a real pod lifecycle failure. NodeError
+//     means Argo's own controller failed to manage the pod, not the pod itself, so its message
+//     is an Argo/Kubernetes-API-level string, not a pod failure reason, and must not be
+//     classified as one.
 func ResolveNodeLifecycleMessage(nodes map[string]workflowapi.NodeStatus, nodeID string) string {
 	resolved := make(map[string]string, len(nodes))
 	visiting := make(map[string]bool, len(nodes))
@@ -102,8 +118,10 @@ func resolveNodeLifecycleMessage(
 
 	// Only a Pod-type node's own message is a candidate pod lifecycle failure. Control-flow
 	// nodes (Retry, DAG, StepGroup, ...) have their own message semantics and are never treated
-	// as a pod failure here, even when non-empty.
-	if node.Type == workflowapi.NodeTypePod && node.Message != "" {
+	// as a pod failure here, even when non-empty. A NodeError phase is also excluded even on a
+	// Pod-type node, since that means Argo's own controller failed to manage the pod rather than
+	// the pod itself failing.
+	if node.Type == workflowapi.NodeTypePod && node.Message != "" && !nonPodFailurePhases[node.Phase] {
 		resolved[nodeID] = node.Message
 		return node.Message
 	}
