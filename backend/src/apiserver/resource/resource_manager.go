@@ -52,6 +52,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
+	workflowapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
+	argoutil "github.com/argoproj/argo-workflows/v4/workflow/util"
 )
 
 // Metric variables. Please prefix the metric names with resource_manager_.
@@ -2581,4 +2583,404 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
+}
+
+func isTargetOrChildNode(nodeName, targetNodeName string) bool {
+	return nodeName == targetNodeName ||
+		strings.HasPrefix(nodeName, targetNodeName+".") ||
+		strings.HasPrefix(nodeName, targetNodeName+"(")
+}
+
+// Clears a task's status, causing it to re-run.
+func (r *ResourceManager) ClearTask(ctx context.Context, runId string, taskId string, scope apiv2beta1.TaskScope, invalidateCache bool) error {
+	run, err := r.GetRun(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to clear task due to error fetching the run")
+	}
+	namespace, err := r.getNamespaceFromRunId(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to clear task due to error fetching namespace")
+	}
+
+	workflowClient := r.getWorkflowClient(namespace)
+	latestWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to fetch workflow resource from Kubernetes")
+	}
+
+	workflow, ok := latestWorkflow.(*util.Workflow)
+	if !ok {
+		return util.NewInternalServerError(errors.New("not an argo workflow"), "Execution spec is not an Argo Workflow")
+	}
+
+	// 1. Locate the target node in workflow.Status.Nodes
+	var targetNode *workflowapi.NodeStatus
+	for _, node := range workflow.Status.Nodes {
+		if node.ID == taskId || node.Name == taskId || node.DisplayName == taskId {
+			targetNode = &node
+			break
+		}
+	}
+	if targetNode == nil {
+		return util.NewNotFoundError(errors.New("node not found"), "Node %s not found in workflow status", taskId)
+	}
+
+	targetNodeID := targetNode.ID
+
+	// 2. Build adjacency list (children) and inverted adjacency list (parents)
+	childrenMap := make(map[string][]string)
+	parentsMap := make(map[string][]string)
+	for _, node := range workflow.Status.Nodes {
+		for _, childID := range node.Children {
+			childrenMap[node.ID] = append(childrenMap[node.ID], childID)
+			parentsMap[childID] = append(parentsMap[childID], node.ID)
+		}
+	}
+
+	// 3. Define helper to traverse reachable nodes in the graph
+	getReachableNodes := func(startNodeID string, adjMap map[string][]string) map[string]bool {
+		visited := make(map[string]bool)
+		var dfs func(string)
+		dfs = func(curr string) {
+			if visited[curr] {
+				return
+			}
+			visited[curr] = true
+			for _, neighbor := range adjMap[curr] {
+				dfs(neighbor)
+			}
+		}
+		dfs(startNodeID)
+		return visited
+	}
+
+	// 4. Calculate the nodes to clear based on the requested scope
+	nodesToClearSet := make(map[string]bool)
+	switch scope {
+	case apiv2beta1.TaskScope_TASK_ONLY:
+		nodesToClearSet[targetNodeID] = true
+	case apiv2beta1.TaskScope_DOWNSTREAM:
+		for d := range getReachableNodes(targetNodeID, childrenMap) {
+			nodesToClearSet[d] = true
+		}
+	case apiv2beta1.TaskScope_UPSTREAM:
+		for u := range getReachableNodes(targetNodeID, parentsMap) {
+			nodesToClearSet[u] = true
+		}
+	case apiv2beta1.TaskScope_UPSTREAM_DOWNSTREAM:
+		upstreamNodes := getReachableNodes(targetNodeID, parentsMap)
+		for u := range upstreamNodes {
+			for d := range getReachableNodes(u, childrenMap) {
+				nodesToClearSet[d] = true
+			}
+		}
+	default:
+		// Default to TASK_ONLY if unspecified
+		nodesToClearSet[targetNodeID] = true
+	}
+
+	// 5. Expand cleared set to include any nested children/sub-nodes (loops, retries, etc.)
+	finalClearedNodesSet := make(map[string]bool)
+	for _, node := range workflow.Status.Nodes {
+		for clearedNodeID := range nodesToClearSet {
+			clearedNode := workflow.Status.Nodes[clearedNodeID]
+			if isTargetOrChildNode(node.Name, clearedNode.Name) {
+				finalClearedNodesSet[node.ID] = true
+				break
+			}
+		}
+	}
+
+	// 6. Backup original node statuses to support TASK_ONLY and UPSTREAM restoration
+	originalNodes := make(map[string]workflowapi.NodeStatus)
+	for k, v := range workflow.Status.Nodes {
+		originalNodes[k] = v
+	}
+
+	// 7. Determine which node IDs need to be explicitly passed to FormulateRetryWorkflow.
+	// For TASK_ONLY/DOWNSTREAM: just the targetNodeID.
+	// For UPSTREAM/UPSTREAM_DOWNSTREAM: targetNodeID and all ancestors.
+	var nodesToCallSelector []string
+	if scope == apiv2beta1.TaskScope_TASK_ONLY || scope == apiv2beta1.TaskScope_DOWNSTREAM {
+		nodesToCallSelector = []string{targetNodeID}
+	} else {
+		// UPSTREAM or UPSTREAM_DOWNSTREAM
+		upstreamNodes := getReachableNodes(targetNodeID, parentsMap)
+		for nodeID := range upstreamNodes {
+			nodesToCallSelector = append(nodesToCallSelector, nodeID)
+		}
+	}
+
+	// 8. Run FormulateRetryWorkflow sequentially for each target node.
+	// We temporarily set workflow phase to Failed so that FormulateRetryWorkflow accepts it.
+	wfCopy := workflow.DeepCopy()
+	if wfCopy.Status.Phase == workflowapi.WorkflowRunning {
+		wfCopy.Status.Phase = workflowapi.WorkflowFailed
+	}
+
+	var formulatedPods []string
+	for _, nodeID := range nodesToCallSelector {
+		nodeSelector := fmt.Sprintf("id=%s", nodeID)
+		updatedWf, pods, err := argoutil.FormulateRetryWorkflow(ctx, wfCopy.Workflow, true, nodeSelector, nil)
+		if err != nil {
+			return util.NewInternalServerError(err, "Failed to formulate retry workflow for node %s", nodeID)
+		}
+		wfCopy.Workflow = updatedWf
+		formulatedPods = append(formulatedPods, pods...)
+	}
+
+	// 8b. Invalidate cache if requested
+	if invalidateCache {
+		for clearedNodeID := range finalClearedNodesSet {
+			clearedNode := originalNodes[clearedNodeID]
+			if clearedNode.TemplateName != "" {
+				for i, t := range wfCopy.Spec.Templates {
+					if t.Name == clearedNode.TemplateName {
+						if t.Container != nil {
+							hasCacheDisabled := false
+							for _, arg := range t.Container.Args {
+								if arg == "--cache_disabled" {
+									hasCacheDisabled = true
+									break
+								}
+							}
+							if !hasCacheDisabled {
+								wfCopy.Spec.Templates[i].Container.Args = append(t.Container.Args, "--cache_disabled")
+							}
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// 9. Restore nodes that were deleted but are NOT in the finalClearedNodesSet
+	for nodeID, nodeStatus := range originalNodes {
+		if _, exists := wfCopy.Status.Nodes[nodeID]; !exists {
+			if !finalClearedNodesSet[nodeID] {
+				wfCopy.Status.Nodes[nodeID] = nodeStatus
+			}
+		}
+	}
+
+	// 10. Filter pods to delete based on the nodes that are actually cleared in the final spec
+	var podsToDelete []string
+	for _, podName := range formulatedPods {
+		for _, origNode := range originalNodes {
+			if util.RetrievePodName(*workflow.Workflow, origNode) == podName {
+				if finalClearedNodesSet[origNode.ID] {
+					podsToDelete = append(podsToDelete, podName)
+				}
+				break
+			}
+		}
+	}
+
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
+
+	// 11. Delete the pods from Kubernetes
+	if len(podsToDelete) > 0 {
+		if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
+			return util.NewInternalServerError(err, "Failed to clean up pods from previous attempt")
+		}
+	}
+
+	// 12. Reset workflow status labels/phase/conditions back to Running
+	delete(wfCopy.Labels, common.LabelKeyCompleted)
+	delete(wfCopy.Labels, util.LabelKeyWorkflowPersistedFinalState)
+	wfCopy.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
+	wfCopy.Status.Phase = workflowapi.WorkflowRunning
+	wfCopy.Status.Conditions.UpsertCondition(workflowapi.Condition{Status: v1.ConditionFalse, Type: workflowapi.ConditionTypeCompleted})
+	wfCopy.Status.Message = ""
+	wfCopy.Status.FinishedAt = v1.Time{}
+
+	// 13. Persist the updated workflow to Kubernetes
+	newExecSpec, err := r.updateOrCreateRetryWorkflow(ctx, namespace, runId, wfCopy)
+	if err != nil {
+		return err
+	}
+
+	// 14. Notify plugins and update run status in the KFP DB
+	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+		if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
+			r.pluginDispatcher.OnRunRetry(ctx, pr)
+		}
+	}
+
+	condition := string(newExecSpec.ExecutionStatus().Condition())
+	run.Conditions = condition
+	run.FinishedAtInSec = 0
+	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
+	run.State = model.RuntimeState(condition).ToV2()
+	run.PluginsOutputString = nil
+	err = r.runStore.UpdateRun(run)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update run status in DB")
+	}
+
+	return nil
+}
+
+// Marks a task as succeeded, allowing downstream tasks to proceed.
+func (r *ResourceManager) MarkTaskSuccess(ctx context.Context, runId string, taskId string, scope apiv2beta1.TaskScope, comment string) error {
+	run, err := r.GetRun(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to mark task success due to error fetching the run")
+	}
+	namespace, err := r.getNamespaceFromRunId(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to mark task success due to error fetching namespace")
+	}
+
+	workflowClient := r.getWorkflowClient(namespace)
+	latestWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to fetch workflow resource from Kubernetes")
+	}
+
+	workflow, ok := latestWorkflow.(*util.Workflow)
+	if !ok {
+		return util.NewInternalServerError(errors.New("not an argo workflow"), "Execution spec is not an Argo Workflow")
+	}
+
+	// 1. Locate the target node in workflow.Status.Nodes
+	var targetNode *workflowapi.NodeStatus
+	for _, node := range workflow.Status.Nodes {
+		if node.ID == taskId || node.Name == taskId || node.DisplayName == taskId {
+			targetNode = &node
+			break
+		}
+	}
+	if targetNode == nil {
+		return util.NewNotFoundError(errors.New("node not found"), "Node %s not found in workflow status", taskId)
+	}
+
+	targetNodeID := targetNode.ID
+
+	// 2. Build adjacency list (children) and inverted adjacency list (parents)
+	childrenMap := make(map[string][]string)
+	parentsMap := make(map[string][]string)
+	for _, node := range workflow.Status.Nodes {
+		for _, childID := range node.Children {
+			childrenMap[node.ID] = append(childrenMap[node.ID], childID)
+			parentsMap[childID] = append(parentsMap[childID], node.ID)
+		}
+	}
+
+	// 3. Define helper to traverse reachable nodes in the graph
+	getReachableNodes := func(startNodeID string, adjMap map[string][]string) map[string]bool {
+		visited := make(map[string]bool)
+		var dfs func(string)
+		dfs = func(curr string) {
+			if visited[curr] {
+				return
+			}
+			visited[curr] = true
+			for _, neighbor := range adjMap[curr] {
+				dfs(neighbor)
+			}
+		}
+		dfs(startNodeID)
+		return visited
+	}
+
+	// 4. Calculate the nodes to mark success based on the requested scope
+	nodesToMarkSet := make(map[string]bool)
+	switch scope {
+	case apiv2beta1.TaskScope_TASK_ONLY:
+		nodesToMarkSet[targetNodeID] = true
+	case apiv2beta1.TaskScope_DOWNSTREAM:
+		for d := range getReachableNodes(targetNodeID, childrenMap) {
+			nodesToMarkSet[d] = true
+		}
+	case apiv2beta1.TaskScope_UPSTREAM:
+		for u := range getReachableNodes(targetNodeID, parentsMap) {
+			nodesToMarkSet[u] = true
+		}
+	case apiv2beta1.TaskScope_UPSTREAM_DOWNSTREAM:
+		upstreamNodes := getReachableNodes(targetNodeID, parentsMap)
+		for u := range upstreamNodes {
+			for d := range getReachableNodes(u, childrenMap) {
+				nodesToMarkSet[d] = true
+			}
+		}
+	default:
+		// Default to TASK_ONLY if unspecified
+		nodesToMarkSet[targetNodeID] = true
+	}
+
+	// 5. Expand set to include any nested children/sub-nodes (loops, retries, etc.)
+	finalMarkNodesSet := make(map[string]bool)
+	for _, node := range workflow.Status.Nodes {
+		for markedNodeID := range nodesToMarkSet {
+			markedNode := workflow.Status.Nodes[markedNodeID]
+			if isTargetOrChildNode(node.Name, markedNode.Name) {
+				finalMarkNodesSet[node.ID] = true
+				break
+			}
+		}
+	}
+
+	// 6. Delete any running pods associated with these nodes
+	var podsToDelete []string
+	for nodeID, nodeStatus := range workflow.Status.Nodes {
+		if finalMarkNodesSet[nodeID] {
+			if nodeStatus.Phase == workflowapi.NodeRunning || nodeStatus.Phase == workflowapi.NodePending {
+				podName := util.RetrievePodName(*workflow.Workflow, nodeStatus)
+				if podName != "" {
+					podsToDelete = append(podsToDelete, podName)
+				}
+			}
+		}
+	}
+
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
+
+	if len(podsToDelete) > 0 {
+		if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
+			return util.NewInternalServerError(err, "Failed to clean up running pods during mark success")
+		}
+	}
+
+	// 7. Update node phases to Succeeded in workflow status
+	wfCopy := workflow.DeepCopy()
+	for nodeID, nodeStatus := range wfCopy.Status.Nodes {
+		if finalMarkNodesSet[nodeID] {
+			nodeStatus.Phase = workflowapi.NodeSucceeded
+			nodeStatus.FinishedAt = v1.Now()
+			nodeStatus.Message = fmt.Sprintf("Manually marked as Succeeded. Reason: %s", comment)
+			wfCopy.Status.Nodes[nodeID] = nodeStatus
+		}
+	}
+
+	// 8. If the workflow was previously terminal (Failed, Error, Succeeded), reset it to Running so the controller reconciles it again
+	if wfCopy.Status.Phase == workflowapi.WorkflowFailed || wfCopy.Status.Phase == workflowapi.WorkflowError || wfCopy.Status.Phase == workflowapi.WorkflowSucceeded {
+		delete(wfCopy.Labels, common.LabelKeyCompleted)
+		delete(wfCopy.Labels, util.LabelKeyWorkflowPersistedFinalState)
+		wfCopy.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
+		wfCopy.Status.Phase = workflowapi.WorkflowRunning
+		wfCopy.Status.Conditions.UpsertCondition(workflowapi.Condition{Status: v1.ConditionFalse, Type: workflowapi.ConditionTypeCompleted})
+		wfCopy.Status.Message = ""
+		wfCopy.Status.FinishedAt = v1.Time{}
+	}
+
+	// 9. Persist the updated workflow to Kubernetes
+	_, err = workflowClient.Update(ctx, wfCopy, v1.UpdateOptions{})
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update workflow in Kubernetes")
+	}
+
+	// 10. Update the run status/manifest in the KFP DB
+	run.WorkflowRuntimeManifest = model.LargeText(wfCopy.ToStringForStore())
+	err = r.runStore.UpdateRun(run)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to update run status in DB")
+	}
+
+	return nil
 }

@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 
@@ -85,6 +86,16 @@ var (
 	retryRunRequests = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "run_server_retry_requests",
 		Help: "The total number of RetryRun requests",
+	})
+
+	clearTaskRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_clear_task_requests",
+		Help: "The total number of ClearTask requests",
+	})
+
+	markTaskSuccessRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "run_server_mark_task_success_requests",
+		Help: "The total number of MarkTaskSuccess requests",
 	})
 
 	runCount = promauto.NewGauge(prometheus.GaugeOpts{
@@ -636,6 +647,48 @@ func (s *RunServer) RetryRun(ctx context.Context, request *apiv2beta1.RetryRunRe
 	err := s.retryRun(ctx, request.GetRunId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to retry a run")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+// Clears a task's status, causing it to re-run.
+func (s *RunServer) ClearTask(ctx context.Context, request *apiv2beta1.ClearTaskRequest) (*emptypb.Empty, error) {
+	if s.options.CollectMetrics {
+		clearTaskRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbRetry})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.ClearTask(ctx, request.GetRunId(), request.GetTaskId(), request.GetScope(), request.GetInvalidateCache())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to clear task")
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+// Marks a task as succeeded, allowing downstream tasks to proceed.
+func (s *RunServer) MarkTaskSuccess(ctx context.Context, request *apiv2beta1.MarkTaskSuccessRequest) (*emptypb.Empty, error) {
+	if s.options.CollectMetrics {
+		markTaskSuccessRequests.Inc()
+	}
+
+	if strings.TrimSpace(request.GetComment()) == "" {
+		return nil, util.NewInvalidInputError("A comment is mandatory for marking a task as successful")
+	}
+
+	err := s.canAccessRun(ctx, request.GetRunId(), &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUpdate})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.MarkTaskSuccess(ctx, request.GetRunId(), request.GetTaskId(), request.GetScope(), request.GetComment())
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to mark task as successful")
 	}
 
 	return &emptypb.Empty{}, nil
