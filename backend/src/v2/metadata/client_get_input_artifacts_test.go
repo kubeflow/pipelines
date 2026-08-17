@@ -40,9 +40,11 @@ func TestGetInputArtifactsByExecutionID_MultipleArtifactsSameName(t *testing.T) 
 			Type:       pb.Event_INPUT.Enum(),
 		},
 	}
+	// Returned out of event order, the way GetArtifactsByID is free to do:
+	// the fix must not rely on this order matching the events above.
 	artifacts := []*pb.Artifact{
-		{Id: int64Ptr(101), Uri: proto.String("gs://bucket/model-a")},
 		{Id: int64Ptr(102), Uri: proto.String("gs://bucket/model-b")},
+		{Id: int64Ptr(101), Uri: proto.String("gs://bucket/model-a")},
 	}
 
 	mock := &mockMLMDClient{
@@ -65,6 +67,14 @@ func TestGetInputArtifactsByExecutionID_MultipleArtifactsSameName(t *testing.T) 
 		t.Fatalf("expected an artifact list for input %q, got none", "models")
 	}
 	if len(list.Artifacts) != 2 {
-		t.Errorf("expected 2 artifacts for input %q, got %d: %v", "models", len(list.Artifacts), list.Artifacts)
+		t.Fatalf("expected 2 artifacts for input %q, got %d: %v", "models", len(list.Artifacts), list.Artifacts)
+	}
+	// Order must follow the INPUT events (101, then 102), not the
+	// GetArtifactsByID response order used above.
+	if got := list.Artifacts[0].GetUri(); got != "gs://bucket/model-a" {
+		t.Errorf("expected first artifact to be model-a (id 101), got %q", got)
+	}
+	if got := list.Artifacts[1].GetUri(); got != "gs://bucket/model-b" {
+		t.Errorf("expected second artifact to be model-b (id 102), got %q", got)
 	}
 }
