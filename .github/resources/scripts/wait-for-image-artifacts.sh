@@ -36,6 +36,24 @@ fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 
+case "$(uname -m)" in
+  x86_64)
+    ARCH_NAME="amd64"
+    ;;
+  aarch64|arm64)
+    ARCH_NAME="arm64"
+    ;;
+  *)
+    echo "::error::Unsupported runner architecture: $(uname -m)" >&2
+    exit 1
+    ;;
+esac
+
+EXPECTED_CI_IMAGE_ARTIFACTS=()
+for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  EXPECTED_CI_IMAGE_ARTIFACTS+=("${artifact}-${ARCH_NAME}")
+done
+
 missing_artifacts=()
 for attempt in $(seq 1 "$WAIT_ATTEMPTS"); do
   artifact_names=""
@@ -46,14 +64,14 @@ for attempt in $(seq 1 "$WAIT_ATTEMPTS"); do
   fi
 
   missing_artifacts=()
-  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  for artifact in "${EXPECTED_CI_IMAGE_ARTIFACTS[@]}"; do
     if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
       missing_artifacts+=("$artifact")
     fi
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
+    echo "All ${#EXPECTED_CI_IMAGE_ARTIFACTS[@]} ${ARCH_NAME} branch image artifacts are available."
     exit 0
   fi
 
