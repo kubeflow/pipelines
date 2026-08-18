@@ -1,10 +1,18 @@
 {
   "compilerOptions": {
+    // Executed by ts-node-dev rather than bundled, so two options TypeScript 6
+    // deprecates have to stay until the runtime tooling catches up:
+    //   - baseUrl: required by tsconfig-paths/register.
+    //   - moduleResolution node10: ts-node-dev runs with module=commonjs, which
+    //     rules out "bundler".
+    // Both are removed in TypeScript 7, so revisit before then.
+    "ignoreDeprecations": "6.0",
     "allowSyntheticDefaultImports": true,
     "baseUrl": "..",
+    "rootDir": "..",
     "outDir": "build/dist",
     "module": "esnext",
-    "target": "es5",
+    "target": "es2015",
     "lib": ["es6", "dom", "es2019", "es2022.error"],
     "sourceMap": true,
     "allowJs": true,
@@ -13,13 +21,14 @@
     "moduleResolution": "node",
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "downlevelIteration": true,
     "noImplicitAny": true,
     "paths": {
       "src/*": ["src/*"],
+      "third_party/*": ["third_party/*"],
     },
     "strictBindCallApply": true,
     "strictNullChecks": true,
+    "strictPropertyInitialization": false,
     "skipLibCheck": true,
     "esModuleInterop": true,
   },

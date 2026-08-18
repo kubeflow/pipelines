@@ -103,8 +103,9 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     const origin = this.getOrigin();
-    const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId];
-    const pipelineVersionIdFromParams = this.props.match.params[RouteParams.pipelineVersionId];
+    const pipelineIdFromParams = this.props.match.params[RouteParams.pipelineId] ?? '';
+    const pipelineVersionIdFromParams =
+      this.props.match.params[RouteParams.pipelineVersionId] ?? '';
 
     if (origin) {
       const getOriginIdList = () => [origin.isRecurring ? origin.recurringRunId! : origin.runId!];
@@ -167,7 +168,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       return {
         actions: buttons.getToolbarActionMap(),
         breadcrumbs: [{ displayName: 'Pipelines', href: RoutePage.PIPELINES }],
-        pageTitle: this.props.match.params[RouteParams.pipelineId],
+        pageTitle: this.props.match.params[RouteParams.pipelineId] ?? '',
       };
     }
   }
@@ -466,8 +467,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       }
     } else {
       // if fromRunId or fromRecurringRunId is not specified, then we have a full pipeline
-      const pipelineId = this.props.match.params[RouteParams.pipelineId];
-      const versionId = this.props.match.params[RouteParams.pipelineVersionId];
+      const pipelineId = this.props.match.params[RouteParams.pipelineId] ?? '';
+      const versionId = this.props.match.params[RouteParams.pipelineVersionId] ?? '';
 
       try {
         v1Pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);

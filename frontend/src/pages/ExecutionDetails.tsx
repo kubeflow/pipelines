@@ -59,7 +59,7 @@ export default class ExecutionDetails extends Page<{}, ExecutionDetailsState> {
   public state: ExecutionDetailsState = {};
 
   private get id(): number {
-    return parseInt(this.props.match.params[RouteParams.ID], 10);
+    return parseInt(this.props.match.params[RouteParams.ID] ?? '', 10);
   }
 
   public render(): React.JSX.Element {
