@@ -26,6 +26,7 @@ import os
 import re
 import tempfile
 import unittest
+from datetime import datetime, timedelta, timezone
 import zipfile
 from pathlib import Path
 from unittest import mock
@@ -740,6 +741,198 @@ class TrendAggregationTest(unittest.TestCase):
             [(day["date"], day["totals"]["lane_runs"]) for day in merged["days"]],
             [("2020-01-01", 1), ("2026-07-13", 3)],
         )
+
+    def test_degraded_day_does_not_replace_stored_complete_day(self):
+        history = {
+            "schema_version": 1,
+            "days": [{
+                "date": "2026-07-13",
+                "complete": True,
+                "totals": {"lane_runs": 40},
+            }],
+        }
+
+        merged = chr_mod.merge_history(history, [{
+            "date": "2026-07-13",
+            "complete": False,
+            "totals": {"lane_runs": 3},
+        }])
+
+        self.assertEqual(merged["days"][0]["totals"]["lane_runs"], 40)
+        self.assertTrue(merged["days"][0]["complete"])
+
+    def test_days_predating_completeness_tracking_are_protected(self):
+        history = {
+            "schema_version": 1,
+            "days": [{"date": "2026-07-13", "totals": {"lane_runs": 40}}],
+        }
+
+        merged = chr_mod.merge_history(history, [{
+            "date": "2026-07-13",
+            "complete": False,
+            "totals": {"lane_runs": 3},
+        }])
+
+        self.assertEqual(merged["days"][0]["totals"]["lane_runs"], 40)
+
+    def test_degraded_day_still_fills_a_gap(self):
+        merged = chr_mod.merge_history({"schema_version": 1, "days": []}, [{
+            "date": "2026-07-13",
+            "complete": False,
+            "totals": {"lane_runs": 3},
+        }])
+
+        self.assertEqual(merged["days"][0]["totals"]["lane_runs"], 3)
+
+    def test_degraded_day_replaces_a_less_complete_degraded_day(self):
+        history = {
+            "schema_version": 1,
+            "days": [{
+                "date": "2026-07-13",
+                "complete": False,
+                "totals": {"lane_runs": 2},
+            }],
+        }
+
+        merged = chr_mod.merge_history(history, [{
+            "date": "2026-07-13",
+            "complete": False,
+            "totals": {"lane_runs": 9},
+        }])
+
+        self.assertEqual(merged["days"][0]["totals"]["lane_runs"], 9)
+
+    def test_complete_day_always_replaces(self):
+        history = {
+            "schema_version": 1,
+            "days": [{
+                "date": "2026-07-13",
+                "complete": True,
+                "totals": {"lane_runs": 40},
+            }],
+        }
+
+        merged = chr_mod.merge_history(history, [{
+            "date": "2026-07-13",
+            "complete": True,
+            "totals": {"lane_runs": 41},
+        }])
+
+        self.assertEqual(merged["days"][0]["totals"]["lane_runs"], 41)
+
+    def test_aggregate_marks_degraded_dates_incomplete(self):
+        observations = [
+            {
+                "id": "1:1:1", "job_id": 1, "date": "2026-07-13",
+                "workflow": "WF", "lane": "lane", "run_id": 1, "attempt": 1,
+                "sha": "a", "conclusion": "success", "failed": False,
+                "duration": 1.0, "phases": {},
+            },
+            {
+                "id": "2:1:2", "job_id": 2, "date": "2026-07-14",
+                "workflow": "WF", "lane": "lane", "run_id": 2, "attempt": 1,
+                "sha": "b", "conclusion": "success", "failed": False,
+                "duration": 1.0, "phases": {},
+            },
+        ]
+
+        snapshots = chr_mod.aggregate_daily(
+            observations, [], {}, completeness={
+                "window_incomplete": False,
+                "incomplete_dates": {"2026-07-14"},
+            })
+
+        by_date = {snapshot["date"]: snapshot for snapshot in snapshots}
+        self.assertTrue(by_date["2026-07-13"]["complete"])
+        self.assertFalse(by_date["2026-07-14"]["complete"])
+
+    def test_window_wide_degradation_marks_every_day_incomplete(self):
+        observations = [{
+            "id": "1:1:1", "job_id": 1, "date": "2026-07-13",
+            "workflow": "WF", "lane": "lane", "run_id": 1, "attempt": 1,
+            "sha": "a", "conclusion": "success", "failed": False,
+            "duration": 1.0, "phases": {},
+        }]
+
+        snapshots = chr_mod.aggregate_daily(
+            observations, [], {}, completeness={"window_incomplete": True})
+
+        self.assertFalse(snapshots[0]["complete"])
+
+    def test_publisher_health_flags_systemic_gaps(self):
+        health = chr_mod.publisher_health({
+            "observed_lane_runs": 100,
+            "missing_results": 40,
+            "artifact_errors": 2,
+        })
+
+        self.assertTrue(health["degraded"])
+        self.assertEqual(health["gap_ratio"], 0.4)
+        self.assertEqual(health["artifact_errors"], 2)
+
+    def test_publisher_health_counts_unparseable_reports(self):
+        # An artifact that arrived but yielded no tests is still a data gap.
+        health = chr_mod.publisher_health(
+            {"observed_lane_runs": 10, "missing_results": 1},
+            normalized_results=[
+                {"test_parse_errors": 3, "tests": []},
+                {"test_parse_errors": 1, "tests": [{"id": "a"}]},
+                {"test_parse_errors": 0, "tests": [{"id": "b"}]},
+            ])
+
+        self.assertEqual(health["test_parse_errors"], 4)
+        # One unpublished plus one artifact that produced nothing usable.
+        self.assertEqual(health["unusable_results"], 2)
+        self.assertEqual(health["gap_ratio"], 0.2)
+
+    def test_publisher_health_tolerates_isolated_gaps(self):
+        health = chr_mod.publisher_health({
+            "observed_lane_runs": 100,
+            "missing_results": 2,
+        })
+
+        self.assertFalse(health["degraded"])
+        self.assertEqual(health["gap_ratio"], 0.02)
+
+    def test_publisher_health_handles_an_empty_window(self):
+        health = chr_mod.publisher_health({})
+
+        self.assertFalse(health["degraded"])
+        self.assertEqual(health["gap_ratio"], 0.0)
+
+    def test_comparison_windows_cover_equal_numbers_of_dates(self):
+        today = datetime.now(timezone.utc).date()
+        history = {
+            "schema_version": 1,
+            "days": [
+                {
+                    "date": (today - timedelta(days=offset)).isoformat(),
+                    "totals": {"lane_runs": 1, "failures": 0},
+                    "failure_classes": {},
+                }
+                for offset in range(30)
+            ],
+        }
+
+        rendered = chr_mod.render_trend_summary(
+            history, [], "https://example.invalid", pages_enabled=False)
+
+        # One lane run per date, so the rendered counts are the date counts.
+        # Before the fix the latest window covered eight dates and reported 8.
+        self.assertIn("| Latest 7 days | 7 |", rendered)
+        self.assertIn("| Previous 7 days | 7 |", rendered)
+        end = (today + timedelta(days=1)).isoformat()
+        current_start = (
+            today - timedelta(days=chr_mod.COMPARISON_WINDOW_DAYS - 1)
+        ).isoformat()
+        previous_start = (
+            today - timedelta(days=2 * chr_mod.COMPARISON_WINDOW_DAYS - 1)
+        ).isoformat()
+        current = chr_mod.window_totals(history, current_start, end)
+        previous = chr_mod.window_totals(history, previous_start, current_start)
+
+        self.assertEqual(current["days"], chr_mod.COMPARISON_WINDOW_DAYS)
+        self.assertEqual(previous["days"], chr_mod.COMPARISON_WINDOW_DAYS)
 
     def test_load_history_reconstructs_sorted_daily_snapshots(self):
         with tempfile.TemporaryDirectory() as directory:

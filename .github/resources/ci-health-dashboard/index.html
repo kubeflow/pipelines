@@ -190,9 +190,9 @@
         <div class="metric"><span>Lane attempts <button class="help-tip" type="button" aria-label="Define lane attempts" data-help="Completed, result-bearing CI job attempts in the selected lanes. Workflow reruns count as separate attempts; ordinary cancellations are excluded.">i</button></span><strong id="attempts">…</strong><small id="sample">No data</small></div>
         <div class="metric"><span>Failure rate <button class="help-tip" type="button" aria-label="Define failure rate" data-help="Failed lane attempts divided by all completed, result-bearing lane attempts in the selected range.">i</button></span><strong id="failureRate">…</strong><small id="failureDelta">vs prior window</small></div>
         <div class="metric"><span>p95 wall clock <button class="help-tip" type="button" aria-label="Define p95 wall clock" data-help="The median of the stored daily lane-level 95th-percentile job durations. It highlights long-tail elapsed time rather than the average.">i</button></span><strong id="duration">…</strong><small>daily lane p95 median</small></div>
-        <div class="metric"><span>Infra / unknown <button class="help-tip tip-right" type="button" aria-label="Define infrastructure and unknown failures" data-help="Failed attempts classified as infrastructure failure, runner loss, job timeout, missing result, or not yet classified.">i</button></span><strong id="infra">…</strong><small>classified failed lanes</small></div>
+        <div class="metric"><span>Infra / unknown <button class="help-tip tip-right" type="button" aria-label="Define infrastructure and unknown failures" data-help="Failed attempts classified as infrastructure failure, runner loss, job timeout, missing result, or not yet classified.">i</button></span><strong id="infra">…</strong><small id="infraScope">classified failed lanes</small></div>
         <div class="metric"><span>GitHub correlation <button class="help-tip tip-right" type="button" aria-label="Define GitHub correlation" data-help="Failed attempts overlapping, or occurring within 15 minutes before, a relevant GitHub Status incident. Correlation is not causation, and these failures remain in the headline rate.">i</button></span><strong id="githubOverlap">…</strong><small id="githubOverlapRate">failed lanes near reported incidents</small></div>
-        <div class="metric"><span>Rerun rescues <button class="help-tip" type="button" aria-label="Define rerun rescues" data-help="Workflow reruns where an earlier attempt failed and the latest attempt passed, shown over all rerun workflows.">i</button></span><strong id="rescues">…</strong><small id="rescueRate">successful reruns</small></div>
+        <div class="metric"><span>Rerun rescues <button class="help-tip" type="button" aria-label="Define rerun rescues" data-help="Workflow reruns where an earlier attempt failed and the latest attempt passed, shown over all rerun workflows.">i</button></span><strong id="rescues">…</strong><small id="rescueRate">successful reruns</small><small id="rescueScope"></small></div>
       </section>
 
       <div class="grid">
@@ -408,17 +408,43 @@
         }));
         return [...map.values()];
       }
+      const INFRA_CLASSES = [
+        'infrastructure_failure', 'runner_lost', 'job_timeout',
+        'missing_result', 'unclassified_failure', 'unknown_failure',
+      ];
+      // Day-level failure_classes span every workflow, so using them while a
+      // filter is active reports repository-wide counts beside filtered rates.
+      // Per-lane result classes allow the same number to be scoped properly.
+      function infraStats(selected) {
+        const filtered = Boolean(selected.workflow || selected.search);
+        let value = 0, unscopedDays = 0;
+        selected.days.forEach(day => {
+          const rows = day.result_lanes;
+          if (rows && rows.length) {
+            rows.forEach(row => {
+              if (selected.workflow && row.workflow !== selected.workflow) return;
+              if (selected.search && !`${row.workflow} ${row.lane}`.toLowerCase().includes(selected.search)) return;
+              value += INFRA_CLASSES.reduce((total, key) => total + ((row.classes || {})[key] || 0), 0);
+            });
+            return;
+          }
+          const dayTotal = INFRA_CLASSES.reduce((total, key) => total + ((day.failure_classes || {})[key] || 0), 0);
+          if (!filtered) { value += dayTotal; return; }
+          // Snapshot predates per-lane classes; it cannot be attributed.
+          if (dayTotal) unscopedDays += 1;
+        });
+        return {value, unscopedDays};
+      }
       function windowStats(selected) {
         const lanes = lanesFor(selected);
         const total = sum(lanes, lane => lane.runs);
         const failures = sum(lanes, lane => lane.failures);
+        const infra = infraStats(selected);
         const result = {
           total, failures, failureRate: rate(failures, total),
           p95: median(lanes.flatMap(lane => lane.p95)),
-          infra: sum(selected.days, day => [
-            'infrastructure_failure', 'runner_lost', 'job_timeout',
-            'missing_result', 'unclassified_failure', 'unknown_failure',
-          ].reduce((total, key) => total + (day.failure_classes[key] || 0), 0)),
+          infra: infra.value,
+          infraUnscopedDays: infra.unscopedDays,
           github: sum(lanes, lane => lane.github),
           reruns: sum(selected.days, day => day.totals.reruns || 0),
           rescues: sum(selected.days, day => day.totals.rerun_rescues || 0),
@@ -440,6 +466,13 @@
           : 'No prior-period data';
         $('duration').textContent = current.p95 == null ? 'N/A' : `${current.p95.toFixed(1)}m`;
         $('infra').textContent = fmt(current.infra);
+        const filtered = Boolean(selection().workflow || selection().search);
+        $('infraScope').textContent = current.infraUnscopedDays
+          ? `classified failed lanes · ${current.infraUnscopedDays} older day(s) not attributable`
+          : 'classified failed lanes';
+        // Reruns and time-to-green are only stored per day, so they cannot be
+        // narrowed. Say so rather than implying the filter applied.
+        $('rescueScope').textContent = filtered ? 'all workflows · not filtered' : '';
         $('githubOverlap').textContent = fmt(current.github);
         $('githubOverlapRate').textContent = `${rate(current.github, current.total).toFixed(1)}% of attempts · not subtracted`;
         $('rescues').textContent = `${current.rescues}/${current.reruns}`;
