@@ -52,6 +52,12 @@ var podFailurePatterns = []podFailurePattern{
 	{"ErrImagePull", PodFailureCategoryProvisioning},
 	{"ErrImageNeverPull", PodFailureCategoryProvisioning},
 	{"InvalidImageName", PodFailureCategoryProvisioning},
+	// Checked before the generic "Unschedulable" entry below, since a GPU-insufficient message
+	// contains both substrings and the more specific one should win. nvidia.com/gpu is the
+	// resource name the NVIDIA device plugin registers, the standard way GPUs are scheduled in
+	// Kubernetes; the scheduler's own message format is "0/N nodes are available: N Insufficient
+	// nvidia.com/gpu".
+	{"Insufficient nvidia.com/gpu", PodFailureCategoryProvisioning},
 	{"Unschedulable", PodFailureCategoryProvisioning},
 	{"CrashLoopBackOff", PodFailureCategoryRuntime},
 	{"OOMKilled", PodFailureCategoryRuntime},

@@ -52,6 +52,18 @@ func TestClassifyPodFailure(t *testing.T) {
 			expectReason:   "Unschedulable",
 		},
 		{
+			name:           "GPU-insufficient scheduling failure matches the specific GPU pattern, not generic Unschedulable",
+			reason:         "0/5 nodes are available: 5 Insufficient nvidia.com/gpu. Unschedulable",
+			expectCategory: PodFailureCategoryProvisioning,
+			expectReason:   "Insufficient nvidia.com/gpu",
+		},
+		{
+			name:           "regression guard: plain CPU/memory Unschedulable still matches the generic pattern",
+			reason:         "0/3 nodes are available: 3 Insufficient memory. Unschedulable",
+			expectCategory: PodFailureCategoryProvisioning,
+			expectReason:   "Unschedulable",
+		},
+		{
 			name:           "OOMKilled is Runtime",
 			reason:         "container terminated with reason OOMKilled, exit code 137",
 			expectCategory: PodFailureCategoryRuntime,
