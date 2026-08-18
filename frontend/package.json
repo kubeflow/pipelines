@@ -16,7 +16,7 @@
     "@types/lodash.groupby": "^4.6.6",
     "@types/pako": "^1.0.3",
     "@xyflow/react": "^12.10.1",
-    "ace-builds": "^1.43.6",
+    "ace-builds": "^1.44.0",
     "d3-dsv": "^1.0.10",
     "dagre": "^0.8.2",
     "google-protobuf": "^3.11.2",
