@@ -1,12 +1,6 @@
 {
   "compilerOptions": {
-    // tsconfig-paths/register resolves this config from the working directory
-    // when `npm run mock:api` starts the mock backend, and it fails with
-    // "Missing baseUrl in compilerOptions". baseUrl is deprecated in TypeScript
-    // 6 and removed in 7, so it stays until tsconfig-paths no longer needs it.
-    "ignoreDeprecations": "6.0",
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "paths": {
       "src/*": ["./src/*"],
       "third_party/*": ["./third_party/*"],
