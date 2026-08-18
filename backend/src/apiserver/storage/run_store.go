@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -651,6 +652,54 @@ func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.Run
 	return s.updateRun(run, &expectedState)
 }
 
+// storedRuntimeStates lists every stored representation that normalizes to the
+// given runtime state. Rows predating the State column carry a v1 condition
+// instead, and older writers stored non-canonical spellings, so a compare-and-set
+// that only matched the canonical v2 string would silently match nothing.
+func storedRuntimeStates(state model.RuntimeState) []string {
+	canonical := state.ToV2()
+	candidates := []model.RuntimeState{
+		model.RuntimeStateUnspecified, model.RuntimeStatePending, model.RuntimeStateRunning,
+		model.RuntimeStateSucceeded, model.RuntimeStateSkipped, model.RuntimeStateFailed,
+		model.RuntimeStateCancelling, model.RuntimeStateCanceled, model.RuntimeStatePaused,
+		model.RuntimeStatePendingV1, model.RuntimeStateRunningV1, model.RuntimeStateSucceededV1,
+		model.RuntimeStateSkippedV1, model.RuntimeStateTerminatingV1, model.RuntimeStateFailedV1,
+		model.RuntimeStateErrorV1, model.RuntimeStateUnknownV1,
+		model.RuntimeState(model.LegacyStateNoStatus), model.RuntimeState(model.LegacyStateEnabled),
+		model.RuntimeState(model.LegacyStateDisabled), model.RuntimeState(model.LegacyStateError),
+		model.RuntimeState(model.LegacyStateReady), model.RuntimeState(model.LegacyStateRunning),
+		model.RuntimeState(model.LegacyStateSucceeded), model.RuntimeState(model.LegacyStateDone),
+		model.RuntimeState(model.RunTerminatingConditionsV1),
+	}
+	seen := make(map[string]bool, len(candidates))
+	stored := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		value := string(candidate)
+		if value == "" || seen[value] || candidate.ToV2() != canonical {
+			continue
+		}
+		seen[value] = true
+		stored = append(stored, value)
+	}
+	sort.Strings(stored)
+	return stored
+}
+
+// expectedStatePredicate restricts an update to rows whose persisted state still
+// matches what the reporter observed. A NULL State column is a legacy row whose
+// state lives in Conditions; model.Run.ToV2 reconstructs it on read, so the
+// comparison has to accept that representation or the row can never be matched.
+func expectedStatePredicate(expectedState model.RuntimeState) sq.Sqlizer {
+	stored := storedRuntimeStates(expectedState)
+	return sq.Or{
+		sq.Eq{"State": stored},
+		sq.And{
+			sq.Eq{"State": nil},
+			sq.Eq{"Conditions": stored},
+		},
+	}
+}
+
 func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
@@ -696,7 +745,7 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 		SetMap(updateFields).
 		Where(sq.Eq{"UUID": run.UUID})
 	if expectedState != nil {
-		updateBuilder = updateBuilder.Where(sq.Eq{"State": expectedState.ToString()})
+		updateBuilder = updateBuilder.Where(expectedStatePredicate(*expectedState))
 	}
 	sql, args, err := updateBuilder.ToSql()
 	if err != nil {

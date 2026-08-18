@@ -1108,6 +1108,109 @@ func TestUpdateRunFromWorkflow_DoesNotRegressTerminalRun(t *testing.T) {
 	}
 }
 
+// nullifyRunState reproduces a row written before the State column existed,
+// where the run state is recoverable only from Conditions.
+func nullifyRunState(t *testing.T, db *DB, runID string) {
+	t.Helper()
+	_, err := db.Exec("UPDATE run_details SET State = NULL WHERE UUID = ?", runID)
+	require.NoError(t, err)
+}
+
+func TestUpdateRunFromWorkflow_PersistsLegacyStateRepresentations(t *testing.T) {
+	for name, storedState := range map[string]interface{}{
+		"null_state_with_legacy_conditions": nil,
+		"non_canonical_state_spelling":      "Running",
+	} {
+		t.Run(name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			if storedState == nil {
+				nullifyRunState(t, db, "1")
+			} else {
+				_, err := db.Exec("UPDATE run_details SET State = ? WHERE UUID = ?", storedState, "1")
+				require.NoError(t, err)
+			}
+
+			legacyRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			// The stored representation still normalizes to RUNNING on read, so
+			// the reporter compares against that state.
+			require.Equal(t, model.RuntimeStateRunning, legacyRun.State)
+
+			expectedState := legacyRun.State
+			legacyRun.State = model.RuntimeStateSucceeded
+			legacyRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+			legacyRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(legacyRun, expectedState)
+			require.NoError(t, err)
+			require.True(t, updated)
+
+			// A reported update must not be claimed unless it was persisted.
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+			assert.Equal(t, "Succeeded", persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("terminal-workflow"), persistedRun.WorkflowRuntimeManifest)
+			historyStates := make([]model.RuntimeState, 0, len(persistedRun.StateHistory))
+			for _, status := range persistedRun.StateHistory {
+				historyStates = append(historyStates, status.State)
+			}
+			assert.Equal(t,
+				[]model.RuntimeState{model.RuntimeStateRunning, model.RuntimeStateSucceeded},
+				historyStates)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_RejectsStaleReportForLegacyStateRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	nullifyRunState(t, db, "1")
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := staleRun.State
+
+	// A concurrent termination commits CANCELING between the report's read and
+	// its conditional update. TerminateRun itself cannot match a legacy NULL row,
+	// so the competing write is applied directly here.
+	_, err = db.Exec(
+		"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+		model.RuntimeStateCancelling.ToString(),
+		string(model.RuntimeStateCancelling.ToV1()),
+		"1")
+	require.NoError(t, err)
+
+	staleRun.State = model.RuntimeStateRunning
+	staleRun.Conditions = string(model.RuntimeStateRunning.ToV1())
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+}
+
+func TestStoredRuntimeStates(t *testing.T) {
+	assert.Equal(t,
+		[]string{"ENABLED", "RUNNING", "Ready", "Running"},
+		storedRuntimeStates(model.RuntimeStateRunning))
+	assert.Equal(t,
+		[]string{"CANCELING", "Terminating"},
+		storedRuntimeStates(model.RuntimeStateCancelling))
+	// Callers pass states read back from the store, which may be v1 spellings.
+	assert.Equal(t,
+		storedRuntimeStates(model.RuntimeStateRunning),
+		storedRuntimeStates(model.RuntimeStateRunningV1))
+}
+
 func TestTerminateRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
