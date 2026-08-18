@@ -773,19 +773,34 @@ func storedRuntimeStates(state model.RuntimeState) []string {
 	return stored
 }
 
-// expectedStatePredicate restricts an update to rows whose persisted state still
-// matches what the reporter observed. A NULL State column is a legacy row whose
-// state lives in Conditions; model.Run.ToV2 reconstructs it on read, so the
-// comparison has to accept that representation or the row can never be matched.
-func expectedStatePredicate(expectedState model.RuntimeState) sq.Sqlizer {
-	stored := storedRuntimeStates(expectedState)
-	return sq.Or{
-		sq.Eq{"State": stored},
-		sq.And{
-			sq.Eq{"State": nil},
-			sq.Eq{"Conditions": stored},
-		},
+// effectiveStatePredicate matches rows whose runtime state, as model.Run.ToV2
+// reconstructs it on read, is one of the given states. Rows written before the
+// State column existed leave it NULL or empty and keep their state in
+// Conditions, and a row with neither reads back as unspecified. A predicate that
+// only compared the State column would never match those rows, so an update
+// guarded by one would silently affect nothing.
+func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
+	stored := make([]string, 0, len(states))
+	matchesUnspecified := false
+	for _, state := range states {
+		stored = append(stored, storedRuntimeStates(state)...)
+		if state.ToV2() == model.RuntimeStateUnspecified {
+			matchesUnspecified = true
+		}
 	}
+
+	// storedRuntimeStates never yields an empty string, so an IN comparison
+	// cannot match a row that stores no state at all.
+	stateAbsent := sq.Or{sq.Eq{"State": nil}, sq.Eq{"State": ""}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"Conditions": stored}}}
+	if matchesUnspecified {
+		fromConditions = append(fromConditions, sq.And{
+			stateAbsent,
+			sq.Or{sq.Eq{"Conditions": nil}, sq.Eq{"Conditions": ""}},
+		})
+	}
+
+	return sq.Or{sq.Eq{"State": stored}, fromConditions}
 }
 
 func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
@@ -839,7 +854,7 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 			sq.Eq{"RetryGeneration": run.RetryGeneration},
 		})
 	if expectedState != nil {
-		updateBuilder = updateBuilder.Where(expectedStatePredicate(*expectedState))
+		updateBuilder = updateBuilder.Where(effectiveStatePredicate(*expectedState))
 	}
 	sql, args, err := updateBuilder.ToSql()
 	if err != nil {
@@ -1504,18 +1519,25 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 
 func (s *RunStore) TerminateRun(runId string) error {
 	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Conditions": string(model.RuntimeStateCancelling.ToV1()),
+			"State":      model.RuntimeStateCancelling.ToString(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		Where(effectiveStatePredicate(
+			model.RuntimeStatePaused,
+			model.RuntimeStatePending,
+			model.RuntimeStateRunning,
+			model.RuntimeStateUnspecified,
+		)).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to terminate a run %s", runId)
+	}
+	result, err := s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())

@@ -1175,14 +1175,8 @@ func TestUpdateRunFromWorkflow_RejectsStaleReportForLegacyStateRun(t *testing.T)
 	expectedState := staleRun.State
 
 	// A concurrent termination commits CANCELING between the report's read and
-	// its conditional update. TerminateRun itself cannot match a legacy NULL row,
-	// so the competing write is applied directly here.
-	_, err = db.Exec(
-		"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
-		model.RuntimeStateCancelling.ToString(),
-		string(model.RuntimeStateCancelling.ToV1()),
-		"1")
-	require.NoError(t, err)
+	// its conditional update.
+	require.NoError(t, runStore.TerminateRun("1"))
 
 	staleRun.State = model.RuntimeStateRunning
 	staleRun.Conditions = string(model.RuntimeStateRunning.ToV1())
@@ -1209,6 +1203,59 @@ func TestStoredRuntimeStates(t *testing.T) {
 	assert.Equal(t,
 		storedRuntimeStates(model.RuntimeStateRunning),
 		storedRuntimeStates(model.RuntimeStateRunningV1))
+}
+
+func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
+	for name, row := range map[string]struct {
+		state      interface{}
+		conditions interface{}
+	}{
+		"null_state_with_legacy_conditions":  {state: nil, conditions: "Running"},
+		"empty_state_with_legacy_conditions": {state: "", conditions: "Running"},
+		"non_canonical_state_spelling":       {state: "Running", conditions: "Running"},
+		"no_state_and_no_conditions":         {state: nil, conditions: ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				row.state, row.conditions, "1")
+			require.NoError(t, err)
+
+			require.NoError(t, runStore.TerminateRun("1"))
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+		})
+	}
+}
+
+func TestTerminateRun_RejectsLegacyTerminalRun(t *testing.T) {
+	// A legacy row that already finished must stay unterminable; matching the
+	// Conditions column must not widen which states can be canceled.
+	for _, conditions := range []string{"Succeeded", "Failed", "Skipped"} {
+		t.Run(conditions, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = NULL, Conditions = ? WHERE UUID = ?",
+				conditions, "1")
+			require.NoError(t, err)
+
+			err = runStore.TerminateRun("1")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "Row not found")
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, conditions, persistedRun.Conditions)
+		})
+	}
 }
 
 func TestTerminateRun(t *testing.T) {
