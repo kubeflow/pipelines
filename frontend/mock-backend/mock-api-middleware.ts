@@ -253,6 +253,66 @@ function getComparableValue(value: unknown): number | string {
   return String(value || '');
 }
 
+type V1SortableResource = ApiJob | ApiExperiment | ApiRun | ApiPipeline;
+
+/**
+ * The *SortKeys enums advertise the sort keys the real backend accepts, and a
+ * few of those are not stored on the v1 models. Derive those here so sorting by
+ * them behaves like the backend instead of silently comparing undefined.
+ */
+function getV1ResourceValue(resource: V1SortableResource, key: string): unknown {
+  const record = resource as Record<string, unknown>;
+  if (key === 'display_name') {
+    // PipelineSortKeys/PipelineVersionSortKeys advertise display_name, but the
+    // v1 models only carry name.
+    return record.display_name ?? record.name;
+  }
+  if (key === 'last_run_created_at') {
+    // ExperimentSortKeys advertises last_run_created_at; it is a property of the
+    // experiment's runs rather than of the experiment itself.
+    return getLastRunCreatedAt(record.id as string | undefined);
+  }
+  return record[key];
+}
+
+function getLastRunCreatedAt(experimentId?: string): Date | undefined {
+  if (!experimentId) {
+    return undefined;
+  }
+  const createdAts = fixedData.runs
+    .map((runDetail) => runDetail.run)
+    .filter((run): run is ApiRun => !!run)
+    .filter((run) =>
+      RunUtils.getAllExperimentReferences(run).some((ref) => ref.key?.id === experimentId),
+    )
+    .map((run) => run.created_at)
+    .filter((createdAt): createdAt is Date => !!createdAt);
+
+  return createdAts.length
+    ? createdAts.reduce((latest, current) => (current > latest ? current : latest))
+    : undefined;
+}
+
+function sortV1Resources<T extends V1SortableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
+  return resources.slice().sort((a, b) => {
+    const aValue = getComparableValue(getV1ResourceValue(a, key));
+    const bValue = getComparableValue(getV1ResourceValue(b, key));
+    let result = 0;
+    if (aValue < bValue) {
+      result = -1;
+    }
+    if (aValue > bValue) {
+      result = 1;
+    }
+    return result * (desc ? -1 : 1);
+  });
+}
+
 function sortV2Resources<T extends V2FilterableResource>(
   resources: T[],
   defaultSortKey: string,
@@ -623,21 +683,7 @@ export default (app: express.Application) => {
       jobs = filterResources(fixedData.jobs, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      ExperimentSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    jobs.sort((a, b) => {
-      let result = 1;
-      if (a[key as keyof ApiJob]! < b[key as keyof ApiJob]!) {
-        result = -1;
-      }
-      if (a[key as keyof ApiJob]! === b[key as keyof ApiJob]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    jobs = sortV1Resources(jobs, ExperimentSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -664,21 +710,11 @@ export default (app: express.Application) => {
       experiments = filterResources(fixedData.experiments, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    experiments = sortV1Resources(
+      experiments,
       ExperimentSortKeys.NAME,
       getQueryString(req.query.sortBy),
     );
-
-    experiments.sort((a, b) => {
-      let result = 1;
-      if (a[key as keyof ApiExperiment]! < b[key as keyof ApiExperiment]!) {
-        result = -1;
-      }
-      if (a[key as keyof ApiExperiment]! === b[key as keyof ApiExperiment]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.pageToken) || 0;
     const end = start + (getQueryNumber(req.query.pageSize) || 20);
@@ -794,21 +830,7 @@ export default (app: express.Application) => {
       );
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      RunSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    runs.sort((a, b) => {
-      let result = 1;
-      if (a[key as keyof ApiRun]! < b[key as keyof ApiRun]!) {
-        result = -1;
-      }
-      if (a[key as keyof ApiRun]! === b[key as keyof ApiRun]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    runs = sortV1Resources(runs, RunSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -959,21 +981,11 @@ export default (app: express.Application) => {
       pipelines = filterResources(fixedData.pipelines, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    pipelines = sortV1Resources(
+      pipelines,
       PipelineSortKeys.CREATED_AT,
       getQueryString(req.query.sort_by),
     );
-
-    pipelines.sort((a, b) => {
-      let result = 1;
-      if (a[key as keyof ApiPipeline]! < b[key as keyof ApiPipeline]!) {
-        result = -1;
-      }
-      if (a[key as keyof ApiPipeline]! === b[key as keyof ApiPipeline]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
