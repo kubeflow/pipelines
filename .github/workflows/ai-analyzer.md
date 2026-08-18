@@ -4,6 +4,10 @@ description: Review the quality of new Kubeflow Pipelines issues
 env:
   ISSUE_TITLE_PATTERN: '^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
 
+concurrency:
+  group: gh-aw-${{ github.workflow }}-${{ github.event.issue.number || github.run_id }}
+  queue: max
+
 on:
   issues:
     types: [opened, edited]
@@ -15,7 +19,6 @@ on:
   steps:
     - name: Validate and classify issue title
       id: validate_title
-      if: steps.check_rate_limit.outputs.rate_limit_ok == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
         ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -69,13 +72,15 @@ permissions:
   copilot-requests: write
 
 user-rate-limit:
-  max-runs-per-window: 5
+  max-runs-per-window: 3
   window: 60
 
 jobs:
   classify_title_event:
-    if: github.event.action == 'opened' || github.event.changes.title != null
     runs-on: ubuntu-slim
+    permissions:
+      actions: write
+      issues: read
     outputs:
       should_analyze: ${{ steps.classify.outputs.should_analyze }}
     steps:
@@ -83,8 +88,9 @@ jobs:
         id: classify
         env:
           CURRENT_TITLE: ${{ github.event.issue.title }}
+          GH_TOKEN: ${{ github.token }}
           ISSUE_ACTION: ${{ github.event.action }}
-          PREVIOUS_TITLE: ${{ github.event.changes.title.from || '' }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
           TITLE_CHANGED: ${{ github.event.changes.title != null }}
         run: |
           should_analyze=false
@@ -92,12 +98,28 @@ jobs:
           if [[ "$ISSUE_ACTION" == "opened" ]]; then
             should_analyze=true
           elif [[ "$ISSUE_ACTION" == "edited" && "$TITLE_CHANGED" == "true" ]] &&
-            [[ "$CURRENT_TITLE" =~ $ISSUE_TITLE_PATTERN ]] &&
-            [[ ! "$PREVIOUS_TITLE" =~ $ISSUE_TITLE_PATTERN ]]; then
-            should_analyze=true
+            [[ "$CURRENT_TITLE" =~ $ISSUE_TITLE_PATTERN ]]; then
+            quality_review_ids="$(
+              gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100" \
+                --jq '.[] | select(
+                  .user.type == "Bot" and (
+                    (
+                      ((.body // "") | contains("<!-- gh-aw-agentic-workflow: AI issue quality analyzer")) and
+                      ((.body // "") | contains("workflow_id: ai-analyzer"))
+                    ) or
+                    ((.body // "") | contains("Overall Issue Quality Verdict"))
+                  )
+                ) | .id'
+            )"
+            if [[ -z "$quality_review_ids" ]]; then
+              should_analyze=true
+            fi
           fi
 
           echo "should_analyze=$should_analyze" >> "$GITHUB_OUTPUT"
+          if [[ "$should_analyze" != "true" ]]; then
+            gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/cancel" >/dev/null
+          fi
   title_analysis_gate:
     needs: classify_title_event
     if: needs.classify_title_event.outputs.should_analyze == 'true'
@@ -121,6 +143,8 @@ engine:
 checkout: false
 
 tools:
+  # Strict mode with min-integrity: none requires an explicit Bash policy.
+  # An empty list keeps shell access disabled for this issue-only workflow.
   bash: []
   github:
     toolsets: [issues]
