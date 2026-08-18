@@ -992,6 +992,10 @@ def collect_trend_data(token, repo, since):
     rerun_runs = {}
     artifact_errors = 0
     missing_results = 0
+    # A refresh that lost data must not overwrite a complete stored day, so
+    # track which dates were degraded. Listing failures span an unknown set of
+    # dates and therefore degrade the whole window.
+    completeness = {"window_incomplete": False, "incomplete_dates": set()}
 
     for workflow in TARGET_WORKFLOWS:
         url = (
@@ -1003,21 +1007,25 @@ def collect_trend_data(token, repo, since):
         except urllib.error.HTTPError as error:
             if error.code == 404:
                 notes.append(f"tracked workflow `{workflow}` was not found")
+                completeness["window_incomplete"] = True
                 continue
             raise
         except RateLimited:
             notes.append(f"rate-limited while listing `{workflow}` runs")
+            completeness["window_incomplete"] = True
             break
         if truncated:
             notes.append(
                 f"`{workflow}` reached GitHub's 1,000-run filtered-search limit"
             )
+            completeness["window_incomplete"] = True
 
         for run in runs:
             if run.get("status") != "completed":
                 continue
             attempts = run.get("run_attempt", 1) or 1
             rerun_runs[run["id"]] = attempts
+            run_date = (run.get("created_at") or "")[:10]
             run_had_failure = False
             jobs_by_attempt = collections.defaultdict(list)
             for attempt, jobs_url in enumerate(run_attempt_job_urls(repo, run), start=1):
@@ -1027,9 +1035,11 @@ def collect_trend_data(token, repo, since):
                     )
                 except (urllib.error.HTTPError, RateLimited):
                     notes.append(f"job listing unavailable for run {run['id']}")
+                    completeness["incomplete_dates"].add(run_date)
                     continue
                 if truncated_jobs:
                     notes.append(f"job listing truncated for run {run['id']}")
+                    completeness["incomplete_dates"].add(run_date)
                 for job in jobs:
                     jobs_by_attempt[attempt].append(job)
                     conclusion = job.get("conclusion")
@@ -1051,6 +1061,8 @@ def collect_trend_data(token, repo, since):
                 missing_results += missing
             normalized_results.extend(results)
             artifact_errors += errors
+            if errors:
+                completeness["incomplete_dates"].add(run_date)
 
     if artifact_errors:
         notes.append(
@@ -1060,7 +1072,17 @@ def collect_trend_data(token, repo, since):
         notes.append(
             f"{missing_results} expected normalized result(s) were not published"
         )
-    return observations, normalized_results, failed_runs, rerun_runs, notes
+    completeness["missing_results"] = missing_results
+    completeness["observed_lane_runs"] = len(observations)
+    completeness["artifact_errors"] = artifact_errors
+    return (
+        observations,
+        normalized_results,
+        failed_runs,
+        rerun_runs,
+        notes,
+        completeness,
+    )
 
 
 def summarized_distribution(values):
@@ -1077,8 +1099,16 @@ def aggregate_daily(
     rerun_runs,
     github_incidents=(),
     infrastructure_events=(),
+    completeness=None,
 ):
-    """Aggregates replaceable daily snapshots from raw API/artifact records."""
+    """Aggregates daily snapshots from raw API/artifact records.
+
+    Each snapshot records whether its day was collected without loss, so
+    merge_history can refuse to replace a complete day with a degraded one.
+    """
+    completeness = completeness or {}
+    window_incomplete = bool(completeness.get("window_incomplete"))
+    incomplete_dates = set(completeness.get("incomplete_dates") or ())
     incidents_by_id = {
         incident["id"]: incident for incident in github_incidents
     }
@@ -1252,6 +1282,7 @@ def aggregate_daily(
         snapshots.append(
             {
                 "date": day,
+                "complete": not (window_incomplete or day in incomplete_dates),
                 "commits": [
                     {"sha": sha, "message": message}
                     for sha, message in sorted(
@@ -1342,13 +1373,65 @@ def load_history(path):
     return history
 
 
+# Publishing is best-effort per lane, so isolated gaps are normal. A systemic
+# regression is not, and it silently erodes every downstream metric.
+PUBLISHER_GAP_ERROR_RATIO = 0.25
+
+# Length of the headline period and of the period it is compared against.
+COMPARISON_WINDOW_DAYS = 7
+
+
+def publisher_health(completeness, normalized_results=()):
+    """Summarizes how much of the observed CI actually reached history.
+
+    A published result whose test report could not be parsed contributes no
+    per-test data, so it counts toward the completeness gap even though the
+    artifact itself arrived.
+    """
+    observed = completeness.get("observed_lane_runs", 0)
+    missing = completeness.get("missing_results", 0)
+    parse_errors = sum(
+        result.get("test_parse_errors", 0) or 0 for result in normalized_results
+    )
+    unusable = missing + sum(
+        1 for result in normalized_results
+        if (result.get("test_parse_errors", 0) or 0) and not result.get("tests")
+    )
+    gap_ratio = (unusable / observed) if observed else 0.0
+    return {
+        "observed_lane_runs": observed,
+        "missing_results": missing,
+        "test_parse_errors": parse_errors,
+        "unusable_results": unusable,
+        "artifact_errors": completeness.get("artifact_errors", 0),
+        "gap_ratio": round(gap_ratio, 4),
+        "degraded": gap_ratio >= PUBLISHER_GAP_ERROR_RATIO,
+    }
+
+
+def is_complete_day(snapshot):
+    """Days written before completeness tracking are trusted as complete."""
+    return snapshot.get("complete", True)
+
+
 def merge_history(history, snapshots):
     by_day = {
         snapshot["date"]: snapshot
         for snapshot in history.get("days", [])
         if snapshot.get("date")
     }
-    by_day.update({snapshot["date"]: snapshot for snapshot in snapshots})
+    for snapshot in snapshots:
+        existing = by_day.get(snapshot["date"])
+        if existing is None or is_complete_day(snapshot):
+            by_day[snapshot["date"]] = snapshot
+            continue
+        if is_complete_day(existing):
+            # A degraded refresh must not delete observations already stored.
+            continue
+        # Both are degraded; keep whichever observed more of the day.
+        if (snapshot.get("totals", {}).get("lane_runs", 0)
+                >= existing.get("totals", {}).get("lane_runs", 0)):
+            by_day[snapshot["date"]] = snapshot
     return {
         "schema_version": HISTORY_SCHEMA_VERSION,
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -1407,9 +1490,13 @@ def wilson_interval(successes, total, z=1.96):
 
 def render_trend_summary(history, notes, dashboard_url, pages_enabled=True):
     today = datetime.now(timezone.utc).date()
-    current_start = (today - timedelta(days=7)).isoformat()
-    previous_start = (today - timedelta(days=14)).isoformat()
+    # window_totals is half-open. Both windows must span the same number of
+    # dates or the comparison is measuring different period lengths.
     end = (today + timedelta(days=1)).isoformat()
+    current_start = (today - timedelta(days=COMPARISON_WINDOW_DAYS - 1)).isoformat()
+    previous_start = (
+        today - timedelta(days=2 * COMPARISON_WINDOW_DAYS - 1)
+    ).isoformat()
     current = window_totals(history, current_start, end)
     previous = window_totals(history, previous_start, current_start)
     current_rate = rate(current["failures"], current["lane_runs"])
@@ -1801,9 +1888,14 @@ def main():
             datetime.now(timezone.utc) - timedelta(days=bootstrap_days)
         ).strftime("%Y-%m-%d")
 
-    observations, normalized_results, _, rerun_runs, notes = collect_trend_data(
-        token, repo, since
-    )
+    (
+        observations,
+        normalized_results,
+        _,
+        rerun_runs,
+        notes,
+        completeness,
+    ) = collect_trend_data(token, repo, since)
     try:
         status_payload = status_request()
         github_incidents = github_status_incidents(status_payload, since)
@@ -1836,8 +1928,47 @@ def main():
         rerun_runs,
         github_incidents,
         infrastructure_events,
+        completeness,
     )
+    retained = [
+        snapshot["date"] for snapshot in snapshots
+        if not is_complete_day(snapshot)
+    ]
+    if retained:
+        notes.append(
+            f"{len(retained)} day(s) were collected with gaps; stored complete "
+            "days for those dates were preserved rather than replaced"
+        )
     history = merge_history(history, snapshots)
+
+    # A publisher regression produces no artifacts and would otherwise leave no
+    # trace: the lanes simply stop appearing. Annotate the report run itself so
+    # the gap is visible without inspecting every lane.
+    publisher = publisher_health(completeness, normalized_results)
+    history["publisher_health"] = publisher
+    if publisher["degraded"]:
+        print(
+            "::error title=CI result publishing degraded::"
+            f"{publisher['unusable_results']} of {publisher['observed_lane_runs']} "
+            "observed lane runs contributed no usable normalized result "
+            f"({publisher['gap_ratio']:.0%}); "
+            f"{publisher['missing_results']} unpublished, "
+            f"{publisher['test_parse_errors']} report parse error(s).",
+            file=sys.stderr,
+        )
+        notes.append(
+            f"publisher gap {publisher['gap_ratio']:.0%} exceeds the "
+            f"{PUBLISHER_GAP_ERROR_RATIO:.0%} threshold"
+        )
+    elif publisher["unusable_results"] or publisher["test_parse_errors"]:
+        print(
+            "::warning title=CI result publishing gaps::"
+            f"{publisher['missing_results']} lane run(s) published no "
+            f"normalized result; {publisher['test_parse_errors']} test report "
+            "parse error(s).",
+            file=sys.stderr,
+        )
+
     dashboard_url = os.environ.get(
         "DASHBOARD_URL", "https://kubeflow.github.io/pipelines/"
     )
