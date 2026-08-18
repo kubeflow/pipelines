@@ -62,7 +62,7 @@ jobs:
       - name: Wait for action_required workflow runs to be approved
         id: approval_gate
         if: steps.eligibility.outputs.should_poll == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           retries: 3
           script: |
