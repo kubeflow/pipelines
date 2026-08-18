@@ -85,6 +85,10 @@ interface RunListState {
   runs: DisplayRun[];
 }
 
+function _pipelineVersionKey(pipelineId: string, pipelineVersionId: string): string {
+  return `${pipelineId}/${pipelineVersionId}`;
+}
+
 class RunList extends React.PureComponent<RunListProps, RunListState> {
   private _isMounted = true;
   private _tableRef = React.createRef<CustomTable>();
@@ -444,13 +448,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       experimentsGetError = 'Failed to get associated experiment: ' + (await errorToMessage(error));
     }
 
-    const pipelineVersionsByPipelineId = await this._getPipelineVersionsByPipelineId(displayRuns);
+    const pipelineVersionsByKey = await this._getReferencedPipelineVersions(displayRuns);
 
     return Promise.all(
       displayRuns.map(async (displayRun) => {
         this._setRecurringRun(displayRun);
 
-        await this._setPipelineVersionName(displayRun, pipelineVersionsByPipelineId);
+        this._setPipelineVersionName(displayRun, pipelineVersionsByKey);
 
         if (!this.props.hideExperimentColumn) {
           const experimentId = displayRun.run.experiment_id;
@@ -503,84 +507,70 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
   }
 
   /**
-   * Fetches each unique pipeline_id referenced by the given runs exactly once, instead of
-   * fetching a pipeline version per run. Most runs on a page share only a handful of distinct
-   * pipelines, so this turns what used to be one API call per run into one call per unique
-   * pipeline.
+   * Fetches each unique (pipeline_id, pipeline_version_id) pair referenced by the given runs
+   * exactly once, instead of fetching a pipeline version per run. Most runs on a page share
+   * only a handful of distinct pipeline versions, so this turns what used to be one API call
+   * per run into one call per unique version.
    */
-  private async _getPipelineVersionsByPipelineId(
+  private async _getReferencedPipelineVersions(
     displayRuns: DisplayRun[],
-  ): Promise<Map<string, V2beta1PipelineVersion[]>> {
-    const uniquePipelineIds = Array.from(
-      new Set(
-        displayRuns
-          .map((displayRun) => displayRun.run.pipeline_version_reference?.pipeline_id)
-          .filter((pipelineId): pipelineId is string => !!pipelineId),
-      ),
-    );
+  ): Promise<Map<string, V2beta1PipelineVersion>> {
+    const uniqueVersionRefs = new Map<string, { pipelineId: string; pipelineVersionId: string }>();
+    displayRuns.forEach((displayRun) => {
+      const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
+      const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
+      if (pipelineId && pipelineVersionId) {
+        uniqueVersionRefs.set(_pipelineVersionKey(pipelineId, pipelineVersionId), {
+          pipelineId,
+          pipelineVersionId,
+        });
+      }
+    });
 
-    const versionsByPipelineId = new Map<string, V2beta1PipelineVersion[]>();
+    const pipelineVersionsByKey = new Map<string, V2beta1PipelineVersion>();
     await Promise.all(
-      uniquePipelineIds.map(async (pipelineId) => {
+      Array.from(uniqueVersionRefs.entries()).map(async ([key, { pipelineId, pipelineVersionId }]) => {
         try {
-          const response = await Apis.pipelineServiceApiV2.listPipelineVersions(
+          const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
             pipelineId,
-            undefined,
-            // Large enough to cover the vast majority of pipelines in one call. Runs whose
-            // version isn't found here (a pipeline with more versions than this covers) fall
-            // back to a direct per-run lookup in _setPipelineVersionName.
-            1000,
+            pipelineVersionId,
           );
-          versionsByPipelineId.set(pipelineId, response.pipeline_versions || []);
+          pipelineVersionsByKey.set(key, pipelineVersion);
         } catch (err) {
-          logger.error(`Failed to list pipeline versions for pipeline ${pipelineId}`, err);
+          logger.error(
+            `Failed to get pipeline version ${pipelineVersionId} for pipeline ${pipelineId}`,
+            err,
+          );
         }
       }),
     );
-    return versionsByPipelineId;
+    return pipelineVersionsByKey;
   }
 
   /**
-   * For the given DisplayRun, get its ApiRun and retrieve that ApiRun's Pipeline ID if it has one,
-   * then look up its associated pipeline version's name from the already-fetched
-   * pipelineVersionsByPipelineId batch and attach it to the DisplayRun. Falls back to a direct,
-   * single-run lookup if the version isn't present in the batch. If the ApiRun has no Pipeline ID,
-   * then the corresponding DisplayRun will show '-'.
+   * For the given DisplayRun, look up its associated pipeline version from the already-fetched
+   * pipelineVersionsByKey batch and attach its name to the DisplayRun. If the ApiRun has no
+   * Pipeline ID, then the corresponding DisplayRun will show '-'.
    */
-  private async _setPipelineVersionName(
+  private _setPipelineVersionName(
     displayRun: DisplayRun,
-    pipelineVersionsByPipelineId: Map<string, V2beta1PipelineVersion[]>,
-  ): Promise<void> {
+    pipelineVersionsByKey: Map<string, V2beta1PipelineVersion>,
+  ): void {
     const pipelineId = displayRun.run.pipeline_version_reference?.pipeline_id;
     const pipelineVersionId = displayRun.run.pipeline_version_reference?.pipeline_version_id;
     if (pipelineId && pipelineVersionId) {
-      const cachedVersion = pipelineVersionsByPipelineId
-        .get(pipelineId)
-        ?.find((version) => version.pipeline_version_id === pipelineVersionId);
-      if (cachedVersion) {
-        displayRun.pipelineVersion = {
-          displayName: cachedVersion.display_name,
-          pipelineId: cachedVersion.pipeline_id,
-          usePlaceholder: false,
-          versionId: cachedVersion.pipeline_version_id,
-        };
-        return;
-      }
-      try {
-        const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-          pipelineId,
-          pipelineVersionId,
-        );
+      const pipelineVersion = pipelineVersionsByKey.get(
+        _pipelineVersionKey(pipelineId, pipelineVersionId),
+      );
+      if (pipelineVersion) {
         displayRun.pipelineVersion = {
           displayName: pipelineVersion.display_name,
           pipelineId: pipelineVersion.pipeline_id,
           usePlaceholder: false,
           versionId: pipelineVersion.pipeline_version_id,
         };
-      } catch (err) {
-        displayRun.error =
-          'Failed to get associated pipeline version: ' + (await errorToMessage(err));
-        return;
+      } else {
+        displayRun.error = 'Failed to get associated pipeline version';
       }
     } else if (displayRun.run.pipeline_spec) {
       // pipeline_spec in v2 can store either workflow_manifest or pipeline_manifest

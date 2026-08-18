@@ -561,8 +561,9 @@ describe('RunList', () => {
     await screen.findByText('some pipeline version');
   });
 
-  it('batches pipeline version lookups by unique pipeline id instead of one call per run', async () => {
+  it('dedupes pipeline version lookups by unique pipeline/version id instead of one call per run', async () => {
     const sharedPipelineId = 'shared-pipeline';
+    const sharedVersionId = 'shared-version';
     listRunsSpy.mockResolvedValue({
       runs: [
         {
@@ -570,7 +571,7 @@ describe('RunList', () => {
           display_name: 'run with id: run1',
           pipeline_version_reference: {
             pipeline_id: sharedPipelineId,
-            pipeline_version_id: 'version1',
+            pipeline_version_id: sharedVersionId,
           },
           state: V2beta1RuntimeState.SUCCEEDED,
         },
@@ -579,43 +580,33 @@ describe('RunList', () => {
           display_name: 'run with id: run2',
           pipeline_version_reference: {
             pipeline_id: sharedPipelineId,
-            pipeline_version_id: 'version2',
+            pipeline_version_id: sharedVersionId,
           },
           state: V2beta1RuntimeState.SUCCEEDED,
         },
       ] as V2beta1Run[],
     });
-    listPipelineVersionsSpy.mockResolvedValue({
-      pipeline_versions: [
-        {
-          pipeline_id: sharedPipelineId,
-          pipeline_version_id: 'version1',
-          display_name: 'pipeline version one',
-        },
-        {
-          pipeline_id: sharedPipelineId,
-          pipeline_version_id: 'version2',
-          display_name: 'pipeline version two',
-        },
-      ],
+    getPipelineVersionSpy.mockResolvedValue({
+      pipeline_id: sharedPipelineId,
+      pipeline_version_id: sharedVersionId,
+      display_name: 'shared pipeline version',
     } as any);
 
     const props = generateProps();
     await renderRunList(props);
     await waitForRunListLoad();
 
-    await screen.findByText('pipeline version one');
-    await screen.findByText('pipeline version two');
+    expect(screen.getAllByText('shared pipeline version')).toHaveLength(2);
 
     // CustomTable's reload() overlaps under React Strict Mode in tests (see the
     // isBusy comment in CustomTable.tsx), so the list loads twice here, one
-    // listPipelineVersions call per load. The property under test is that it's
-    // one call per load per unique pipeline, not one call per run: two runs
-    // sharing a pipeline never produce more calls than two loads' worth of
-    // pipelines, and the per-run getPipelineVersion fallback never fires.
-    expect(listPipelineVersionsSpy).toHaveBeenCalledTimes(2);
-    expect(listPipelineVersionsSpy).toHaveBeenCalledWith(sharedPipelineId, undefined, 1000);
-    expect(getPipelineVersionSpy).not.toHaveBeenCalled();
+    // getPipelineVersion call per load. The property under test is that it's one
+    // call per load per unique (pipeline, version), not one call per run: two runs
+    // referencing the same version never produce more calls than two loads' worth
+    // of unique versions.
+    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+    expect(getPipelineVersionSpy).toHaveBeenCalledWith(sharedPipelineId, sharedVersionId);
+    expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
   });
 
   // TODO(jlyaoyuli): add back this test (show recurring run config)
