@@ -65,6 +65,11 @@ describe('classifyPodFailure', () => {
       PodFailureCategory.PROVISIONING,
     ],
     [
+      'pod has unbound immediate PersistentVolumeClaims',
+      'unbound immediate PersistentVolumeClaims',
+      PodFailureCategory.PROVISIONING,
+    ],
+    [
       'back-off restarting failed container: CrashLoopBackOff',
       'CrashLoopBackOff',
       PodFailureCategory.RUNTIME,
@@ -124,6 +129,13 @@ describe('classifyPodFailure', () => {
       '0/3 nodes are available: 3 Insufficient memory. Unschedulable',
     );
     expect(result?.reason).toBe('Unschedulable');
+  });
+
+  it('an unbound PVC message still matches its specific pattern when Unschedulable is also present', () => {
+    const result = classifyPodFailure(
+      '0/3 nodes are available: pod has unbound immediate PersistentVolumeClaims. Unschedulable',
+    );
+    expect(result?.reason).toBe('unbound immediate PersistentVolumeClaims');
   });
 });
 

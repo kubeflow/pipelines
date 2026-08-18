@@ -186,6 +186,15 @@ const POD_FAILURE_PATTERNS: PodFailurePattern[] = [
     fix: 'Check whether the requested GPU type or count actually exists in this cluster, or whether GPU node pool autoscaling is enabled.',
   },
   {
+    // A scheduling predicate failure, not a resource-capacity failure, so it needs its own entry
+    // ahead of the generic Unschedulable one below: it does not reliably also contain the word
+    // "Unschedulable" the way a resource-capacity message does.
+    substring: 'unbound immediate PersistentVolumeClaims',
+    category: PodFailureCategory.PROVISIONING,
+    cause: 'This task references a PersistentVolumeClaim that has not been bound to storage yet.',
+    fix: 'Check the PVC name and StorageClass this task references (for example through kubernetes.mount_pvc), and confirm the PVC exists and can be provisioned.',
+  },
+  {
     substring: 'Unschedulable',
     category: PodFailureCategory.PROVISIONING,
     cause:
