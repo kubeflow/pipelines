@@ -337,7 +337,7 @@ class SectionIO extends Component<
     try {
       const linkedArtifacts = await getLinkedArtifactsByEvents(this.props.events);
 
-      const artifactDataMap = {};
+      const artifactDataMap: { [id: number]: ArtifactInfo } = {};
       linkedArtifacts.forEach((linkedArtifact) => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
@@ -346,7 +346,7 @@ class SectionIO extends Component<
         }
         artifactDataMap[id] = {
           id,
-          name: getArtifactName(linkedArtifact),
+          name: getArtifactName(linkedArtifact) ?? '',
           typeId: linkedArtifact.artifact.getTypeId(),
           uri: linkedArtifact.artifact.getUri() || '',
         };

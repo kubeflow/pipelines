@@ -133,14 +133,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         .newRunFromPipelineVersion(
           () => {
             return this.state.v2Pipeline
-              ? this.state.v2Pipeline.pipeline_id
+              ? (this.state.v2Pipeline.pipeline_id ?? '')
               : pipelineIdFromParams
                 ? pipelineIdFromParams
                 : '';
           },
           () => {
             return this.state.v2SelectedVersion
-              ? this.state.v2SelectedVersion.pipeline_version_id
+              ? (this.state.v2SelectedVersion.pipeline_version_id ?? '')
               : pipelineVersionIdFromParams
                 ? pipelineVersionIdFromParams
                 : '';

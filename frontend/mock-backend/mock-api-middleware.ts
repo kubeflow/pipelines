@@ -630,10 +630,10 @@ export default (app: express.Application) => {
 
     jobs.sort((a, b) => {
       let result = 1;
-      if (a[key]! < b[key]!) {
+      if (a[key as keyof ApiJob]! < b[key as keyof ApiJob]!) {
         result = -1;
       }
-      if (a[key]! === b[key]!) {
+      if (a[key as keyof ApiJob]! === b[key as keyof ApiJob]!) {
         result = 0;
       }
       return result * (desc ? -1 : 1);
@@ -671,10 +671,10 @@ export default (app: express.Application) => {
 
     experiments.sort((a, b) => {
       let result = 1;
-      if (a[key]! < b[key]!) {
+      if (a[key as keyof ApiExperiment]! < b[key as keyof ApiExperiment]!) {
         result = -1;
       }
-      if (a[key]! === b[key]!) {
+      if (a[key as keyof ApiExperiment]! === b[key as keyof ApiExperiment]!) {
         result = 0;
       }
       return result * (desc ? -1 : 1);
@@ -801,10 +801,10 @@ export default (app: express.Application) => {
 
     runs.sort((a, b) => {
       let result = 1;
-      if (a[key]! < b[key]!) {
+      if (a[key as keyof ApiRun]! < b[key as keyof ApiRun]!) {
         result = -1;
       }
-      if (a[key]! === b[key]!) {
+      if (a[key as keyof ApiRun]! === b[key as keyof ApiRun]!) {
         result = 0;
       }
       return result * (desc ? -1 : 1);
@@ -966,10 +966,10 @@ export default (app: express.Application) => {
 
     pipelines.sort((a, b) => {
       let result = 1;
-      if (a[key]! < b[key]!) {
+      if (a[key as keyof ApiPipeline]! < b[key as keyof ApiPipeline]!) {
         result = -1;
       }
-      if (a[key]! === b[key]!) {
+      if (a[key as keyof ApiPipeline]! === b[key as keyof ApiPipeline]!) {
         result = 0;
       }
       return result * (desc ? -1 : 1);

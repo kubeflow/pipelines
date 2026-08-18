@@ -59,7 +59,8 @@ export function getResourcePropertyViaFallBack(
         fieldRepos.reduce(
           (v: string, repo: RepoType, isCustomProp) =>
             v ||
-            ((field in repo && getResourceProperty(res, repo[field], !!isCustomProp)) as string),
+            ((field in repo &&
+              getResourceProperty(res, repo[field as keyof RepoType], !!isCustomProp)) as string),
           '',
         ),
       '',
