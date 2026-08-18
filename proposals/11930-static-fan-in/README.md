@@ -149,12 +149,15 @@ fan-in.
 Static collection members must:
 
 - be pipeline channels;
+- represent scalar values rather than list-valued parameter or artifact
+  channels;
 - all be parameters or all be artifacts; and
 - have compatible channel types.
 
 The SDK rejects empty collections because their type cannot be inferred. It
 also rejects `dsl.OneOf` and nested `dsl.Collected` values because those
-constructs have different control-flow semantics.
+constructs have different control-flow semantics. Restricting members to scalar
+channels avoids introducing nested-list or implicit flattening semantics.
 
 ### Backward Compatibility and Migration
 
@@ -208,7 +211,12 @@ message InputParameterSpec {
 ```
 
 Reusing the existing input reference types preserves order and supports channels
-surfaced through nested DAG boundaries.
+surfaced through nested DAG boundaries. Although the recursive protobuf shape
+can represent a list inside another list, nested lists are not valid for this
+feature. Pipeline validation rejects nested list variants and list items that
+reference list-valued task outputs or component inputs. This validation applies
+to directly submitted pipeline specifications as well as SDK-compiled
+pipelines.
 
 ### SDK and Backend
 
@@ -226,16 +234,23 @@ pipeline execution.
 
 ### Frontend Considerations
 
-No frontend changes are required. Static fan-in only changes task-to-task
-wiring in the compiled pipeline. It does not add a pipeline-level runtime input
-or change the run creation experience.
+The generated TypeScript pipeline-spec bindings must be regenerated for the new
+input variants. Static graph parsing must inspect each parameter-list and
+artifact-list item so every producer is connected to the consumer. Artifact
+members retain the existing producer-to-artifact-to-consumer visualization.
+
+Static fan-in does not add a pipeline-level runtime input or change the run
+creation experience.
 
 ### Test Plan
 
 SDK tests will cover existing single-channel behavior, each new constructor
-form, ordering, nested DAG boundaries, and invalid collections. Backend tests
-will cover dependency inference and ordered resolution for parameter and
-artifact lists. KFP Local tests will execute both input kinds.
+form, ordering, nested DAG boundaries, and invalid collections, including
+list-valued members. Backend tests will cover validation of directly submitted
+nested or list-valued references, dependency inference, and ordered resolution
+for parameter and artifact lists. KFP Local tests will execute both input kinds.
+Frontend tests will verify parameter and artifact edges for every collected
+producer.
 
 An integration test will execute the issue #11930 example with three independent
 model trainers and one `Input[List[Model]]` evaluator.
