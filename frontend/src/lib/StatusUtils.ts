@@ -177,6 +177,15 @@ const POD_FAILURE_PATTERNS: PodFailurePattern[] = [
     fix: 'Check base_image on the component for invalid characters or syntax.',
   },
   {
+    // Checked before the generic Unschedulable entry below, since the scheduler's own message
+    // contains both substrings and the more specific one should win.
+    substring: 'Insufficient nvidia.com/gpu',
+    category: PodFailureCategory.PROVISIONING,
+    cause:
+      'No node in the cluster currently has a free GPU matching what this component requested.',
+    fix: 'Check whether the requested GPU type or count actually exists in this cluster, or whether GPU node pool autoscaling is enabled.',
+  },
+  {
     substring: 'Unschedulable',
     category: PodFailureCategory.PROVISIONING,
     cause:

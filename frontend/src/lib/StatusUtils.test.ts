@@ -60,6 +60,11 @@ describe('classifyPodFailure', () => {
       PodFailureCategory.PROVISIONING,
     ],
     [
+      '0/5 nodes are available: 5 Insufficient nvidia.com/gpu. Unschedulable',
+      'Insufficient nvidia.com/gpu',
+      PodFailureCategory.PROVISIONING,
+    ],
+    [
       'back-off restarting failed container: CrashLoopBackOff',
       'CrashLoopBackOff',
       PodFailureCategory.RUNTIME,
@@ -112,6 +117,13 @@ describe('classifyPodFailure', () => {
     const result = classifyPodFailure('ImagePullBackOff eventually led to OOMKilled during retry');
     expect(result?.reason).toBe('ImagePullBackOff');
     expect(result?.category).toBe(PodFailureCategory.PROVISIONING);
+  });
+
+  it('a plain CPU or memory Unschedulable message still matches the generic pattern, not the GPU one', () => {
+    const result = classifyPodFailure(
+      '0/3 nodes are available: 3 Insufficient memory. Unschedulable',
+    );
+    expect(result?.reason).toBe('Unschedulable');
   });
 });
 
