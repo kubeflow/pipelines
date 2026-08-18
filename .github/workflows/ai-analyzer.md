@@ -1,6 +1,9 @@
 ---
 description: Review the quality of new Kubeflow Pipelines issues
 
+env:
+  ISSUE_TITLE_PATTERN: '^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
+
 on:
   issues:
     types: [opened, edited]
@@ -18,21 +21,8 @@ on:
         ISSUE_NUMBER: ${{ github.event.issue.number }}
         ISSUE_TITLE: ${{ github.event.issue.title }}
       run: |
-        title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
-        if [[ ! "$ISSUE_TITLE" =~ $title_pattern ]]; then
-          validation_body=$'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.\n\nRename the issue with a valid title to retry the quality review automatically.\n\n<!-- ai-analyzer-title-validation -->\n<!-- gh-aw-workflow-id: ai-analyzer -->'
-          existing_comment_id="$(
-            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100" \
-              --jq '.[] | select(.user.login == "github-actions[bot]" and ((.body // "") | contains("<!-- ai-analyzer-title-validation -->"))) | .id' |
-              head -n 1
-          )"
-
-          if [[ -n "$existing_comment_id" ]]; then
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing_comment_id" \
-              -f body="$validation_body" >/dev/null
-          else
-            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$validation_body"
-          fi
+        if [[ ! "$ISSUE_TITLE" =~ $ISSUE_TITLE_PATTERN ]]; then
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body $'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.\n\nRename the issue with a valid title to retry the quality review automatically.\n\n<!-- gh-aw-workflow-id: ai-analyzer -->'
           echo "valid=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
@@ -97,14 +87,13 @@ jobs:
           PREVIOUS_TITLE: ${{ github.event.changes.title.from || '' }}
           TITLE_CHANGED: ${{ github.event.changes.title != null }}
         run: |
-          title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
           should_analyze=false
 
           if [[ "$ISSUE_ACTION" == "opened" ]]; then
             should_analyze=true
           elif [[ "$ISSUE_ACTION" == "edited" && "$TITLE_CHANGED" == "true" ]] &&
-            [[ "$CURRENT_TITLE" =~ $title_pattern ]] &&
-            [[ ! "$PREVIOUS_TITLE" =~ $title_pattern ]]; then
+            [[ "$CURRENT_TITLE" =~ $ISSUE_TITLE_PATTERN ]] &&
+            [[ ! "$PREVIOUS_TITLE" =~ $ISSUE_TITLE_PATTERN ]]; then
             should_analyze=true
           fi
 
