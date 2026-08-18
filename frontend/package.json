@@ -13,7 +13,7 @@
     "@mui/icons-material": "^5.18.0",
     "@mui/material": "^5.18.0",
     "@tanstack/react-query": "^5.91.2",
-    "@types/lodash.groupby": "^4.6.6",
+    "@types/lodash.groupby": "^4.6.9",
     "@types/pako": "^1.0.3",
     "@xyflow/react": "^12.10.1",
     "ace-builds": "^1.43.6",
