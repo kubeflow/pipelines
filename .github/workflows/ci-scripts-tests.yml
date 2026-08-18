@@ -28,6 +28,10 @@ on:
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/actions/junit-summary/**'
+      # The pipefail and workflow-privilege guards are repo-wide, so they
+      # must also run for workflows not enumerated below.
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
       - '.github/workflows/ci-checks.yml'
       - '.github/workflows/create-manifest.yml'
       - '.github/actions/upload-artifact-with-retry/**'

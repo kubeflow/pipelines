@@ -97,6 +97,9 @@ jobs:
         id: initialization-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/initialization
+        # pipefail: without it the step status comes from tee and a failed
+        # test run is recorded as a pass.
+        shell: bash
         run: |
           go test -json -v ./... -namespace=kubeflow \
             -args -runIntegrationTests=true \
@@ -109,6 +112,9 @@ jobs:
         id: integration-tests
         if: ${{ steps.forward-mysql-port.outcome == 'success' }}
         working-directory: ./backend/test/integration
+        # pipefail: without it the step status comes from tee and a failed
+        # test run is recorded as a pass.
+        shell: bash
         run: |
           go test -json -v ./... -args -runIntegrationTests=true \
             -namespace=kubeflow -repoName=${{ github.repository }} \

@@ -59,6 +59,9 @@ jobs:
       - name: Run Webhook Integration Tests
         id: tests
         if: ${{ steps.deploy.outcome == 'success' }}
+        # pipefail: without it the step status comes from tee and a failed
+        # test run is recorded as a pass.
+        shell: bash
         run: |
           GOFLAGS=-json make -C backend/test/integration test-webhook \
             | tee "$RUNNER_TEMP/webhook-go-test.json"

@@ -148,6 +148,7 @@ runs:
       continue-on-error: true
 
     - name: Upload normalized result
+      id: upload
       uses: ./.github/actions/upload-artifact-with-retry
       if: steps.generate.outcome == 'success'
       with:
@@ -156,3 +157,18 @@ runs:
         retention-days: 30
         if-no-files-found: error
       continue-on-error: true
+
+    # Telemetry never fails a product lane, but a silent publisher regression
+    # would drop lanes out of health history with nothing to notice. Surface it
+    # as an annotation on the run that failed to publish.
+    - name: Report publisher failure
+      if: always() && (steps.generate.outcome != 'success' || steps.upload.outcome != 'success')
+      shell: bash
+      env:
+        REPORT_NAME: ${{ inputs.report_name }}
+        GENERATE_OUTCOME: ${{ steps.generate.outcome }}
+        UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+      run: |
+        echo "::error title=CI result publisher failed::${REPORT_NAME}:" \
+          "generate=${GENERATE_OUTCOME} upload=${UPLOAD_OUTCOME}." \
+          "This lane is absent from CI health history."
