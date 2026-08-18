@@ -46,6 +46,10 @@ inputs:
     description: "If KFP should be deployed with TLS pod-to-pod communication."
     required: false
     default: 'false'
+  load_modelcar_fixture:
+    description: "Load the prebuilt Modelcar test fixture image into Kind."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -112,6 +116,22 @@ runs:
         fi
         source .github/resources/scripts/helper-functions.sh
         load_runtime_base_images_into_kind .github/resources/runtime-base-images.txt "${{ inputs.cluster_name }}"
+
+    - name: Load Modelcar Fixture Into Kind
+      if: ${{ inputs.load_modelcar_fixture == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images/modelcar.tar"
+        if [[ ! -f "${MODELCAR_IMAGE_ARCHIVE}" ]]; then
+          echo "::error::Modelcar fixture archive not found at ${MODELCAR_IMAGE_ARCHIVE}"
+          exit 1
+        fi
+
+        source .github/resources/scripts/helper-functions.sh
+        retry 3 10 kind --name "${{ inputs.cluster_name }}" \
+          load image-archive "${MODELCAR_IMAGE_ARCHIVE}"
+        rm "${MODELCAR_IMAGE_ARCHIVE}"
 
     - name: Deploy Tinyproxy
       id: deploy-tinyproxy

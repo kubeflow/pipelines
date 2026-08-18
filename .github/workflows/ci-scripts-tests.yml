@@ -20,6 +20,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/curl-retry/**'
+      - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
@@ -37,6 +38,8 @@ on:
       - '.github/workflows/update-dependabot-generated-files.yml'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/workflows/osv-scanner.yml'
+      - '.github/workflows/build-tools-images.yml'
+      - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
@@ -53,6 +56,7 @@ on:
       - 'third_party/argo/Makefile'
       - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 permissions:
   contents: read
