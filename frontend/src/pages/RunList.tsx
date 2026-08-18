@@ -529,20 +529,22 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     const pipelineVersionsByKey = new Map<string, V2beta1PipelineVersion>();
     await Promise.all(
-      Array.from(uniqueVersionRefs.entries()).map(async ([key, { pipelineId, pipelineVersionId }]) => {
-        try {
-          const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
-            pipelineId,
-            pipelineVersionId,
-          );
-          pipelineVersionsByKey.set(key, pipelineVersion);
-        } catch (err) {
-          logger.error(
-            `Failed to get pipeline version ${pipelineVersionId} for pipeline ${pipelineId}`,
-            err,
-          );
-        }
-      }),
+      Array.from(uniqueVersionRefs.entries()).map(
+        async ([key, { pipelineId, pipelineVersionId }]) => {
+          try {
+            const pipelineVersion = await Apis.pipelineServiceApiV2.getPipelineVersion(
+              pipelineId,
+              pipelineVersionId,
+            );
+            pipelineVersionsByKey.set(key, pipelineVersion);
+          } catch (err) {
+            logger.error(
+              `Failed to get pipeline version ${pipelineVersionId} for pipeline ${pipelineId}`,
+              err,
+            );
+          }
+        },
+      ),
     );
     return pipelineVersionsByKey;
   }
