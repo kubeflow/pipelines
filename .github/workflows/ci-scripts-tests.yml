@@ -6,6 +6,15 @@ name: CI Scripts Tests
 on:
   pull_request:
     paths:
+      - '.github/dependabot.yml'
+      - '**/go.mod'
+      - '**/package.json'
+      - '**/requirements*.txt'
+      - '**/setup.py'
+      - '**/pyproject.toml'
+      - '**/action.yml'
+      - '**/action.yaml'
+      - '.pre-commit-config.yaml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
