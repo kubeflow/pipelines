@@ -4,7 +4,7 @@ description: Review the quality of new Kubeflow Pipelines issues
 on:
   issues:
     types: [opened, edited]
-  needs: [title_change]
+  needs: [classify_title_event, title_analysis_gate]
   roles: all
   status-comment: false
   permissions:
@@ -12,6 +12,7 @@ on:
   steps:
     - name: Validate and classify issue title
       id: validate_title
+      if: steps.check_rate_limit.outputs.rate_limit_ok == 'true'
       env:
         GH_TOKEN: ${{ github.token }}
         ISSUE_NUMBER: ${{ github.event.issue.number }}
@@ -19,7 +20,19 @@ on:
       run: |
         title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
         if [[ ! "$ISSUE_TITLE" =~ $title_pattern ]]; then
-          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body $'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.\n\nRename the issue with a valid title to retry the quality review automatically.\n\n<!-- gh-aw-workflow-id: ai-analyzer -->'
+          validation_body=$'## 🤖 AI Issue Quality Review\n\n⚠️ **Validation Failed:** Issue title must follow the correct format: `<type>(<area>): <title contents>`, where type is `bug`, `chore`, or `feat`.\n\nRename the issue with a valid title to retry the quality review automatically.\n\n<!-- ai-analyzer-title-validation -->\n<!-- gh-aw-workflow-id: ai-analyzer -->'
+          existing_comment_id="$(
+            gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100" \
+              --jq '.[] | select(.user.login == "github-actions[bot]" and ((.body // "") | contains("<!-- ai-analyzer-title-validation -->"))) | .id' |
+              head -n 1
+          )"
+
+          if [[ -n "$existing_comment_id" ]]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing_comment_id" \
+              -f body="$validation_body" >/dev/null
+          else
+            gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$validation_body"
+          fi
           echo "valid=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
@@ -66,15 +79,42 @@ permissions:
   copilot-requests: write
 
 user-rate-limit:
-  max-runs-per-window: 3
+  max-runs-per-window: 5
   window: 60
 
 jobs:
-  title_change:
-    if: github.event.action == 'opened' || github.event.changes.title.from != ''
+  classify_title_event:
+    if: github.event.action == 'opened' || github.event.changes.title != null
+    runs-on: ubuntu-slim
+    outputs:
+      should_analyze: ${{ steps.classify.outputs.should_analyze }}
+    steps:
+      - name: Classify issue title event
+        id: classify
+        env:
+          CURRENT_TITLE: ${{ github.event.issue.title }}
+          ISSUE_ACTION: ${{ github.event.action }}
+          PREVIOUS_TITLE: ${{ github.event.changes.title.from || '' }}
+          TITLE_CHANGED: ${{ github.event.changes.title != null }}
+        run: |
+          title_pattern='^(bug|chore|feat)\(([a-z]+)\):[[:space:]]*([^[:space:]].*)$'
+          should_analyze=false
+
+          if [[ "$ISSUE_ACTION" == "opened" ]]; then
+            should_analyze=true
+          elif [[ "$ISSUE_ACTION" == "edited" && "$TITLE_CHANGED" == "true" ]] &&
+            [[ "$CURRENT_TITLE" =~ $title_pattern ]] &&
+            [[ ! "$PREVIOUS_TITLE" =~ $title_pattern ]]; then
+            should_analyze=true
+          fi
+
+          echo "should_analyze=$should_analyze" >> "$GITHUB_OUTPUT"
+  title_analysis_gate:
+    needs: classify_title_event
+    if: needs.classify_title_event.outputs.should_analyze == 'true'
     runs-on: ubuntu-slim
     steps:
-      - name: Allow new issues and title edits
+      - name: Allow issue analysis
         run: echo "Issue title requires analysis."
   pre-activation:
     outputs:
