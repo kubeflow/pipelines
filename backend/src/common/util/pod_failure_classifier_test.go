@@ -58,6 +58,18 @@ func TestClassifyPodFailure(t *testing.T) {
 			expectReason:   "Insufficient nvidia.com/gpu",
 		},
 		{
+			name:           "unbound PVC message alone, with no Unschedulable substring, is still classified",
+			reason:         "pod has unbound immediate PersistentVolumeClaims",
+			expectCategory: PodFailureCategoryProvisioning,
+			expectReason:   "unbound immediate PersistentVolumeClaims",
+		},
+		{
+			name:           "unbound PVC message matches the specific pattern even when Unschedulable is also present",
+			reason:         "0/3 nodes are available: pod has unbound immediate PersistentVolumeClaims. Unschedulable",
+			expectCategory: PodFailureCategoryProvisioning,
+			expectReason:   "unbound immediate PersistentVolumeClaims",
+		},
+		{
 			name:           "regression guard: plain CPU/memory Unschedulable still matches the generic pattern",
 			reason:         "0/3 nodes are available: 3 Insufficient memory. Unschedulable",
 			expectCategory: PodFailureCategoryProvisioning,

@@ -58,6 +58,14 @@ var podFailurePatterns = []podFailurePattern{
 	// Kubernetes; the scheduler's own message format is "0/N nodes are available: N Insufficient
 	// nvidia.com/gpu".
 	{"Insufficient nvidia.com/gpu", PodFailureCategoryProvisioning},
+	// A scheduling predicate failure, not a resource-capacity failure: the pod references a PVC
+	// (for example through kfp-kubernetes' mount_pvc) that has not been bound yet. Kubernetes'
+	// stable scheduler message is "pod has unbound immediate PersistentVolumeClaims". Checked
+	// before the generic "Unschedulable" entry both for specificity and because this predicate
+	// message does not reliably also contain the word "Unschedulable" the way a resource-capacity
+	// failure's rendered message does, so without this entry such a message could fall through
+	// unclassified rather than just being classified generically.
+	{"unbound immediate PersistentVolumeClaims", PodFailureCategoryProvisioning},
 	{"Unschedulable", PodFailureCategoryProvisioning},
 	{"CrashLoopBackOff", PodFailureCategoryRuntime},
 	{"OOMKilled", PodFailureCategoryRuntime},
