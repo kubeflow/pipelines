@@ -116,6 +116,10 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
             REPOSITORY_ROOT / '.github/workflows/validate-generated-files.yml'
         ).read_text(encoding='utf-8')
         self.assertIn("- 'go.mod'", workflow)
+        self.assertIn(
+            "- 'backend/api/build_kfp_server_api_python_package.sh'",
+            workflow,
+        )
         self.assertIn('generated_files_dependency_change.py', workflow)
         self.assertIn('detect-generator-changes:', workflow)
         self.assertIn('generate-and-check:', workflow)
