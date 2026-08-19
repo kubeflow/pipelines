@@ -259,8 +259,15 @@ type V1SortableResource = ApiJob | ApiExperiment | ApiRun | ApiPipeline;
  * The *SortKeys enums advertise the sort keys the real backend accepts, and a
  * few of those are not stored on the v1 models. Derive those here so sorting by
  * them behaves like the backend instead of silently comparing undefined.
+ *
+ * `lastRunCreatedAt` is the lookup built by buildLastRunCreatedAtMap, threaded
+ * in so it is built once per request rather than per comparison.
  */
-function getV1ResourceValue(resource: V1SortableResource, key: string): unknown {
+function getV1ResourceValue(
+  resource: V1SortableResource,
+  key: string,
+  lastRunCreatedAt: () => Map<string, Date>,
+): unknown {
   const record = resource as Record<string, unknown>;
   if (key === 'display_name') {
     // PipelineSortKeys/PipelineVersionSortKeys advertise display_name, but the
@@ -270,27 +277,58 @@ function getV1ResourceValue(resource: V1SortableResource, key: string): unknown 
   if (key === 'last_run_created_at') {
     // ExperimentSortKeys advertises last_run_created_at; it is a property of the
     // experiment's runs rather than of the experiment itself.
-    return getLastRunCreatedAt(record.id as string | undefined);
+    const id = record.id;
+    return typeof id === 'string' ? lastRunCreatedAt().get(id) : undefined;
   }
   return record[key];
 }
 
-function getLastRunCreatedAt(experimentId?: string): Date | undefined {
-  if (!experimentId) {
-    return undefined;
+/** Latest run creation time per experiment, in one pass over fixedData.runs. */
+function buildLastRunCreatedAtMap(): Map<string, Date> {
+  const latest = new Map<string, Date>();
+  for (const runDetail of fixedData.runs) {
+    const run = runDetail.run;
+    if (!run || !run.created_at) {
+      continue;
+    }
+    for (const reference of RunUtils.getAllExperimentReferences(run)) {
+      const experimentId = reference.key?.id;
+      if (!experimentId) {
+        continue;
+      }
+      const current = latest.get(experimentId);
+      if (!current || run.created_at > current) {
+        latest.set(experimentId, run.created_at);
+      }
+    }
   }
-  const createdAts = fixedData.runs
-    .map((runDetail) => runDetail.run)
-    .filter((run): run is ApiRun => !!run)
-    .filter((run) =>
-      RunUtils.getAllExperimentReferences(run).some((ref) => ref.key?.id === experimentId),
-    )
-    .map((run) => run.created_at)
-    .filter((createdAt): createdAt is Date => !!createdAt);
+  return latest;
+}
 
-  return createdAts.length
-    ? createdAts.reduce((latest, current) => (current > latest ? current : latest))
-    : undefined;
+/**
+ * Sorts a copy of `resources` so repeated requests do not reorder the shared
+ * fixture data in place. The value getter is the only part that varies between
+ * the v1 and v2 models, so the comparison logic lives here only.
+ */
+function sortResources<T>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam: string | undefined,
+  getValue: (resource: T, key: string) => unknown,
+): T[] {
+  const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
+  return resources.slice().sort((a, b) => {
+    const aValue = getComparableValue(getValue(a, key));
+    const bValue = getComparableValue(getValue(b, key));
+    let result = 0;
+    if (aValue < bValue) {
+      result = -1;
+    }
+    if (aValue > bValue) {
+      result = 1;
+    }
+    return result * (desc ? -1 : 1);
+  });
 }
 
 function sortV1Resources<T extends V1SortableResource>(
@@ -298,19 +336,17 @@ function sortV1Resources<T extends V1SortableResource>(
   defaultSortKey: string,
   queryParam?: string,
 ): T[] {
-  const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
-  return resources.slice().sort((a, b) => {
-    const aValue = getComparableValue(getV1ResourceValue(a, key));
-    const bValue = getComparableValue(getV1ResourceValue(b, key));
-    let result = 0;
-    if (aValue < bValue) {
-      result = -1;
+  // Built at most once per call, and only when the sort key actually needs it.
+  let lastRunCreatedAt: Map<string, Date> | undefined;
+  const getLastRunCreatedAt = () => {
+    if (!lastRunCreatedAt) {
+      lastRunCreatedAt = buildLastRunCreatedAtMap();
     }
-    if (aValue > bValue) {
-      result = 1;
-    }
-    return result * (desc ? -1 : 1);
-  });
+    return lastRunCreatedAt;
+  };
+  return sortResources(resources, defaultSortKey, queryParam, (resource, key) =>
+    getV1ResourceValue(resource, key, getLastRunCreatedAt),
+  );
 }
 
 function sortV2Resources<T extends V2FilterableResource>(
@@ -318,19 +354,7 @@ function sortV2Resources<T extends V2FilterableResource>(
   defaultSortKey: string,
   queryParam?: string,
 ): T[] {
-  const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
-  return resources.slice().sort((a, b) => {
-    const aValue = getComparableValue(getV2ResourceValue(a, key));
-    const bValue = getComparableValue(getV2ResourceValue(b, key));
-    let result = 0;
-    if (aValue < bValue) {
-      result = -1;
-    }
-    if (aValue > bValue) {
-      result = 1;
-    }
-    return result * (desc ? -1 : 1);
-  });
+  return sortResources(resources, defaultSortKey, queryParam, getV2ResourceValue);
 }
 
 function filterV2Resources<T extends V2FilterableResource>(
