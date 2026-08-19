@@ -30,21 +30,15 @@ CI_SCRIPTS_WORKFLOW = REPOSITORY_ROOT / '.github/workflows/ci-scripts-tests.yml'
 
 class ArtifactUploadRetryTest(unittest.TestCase):
 
-    def test_retry_action_preserves_outputs_and_supports_stable_names(self):
+    def test_retry_action_preserves_outputs_and_avoids_name_collisions(self):
         action = RETRY_ACTION.read_text(encoding='utf-8')
 
         self.assertEqual(action.count('uses: actions/upload-artifact@v7'), 2)
         self.assertIn("steps.primary.outcome == 'failure'", action)
         self.assertIn('sleep "$RETRY_DELAY_SECONDS"', action)
         self.assertIn(
-            "inputs.overwrite == 'true' && inputs.name", action
+            'name: ${{ inputs.name }} - retry-${{ github.run_attempt }}', action
         )
-        self.assertIn(
-            "format('{0} - retry-{1}', inputs.name, github.run_attempt)",
-            action,
-        )
-        self.assertEqual(action.count('overwrite: ${{ inputs.overwrite }}'), 2)
-        self.assertIn("default: 'false'", action)
         self.assertIn(
             'steps.primary.outputs.artifact-url || steps.retry.outputs.artifact-url',
             action,
