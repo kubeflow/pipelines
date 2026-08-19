@@ -1097,7 +1097,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// and RollbackRetryClaim checks it to prevent ABA rollback of a later retry.
 	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId)
 	if claimError != nil {
-		return util.NewInternalServerError(claimError,
+		// Wrap (not re-classify) so NotFound / BadRequest from the claim
+		// reach the client as such instead of surfacing as HTTP 500.
+		return util.Wrapf(claimError,
 			"Failed to retry run %s: could not claim database row before workflow operation", runId)
 	}
 	// Update the in-memory run to reflect the claimed state.
@@ -1105,7 +1107,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeStatePending
 	run.Conditions = string(model.RuntimeStatePending.ToV1())
 	run.RetryGeneration = claimGeneration
-	run.RetryClaimedAtInSec = time.Now().Unix()
+	run.RetryClaimedAtInSec = r.time.Now().Unix()
+	// Stamp the claim token on the workflow so ReportWorkflowResource can
+	// distinguish reports about this retried workflow from stale snapshots
+	// of the pre-retry workflow, without comparing timestamps across clocks.
+	newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
 
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
@@ -1119,6 +1125,11 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
+	// Capture the workflow name the retry operates on before newExecSpec is
+	// reassigned (it is nil on error). This is the name from the stored
+	// runtime manifest, which is the object updateOrCreateRetryWorkflow
+	// mutates; run.K8SName can diverge from it.
+	retryWorkflowName := newExecSpec.ExecutionName()
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
 		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
@@ -1126,7 +1137,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		// even after the client exhausted retries. Re-read the live workflow
 		// to determine whether the mutation was applied.
 		workflowClient := r.getWorkflowClient(namespace)
-		liveWorkflow, readError := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		liveWorkflow, readError := workflowClient.Get(ctx, retryWorkflowName, v1.GetOptions{})
 		switch {
 		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState():
 			// Workflow exists and is running — mutation was applied.
@@ -1614,23 +1625,6 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		return nil, util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
 
-	if execSpec.PersistedFinalState() {
-		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
-		if err != nil {
-			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a not found error, so that persistence
-			// agent won't retry again.
-			if util.IsNotFound(err) {
-				return nil, util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
-			} else {
-				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
-			}
-		}
-		if r.options.CollectMetrics {
-			workflowGCCounter.Inc()
-		}
-	}
 	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
 	// ignore its condition and mark it as such
 	state := model.RuntimeState(string(execStatus.Condition())).ToV2()
@@ -1650,17 +1644,56 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			)
 		}
 	}
+	// Delete a fully persisted workflow only after the version check above:
+	// a stale snapshot carrying the persisted-final-state label must not
+	// delete the live workflow object that a retry has since resubmitted
+	// under the same name.
+	if execSpec.PersistedFinalState() {
+		// If workflow's final state has being persisted, the workflow should be garbage collected.
+		err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
+		if err != nil {
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
+			// agent won't retry again.
+			if util.IsNotFound(err) {
+				return nil, util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
+			} else {
+				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			}
+		}
+		if r.options.CollectMetrics {
+			workflowGCCounter.Inc()
+		}
+	}
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
 	if updateError == nil {
-		// Skip stale terminal reports from before a retry claim.
-		// A pre-retry workflow completion has FinishedAt <= the claim
-		// timestamp. A genuine post-retry completion finishes after the
-		// claim timestamp and passes through.
-		if run.RetryClaimedAtInSec > 0 && execStatus.IsInFinalState() && execStatus.FinishedAt() <= run.RetryClaimedAtInSec {
-			return nil, util.NewUnavailableServerError(
-				fmt.Errorf("run %s has a retry claim at %d but report FinishedAt=%d is not after the claim", runId, run.RetryClaimedAtInSec, execStatus.FinishedAt()),
-				"Skipping stale terminal report for run %s — retry claimed after this completion", runId)
+		// Fence terminal reports from stale pre-retry workflow snapshots.
+		// A retried workflow carries the claim's RetryGeneration as an
+		// annotation; a snapshot taken before the retry carries an older
+		// generation (or none). Accepting such a report would restore the
+		// old FinishedAtInSec and make the run GC-eligible while the retry
+		// is still running. No timestamps are compared across clocks here.
+		if run.RetryGeneration > 0 && execStatus.IsInFinalState() {
+			if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
+				claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
+				if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod/time.Second) {
+					// The retry is (or was moments ago) in flight; the retried
+					// workflow will report with the current generation. Skip
+					// this stale snapshot as a successful no-op so the
+					// persistence agent does not requeue it forever.
+					glog.Infof("Skipping stale terminal report for run %s: reported retry generation %d < claimed generation %d",
+						runId, reportedGeneration, run.RetryGeneration)
+					return execSpec, nil
+				}
+				// No workflow write carrying the claimed generation appeared
+				// within the grace period: the retry crashed between claiming
+				// the row and updating the workflow. Accept this report so
+				// the run returns to its last real state instead of staying
+				// PENDING forever.
+				glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and appears orphaned",
+					reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod)
+			}
 		}
 		run.State = state
 		run.Conditions = string(state.ToV1())
@@ -1881,6 +1914,28 @@ func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSp
 		execSpec.ExecutionName(),
 		reason,
 	)
+}
+
+// retryClaimGracePeriod bounds how long a retry claim without a matching
+// workflow write is trusted. RetryRun's claim-to-workflow-update window is
+// bounded by a handful of client-side retries (seconds), so a claim this old
+// with no workflow carrying its generation means the retry crashed mid-flight.
+const retryClaimGracePeriod = 10 * time.Minute
+
+// reportedRetryGeneration extracts the retry-generation annotation stamped by
+// RetryRun. Workflows created before any retry (or before this annotation
+// existed) return 0.
+func reportedRetryGeneration(objMeta *v1.ObjectMeta) int64 {
+	raw, ok := objMeta.Annotations[util.AnnotationKeyRetryGeneration]
+	if !ok {
+		return 0
+	}
+	generation, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		glog.Warningf("Ignoring malformed %s annotation %q", util.AnnotationKeyRetryGeneration, raw)
+		return 0
+	}
+	return generation
 }
 
 func (r *ResourceManager) workflowStillMatchesReportedVersion(ctx context.Context, execSpec util.ExecutionSpec) (bool, error) {

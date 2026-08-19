@@ -42,7 +42,7 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 | `MINIO_ENDPOINT_REWRITE` | Rewrites object-store endpoints in local proxy mode |
 | `MAX_METRICS_FILE_BYTES` | Maximum uncompressed metrics JSON size; defaults to 1 MiB |
 | `RUNS_RETENTION_TIME` | Auto-archive terminal runs after this Go duration (e.g., `720h`); empty disables |
-| `ARCHIVED_RUNS_RETENTION_TIME` | Auto-delete archived runs after this Go duration (e.g., `2160h`); empty disables |
+| `ARCHIVED_RUNS_RETENTION_TIME` | Auto-delete archived runs this Go duration after they were archived (e.g., `2160h`); pre-upgrade archived rows fall back to completion time; empty disables |
 | `RUNS_GC_INTERVAL` | Poll interval for the run garbage collector; defaults to `6h` |
 | `RUNS_GC_BATCH_SIZE` | Maximum rows per GC batch; defaults to `100` |
 
@@ -87,11 +87,12 @@ MySQL, use `SHOW INDEX FROM run_details` first and run the `ALTER TABLE` only
 when the exact index is absent.
 
 **Note on archive query performance:** The `idx_run_gc_lifecycle` index on
-`(StorageState, FinishedAtInSec)` efficiently serves the delete pass
-(`StorageState = 'ARCHIVED'`). The archive pass uses `StorageState NOT IN (...)`
-which may not drive a range scan on all engines. For large tables (>1M rows),
-verify with `EXPLAIN` and consider an additional index on
-`(FinishedAtInSec, StorageState)` if the archive pass shows a full table scan.
+`(StorageState, FinishedAtInSec)` serves both passes. The delete pass filters
+`StorageState = 'ARCHIVED'`; the archive pass matches a positive `IN` list of
+non-archived storage states (plus `IS NULL`), so both drive the index's
+leading column. The collector re-validates the index against the database
+catalog on every tick: applying this migration takes effect without an
+API-server restart, and GC pauses automatically if the index is dropped.
 
 ### Argo Workflow cleanup
 
@@ -101,5 +102,9 @@ resources are left behind. To avoid misleading persistence-agent log entries
 configure Argo's native workflow TTL or set `ttlSecondsAfterFinished` on your
 workflow templates. The TTL should be shorter than `ARCHIVED_RUNS_RETENTION_TIME`
 so Argo cleans up the CR before GC deletes the database row.
+
+The garbage collector also does not remove rows from the `artifacts` table,
+MLMD records, or object-store artifacts; those lifecycles are managed
+separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 
 `TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.

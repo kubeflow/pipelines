@@ -103,8 +103,10 @@ data:
   ## RUNS_RETENTION_TIME: Auto-archive terminal runs after this duration.
   ## Uses Go duration format (e.g., "720h" for 30 days). Empty disables.
   RUNS_RETENTION_TIME: ""
-  ## ARCHIVED_RUNS_RETENTION_TIME: Auto-delete archived runs after this duration.
-  ## Uses Go duration format (e.g., "2160h" for 90 days). Empty disables.
+  ## ARCHIVED_RUNS_RETENTION_TIME: Auto-delete archived runs this long after
+  ## they were archived (runs archived before upgrade fall back to their
+  ## completion time). Uses Go duration format (e.g., "2160h" for 90 days).
+  ## Empty disables.
   ARCHIVED_RUNS_RETENTION_TIME: ""
   ## RUNS_GC_INTERVAL: Poll interval for the run garbage collector.
   RUNS_GC_INTERVAL: "6h"

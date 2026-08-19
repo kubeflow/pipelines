@@ -319,12 +319,15 @@ func main() {
 	wg.Add(1)
 	go reconcileSwfCrs(resourceManager, backgroundCtx, &wg)
 
-	// Start run GC if the required database index is ready.
-	if clientManager.IsGarbageCollectorIndexReady() {
+	// Start run GC when a retention window is configured. The collector
+	// re-validates the required database index on every tick and skips
+	// collection until the operator has applied the index migration.
+	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
 		runGC := gc.NewRunGarbageCollector(
 			clientManager.RunStore(),
 			clientManager.KubernetesCoreClient().GetClientSet(),
 			common.GetPodNamespace(),
+			clientManager.GarbageCollectorIndexChecker(),
 		)
 		wg.Add(1)
 		go func() {

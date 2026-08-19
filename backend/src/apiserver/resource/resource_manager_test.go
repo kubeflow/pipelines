@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -5916,4 +5917,132 @@ func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
 	// name, so concurrent triggers converge on the same primary key.
 	wantUUID := util.NewDeterministicUUID(job.UUID + "/scheduled-run-trigger-1")
 	assert.Equal(t, wantUUID, created.UUID)
+}
+
+// A terminal report carrying no (or an older) retry-generation annotation is a
+// snapshot of the pre-retry workflow. While the claim is fresh it must be
+// skipped as a successful no-op: not an error (the persistence agent would
+// requeue forever) and not a write (it would restore a GC-eligible
+// FinishedAtInSec while the retry is running).
+func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+
+	// Drive the run terminal, then claim it for retry.
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Nil(t, err)
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID)
+	require.Nil(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+
+	// The same terminal snapshot arrives again (requeued by the persistence
+	// agent). It carries no retry-generation annotation.
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err, "stale terminal report during a fresh claim must be a successful no-op")
+
+	claimed, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStatePending, claimed.State, "stale report must not overwrite the claimed row")
+	assert.Equal(t, int64(0), claimed.FinishedAtInSec)
+}
+
+// A report from the retried workflow itself carries the claim's generation in
+// its annotation and must pass the fence.
+func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	terminal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), terminal)
+	require.Nil(t, err)
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID)
+	require.Nil(t, claimErr)
+
+	retried := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryGeneration: strconv.FormatInt(claimGeneration, 10),
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
+	})
+	_, err = manager.ReportWorkflowResource(context.Background(), retried)
+	assert.Nil(t, err)
+
+	updated, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, updated.State, "post-retry completion must pass the generation fence")
+}
+
+// A claim with no claim timestamp (cleared by rollback, or orphaned by a crash
+// past the grace period) must not fence terminal reports forever: the reporter
+// accepts the terminal state so the run self-heals instead of staying PENDING.
+func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Nil(t, err)
+	_, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID)
+	require.Nil(t, claimErr)
+
+	// Simulate an orphaned claim: the claim timestamp is gone (rollback) or
+	// far in the past (crash between claim and workflow update).
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.Nil(t, err)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err)
+
+	recovered, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, recovered.State, "orphaned claim must self-heal to the last real terminal state")
+}
+
+// RetryRun must stamp the claim's RetryGeneration on the retried workflow so
+// ReportWorkflowResource can tell its reports apart from stale snapshots of
+// the pre-retry workflow.
+func TestRetryRun_StampsRetryGenerationAnnotation(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	require.Nil(t, err)
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, int64(1), retried.RetryGeneration)
+	assert.Contains(t, string(retried.WorkflowRuntimeManifest), util.AnnotationKeyRetryGeneration,
+		"retried workflow manifest must carry the retry-generation annotation")
 }

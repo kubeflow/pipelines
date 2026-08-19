@@ -432,3 +432,27 @@ func requireSignal(t *testing.T, signal <-chan struct{}, message string) {
 		t.Fatal(message)
 	}
 }
+
+// The index gate is evaluated on every tick, not once at startup, so applying
+// the index migration takes effect without restarting the API server.
+func TestCollect_IndexGateReevaluatedPerTick(t *testing.T) {
+	resetGCConfig()
+	defer resetGCConfig()
+
+	viper.Set(common.RunsRetentionTime, "720h")
+
+	fake := &fakeRunStore{}
+	ready := false
+	gc := &RunGarbageCollector{
+		runStore:   fake,
+		nowFunc:    func() int64 { return 3000000 },
+		indexReady: func() bool { return ready },
+	}
+
+	gc.collect(context.Background())
+	assert.Equal(t, 0, fake.archiveCalls, "collection must be skipped while the index is missing")
+
+	ready = true
+	gc.collect(context.Background())
+	assert.Equal(t, 1, fake.archiveCalls, "collection must start once the index is ready, without a restart")
+}

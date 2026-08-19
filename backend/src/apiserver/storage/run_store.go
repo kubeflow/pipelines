@@ -17,7 +17,6 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -61,6 +60,7 @@ var runColumns = []string{
 	"PipelineRunContextId",
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
+	"ArchivedAtInSec",
 }
 
 var runMetricsColumns = []string{
@@ -70,6 +70,56 @@ var runMetricsColumns = []string{
 	"NumberValue",
 	"Format",
 	"Payload",
+}
+
+// terminalRunStateStrings lists every raw value that a terminal run can carry
+// in the State or Conditions column across schema generations. These are raw
+// database values on purpose: RuntimeState.ToString() normalizes to v2, which
+// would collapse the v1 entries into duplicates and never match legacy rows.
+// ClaimRunForRetry and ArchiveExpiredRuns must agree on this list.
+var terminalRunStateStrings = []string{
+	string(model.RuntimeStateSucceeded),
+	string(model.RuntimeStateFailed),
+	string(model.RuntimeStateSkipped),
+	string(model.RuntimeStateCanceled),
+	string(model.RuntimeStateSucceededV1),
+	string(model.RuntimeStateFailedV1),
+	string(model.RuntimeStateSkippedV1),
+	string(model.RuntimeStateErrorV1),
+	model.LegacyStateDone,
+	model.LegacyStateDisabled,
+}
+
+var terminalRunStateValues = func() map[string]bool {
+	values := make(map[string]bool, len(terminalRunStateStrings))
+	for _, state := range terminalRunStateStrings {
+		values[state] = true
+	}
+	return values
+}()
+
+// nonArchivedStorageStateStrings is the closed set of StorageState values that
+// StorageState.ToV2() does not map to ARCHIVED. ArchiveExpiredRuns matches on
+// this positive list (plus NULL) instead of NOT IN so the query can be served
+// by the leading column of idx_run_gc_lifecycle (StorageState, FinishedAtInSec).
+var nonArchivedStorageStateStrings = []string{
+	string(model.StorageStateAvailable),
+	string(model.StorageStateAvailableV1),
+	string(model.StorageStateUnspecified),
+	string(model.StorageStateUnspecifiedV1),
+	model.LegacyStateNoStatus,
+	model.LegacyStateError,
+	model.LegacyStateEnabled,
+	model.LegacyStateReady,
+	model.LegacyStateEmpty,
+}
+
+// archivedStorageStateStrings is the closed set of StorageState values that
+// StorageState.ToV2() maps to ARCHIVED.
+var archivedStorageStateStrings = []string{
+	string(model.StorageStateArchived),
+	string(model.StorageStateArchivedV1),
+	model.LegacyStateDisabled,
 }
 
 type RunStoreInterface interface {
@@ -333,7 +383,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
-		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec sql.NullInt64
+		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 		err := rows.Scan(
 			&uuid,
@@ -367,6 +417,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&pipelineRunContextID,
 			&retryGeneration,
 			&retryClaimedAtInSec,
+			&archivedAtInSec,
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
@@ -437,6 +488,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				PipelineRunContextId:    pipelineRunContextID.Int64,
 				RetryGeneration:         retryGeneration.Int64,
 				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
+				ArchivedAtInSec:         archivedAtInSec.Int64,
 				TaskDetails:             tasks,
 				StateHistory:            stateHistoryNew,
 			},
@@ -739,7 +791,8 @@ func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateArchived.ToString(),
+			"StorageState":    model.StorageStateArchived.ToString(),
+			"ArchivedAtInSec": s.time.Now().Unix(),
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
@@ -761,7 +814,8 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateAvailable.ToString(),
+			"StorageState":    model.StorageStateAvailable.ToString(),
+			"ArchivedAtInSec": 0,
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
@@ -871,6 +925,9 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 	var currentGeneration int64
 	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration); err != nil {
 		tx.Rollback()
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
+		}
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runID)
 	}
 	originalState := ""
@@ -882,26 +939,14 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 	// earlier CanRetry check and lock acquisition, another retry may have
 	// claimed the row (PENDING) or the run may have transitioned to an
 	// active state (RUNNING, PAUSED, CANCELING).
-	terminalStates := map[string]bool{
-		model.RuntimeStateSucceeded.ToString():   true,
-		model.RuntimeStateFailed.ToString():      true,
-		model.RuntimeStateSkipped.ToString():     true,
-		model.RuntimeStateCanceled.ToString():    true,
-		model.RuntimeStateSucceededV1.ToString(): true,
-		model.RuntimeStateFailedV1.ToString():    true,
-		model.RuntimeStateSkippedV1.ToString():   true,
-		model.RuntimeStateErrorV1.ToString():     true,
-		model.LegacyStateDone:                    true,
-		model.LegacyStateDisabled:                true,
-	}
-	isTerminal := terminalStates[originalState]
+	isTerminal := terminalRunStateValues[originalState]
 	// Legacy v1 rows have State NULL/empty; derive terminal status from Conditions.
 	if !isTerminal && originalState == "" {
-		isTerminal = terminalStates[originalConditions]
+		isTerminal = terminalRunStateValues[originalConditions]
 	}
 	if !isTerminal {
 		tx.Rollback()
-		return "", "", 0, 0, util.NewInternalServerError(
+		return "", "", 0, 0, util.NewBadRequestError(
 			fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
 			"Cannot claim run %s for retry: not in a terminal state", runID)
 	}
@@ -916,7 +961,7 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
 		Set("FinishedAtInSec", 0).
 		Set("RetryGeneration", newGeneration).
-		Set("RetryClaimedAtInSec", time.Now().Unix()).
+		Set("RetryClaimedAtInSec", s.time.Now().Unix()).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {
@@ -940,6 +985,9 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 		Set("State", originalState).
 		Set("Conditions", originalConditions).
 		Set("FinishedAtInSec", originalFinishedAtInSec).
+		// Clear the claim timestamp so the reporter's orphaned-claim
+		// recovery does not treat this restored terminal row as claimed.
+		Set("RetryClaimedAtInSec", 0).
 		Where(sq.And{
 			sq.Eq{"UUID": runID},
 			sq.Eq{"RetryGeneration": claimGeneration},
@@ -967,41 +1015,21 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 			// for legacy v1 rows where State is NULL/empty (ToV2() derives
 			// State from Conditions at read time but does not backfill the DB).
 			sq.Or{
-				sq.Eq{"State": []string{
-					string(model.RuntimeStateSucceeded),
-					string(model.RuntimeStateFailed),
-					string(model.RuntimeStateSkipped),
-					string(model.RuntimeStateCanceled),
-					string(model.RuntimeStateSucceededV1),
-					string(model.RuntimeStateFailedV1),
-					string(model.RuntimeStateSkippedV1),
-					string(model.RuntimeStateErrorV1),
-					model.LegacyStateDone,
-					model.LegacyStateDisabled,
-				}},
+				sq.Eq{"State": terminalRunStateStrings},
 				sq.And{
 					sq.Or{sq.Eq{"State": ""}, sq.Expr("State IS NULL")},
-					sq.Eq{"Conditions": []string{
-						string(model.RuntimeStateSucceeded),
-						string(model.RuntimeStateFailed),
-						string(model.RuntimeStateSkipped),
-						string(model.RuntimeStateCanceled),
-						string(model.RuntimeStateSucceededV1),
-						string(model.RuntimeStateFailedV1),
-						string(model.RuntimeStateSkippedV1),
-						string(model.RuntimeStateErrorV1),
-						model.LegacyStateDone,
-						model.LegacyStateDisabled,
-					}},
+					sq.Eq{"Conditions": terminalRunStateStrings},
 				},
 			},
 			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
 			sq.Gt{"FinishedAtInSec": 0},
-			sq.NotEq{"StorageState": []string{
-				string(model.StorageStateArchived),
-				string(model.StorageStateArchivedV1),
-				model.LegacyStateDisabled,
-			}},
+			// Positive match on the closed set of non-archived storage states
+			// (plus NULL for legacy rows) so idx_run_gc_lifecycle's leading
+			// StorageState column can serve this query; NOT IN cannot use it.
+			sq.Or{
+				sq.Eq{"StorageState": nonArchivedStorageStateStrings},
+				sq.Expr("StorageState IS NULL"),
+			},
 		}).
 		OrderBy("FinishedAtInSec ASC").
 		Limit(uint64(batchSize)).
@@ -1047,6 +1075,9 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 	updateSQL, updateArgs, err := sq.
 		Update("run_details").
 		Set("StorageState", model.StorageStateArchived.ToString()).
+		// Start the archived-run observation window at archival time; the
+		// delete pass measures ARCHIVED_RUNS_RETENTION_TIME from this value.
+		Set("ArchivedAtInSec", s.time.Now().Unix()).
 		Where(sq.And{
 			sq.Eq{"UUID": uuids},
 			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
@@ -1068,7 +1099,10 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 		return 0, util.NewInternalServerError(err, "Failed to commit transaction for archiving expired runs")
 	}
 
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to read affected row count after archiving expired runs")
+	}
 	return affected, nil
 }
 
@@ -1080,13 +1114,19 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		Select("UUID").
 		From("run_details").
 		Where(sq.And{
-			sq.Eq{"StorageState": []string{
-				string(model.StorageStateArchived),
-				string(model.StorageStateArchivedV1),
-				model.LegacyStateDisabled,
-			}},
+			sq.Eq{"StorageState": archivedStorageStateStrings},
+			// FinishedAtInSec drives idx_run_gc_lifecycle and is a
+			// conservative lower bound: a run is never deletable less than
+			// the retention period after it finished.
 			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
 			sq.Gt{"FinishedAtInSec": 0},
+			// The observation window is measured from archival time.
+			// Rows archived before ArchivedAtInSec existed carry 0 and fall
+			// back to the FinishedAtInSec bound above.
+			sq.Or{
+				sq.Eq{"ArchivedAtInSec": 0},
+				sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			},
 		}).
 		OrderBy("FinishedAtInSec ASC").
 		Limit(uint64(batchSize)).
@@ -1142,13 +1182,13 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		From("run_details").
 		Where(sq.And{
 			sq.Eq{"UUID": uuids},
-			sq.Eq{"StorageState": []string{
-				string(model.StorageStateArchived),
-				string(model.StorageStateArchivedV1),
-				model.LegacyStateDisabled,
-			}},
+			sq.Eq{"StorageState": archivedStorageStateStrings},
 			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
 			sq.Gt{"FinishedAtInSec": 0},
+			sq.Or{
+				sq.Eq{"ArchivedAtInSec": 0},
+				sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			},
 		}).ToSql()
 	if err != nil {
 		tx.Rollback()
@@ -1234,7 +1274,10 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 		return 0, util.NewInternalServerError(commitError, "Failed to commit transaction for deleting expired archived runs")
 	}
 
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to read affected row count after deleting expired archived runs")
+	}
 	return affected, nil
 }
 

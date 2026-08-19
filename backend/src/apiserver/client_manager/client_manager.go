@@ -116,7 +116,7 @@ type ClientManager struct {
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
 	controllerClientNoCache   ctrlclient.Client
-	gcIndexReady              bool
+	gcIndexChecker            func() bool
 }
 
 // Options to pass to Client Manager initialization
@@ -127,10 +127,12 @@ type Options struct {
 	WaitGroup                    *sync.WaitGroup
 }
 
-// IsGarbageCollectorIndexReady returns true if the GC lifecycle index
-// exists. When false, GC must not start to avoid full table scans.
-func (c *ClientManager) IsGarbageCollectorIndexReady() bool {
-	return c.gcIndexReady
+// GarbageCollectorIndexChecker returns a function that re-validates the GC
+// lifecycle index against the database catalog. The GC loop calls it on every
+// collection tick, so an operator can apply (or roll back) the index
+// migration without restarting the API server.
+func (c *ClientManager) GarbageCollectorIndexChecker() func() bool {
+	return c.gcIndexChecker
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -281,12 +283,12 @@ func (c *ClientManager) init(options *Options) error {
 
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db, gcIndexReady := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, gcIndexChecker := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
-	c.gcIndexReady = gcIndexReady
+	c.gcIndexChecker = gcIndexChecker
 	if !options.UsePipelineKubernetesStorage {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	}
@@ -437,7 +439,7 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error
 	return status.isReady(), nil
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
+func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -479,23 +481,28 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, bool) {
 		util.TerminateIfError(autoMigrate(db))
 	}
 
-	gcIndexReady := false
-	if common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0 {
-		var indexValidationError error
-		gcIndexReady, indexValidationError = validateGarbageCollectorIndex(db, dialect)
+	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
+	// the connection pool with the returned *storage.DB. The GC loop calls
+	// this on every tick, so index migrations take effect without a restart.
+	gcIndexChecker := func() bool {
+		ready, indexValidationError := validateGarbageCollectorIndex(db, dialect)
 		if indexValidationError != nil {
-			glog.Errorf("Failed to validate GC lifecycle index: %v. GC disabled.", indexValidationError)
-		} else if !gcIndexReady {
-			glog.Warning("Run GC disabled: idx_run_gc_lifecycle is missing or incompatible. " +
-				"Apply the online index migration in docs/agents/development.md.")
+			glog.Errorf("Failed to validate GC lifecycle index: %v", indexValidationError)
+			return false
 		}
+		return ready
+	}
+	if (common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) && !gcIndexChecker() {
+		glog.Warning("Run GC paused: idx_run_gc_lifecycle is missing or incompatible. " +
+			"Apply the online index migration in docs/agents/development.md; " +
+			"GC re-checks the index on every collection tick and starts automatically once it is ready.")
 	}
 
 	newdb, err := db.DB()
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect()), gcIndexReady
+	return storage.NewDB(newdb, storage.NewMySQLDialect()), gcIndexChecker
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:

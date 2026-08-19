@@ -1366,6 +1366,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 
 			RunDetails: model.RunDetails{
 				CreatedAtInSec:          1,
+				ArchivedAtInSec:         4,
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
@@ -2302,4 +2303,176 @@ func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
 	require.Nil(t, getErr2)
 	assert.Equal(t, model.RuntimeStateRunning, updated.State)
 	assert.Equal(t, "wf2", string(updated.WorkflowRuntimeManifest))
+}
+
+// Regression: terminal-state matching must use raw legacy strings. ToString()
+// normalizes to v2 ("Failed" -> "FAILED"), which made the Conditions fallback
+// dead code and broke retry for legacy v1 rows with State NULL.
+func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-legacy-conditions",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-legacy-conditions",
+		DisplayName:  "run-legacy-conditions",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	// Simulate a legacy v1 row: State NULL, terminal status only in Conditions.
+	_, err = db.Exec(`UPDATE run_details SET State = NULL WHERE UUID = ?`, "run-legacy-conditions")
+	require.Nil(t, err)
+
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions")
+	require.Nil(t, claimErr, "legacy v1 terminal rows must be claimable for retry")
+	assert.Equal(t, "", originalState)
+	assert.Equal(t, string(model.RuntimeStateFailedV1), originalConditions)
+	assert.Equal(t, int64(100), originalFinishedAt)
+	assert.Equal(t, int64(1), claimGeneration)
+}
+
+// Regression: RollbackRetryClaim must clear RetryClaimedAtInSec. Leaving it
+// set made the reporter's orphaned-claim handling treat the restored terminal
+// row as a live claim.
+func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-rollback-claim",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-rollback-claim",
+		DisplayName:  "run-rollback-claim",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim")
+	require.Nil(t, claimErr)
+
+	claimed, err := runStore.GetRun("run-rollback-claim")
+	require.Nil(t, err)
+	require.True(t, claimed.RetryClaimedAtInSec > 0)
+
+	require.Nil(t, runStore.RollbackRetryClaim("run-rollback-claim", originalState, originalConditions, originalFinishedAt, claimGeneration))
+
+	restored, err := runStore.GetRun("run-rollback-claim")
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, restored.State)
+	assert.Equal(t, int64(100), restored.FinishedAtInSec)
+	assert.Equal(t, int64(0), restored.RetryClaimedAtInSec, "rollback must clear the claim timestamp")
+	assert.Equal(t, claimGeneration, restored.RetryGeneration, "generation must stay monotonic across rollback")
+}
+
+func TestClaimRunForRetry_RunNotFound(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run")
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+// The delete pass measures the observation window from ArchivedAtInSec: a run
+// archived recently must survive even when it finished long before the cutoff.
+// Rows archived before the column existed (ArchivedAtInSec=0) fall back to the
+// FinishedAtInSec bound.
+func TestDeleteExpiredArchivedRuns_HonorsArchivalWindow(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-recently-archived",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-recently-archived",
+		DisplayName:  "run-recently-archived",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateArchived,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateSucceeded,
+			Conditions:      string(model.RuntimeStateSucceededV1),
+		},
+	})
+	require.Nil(t, err)
+
+	// Archived after the cutoff: must not be deleted despite the old finish time.
+	_, err = db.Exec(`UPDATE run_details SET ArchivedAtInSec = ? WHERE UUID = ?`, 1000, "run-recently-archived")
+	require.Nil(t, err)
+
+	deleted, err := runStore.DeleteExpiredArchivedRuns(200, 100)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(0), deleted, "run archived after the cutoff must be kept for its observation window")
+
+	// Archived before the cutoff: now eligible.
+	_, err = db.Exec(`UPDATE run_details SET ArchivedAtInSec = ? WHERE UUID = ?`, 150, "run-recently-archived")
+	require.Nil(t, err)
+
+	deleted, err = runStore.DeleteExpiredArchivedRuns(200, 100)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(1), deleted)
+}
+
+// The archive pass must stamp ArchivedAtInSec so the delete pass can measure
+// the observation window from archival time.
+func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-archive-stamp",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-archive-stamp",
+		DisplayName:  "run-archive-stamp",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:  1,
+			FinishedAtInSec: 100,
+			State:           model.RuntimeStateSucceeded,
+			Conditions:      string(model.RuntimeStateSucceededV1),
+		},
+	})
+	require.Nil(t, err)
+
+	archived, err := runStore.ArchiveExpiredRuns(200, 100)
+	assert.Nil(t, err)
+	require.Equal(t, int64(1), archived)
+
+	run, err := runStore.GetRun("run-archive-stamp")
+	require.Nil(t, err)
+	assert.Equal(t, model.StorageStateArchived, run.StorageState)
+	assert.True(t, run.ArchivedAtInSec > 0, "archive pass must stamp ArchivedAtInSec")
 }

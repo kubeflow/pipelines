@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
@@ -33,6 +34,9 @@ import (
 const (
 	leaseName  = "kfp-apiserver-gc"
 	drainPause = 100 * time.Millisecond
+	// reelectionBackoff is how long a replica waits before re-entering the
+	// election after LeaderElector.Run returns (e.g. after a lost lease).
+	reelectionBackoff = 5 * time.Second
 )
 
 type RunGarbageCollector struct {
@@ -40,11 +44,16 @@ type RunGarbageCollector struct {
 	clientset kubernetes.Interface
 	namespace string
 	nowFunc   func() int64
+	// indexReady reports whether idx_run_gc_lifecycle currently exists and is
+	// usable. It is re-evaluated on every collection tick so an operator can
+	// apply the index migration without restarting the API server. A nil
+	// checker means "always ready" (tests).
+	indexReady func() bool
 }
 
 // leaderLifecycle keeps lease renewal active until a graceful shutdown has
 // drained the current collection. Its state also distinguishes that path from
-// an unexpected lease loss, where the process must terminate immediately.
+// an unexpected lease loss, after which Start re-enters the election.
 type leaderLifecycle struct {
 	shutdownCtx    context.Context
 	electionCtx    context.Context
@@ -102,12 +111,17 @@ func (l *leaderLifecycle) onStartedLeading(leaderCtx context.Context) {
 	l.runLoop(collectionCtx)
 
 	// leaderCtx remains active while this process still holds the lease. If it
-	// was canceled first, the lease was lost unexpectedly and OnStoppedLeading
-	// must retain its fatal fallback even when shutdown arrives concurrently.
-	if l.shutdownCtx.Err() != nil && leaderCtx.Err() == nil {
-		l.mu.Lock()
+	// was canceled first, the lease was lost unexpectedly; reset the callback
+	// state so a later shutdown cancels the election rather than a stale
+	// collection context, and let Start's election loop re-enter the election.
+	l.mu.Lock()
+	l.callbackStarted = false
+	graceful := l.shutdownCtx.Err() != nil && leaderCtx.Err() == nil
+	if graceful {
 		l.gracefulStop = true
-		l.mu.Unlock()
+	}
+	l.mu.Unlock()
+	if graceful {
 		l.cancelElection()
 	}
 }
@@ -122,12 +136,14 @@ func NewRunGarbageCollector(
 	runStore storage.RunStoreInterface,
 	clientset kubernetes.Interface,
 	namespace string,
+	indexReady func() bool,
 ) *RunGarbageCollector {
 	return &RunGarbageCollector{
-		runStore:  runStore,
-		clientset: clientset,
-		namespace: namespace,
-		nowFunc:   func() int64 { return time.Now().Unix() },
+		runStore:   runStore,
+		clientset:  clientset,
+		namespace:  namespace,
+		nowFunc:    func() int64 { return time.Now().Unix() },
+		indexReady: indexReady,
 	}
 }
 
@@ -140,16 +156,6 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		glog.Info("Run GC disabled: both RUNS_RETENTION_TIME and ARCHIVED_RUNS_RETENTION_TIME are empty")
 		return
 	}
-	// Both retention durations are measured from FinishedAtInSec (run
-	// completion time), not from archival time. If the delete window is
-	// shorter than the archive window, runs would be archived and deleted
-	// in the same GC tick, leaving no observation period for archived runs.
-	if archiveRetention > 0 && deleteRetention > 0 && deleteRetention < archiveRetention {
-		glog.Errorf("Run GC disabled: ARCHIVED_RUNS_RETENTION_TIME (%v) must be >= RUNS_RETENTION_TIME (%v); "+
-			"both are measured from run completion, not archival time", deleteRetention, archiveRetention)
-		return
-	}
-
 	glog.Infof("Run GC enabled: archive after %v, delete after %v, interval %v, batch %d",
 		archiveRetention, deleteRetention, common.GetRunsGCInterval(), common.GetRunsGCBatchSize())
 
@@ -183,7 +189,7 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	stopShutdownHook := context.AfterFunc(ctx, lifecycle.onShutdown)
 	defer stopShutdownHook()
 
-	leaderElector, electionError := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
+	electionConfig := leaderelection.LeaderElectionConfig{
 		Lock:            lock,
 		LeaseDuration:   15 * time.Second,
 		RenewDeadline:   10 * time.Second,
@@ -199,9 +205,11 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 					glog.Info("Run GC: collection loop drained, graceful shutdown complete")
 					return
 				}
-				// Terminate to guarantee no concurrent collection (matches
-				// kube-controller-manager pattern). K8s restarts the pod.
-				glog.Errorf("Run GC: lost leader lease unexpectedly; collection loop stopped, will resume if re-elected")
+				// Losing the lease never terminates the process: GC is opt-in
+				// housekeeping inside the user-facing API server, and the
+				// store passes are safe under overlap (SELECT FOR UPDATE plus
+				// predicate re-checks). Start re-enters the election below.
+				glog.Errorf("Run GC: lost leader lease unexpectedly; collection stopped, re-entering election in %v", reelectionBackoff)
 			},
 			OnNewLeader: func(identity string) {
 				if identity != id {
@@ -209,13 +217,26 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 				}
 			},
 		},
-	})
-	if electionError != nil {
-		glog.Errorf("Run GC: failed to create leader elector, disabling GC: %v", electionError)
+	}
+	if _, electionError := leaderelection.NewLeaderElector(electionConfig); electionError != nil {
+		glog.Errorf("Run GC: invalid leader election config, disabling GC: %v", electionError)
 		return
 	}
 
-	leaderElector.Run(electionCtx)
+	// LeaderElector.Run returns when the lease is lost (acquire -> renew ->
+	// return); it never re-enters the election on its own. Loop so a
+	// transient renewal failure pauses GC instead of disabling it for the
+	// pod's lifetime. A LeaderElector is single-use, so build a fresh one
+	// per attempt; the config was validated once above so per-attempt
+	// construction cannot fail persistently.
+	wait.UntilWithContext(electionCtx, func(loopCtx context.Context) {
+		attemptElector, attemptError := leaderelection.NewLeaderElector(electionConfig)
+		if attemptError != nil {
+			glog.Errorf("Run GC: failed to recreate leader elector, retrying in %v: %v", reelectionBackoff, attemptError)
+			return
+		}
+		attemptElector.Run(loopCtx)
+	}, reelectionBackoff)
 }
 
 func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
@@ -237,7 +258,27 @@ func (gc *RunGarbageCollector) runLoop(ctx context.Context) {
 	}
 }
 
+// sleepUnlessDone pauses between drain batches but returns false immediately
+// if ctx is canceled, so shutdown never waits on a drain pause.
+func sleepUnlessDone(ctx context.Context, d time.Duration) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-time.After(d):
+		return true
+	}
+}
+
 func (gc *RunGarbageCollector) collect(ctx context.Context) {
+	// Re-check the index on every tick so applying the index migration takes
+	// effect without an API-server restart, and dropping the index stops the
+	// unindexed scans instead of silently continuing them.
+	if gc.indexReady != nil && !gc.indexReady() {
+		glog.Warning("Run GC: skipping collection pass, idx_run_gc_lifecycle is missing or not usable. " +
+			"Apply the online index migration in docs/agents/development.md.")
+		return
+	}
+
 	now := gc.nowFunc()
 	batchSize := common.GetRunsGCBatchSize()
 
@@ -260,7 +301,9 @@ func (gc *RunGarbageCollector) collect(ctx context.Context) {
 			if archivedRunCount < int64(batchSize) {
 				break
 			}
-			time.Sleep(drainPause)
+			if !sleepUnlessDone(ctx, drainPause) {
+				return
+			}
 		}
 	}
 
@@ -283,7 +326,9 @@ func (gc *RunGarbageCollector) collect(ctx context.Context) {
 			if deletedRunCount < int64(batchSize) {
 				break
 			}
-			time.Sleep(drainPause)
+			if !sleepUnlessDone(ctx, drainPause) {
+				return
+			}
 		}
 	}
 }
