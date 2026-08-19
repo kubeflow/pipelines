@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -58,6 +59,8 @@ var runColumns = []string{
 	"PluginsOutput",
 	"PipelineContextId",
 	"PipelineRunContextId",
+	"RetryGeneration",
+	"RetryClaimedAtInSec",
 }
 
 var runMetricsColumns = []string{
@@ -330,7 +333,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
-		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
+		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 		err := rows.Scan(
 			&uuid,
@@ -360,8 +363,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&stateHistory,
 			&pluginsInput,
 			&pluginsOutput,
-			&pipelineContextId,
-			&pipelineRunContextId,
+			&pipelineContextID,
+			&pipelineRunContextID,
+			&retryGeneration,
+			&retryClaimedAtInSec,
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
@@ -428,8 +433,10 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				State:                   model.RuntimeState(state.String),
 				PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
 				WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
-				PipelineContextId:       pipelineContextId.Int64,
-				PipelineRunContextId:    pipelineRunContextId.Int64,
+				PipelineContextId:       pipelineContextID.Int64,
+				PipelineRunContextId:    pipelineRunContextID.Int64,
+				RetryGeneration:         retryGeneration.Int64,
+				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
 				TaskDetails:             tasks,
 				StateHistory:            stateHistoryNew,
 			},
@@ -909,6 +916,7 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
 		Set("FinishedAtInSec", 0).
 		Set("RetryGeneration", newGeneration).
+		Set("RetryClaimedAtInSec", time.Now().Unix()).
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
 	if err != nil {

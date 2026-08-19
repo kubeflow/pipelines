@@ -140,6 +140,15 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		glog.Info("Run GC disabled: both RUNS_RETENTION_TIME and ARCHIVED_RUNS_RETENTION_TIME are empty")
 		return
 	}
+	// Both retention durations are measured from FinishedAtInSec (run
+	// completion time), not from archival time. If the delete window is
+	// shorter than the archive window, runs would be archived and deleted
+	// in the same GC tick, leaving no observation period for archived runs.
+	if archiveRetention > 0 && deleteRetention > 0 && deleteRetention < archiveRetention {
+		glog.Errorf("Run GC disabled: ARCHIVED_RUNS_RETENTION_TIME (%v) must be >= RUNS_RETENTION_TIME (%v); "+
+			"both are measured from run completion, not archival time", deleteRetention, archiveRetention)
+		return
+	}
 
 	glog.Infof("Run GC enabled: archive after %v, delete after %v, interval %v, batch %d",
 		archiveRetention, deleteRetention, common.GetRunsGCInterval(), common.GetRunsGCBatchSize())
@@ -192,7 +201,7 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 				}
 				// Terminate to guarantee no concurrent collection (matches
 				// kube-controller-manager pattern). K8s restarts the pod.
-				glog.Fatalf("Run GC: lost leader lease unexpectedly, terminating to prevent concurrent collection")
+				glog.Errorf("Run GC: lost leader lease unexpectedly; collection loop stopped, will resume if re-elected")
 			},
 			OnNewLeader: func(identity string) {
 				if identity != id {

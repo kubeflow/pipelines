@@ -1105,6 +1105,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	run.State = model.RuntimeStatePending
 	run.Conditions = string(model.RuntimeStatePending.ToV1())
 	run.RetryGeneration = claimGeneration
+	run.RetryClaimedAtInSec = time.Now().Unix()
 
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
@@ -1652,14 +1653,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
 	if updateError == nil {
-		// Skip stale terminal reports if a retry has claimed this row.
-		// The persistence agent will re-report after the retry starts.
-		// RetryGeneration > 0 distinguishes retry-claimed rows from fresh
-		// runs which are also created with State=PENDING, FinishedAtInSec=0.
-		if run.RetryGeneration > 0 && run.State == model.RuntimeStatePending && run.FinishedAtInSec == 0 && execStatus.IsInFinalState() {
+		// Skip stale terminal reports from before a retry claim.
+		// A pre-retry workflow completion has FinishedAt <= the claim
+		// timestamp. A genuine post-retry completion finishes after the
+		// claim timestamp and passes through.
+		if run.RetryClaimedAtInSec > 0 && execStatus.IsInFinalState() && execStatus.FinishedAt() <= run.RetryClaimedAtInSec {
 			return nil, util.NewUnavailableServerError(
-				fmt.Errorf("run %s is being retried (State=PENDING, FinishedAtInSec=0)", runId),
-				"Skipping stale terminal report for run %s — retry in progress", runId)
+				fmt.Errorf("run %s has a retry claim at %d but report FinishedAt=%d is not after the claim", runId, run.RetryClaimedAtInSec, execStatus.FinishedAt()),
+				"Skipping stale terminal report for run %s — retry claimed after this completion", runId)
 		}
 		run.State = state
 		run.Conditions = string(state.ToV1())

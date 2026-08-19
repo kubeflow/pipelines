@@ -2249,3 +2249,57 @@ func TestDeleteExpiredArchivedRuns_IncludesLegacyDisabledState(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
+
+// Regression test for B1: RetryGeneration must be read back from the database
+// by GetRun so that UpdateRun's WHERE clause matches the bumped value.
+// Without this fix, GetRun always returns RetryGeneration=0 and UpdateRun
+// silently matches zero rows, permanently sticking the run.
+func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	// Create a terminal run.
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-retry-gen",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-retry-gen",
+		DisplayName:  "run-retry-gen",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateSucceeded,
+			Conditions:              "Succeeded",
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	// Claim the run for retry. This bumps RetryGeneration to 1 in the DB.
+	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen")
+	require.Nil(t, claimErr)
+	assert.Equal(t, int64(1), claimGeneration)
+
+	// GetRun must read back the bumped RetryGeneration from the DB.
+	run, getErr := runStore.GetRun("run-retry-gen")
+	require.Nil(t, getErr)
+	assert.Equal(t, int64(1), run.RetryGeneration)
+	assert.True(t, run.RetryClaimedAtInSec > 0, "RetryClaimedAtInSec should be set by ClaimRunForRetry")
+
+	// UpdateRun with the correct generation must succeed (not ResourceNotFoundError).
+	run.State = model.RuntimeStateRunning
+	run.Conditions = "Running"
+	run.WorkflowRuntimeManifest = "wf2"
+	updateErr := runStore.UpdateRun(run)
+	assert.Nil(t, updateErr, "UpdateRun should succeed when RetryGeneration matches the DB value")
+
+	// Verify the update was persisted.
+	updated, getErr2 := runStore.GetRun("run-retry-gen")
+	require.Nil(t, getErr2)
+	assert.Equal(t, model.RuntimeStateRunning, updated.State)
+	assert.Equal(t, "wf2", string(updated.WorkflowRuntimeManifest))
+}

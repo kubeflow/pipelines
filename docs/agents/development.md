@@ -85,4 +85,21 @@ concurrent build can leave an invalid index; remove only that invalid index with
 `DROP INDEX CONCURRENTLY public.idx_run_gc_lifecycle` before retrying. For
 MySQL, use `SHOW INDEX FROM run_details` first and run the `ALTER TABLE` only
 when the exact index is absent.
+
+**Note on archive query performance:** The `idx_run_gc_lifecycle` index on
+`(StorageState, FinishedAtInSec)` efficiently serves the delete pass
+(`StorageState = 'ARCHIVED'`). The archive pass uses `StorageState NOT IN (...)`
+which may not drive a range scan on all engines. For large tables (>1M rows),
+verify with `EXPLAIN` and consider an additional index on
+`(FinishedAtInSec, StorageState)` if the archive pass shows a full table scan.
+
+### Argo Workflow cleanup
+
+The run garbage collector only deletes database rows. Argo Workflow custom
+resources are left behind. To avoid misleading persistence-agent log entries
+("workflow does not have a valid RunID") after GC deletes a run's DB record,
+configure Argo's native workflow TTL or set `ttlSecondsAfterFinished` on your
+workflow templates. The TTL should be shorter than `ARCHIVED_RUNS_RETENTION_TIME`
+so Argo cleans up the CR before GC deletes the database row.
+
 `TENSORBOARD_PROXY_SIGNING_SECRET` is optional; it defaults to `MINIO_SECRET_KEY`.

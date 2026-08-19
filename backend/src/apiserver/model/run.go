@@ -333,6 +333,11 @@ type RunDetails struct {
 	// workflow reporters. UpdateRun checks this value to reject terminal
 	// state writes from reporters that passed version checks before the claim.
 	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
+	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
+	// claimed this row. The stale-report guard in ReportWorkflowResource uses
+	// this timestamp to distinguish pre-retry terminal reports (FinishedAt <=
+	// claim time) from genuine post-retry completions (FinishedAt > claim time).
+	RetryClaimedAtInSec int64 `gorm:"column:RetryClaimedAtInSec; default:0;"`
 	// Add gorm:"-" so that GORM ignores TaskDetails when generating schema.
 	// This avoids GORM auto-detecting the circular relationship (RunDetails <--> Tasks) and blocking the FK on tasks.RunUUID → run_details.UUID.
 	TaskDetails []*Task `gorm:"-"`
