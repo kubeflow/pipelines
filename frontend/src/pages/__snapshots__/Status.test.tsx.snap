@@ -446,3 +446,47 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: UNKNOWN
   </div>
 </DocumentFragment>
 `;
+
+exports[`Status > statusToIcon > renders diagnostic information for ImagePullBackOff failure messages 1`] = `
+<DocumentFragment>
+  <div
+    class=""
+    data-mui-internal-clone-element="true"
+  >
+    <svg
+      aria-hidden="true"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      data-testid="node-status-sign"
+      focusable="false"
+      style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z"
+      />
+    </svg>
+  </div>
+</DocumentFragment>
+`;
+
+exports[`Status > statusToIcon > renders diagnostic information for OOMKilled failure messages 1`] = `
+<DocumentFragment>
+  <div
+    class=""
+    data-mui-internal-clone-element="true"
+  >
+    <svg
+      aria-hidden="true"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      data-testid="node-status-sign"
+      focusable="false"
+      style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m1 15h-2v-2h2zm0-4h-2V7h2z"
+      />
+    </svg>
+  </div>
+</DocumentFragment>
+`;
