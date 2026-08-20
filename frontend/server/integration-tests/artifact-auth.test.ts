@@ -928,6 +928,29 @@ describe('/artifacts authorization', () => {
       );
     });
 
+    it('authorizes a trailing-slash identity while reading the trimmed storage key', async () => {
+      mockAuthPass();
+      app = new UIServer(authEnabledConfigs());
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&namespace=my-namespace' +
+            `&key=${encodeURIComponent('hello/world.txt')}` +
+            '&keyEncoding=storage' +
+            `&uriKey=${encodeURIComponent('hello/world.txt/')}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, artifactContent);
+
+      expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
+        expect.any(String),
+        'minio://ml-pipeline/hello/world.txt/',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+        false,
+      );
+    });
+
     it.each([
       ['encoded literal alias', 'root/%73ecret'],
       ['encoded query delimiter', 'root/query%3Fkey'],

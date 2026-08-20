@@ -76,7 +76,10 @@ export function validateArtifactKeyPrefix(
   // can contain '/' and must not be interpreted as object-key segments by this prefix check.
   const artifactUriWithoutQuery = stripArtifactUriQuery(artifactUri);
   const objectKey = artifactUriWithoutQuery.replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^/]+\//, '');
-  if (applyArtifactPathPolicy(objectKey, ARTIFACT_PATH_POLICIES.ownership) === undefined) {
+  // Go SplitObjectURI deliberately trims one trailing slash before resolving the object key.
+  // Apply the same compatibility normalization without accepting internal or doubled separators.
+  const policyKey = objectKey.endsWith('/') ? objectKey.slice(0, -1) : objectKey;
+  if (applyArtifactPathPolicy(policyKey, ARTIFACT_PATH_POLICIES.ownership) === undefined) {
     return { valid: false, reason: 'key-not-normalized' };
   }
 

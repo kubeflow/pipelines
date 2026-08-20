@@ -136,12 +136,19 @@ describe('readArtifactFile', () => {
     expect(parseArtifactFileLocation(uri).path.key).toBe(key);
   });
 
+  it('rejects non-launcher encoded slashes locally, matching the server identity boundary', () => {
+    expect(() => parseArtifactFileLocation('https://example.com/a%2Fb/c')).toThrow(
+      'cannot contain empty, relative, query, or fragment path segments',
+    );
+  });
+
   it('accepts the trailing slash that Go SplitObjectURI trims for launcher artifacts', () => {
     expect(parseArtifactFileLocation('minio://mlpipeline/v2/artifacts/run-1/dir/').path).toEqual({
       bucket: 'mlpipeline',
-      key: 'v2/artifacts/run-1/dir/',
+      key: 'v2/artifacts/run-1/dir',
       keyEncoding: 'storage',
       source: StorageService.MINIO,
+      uriKey: 'v2/artifacts/run-1/dir/',
     });
   });
 

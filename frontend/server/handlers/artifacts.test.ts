@@ -287,6 +287,30 @@ describe('resolveArtifactCoordinates', () => {
       );
     });
 
+    it('preserves one trailing slash in identity while trimming it from storage', () => {
+      const coordinates = resolveArtifactCoordinates(
+        makeRequest('/artifacts/get', {
+          source: 'minio',
+          bucket: 'mlpipeline',
+          key: 'private-artifacts/team-a/run/output',
+          keyEncoding: 'storage',
+          uriKey: 'private-artifacts/team-a/run/output/',
+        }),
+      );
+
+      expect(coordinates).toEqual({
+        source: 'minio',
+        bucket: 'mlpipeline',
+        key: 'private-artifacts/team-a/run/output',
+        keyEncoding: 'storage',
+        uriKey: 'private-artifacts/team-a/run/output/',
+        artifactUriQuery: '',
+      });
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        'minio://mlpipeline/private-artifacts/team-a/run/output/',
+      );
+    });
+
     it('rejects an exact URI identity that resolves to a different storage key', () => {
       expect(
         resolveArtifactCoordinates(

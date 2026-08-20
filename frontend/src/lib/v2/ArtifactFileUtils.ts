@@ -26,22 +26,21 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
     // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
     // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
     const decodedKey = decodeURIComponent(key);
-    const segments = decodedKey.split('/');
-    if (decodedKey.endsWith('/')) {
-      segments.pop();
-    }
+    const storageKey =
+      enforceLauncherPathPolicy && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
+    const segments = storageKey.split('/');
     if (
-      /[?#]/.test(decodedKey) ||
+      /%2f/i.test(key) ||
+      /[?#]/.test(storageKey) ||
       (enforceLauncherPathPolicy &&
-        (/%2f/i.test(key) ||
-          (decodedKey !== '' &&
-            segments.some((segment) => segment === '' || segment === '.' || segment === '..'))))
+        storageKey !== '' &&
+        segments.some((segment) => segment === '' || segment === '.' || segment === '..'))
     ) {
       throw new Error(
         'Artifact URI keys cannot contain empty, relative, query, or fragment path segments.',
       );
     }
-    return decodedKey;
+    return storageKey;
   } catch (error) {
     throw new Error(`Artifact URI key has invalid encoding. Correct the artifact URI: ${error}`, {
       cause: error,

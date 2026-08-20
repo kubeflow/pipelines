@@ -61,17 +61,22 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
   };
 }
 
-function decodeExactArtifactUriKey(uriKey: string): string | undefined {
+function decodeExactArtifactUriKey(
+  uriKey: string,
+  trimLauncherTrailingSlash: boolean,
+): string | undefined {
   try {
     const decodedKey = decodeURIComponent(uriKey);
+    const storageKey =
+      trimLauncherTrailingSlash && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
     if (
       /%2f/i.test(uriKey) ||
-      applyArtifactPathPolicy(decodedKey, ARTIFACT_PATH_POLICIES.ownership) === undefined ||
-      /[?#]/.test(decodedKey)
+      applyArtifactPathPolicy(storageKey, ARTIFACT_PATH_POLICIES.ownership) === undefined ||
+      /[?#]/.test(storageKey)
     ) {
       return undefined;
     }
-    return decodedKey;
+    return storageKey;
   } catch {
     return undefined;
   }
@@ -93,7 +98,10 @@ export function resolveArtifactCoordinates(
     const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
     const artifactUriQuery = asString(request.query.artifactUriQuery);
     if (requestUriKey) {
-      const decodedUriKey = decodeExactArtifactUriKey(requestUriKey);
+      const decodedUriKey = decodeExactArtifactUriKey(
+        requestUriKey,
+        isLauncherArtifactSource(source),
+      );
       if (decodedUriKey === undefined || decodedUriKey !== requestKey) {
         return null;
       }
@@ -151,16 +159,20 @@ export function resolveArtifactCoordinates(
       return null;
     }
     const key = decodeURIComponent(uriKey);
+    const source = decodeURIComponent(downloadPathMatch[1]);
     const requestedIdentityKey =
       typeof request.query.uriKey === 'string' ? request.query.uriKey : undefined;
     if (requestedIdentityKey !== undefined) {
-      const decodedIdentityKey = decodeExactArtifactUriKey(requestedIdentityKey);
+      const decodedIdentityKey = decodeExactArtifactUriKey(
+        requestedIdentityKey,
+        isLauncherArtifactSource(source),
+      );
       if (decodedIdentityKey === undefined || decodedIdentityKey !== key) {
         return null;
       }
     }
     return {
-      source: decodeURIComponent(downloadPathMatch[1]),
+      source,
       bucket: decodeURIComponent(downloadPathMatch[2]),
       key,
       keyEncoding: 'storage',

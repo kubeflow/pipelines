@@ -51,6 +51,29 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: true, reason: 'prefix-match' });
   });
 
+  it('accepts one trailing slash but rejects doubled trailing separators', () => {
+    expect(
+      validateArtifactKeyPrefix('minio://bucket/private-artifacts/team-a/run/output/', 'team-a'),
+    ).toEqual({ valid: true, reason: 'prefix-match' });
+    expect(
+      validateArtifactKeyPrefix('minio://bucket/private-artifacts/team-a/run/output//', 'team-a'),
+    ).toEqual({ valid: false, reason: 'key-not-normalized' });
+  });
+
+  it('short-circuits ownership lookup for a matching prefix with one trailing slash', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace(
+        'http://api-server',
+        'minio://bucket/private-artifacts/team-a/run/output/',
+        'team-a',
+      ),
+    ).resolves.toEqual({ valid: true, reason: 'prefix-match' });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('does not interpret an artifact provider query as object-key path segments', () => {
     expect(
       validateArtifactKeyPrefix(
