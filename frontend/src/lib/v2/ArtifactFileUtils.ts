@@ -23,7 +23,8 @@ export interface ArtifactFileLocation {
 
 function canonicalizeArtifactUriKey(key: string): string {
   try {
-    return encodeURI(decodeURIComponent(key));
+    const decodedKey = decodeURIComponent(key);
+    return encodeURI(decodedKey) === key ? key : encodeURI(key);
   } catch {
     // A raw percent sign is object-key data, not a malformed URI escape.
     return encodeURI(key);

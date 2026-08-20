@@ -80,6 +80,8 @@ describe('readArtifactFile', () => {
   it.each([
     ['raw spaces and Unicode', 's3://reports/root dir/café.txt', 'root%20dir/caf%C3%A9.txt'],
     ['canonical escapes', 's3://reports/root%20dir/caf%C3%A9.txt', 'root%20dir/caf%C3%A9.txt'],
+    ['a noncanonical valid escape', 's3://reports/root%73ecret/file', 'root%2573ecret/file'],
+    ['lowercase escape spelling', 's3://reports/caf%c3%a9/file', 'caf%25c3%25a9/file'],
     ['literal percent escape text', 's3://reports/root%2520dir/file', 'root%2520dir/file'],
     ['a raw literal percent', 's3://reports/100%complete/file', '100%25complete/file'],
   ])('canonicalizes %s in native artifact URI paths', (_description, uri, expectedKey) => {
