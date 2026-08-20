@@ -15,6 +15,7 @@
 
 import os
 import tempfile
+from typing import Literal
 import unittest
 
 from absl.testing import parameterized
@@ -139,6 +140,30 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             expected,
             component_spec.input_definitions.parameters['input1'].default_value,
         )
+
+    def test_literal_parameter_populates_literals_field(self):
+
+        @dsl.component
+        def pick(choice: Literal['a', 'b', 'c'] = 'a') -> str:
+            return choice
+
+        component_spec = pick.pipeline_spec.components['comp-pick']
+        param_spec = component_spec.input_definitions.parameters['choice']
+        self.assertEqual(pipeline_spec_pb2.ParameterType.STRING,
+                         param_spec.parameter_type)
+        self.assertEqual(
+            [struct_pb2.Value(string_value=v) for v in ('a', 'b', 'c')],
+            list(param_spec.literals))
+
+    def test_non_literal_parameter_has_empty_literals_field(self):
+
+        @dsl.component
+        def comp(name: str) -> str:
+            return name
+
+        component_spec = comp.pipeline_spec.components['comp-comp']
+        param_spec = component_spec.input_definitions.parameters['name']
+        self.assertEqual([], list(param_spec.literals))
 
     def test_merge_deployment_spec_and_component_spec(self):
         main_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
