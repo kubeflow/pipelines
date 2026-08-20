@@ -70,9 +70,6 @@ function WrappedArtifactNode({ id, label, state }: WrappedArtifactNodeProps) {
 const meta: Meta<typeof WrappedArtifactNode> = {
   title: 'v2/ArtifactNode',
   component: WrappedArtifactNode,
-  argTypes: {
-    backgroundColor: { control: 'color' },
-  },
 };
 
 export default meta;
