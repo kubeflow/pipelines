@@ -18,7 +18,7 @@ import {
   buildArtifactCoordinateUri,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
-import { getArtifactsHandler } from './artifacts.js';
+import { getArtifactsAuthMiddleware, getArtifactsHandler } from './artifacts.js';
 
 vi.mock('../k8s-helper.js', () => ({
   getConfigMap: vi.fn(),
@@ -127,6 +127,79 @@ describe('resolveArtifactCoordinates', () => {
   });
 
   describe('query-based /artifacts/get route', () => {
+    it('accepts request.query keys that are already decoded (spaces)', () => {
+      const req = {
+        path: '/artifacts/get',
+        query: {
+          source: 's3',
+          bucket: 'reports',
+          key: 'root dir/artifact.txt',
+          artifactUriQuery: '',
+        },
+        url: '/artifacts/get?source=s3&bucket=reports&key=root%20dir%2Fartifact.txt',
+      } as unknown as Request;
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'root%20dir/artifact.txt',
+        keyEncoding: 'uri',
+        artifactUriQuery: '',
+      });
+    });
+
+    it('accepts decoded Unicode keys from legacy preview clients', () => {
+      const req = {
+        path: '/artifacts/get',
+        query: {
+          source: 's3',
+          bucket: 'reports',
+          key: 'café/model.txt',
+          artifactUriQuery: '',
+        },
+        url: '/artifacts/get?source=s3&bucket=reports&key=caf%C3%A9%2Fmodel.txt',
+      } as unknown as Request;
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'caf%C3%A9/model.txt',
+        keyEncoding: 'uri',
+        artifactUriQuery: '',
+      });
+    });
+
+    it('accepts decoded percent characters from legacy preview clients', () => {
+      const req = {
+        path: '/artifacts/get',
+        query: {
+          source: 's3',
+          bucket: 'reports',
+          key: '100%complete/model.txt',
+          artifactUriQuery: '',
+        },
+        url: '/artifacts/get?source=s3&bucket=reports&key=100%2525complete%2Fmodel.txt',
+      } as unknown as Request;
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: '100%25complete/model.txt',
+        keyEncoding: 'uri',
+        artifactUriQuery: '',
+      });
+    });
+
+    it('rejects a noncanonical percent escape instead of treating it as an alias', () => {
+      const req = {
+        path: '/artifacts/get',
+        query: {
+          source: 's3',
+          bucket: 'reports',
+          key: '%73ecret/model.txt',
+          artifactUriQuery: '',
+        },
+      } as unknown as Request;
+      expect(resolveArtifactCoordinates(req)).toBeNull();
+    });
+
     it('uses query coordinates when path is /artifacts/get', () => {
       const req = makeRequest('/artifacts/get', {
         source: 'minio',
@@ -334,4 +407,47 @@ describe('getArtifactsHandler authorization handoff', () => {
     expect(send).toHaveBeenCalledWith('Artifact request coordinates changed after authorization');
     consoleSpy.mockRestore();
   });
+
+  it.each([
+    ['legacy-decoded-space', 'root dir/artifact.txt', 's3://reports/root%20dir/artifact.txt'],
+    ['legacy-decoded-unicode', 'café/model.txt', 's3://reports/caf%C3%A9/model.txt'],
+    ['legacy-decoded-percent', '100%complete/model.txt', 's3://reports/100%25complete/model.txt'],
+  ])(
+    'authorizes legacy %s /artifacts/get keys with decoded request keys',
+    async (_, key, expectedArtifactUri) => {
+      const send = vi.fn();
+      const status = vi.fn().mockReturnValue({ send });
+      const middleware = getArtifactsAuthMiddleware(
+        () => Promise.resolve(undefined),
+        true,
+        'x-kubeflow-user',
+        undefined,
+        false,
+      );
+      const next = vi.fn();
+      const response = { locals: {} } as { locals: { authorizedArtifactUri?: string } };
+
+      await middleware(
+        {
+          path: '/artifacts/get',
+          query: {
+            source: 's3',
+            bucket: 'reports',
+            key,
+            namespace: 'kubeflow',
+          },
+          url: `/artifacts/get?source=s3&bucket=reports&key=${encodeURIComponent(key)}&namespace=kubeflow`,
+          headers: {
+            'x-kubeflow-user': 'user-id',
+          },
+        } as any,
+        response as any,
+        next as any,
+      );
+
+      expect(status).not.toHaveBeenCalled();
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(response.locals.authorizedArtifactUri).toBe(expectedArtifactUri);
+    },
+  );
 });

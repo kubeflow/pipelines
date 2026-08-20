@@ -28,7 +28,7 @@ describe('isCanonicalArtifactUriKey', () => {
   it.each([
     '%73ecret',
     'path%2Fsecret',
-    'caf%c3%a9',
+    'caf%c3%a9/model',
     'raw space',
     'raw-café',
     'query%3Fkey',

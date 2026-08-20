@@ -211,8 +211,8 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    const coords = resolveArtifactCoordinates(request);
-    if (coords === null) {
+    const coordinates = resolveArtifactCoordinates(request);
+    if (coordinates === null) {
       console.warn(
         `[SECURITY] Malformed or noncanonical percent-encoding in artifact path. ` +
           `User: ${userId}, Path: ${request.path}`,
@@ -221,7 +221,12 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (!coords || !isArtifactSource(coords.source) || !coords.bucket || !coords.key) {
+    if (
+      !coordinates ||
+      !isArtifactSource(coordinates.source) ||
+      !coordinates.bucket ||
+      !coordinates.key
+    ) {
       console.warn(
         `[SECURITY] Rejected artifact request with coordinates that cannot be authorized. ` +
           `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
@@ -234,7 +239,7 @@ export function getArtifactsAuthMiddleware(
       return;
     }
 
-    if (coords.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
+    if (coordinates.source === 'volume' && !allowNamespaceIsolatedCustomRoots) {
       console.warn(
         `[SECURITY] Rejected direct volume artifact access through the shared UI server. ` +
           `User: ${userId}, Namespace: ${namespace}, Path: ${request.path}`,
@@ -246,8 +251,8 @@ export function getArtifactsAuthMiddleware(
     }
 
     if (apiServerAddress) {
-      if (requiresArtifactOwnershipValidation(coords.source)) {
-        const artifactUri = buildArtifactCoordinateUri(coords);
+      if (requiresArtifactOwnershipValidation(coordinates.source)) {
+        const artifactUri = buildArtifactCoordinateUri(coordinates);
         const validationHeaders = { [kubeflowUserIdHeader]: userId };
         const validation = await validateArtifactNamespace(
           apiServerAddress,
@@ -272,7 +277,7 @@ export function getArtifactsAuthMiddleware(
       }
     }
 
-    response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coords);
+    response.locals.authorizedArtifactUri = buildArtifactCoordinateUri(coordinates);
 
     next();
   };
@@ -312,19 +317,28 @@ export function getArtifactsHandler({
     const { source, bucket, key, keyEncoding, artifactUriQuery, peek, providerInfo, namespace } =
       artifactRequest;
     const routeCoordinates =
-      useParameter || isLauncherArtifactSource(source)
+      useParameter ||
+      req.path.endsWith('/artifacts/get') ||
+      req.path.endsWith('/pipeline/artifacts/get') ||
+      isLauncherArtifactSource(source)
         ? resolveArtifactCoordinates(req)
         : undefined;
     if (routeCoordinates === null) {
       res.status(400).send(INVALID_ARTIFACT_PATH_ENCODING_MESSAGE);
       return;
     }
-    const coordinates: ArtifactCoordinates<ArtifactSource> = {
+    const trustedRouteCoordinates: ArtifactCoordinates<ArtifactSource> | undefined =
+      routeCoordinates &&
+      isArtifactSource(routeCoordinates.source) &&
+      routeCoordinates.bucket &&
+      routeCoordinates.key
+        ? { ...routeCoordinates, source: routeCoordinates.source }
+        : undefined;
+    const coordinates: ArtifactCoordinates<ArtifactSource> = trustedRouteCoordinates ?? {
       source,
       bucket,
       key,
       keyEncoding,
-      uriKey: routeCoordinates?.uriKey,
       artifactUriQuery,
     };
     const requestedArtifactUri = buildArtifactCoordinateUri(coordinates);

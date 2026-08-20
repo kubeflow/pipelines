@@ -13,7 +13,11 @@
 // limitations under the License.
 
 import type { Request } from 'express';
-import { buildArtifactUri } from './artifact-sources.js';
+import {
+  buildArtifactUri,
+  isArtifactSource,
+  isLauncherArtifactSource,
+} from './artifact-sources.js';
 
 export interface ArtifactCoordinates<TSource extends string = string> {
   source: TSource;
@@ -26,7 +30,11 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   artifactUriQuery?: string;
 }
 
-/** Rejects alternate URI spellings that decode to an object key with a different identity. */
+/**
+ * Rejects alternate URI spellings that decode to an object key with a different identity.
+ *
+ * For authorization, we require exactly one URI spelling for each decoded storage object.
+ */
 export function isCanonicalArtifactUriKey(key: string): boolean {
   try {
     const decodedKey = decodeURIComponent(key);
@@ -55,24 +63,54 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
 export function resolveArtifactCoordinates(
   request: Pick<Request, 'path' | 'query'>,
 ): ArtifactCoordinates | null | undefined {
+  const toCanonicalUriEncodedKey = (value: string): string | null => {
+    try {
+      const candidate = encodeURI(value);
+      return isCanonicalArtifactUriKey(candidate) ? candidate : null;
+    } catch {
+      return null;
+    }
+  };
+
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
   if (isExactGetEndpoint) {
     const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
-    // Express has removed query-transport escaping, but canonical artifact-URI path escapes remain
-    // (for example `%2520` on the wire becomes `%20` here) until storage normalization.
-    const key = asString(request.query.key);
-    if (!isCanonicalArtifactUriKey(key)) {
+    const source = asString(request.query.source);
+    const bucket = asString(request.query.bucket);
+    const requestKey = asString(request.query.key);
+    const artifactUriQuery = asString(request.query.artifactUriQuery);
+    if (isArtifactSource(source) && !isLauncherArtifactSource(source)) {
+      return {
+        source,
+        bucket,
+        key: requestKey,
+        keyEncoding: 'storage',
+        artifactUriQuery,
+      };
+    }
+    // Express has already removed query-transport escaping. Native callers retain URI-path
+    // escaping in the value, while legacy callers pass decoded StoragePath keys. Preserve a
+    // canonical native key; otherwise encode a decoded legacy key exactly once. A valid percent
+    // escape with a noncanonical meaning is ambiguous and must fail closed.
+    const containsNoncanonicalPercentEscape = /%[0-9A-Fa-f]{2}/.test(requestKey);
+    const key = isCanonicalArtifactUriKey(requestKey)
+      ? requestKey
+      : containsNoncanonicalPercentEscape
+        ? null
+        : toCanonicalUriEncodedKey(requestKey);
+
+    if (key === null) {
       return null;
     }
     return {
-      source: asString(request.query.source),
-      bucket: asString(request.query.bucket),
+      source,
+      bucket,
       key,
       keyEncoding: 'uri',
-      artifactUriQuery: asString(request.query.artifactUriQuery),
+      artifactUriQuery,
     };
   }
 
