@@ -737,7 +737,7 @@ describe('RunDetailsRouter', () => {
     // The mounted page observes the atomic entry, so neither half can be collected independently
     // after the original GC deadline.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+      await vi.advanceTimersByTimeAsync(RUN_RETRY_STATE_GC_TIME * 3);
     });
     expect(queryClient.getQueryData(retryTaskStateKey)).toEqual({
       version: initialVersion,

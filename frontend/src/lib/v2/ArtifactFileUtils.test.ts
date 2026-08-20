@@ -76,4 +76,40 @@ describe('readArtifactFile', () => {
       'endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph',
     );
   });
+
+  it.each([
+    ['raw spaces and Unicode', 's3://reports/root dir/café.txt', 'root%20dir/caf%C3%A9.txt'],
+    ['canonical escapes', 's3://reports/root%20dir/caf%C3%A9.txt', 'root%20dir/caf%C3%A9.txt'],
+    ['literal percent escape text', 's3://reports/root%2520dir/file', 'root%2520dir/file'],
+    ['a raw literal percent', 's3://reports/100%complete/file', '100%25complete/file'],
+  ])('canonicalizes %s in native artifact URI paths', (_description, uri, expectedKey) => {
+    const location = parseArtifactFileLocation(uri);
+
+    expect(location.path).toEqual({
+      bucket: 'reports',
+      key: expectedKey,
+      keyEncoding: 'uri',
+      source: StorageService.S3,
+    });
+  });
+
+  it('builds valid preview and download URLs from a raw native artifact URI', () => {
+    const location = parseArtifactFileLocation('s3://reports/root dir/café.txt');
+
+    expect(Apis.buildReadFileUrl({ path: location.path })).toBe(
+      'artifacts/get?source=s3&bucket=reports&key=root%2520dir%2Fcaf%25C3%25A9.txt&keyEncoding=uri',
+    );
+    expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toBe(
+      'artifacts/s3/reports/root%20dir/caf%C3%A9.txt',
+    );
+  });
+
+  it('keeps non-launcher paths as decoded storage keys', () => {
+    expect(parseArtifactFileLocation('https://files.example/raw path/café.txt').path).toEqual({
+      bucket: 'files.example',
+      key: 'raw path/café.txt',
+      keyEncoding: 'storage',
+      source: StorageService.HTTPS,
+    });
+  });
 });
