@@ -446,6 +446,27 @@ describe('resolveArtifactCoordinates', () => {
       ).toBeNull();
     });
 
+    it('rejects markerless non-launcher keys containing decoded query or fragment delimiters', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'https',
+            bucket: 'files.example',
+            key: 'reports/A?B.csv',
+          }),
+        ),
+      ).toBeNull();
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'volume',
+            bucket: 'reports',
+            key: 'A#B.csv',
+          }),
+        ),
+      ).toBeNull();
+    });
+
     it('rejects escaped traversal segments in exact preview identity', () => {
       expect(
         resolveArtifactCoordinates(

@@ -130,6 +130,9 @@ export function resolveArtifactCoordinates(
         artifactUriQuery,
       };
     }
+    if (/[?#]/.test(requestKey)) {
+      return null;
+    }
     if (isArtifactSource(source) && !isLauncherArtifactSource(source)) {
       return {
         source,
@@ -151,9 +154,6 @@ export function resolveArtifactCoordinates(
 
     // Legacy preview callers pass decoded object-store keys. Keep that storage spelling intact,
     // while encoding it once for the distinct URI identity used by ownership validation.
-    if (/[?#]/.test(requestKey)) {
-      return null;
-    }
     const uriKey = encodeURI(requestKey);
     return {
       source,

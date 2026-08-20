@@ -116,6 +116,19 @@ describe('readArtifactFile', () => {
     );
   });
 
+  it.each([
+    ['raw HTTP query syntax', 'https://files.example/reports/A?B.csv', 'Percent-encode ? as %3F'],
+    [
+      'raw HTTP fragment syntax',
+      'https://files.example/reports/A#B.csv',
+      'Percent-encode # as %23',
+    ],
+    ['raw volume query syntax', 'volume://reports/A?B.csv', 'Percent-encode ? as %3F'],
+    ['raw volume fragment syntax', 'volume://reports/A#B.csv', 'Percent-encode # as %23'],
+  ])('rejects %s instead of changing path identity', (_description, uri, message) => {
+    expect(() => parseArtifactFileLocation(uri)).toThrow(message);
+  });
+
   it('rejects an encoded path delimiter that would change ownership segmentation', () => {
     expect(() =>
       parseArtifactFileLocation('s3://reports/private-artifacts%2Fteam-a/model'),

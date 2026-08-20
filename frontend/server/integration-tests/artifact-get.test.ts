@@ -819,12 +819,33 @@ s3:
 
       const request = requests(app.app);
       await request
-        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken%3Dsecret%23frag')
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken%3Dsecret%23frag&uriKey=hello%253Ftoken%3Dsecret%2523frag',
+        )
         .expect(200, artifactContent);
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello%3Ftoken=secret%23frag', {
         headers: {},
         redirect: 'manual',
       });
+    });
+
+    it('rejects markerless HTTP keys containing decoded query or fragment delimiters', async () => {
+      mockedFetch.mockClear();
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'foo.bar/' }));
+
+      await requests(app.app)
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken')
+        .expect(
+          400,
+          'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.',
+        );
+      await requests(app.app)
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%23fragment')
+        .expect(
+          400,
+          'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.',
+        );
+      expect(mockedFetch).not.toHaveBeenCalled();
     });
 
     it('fetches the exact escaped HTTP artifact identity that was authorized', async () => {

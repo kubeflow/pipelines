@@ -50,6 +50,11 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
 }
 
 export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
+  if (uri.includes('#')) {
+    throw new Error(
+      'Artifact URI fragments are not supported. Percent-encode # as %23 when it is part of the artifact path.',
+    );
+  }
   const queryStart = uri.indexOf('?');
   const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
   const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
@@ -58,6 +63,11 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
   const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(parsedPath.source);
+  if (query && !isLauncherArtifact) {
+    throw new Error(
+      'HTTP and volume artifact URI query strings are not supported. Percent-encode ? as %3F when it is part of the artifact path.',
+    );
+  }
   const key = decodeArtifactUriKey(uriKey, isLauncherArtifact);
   const canonicalUriKey = encodeURI(key);
   const preserveExactUriKey = isLauncherArtifact
