@@ -42,6 +42,10 @@ func (visitor *TestVisitor) Importer(name string, component *pipelinespec.Compon
 	visitor.visited = append(visitor.visited, fmt.Sprintf("importer(name=%q)", name))
 	return nil
 }
+func (visitor *TestVisitor) TriggerPipeline(name string, component *pipelinespec.ComponentSpec, trigger *pipelinespec.PipelineDeploymentConfig_TriggerPipelineSpec) error {
+	visitor.visited = append(visitor.visited, fmt.Sprintf("trigger_pipeline(name=%q)", name))
+	return nil
+}
 func (visitor *TestVisitor) Resolver(name string, component *pipelinespec.ComponentSpec, resolver *pipelinespec.PipelineDeploymentConfig_ResolverSpec) error {
 	visitor.visited = append(visitor.visited, fmt.Sprintf("resolver(name=%q)", name))
 	return nil

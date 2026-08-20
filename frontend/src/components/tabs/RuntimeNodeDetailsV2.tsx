@@ -17,6 +17,7 @@
 import { Button } from '@mui/material';
 import * as React from 'react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 // import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import {
   KubernetesExecutorConfig,
@@ -24,6 +25,7 @@ import {
 } from 'src/generated/platform_spec/kubernetes_platform';
 import { useQuery } from '@tanstack/react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import { RoutePage, RouteParams } from 'src/components/Router';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
@@ -63,6 +65,7 @@ export const LOGS_DETAILS = 'logs_details';
 export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
+export const CHILD_RUN_ID_PROPERTY = 'child_run_id';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -178,9 +181,20 @@ function TaskNodeDetail({
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   const [selectedTab, setSelectedTab] = useState(0);
+  const childRunId = execution?.getCustomPropertiesMap()?.get(CHILD_RUN_ID_PROPERTY)?.getStringValue();
 
   return (
     <div className={commonCss.page}>
+      {childRunId && (
+        <div className={padding(20, 'blr')}>
+          <Link
+            to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, childRunId)}
+            style={{ textDecoration: 'none' }}
+          >
+            <Button variant='contained'>Open Run</Button>
+          </Link>
+        </div>
+      )}
       <MD2Tabs
         tabs={['Input/Output', 'Task Details', 'Logs']}
         selectedTab={selectedTab}
@@ -261,6 +275,14 @@ function getTaskDetailsFields(
         finishedAt = new Date(lastUpdatedTime).toString();
       }
       details.push(['Finished At', finishedAt]);
+
+      const childRunId = execution
+        .getCustomPropertiesMap()
+        .get(CHILD_RUN_ID_PROPERTY)
+        ?.getStringValue();
+      if (childRunId) {
+        details.push(['Child Run ID', childRunId]);
+      }
     }
   }
 

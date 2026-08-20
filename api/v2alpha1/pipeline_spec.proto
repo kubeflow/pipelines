@@ -928,6 +928,21 @@ message PipelineDeploymentConfig {
     google.protobuf.Struct custom_job = 1;
   }
 
+  // TriggerPipelineSpec starts an independent Kubeflow Pipelines run of a
+  // registered pipeline (Airflow TriggerDagRun-like). Child pipeline IR is not
+  // inlined into the parent Workflow.
+  message TriggerPipelineSpec {
+    // Display / lookup name of the registered pipeline to run.
+    string pipeline_name = 1;
+    // Optional PipelineVersion ID. Empty means use the default / latest version.
+    string pipeline_version_id = 2;
+    // When true, the parent task waits until the child run reaches a terminal
+    // state and fails if the child is not SUCCEEDED.
+    bool wait_for_completion = 3;
+    // Polling interval in seconds when wait_for_completion is true.
+    int32 poke_interval_seconds = 4;
+  }
+
   // The specification of the executor.
   message ExecutorSpec {
     oneof spec {
@@ -939,6 +954,8 @@ message PipelineDeploymentConfig {
       ResolverSpec resolver = 3;
       // Starts a Google Cloud AI Platform CustomJob.
       AIPlatformCustomJobSpec custom_job = 4 [deprecated = true];
+      // Trigger an independent pipeline run.
+      TriggerPipelineSpec trigger_pipeline = 5;
     }
   }
   // Map from executor label to executor spec.
