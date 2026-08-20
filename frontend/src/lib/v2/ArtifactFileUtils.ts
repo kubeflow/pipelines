@@ -21,18 +21,21 @@ export interface ArtifactFileLocation {
   artifactUriQuery?: string;
 }
 
-function decodeArtifactUriKey(key: string): string {
+function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): string {
   try {
     // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
     // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
     const decodedKey = decodeURIComponent(key);
+    const segments = decodedKey.split('/');
+    if (decodedKey.endsWith('/')) {
+      segments.pop();
+    }
     if (
-      /%2f/i.test(key) ||
       /[?#]/.test(decodedKey) ||
-      (decodedKey !== '' &&
-        decodedKey
-          .split('/')
-          .some((segment) => segment === '' || segment === '.' || segment === '..'))
+      (enforceLauncherPathPolicy &&
+        (/%2f/i.test(key) ||
+          (decodedKey !== '' &&
+            segments.some((segment) => segment === '' || segment === '.' || segment === '..'))))
     ) {
       throw new Error(
         'Artifact URI keys cannot contain empty, relative, query, or fragment path segments.',
@@ -54,14 +57,14 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const schemeEnd = uriWithoutQuery.indexOf('://');
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
-  const key = decodeArtifactUriKey(uriKey);
+  const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(parsedPath.source);
+  const key = decodeArtifactUriKey(uriKey, isLauncherArtifact);
   const path = {
     ...parsedPath,
     key,
     keyEncoding: 'storage' as const,
     ...(uriKey === encodeURI(key) ? {} : { uriKey }),
   };
-  const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(path.source);
   if (!query || !isLauncherArtifact) {
     return { path };
   }

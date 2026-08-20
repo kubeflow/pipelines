@@ -128,6 +128,23 @@ describe('readArtifactFile', () => {
     ).toThrow('cannot contain empty, relative, query, or fragment path segments');
   });
 
+  it.each([
+    ['HTTP dot segment', 'http://tensorboard.example.com/logs/./x', 'logs/./x'],
+    ['HTTPS doubled slash', 'https://example.com/reports/a//b', 'reports/a//b'],
+    ['volume dot segment', 'volume://my-vol/data/./out', 'data/./out'],
+  ])('leaves %s compatibility decisions to its source handler', (_description, uri, key) => {
+    expect(parseArtifactFileLocation(uri).path.key).toBe(key);
+  });
+
+  it('accepts the trailing slash that Go SplitObjectURI trims for launcher artifacts', () => {
+    expect(parseArtifactFileLocation('minio://mlpipeline/v2/artifacts/run-1/dir/').path).toEqual({
+      bucket: 'mlpipeline',
+      key: 'v2/artifacts/run-1/dir/',
+      keyEncoding: 'storage',
+      source: StorageService.MINIO,
+    });
+  });
+
   it('returns URI parsing failures as rejected promises', async () => {
     const result = readArtifactFile({ uri: 's3://reports/100%complete/file' });
 
