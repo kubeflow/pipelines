@@ -21,6 +21,7 @@ import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2
 import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { PlotType } from 'src/components/viewers/Viewer';
+import { queryKeys } from 'src/hooks/queryKeys';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
@@ -67,13 +68,14 @@ describe('ArtifactDetails', () => {
 
   function renderPage(initialPath = `/artifacts/${TEST_ARTIFACT_ID}`) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    return render(
+    const view = render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[initialPath]}>
           <EnhancedArtifactDetails {...generateProps()} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
+    return { ...view, queryClient };
   }
 
   beforeEach(() => {
@@ -291,6 +293,70 @@ describe('ArtifactDetails', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('preserves a confirmed visualization through a partial lookup failure', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
+    });
+    let outputChecks = 0;
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) => {
+        if (type !== V2beta1IOType.OUTPUT) {
+          return { artifact_tasks: [] };
+        }
+        outputChecks += 1;
+        if (outputChecks === 2) {
+          throw new Error('temporary output relationship failure');
+        }
+        return {
+          artifact_tasks:
+            outputChecks === 1
+              ? [
+                  {
+                    artifact_id: TEST_ARTIFACT_ID,
+                    key: 'mlpipeline_ui_metadata',
+                    type: V2beta1IOType.OUTPUT,
+                  },
+                ]
+              : [],
+        };
+      },
+    );
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['confirmed']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+
+    const { queryClient } = renderPage();
+    expect(await screen.findByText('confirmed')).toBeVisible();
+
+    await act(async () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.artifactVisualizationKey(TEST_ARTIFACT_ID),
+      }),
+    );
+
+    expect(screen.getByText('confirmed')).toBeVisible();
+    expect(
+      await screen.findByText('Some artifact relationships could not be checked.', {
+        exact: false,
+      }),
+    ).toBeVisible();
+
+    await act(async () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.artifactVisualizationKey(TEST_ARTIFACT_ID),
+      }),
+    );
+
+    await waitFor(() => expect(screen.queryByText('confirmed')).toBeNull());
+    expect(
+      screen.queryByText('Some artifact relationships could not be checked.', { exact: false }),
+    ).toBeNull();
   });
 
   it('does not treat a consumed mlpipeline-ui-metadata key as viewer metadata', async () => {

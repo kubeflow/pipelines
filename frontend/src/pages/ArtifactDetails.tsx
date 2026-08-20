@@ -191,9 +191,18 @@ function ArtifactOverview({
   const shouldReconcileMissingKey =
     artifactCreatedAt !== undefined &&
     mountedAt - artifactCreatedAt <= LEGACY_KEY_RECONCILIATION_WINDOW_MS;
+  const queryClient = useQueryClient();
+  const visualizationQueryKey = queryKeys.artifactVisualizationKey(artifact.artifact_id || '');
   const { data: legacyKeyResult } = useQuery<LegacyUiMetadataKeyResult, Error>({
-    queryKey: queryKeys.artifactVisualizationKey(artifact.artifact_id || ''),
-    queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
+    queryKey: visualizationQueryKey,
+    queryFn: async () => {
+      const result = await findLegacyUiMetadataArtifactKey(artifact.artifact_id!);
+      const previousResult =
+        queryClient.getQueryData<LegacyUiMetadataKeyResult>(visualizationQueryKey);
+      return !result.key && result.errors.length && previousResult?.key
+        ? { ...result, key: previousResult.key }
+        : result;
+    },
     enabled: shouldLookUpLegacyKey,
     retry: false,
     staleTime: (query) =>
