@@ -14,20 +14,30 @@
 
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
-import WorkflowParser from 'src/lib/WorkflowParser';
+import WorkflowParser, { StorageService } from 'src/lib/WorkflowParser';
+
+const LAUNCHER_ARTIFACT_SOURCES = new Set<StorageService>([
+  StorageService.GCS,
+  StorageService.MINIO,
+  StorageService.S3,
+]);
+
+function isLauncherArtifactSource(source: StorageService): boolean {
+  return LAUNCHER_ARTIFACT_SOURCES.has(source);
+}
 
 export interface ArtifactFileLocation {
   path: ReturnType<typeof WorkflowParser.parseStoragePath>;
   artifactUriQuery?: string;
 }
 
-function decodeArtifactUriKey(key: string, source: string): string {
+function decodeArtifactUriKey(key: string, source: StorageService): string {
   try {
     // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
     // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
     const decodedKey = decodeURIComponent(key);
-    const enforceLauncherPathPolicy = ['gcs', 'minio', 's3'].includes(source);
-    const normalizeVolumeDotSegments = source === 'volume';
+    const enforceLauncherPathPolicy = isLauncherArtifactSource(source);
+    const normalizeVolumeDotSegments = source === StorageService.VOLUME;
     const storageKey =
       enforceLauncherPathPolicy && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
     const segments = storageKey.split('/');
@@ -39,6 +49,9 @@ function decodeArtifactUriKey(key: string, source: string): string {
         segments.some(
           (segment) =>
             segment === '..' ||
+            // HTTP paths cannot carry dot segments through browser URL normalization without
+            // changing the request target. Volume is the only source with a safe normalization
+            // contract, enforced beneath its mounted root.
             (!normalizeVolumeDotSegments && segment === '.') ||
             (enforceLauncherPathPolicy && segment === ''),
         ))
@@ -75,7 +88,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const schemeEnd = uriWithoutQuery.indexOf('://');
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
-  const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(parsedPath.source);
+  const isLauncherArtifact = isLauncherArtifactSource(parsedPath.source);
   if (query && !isLauncherArtifact) {
     throw new Error(
       'HTTP and volume artifact URI query strings are not supported. Percent-encode ? as %3F when it is part of the artifact path.',

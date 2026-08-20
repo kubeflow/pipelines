@@ -521,6 +521,32 @@ describe('resolveArtifactCoordinates', () => {
         source: 'volume',
         uriKey: 'reports/./output.csv',
       });
+
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'volume',
+            bucket: 'artifact-volume',
+            key: 'reports/output.csv',
+            keyEncoding: 'storage',
+            uriKey: 'secret/./output.csv',
+          }),
+        ),
+      ).toBeNull();
+    });
+
+    it.each(['minio', 'https'])('rejects dot-bearing exact identity for source %s', (source) => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source,
+            bucket: 'artifact-bucket',
+            key: 'reports/output.csv',
+            keyEncoding: 'storage',
+            uriKey: 'reports/./output.csv',
+          }),
+        ),
+      ).toBeNull();
     });
 
     it('rejects a noncanonical percent escape instead of treating it as an alias', () => {

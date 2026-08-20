@@ -207,16 +207,19 @@ describe('readArtifactFile', () => {
     expect(parseArtifactFileLocation('https://example.com/a//b').path.key).toBe('a//b');
   });
 
-  it.each(['volume://my-vol/data/./out', 'volume://my-vol/data/%2e/out'])(
+  it.each([
+    ['volume://my-vol/data/./out', 'data/./out'],
+    ['volume://my-vol/data/%2e/out', 'data/%2e/out'],
+  ])(
     'normalizes a supported volume dot segment while preserving exact identity: %s',
-    (uri) => {
+    (uri, expectedUriKey) => {
       const location = parseArtifactFileLocation(uri);
 
       expect(location.path).toMatchObject({
         bucket: 'my-vol',
         key: 'data/out',
         source: StorageService.VOLUME,
-        uriKey: uri.slice(uri.indexOf('/', uri.indexOf('://') + 3) + 1),
+        uriKey: expectedUriKey,
       });
       expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toContain(
         'artifacts/volume/my-vol/data/out?uriKey=',
