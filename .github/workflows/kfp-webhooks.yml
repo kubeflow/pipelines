@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/publish-ci-result/**'
       - '.github/resources/**'
       - '.github/workflows/kfp-webhooks.yml'
       - '.github/workflows/image-builds.yml'
@@ -58,9 +59,24 @@ jobs:
       - name: Run Webhook Integration Tests
         id: tests
         if: ${{ steps.deploy.outcome == 'success' }}
+        # pipefail: without it the step status comes from tee and a failed
+        # test run is recorded as a pass.
+        shell: bash
         run: |
-          make -C backend/test/integration test-webhook
+          GOFLAGS=-json make -C backend/test/integration test-webhook \
+            | tee "$RUNNER_TEMP/webhook-go-test.json"
         continue-on-error: true
+
+      - name: Publish normalized CI result
+        if: always() && !cancelled()
+        uses: ./.github/actions/publish-ci-result
+        with:
+          test_outcome: ${{ steps.tests.outcome }}
+          setup_outcome: ${{ steps.deploy.outcome }}
+          report_name: KFP Webhooks - K8s ${{ matrix.k8s_version }}
+          go_json: ${{ runner.temp }}/webhook-go-test.json
+          log_file: /tmp/kfp-ci-setup-failure.log
+          pipeline_store: kubernetes
 
       - name: Collect failed logs
         if: ${{ steps.create-kfp-cluster.outcome != 'success' || steps.deploy.outcome != 'success' || steps.tests.outcome != 'success' }}

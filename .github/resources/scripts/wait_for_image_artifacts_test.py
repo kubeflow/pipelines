@@ -52,7 +52,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         missing_artifact: str = 'metadata-envoy',
         publication_grace_attempts: Optional[int] = None,
         producer_state_unavailable_extensions: Optional[int] = None,
-    ) -> tuple[subprocess.CompletedProcess[str], int]:
+    ) -> tuple[subprocess.CompletedProcess[str], int, str]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             fake_bin = root / 'bin'
@@ -91,6 +91,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
                 'ARTIFACT_NAMES': ' '.join(ARTIFACTS),
+                'CI_SETUP_FAILURE_LOG': str(root / 'setup-failure.log'),
                 'GH_COUNTER': str(counter),
                 'GITHUB_REPOSITORY': 'kubeflow/pipelines',
                 'GITHUB_RUN_ID': '123',
@@ -117,18 +118,24 @@ class WaitForImageArtifactsTest(unittest.TestCase):
                 check=False,
                 env=environment,
             )
-            return result, int(counter.read_text(encoding='utf-8'))
+            failure_log = root / 'setup-failure.log'
+            return (
+                result,
+                int(counter.read_text(encoding='utf-8')),
+                failure_log.read_text(encoding='utf-8'),
+            )
 
     def test_succeeds_when_all_artifacts_are_available(self):
-        result, attempts = self._run(ready_after=1)
+        result, attempts, failure_log = self._run(ready_after=1)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('All 13 branch image artifacts are available',
                       result.stdout)
         self.assertEqual(attempts, 1)
+        self.assertEqual(failure_log, '')
 
     def test_rejects_invalid_publication_grace(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=1,
             publication_grace_attempts=0,
         )
@@ -137,34 +144,38 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn('PUBLICATION_GRACE_ATTEMPTS must be a positive integer',
                       result.stderr)
         self.assertEqual(attempts, 0)
+        self.assertEqual(failure_log, '')
 
     def test_retries_until_artifacts_are_available(self):
-        result, attempts = self._run(ready_after=2)
+        result, attempts, failure_log = self._run(ready_after=2)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Waiting for branch image artifacts', result.stdout)
         self.assertEqual(attempts, 2)
+        self.assertEqual(failure_log, '')
 
     @mock.patch.dict(os.environ, {'WAIT_ATTEMPTS': '1'})
     def test_default_wait_exceeds_previous_ten_minute_budget(self):
-        result, attempts = self._run(ready_after=21, attempts=None)
+        result, attempts, failure_log = self._run(ready_after=21, attempts=None)
 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Waiting for branch image artifacts (20/40)',
                       result.stdout)
         self.assertEqual(attempts, 21)
+        self.assertEqual(failure_log, '')
 
     def test_fails_with_missing_artifact_names(self):
-        result, attempts = self._run(ready_after=99, attempts=2)
+        result, attempts, failure_log = self._run(ready_after=99, attempts=2)
 
         self.assertEqual(result.returncode, 1)
         self.assertIn('Missing branch image artifacts after producer completion grace',
                       result.stderr)
         self.assertIn('metadata-envoy', result.stderr)
         self.assertEqual(attempts, 5)
+        self.assertIn('Missing branch image artifacts after producer completion grace', failure_log)
 
     def test_extends_wait_while_missing_producer_is_active(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=3,
             attempts=2,
             producer_jobs=((
@@ -180,9 +191,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             'Extending image artifact wait; active producers: metadata-envoy',
             result.stdout)
         self.assertEqual(attempts, 3)
+        self.assertEqual(failure_log, '')
 
     def test_does_not_extend_for_an_unrelated_active_producer(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=99,
             attempts=2,
             producer_jobs=((
@@ -195,9 +207,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertNotIn('Extending image artifact wait', result.stdout)
         self.assertEqual(attempts, 5)
+        self.assertIn('Missing branch image artifacts after producer completion grace', failure_log)
 
     def test_fails_immediately_when_producer_completed_unsuccessfully(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=99,
             attempts=2,
             producer_jobs=((
@@ -211,9 +224,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn('metadata-envoy:failure', result.stderr)
         self.assertEqual(attempts, 2)
+        self.assertIn('metadata-envoy:failure', failure_log)
 
     def test_allows_publication_grace_after_successful_producer(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=4,
             attempts=2,
             producer_jobs=((
@@ -227,9 +241,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('Allowing 3 publication grace attempts', result.stdout)
         self.assertEqual(attempts, 4)
+        self.assertEqual(failure_log, '')
 
     def test_matches_runtime_base_image_producer(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=3,
             attempts=2,
             missing_artifact='runtime-base-images',
@@ -243,9 +258,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('active producers: runtime-base-images', result.stdout)
         self.assertEqual(attempts, 3)
+        self.assertEqual(failure_log, '')
 
     def test_extends_conservatively_when_producer_state_is_unavailable(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=2,
             attempts=1,
             jobs_api_fails=True,
@@ -256,9 +272,10 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             'Extending image artifact wait because producer state is unavailable',
             result.stdout)
         self.assertEqual(attempts, 2)
+        self.assertEqual(failure_log, '')
 
     def test_fails_after_bounded_producer_state_api_fallback(self):
-        result, attempts = self._run(
+        result, attempts, failure_log = self._run(
             ready_after=99,
             attempts=1,
             jobs_api_fails=True,
@@ -269,6 +286,7 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         self.assertIn('producer state remains unavailable', result.stderr)
         self.assertIn('metadata-envoy', result.stderr)
         self.assertEqual(attempts, 2)
+        self.assertIn('producer state remains unavailable', failure_log)
 
 
 if __name__ == '__main__':
