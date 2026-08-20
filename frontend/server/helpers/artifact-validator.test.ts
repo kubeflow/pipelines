@@ -42,6 +42,15 @@ describe('artifact-validator', () => {
     expect(namespaceFromArtifactUri('gs://bucket/custom/team-a/output', 'custom')).toBe('team-a');
   });
 
+  it('decodes the namespace segment once and rejects malformed encoding', () => {
+    expect(namespaceFromArtifactUri('s3://bucket/private-artifacts/%74eam-a/run/output')).toBe(
+      'team-a',
+    );
+    expect(
+      namespaceFromArtifactUri('s3://bucket/private-artifacts/%ZZteam-a/run/output'),
+    ).toBeUndefined();
+  });
+
   it('accepts a matching namespace prefix for untracked objects', () => {
     expect(
       validateArtifactKeyPrefix(
@@ -49,6 +58,25 @@ describe('artifact-validator', () => {
         'team-a',
       ),
     ).toEqual({ valid: true, reason: 'prefix-match' });
+  });
+
+  it('accepts an encoded matching namespace and rejects an encoded mismatch', () => {
+    expect(
+      validateArtifactKeyPrefix(
+        'minio://bucket/private-artifacts/%74eam-a/run/executor.log',
+        'team-a',
+      ),
+    ).toEqual({ valid: true, reason: 'prefix-match' });
+    expect(
+      validateArtifactKeyPrefix(
+        'minio://bucket/private-artifacts/%74eam-b/run/executor.log',
+        'team-a',
+      ),
+    ).toEqual({
+      actualNamespace: 'team-b',
+      reason: 'prefix-namespace-mismatch',
+      valid: false,
+    });
   });
 
   it('accepts one trailing slash but rejects doubled trailing separators', () => {

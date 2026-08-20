@@ -63,6 +63,8 @@ interface LegacyUiMetadataVisualizationResult {
 
 const ROC_CURVE_DEFINITION =
   'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate.';
+const PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS = 10_000;
+const PARTIAL_VISUALIZATION_MAX_ATTEMPTS = 4;
 
 export function RuntimeMetricsVisualizations({
   artifacts,
@@ -323,7 +325,12 @@ function LegacyUiMetadataVisualization({
     queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace, sourceFinished),
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
     retry: false,
-    staleTime: Infinity,
+    staleTime: (query) => (query.state.data?.errors.length ? 0 : Infinity),
+    refetchInterval: (query) =>
+      query.state.data?.errors.length &&
+      query.state.dataUpdateCount < PARTIAL_VISUALIZATION_MAX_ATTEMPTS
+        ? PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS
+        : false,
   });
   const supportedConfigs = data?.configs.filter((config) => !!componentMap[config.type]);
   const containsUnsupportedConfig = supportedConfigs?.length !== data?.configs.length;

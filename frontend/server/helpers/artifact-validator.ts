@@ -65,7 +65,17 @@ export function namespaceFromArtifactUri(
   const match = artifactUri.match(
     new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
   );
-  return match?.[1];
+  if (!match?.[1]) {
+    return undefined;
+  }
+  try {
+    // Imported artifact URIs can retain percent-encoding even though the namespace supplied by
+    // Kubernetes is decoded. Compare the semantic segment while preserving the exact URI for the
+    // Artifact API lookup below.
+    return decodeURIComponent(match[1]);
+  } catch {
+    return undefined;
+  }
 }
 
 export function validateArtifactKeyPrefix(

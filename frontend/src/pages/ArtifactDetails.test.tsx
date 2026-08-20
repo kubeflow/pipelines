@@ -175,6 +175,50 @@ describe('ArtifactDetails', () => {
     expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('reconciles a legacy UI metadata relationship created after the artifact', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let outputChecks = 0;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) => {
+          if (type !== V2beta1IOType.OUTPUT || ++outputChecks === 1) {
+            return { artifact_tasks: [] };
+          }
+          return {
+            artifact_tasks: [
+              {
+                artifact_id: TEST_ARTIFACT_ID,
+                key: 'mlpipeline_ui_metadata',
+                type: V2beta1IOType.OUTPUT,
+              },
+            ],
+          };
+        },
+      );
+      vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+        configs: [{ data: [['reconciled']], labels: ['value'], type: PlotType.TABLE }],
+        errors: [],
+      });
+
+      renderPage();
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+      expect(screen.queryByText('reconciled')).not.toBeInTheDocument();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      expect(await screen.findByText('reconciled')).toBeVisible();
+      expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(8);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not treat a consumed mlpipeline-ui-metadata key as viewer metadata', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
       artifact_id: TEST_ARTIFACT_ID,

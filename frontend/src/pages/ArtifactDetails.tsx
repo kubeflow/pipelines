@@ -60,6 +60,8 @@ export enum ArtifactDetailsTab {
 
 const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
+const LEGACY_KEY_RECONCILIATION_INTERVAL_MS = 10_000;
+const LEGACY_KEY_RECONCILIATION_ATTEMPTS = 4;
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -182,7 +184,11 @@ function ArtifactOverview({
     queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
     enabled: shouldLookUpLegacyKey,
     retry: false,
-    staleTime: Infinity,
+    staleTime: (query) => (query.state.data?.key ? Infinity : 0),
+    refetchInterval: (query) =>
+      !query.state.data?.key && query.state.dataUpdateCount < LEGACY_KEY_RECONCILIATION_ATTEMPTS
+        ? LEGACY_KEY_RECONCILIATION_INTERVAL_MS
+        : false,
   });
   const legacyArtifactKey = legacyKeyResult?.key;
   const details: Array<KeyValue<string>> = [

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Apis } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import { StorageService } from 'src/lib/WorkflowParser';
@@ -683,5 +683,51 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(screen.getByText('Some legacy UI visualizations could not be loaded.')).toBeVisible();
     fireEvent.click(screen.getByText('Details'));
     expect(screen.getByText('missing HTML source')).toBeVisible();
+  });
+
+  it('retains valid legacy viewers while retrying transient sibling failures', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult');
+      loadSpy.mockReset();
+      loadSpy
+        .mockResolvedValueOnce({
+          configs: [{ data: [['valid']], labels: ['value'], type: PlotType.TABLE }],
+          errors: ['temporary HTML failure'],
+        })
+        .mockResolvedValue({
+          configs: [
+            { data: [['valid']], labels: ['value'], type: PlotType.TABLE },
+            { data: [['recovered']], labels: ['value'], type: PlotType.TABLE },
+          ],
+          errors: [],
+        });
+
+      render(
+        <CommonTestWrapper>
+          <RuntimeMetricsVisualizations
+            artifacts={[
+              {
+                artifact_id: 'legacy-metadata-retry',
+                name: 'mlpipeline-ui-metadata',
+                uri: 'gs://reports/metadata.json',
+              },
+            ]}
+            namespace='team-a'
+          />
+        </CommonTestWrapper>,
+      );
+
+      expect(await screen.findByText('valid')).toBeVisible();
+      expect(screen.getByText('Some legacy UI visualizations could not be loaded.')).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(2));
+      expect(screen.queryByText('Some legacy UI visualizations could not be loaded.')).toBeNull();
+      expect(screen.getByText('recovered')).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
