@@ -41,6 +41,10 @@ export interface RuntimeArtifactEntry {
 
 export const EXECUTOR_LOGS_ARTIFACT_KEY = 'executor-logs';
 export const LEGACY_UI_METADATA_ARTIFACT_KEY = 'mlpipeline-ui-metadata';
+export const LEGACY_UI_METADATA_ARTIFACT_KEYS = [
+  LEGACY_UI_METADATA_ARTIFACT_KEY,
+  'mlpipeline_ui_metadata',
+] as const;
 const RETRY_INDEX_SUFFIX = /-(\d+)$/;
 
 export function flattenArtifactGroups(

@@ -47,7 +47,7 @@ import {
   getArtifactTypeName,
   isLegacyUiMetadataArtifact,
   isVisualizableArtifact,
-  LEGACY_UI_METADATA_ARTIFACT_KEY,
+  LEGACY_UI_METADATA_ARTIFACT_KEYS,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
 import { Page, PageProps } from 'src/pages/Page';
@@ -60,10 +60,6 @@ export enum ArtifactDetailsTab {
 
 const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
-const LEGACY_UI_METADATA_ARTIFACT_TASK_KEYS = [
-  LEGACY_UI_METADATA_ARTIFACT_KEY,
-  'mlpipeline_ui_metadata',
-] as const;
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -244,7 +240,7 @@ async function findLegacyUiMetadataArtifactKey(
       {
         key: 'key',
         operation: V2beta1PredicateOperation.IN,
-        string_values: { values: [...LEGACY_UI_METADATA_ARTIFACT_TASK_KEYS] },
+        string_values: { values: [...LEGACY_UI_METADATA_ARTIFACT_KEYS] },
       },
     ],
   };
