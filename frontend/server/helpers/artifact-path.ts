@@ -18,6 +18,7 @@ interface ArtifactPathPolicy {
   backslashes: 'allow' | 'reject';
   dotSegments: SegmentPolicy;
   emptySegments: SegmentPolicy;
+  parentSegments: SegmentPolicy;
 }
 
 export const ARTIFACT_PATH_POLICIES = {
@@ -25,16 +26,25 @@ export const ARTIFACT_PATH_POLICIES = {
     backslashes: 'reject',
     dotSegments: 'reject',
     emptySegments: 'allow',
+    parentSegments: 'reject',
   },
   ownership: {
     backslashes: 'allow',
     dotSegments: 'reject',
     emptySegments: 'reject',
+    parentSegments: 'reject',
   },
   tarEntry: {
     backslashes: 'allow',
     dotSegments: 'remove',
     emptySegments: 'remove',
+    parentSegments: 'remove',
+  },
+  volume: {
+    backslashes: 'allow',
+    dotSegments: 'allow',
+    emptySegments: 'allow',
+    parentSegments: 'reject',
   },
 } as const satisfies Record<string, ArtifactPathPolicy>;
 
@@ -52,9 +62,11 @@ export function applyArtifactPathPolicy(
     const segmentPolicy =
       segment === ''
         ? policy.emptySegments
-        : segment === '.' || segment === '..'
+        : segment === '.'
           ? policy.dotSegments
-          : 'allow';
+          : segment === '..'
+            ? policy.parentSegments
+            : 'allow';
     if (segmentPolicy === 'reject') {
       return undefined;
     }

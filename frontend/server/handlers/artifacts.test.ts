@@ -385,6 +385,32 @@ describe('resolveArtifactCoordinates', () => {
       ).toBeNull();
     });
 
+    it('rejects escaped traversal for volume while allowing handler-normalized forms', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'volume',
+            bucket: 'artifact-volume',
+            key: '../../etc/passwd',
+            keyEncoding: 'storage',
+            uriKey: '%2E%2E/%2E%2E/etc/passwd',
+          }),
+        ),
+      ).toBeNull();
+
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'volume',
+            bucket: 'artifact-volume',
+            key: 'reports//./output.csv',
+            keyEncoding: 'storage',
+            uriKey: 'reports//./output.csv',
+          }),
+        ),
+      ).toMatchObject({ key: 'reports//./output.csv', source: 'volume' });
+    });
+
     it('rejects a noncanonical percent escape instead of treating it as an alias', () => {
       const req = {
         path: '/artifacts/get',

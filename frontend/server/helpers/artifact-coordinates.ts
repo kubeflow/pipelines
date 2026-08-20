@@ -72,12 +72,12 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
       source === 'http' || source === 'https'
         ? ARTIFACT_PATH_POLICIES.http
         : source === 'volume'
-          ? undefined
+          ? ARTIFACT_PATH_POLICIES.volume
           : ARTIFACT_PATH_POLICIES.ownership;
     if (
       /%2f/i.test(uriKey) ||
       /%26/i.test(uriKey) ||
-      (pathPolicy !== undefined && applyArtifactPathPolicy(storageKey, pathPolicy) === undefined) ||
+      applyArtifactPathPolicy(storageKey, pathPolicy) === undefined ||
       /[?#]/.test(storageKey)
     ) {
       return undefined;

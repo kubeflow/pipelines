@@ -37,6 +37,18 @@ describe('applyArtifactPathPolicy', () => {
     ).toBe('private-artifacts/team-a\\output');
   });
 
+  it('matches volume-handler traversal rules while allowing normalized compatibility forms', () => {
+    expect(applyArtifactPathPolicy('reports//./output.csv', ARTIFACT_PATH_POLICIES.volume)).toBe(
+      'reports//./output.csv',
+    );
+    expect(
+      applyArtifactPathPolicy('reports/../secret', ARTIFACT_PATH_POLICIES.volume),
+    ).toBeUndefined();
+    expect(applyArtifactPathPolicy('reports\\output.csv', ARTIFACT_PATH_POLICIES.volume)).toBe(
+      'reports\\output.csv',
+    );
+  });
+
   it('removes unsafe tar segments and returns an empty path when none remain', () => {
     expect(applyArtifactPathPolicy('/reports/../output.csv', ARTIFACT_PATH_POLICIES.tarEntry)).toBe(
       'reports/output.csv',
