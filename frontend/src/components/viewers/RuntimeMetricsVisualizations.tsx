@@ -326,11 +326,12 @@ function LegacyUiMetadataVisualization({
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
     retry: false,
     staleTime: (query) => (query.state.data?.errors.length ? 0 : Infinity),
-    refetchInterval: (query) =>
-      query.state.data?.errors.length &&
-      query.state.dataUpdateCount < PARTIAL_VISUALIZATION_MAX_ATTEMPTS
+    refetchInterval: (query) => {
+      const attemptCount = query.state.dataUpdateCount + query.state.errorUpdateCount;
+      return query.state.data?.errors.length && attemptCount < PARTIAL_VISUALIZATION_MAX_ATTEMPTS
         ? PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS
-        : false,
+        : false;
+    },
   });
   const supportedConfigs = data?.configs.filter((config) => !!componentMap[config.type]);
   const containsUnsupportedConfig = supportedConfigs?.length !== data?.configs.length;

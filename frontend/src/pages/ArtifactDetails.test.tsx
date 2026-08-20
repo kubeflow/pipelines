@@ -219,6 +219,56 @@ describe('ArtifactDetails', () => {
     }
   });
 
+  it('clears a transient relationship warning even when the visualization key was found', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let iteratorChecks = 0;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) => {
+          if (type === V2beta1IOType.ITERATOR_OUTPUT && ++iteratorChecks === 1) {
+            throw new Error('temporary relationship failure');
+          }
+          return type === V2beta1IOType.OUTPUT
+            ? {
+                artifact_tasks: [
+                  {
+                    artifact_id: TEST_ARTIFACT_ID,
+                    key: 'mlpipeline_ui_metadata',
+                    type: V2beta1IOType.OUTPUT,
+                  },
+                ],
+              }
+            : { artifact_tasks: [] };
+        },
+      );
+      vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+        configs: [{ data: [['available']], labels: ['value'], type: PlotType.TABLE }],
+        errors: [],
+      });
+
+      renderPage();
+      expect(await screen.findByText('available')).toBeVisible();
+      expect(
+        screen.getByText('Some artifact relationships could not be checked.', { exact: false }),
+      ).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(8));
+      expect(
+        screen.queryByText('Some artifact relationships could not be checked.', { exact: false }),
+      ).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('does not treat a consumed mlpipeline-ui-metadata key as viewer metadata', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
       artifact_id: TEST_ARTIFACT_ID,

@@ -730,4 +730,44 @@ describe('RuntimeMetricsVisualizations', () => {
       vi.useRealTimers();
     }
   });
+
+  it('bounds retries when partial legacy data is followed by rejected refetches', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult');
+      loadSpy.mockReset();
+      loadSpy
+        .mockResolvedValueOnce({
+          configs: [{ data: [['valid']], labels: ['value'], type: PlotType.TABLE }],
+          errors: ['temporary HTML failure'],
+        })
+        .mockRejectedValue(new Error('metadata service unavailable'));
+
+      render(
+        <CommonTestWrapper>
+          <RuntimeMetricsVisualizations
+            artifacts={[
+              {
+                artifact_id: 'legacy-metadata-bounded-retry',
+                name: 'mlpipeline-ui-metadata',
+                uri: 'gs://reports/metadata.json',
+              },
+            ]}
+            namespace='team-a'
+          />
+        </CommonTestWrapper>,
+      );
+
+      expect(await screen.findByText('valid')).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(100_000));
+      expect(loadSpy).toHaveBeenCalledTimes(4);
+
+      await act(async () => vi.advanceTimersByTimeAsync(100_000));
+      expect(loadSpy).toHaveBeenCalledTimes(4);
+      expect(screen.getByText('valid')).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

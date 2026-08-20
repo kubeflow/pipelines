@@ -77,7 +77,7 @@ interface ArtifactDetailsState {
   hasError?: boolean;
 }
 
-class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
+class ArtifactDetails extends Page<{ queryClient: QueryClient }, ArtifactDetailsState> {
   private relationshipsTableRef = React.createRef<CustomTable>();
 
   public state: ArtifactDetailsState = {};
@@ -131,7 +131,13 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   }
 
   public async refresh(): Promise<void> {
-    await Promise.all([this.load(), this.relationshipsTableRef.current?.reload()]);
+    await Promise.all([
+      this.load(),
+      this.relationshipsTableRef.current?.reload(),
+      this.props.queryClient.invalidateQueries({
+        queryKey: queryKeys.artifactVisualizationKey(this.id),
+      }),
+    ]);
   }
 
   private load = async (): Promise<void> => {
@@ -184,11 +190,16 @@ function ArtifactOverview({
     queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
     enabled: shouldLookUpLegacyKey,
     retry: false,
-    staleTime: (query) => (query.state.data?.key ? Infinity : 0),
-    refetchInterval: (query) =>
-      !query.state.data?.key && query.state.dataUpdateCount < LEGACY_KEY_RECONCILIATION_ATTEMPTS
+    staleTime: (query) =>
+      query.state.data?.key && query.state.data.errors.length === 0 ? Infinity : 0,
+    refetchInterval: (query) => {
+      const result = query.state.data;
+      const isComplete = !!result?.key && result.errors.length === 0;
+      const attemptCount = query.state.dataUpdateCount + query.state.errorUpdateCount;
+      return !isComplete && attemptCount < LEGACY_KEY_RECONCILIATION_ATTEMPTS
         ? LEGACY_KEY_RECONCILIATION_INTERVAL_MS
-        : false,
+        : false;
+    },
   });
   const legacyArtifactKey = legacyKeyResult?.key;
   const details: Array<KeyValue<string>> = [
@@ -463,8 +474,15 @@ function relationshipLabel(artifactTask: V2beta1ArtifactTask, index: number): st
   return `Related as ${relationshipType}: ${relationshipName}`;
 }
 
-const EnhancedArtifactDetails = (props: PageProps) => (
-  <ArtifactDetails {...props} key={props.match.params[RouteParams.ID]} />
-);
+const EnhancedArtifactDetails = (props: PageProps) => {
+  const queryClient = useQueryClient();
+  return (
+    <ArtifactDetails
+      {...props}
+      key={props.match.params[RouteParams.ID]}
+      queryClient={queryClient}
+    />
+  );
+};
 
 export default EnhancedArtifactDetails;
