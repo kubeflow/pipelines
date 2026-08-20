@@ -45,6 +45,7 @@ import {
 } from 'src/lib/v2/ArtifactTaskUtils';
 import {
   getArtifactTypeName,
+  isLegacyUiMetadataArtifact,
   isVisualizableArtifact,
   LEGACY_UI_METADATA_ARTIFACT_KEY,
 } from 'src/lib/v2/RuntimeArtifactUtils';
@@ -59,6 +60,10 @@ export enum ArtifactDetailsTab {
 
 const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
+const LEGACY_UI_METADATA_ARTIFACT_TASK_KEYS = [
+  LEGACY_UI_METADATA_ARTIFACT_KEY,
+  'mlpipeline_ui_metadata',
+] as const;
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -238,8 +243,8 @@ async function findLegacyUiMetadataArtifactKey(
     predicates: [
       {
         key: 'key',
-        operation: V2beta1PredicateOperation.EQUALS,
-        string_value: LEGACY_UI_METADATA_ARTIFACT_KEY,
+        operation: V2beta1PredicateOperation.IN,
+        string_values: { values: [...LEGACY_UI_METADATA_ARTIFACT_TASK_KEYS] },
       },
     ],
   };
@@ -268,16 +273,16 @@ async function findLegacyUiMetadataArtifactKey(
       errors.push(`${OUTPUT_ARTIFACT_TASK_TYPES[index]}: ${await errorToMessage(result.reason)}`);
     }
   }
-  const hasProducingRelationship = responses.some((response) =>
-    response.artifact_tasks?.some(
+  const producingRelationship = responses
+    .flatMap((response) => response.artifact_tasks ?? [])
+    .find(
       (artifactTask) =>
-        artifactTask.key === LEGACY_UI_METADATA_ARTIFACT_KEY &&
+        isLegacyUiMetadataArtifact({}, artifactTask.key) &&
         isOutputArtifactTaskType(artifactTask.type),
-    ),
-  );
+    );
   return {
     errors,
-    key: hasProducingRelationship ? LEGACY_UI_METADATA_ARTIFACT_KEY : undefined,
+    key: producingRelationship?.key,
   };
 }
 

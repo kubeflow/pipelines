@@ -18,6 +18,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
+import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { PlotType } from 'src/components/viewers/Viewer';
 import { Apis } from 'src/lib/Apis';
@@ -125,7 +126,7 @@ describe('ArtifactDetails', () => {
               artifact_tasks: [
                 {
                   artifact_id: TEST_ARTIFACT_ID,
-                  key: 'mlpipeline-ui-metadata',
+                  key: 'mlpipeline_ui_metadata',
                   type: V2beta1IOType.OUTPUT,
                 },
               ],
@@ -151,6 +152,18 @@ describe('ArtifactDetails', () => {
       'id asc',
       expect.stringContaining('mlpipeline-ui-metadata'),
     );
+    const encodedFilter = vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mock.calls[0][7];
+    expect(JSON.parse(decodeURIComponent(encodedFilter!))).toEqual({
+      predicates: [
+        {
+          key: 'key',
+          operation: V2beta1PredicateOperation.IN,
+          string_values: {
+            values: ['mlpipeline-ui-metadata', 'mlpipeline_ui_metadata'],
+          },
+        },
+      ],
+    });
     expect(
       vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mock.calls.map((call) => call[3]),
     ).toEqual([
