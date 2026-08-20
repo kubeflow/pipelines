@@ -122,6 +122,19 @@ describe('resolveArtifactCoordinates', () => {
       );
     });
 
+    it('rejects escaped traversal identity for a literal traversal download path', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest(
+            '/artifacts/minio/mlpipeline/private-artifacts/attacker-ns/../../victim-ns/secret.txt',
+            {
+              uriKey: 'private-artifacts/attacker-ns/%2E%2E/%2E%2E/victim-ns/secret.txt',
+            },
+          ),
+        ),
+      ).toBeNull();
+    });
+
     it('returns null on malformed percent-encoding (fail-closed)', () => {
       const req = makeRequest('/artifacts/minio/ml-pipeline/bad%ZZkey');
       expect(resolveArtifactCoordinates(req)).toBeNull();
@@ -297,6 +310,20 @@ describe('resolveArtifactCoordinates', () => {
             key: 'private-artifacts/team-a/model',
             keyEncoding: 'storage',
             uriKey: 'private-artifacts%2Fteam-a/model',
+          }),
+        ),
+      ).toBeNull();
+    });
+
+    it('rejects escaped traversal segments in exact preview identity', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'minio',
+            bucket: 'mlpipeline',
+            key: 'private-artifacts/attacker-ns/../../victim-ns/secret.txt',
+            keyEncoding: 'storage',
+            uriKey: 'private-artifacts/attacker-ns/%2E%2E/%2E%2E/victim-ns/secret.txt',
           }),
         ),
       ).toBeNull();

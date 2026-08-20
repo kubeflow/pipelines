@@ -23,10 +23,19 @@ export interface ArtifactFileLocation {
 
 function decodeArtifactUriKey(key: string): string {
   try {
+    // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
+    // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
     const decodedKey = decodeURIComponent(key);
-    if (/%2f/i.test(key) || /[?#]/.test(decodedKey)) {
+    if (
+      /%2f/i.test(key) ||
+      /[?#]/.test(decodedKey) ||
+      (decodedKey !== '' &&
+        decodedKey
+          .split('/')
+          .some((segment) => segment === '' || segment === '.' || segment === '..'))
+    ) {
       throw new Error(
-        'Artifact URI keys cannot contain encoded path, query, or fragment delimiters.',
+        'Artifact URI keys cannot contain empty, relative, query, or fragment path segments.',
       );
     }
     return decodedKey;
@@ -60,12 +69,15 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   return { path, artifactUriQuery: query };
 }
 
-export function readArtifactFile(artifact: V2beta1Artifact, namespace?: string): Promise<string> {
+export async function readArtifactFile(
+  artifact: V2beta1Artifact,
+  namespace?: string,
+): Promise<string> {
   if (!artifact.uri) {
-    return Promise.reject(new Error('Artifact has no URI. Verify the artifact output location.'));
+    throw new Error('Artifact has no URI. Verify the artifact output location.');
   }
   const location = parseArtifactFileLocation(artifact.uri);
-  return Apis.readFile({
+  return await Apis.readFile({
     path: location.path,
     namespace: namespace || artifact.namespace,
     artifactUriQuery: location.artifactUriQuery,

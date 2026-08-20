@@ -119,7 +119,19 @@ describe('readArtifactFile', () => {
   it('rejects an encoded path delimiter that would change ownership segmentation', () => {
     expect(() =>
       parseArtifactFileLocation('s3://reports/private-artifacts%2Fteam-a/model'),
-    ).toThrow('cannot contain encoded path, query, or fragment delimiters');
+    ).toThrow('cannot contain empty, relative, query, or fragment path segments');
+  });
+
+  it('rejects escaped traversal segments before building an artifact request', () => {
+    expect(() =>
+      parseArtifactFileLocation('s3://reports/private-artifacts/team-a/%2E%2E/secret'),
+    ).toThrow('cannot contain empty, relative, query, or fragment path segments');
+  });
+
+  it('returns URI parsing failures as rejected promises', async () => {
+    const result = readArtifactFile({ uri: 's3://reports/100%complete/file' });
+
+    await expect(result).rejects.toThrow('Artifact URI key has invalid encoding');
   });
 
   it('builds valid preview and download URLs from a raw native artifact URI', () => {

@@ -948,6 +948,25 @@ describe('/artifacts authorization', () => {
       expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
     });
 
+    it('rejects escaped traversal identity before namespace-prefix fallback', async () => {
+      mockAuthPass();
+      app = new UIServer(authEnabledConfigs());
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&namespace=my-namespace' +
+            `&key=${encodeURIComponent('private-artifacts/my-namespace/../../victim/secret')}` +
+            '&keyEncoding=storage' +
+            `&uriKey=${encodeURIComponent(
+              'private-artifacts/my-namespace/%2E%2E/%2E%2E/victim/secret',
+            )}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(400);
+
+      expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
+    });
+
     it('rejects path-based route even if query params point to a valid artifact', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({

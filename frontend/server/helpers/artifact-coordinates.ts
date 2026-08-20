@@ -18,6 +18,7 @@ import {
   isArtifactSource,
   isLauncherArtifactSource,
 } from './artifact-sources.js';
+import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
 
 export interface ArtifactCoordinates<TSource extends string = string> {
   source: TSource;
@@ -60,6 +61,22 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
   };
 }
 
+function decodeExactArtifactUriKey(uriKey: string): string | undefined {
+  try {
+    const decodedKey = decodeURIComponent(uriKey);
+    if (
+      /%2f/i.test(uriKey) ||
+      applyArtifactPathPolicy(decodedKey, ARTIFACT_PATH_POLICIES.ownership) === undefined ||
+      /[?#]/.test(decodedKey)
+    ) {
+      return undefined;
+    }
+    return decodedKey;
+  } catch {
+    return undefined;
+  }
+}
+
 export function resolveArtifactCoordinates(
   request: Pick<Request, 'path' | 'query'>,
 ): ArtifactCoordinates | null | undefined {
@@ -76,16 +93,8 @@ export function resolveArtifactCoordinates(
     const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
     const artifactUriQuery = asString(request.query.artifactUriQuery);
     if (requestUriKey) {
-      try {
-        const decodedUriKey = decodeURIComponent(requestUriKey);
-        if (
-          /%2f/i.test(requestUriKey) ||
-          /[?#]/.test(decodedUriKey) ||
-          decodedUriKey !== requestKey
-        ) {
-          return null;
-        }
-      } catch {
+      const decodedUriKey = decodeExactArtifactUriKey(requestUriKey);
+      if (decodedUriKey === undefined || decodedUriKey !== requestKey) {
         return null;
       }
       return {
@@ -145,15 +154,8 @@ export function resolveArtifactCoordinates(
     const requestedIdentityKey =
       typeof request.query.uriKey === 'string' ? request.query.uriKey : undefined;
     if (requestedIdentityKey !== undefined) {
-      try {
-        if (
-          /%2f/i.test(requestedIdentityKey) ||
-          /[?#]/.test(decodeURIComponent(requestedIdentityKey)) ||
-          decodeURIComponent(requestedIdentityKey) !== key
-        ) {
-          return null;
-        }
-      } catch {
+      const decodedIdentityKey = decodeExactArtifactUriKey(requestedIdentityKey);
+      if (decodedIdentityKey === undefined || decodedIdentityKey !== key) {
         return null;
       }
     }
