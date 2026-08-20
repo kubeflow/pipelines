@@ -319,7 +319,13 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
 
           {/* 404 */}
           {!!route && (
-            <Route render={({ ...props }) => <Page404 {...props} {...this.childProps} />} />
+            <Route
+              render={(props) => (
+                // The catch-all route matches no params, so narrow the params bag
+                // to the string-valued shape PageProps declares.
+                <Page404 {...props} match={{ ...props.match, params: {} }} {...this.childProps} />
+              )}
+            />
           )}
         </Switch>
 

@@ -383,6 +383,74 @@ func TestSyncParentAndNestedRuns_RetryMode(t *testing.T) {
 	assert.Equal(t, "parent-2:RUNNING", updateCalls[0])
 }
 
+func TestReopenNestedRuns_PaginationLimitReached(t *testing.T) {
+	page := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			page++
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"runs":[],"next_page_token":"more"}`))
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	requestCtx := newTestMLflowRequestContext(t, server.URL)
+	errors := SyncParentAndNestedRuns(context.Background(), requestCtx, "parent-run", "exp-1", apiserverPlugins.RunSyncModeRetry, "FAILED", nil)
+	require.Len(t, errors, 1)
+	assert.Contains(t, errors[0], "pagination limit (10 pages) reached while reopening nested runs of parent-run")
+	assert.Equal(t, maxSearchPages, page)
+}
+
+func TestSyncParentAndNestedRuns_MaxNestingDepthReached(t *testing.T) {
+	var updateCalls []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			body, _ := io.ReadAll(r.Body)
+			var req map[string]interface{}
+			_ = json.Unmarshal(body, &req)
+			updateCalls = append(updateCalls, fmt.Sprintf("%s:%s", req["run_id"], req["status"]))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			// Every run has exactly one open child, one level deeper
+			// (run-0 -> run-1 -> run-2 -> ...), forming a chain deeper than
+			// maxNestingDepth so the recursion must stop on its own.
+			body, _ := io.ReadAll(r.Body)
+			var req map[string]interface{}
+			_ = json.Unmarshal(body, &req)
+			filter := req["filter"].(string)
+			var parentDepth int
+			_, err := fmt.Sscanf(filter, `tags."mlflow.parentRunId" = 'run-%d'`, &parentDepth)
+			require.NoError(t, err)
+			childRunID := fmt.Sprintf("run-%d", parentDepth+1)
+			w.WriteHeader(http.StatusOK)
+			_, _ = fmt.Fprintf(w, `{"runs":[{"info":{"run_id":%q,"status":"RUNNING"}}]}`, childRunID)
+		}
+	}))
+	defer server.Close()
+
+	requestCtx := newTestMLflowRequestContext(t, server.URL)
+	errors := SyncParentAndNestedRuns(context.Background(), requestCtx, "run-0", "exp-1", apiserverPlugins.RunSyncModeTerminal, "FAILED", nil)
+
+	require.Len(t, errors, 1)
+	assert.Contains(t, errors[0], fmt.Sprintf("max nesting depth (%d) reached when syncing children of run run-%d", maxNestingDepth, maxNestingDepth))
+
+	// run-0 through run-<maxNestingDepth> are all closed by their respective
+	// parent's sweep; only the search past run-<maxNestingDepth> is skipped.
+	wantUpdated := make([]string, 0, maxNestingDepth+1)
+	for i := 0; i <= maxNestingDepth; i++ {
+		wantUpdated = append(wantUpdated, fmt.Sprintf("run-%d:FAILED", i))
+	}
+	assert.ElementsMatch(t, wantUpdated, updateCalls)
+}
+
 func TestSyncParentAndNestedRuns_WithNestedRuns(t *testing.T) {
 	var updateCalls []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -418,30 +486,83 @@ func TestSyncParentAndNestedRuns_WithNestedRuns(t *testing.T) {
 	assert.Contains(t, updateCalls, "nested-1:FAILED")
 }
 
-func TestShouldSyncNestedRun_TerminalMode(t *testing.T) {
-	tests := []struct {
-		status string
-		want   bool
-	}{
-		{"RUNNING", true},
-		{"SCHEDULED", true},
-		{"FINISHED", false},
-		{"FAILED", false},
-		{"KILLED", false},
-		{"finished", false},
-		{"failed", false},
-		{"killed", false},
-	}
+func TestSyncParentAndNestedRuns_SkipsAlreadyTerminalChildren(t *testing.T) {
+	var updateCalls []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			body, _ := io.ReadAll(r.Body)
+			var req map[string]interface{}
+			_ = json.Unmarshal(body, &req)
+			updateCalls = append(updateCalls, fmt.Sprintf("%s:%s", req["run_id"], req["status"]))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			body, _ := io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusOK)
+			if strings.Contains(string(body), "nested-finished") || strings.Contains(string(body), "nested-running") {
+				_, _ = w.Write([]byte(`{"runs":[]}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"runs":[
+				{"info":{"run_id":"nested-finished","status":"FINISHED"}},
+				{"info":{"run_id":"nested-running","status":"RUNNING"}}
+			]}`))
+		}
+	}))
+	defer server.Close()
 
-	for _, tt := range tests {
-		t.Run(tt.status, func(t *testing.T) {
-			got := shouldSyncNestedRun(apiserverPlugins.RunSyncModeTerminal, tt.status)
-			assert.Equal(t, tt.want, got)
-		})
-	}
+	requestCtx := newTestMLflowRequestContext(t, server.URL)
+	errors := SyncParentAndNestedRuns(context.Background(), requestCtx, "parent-1", "exp-1", apiserverPlugins.RunSyncModeTerminal, "FAILED", nil)
+	assert.Empty(t, errors)
+
+	// Only the parent and the still-open child are closed; the already
+	// terminal "nested-finished" child gets zero update calls.
+	require.Len(t, updateCalls, 2)
+	assert.Contains(t, updateCalls, "parent-1:FAILED")
+	assert.Contains(t, updateCalls, "nested-running:FAILED")
+	assert.NotContains(t, updateCalls, "nested-finished:FAILED")
 }
 
-func TestShouldSyncNestedRun_RetryMode(t *testing.T) {
+func TestSyncParentAndNestedRuns_ClosesOrphansUnderTerminalChild(t *testing.T) {
+	var updateCalls []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/2.0/mlflow/runs/update":
+			body, _ := io.ReadAll(r.Body)
+			var req map[string]interface{}
+			_ = json.Unmarshal(body, &req)
+			updateCalls = append(updateCalls, fmt.Sprintf("%s:%s", req["run_id"], req["status"]))
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{}`))
+		case "/api/2.0/mlflow/runs/search":
+			body, _ := io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusOK)
+			if strings.Contains(string(body), "orphan-grandchild") {
+				_, _ = w.Write([]byte(`{"runs":[]}`))
+				return
+			}
+			if strings.Contains(string(body), "nested-finished") {
+				_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"orphan-grandchild","status":"RUNNING"}}]}`))
+				return
+			}
+			_, _ = w.Write([]byte(`{"runs":[{"info":{"run_id":"nested-finished","status":"FINISHED"}}]}`))
+		}
+	}))
+	defer server.Close()
+
+	requestCtx := newTestMLflowRequestContext(t, server.URL)
+	errors := SyncParentAndNestedRuns(context.Background(), requestCtx, "parent-1", "exp-1", apiserverPlugins.RunSyncModeTerminal, "FAILED", nil)
+	assert.Empty(t, errors)
+
+	// Parent and orphaned grandchild close; the already-terminal intermediate child is not updated.
+	require.Len(t, updateCalls, 2)
+	assert.Contains(t, updateCalls, "parent-1:FAILED")
+	assert.Contains(t, updateCalls, "orphan-grandchild:FAILED")
+	assert.NotContains(t, updateCalls, "nested-finished:FAILED")
+}
+
+func TestShouldReopenNestedRun(t *testing.T) {
 	tests := []struct {
 		status string
 		want   bool
@@ -457,15 +578,10 @@ func TestShouldSyncNestedRun_RetryMode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.status, func(t *testing.T) {
-			got := shouldSyncNestedRun(apiserverPlugins.RunSyncModeRetry, tt.status)
+			got := shouldReopenNestedRun(tt.status)
 			assert.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestShouldSyncNestedRun_UnsupportedMode(t *testing.T) {
-	got := shouldSyncNestedRun("unsupported", "RUNNING")
-	assert.False(t, got)
 }
 
 func TestCreateRunWithKFPTags(t *testing.T) {
