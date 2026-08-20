@@ -340,6 +340,43 @@ describe('RuntimeMetricsVisualizations', () => {
     });
   });
 
+  it('selects artifacts independently when they share the same URI', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Dashboard</h1>');
+    readFileSpy.mockClear();
+    const sharedUri = 's3://reports/shared.html';
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations
+          artifacts={[
+            {
+              name: 'report',
+              namespace: 'team-a',
+              type: ArtifactArtifactType.HTML,
+              uri: sharedUri,
+            },
+            {
+              name: 'dashboard',
+              namespace: 'team-b',
+              type: ArtifactArtifactType.HTML,
+              uri: sharedUri,
+            },
+          ]}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
+    fireEvent.click(screen.getByRole('option', { name: 'dashboard' }));
+
+    await waitFor(() =>
+      expect(readFileSpy).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'team-b' })),
+    );
+    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
+      'dashboard',
+    );
+  });
+
   it('automatically renders a single file artifact', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
     readFileSpy.mockClear();

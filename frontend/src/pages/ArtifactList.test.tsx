@@ -171,9 +171,12 @@ describe('ArtifactList', () => {
     );
   });
 
-  it('rejects an artifact response without its server-generated ID', async () => {
+  it('skips an artifact without an ID while preserving valid rows', async () => {
     vi.mocked(Apis.artifactServiceApiV2.artifacts).mockResolvedValue({
-      artifacts: [{ ...generateArtifacts(1)[0], artifact_id: undefined }],
+      artifacts: [
+        { ...generateArtifacts(1)[0], artifact_id: undefined, name: 'malformed artifact' },
+        { ...generateArtifacts(1)[0], name: 'valid artifact' },
+      ],
     });
     render(
       <MemoryRouter>
@@ -184,13 +187,15 @@ describe('ArtifactList', () => {
     await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          additionalInfo:
-            'Artifact service returned an artifact without an ID. Refresh the page; if the problem persists, contact your administrator.',
+          additionalInfo: expect.stringContaining(
+            '1 artifact could not be displayed because the Artifact service returned no ID.',
+          ),
           mode: 'error',
         }),
       ),
     );
-    expect(screen.queryByRole('link', { name: 'test artifact 1' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'malformed artifact' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'valid artifact' })).toBeVisible();
   });
 
   it('keeps matching rows visible when a refresh fails', async () => {

@@ -197,8 +197,7 @@ function FileArtifactVisualization({
         const identity = getArtifactIdentity(artifact);
         return {
           artifact,
-          key:
-            artifact.artifact_id || artifact.uri ? identity! : `${identity || 'artifact'}-${index}`,
+          key: `${identity || 'artifact'}-${index}`,
         };
       }),
     [artifacts],

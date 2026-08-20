@@ -101,24 +101,26 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
       );
       const nextPageToken = response.next_page_token || '';
       if (reloadGeneration === this.activeReloadGeneration) {
-        const rows = (response.artifacts || []).map((artifact) => {
+        let artifactsWithoutId = 0;
+        const rows = (response.artifacts || []).flatMap<Row>((artifact) => {
           const artifactId = artifact.artifact_id;
           if (!artifactId) {
-            throw new Error(
-              'Artifact service returned an artifact without an ID. Refresh the page; if the problem persists, contact your administrator.',
-            );
+            artifactsWithoutId++;
+            return [];
           }
-          return {
-            id: artifactId,
-            otherFields: [
-              artifact.name || '[unnamed]',
-              artifactId,
-              getArtifactTypeName(artifact),
-              { namespace: artifact.namespace || this.props.namespace, uri: artifact.uri || '' },
-              artifact.namespace || '-',
-              formatDateString(artifact.created_at),
-            ],
-          };
+          return [
+            {
+              id: artifactId,
+              otherFields: [
+                artifact.name || '[unnamed]',
+                artifactId,
+                getArtifactTypeName(artifact),
+                { namespace: artifact.namespace || this.props.namespace, uri: artifact.uri || '' },
+                artifact.namespace || '-',
+                formatDateString(artifact.created_at),
+              ],
+            },
+          ];
         });
         const repeatedPageToken = this.pageTokenTracker.isRepeated(
           this.getPaginationContextKey(request),
@@ -134,7 +136,12 @@ export class ArtifactList extends Page<ArtifactListProps, ArtifactListState> {
           );
           return '';
         }
-        this.clearBanner();
+        if (artifactsWithoutId) {
+          const message = `${artifactsWithoutId} artifact${artifactsWithoutId === 1 ? '' : 's'} could not be displayed because the Artifact service returned no ID. Refresh the page; if the problem persists, contact your administrator.`;
+          this.showPageError(message, new Error(message));
+        } else {
+          this.clearBanner();
+        }
       }
       return nextPageToken;
     } catch (error) {
