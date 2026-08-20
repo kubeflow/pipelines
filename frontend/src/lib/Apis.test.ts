@@ -250,6 +250,23 @@ describe('Apis', () => {
     ).toBe('artifacts/s3/testbucket/root%20dir/model.txt');
   });
 
+  it('carries exact artifact URI identity separately from its decoded storage key', () => {
+    const path = {
+      bucket: 'testbucket',
+      key: 'rootsecret/café.txt',
+      keyEncoding: 'storage' as const,
+      source: StorageService.S3,
+      uriKey: 'root%73ecret/caf%c3%a9.txt',
+    };
+
+    expect(Apis.buildReadFileUrl({ path })).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=rootsecret%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+    );
+    expect(Apis.buildReadFileUrl({ path, isDownload: true })).toBe(
+      'artifacts/s3/testbucket/rootsecret/caf%C3%A9.txt?uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+    );
+  });
+
   it('buildArtifactLinkText', () => {
     expect(
       Apis.buildArtifactLinkText({

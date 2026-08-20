@@ -102,6 +102,26 @@ describe('resolveArtifactCoordinates', () => {
       );
     });
 
+    it('uses an exact persisted URI identity for a canonical storage download path', () => {
+      const coordinates = resolveArtifactCoordinates(
+        makeRequest('/artifacts/s3/ml-pipeline/rootsecret/caf%C3%A9.txt', {
+          uriKey: 'root%73ecret/caf%c3%a9.txt',
+        }),
+      );
+
+      expect(coordinates).toEqual({
+        source: 's3',
+        bucket: 'ml-pipeline',
+        key: 'rootsecret/café.txt',
+        keyEncoding: 'storage',
+        uriKey: 'root%73ecret/caf%c3%a9.txt',
+        artifactUriQuery: '',
+      });
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        's3://ml-pipeline/root%73ecret/caf%c3%a9.txt',
+      );
+    });
+
     it('returns null on malformed percent-encoding (fail-closed)', () => {
       const req = makeRequest('/artifacts/minio/ml-pipeline/bad%ZZkey');
       expect(resolveArtifactCoordinates(req)).toBeNull();
@@ -229,6 +249,57 @@ describe('resolveArtifactCoordinates', () => {
       expect(normalizeArtifactStorageCoordinates(coordinates as ArtifactCoordinates)).toMatchObject(
         { key: 'root dir/model.txt', keyEncoding: 'storage' },
       );
+    });
+
+    it('preserves exact native identity while using its decoded storage key', () => {
+      const req = makeRequest('/artifacts/get', {
+        source: 's3',
+        bucket: 'reports',
+        key: 'rootsecret/café.txt',
+        keyEncoding: 'storage',
+        uriKey: 'root%73ecret/caf%c3%a9.txt',
+      });
+
+      const coordinates = resolveArtifactCoordinates(req);
+      expect(coordinates).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'rootsecret/café.txt',
+        keyEncoding: 'storage',
+        uriKey: 'root%73ecret/caf%c3%a9.txt',
+        artifactUriQuery: '',
+      });
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        's3://reports/root%73ecret/caf%c3%a9.txt',
+      );
+    });
+
+    it('rejects an exact URI identity that resolves to a different storage key', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 's3',
+            bucket: 'reports',
+            key: 'root%73ecret/café.txt',
+            keyEncoding: 'storage',
+            uriKey: 'root%73ecret/caf%c3%a9.txt',
+          }),
+        ),
+      ).toBeNull();
+    });
+
+    it('rejects an exact URI identity containing an encoded path delimiter', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 's3',
+            bucket: 'reports',
+            key: 'private-artifacts/team-a/model',
+            keyEncoding: 'storage',
+            uriKey: 'private-artifacts%2Fteam-a/model',
+          }),
+        ),
+      ).toBeNull();
     });
 
     it('rejects a noncanonical percent escape instead of treating it as an alias', () => {

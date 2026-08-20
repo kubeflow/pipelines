@@ -865,6 +865,69 @@ describe('/artifacts authorization', () => {
       },
     );
 
+    it('authorizes the exact persisted URI while reading its decoded storage key', async () => {
+      mockAuthPass();
+      app = new UIServer(authEnabledConfigs());
+      const exactUriKey = 'caf%c3%a9/model.txt';
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&namespace=my-namespace' +
+            `&key=${encodeURIComponent('café/model.txt')}` +
+            `&keyEncoding=storage&uriKey=${encodeURIComponent(exactUriKey)}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, artifactContent);
+
+      await requests(app.app)
+        .get(
+          '/artifacts/minio/ml-pipeline/caf%C3%A9/model.txt?namespace=my-namespace' +
+            `&uriKey=${encodeURIComponent(exactUriKey)}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, artifactContent);
+
+      expect(mockedValidateArtifactNamespace).toHaveBeenNthCalledWith(
+        1,
+        expect.any(String),
+        'minio://ml-pipeline/caf%c3%a9/model.txt',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+        false,
+      );
+      expect(mockedValidateArtifactNamespace).toHaveBeenNthCalledWith(
+        2,
+        expect.any(String),
+        'minio://ml-pipeline/caf%c3%a9/model.txt',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+        false,
+      );
+    });
+
+    it('does not canonicalize a raw persisted artifact URI during preview authorization', async () => {
+      mockAuthPass();
+      app = new UIServer(authEnabledConfigs());
+      const rawKey = 'root dir/artifact.txt';
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&namespace=my-namespace' +
+            `&key=${encodeURIComponent(rawKey)}` +
+            `&keyEncoding=storage&uriKey=${encodeURIComponent(rawKey)}`,
+        )
+        .set('kubeflow-userid', 'user@example.com')
+        .expect(200, artifactContent);
+
+      expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
+        expect.any(String),
+        'minio://ml-pipeline/root dir/artifact.txt',
+        'my-namespace',
+        { 'kubeflow-userid': 'user@example.com' },
+        false,
+      );
+    });
+
     it.each([
       ['encoded literal alias', 'root/%73ecret'],
       ['encoded query delimiter', 'root/query%3Fkey'],

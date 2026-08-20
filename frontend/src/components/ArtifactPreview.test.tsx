@@ -141,7 +141,7 @@ describe('ArtifactPreview', () => {
     await waitFor(() => screen.getByText('minio://bucket/key'));
     await waitFor(() =>
       expect(screen.getByText('View All').getAttribute('href')).toEqual(
-        'artifacts/get?source=minio&namespace=kubeflow&bucket=bucket&key=key&keyEncoding=uri',
+        'artifacts/get?source=minio&namespace=kubeflow&bucket=bucket&key=key&keyEncoding=storage',
       ),
     );
   });

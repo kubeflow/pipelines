@@ -25,7 +25,7 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   key: string;
   // Preview callers declare whether their key is decoded storage text or a canonical URI path.
   keyEncoding?: 'storage' | 'uri';
-  // Exact escaped path spelling used by persisted artifact identity when `key` is decoded storage.
+  // Exact path spelling used by persisted artifact identity when `key` is decoded storage.
   uriKey?: string;
   artifactUriQuery?: string;
 }
@@ -72,8 +72,31 @@ export function resolveArtifactCoordinates(
     const source = asString(request.query.source);
     const bucket = asString(request.query.bucket);
     const requestKey = asString(request.query.key);
+    const requestUriKey = asString(request.query.uriKey);
     const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
     const artifactUriQuery = asString(request.query.artifactUriQuery);
+    if (requestUriKey) {
+      try {
+        const decodedUriKey = decodeURIComponent(requestUriKey);
+        if (
+          /%2f/i.test(requestUriKey) ||
+          /[?#]/.test(decodedUriKey) ||
+          decodedUriKey !== requestKey
+        ) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+      return {
+        source,
+        bucket,
+        key: requestKey,
+        keyEncoding: 'storage',
+        uriKey: requestUriKey,
+        artifactUriQuery,
+      };
+    }
     if (isArtifactSource(source) && !isLauncherArtifactSource(source)) {
       return {
         source,
@@ -119,12 +142,29 @@ export function resolveArtifactCoordinates(
       return null;
     }
     const key = decodeURIComponent(uriKey);
+    const requestedIdentityKey =
+      typeof request.query.uriKey === 'string' ? request.query.uriKey : undefined;
+    if (requestedIdentityKey !== undefined) {
+      try {
+        if (
+          /%2f/i.test(requestedIdentityKey) ||
+          /[?#]/.test(decodeURIComponent(requestedIdentityKey)) ||
+          decodeURIComponent(requestedIdentityKey) !== key
+        ) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
     return {
       source: decodeURIComponent(downloadPathMatch[1]),
       bucket: decodeURIComponent(downloadPathMatch[2]),
       key,
       keyEncoding: 'storage',
-      ...(uriKey === key ? {} : { uriKey }),
+      ...((requestedIdentityKey ?? uriKey) === key
+        ? {}
+        : { uriKey: requestedIdentityKey ?? uriKey }),
       artifactUriQuery:
         typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
     };

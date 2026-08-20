@@ -371,7 +371,7 @@ export class Apis {
     peek?: number;
     isDownload?: boolean;
   }) {
-    const { source, bucket, key } = path;
+    const { source, bucket, key, uriKey } = path;
     const keyEncoding = path.keyEncoding ?? 'storage';
     if (isDownload) {
       const pathKey = keyEncoding === 'storage' ? encodeURI(key) : key;
@@ -380,6 +380,7 @@ export class Apis {
         artifactUriQuery,
         providerInfo,
         peek,
+        uriKey,
       })}`;
     } else {
       return `artifacts/get${buildQuery({
@@ -391,6 +392,7 @@ export class Apis {
         bucket,
         key,
         keyEncoding,
+        uriKey,
       })}`;
     }
   }

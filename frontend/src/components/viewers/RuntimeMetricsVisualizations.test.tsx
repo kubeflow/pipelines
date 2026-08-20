@@ -332,7 +332,7 @@ describe('RuntimeMetricsVisualizations', () => {
       path: {
         bucket: 'reports',
         key: 'output.html',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         source: StorageService.S3,
       },
       namespace: 'team-a',
@@ -485,7 +485,7 @@ describe('RuntimeMetricsVisualizations', () => {
       {
         bucket: 'reports',
         key: 'mlpipeline-ui-metadata.json',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         source: StorageService.S3,
       },
       'team-a',

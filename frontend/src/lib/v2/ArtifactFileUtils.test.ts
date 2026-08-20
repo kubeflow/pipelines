@@ -35,9 +35,10 @@ describe('readArtifactFile', () => {
       path: {
         bucket: 'reports',
         key: 'output.html',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         source: StorageService.S3,
       },
+      artifactUriQuery: undefined,
       namespace: 'request-namespace',
     });
   });
@@ -54,9 +55,10 @@ describe('readArtifactFile', () => {
       path: {
         bucket: 'reports',
         key: 'output.html',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         source: StorageService.GCS,
       },
+      artifactUriQuery: undefined,
       namespace: 'artifact-namespace',
     });
   });
@@ -69,7 +71,7 @@ describe('readArtifactFile', () => {
     expect(location.path).toEqual({
       bucket: 'reports',
       key: 'output.html',
-      keyEncoding: 'uri',
+      keyEncoding: 'storage',
       source: StorageService.S3,
     });
     expect(location.artifactUriQuery).toBe(
@@ -78,40 +80,71 @@ describe('readArtifactFile', () => {
   });
 
   it.each([
-    ['raw spaces and Unicode', 's3://reports/root dir/café.txt', 'root%20dir/caf%C3%A9.txt'],
-    ['canonical escapes', 's3://reports/root%20dir/caf%C3%A9.txt', 'root%20dir/caf%C3%A9.txt'],
-    ['a noncanonical valid escape', 's3://reports/root%73ecret/file', 'root%2573ecret/file'],
-    ['lowercase escape spelling', 's3://reports/caf%c3%a9/file', 'caf%25c3%25a9/file'],
-    ['literal percent escape text', 's3://reports/root%2520dir/file', 'root%2520dir/file'],
-    ['a raw literal percent', 's3://reports/100%complete/file', '100%25complete/file'],
-  ])('canonicalizes %s in native artifact URI paths', (_description, uri, expectedKey) => {
-    const location = parseArtifactFileLocation(uri);
+    [
+      'raw spaces and Unicode',
+      's3://reports/root dir/café.txt',
+      'root dir/café.txt',
+      'root dir/café.txt',
+    ],
+    ['canonical escapes', 's3://reports/root%20dir/caf%C3%A9.txt', 'root dir/café.txt', undefined],
+    [
+      'a noncanonical valid escape',
+      's3://reports/root%73ecret/file',
+      'rootsecret/file',
+      'root%73ecret/file',
+    ],
+    ['lowercase escape spelling', 's3://reports/caf%c3%a9/file', 'café/file', 'caf%c3%a9/file'],
+    ['literal percent escape text', 's3://reports/root%2520dir/file', 'root%20dir/file', undefined],
+  ])(
+    'preserves %s identity while deriving the launcher storage key',
+    (_description, uri, expectedKey, expectedUriKey) => {
+      const location = parseArtifactFileLocation(uri);
 
-    expect(location.path).toEqual({
-      bucket: 'reports',
-      key: expectedKey,
-      keyEncoding: 'uri',
-      source: StorageService.S3,
-    });
+      expect(location.path).toEqual({
+        bucket: 'reports',
+        key: expectedKey,
+        keyEncoding: 'storage',
+        source: StorageService.S3,
+        ...(expectedUriKey ? { uriKey: expectedUriKey } : {}),
+      });
+    },
+  );
+
+  it('rejects malformed percent encoding that the launcher cannot parse', () => {
+    expect(() => parseArtifactFileLocation('s3://reports/100%complete/file')).toThrow(
+      'Artifact URI key has invalid encoding',
+    );
+  });
+
+  it('rejects an encoded path delimiter that would change ownership segmentation', () => {
+    expect(() =>
+      parseArtifactFileLocation('s3://reports/private-artifacts%2Fteam-a/model'),
+    ).toThrow('cannot contain encoded path, query, or fragment delimiters');
   });
 
   it('builds valid preview and download URLs from a raw native artifact URI', () => {
     const location = parseArtifactFileLocation('s3://reports/root dir/café.txt');
 
     expect(Apis.buildReadFileUrl({ path: location.path })).toBe(
-      'artifacts/get?source=s3&bucket=reports&key=root%2520dir%2Fcaf%25C3%25A9.txt&keyEncoding=uri',
+      'artifacts/get?source=s3&bucket=reports&key=root%20dir%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%20dir%2Fcaf%C3%A9.txt',
     );
     expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toBe(
-      'artifacts/s3/reports/root%20dir/caf%C3%A9.txt',
+      'artifacts/s3/reports/root%20dir/caf%C3%A9.txt?uriKey=root%20dir%2Fcaf%C3%A9.txt',
     );
   });
 
-  it('keeps non-launcher paths as decoded storage keys', () => {
-    expect(parseArtifactFileLocation('https://files.example/raw path/café.txt').path).toEqual({
+  it('decodes escaped non-launcher paths for storage without changing their URI identity', () => {
+    const location = parseArtifactFileLocation('https://files.example/root%20dir/caf%c3%a9.txt');
+
+    expect(location.path).toEqual({
       bucket: 'files.example',
-      key: 'raw path/café.txt',
+      key: 'root dir/café.txt',
       keyEncoding: 'storage',
       source: StorageService.HTTPS,
+      uriKey: 'root%20dir/caf%c3%a9.txt',
     });
+    expect(Apis.buildReadFileUrl({ path: location.path })).toBe(
+      'artifacts/get?source=https&bucket=files.example&key=root%20dir%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%2520dir%2Fcaf%25c3%25a9.txt',
+    );
   });
 });

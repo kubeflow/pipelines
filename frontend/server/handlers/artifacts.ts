@@ -67,6 +67,7 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'bucket',
   'key',
   'keyEncoding',
+  'uriKey',
   'artifactUriQuery',
   'providerInfo',
   'namespace',
@@ -1192,6 +1193,7 @@ export function getArtifactsProxyHandler({
           bucket: url.searchParams.get('bucket') || undefined,
           key: url.searchParams.get('key') || undefined,
           keyEncoding: url.searchParams.get('keyEncoding') || undefined,
+          uriKey: url.searchParams.get('uriKey') || undefined,
           artifactUriQuery: url.searchParams.get('artifactUriQuery') || undefined,
         },
       });
@@ -1209,6 +1211,7 @@ export function getArtifactsProxyHandler({
               bucket: resolvedCoordinates.bucket,
               key: resolvedCoordinates.key,
               keyEncoding: resolvedCoordinates.keyEncoding,
+              uriKey: resolvedCoordinates.uriKey,
               artifactUriQuery: resolvedCoordinates.artifactUriQuery,
             }
           : undefined;

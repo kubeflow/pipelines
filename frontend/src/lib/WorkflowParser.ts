@@ -41,6 +41,8 @@ export interface StoragePath {
   key: string;
   /** Whether `key` is a decoded storage key or the canonical path from an artifact URI. */
   keyEncoding?: 'storage' | 'uri';
+  /** Exact persisted URI path when reconstructing it from `key` would change its spelling. */
+  uriKey?: string;
 }
 
 export default class WorkflowParser {

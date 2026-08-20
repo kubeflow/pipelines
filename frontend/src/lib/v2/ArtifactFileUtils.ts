@@ -21,13 +21,19 @@ export interface ArtifactFileLocation {
   artifactUriQuery?: string;
 }
 
-function canonicalizeArtifactUriKey(key: string): string {
+function decodeArtifactUriKey(key: string): string {
   try {
     const decodedKey = decodeURIComponent(key);
-    return encodeURI(decodedKey) === key ? key : encodeURI(key);
-  } catch {
-    // A raw percent sign is object-key data, not a malformed URI escape.
-    return encodeURI(key);
+    if (/%2f/i.test(key) || /[?#]/.test(decodedKey)) {
+      throw new Error(
+        'Artifact URI keys cannot contain encoded path, query, or fragment delimiters.',
+      );
+    }
+    return decodedKey;
+  } catch (error) {
+    throw new Error(`Artifact URI key has invalid encoding. Correct the artifact URI: ${error}`, {
+      cause: error,
+    });
   }
 }
 
@@ -36,14 +42,17 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
   const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
   const parsedPath = WorkflowParser.parseStoragePath(uriWithoutQuery);
-  const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(parsedPath.source);
-  const path = isLauncherArtifact
-    ? {
-        ...parsedPath,
-        key: canonicalizeArtifactUriKey(parsedPath.key),
-        keyEncoding: 'uri' as const,
-      }
-    : { ...parsedPath, keyEncoding: 'storage' as const };
+  const schemeEnd = uriWithoutQuery.indexOf('://');
+  const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
+  const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
+  const key = decodeArtifactUriKey(uriKey);
+  const path = {
+    ...parsedPath,
+    key,
+    keyEncoding: 'storage' as const,
+    ...(uriKey === encodeURI(key) ? {} : { uriKey }),
+  };
+  const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(path.source);
   if (!query || !isLauncherArtifact) {
     return { path };
   }
