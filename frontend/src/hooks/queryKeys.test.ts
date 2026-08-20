@@ -91,16 +91,9 @@ describe('queryKeys', () => {
     ]);
   });
 
-  it('scopes retry discovery metadata by run and refresh generation', () => {
+  it('scopes retry discovery and task state by run', () => {
     expect(queryKeys.runRetryDiscovery('run-1')).toEqual(['run_retry_discovery', { id: 'run-1' }]);
-    expect(queryKeys.runRetryRefreshVersion('run-1')).toEqual([
-      'run_retry_refresh_version',
-      { id: 'run-1' },
-    ]);
-    expect(queryKeys.runTaskRetryBaseline('run-1', 2)).toEqual([
-      'run_task_retry_baseline',
-      { id: 'run-1', retryRefreshVersion: 2 },
-    ]);
+    expect(queryKeys.runRetryTaskState('run-1')).toEqual(['run_retry_task_state', { id: 'run-1' }]);
   });
 
   it('pipelineVersions defaults to empty string when pipelineId is null', () => {

@@ -25,7 +25,12 @@ import { errorToMessage } from 'src/lib/Utils';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { RouteComponentProps } from 'react-router-dom';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
-import { RunDetailsV2, RunDetailsV2Params, RunDetailsV2Props } from 'src/pages/RunDetailsV2';
+import {
+  RunDetailsV2,
+  RunDetailsV2Params,
+  RunDetailsV2Props,
+  type RunTaskRetryState,
+} from 'src/pages/RunDetailsV2';
 import { usePipelineVersionTemplate } from 'src/hooks/usePipelineVersionTemplate';
 import { queryKeys } from 'src/hooks/queryKeys';
 import { hasFinishedV2 } from 'src/lib/StatusUtils';
@@ -35,8 +40,7 @@ export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 export const RUN_RETRY_STATE_GC_TIME = 10 * 60 * 1000;
 const MAX_POST_RETRY_DISCOVERY_ATTEMPTS = 3;
 const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
-const RETRY_REFRESH_VERSION_QUERY_FAMILY = ['run_retry_refresh_version'] as const;
-const RETRY_TASK_BASELINE_QUERY_FAMILY = ['run_task_retry_baseline'] as const;
+const INITIAL_RETRY_TASK_STATE: RunTaskRetryState = { version: 0 };
 const LEGACY_TASK_LINK_WARNING: BannerProps = {
   message:
     'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
@@ -208,29 +212,30 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
   const queryClient = useQueryClient();
   const runQueryKey = useMemo(() => queryKeys.v2RunDetail(runId), [runId]);
   const retryDiscoveryQueryKey = useMemo(() => queryKeys.runRetryDiscovery(runId), [runId]);
-  const retryRefreshVersionQueryKey = useMemo(
-    () => queryKeys.runRetryRefreshVersion(runId),
-    [runId],
-  );
+  const retryTaskStateQueryKey = useMemo(() => queryKeys.runRetryTaskState(runId), [runId]);
   useLayoutEffect(() => {
-    // Retry state must survive Run Details remounts. Configure each query family once without
-    // creating an immortal cache entry for every run that is merely viewed.
-    queryClient.setQueryDefaults(RETRY_REFRESH_VERSION_QUERY_FAMILY, {
-      staleTime: Number.POSITIVE_INFINITY,
-      gcTime: RUN_RETRY_STATE_GC_TIME,
-    });
+    // Pending retry discovery must survive brief Run Details navigation.
     queryClient.setQueryDefaults(RETRY_DISCOVERY_QUERY_FAMILY, {
-      staleTime: Number.POSITIVE_INFINITY,
-      gcTime: RUN_RETRY_STATE_GC_TIME,
-    });
-    queryClient.setQueryDefaults(RETRY_TASK_BASELINE_QUERY_FAMILY, {
       staleTime: Number.POSITIVE_INFINITY,
       gcTime: RUN_RETRY_STATE_GC_TIME,
     });
   }, [queryClient]);
 
-  const [retryRefreshVersion, setRetryRefreshVersion] = useState<number>(
-    () => queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0,
+  // Observe the version and baseline as one logical value. TanStack retains an observed entry while
+  // this page is mounted, then expires the complete pair after the bounded navigation window.
+  const { data: retryTaskState = INITIAL_RETRY_TASK_STATE } = useQuery<RunTaskRetryState>({
+    queryKey: retryTaskStateQueryKey,
+    queryFn: () => INITIAL_RETRY_TASK_STATE,
+    enabled: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: RUN_RETRY_STATE_GC_TIME,
+  });
+  const retryRefreshVersion = retryTaskState.version;
+  const persistRetryTaskState = useCallback(
+    (nextState: RunTaskRetryState) => {
+      queryClient.setQueryData<RunTaskRetryState>(retryTaskStateQueryKey, nextState);
+    },
+    [queryClient, retryTaskStateQueryKey],
   );
   const [, refreshRetryPoll] = useState(0);
   const pendingRetryDiscovery =
@@ -294,23 +299,11 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
         event.query.state.data &&
         isAttemptTransitionCandidate(event.query.state.data as V2beta1Run, pending.baseline)
       ) {
-        const currentVersion = queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0;
-        const nextVersion = currentVersion + 1;
-        queryClient.setQueryData(retryRefreshVersionQueryKey, nextVersion);
-        if (currentVersion > 0) {
-          queryClient.removeQueries({
-            exact: true,
-            queryKey: queryKeys.runTaskRetryBaseline(runId, currentVersion),
-          });
-        }
-        if (pending.preRetryTasks) {
-          queryClient.setQueryData(
-            queryKeys.runTaskRetryBaseline(runId, nextVersion),
-            pending.preRetryTasks,
-          );
-        }
+        persistRetryTaskState({
+          version: retryTaskState.version + 1,
+          preRetryTasks: pending.preRetryTasks,
+        });
         setRetryDiscovery(undefined);
-        setRetryRefreshVersion(nextVersion);
         return;
       }
 
@@ -330,10 +323,10 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     });
   }, [
     queryClient,
+    persistRetryTaskState,
     retryDiscoveryQueryKey,
-    retryRefreshVersionQueryKey,
+    retryTaskState,
     runQueryKey,
-    runId,
     setRetryDiscovery,
   ]);
 
@@ -360,7 +353,7 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     <RunDetailsV2
       {...props}
       onRetryStarted={onRetryStarted}
-      retryRefreshVersion={retryRefreshVersion}
+      retryTaskState={retryTaskState}
       run={refreshedRun || props.run}
       runRefreshError={isRefetchError ? runRefreshError : undefined}
     />

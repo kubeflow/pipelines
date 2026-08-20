@@ -60,10 +60,7 @@ export const queryKeys = {
 
   runRetryDiscovery: (runId: string) => ['run_retry_discovery', { id: runId }] as const,
 
-  runRetryRefreshVersion: (runId: string) => ['run_retry_refresh_version', { id: runId }] as const,
-
-  runTaskRetryBaseline: (runId: string, retryRefreshVersion: number) =>
-    ['run_task_retry_baseline', { id: runId, retryRefreshVersion }] as const,
+  runRetryTaskState: (runId: string) => ['run_retry_task_state', { id: runId }] as const,
 
   artifactTasksPage: (artifactId: string, pageToken?: string, pageSize?: number) =>
     ['artifact_tasks', { artifactId, pageSize, pageToken }] as const,

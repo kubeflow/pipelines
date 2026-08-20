@@ -713,7 +713,7 @@ describe('RunDetailsV2', () => {
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
           onRetryStarted={onRetryStarted}
-          retryRefreshVersion={1}
+          retryTaskState={{ version: 1 }}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
           {...props}
         />
@@ -737,7 +737,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          retryRefreshVersion={1}
+          retryTaskState={{ version: 1 }}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
           {...generateProps()}
         />
@@ -799,7 +799,7 @@ describe('RunDetailsV2', () => {
       <CommonTestWrapper>
         <RunDetailsV2
           pipeline_job={v2YamlTemplateString}
-          retryRefreshVersion={1}
+          retryTaskState={{ version: 1 }}
           run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
           {...generateProps()}
         />
@@ -822,10 +822,6 @@ describe('RunDetailsV2', () => {
     vi.useFakeTimers();
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const retryRefreshVersion = 1;
-    queryClient.setQueryData(
-      queryKeys.runTaskRetryBaseline(RUN_ID, retryRefreshVersion),
-      TEST_TASKS,
-    );
     const refreshedTasks = TEST_TASKS.map((task) =>
       task.task_id === 'preprocess-task'
         ? {
@@ -854,7 +850,7 @@ describe('RunDetailsV2', () => {
         <QueryClientProvider client={queryClient}>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            retryRefreshVersion={retryRefreshVersion}
+            retryTaskState={{ version: retryRefreshVersion, preRetryTasks: TEST_TASKS }}
             run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
             {...generateProps()}
           />
@@ -890,7 +886,7 @@ describe('RunDetailsV2', () => {
         <QueryClientProvider client={queryClient}>
           <RunDetailsV2
             pipeline_job={v2YamlTemplateString}
-            retryRefreshVersion={1}
+            retryTaskState={{ version: 1 }}
             run={{ ...TEST_RUN, state: V2beta1RuntimeState.FAILED }}
             {...generateProps()}
           />

@@ -80,9 +80,14 @@ interface RunDetailsV2Info {
   onRetryStarted?: () => void;
   pipeline_job: string;
   parsedPipelineSpec: PipelineSpec;
-  retryRefreshVersion?: number;
+  retryTaskState?: RunTaskRetryState;
   run: V2beta1Run;
   runRefreshError?: Error | null;
+}
+
+export interface RunTaskRetryState {
+  preRetryTasks?: V2beta1PipelineTask[];
+  version: number;
 }
 
 interface SelectedNodeState {
@@ -114,7 +119,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
-  const retryRefreshVersion = props.retryRefreshVersion || 0;
+  const retryRefreshVersion = props.retryTaskState?.version || 0;
+  const preRetryTasks = props.retryTaskState?.preRetryTasks;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -122,12 +128,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
     [retryRefreshVersion, runId],
   );
-  const preRetryTasks =
-    retryRefreshVersion > 0
-      ? queryClient.getQueryData<V2beta1PipelineTask[]>(
-          queryKeys.runTaskRetryBaseline(runId, retryRefreshVersion),
-        )
-      : undefined;
   const terminalTaskReconciliation = useRef<{
     dataUpdateBaseline: number;
     errorUpdateBaseline: number;
