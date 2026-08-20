@@ -32,7 +32,7 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
     if (
       /%2f/i.test(key) ||
       (enforceLauncherPathPolicy && /%26/i.test(key)) ||
-      /[?#]/.test(storageKey) ||
+      (enforceLauncherPathPolicy && /[?#]/.test(storageKey)) ||
       (enforceLauncherPathPolicy &&
         storageKey !== '' &&
         segments.some((segment) => segment === '' || segment === '.' || segment === '..'))

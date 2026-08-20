@@ -263,7 +263,24 @@ describe('Apis', () => {
       'artifacts/get?source=s3&bucket=testbucket&key=rootsecret%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
     );
     expect(Apis.buildReadFileUrl({ path, isDownload: true })).toBe(
-      'artifacts/s3/testbucket/rootsecret/caf%C3%A9.txt?uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+      'artifacts/s3/testbucket/root%73ecret/caf%c3%a9.txt?uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+    );
+  });
+
+  it('keeps an exact escaped HTTP identity in the download path', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'files.example',
+          key: 'reports/A?B#C&D.csv',
+          keyEncoding: 'storage',
+          source: StorageService.HTTPS,
+          uriKey: 'reports/A%3FB%23C%26D.csv',
+        },
+        isDownload: true,
+      }),
+    ).toBe(
+      'artifacts/https/files.example/reports/A%3FB%23C%26D.csv?uriKey=reports%2FA%253FB%2523C%2526D.csv',
     );
   });
 

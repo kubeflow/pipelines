@@ -367,11 +367,62 @@ describe('RuntimeMetricsVisualizations', () => {
     );
 
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
+    fireEvent.click(screen.getByRole('option', { name: 'report' }));
+    await waitFor(() =>
+      expect(readFileSpy).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'team-a' })),
+    );
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
     fireEvent.click(screen.getByRole('option', { name: 'dashboard' }));
 
     await waitFor(() =>
       expect(readFileSpy).toHaveBeenCalledWith(expect.objectContaining({ namespace: 'team-b' })),
     );
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
+      'dashboard',
+    );
+  });
+
+  it('preserves file selection when polling inserts or reorders other artifacts', async () => {
+    vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Dashboard</h1>');
+    const report: V2beta1Artifact = {
+      name: 'report',
+      type: ArtifactArtifactType.HTML,
+      uri: 's3://reports/report.html',
+    };
+    const dashboard: V2beta1Artifact = {
+      name: 'dashboard',
+      type: ArtifactArtifactType.HTML,
+      uri: 's3://reports/dashboard.html',
+    };
+    const wrapper = ({ artifacts }: { artifacts: V2beta1Artifact[] }) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations artifacts={artifacts} />
+      </CommonTestWrapper>
+    );
+    const { rerender } = render(wrapper({ artifacts: [report, dashboard] }));
+
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'HTML visualization' }));
+    fireEvent.click(screen.getByRole('option', { name: 'dashboard' }));
+    expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
+      'dashboard',
+    );
+
+    rerender(
+      wrapper({
+        artifacts: [
+          {
+            name: 'new report',
+            type: ArtifactArtifactType.HTML,
+            uri: 's3://reports/new.html',
+          },
+          dashboard,
+          report,
+        ],
+      }),
+    );
+
     expect(screen.getByRole('combobox', { name: 'HTML visualization' })).toHaveTextContent(
       'dashboard',
     );

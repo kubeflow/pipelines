@@ -402,6 +402,25 @@ describe('resolveArtifactCoordinates', () => {
       });
     });
 
+    it('preserves encoded HTTP query and fragment delimiters as path identity', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'https',
+            bucket: 'files.example',
+            key: 'reports/A?B#C.csv',
+            keyEncoding: 'storage',
+            uriKey: 'reports/A%3FB%23C.csv',
+          }),
+        ),
+      ).toMatchObject({ key: 'reports/A?B#C.csv', uriKey: 'reports/A%3FB%23C.csv' });
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/https/files.example/reports/A%3FB%23C.csv'),
+        ),
+      ).toMatchObject({ key: 'reports/A?B#C.csv', uriKey: 'reports/A%3FB%23C.csv' });
+    });
+
     it('rejects escaped traversal segments in exact preview identity', () => {
       expect(
         resolveArtifactCoordinates(

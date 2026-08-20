@@ -191,17 +191,26 @@ function FileArtifactVisualization({
   namespace?: string;
   sourceFinished?: boolean;
 }) {
-  const entries = useMemo(
-    () =>
-      artifacts.map((artifact, index) => {
-        const identity = getArtifactIdentity(artifact);
-        return {
-          artifact,
-          key: `${identity || 'artifact'}-${index}`,
-        };
-      }),
-    [artifacts],
-  );
+  const entries = useMemo(() => {
+    const identityOccurrences = new Map<string, number>();
+    return artifacts.map((artifact) => {
+      const identity = artifact.artifact_id
+        ? JSON.stringify(['id', artifact.artifact_id])
+        : JSON.stringify([
+            'artifact',
+            artifact.uri || '',
+            artifact.namespace || '',
+            artifact.name || '',
+            artifact.type || '',
+          ]);
+      const occurrence = identityOccurrences.get(identity) || 0;
+      identityOccurrences.set(identity, occurrence + 1);
+      return {
+        artifact,
+        key: JSON.stringify([identity, occurrence]),
+      };
+    });
+  }, [artifacts]);
   const [selectedKey, setSelectedKey] = useState('');
   const selectedEntry =
     entries.find(({ key }) => key === selectedKey) ||
@@ -268,9 +277,14 @@ export function RuntimeArtifactVisualization({
   title?: string;
 }) {
   const artifactKey = getArtifactIdentity(artifact);
+  const effectiveNamespace = artifact.namespace || namespace;
   const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
-    queryKey: queryKeys.runtimeArtifactVisualization(artifactKey, namespace, sourceFinished),
-    queryFn: () => downloadVisualization(artifact, namespace),
+    queryKey: queryKeys.runtimeArtifactVisualization(
+      artifactKey,
+      effectiveNamespace,
+      sourceFinished,
+    ),
+    queryFn: () => downloadVisualization(artifact, effectiveNamespace),
     retry: false,
     staleTime: Infinity,
   });

@@ -827,6 +827,29 @@ s3:
       });
     });
 
+    it('fetches the exact escaped HTTP artifact identity that was authorized', async () => {
+      const artifactContent = 'escaped path identity';
+      mockedFetch.mockImplementationOnce((url: string, opts: any) =>
+        url === 'http://foo.bar/ml-pipeline/reports/A%26B%3FC%23D.csv'
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
+          : Promise.reject(`Unexpected HTTP artifact URL: ${url}`),
+      );
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'foo.bar/' }));
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=reports%2FA%26B%3FC%23D.csv&uriKey=reports%2FA%2526B%253FC%2523D.csv',
+        )
+        .expect(200, artifactContent);
+      expect(mockedFetch).toHaveBeenCalledWith(
+        'http://foo.bar/ml-pipeline/reports/A%26B%3FC%23D.csv',
+        { headers: {}, redirect: 'manual' },
+      );
+    });
+
     it.each([
       ['parent directory segments', '..%2F..%2Fadmin'],
       ['backslash directory segments', '..%5C..%5Cadmin'],

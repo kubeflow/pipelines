@@ -64,6 +64,10 @@ import { StoragePath, StorageService } from './WorkflowParser';
 const v1beta1Prefix = 'apis/v1beta1';
 const v2beta1Prefix = 'apis/v2beta1';
 
+function encodeExactArtifactUriKey(uriKey: string): string {
+  return encodeURI(uriKey).replace(/%25([0-9a-f]{2})/gi, '%$1');
+}
+
 export interface ListRequest {
   filter?: string;
   orderAscending?: boolean;
@@ -374,7 +378,12 @@ export class Apis {
     const { source, bucket, key, uriKey } = path;
     const keyEncoding = path.keyEncoding ?? 'storage';
     if (isDownload) {
-      const pathKey = keyEncoding === 'storage' ? encodeURI(key) : key;
+      const pathKey =
+        uriKey !== undefined
+          ? encodeExactArtifactUriKey(uriKey)
+          : keyEncoding === 'storage'
+            ? encodeURI(key)
+            : key;
       return `artifacts/${source}/${bucket}/${pathKey}${buildQuery({
         namespace,
         artifactUriQuery,

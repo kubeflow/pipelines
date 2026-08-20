@@ -149,6 +149,21 @@ describe('readArtifactFile', () => {
   });
 
   it.each([
+    ['HTTP query delimiter', 'https://files.example/reports/A%3FB.csv', 'reports/A?B.csv'],
+    ['HTTP fragment delimiter', 'https://files.example/reports/A%23B.csv', 'reports/A#B.csv'],
+    ['volume query delimiter', 'volume://reports/A%3FB.csv', 'A?B.csv'],
+    ['volume fragment delimiter', 'volume://reports/A%23B.csv', 'A#B.csv'],
+  ])('preserves encoded %s as exact non-launcher path data', (_description, uri, key) => {
+    const location = parseArtifactFileLocation(uri);
+
+    expect(location.path.key).toBe(key);
+    expect(location.path.uriKey).toBe(uri.slice(uri.indexOf('/', uri.indexOf('://') + 3) + 1));
+    expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toContain(
+      location.path.uriKey,
+    );
+  });
+
+  it.each([
     ['HTTP dot segment', 'http://tensorboard.example.com/logs/./x', 'logs/./x'],
     ['HTTPS doubled slash', 'https://example.com/reports/a//b', 'reports/a//b'],
     ['volume dot segment', 'volume://my-vol/data/./out', 'data/./out'],

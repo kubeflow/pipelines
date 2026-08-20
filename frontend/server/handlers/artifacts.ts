@@ -467,7 +467,13 @@ export function getArtifactsHandler({
         break;
       case 'http':
       case 'https': {
-        const httpUrl = getHttpUrl(source, http.baseUrl || '', bucket, key);
+        const httpUrl = getHttpUrl(
+          source,
+          http.baseUrl || '',
+          bucket,
+          coordinates.uriKey ?? key,
+          coordinates.uriKey ? 'uri' : 'storage',
+        );
         if (!httpUrl) {
           res
             .status(400)
@@ -645,18 +651,25 @@ function parsePeekValue(value: string | undefined): number {
  * @param bucket name of the bucket.
  * @param key path to the artifact.
  */
-function getHttpUrl(source: 'http' | 'https', baseUrl: string, bucket: string, key: string) {
+function getHttpUrl(
+  source: 'http' | 'https',
+  baseUrl: string,
+  bucket: string,
+  key: string,
+  keyEncoding: 'storage' | 'uri' = 'storage',
+) {
   const configuredBaseUrl = baseUrl.trim().replace(/^\/+/, '');
   if (!configuredBaseUrl) {
     return undefined;
   }
   try {
     const artifactUrl = new URL(`${source}://${configuredBaseUrl}`);
-    const safeKey = applyArtifactPathPolicy(key, ARTIFACT_PATH_POLICIES.http);
+    const storageKey = keyEncoding === 'uri' ? decodeURIComponent(key) : key;
+    const safeKey = applyArtifactPathPolicy(storageKey, ARTIFACT_PATH_POLICIES.http);
     if (safeKey === undefined) {
       return undefined;
     }
-    const escapedKey = safeKey.replace(/%/g, '%25');
+    const escapedKey = keyEncoding === 'uri' ? key : safeKey.replace(/%/g, '%25');
     artifactUrl.pathname = [artifactUrl.pathname.replace(/\/+$/, ''), bucket, escapedKey]
       .filter(Boolean)
       .join('/');

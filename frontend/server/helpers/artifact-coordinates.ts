@@ -42,13 +42,15 @@ export function isCanonicalArtifactUriKey(key: string, source: string): boolean 
     const decodedKey = decodeURIComponent(key);
     // Query and fragment delimiters are not supported inside native KFP object keys.
     // Launcher-backed artifacts follow Go SplitObjectURI, which rejects encoded ampersands.
-    // HTTP keeps its exact escaped identity because '&' is valid path data for that handler.
+    // Non-launcher handlers keep exact escaped delimiters that are valid path data for them.
     const isLauncherArtifact = isLauncherArtifactSource(source);
-    const comparableKey = isLauncherArtifact ? key : key.replace(/%26/gi, '&');
+    const comparableKey = isLauncherArtifact
+      ? key
+      : key.replace(/%26/gi, '&').replace(/%3f/gi, '?').replace(/%23/gi, '#');
     return (
       !/%2f/i.test(key) &&
       !(isLauncherArtifact && /%26/i.test(key)) &&
-      !/[?#]/.test(decodedKey) &&
+      !(isLauncherArtifact && /[?#]/.test(decodedKey)) &&
       comparableKey === encodeURI(decodedKey)
     );
   } catch {
@@ -87,7 +89,7 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
       /%2f/i.test(uriKey) ||
       (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
       applyArtifactPathPolicy(storageKey, pathPolicy) === undefined ||
-      /[?#]/.test(storageKey)
+      (isLauncherArtifactSource(source) && /[?#]/.test(storageKey))
     ) {
       return undefined;
     }

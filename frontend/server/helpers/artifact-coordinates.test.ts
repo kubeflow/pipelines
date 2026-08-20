@@ -42,6 +42,12 @@ describe('isCanonicalArtifactUriKey', () => {
     expect(isCanonicalArtifactUriKey('reports/A%26B.csv', 'https')).toBe(true);
     expect(isCanonicalArtifactUriKey('reports/A%26B.csv', 's3')).toBe(false);
   });
+
+  it('accepts encoded query and fragment delimiters only for non-launcher sources', () => {
+    expect(isCanonicalArtifactUriKey('reports/A%3FB%23C.csv', 'https')).toBe(true);
+    expect(isCanonicalArtifactUriKey('reports/A%3FB%23C.csv', 'volume')).toBe(true);
+    expect(isCanonicalArtifactUriKey('reports/A%3FB%23C.csv', 's3')).toBe(false);
+  });
 });
 
 describe('normalizeArtifactStorageCoordinates', () => {
