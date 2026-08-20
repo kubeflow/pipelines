@@ -196,7 +196,6 @@ describe('readArtifactFile', () => {
     'https://example.com/a/./b',
     'https://example.com/a/%2e%2e/b',
     'volume://my-vol/a/../b',
-    'volume://my-vol/a/./b',
     'volume://my-vol/a/%2e%2e/b',
   ])('rejects non-launcher relative segments before download URL normalization: %s', (uri) => {
     expect(() => parseArtifactFileLocation(uri)).toThrow(
@@ -207,6 +206,23 @@ describe('readArtifactFile', () => {
   it('preserves repeated non-launcher separators that survive URL path transport', () => {
     expect(parseArtifactFileLocation('https://example.com/a//b').path.key).toBe('a//b');
   });
+
+  it.each(['volume://my-vol/data/./out', 'volume://my-vol/data/%2e/out'])(
+    'normalizes a supported volume dot segment while preserving exact identity: %s',
+    (uri) => {
+      const location = parseArtifactFileLocation(uri);
+
+      expect(location.path).toMatchObject({
+        bucket: 'my-vol',
+        key: 'data/out',
+        source: StorageService.VOLUME,
+        uriKey: uri.slice(uri.indexOf('/', uri.indexOf('://') + 3) + 1),
+      });
+      expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toContain(
+        'artifacts/volume/my-vol/data/out?uriKey=',
+      );
+    },
+  );
 
   it('accepts the trailing slash that Go SplitObjectURI trims for launcher artifacts', () => {
     expect(parseArtifactFileLocation('minio://mlpipeline/v2/artifacts/run-1/dir/').path).toEqual({

@@ -21,11 +21,13 @@ export interface ArtifactFileLocation {
   artifactUriQuery?: string;
 }
 
-function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): string {
+function decodeArtifactUriKey(key: string, source: string): string {
   try {
     // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
     // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
     const decodedKey = decodeURIComponent(key);
+    const enforceLauncherPathPolicy = ['gcs', 'minio', 's3'].includes(source);
+    const normalizeVolumeDotSegments = source === 'volume';
     const storageKey =
       enforceLauncherPathPolicy && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
     const segments = storageKey.split('/');
@@ -36,14 +38,18 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
       (storageKey !== '' &&
         segments.some(
           (segment) =>
-            segment === '.' || segment === '..' || (enforceLauncherPathPolicy && segment === ''),
+            segment === '..' ||
+            (!normalizeVolumeDotSegments && segment === '.') ||
+            (enforceLauncherPathPolicy && segment === ''),
         ))
     ) {
       throw new Error(
         'Artifact URI keys cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters.',
       );
     }
-    return storageKey;
+    return normalizeVolumeDotSegments
+      ? segments.filter((segment) => segment !== '.').join('/')
+      : storageKey;
   } catch (error) {
     throw new Error(`Artifact URI key has invalid encoding. Correct the artifact URI: ${error}`, {
       cause: error,
@@ -75,7 +81,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
       'HTTP and volume artifact URI query strings are not supported. Percent-encode ? as %3F when it is part of the artifact path.',
     );
   }
-  const key = decodeArtifactUriKey(uriKey, isLauncherArtifact);
+  const key = decodeArtifactUriKey(uriKey, parsedPath.source);
   const canonicalUriKey = encodeURI(key);
   const preserveExactUriKey = isLauncherArtifact
     ? uriKey !== canonicalUriKey

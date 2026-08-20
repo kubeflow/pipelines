@@ -499,12 +499,28 @@ describe('resolveArtifactCoordinates', () => {
           makeRequest('/artifacts/get', {
             source: 'volume',
             bucket: 'artifact-volume',
-            key: 'reports//./output.csv',
+            key: 'reports//output.csv',
             keyEncoding: 'storage',
             uriKey: 'reports//./output.csv',
           }),
         ),
-      ).toMatchObject({ key: 'reports//./output.csv', source: 'volume' });
+      ).toMatchObject({
+        key: 'reports//output.csv',
+        source: 'volume',
+        uriKey: 'reports//./output.csv',
+      });
+
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/volume/artifact-volume/reports/output.csv', {
+            uriKey: 'reports/./output.csv',
+          }),
+        ),
+      ).toMatchObject({
+        key: 'reports/output.csv',
+        source: 'volume',
+        uriKey: 'reports/./output.csv',
+      });
     });
 
     it('rejects a noncanonical percent escape instead of treating it as an alias', () => {

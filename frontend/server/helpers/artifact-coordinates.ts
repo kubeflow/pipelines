@@ -76,10 +76,17 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
 function decodeExactArtifactUriKey(uriKey: string, source: string): string | undefined {
   try {
     const decodedKey = decodeURIComponent(uriKey);
-    const storageKey =
+    const sourceStorageKey =
       isLauncherArtifactSource(source) && decodedKey.endsWith('/')
         ? decodedKey.slice(0, -1)
         : decodedKey;
+    const storageKey =
+      source === 'volume'
+        ? sourceStorageKey
+            .split('/')
+            .filter((segment) => segment !== '.')
+            .join('/')
+        : sourceStorageKey;
     const pathPolicy =
       source === 'http' || source === 'https'
         ? ARTIFACT_PATH_POLICIES.http
@@ -90,7 +97,7 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
       /[?#]/.test(uriKey) ||
       /%2f/i.test(uriKey) ||
       (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
-      applyArtifactPathPolicy(storageKey, pathPolicy) === undefined ||
+      applyArtifactPathPolicy(sourceStorageKey, pathPolicy) === undefined ||
       (isLauncherArtifactSource(source) && /[?#]/.test(storageKey))
     ) {
       return undefined;
