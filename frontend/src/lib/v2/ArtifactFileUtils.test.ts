@@ -185,18 +185,27 @@ describe('readArtifactFile', () => {
     );
   });
 
-  it.each([
-    ['HTTP dot segment', 'http://tensorboard.example.com/logs/./x', 'logs/./x'],
-    ['HTTPS doubled slash', 'https://example.com/reports/a//b', 'reports/a//b'],
-    ['volume dot segment', 'volume://my-vol/data/./out', 'data/./out'],
-  ])('leaves %s compatibility decisions to its source handler', (_description, uri, key) => {
-    expect(parseArtifactFileLocation(uri).path.key).toBe(key);
-  });
-
   it('rejects non-launcher encoded slashes locally, matching the server identity boundary', () => {
     expect(() => parseArtifactFileLocation('https://example.com/a%2Fb/c')).toThrow(
       'cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters',
     );
+  });
+
+  it.each([
+    'https://example.com/a/../b',
+    'https://example.com/a/./b',
+    'https://example.com/a/%2e%2e/b',
+    'volume://my-vol/a/../b',
+    'volume://my-vol/a/./b',
+    'volume://my-vol/a/%2e%2e/b',
+  ])('rejects non-launcher relative segments before download URL normalization: %s', (uri) => {
+    expect(() => parseArtifactFileLocation(uri)).toThrow(
+      'cannot contain empty or relative path segments',
+    );
+  });
+
+  it('preserves repeated non-launcher separators that survive URL path transport', () => {
+    expect(parseArtifactFileLocation('https://example.com/a//b').path.key).toBe('a//b');
   });
 
   it('accepts the trailing slash that Go SplitObjectURI trims for launcher artifacts', () => {
