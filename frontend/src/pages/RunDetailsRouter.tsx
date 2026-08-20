@@ -33,17 +33,13 @@ import { BannerProps } from 'src/components/Banner';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 const MAX_POST_RETRY_DISCOVERY_ATTEMPTS = 3;
-let latestRetryRefreshVersion = 0;
+const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
+const RETRY_REFRESH_VERSION_QUERY_FAMILY = ['run_retry_refresh_version'] as const;
 const LEGACY_TASK_LINK_WARNING: BannerProps = {
   message:
     'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
   mode: 'warning',
 };
-
-function nextRetryRefreshVersion(): number {
-  latestRetryRefreshVersion += 1;
-  return latestRetryRefreshVersion;
-}
 
 function preserveDeepEqualData<T>(previous: T | undefined, next: T): T {
   return previous !== undefined && isEqual(previous, next) ? previous : next;
@@ -53,6 +49,53 @@ interface PendingRetryDiscovery {
   baseline: V2beta1Run;
   preRetryTasks?: V2beta1PipelineTask[];
   remainingAttempts: number;
+}
+
+function isAttemptTransitionCandidate(current: V2beta1Run, baseline: V2beta1Run): boolean {
+  const baselineHistory = baseline.state_history ?? [];
+  const currentHistory = current.state_history ?? [];
+
+  const minHistoryLength = Math.min(baselineHistory.length, currentHistory.length);
+  for (let i = 0; i < minHistoryLength; i += 1) {
+    if (!isEqual(baselineHistory[i], currentHistory[i])) {
+      return true;
+    }
+  }
+
+  if (currentHistory.length > baselineHistory.length) {
+    const baselineLastState = baselineHistory.at(-1)?.state;
+    return currentHistory
+      .slice(baselineHistory.length)
+      .some((entry) => entry.state !== baselineLastState);
+  }
+
+  if (currentHistory.length < baselineHistory.length) {
+    return true;
+  }
+
+  // With matched history length and values, defer to terminal-state drift to spot canonical attempt
+  // transitions that are not represented in history.
+  return current.state !== baseline.state;
+}
+
+function isCancelledError(error: unknown): error is Error {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'name' in error &&
+    error.name === 'CancelledError'
+  );
+}
+
+function isRunActive(state?: string): boolean {
+  if (!state) {
+    return true;
+  }
+  try {
+    return !hasFinishedV2(state as V2beta1Run['state']);
+  } catch (_err) {
+    return true;
+  }
 }
 
 // This is a router to determine whether to show V1 or V2 run detail page.
@@ -168,13 +211,40 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     () => queryKeys.runRetryRefreshVersion(runId),
     [runId],
   );
-  const [retryRefreshVersion, setRetryRefreshVersion] = useState(
+  useLayoutEffect(() => {
+    // Retry state must survive Run Details remounts. Configure each query family once without
+    // creating an immortal cache entry for every run that is merely viewed.
+    queryClient.setQueryDefaults(RETRY_REFRESH_VERSION_QUERY_FAMILY, {
+      staleTime: Number.POSITIVE_INFINITY,
+      gcTime: Number.POSITIVE_INFINITY,
+    });
+    queryClient.setQueryDefaults(RETRY_DISCOVERY_QUERY_FAMILY, {
+      staleTime: Number.POSITIVE_INFINITY,
+      gcTime: Number.POSITIVE_INFINITY,
+    });
+  }, [queryClient]);
+
+  const [retryRefreshVersion, setRetryRefreshVersion] = useState<number>(
     () => queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0,
   );
-  const [, refreshRetryPolling] = useState(0);
+  const [, refreshRetryPoll] = useState(0);
+  const pendingRetryDiscovery =
+    queryClient.getQueryData<PendingRetryDiscovery>(retryDiscoveryQueryKey);
   const loadRun = useCallback(() => Apis.runServiceApiV2.getRun(runId), [runId]);
-  const retryDiscoveryPending =
-    queryClient.getQueryData<PendingRetryDiscovery>(retryDiscoveryQueryKey) !== undefined;
+  const setRetryDiscovery = useCallback(
+    (value: PendingRetryDiscovery | undefined) => {
+      if (value) {
+        queryClient.setQueryData(retryDiscoveryQueryKey, value);
+        return;
+      }
+      queryClient.removeQueries({ exact: true, queryKey: retryDiscoveryQueryKey });
+      // Ensure the interval callback for the run query re-runs after state transitions that clear
+      // discovery.
+      refreshRetryPoll((previous) => previous + 1);
+    },
+    [queryClient, retryDiscoveryQueryKey],
+  );
+
   const {
     data: refreshedRun,
     error: runRefreshError,
@@ -187,12 +257,12 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     structuralSharing: preserveDeepEqualData,
     refetchInterval: (query) => {
       const state = query.state.data?.state;
-      const runIsActive = state !== undefined && !hasFinishedV2(state);
-      const retryPending =
+      const runIsActive = isRunActive(state);
+      const discoveryPending =
         queryClient.getQueryData<PendingRetryDiscovery>(retryDiscoveryQueryKey) !== undefined;
-      return retryPending || runIsActive ? RUN_DETAILS_REFETCH_INTERVAL : false;
+      return runIsActive || discoveryPending ? RUN_DETAILS_REFETCH_INTERVAL : false;
     },
-    refetchOnMount: retryDiscoveryPending ? 'always' : false,
+    refetchOnMount: pendingRetryDiscovery ? 'always' : false,
   });
 
   useLayoutEffect(() => {
@@ -201,8 +271,6 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     if (!runQuery) {
       return undefined;
     }
-    // Success and error events represent completed attempts TanStack accepted. Query functions can
-    // still resolve after cancellation, but those discarded results never consume this budget.
     return queryCache.subscribe((event) => {
       if (
         event.type !== 'updated' ||
@@ -215,14 +283,14 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
       if (!pending) {
         return;
       }
-      const acceptedRun =
-        event.action.type === 'success'
-          ? (event.query.state.data as V2beta1Run | undefined)
-          : undefined;
-      if (acceptedRun && !isEqual(acceptedRun, pending.baseline)) {
-        // Query cache entries can outlive this component. Use a process-unique generation so a
-        // remounted details page cannot reuse task snapshots from an earlier retry.
-        const nextVersion = nextRetryRefreshVersion();
+
+      if (
+        event.action.type === 'success' &&
+        event.query.state.data &&
+        isAttemptTransitionCandidate(event.query.state.data as V2beta1Run, pending.baseline)
+      ) {
+        const nextVersion =
+          (queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0) + 1;
         queryClient.setQueryData(retryRefreshVersionQueryKey, nextVersion);
         if (pending.preRetryTasks) {
           queryClient.setQueryData(
@@ -230,40 +298,51 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
             pending.preRetryTasks,
           );
         }
-        queryClient.removeQueries({ exact: true, queryKey: retryDiscoveryQueryKey });
+        setRetryDiscovery(undefined);
         setRetryRefreshVersion(nextVersion);
         return;
       }
+
+      if (event.action.type === 'error' && isCancelledError(event.query.state.error)) {
+        return;
+      }
+
       const remainingAttempts = pending.remainingAttempts - 1;
       if (remainingAttempts <= 0) {
-        queryClient.removeQueries({ exact: true, queryKey: retryDiscoveryQueryKey });
-        // QueryObserver computes its next interval before QueryCache subscribers run. Rerender
-        // once so the exhausted budget cancels the timer it just scheduled.
-        refreshRetryPolling((revision) => revision + 1);
-      } else {
-        queryClient.setQueryData(retryDiscoveryQueryKey, { ...pending, remainingAttempts });
+        setRetryDiscovery(undefined);
+        return;
       }
+      queryClient.setQueryData<PendingRetryDiscovery>(retryDiscoveryQueryKey, {
+        ...pending,
+        remainingAttempts,
+      });
     });
-  }, [queryClient, retryDiscoveryQueryKey, retryRefreshVersionQueryKey, runId, runQueryKey]);
+  }, [
+    queryClient,
+    retryDiscoveryQueryKey,
+    retryRefreshVersionQueryKey,
+    runQueryKey,
+    runId,
+    setRetryDiscovery,
+  ]);
+
   const onRetryStarted = useCallback(() => {
-    // Retry persistence can lag the mutation response. Continue through a few unchanged terminal
-    // snapshots, but keep the recovery bounded when a fast retry remains terminal throughout.
     const currentTaskQueryKey = queryKeys.runTasks(runId, retryRefreshVersion || undefined);
-    queryClient.setQueryData<PendingRetryDiscovery>(retryDiscoveryQueryKey, {
+    setRetryDiscovery({
       baseline: refreshedRun || props.run,
       preRetryTasks: queryClient.getQueryData<V2beta1PipelineTask[]>(currentTaskQueryKey),
       remainingAttempts: MAX_POST_RETRY_DISCOVERY_ATTEMPTS,
     });
-    refreshRetryPolling((revision) => revision + 1);
+    refreshRetryPoll((revision) => revision + 1);
     void refetchRun();
   }, [
     props.run,
     queryClient,
     refreshedRun,
     refetchRun,
-    retryDiscoveryQueryKey,
     retryRefreshVersion,
     runId,
+    setRetryDiscovery,
   ]);
 
   return (

@@ -492,7 +492,7 @@ describe('RunDetailsRouter', () => {
     await screen.findByTestId('run-details-v2');
 
     apiRun = firstRetriedRun;
-    screen.getByRole('button', { name: 'Retry started' }).click();
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
     await waitFor(() =>
       expect(
         Number(screen.getByTestId('run-details-v2').dataset.retryRefreshVersion),
@@ -506,7 +506,7 @@ describe('RunDetailsRouter', () => {
     await screen.findByTestId('run-details-v2');
 
     apiRun = secondRetriedRun;
-    screen.getByRole('button', { name: 'Retry started' }).click();
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
     await waitFor(() =>
       expect(
         Number(screen.getByTestId('run-details-v2').dataset.retryRefreshVersion),
@@ -514,7 +514,7 @@ describe('RunDetailsRouter', () => {
     );
     const secondVersion = screen.getByTestId('run-details-v2').dataset.retryRefreshVersion;
 
-    expect(secondVersion).not.toBe(firstVersion);
+    expect(Number(secondVersion)).toBeGreaterThan(Number(firstVersion));
   });
 
   it('keeps discovering a retried run after the first post-retry refresh fails', async () => {
@@ -626,6 +626,65 @@ describe('RunDetailsRouter', () => {
       ).toBeGreaterThan(0),
     );
     expect(queryClient.getQueryData(queryKeys.runRetryDiscovery(TEST_RUN_ID))).toBeUndefined();
+  });
+
+  it('retains retry discovery generation across remount beyond the default cache gc window', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const failedRun: V2beta1Run = {
+      run_id: TEST_RUN_ID,
+      pipeline_spec: v2PipelineSpec,
+      state: V2beta1RuntimeState.FAILED,
+      state_history: [
+        { state: V2beta1RuntimeState.FAILED, update_time: new Date('2026-08-14T12:00:00Z') },
+      ],
+    };
+    const retriedRun: V2beta1Run = {
+      ...failedRun,
+      state: V2beta1RuntimeState.RUNNING,
+      state_history: [
+        { state: V2beta1RuntimeState.RUNNING, update_time: new Date('2026-08-14T12:01:00Z') },
+      ],
+    };
+    let apiRun: V2beta1Run = failedRun;
+    getRunSpy.mockImplementation(async () => apiRun);
+    const props = generateProps();
+    const renderHarness = (mounted: boolean) => (
+      <QueryClientProvider client={queryClient}>
+        {mounted ? <RunDetailsRouter {...props} /> : <div data-testid='details-unmounted' />}
+      </QueryClientProvider>
+    );
+    const view = render(renderHarness(true));
+    await screen.findByTestId('run-details-v2');
+    expect(queryClient.getQueryData(queryKeys.runRetryRefreshVersion(TEST_RUN_ID))).toBeUndefined();
+
+    apiRun = retriedRun;
+    await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
+    expect(
+      Number(screen.getByTestId('run-details-v2').dataset.retryRefreshVersion),
+    ).toBeGreaterThan(0);
+
+    const initialVersion = screen.getByTestId('run-details-v2').dataset.retryRefreshVersion;
+    expect(queryKeys.runRetryRefreshVersion(TEST_RUN_ID)).toBeDefined();
+
+    vi.useFakeTimers();
+    view.rerender(renderHarness(false));
+    expect(screen.getByTestId('details-unmounted')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
+    });
+
+    act(() => view.rerender(renderHarness(true)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByTestId('run-details-v2').dataset.retryRefreshVersion).toBe(initialVersion);
+    expect(queryClient.getQueryData(queryKeys.runRetryRefreshVersion(TEST_RUN_ID))).toBe(
+      Number(initialVersion),
+    );
   });
 
   it('remounts the v2 detail subtree when the run ID changes', async () => {
