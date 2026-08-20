@@ -54,7 +54,7 @@ export interface ValidationResult {
   reason?: string;
 }
 
-export function namespaceFromArtifactUri(
+function matchNamespaceSegment(
   artifactUri: string,
   keyPrefix: string = NAMESPACE_KEY_PREFIX,
 ): string | undefined {
@@ -62,17 +62,24 @@ export function namespaceFromArtifactUri(
     return undefined;
   }
   const escapedPrefix = keyPrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = artifactUri.match(
+  return artifactUri.match(
     new RegExp(`^[a-zA-Z][a-zA-Z0-9+.-]*://[^/]+/${escapedPrefix}/([^/]+)/`),
-  );
-  if (!match?.[1]) {
+  )?.[1];
+}
+
+export function namespaceFromArtifactUri(
+  artifactUri: string,
+  keyPrefix: string = NAMESPACE_KEY_PREFIX,
+): string | undefined {
+  const namespaceSegment = matchNamespaceSegment(artifactUri, keyPrefix);
+  if (!namespaceSegment) {
     return undefined;
   }
   try {
     // Imported artifact URIs can retain percent-encoding even though the namespace supplied by
     // Kubernetes is decoded. Compare the semantic segment while preserving the exact URI for the
     // Artifact API lookup below.
-    return decodeURIComponent(match[1]);
+    return decodeURIComponent(namespaceSegment);
   } catch {
     return undefined;
   }
@@ -107,7 +114,11 @@ export function validateArtifactKeyPrefix(
   if (actualNamespace !== claimedNamespace) {
     return { valid: false, actualNamespace, reason: 'prefix-namespace-mismatch' };
   }
-  return { valid: true, reason: 'prefix-match' };
+  const encodedNamespace = actualNamespace !== matchNamespaceSegment(artifactUriWithoutQuery);
+  return {
+    valid: true,
+    reason: encodedNamespace ? 'encoded-prefix-match' : 'prefix-match',
+  };
 }
 
 export function validateArtifactNotFound(
@@ -126,7 +137,10 @@ export function validateArtifactNotFound(
     );
     return { valid: false, reason: 'artifact-not-found' };
   }
-  return validateArtifactKeyPrefix(artifactUri, claimedNamespace);
+  const prefixValidation = validateArtifactKeyPrefix(artifactUri, claimedNamespace);
+  return prefixValidation.reason === 'encoded-prefix-match'
+    ? { valid: false, reason: 'artifact-not-found' }
+    : prefixValidation;
 }
 
 export async function validateArtifactNamespace(
@@ -143,7 +157,10 @@ export async function validateArtifactNamespace(
   if (!keyPrefixValidation.valid && keyPrefixValidation.reason !== 'artifact-not-found') {
     return keyPrefixValidation;
   }
-  if (NAMESPACE_OWNERSHIP_MODE === 'artifact-then-prefix' && keyPrefixValidation.valid) {
+  if (
+    NAMESPACE_OWNERSHIP_MODE === 'artifact-then-prefix' &&
+    keyPrefixValidation.reason === 'prefix-match'
+  ) {
     return keyPrefixValidation;
   }
 

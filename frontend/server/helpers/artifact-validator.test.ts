@@ -66,7 +66,7 @@ describe('artifact-validator', () => {
         'minio://bucket/private-artifacts/%74eam-a/run/executor.log',
         'team-a',
       ),
-    ).toEqual({ valid: true, reason: 'prefix-match' });
+    ).toEqual({ valid: true, reason: 'encoded-prefix-match' });
     expect(
       validateArtifactKeyPrefix(
         'minio://bucket/private-artifacts/%74eam-b/run/executor.log',
@@ -77,6 +77,33 @@ describe('artifact-validator', () => {
       reason: 'prefix-namespace-mismatch',
       valid: false,
     });
+  });
+
+  it('requires exact ArtifactService evidence for an encoded namespace alias', async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ artifacts: [] }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+        }),
+      );
+    vi.stubGlobal('fetch', fetchSpy);
+    const artifactUri = 'minio://bucket/private-artifacts/%74eam-a/run/executor.log';
+
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a'),
+    ).resolves.toEqual({ valid: false, reason: 'artifact-not-found' });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('accepts one trailing slash but rejects doubled trailing separators', () => {

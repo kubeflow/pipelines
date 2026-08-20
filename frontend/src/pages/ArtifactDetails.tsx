@@ -62,6 +62,7 @@ const RELATED_TASKS_PATH = 'lineage';
 const TAB_NAMES = ['Overview', 'Related tasks'];
 const LEGACY_KEY_RECONCILIATION_INTERVAL_MS = 10_000;
 const LEGACY_KEY_RECONCILIATION_ATTEMPTS = 4;
+const LEGACY_KEY_RECONCILIATION_WINDOW_MS = 60_000;
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -178,6 +179,7 @@ function ArtifactOverview({
   artifact: V2beta1Artifact;
   onSwitch: (selectedTab: number) => void;
 }) {
+  const [mountedAt] = React.useState(() => Date.now());
   const directlyVisualizable = isVisualizableArtifact(artifact);
   const shouldLookUpLegacyKey =
     !directlyVisualizable &&
@@ -185,6 +187,10 @@ function ArtifactOverview({
     (!artifact.type ||
       artifact.type === ArtifactArtifactType.TYPE_UNSPECIFIED ||
       artifact.type === ArtifactArtifactType.Artifact);
+  const artifactCreatedAt = artifact.created_at?.getTime();
+  const shouldReconcileMissingKey =
+    artifactCreatedAt !== undefined &&
+    mountedAt - artifactCreatedAt <= LEGACY_KEY_RECONCILIATION_WINDOW_MS;
   const { data: legacyKeyResult } = useQuery<LegacyUiMetadataKeyResult, Error>({
     queryKey: queryKeys.artifactVisualizationKey(artifact.artifact_id || ''),
     queryFn: () => findLegacyUiMetadataArtifactKey(artifact.artifact_id!),
@@ -196,7 +202,9 @@ function ArtifactOverview({
       const result = query.state.data;
       const isComplete = !!result?.key && result.errors.length === 0;
       const attemptCount = query.state.dataUpdateCount + query.state.errorUpdateCount;
-      return !isComplete && attemptCount < LEGACY_KEY_RECONCILIATION_ATTEMPTS
+      const hasRelationshipErrors = !!result?.errors.length || query.state.errorUpdateCount > 0;
+      const shouldReconcile = hasRelationshipErrors || (!result?.key && shouldReconcileMissingKey);
+      return !isComplete && shouldReconcile && attemptCount < LEGACY_KEY_RECONCILIATION_ATTEMPTS
         ? LEGACY_KEY_RECONCILIATION_INTERVAL_MS
         : false;
     },

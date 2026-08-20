@@ -180,6 +180,7 @@ describe('ArtifactDetails', () => {
     try {
       vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
         artifact_id: TEST_ARTIFACT_ID,
+        created_at: new Date(),
         name: 'legacy-output',
         uri: 's3://reports/metadata.json',
         namespace: 'kubeflow',
@@ -214,6 +215,29 @@ describe('ArtifactDetails', () => {
 
       expect(await screen.findByText('reconciled')).toBeVisible();
       expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(8);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not poll an old generic artifact with no legacy metadata relationship', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        created_at: new Date('2020-01-01T00:00:00Z'),
+        name: 'ordinary-artifact',
+        uri: 's3://reports/data.json',
+        namespace: 'kubeflow',
+      });
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({ artifact_tasks: [] });
+
+      renderPage();
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+
+      await act(async () => vi.advanceTimersByTimeAsync(100_000));
+
+      expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
     } finally {
       vi.useRealTimers();
     }
