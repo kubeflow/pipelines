@@ -94,9 +94,9 @@ def _get_base_forecasting_parameters(
   if not study_spec_parameters_override:
     study_spec_parameters_override = []
   if not stage_1_tuner_worker_pool_specs_override:
-    stage_1_tuner_worker_pool_specs_override = []
+    stage_1_tuner_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
   if not stage_2_trainer_worker_pool_specs_override:
-    stage_2_trainer_worker_pool_specs_override = []
+    stage_2_trainer_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
 
   if time_series_identifier_column:
     logging.warning(
