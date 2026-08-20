@@ -148,9 +148,10 @@ describe('Apis', () => {
         path: { source: StorageService.GCS, key: 'testkey', bucket: 'testbucket' },
       }),
     ).toEqual('file contents');
-    expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {
-      credentials: 'same-origin',
-    });
+    expect(spy).toHaveBeenCalledWith(
+      'artifacts/get?source=gcs&bucket=testbucket&key=testkey&keyEncoding=storage',
+      { credentials: 'same-origin' },
+    );
   });
 
   it('buildReadFileUrl', () => {
@@ -165,7 +166,7 @@ describe('Apis', () => {
         peek: 255,
       }),
     ).toEqual(
-      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
+      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey&keyEncoding=storage',
     );
   });
 
@@ -198,8 +199,55 @@ describe('Apis', () => {
         artifactUriQuery: 'endpoint=https%3A%2F%2Ftrusted.example&region=test',
       }),
     ).toEqual(
-      'artifacts/get?source=s3&namespace=testnamespace&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Ftrusted.example%26region%3Dtest&bucket=testbucket&key=testkey',
+      'artifacts/get?source=s3&namespace=testnamespace&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Ftrusted.example%26region%3Dtest&bucket=testbucket&key=testkey&keyEncoding=storage',
     );
+  });
+
+  it('distinguishes literal storage escapes from native URI escapes', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'literal%20token/model.txt',
+          source: StorageService.S3,
+        },
+      }),
+    ).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=literal%2520token%2Fmodel.txt&keyEncoding=storage',
+    );
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'root%20dir/model.txt',
+          keyEncoding: 'uri',
+          source: StorageService.S3,
+        },
+      }),
+    ).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=root%2520dir%2Fmodel.txt&keyEncoding=uri',
+    );
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'literal%20token/model.txt',
+          source: StorageService.S3,
+        },
+        isDownload: true,
+      }),
+    ).toBe('artifacts/s3/testbucket/literal%2520token/model.txt');
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'root%20dir/model.txt',
+          keyEncoding: 'uri',
+          source: StorageService.S3,
+        },
+        isDownload: true,
+      }),
+    ).toBe('artifacts/s3/testbucket/root%20dir/model.txt');
   });
 
   it('buildArtifactLinkText', () => {

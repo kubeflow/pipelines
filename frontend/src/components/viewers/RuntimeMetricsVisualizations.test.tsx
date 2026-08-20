@@ -329,8 +329,14 @@ describe('RuntimeMetricsVisualizations', () => {
 
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
     expect(readFileSpy).toHaveBeenCalledWith({
-      path: { bucket: 'reports', key: 'output.html', source: StorageService.S3 },
+      path: {
+        bucket: 'reports',
+        key: 'output.html',
+        keyEncoding: 'uri',
+        source: StorageService.S3,
+      },
       namespace: 'team-a',
+      artifactUriQuery: undefined,
     });
   });
 
@@ -476,9 +482,14 @@ describe('RuntimeMetricsVisualizations', () => {
 
     expect(await screen.findByText('restored')).toBeVisible();
     expect(loadSpy).toHaveBeenCalledWith(
-      { bucket: 'reports', key: 'mlpipeline-ui-metadata.json', source: StorageService.S3 },
+      {
+        bucket: 'reports',
+        key: 'mlpipeline-ui-metadata.json',
+        keyEncoding: 'uri',
+        source: StorageService.S3,
+      },
       'team-a',
-      { throwOnError: true },
+      { artifactUriQuery: undefined, throwOnError: true },
     );
   });
 

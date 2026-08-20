@@ -39,6 +39,8 @@ export interface StoragePath {
   source: StorageService;
   bucket: string;
   key: string;
+  /** Whether `key` is a decoded storage key or the canonical path from an artifact URI. */
+  keyEncoding?: 'storage' | 'uri';
 }
 
 export default class WorkflowParser {

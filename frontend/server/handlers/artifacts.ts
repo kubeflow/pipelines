@@ -66,6 +66,7 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
   'bucket',
   'key',
+  'keyEncoding',
   'artifactUriQuery',
   'providerInfo',
   'namespace',
@@ -553,6 +554,19 @@ function parseArtifactRequest(
     return artifactUriQuery;
   }
 
+  const keyEncoding = getOptionalRequestString(req.query.keyEncoding, 'keyEncoding');
+  if ('error' in keyEncoding) {
+    return keyEncoding;
+  }
+  if (keyEncoding.value && keyEncoding.value !== 'storage' && keyEncoding.value !== 'uri') {
+    return {
+      error: {
+        status: 400,
+        message: 'Artifact key encoding must be storage or uri. Use a supported artifact link.',
+      },
+    };
+  }
+
   const namespace = getOptionalRequestString(req.query.namespace, 'namespace');
   if ('error' in namespace) {
     return namespace;
@@ -567,7 +581,7 @@ function parseArtifactRequest(
     source: source.value,
     bucket: bucket.value,
     key: key.value,
-    keyEncoding: useParameter ? 'storage' : 'uri',
+    keyEncoding: useParameter ? 'storage' : keyEncoding.value === 'uri' ? 'uri' : 'storage',
     artifactUriQuery: artifactUriQuery.value ?? '',
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
@@ -1177,6 +1191,7 @@ export function getArtifactsProxyHandler({
           source: url.searchParams.get('source') || undefined,
           bucket: url.searchParams.get('bucket') || undefined,
           key: url.searchParams.get('key') || undefined,
+          keyEncoding: url.searchParams.get('keyEncoding') || undefined,
           artifactUriQuery: url.searchParams.get('artifactUriQuery') || undefined,
         },
       });

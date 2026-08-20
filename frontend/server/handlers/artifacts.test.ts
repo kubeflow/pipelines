@@ -14,8 +14,10 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import type { Request } from 'express';
+import type { ArtifactCoordinates } from '../helpers/artifact-coordinates.js';
 import {
   buildArtifactCoordinateUri,
+  normalizeArtifactStorageCoordinates,
   resolveArtifactCoordinates,
 } from '../helpers/artifact-coordinates.js';
 import { getArtifactsAuthMiddleware, getArtifactsHandler } from './artifacts.js';
@@ -141,8 +143,9 @@ describe('resolveArtifactCoordinates', () => {
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'reports',
-        key: 'root%20dir/artifact.txt',
-        keyEncoding: 'uri',
+        key: 'root dir/artifact.txt',
+        keyEncoding: 'storage',
+        uriKey: 'root%20dir/artifact.txt',
         artifactUriQuery: '',
       });
     });
@@ -161,8 +164,9 @@ describe('resolveArtifactCoordinates', () => {
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'reports',
-        key: 'caf%C3%A9/model.txt',
-        keyEncoding: 'uri',
+        key: 'café/model.txt',
+        keyEncoding: 'storage',
+        uriKey: 'caf%C3%A9/model.txt',
         artifactUriQuery: '',
       });
     });
@@ -181,10 +185,50 @@ describe('resolveArtifactCoordinates', () => {
       expect(resolveArtifactCoordinates(req)).toEqual({
         source: 's3',
         bucket: 'reports',
-        key: '100%25complete/model.txt',
+        key: '100%complete/model.txt',
+        keyEncoding: 'storage',
+        uriKey: '100%25complete/model.txt',
+        artifactUriQuery: '',
+      });
+    });
+
+    it('keeps a valid-looking percent escape literal in a legacy storage key', () => {
+      const req = makeRequest('/artifacts/get', {
+        source: 's3',
+        bucket: 'reports',
+        key: 'literal%20token/model.txt',
+        keyEncoding: 'storage',
+      });
+
+      expect(resolveArtifactCoordinates(req)).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'literal%20token/model.txt',
+        keyEncoding: 'storage',
+        uriKey: 'literal%2520token/model.txt',
+        artifactUriQuery: '',
+      });
+    });
+
+    it('decodes a canonical native URI key only when explicitly declared', () => {
+      const req = makeRequest('/artifacts/get', {
+        source: 's3',
+        bucket: 'reports',
+        key: 'root%20dir/model.txt',
+        keyEncoding: 'uri',
+      });
+
+      const coordinates = resolveArtifactCoordinates(req);
+      expect(coordinates).toEqual({
+        source: 's3',
+        bucket: 'reports',
+        key: 'root%20dir/model.txt',
         keyEncoding: 'uri',
         artifactUriQuery: '',
       });
+      expect(normalizeArtifactStorageCoordinates(coordinates as ArtifactCoordinates)).toMatchObject(
+        { key: 'root dir/model.txt', keyEncoding: 'storage' },
+      );
     });
 
     it('rejects a noncanonical percent escape instead of treating it as an alias', () => {
@@ -194,6 +238,7 @@ describe('resolveArtifactCoordinates', () => {
           source: 's3',
           bucket: 'reports',
           key: '%73ecret/model.txt',
+          keyEncoding: 'uri',
           artifactUriQuery: '',
         },
       } as unknown as Request;
@@ -211,7 +256,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 'minio',
         bucket: 'ml-pipeline',
         key: 'hello/world.txt',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -227,7 +272,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'reports',
         key: 'output.html',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: 'endpoint=https%3A%2F%2Fceph.example&region=ceph',
       });
     });
@@ -239,6 +284,7 @@ describe('resolveArtifactCoordinates', () => {
             source: 's3',
             bucket: 'shared',
             key: 'root/%73ecret',
+            keyEncoding: 'uri',
           }),
         ),
       ).toBeNull();
@@ -255,7 +301,7 @@ describe('resolveArtifactCoordinates', () => {
         source: 's3',
         bucket: 'my-bucket',
         key: 'data.csv',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -277,7 +323,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: '',
         key: '',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -292,7 +338,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });
@@ -307,7 +353,7 @@ describe('resolveArtifactCoordinates', () => {
         source: '',
         bucket: 'ml-pipeline',
         key: 'k',
-        keyEncoding: 'uri',
+        keyEncoding: 'storage',
         artifactUriQuery: '',
       });
     });

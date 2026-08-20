@@ -32,7 +32,12 @@ describe('readArtifactFile', () => {
     ).resolves.toBe('contents');
 
     expect(readFileSpy).toHaveBeenCalledWith({
-      path: { bucket: 'reports', key: 'output.html', source: StorageService.S3 },
+      path: {
+        bucket: 'reports',
+        key: 'output.html',
+        keyEncoding: 'uri',
+        source: StorageService.S3,
+      },
       namespace: 'request-namespace',
     });
   });
@@ -46,7 +51,12 @@ describe('readArtifactFile', () => {
     });
 
     expect(readFileSpy).toHaveBeenCalledWith({
-      path: { bucket: 'reports', key: 'output.html', source: StorageService.GCS },
+      path: {
+        bucket: 'reports',
+        key: 'output.html',
+        keyEncoding: 'uri',
+        source: StorageService.GCS,
+      },
       namespace: 'artifact-namespace',
     });
   });
@@ -59,6 +69,7 @@ describe('readArtifactFile', () => {
     expect(location.path).toEqual({
       bucket: 'reports',
       key: 'output.html',
+      keyEncoding: 'uri',
       source: StorageService.S3,
     });
     expect(location.artifactUriQuery).toBe(

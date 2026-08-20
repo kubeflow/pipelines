@@ -23,7 +23,7 @@ export interface ArtifactCoordinates<TSource extends string = string> {
   source: TSource;
   bucket: string;
   key: string;
-  // Query-based preview routes carry the artifact URI path; download routes are already decoded.
+  // Preview callers declare whether their key is decoded storage text or a canonical URI path.
   keyEncoding?: 'storage' | 'uri';
   // Exact escaped path spelling used by persisted artifact identity when `key` is decoded storage.
   uriKey?: string;
@@ -63,15 +63,6 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
 export function resolveArtifactCoordinates(
   request: Pick<Request, 'path' | 'query'>,
 ): ArtifactCoordinates | null | undefined {
-  const toCanonicalUriEncodedKey = (value: string): string | null => {
-    try {
-      const candidate = encodeURI(value);
-      return isCanonicalArtifactUriKey(candidate) ? candidate : null;
-    } catch {
-      return null;
-    }
-  };
-
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
@@ -81,6 +72,7 @@ export function resolveArtifactCoordinates(
     const source = asString(request.query.source);
     const bucket = asString(request.query.bucket);
     const requestKey = asString(request.query.key);
+    const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
     const artifactUriQuery = asString(request.query.artifactUriQuery);
     if (isArtifactSource(source) && !isLauncherArtifactSource(source)) {
       return {
@@ -91,25 +83,28 @@ export function resolveArtifactCoordinates(
         artifactUriQuery,
       };
     }
-    // Express has already removed query-transport escaping. Native callers retain URI-path
-    // escaping in the value, while legacy callers pass decoded StoragePath keys. Preserve a
-    // canonical native key; otherwise encode a decoded legacy key exactly once. A valid percent
-    // escape with a noncanonical meaning is ambiguous and must fail closed.
-    const containsNoncanonicalPercentEscape = /%[0-9A-Fa-f]{2}/.test(requestKey);
-    const key = isCanonicalArtifactUriKey(requestKey)
-      ? requestKey
-      : containsNoncanonicalPercentEscape
-        ? null
-        : toCanonicalUriEncodedKey(requestKey);
-
-    if (key === null) {
+    if (requestedKeyEncoding !== 'storage' && requestedKeyEncoding !== 'uri') {
       return null;
     }
+    if (requestedKeyEncoding === 'uri') {
+      if (!isCanonicalArtifactUriKey(requestKey)) {
+        return null;
+      }
+      return { source, bucket, key: requestKey, keyEncoding: 'uri', artifactUriQuery };
+    }
+
+    // Legacy preview callers pass decoded object-store keys. Keep that storage spelling intact,
+    // while encoding it once for the distinct URI identity used by ownership validation.
+    if (/[?#]/.test(requestKey)) {
+      return null;
+    }
+    const uriKey = encodeURI(requestKey);
     return {
       source,
       bucket,
-      key,
-      keyEncoding: 'uri',
+      key: requestKey,
+      keyEncoding: 'storage',
+      ...(uriKey === requestKey ? {} : { uriKey }),
       artifactUriQuery,
     };
   }

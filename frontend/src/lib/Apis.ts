@@ -372,8 +372,10 @@ export class Apis {
     isDownload?: boolean;
   }) {
     const { source, bucket, key } = path;
+    const keyEncoding = path.keyEncoding ?? 'storage';
     if (isDownload) {
-      return `artifacts/${source}/${bucket}/${key}${buildQuery({
+      const pathKey = keyEncoding === 'storage' ? encodeURI(key) : key;
+      return `artifacts/${source}/${bucket}/${pathKey}${buildQuery({
         namespace,
         artifactUriQuery,
         providerInfo,
@@ -388,6 +390,7 @@ export class Apis {
         peek,
         bucket,
         key,
+        keyEncoding,
       })}`;
     }
   }

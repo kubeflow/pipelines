@@ -114,6 +114,46 @@ describe('/artifacts', () => {
       });
     });
 
+    it('distinguishes a literal storage escape from a native URI escape', async () => {
+      const getObject = vi.fn(async () => {
+        const objStream = new PassThrough();
+        objStream.end(artifactContent);
+        return objStream;
+      });
+      const mockedMinioClient: Mock = minio.Client as any;
+      mockedMinioClient.mockImplementation(function () {
+        return { getObject };
+      });
+      app = new UIServer(
+        loadConfigs(argv, {
+          MINIO_ACCESS_KEY: 'minio',
+          MINIO_HOST: 'seaweedfs',
+          MINIO_NAMESPACE: 'kubeflow',
+          MINIO_PORT: '9000',
+          MINIO_SECRET_KEY: 'minio123',
+          MINIO_SSL: 'false',
+        }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=literal%2520token%2Fmodel.txt&keyEncoding=storage',
+        )
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=root%2520dir%2Fmodel.txt&keyEncoding=uri',
+        )
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/minio/ml-pipeline/literal%2520token/model.txt')
+        .expect(200, artifactContent);
+
+      expect(getObject).toHaveBeenNthCalledWith(1, 'ml-pipeline', 'literal%20token/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(2, 'ml-pipeline', 'root dir/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(3, 'ml-pipeline', 'literal%20token/model.txt');
+    });
+
     it('rejects artifact requests with multi-valued query parameters', async () => {
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
@@ -324,7 +364,9 @@ s3:
       app = new UIServer(configs);
 
       await requests(app.app)
-        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=root%2520dir%2Fartifact.txt')
+        .get(
+          '/artifacts/get?source=s3&bucket=ml-pipeline&key=root%2520dir%2Fartifact.txt&keyEncoding=uri',
+        )
         .expect(200, artifactContent);
       await requests(app.app)
         .get('/artifacts/s3/ml-pipeline/root%20dir/artifact.txt')
@@ -1789,9 +1831,7 @@ s3:
         const request = requests(app.app);
         const res = await captureBinaryResponse(
           request.get(
-            `/artifacts/get?source=minio&bucket=ml-pipeline&key=${encodeURIComponent(
-              encodeURI(trickyKey),
-            )}`,
+            `/artifacts/get?source=minio&bucket=ml-pipeline&key=${encodeURIComponent(trickyKey)}`,
           ),
         ).expect(200);
 

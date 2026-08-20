@@ -25,7 +25,10 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const queryStart = uri.indexOf('?');
   const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
   const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
-  const path = WorkflowParser.parseStoragePath(uriWithoutQuery);
+  const path = {
+    ...WorkflowParser.parseStoragePath(uriWithoutQuery),
+    keyEncoding: 'uri' as const,
+  };
   if (!query || !['gcs', 'minio', 's3'].includes(path.source)) {
     return { path };
   }
