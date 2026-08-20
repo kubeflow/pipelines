@@ -128,6 +128,12 @@ describe('readArtifactFile', () => {
     ).toThrow('cannot contain empty, relative, query, or fragment path segments');
   });
 
+  it('rejects encoded ampersands that Go SplitObjectURI treats as query delimiters', () => {
+    expect(() => parseArtifactFileLocation('s3://reports/run/output%26token')).toThrow(
+      'Artifact URI key has invalid encoding',
+    );
+  });
+
   it.each([
     ['HTTP dot segment', 'http://tensorboard.example.com/logs/./x', 'logs/./x'],
     ['HTTPS doubled slash', 'https://example.com/reports/a//b', 'reports/a//b'],

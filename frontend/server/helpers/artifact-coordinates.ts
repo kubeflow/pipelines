@@ -41,7 +41,7 @@ export function isCanonicalArtifactUriKey(key: string): boolean {
     const decodedKey = decodeURIComponent(key);
     // Query and fragment delimiters are not supported inside native KFP object keys.
     // Uppercase escapes provide one authorization identity for each decoded storage object.
-    return !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
+    return !/%26/i.test(key) && !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
   } catch {
     return false;
   }
@@ -61,17 +61,23 @@ export function normalizeArtifactStorageCoordinates<TSource extends string>(
   };
 }
 
-function decodeExactArtifactUriKey(
-  uriKey: string,
-  trimLauncherTrailingSlash: boolean,
-): string | undefined {
+function decodeExactArtifactUriKey(uriKey: string, source: string): string | undefined {
   try {
     const decodedKey = decodeURIComponent(uriKey);
     const storageKey =
-      trimLauncherTrailingSlash && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
+      isLauncherArtifactSource(source) && decodedKey.endsWith('/')
+        ? decodedKey.slice(0, -1)
+        : decodedKey;
+    const pathPolicy =
+      source === 'http' || source === 'https'
+        ? ARTIFACT_PATH_POLICIES.http
+        : source === 'volume'
+          ? undefined
+          : ARTIFACT_PATH_POLICIES.ownership;
     if (
       /%2f/i.test(uriKey) ||
-      applyArtifactPathPolicy(storageKey, ARTIFACT_PATH_POLICIES.ownership) === undefined ||
+      /%26/i.test(uriKey) ||
+      (pathPolicy !== undefined && applyArtifactPathPolicy(storageKey, pathPolicy) === undefined) ||
       /[?#]/.test(storageKey)
     ) {
       return undefined;
@@ -98,10 +104,7 @@ export function resolveArtifactCoordinates(
     const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
     const artifactUriQuery = asString(request.query.artifactUriQuery);
     if (requestUriKey) {
-      const decodedUriKey = decodeExactArtifactUriKey(
-        requestUriKey,
-        isLauncherArtifactSource(source),
-      );
+      const decodedUriKey = decodeExactArtifactUriKey(requestUriKey, source);
       if (decodedUriKey === undefined || decodedUriKey !== requestKey) {
         return null;
       }
@@ -158,15 +161,16 @@ export function resolveArtifactCoordinates(
     if (!isCanonicalArtifactUriKey(uriKey)) {
       return null;
     }
-    const key = decodeURIComponent(uriKey);
     const source = decodeURIComponent(downloadPathMatch[1]);
+    const decodedKey = decodeURIComponent(uriKey);
+    const key =
+      isLauncherArtifactSource(source) && decodedKey.endsWith('/')
+        ? decodedKey.slice(0, -1)
+        : decodedKey;
     const requestedIdentityKey =
       typeof request.query.uriKey === 'string' ? request.query.uriKey : undefined;
     if (requestedIdentityKey !== undefined) {
-      const decodedIdentityKey = decodeExactArtifactUriKey(
-        requestedIdentityKey,
-        isLauncherArtifactSource(source),
-      );
+      const decodedIdentityKey = decodeExactArtifactUriKey(requestedIdentityKey, source);
       if (decodedIdentityKey === undefined || decodedIdentityKey !== key) {
         return null;
       }

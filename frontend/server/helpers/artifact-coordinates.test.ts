@@ -32,6 +32,7 @@ describe('isCanonicalArtifactUriKey', () => {
     'raw space',
     'raw-café',
     'query%3Fkey',
+    'query%26key',
     'bad%ZZkey',
   ])('rejects alias or malformed key %s', (key) =>
     expect(isCanonicalArtifactUriKey(key)).toBe(false),

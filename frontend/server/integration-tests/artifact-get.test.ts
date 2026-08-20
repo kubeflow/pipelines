@@ -148,10 +148,14 @@ describe('/artifacts', () => {
       await requests(app.app)
         .get('/artifacts/minio/ml-pipeline/literal%2520token/model.txt')
         .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/minio/ml-pipeline/root%20dir/model.txt/')
+        .expect(200, artifactContent);
 
       expect(getObject).toHaveBeenNthCalledWith(1, 'ml-pipeline', 'literal%20token/model.txt');
       expect(getObject).toHaveBeenNthCalledWith(2, 'ml-pipeline', 'root dir/model.txt');
       expect(getObject).toHaveBeenNthCalledWith(3, 'ml-pipeline', 'literal%20token/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(4, 'ml-pipeline', 'root dir/model.txt');
     });
 
     it('rejects artifact requests with multi-valued query parameters', async () => {

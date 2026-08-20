@@ -193,7 +193,12 @@ describe('RuntimeArtifactComparison', () => {
     await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
     expect(readFileSpy).toHaveBeenCalledWith({
       namespace: 'team-a',
-      path: { bucket: 'reports', key: 'second.html', source: StorageService.S3 },
+      path: {
+        bucket: 'reports',
+        key: 'second.html',
+        keyEncoding: 'storage',
+        source: StorageService.S3,
+      },
       providerInfo: undefined,
     });
     expect(await screen.findByText(/Unable to retrieve the selected visualization/)).toBeVisible();

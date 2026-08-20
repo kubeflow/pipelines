@@ -83,6 +83,28 @@ describe('artifact-validator', () => {
     ).toEqual({ valid: true, reason: 'prefix-match' });
   });
 
+  it('allows repeated HTTP separators to proceed to exact ownership lookup', () => {
+    expect(validateArtifactKeyPrefix('https://example.com/reports/a//b', 'team-a')).toEqual({
+      valid: false,
+      reason: 'artifact-not-found',
+    });
+  });
+
+  it('accepts a repeated-separator HTTP artifact through exact isolated ownership', async () => {
+    const artifactUri = 'https://example.com/reports/a//b';
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ artifacts: [{ artifact_id: 'artifact-1' }] }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(
+      validateArtifactNamespace('http://api-server', artifactUri, 'team-a', undefined, true),
+    ).resolves.toEqual({ valid: true, reason: 'artifact-api-match' });
+  });
+
   it('rejects mismatched, absent, and non-normalized prefixes', () => {
     expect(
       validateArtifactKeyPrefix('minio://bucket/private-artifacts/team-b/output', 'team-a'),

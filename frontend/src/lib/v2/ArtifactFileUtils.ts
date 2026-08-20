@@ -31,6 +31,7 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
     const segments = storageKey.split('/');
     if (
       /%2f/i.test(key) ||
+      /%26/i.test(key) ||
       /[?#]/.test(storageKey) ||
       (enforceLauncherPathPolicy &&
         storageKey !== '' &&
@@ -62,7 +63,7 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
     ...parsedPath,
     key,
     keyEncoding: 'storage' as const,
-    ...(uriKey === encodeURI(key) ? {} : { uriKey }),
+    ...((isLauncherArtifact ? uriKey === encodeURI(key) : uriKey === key) ? {} : { uriKey }),
   };
   if (!query || !isLauncherArtifact) {
     return { path };

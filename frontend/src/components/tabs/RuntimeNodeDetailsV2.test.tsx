@@ -364,7 +364,12 @@ describe('RuntimeNodeDetailsV2', () => {
       'Executor logs artifact error: storage credentials expired',
     );
     expect(Apis.readFile).toHaveBeenCalledWith({
-      path: { bucket: 'pipeline-root', key: 'logs.txt', source: 's3' },
+      path: {
+        bucket: 'pipeline-root',
+        key: 'logs.txt',
+        keyEncoding: 'storage',
+        source: 's3',
+      },
       namespace: TEST_NAMESPACE,
     });
   });

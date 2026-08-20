@@ -102,6 +102,24 @@ describe('resolveArtifactCoordinates', () => {
       );
     });
 
+    it('trims one trailing slash from a markerless launcher download storage key', () => {
+      const coordinates = resolveArtifactCoordinates(
+        makeRequest('/artifacts/minio/ml-pipeline/private-artifacts/team-a/output/'),
+      );
+
+      expect(coordinates).toEqual({
+        source: 'minio',
+        bucket: 'ml-pipeline',
+        key: 'private-artifacts/team-a/output',
+        keyEncoding: 'storage',
+        uriKey: 'private-artifacts/team-a/output/',
+        artifactUriQuery: '',
+      });
+      expect(buildArtifactCoordinateUri(coordinates!)).toBe(
+        'minio://ml-pipeline/private-artifacts/team-a/output/',
+      );
+    });
+
     it('uses an exact persisted URI identity for a canonical storage download path', () => {
       const coordinates = resolveArtifactCoordinates(
         makeRequest('/artifacts/s3/ml-pipeline/rootsecret/caf%C3%A9.txt', {
@@ -334,6 +352,20 @@ describe('resolveArtifactCoordinates', () => {
             key: 'private-artifacts/team-a/model',
             keyEncoding: 'storage',
             uriKey: 'private-artifacts%2Fteam-a/model',
+          }),
+        ),
+      ).toBeNull();
+    });
+
+    it('rejects an exact URI identity containing an encoded ampersand', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 's3',
+            bucket: 'reports',
+            key: 'run/output&token',
+            keyEncoding: 'storage',
+            uriKey: 'run/output%26token',
           }),
         ),
       ).toBeNull();
