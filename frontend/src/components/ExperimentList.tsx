@@ -122,7 +122,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   };
 
   protected async _loadExperiments(request: ListRequest): Promise<string> {
-    let nextPageToken = '';
+    let nextPageToken: string;
     let displayExperiments: DisplayExperiment[];
 
     if (this.props.storageState) {

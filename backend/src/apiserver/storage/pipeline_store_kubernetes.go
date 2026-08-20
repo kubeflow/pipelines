@@ -345,7 +345,7 @@ func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
 
 	for _, k8sPipelineVersion := range k8sPipelineVersions.Items {
-		if latestK8sPipelineVersion == nil || k8sPipelineVersion.CreationTimestamp.Time.After(latestK8sPipelineVersion.CreationTimestamp.Time) {
+		if latestK8sPipelineVersion == nil || isNewerPipelineVersion(&k8sPipelineVersion, latestK8sPipelineVersion) {
 			latestK8sPipelineVersion = &k8sPipelineVersion
 		}
 	}
@@ -355,6 +355,17 @@ func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*
 	}
 
 	return latestK8sPipelineVersion.ToModel()
+}
+
+// isNewerPipelineVersion reports whether a should be preferred over b. CreationTimestamp has second
+// granularity, so same-second versions tie; the UID breaks the tie so repeated calls agree.
+func isNewerPipelineVersion(a, b *v2beta1.PipelineVersion) bool {
+	aCreated, bCreated := a.CreationTimestamp.Time, b.CreationTimestamp.Time
+	if !aCreated.Equal(bCreated) {
+		return aCreated.After(bCreated)
+	}
+
+	return string(a.UID) > string(b.UID)
 }
 
 func (k *PipelineStoreKubernetes) GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error) {

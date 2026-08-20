@@ -315,9 +315,9 @@ async function getLogsInfo(
   let podName = '';
   let podNameSpace = '';
   let cachedExecutionId = '';
-  let logsDetails = '';
-  let logsBannerMessage = '';
-  let logsBannerAdditionalInfo = '';
+  let logsDetails: string;
+  let logsBannerMessage: string;
+  let logsBannerAdditionalInfo: string;
   const customPropertiesMap = execution.getCustomPropertiesMap();
   const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toISOString().split('T')[0];
 

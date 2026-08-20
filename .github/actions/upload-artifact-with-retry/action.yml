@@ -16,6 +16,10 @@ inputs:
     description: "Behavior when no files match: warn, error, or ignore"
     required: false
     default: 'warn'
+  overwrite:
+    description: "Replace an artifact with the same name before uploading"
+    required: false
+    default: 'false'
   retry-delay-seconds:
     description: "Delay before the retry attempt"
     required: false
@@ -46,6 +50,7 @@ runs:
         path: ${{ inputs.path }}
         retention-days: ${{ inputs.retention-days }}
         if-no-files-found: ${{ inputs.if-no-files-found }}
+        overwrite: ${{ inputs.overwrite }}
       continue-on-error: true
 
     - name: Wait before retrying artifact upload
@@ -62,13 +67,13 @@ runs:
       if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
       uses: actions/upload-artifact@v7
       with:
-        # A timed-out CreateArtifact request may still have created its
-        # immutable name server-side. Use a distinct name instead of risking a
-        # conflict or deleting a completed first attempt with overwrite=true.
-        name: ${{ inputs.name }} - retry-${{ github.run_attempt }}
+        # Keep the original name when overwrite is explicitly enabled for a
+        # downstream handoff; otherwise avoid an immutable-name conflict.
+        name: ${{ inputs.overwrite == 'true' && inputs.name || format('{0} - retry-{1}', inputs.name, github.run_attempt) }}
         path: ${{ inputs.path }}
         retention-days: ${{ inputs.retention-days }}
         if-no-files-found: ${{ inputs.if-no-files-found }}
+        overwrite: ${{ inputs.overwrite }}
       continue-on-error: true
 
     - name: Verify artifact upload

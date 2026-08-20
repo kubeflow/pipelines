@@ -217,15 +217,33 @@ func TestBackwardCompat_GetLatestPipelineVersion_MixedCRs(t *testing.T) {
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
 
-	store := NewPipelineStoreKubernetes(getClient())
+	k8sClient, k8sClientNoCache := getClient()
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClientNoCache)
 
-	// Create a new-style version (will have a later creation timestamp)
+	// Create a new-style version alongside the pre-seeded legacy "test-pipeline-version-3".
 	_, err := store.CreatePipelineVersion(&model.PipelineVersion{
 		Name:         "new-latest-version",
 		PipelineId:   DefaultFakePipelineIdTwo,
 		PipelineSpec: model.LargeText(getBasicPipelineSpecYAML()),
 	})
 	require.NoError(t, err)
+
+	// The fake client leaves creationTimestamp at zero, so stamp the new version to make it
+	// genuinely newer than the legacy CR rather than relying on list ordering.
+	ctx := context.Background()
+	versions := &v2beta1.PipelineVersionList{}
+	require.NoError(t, k8sClient.List(ctx, versions, client.InNamespace("Test")))
+
+	stamped := false
+	for i := range versions.Items {
+		if versions.Items[i].Spec.VersionName != "new-latest-version" {
+			continue
+		}
+		versions.Items[i].CreationTimestamp = metav1.Unix(1700000000, 0)
+		require.NoError(t, k8sClient.Update(ctx, &versions.Items[i]))
+		stamped = true
+	}
+	require.True(t, stamped, "expected the newly created pipeline version to be present")
 
 	latest, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdTwo)
 	require.NoError(t, err)
