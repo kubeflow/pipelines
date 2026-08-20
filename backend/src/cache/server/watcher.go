@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -41,8 +40,12 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 		}
 
 		for event := range watcher.ResultChan() {
-			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
 			if event.Type == watch.Error {
+				continue
+			}
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
+				log.Printf("Unexpected watch object type: %T", event.Object)
 				continue
 			}
 			log.Printf("%s", (*pod).GetName())
