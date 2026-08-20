@@ -74,24 +74,23 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		return
 	}
 
-	artifactFileExists, err := s.artifactFileExists(r.Context(), runID, nodeID, artifactName)
-	if err != nil {
-		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
-		return
-	} else if !artifactFileExists {
-		s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact not found: %v", err))
-		return
-	}
-
 	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
-		s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+		if isNotFoundError(err) {
+			s.writeErrorToResponse(response, http.StatusNotFound, util.Wrap(err, "Failed to read artifact"))
+		} else {
+			s.writeErrorToResponse(response, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
 	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
 	if err != nil {
-		s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
+		if isNotFoundError(err) {
+			s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact file not found at path %q: %w", artifactPath, err))
+		} else {
+			s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
+		}
 		return
 	}
 	defer func() {
@@ -129,31 +128,6 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 		glog.Errorf("Failed to write JSON closing: %v", err)
 		return
 	}
-}
-
-func (s *RunArtifactServer) artifactFileExists(ctx context.Context, runID string, nodeID string, artifactName string) (bool, error) {
-	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
-	if err != nil {
-		if isNotFoundError(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
-	reader, err := s.resourceManager.ObjectStore().GetFileReader(ctx, artifactPath)
-	if err != nil {
-		if isNotFoundError(err) {
-			return false, nil
-		} else {
-			return false, err
-		}
-	}
-	defer func() {
-		if closeErr := reader.Close(); closeErr != nil {
-			glog.Warningf("Failed to close artifact reader: %v", closeErr)
-		}
-	}()
-	return true, nil
 }
 
 // ReadArtifactV1 handles v1 artifact reading (delegates to v2 implementation)
