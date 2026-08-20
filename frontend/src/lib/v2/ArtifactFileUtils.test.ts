@@ -129,6 +129,15 @@ describe('readArtifactFile', () => {
     expect(() => parseArtifactFileLocation(uri)).toThrow(message);
   });
 
+  it.each(['https://files.example/reports/A?', 's3://reports/output?'])(
+    'rejects an empty trailing query marker in %s',
+    (uri) => {
+      expect(() => parseArtifactFileLocation(uri)).toThrow(
+        'Artifact URIs cannot end with an empty query marker. Remove the trailing ? and retry.',
+      );
+    },
+  );
+
   it('rejects an encoded path delimiter that would change ownership segmentation', () => {
     expect(() =>
       parseArtifactFileLocation('s3://reports/private-artifacts%2Fteam-a/model'),

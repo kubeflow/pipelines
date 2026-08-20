@@ -58,6 +58,11 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const queryStart = uri.indexOf('?');
   const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
   const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
+  if (queryStart >= 0 && query === '') {
+    throw new Error(
+      'Artifact URIs cannot end with an empty query marker. Remove the trailing ? and retry.',
+    );
+  }
   const parsedPath = WorkflowParser.parseStoragePath(uriWithoutQuery);
   const schemeEnd = uriWithoutQuery.indexOf('://');
   const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
