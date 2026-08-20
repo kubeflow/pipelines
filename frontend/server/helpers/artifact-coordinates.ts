@@ -97,6 +97,8 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
       /[?#]/.test(uriKey) ||
       /%2f/i.test(uriKey) ||
       (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
+      // Deliberately validate the pre-normalization identity. `storageKey` is only the fetch target
+      // and may have volume `.` segments removed; substituting it here would hide that distinction.
       applyArtifactPathPolicy(sourceStorageKey, pathPolicy) === undefined ||
       (isLauncherArtifactSource(source) && /[?#]/.test(storageKey))
     ) {
