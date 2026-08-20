@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from typing import Dict, List, Optional
 
 from google.protobuf import json_format
@@ -43,7 +44,9 @@ def add_init_container(
 
     Args:
         task: Pipeline task.
-        name: Name of the init container. Must be unique within the pod.
+        name: Name of the init container. Must be unique within the pod. The
+            following names are reserved by Kubeflow Pipelines and must not be used:
+            ``kfp-launcher``, ``oci-prepull-<N>`` (where N is a non-negative integer).
         image: Container image of the init container.
         command: Entrypoint array. Corresponds to the ``command`` field.
         args: Arguments to the entrypoint. Corresponds to the ``args`` field.
@@ -72,6 +75,11 @@ def add_init_container(
     if name == 'kfp-launcher':
         raise ValueError(
             'Init container name "kfp-launcher" is reserved by Kubeflow Pipelines.'
+        )
+    if re.match(r'^oci-prepull-\d+$', name):
+        raise ValueError(
+            'Init container names matching "oci-prepull-<N>" are reserved by '
+            'Kubeflow Pipelines for Modelcar OCI artifact pre-pull containers.'
         )
     if not image:
         raise ValueError('Argument for "image" must be a non-empty string.')
