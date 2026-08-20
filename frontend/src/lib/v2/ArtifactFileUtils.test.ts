@@ -218,4 +218,16 @@ describe('readArtifactFile', () => {
       'artifacts/get?source=https&bucket=files.example&key=root%20dir%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%2520dir%2Fcaf%25c3%25a9.txt',
     );
   });
+
+  it('preserves raw-space and Unicode HTTP identity separately from canonical download transport', () => {
+    const location = parseArtifactFileLocation('https://files.example/root dir/café.txt');
+
+    expect(location.path).toMatchObject({
+      key: 'root dir/café.txt',
+      uriKey: 'root dir/café.txt',
+    });
+    expect(Apis.buildReadFileUrl({ path: location.path, isDownload: true })).toBe(
+      'artifacts/https/files.example/root%20dir/caf%C3%A9.txt?uriKey=root%20dir%2Fcaf%C3%A9.txt',
+    );
+  });
 });

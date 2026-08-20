@@ -106,9 +106,17 @@ export const queryKeys = {
 
   runtimeArtifactVisualization: (
     artifactId: string | undefined,
+    artifactType: string | undefined,
     namespace?: string,
     sourceFinished?: boolean,
-  ) => ['runtime_artifact_visualization', artifactId, namespace, sourceFinished] as const,
+  ) =>
+    [
+      'runtime_artifact_visualization',
+      artifactId,
+      artifactType,
+      namespace,
+      sourceFinished,
+    ] as const,
 
   legacyRuntimeUiMetadata: (
     artifactId: string | undefined,

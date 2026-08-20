@@ -59,11 +59,15 @@ export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
   const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
   const isLauncherArtifact = ['gcs', 'minio', 's3'].includes(parsedPath.source);
   const key = decodeArtifactUriKey(uriKey, isLauncherArtifact);
+  const canonicalUriKey = encodeURI(key);
+  const preserveExactUriKey = isLauncherArtifact
+    ? uriKey !== canonicalUriKey
+    : uriKey !== key || canonicalUriKey !== key;
   const path = {
     ...parsedPath,
     key,
     keyEncoding: 'storage' as const,
-    ...((isLauncherArtifact ? uriKey === encodeURI(key) : uriKey === key) ? {} : { uriKey }),
+    ...(preserveExactUriKey ? { uriKey } : {}),
   };
   if (!query || !isLauncherArtifact) {
     return { path };

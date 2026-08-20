@@ -48,6 +48,7 @@ export function isCanonicalArtifactUriKey(key: string, source: string): boolean 
       ? key
       : key.replace(/%26/gi, '&').replace(/%3f/gi, '?').replace(/%23/gi, '#');
     return (
+      !/[?#]/.test(key) &&
       !/%2f/i.test(key) &&
       !(isLauncherArtifact && /%26/i.test(key)) &&
       !(isLauncherArtifact && /[?#]/.test(decodedKey)) &&
@@ -86,6 +87,7 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
           ? ARTIFACT_PATH_POLICIES.volume
           : ARTIFACT_PATH_POLICIES.ownership;
     if (
+      /[?#]/.test(uriKey) ||
       /%2f/i.test(uriKey) ||
       (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
       applyArtifactPathPolicy(storageKey, pathPolicy) === undefined ||

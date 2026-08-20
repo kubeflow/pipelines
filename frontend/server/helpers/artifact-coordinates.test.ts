@@ -48,6 +48,11 @@ describe('isCanonicalArtifactUriKey', () => {
     expect(isCanonicalArtifactUriKey('reports/A%3FB%23C.csv', 'volume')).toBe(true);
     expect(isCanonicalArtifactUriKey('reports/A%3FB%23C.csv', 's3')).toBe(false);
   });
+
+  it('rejects raw query and fragment delimiters for every source', () => {
+    expect(isCanonicalArtifactUriKey('reports/A?B.csv', 'https')).toBe(false);
+    expect(isCanonicalArtifactUriKey('reports/A#B.csv', 'volume')).toBe(false);
+  });
 });
 
 describe('normalizeArtifactStorageCoordinates', () => {

@@ -485,7 +485,7 @@ describe('RuntimeMetricsVisualizations', () => {
     expect(readFileSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('renders one HTML and one Markdown artifact together', async () => {
+  it('renders same-URI HTML and Markdown artifacts with separate cached configurations', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('content');
     readFileSpy.mockClear();
 
@@ -494,16 +494,14 @@ describe('RuntimeMetricsVisualizations', () => {
         <RuntimeMetricsVisualizations
           artifacts={[
             {
-              artifact_id: 'html-1',
               name: 'report',
               type: ArtifactArtifactType.HTML,
-              uri: 's3://reports/output.html',
+              uri: 's3://reports/shared-output',
             },
             {
-              artifact_id: 'markdown-1',
               name: 'summary',
               type: ArtifactArtifactType.Markdown,
-              uri: 'gs://reports/output.md',
+              uri: 's3://reports/shared-output',
             },
           ]}
           namespace='team-a'

@@ -421,6 +421,31 @@ describe('resolveArtifactCoordinates', () => {
       ).toMatchObject({ key: 'reports/A?B#C.csv', uriKey: 'reports/A%3FB%23C.csv' });
     });
 
+    it('rejects raw query and fragment delimiters in exact non-launcher identity', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'https',
+            bucket: 'files.example',
+            key: 'reports/A?B.csv',
+            keyEncoding: 'storage',
+            uriKey: 'reports/A?B.csv',
+          }),
+        ),
+      ).toBeNull();
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'volume',
+            bucket: 'reports',
+            key: 'A#B.csv',
+            keyEncoding: 'storage',
+            uriKey: 'A#B.csv',
+          }),
+        ),
+      ).toBeNull();
+    });
+
     it('rejects escaped traversal segments in exact preview identity', () => {
       expect(
         resolveArtifactCoordinates(

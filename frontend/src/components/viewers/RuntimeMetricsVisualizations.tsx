@@ -281,6 +281,7 @@ export function RuntimeArtifactVisualization({
   const { data, error, isLoading } = useQuery<ViewerConfig, Error>({
     queryKey: queryKeys.runtimeArtifactVisualization(
       artifactKey,
+      artifact.type,
       effectiveNamespace,
       sourceFinished,
     ),
