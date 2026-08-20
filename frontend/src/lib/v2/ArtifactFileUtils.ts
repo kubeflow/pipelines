@@ -38,7 +38,7 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
         segments.some((segment) => segment === '' || segment === '.' || segment === '..'))
     ) {
       throw new Error(
-        'Artifact URI keys cannot contain empty, relative, query, or fragment path segments.',
+        'Artifact URI keys cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters.',
       );
     }
     return storageKey;

@@ -119,13 +119,17 @@ describe('readArtifactFile', () => {
   it('rejects an encoded path delimiter that would change ownership segmentation', () => {
     expect(() =>
       parseArtifactFileLocation('s3://reports/private-artifacts%2Fteam-a/model'),
-    ).toThrow('cannot contain empty, relative, query, or fragment path segments');
+    ).toThrow(
+      'cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters',
+    );
   });
 
   it('rejects escaped traversal segments before building an artifact request', () => {
     expect(() =>
       parseArtifactFileLocation('s3://reports/private-artifacts/team-a/%2E%2E/secret'),
-    ).toThrow('cannot contain empty, relative, query, or fragment path segments');
+    ).toThrow(
+      'cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters',
+    );
   });
 
   it('rejects encoded ampersands that Go SplitObjectURI treats as query delimiters', () => {
@@ -144,7 +148,7 @@ describe('readArtifactFile', () => {
 
   it('rejects non-launcher encoded slashes locally, matching the server identity boundary', () => {
     expect(() => parseArtifactFileLocation('https://example.com/a%2Fb/c')).toThrow(
-      'cannot contain empty, relative, query, or fragment path segments',
+      'cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters',
     );
   });
 
