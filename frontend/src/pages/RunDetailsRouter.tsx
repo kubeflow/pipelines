@@ -32,6 +32,7 @@ import { hasFinishedV2 } from 'src/lib/StatusUtils';
 import { BannerProps } from 'src/components/Banner';
 
 export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
+export const RUN_RETRY_STATE_GC_TIME = 10 * 60 * 1000;
 const MAX_POST_RETRY_DISCOVERY_ATTEMPTS = 3;
 const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
 const RETRY_REFRESH_VERSION_QUERY_FAMILY = ['run_retry_refresh_version'] as const;
@@ -56,10 +57,13 @@ function isAttemptTransitionCandidate(current: V2beta1Run, baseline: V2beta1Run)
   const baselineHistory = baseline.state_history ?? [];
   const currentHistory = current.state_history ?? [];
 
-  const minHistoryLength = Math.min(baselineHistory.length, currentHistory.length);
-  for (let i = 0; i < minHistoryLength; i += 1) {
+  if (currentHistory.length < baselineHistory.length) {
+    return false;
+  }
+
+  for (let i = 0; i < baselineHistory.length; i += 1) {
     if (!isEqual(baselineHistory[i], currentHistory[i])) {
-      return true;
+      return false;
     }
   }
 
@@ -68,10 +72,6 @@ function isAttemptTransitionCandidate(current: V2beta1Run, baseline: V2beta1Run)
     return currentHistory
       .slice(baselineHistory.length)
       .some((entry) => entry.state !== baselineLastState);
-  }
-
-  if (currentHistory.length < baselineHistory.length) {
-    return true;
   }
 
   // With matched history length and values, defer to terminal-state drift to spot canonical attempt
@@ -217,15 +217,15 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
     // creating an immortal cache entry for every run that is merely viewed.
     queryClient.setQueryDefaults(RETRY_REFRESH_VERSION_QUERY_FAMILY, {
       staleTime: Number.POSITIVE_INFINITY,
-      gcTime: Number.POSITIVE_INFINITY,
+      gcTime: RUN_RETRY_STATE_GC_TIME,
     });
     queryClient.setQueryDefaults(RETRY_DISCOVERY_QUERY_FAMILY, {
       staleTime: Number.POSITIVE_INFINITY,
-      gcTime: Number.POSITIVE_INFINITY,
+      gcTime: RUN_RETRY_STATE_GC_TIME,
     });
     queryClient.setQueryDefaults(RETRY_TASK_BASELINE_QUERY_FAMILY, {
       staleTime: Number.POSITIVE_INFINITY,
-      gcTime: Number.POSITIVE_INFINITY,
+      gcTime: RUN_RETRY_STATE_GC_TIME,
     });
   }, [queryClient]);
 

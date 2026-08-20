@@ -26,7 +26,10 @@ import { queryClientTest } from 'src/TestUtils';
 import { V2beta1Run, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { MemoryRouter } from 'react-router-dom';
-import RunDetailsRouter, { RUN_DETAILS_REFETCH_INTERVAL } from './RunDetailsRouter';
+import RunDetailsRouter, {
+  RUN_DETAILS_REFETCH_INTERVAL,
+  RUN_RETRY_STATE_GC_TIME,
+} from './RunDetailsRouter';
 import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml?raw';
 import { vi } from 'vitest';
 
@@ -406,7 +409,7 @@ describe('RunDetailsRouter', () => {
     expect(getRunSpy).toHaveBeenCalledTimes(5);
   });
 
-  it('keeps discovering a retry while successful snapshots still match the pre-retry run', async () => {
+  it('keeps discovering a retry through shorter or divergent state histories', async () => {
     vi.useFakeTimers();
     const failedRun: V2beta1Run = {
       run_id: TEST_RUN_ID,
@@ -426,8 +429,18 @@ describe('RunDetailsRouter', () => {
     };
     getRunSpy
       .mockResolvedValueOnce(failedRun)
-      .mockResolvedValueOnce({ ...failedRun })
-      .mockResolvedValueOnce({ ...failedRun })
+      .mockResolvedValueOnce({
+        ...failedRun,
+        state: V2beta1RuntimeState.RUNNING,
+        state_history: [],
+      })
+      .mockResolvedValueOnce({
+        ...failedRun,
+        state: V2beta1RuntimeState.RUNNING,
+        state_history: [
+          { state: V2beta1RuntimeState.RUNNING, update_time: new Date('2026-08-14T12:00:00Z') },
+        ],
+      })
       .mockResolvedValue(retriedFailedRun);
 
     render(
@@ -659,6 +672,7 @@ describe('RunDetailsRouter', () => {
       ...failedRun,
       state: V2beta1RuntimeState.RUNNING,
       state_history: [
+        ...failedRun.state_history!,
         { state: V2beta1RuntimeState.RUNNING, update_time: new Date('2026-08-14T12:01:00Z') },
       ],
     };
@@ -676,6 +690,7 @@ describe('RunDetailsRouter', () => {
     const preRetryTasks = [{ task_id: 'pre-retry-task' }];
     queryClient.setQueryData(queryKeys.runTasks(TEST_RUN_ID), preRetryTasks);
 
+    vi.useFakeTimers();
     apiRun = retriedRun;
     await act(async () => screen.getByRole('button', { name: 'Retry started' }).click());
     expect(
@@ -686,7 +701,6 @@ describe('RunDetailsRouter', () => {
     const retryBaselineKey = queryKeys.runTaskRetryBaseline(TEST_RUN_ID, initialVersion);
     expect(queryClient.getQueryData(retryBaselineKey)).toEqual(preRetryTasks);
 
-    vi.useFakeTimers();
     view.rerender(renderHarness(false));
     expect(screen.getByTestId('details-unmounted')).toBeInTheDocument();
 
@@ -708,6 +722,13 @@ describe('RunDetailsRouter', () => {
       initialVersion,
     );
     expect(queryClient.getQueryData(retryBaselineKey)).toEqual(preRetryTasks);
+
+    act(() => view.rerender(renderHarness(false)));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(RUN_RETRY_STATE_GC_TIME);
+    });
+    expect(queryClient.getQueryData(queryKeys.runRetryRefreshVersion(TEST_RUN_ID))).toBeUndefined();
+    expect(queryClient.getQueryData(retryBaselineKey)).toBeUndefined();
   });
 
   it('remounts the v2 detail subtree when the run ID changes', async () => {
