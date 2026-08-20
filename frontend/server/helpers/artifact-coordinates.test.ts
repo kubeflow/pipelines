@@ -22,7 +22,7 @@ import {
 describe('isCanonicalArtifactUriKey', () => {
   it.each(['root%20dir/artifact', 'caf%C3%A9/model', '100%25complete', 'literal/path'])(
     'accepts canonical key %s',
-    (key) => expect(isCanonicalArtifactUriKey(key)).toBe(true),
+    (key) => expect(isCanonicalArtifactUriKey(key, 's3')).toBe(true),
   );
 
   it.each([
@@ -35,8 +35,13 @@ describe('isCanonicalArtifactUriKey', () => {
     'query%26key',
     'bad%ZZkey',
   ])('rejects alias or malformed key %s', (key) =>
-    expect(isCanonicalArtifactUriKey(key)).toBe(false),
+    expect(isCanonicalArtifactUriKey(key, 's3')).toBe(false),
   );
+
+  it('accepts encoded ampersands for HTTP while launcher sources reject them', () => {
+    expect(isCanonicalArtifactUriKey('reports/A%26B.csv', 'https')).toBe(true);
+    expect(isCanonicalArtifactUriKey('reports/A%26B.csv', 's3')).toBe(false);
+  });
 });
 
 describe('normalizeArtifactStorageCoordinates', () => {

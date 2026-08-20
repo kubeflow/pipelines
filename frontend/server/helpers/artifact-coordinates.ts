@@ -32,16 +32,25 @@ export interface ArtifactCoordinates<TSource extends string = string> {
 }
 
 /**
- * Rejects alternate URI spellings that decode to an object key with a different identity.
+ * Rejects URI spellings that are not canonical for their source handler.
  *
- * For authorization, we require exactly one URI spelling for each decoded storage object.
+ * Launcher sources require one URI spelling per decoded object. HTTP retains exact escaped path
+ * identity where its handler accepts both forms, such as an encoded ampersand.
  */
-export function isCanonicalArtifactUriKey(key: string): boolean {
+export function isCanonicalArtifactUriKey(key: string, source: string): boolean {
   try {
     const decodedKey = decodeURIComponent(key);
     // Query and fragment delimiters are not supported inside native KFP object keys.
-    // Uppercase escapes provide one authorization identity for each decoded storage object.
-    return !/%26/i.test(key) && !/[?#]/.test(decodedKey) && key === encodeURI(decodedKey);
+    // Launcher-backed artifacts follow Go SplitObjectURI, which rejects encoded ampersands.
+    // HTTP keeps its exact escaped identity because '&' is valid path data for that handler.
+    const isLauncherArtifact = isLauncherArtifactSource(source);
+    const comparableKey = isLauncherArtifact ? key : key.replace(/%26/gi, '&');
+    return (
+      !/%2f/i.test(key) &&
+      !(isLauncherArtifact && /%26/i.test(key)) &&
+      !/[?#]/.test(decodedKey) &&
+      comparableKey === encodeURI(decodedKey)
+    );
   } catch {
     return false;
   }
@@ -76,7 +85,7 @@ function decodeExactArtifactUriKey(uriKey: string, source: string): string | und
           : ARTIFACT_PATH_POLICIES.ownership;
     if (
       /%2f/i.test(uriKey) ||
-      /%26/i.test(uriKey) ||
+      (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
       applyArtifactPathPolicy(storageKey, pathPolicy) === undefined ||
       /[?#]/.test(storageKey)
     ) {
@@ -130,7 +139,7 @@ export function resolveArtifactCoordinates(
       return null;
     }
     if (requestedKeyEncoding === 'uri') {
-      if (!isCanonicalArtifactUriKey(requestKey)) {
+      if (!isCanonicalArtifactUriKey(requestKey, source)) {
         return null;
       }
       return { source, bucket, key: requestKey, keyEncoding: 'uri', artifactUriQuery };
@@ -157,11 +166,11 @@ export function resolveArtifactCoordinates(
     return undefined;
   }
   try {
+    const source = decodeURIComponent(downloadPathMatch[1]);
     const uriKey = downloadPathMatch[3];
-    if (!isCanonicalArtifactUriKey(uriKey)) {
+    if (!isCanonicalArtifactUriKey(uriKey, source)) {
       return null;
     }
-    const source = decodeURIComponent(downloadPathMatch[1]);
     const decodedKey = decodeURIComponent(uriKey);
     const key =
       isLauncherArtifactSource(source) && decodedKey.endsWith('/')

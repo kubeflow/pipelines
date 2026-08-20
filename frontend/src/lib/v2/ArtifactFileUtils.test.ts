@@ -138,6 +138,16 @@ describe('readArtifactFile', () => {
     );
   });
 
+  it('preserves encoded ampersands for non-launcher HTTP sources', () => {
+    expect(parseArtifactFileLocation('https://files.example/reports/A%26B.csv').path).toEqual({
+      bucket: 'files.example',
+      key: 'reports/A&B.csv',
+      keyEncoding: 'storage',
+      source: StorageService.HTTPS,
+      uriKey: 'reports/A%26B.csv',
+    });
+  });
+
   it.each([
     ['HTTP dot segment', 'http://tensorboard.example.com/logs/./x', 'logs/./x'],
     ['HTTPS doubled slash', 'https://example.com/reports/a//b', 'reports/a//b'],

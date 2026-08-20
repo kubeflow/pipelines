@@ -371,6 +371,37 @@ describe('resolveArtifactCoordinates', () => {
       ).toBeNull();
     });
 
+    it('preserves encoded ampersands in HTTP preview and download identities', () => {
+      expect(
+        resolveArtifactCoordinates(
+          makeRequest('/artifacts/get', {
+            source: 'https',
+            bucket: 'files.example',
+            key: 'reports/A&B.csv',
+            keyEncoding: 'storage',
+            uriKey: 'reports/A%26B.csv',
+          }),
+        ),
+      ).toEqual({
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/A&B.csv',
+        keyEncoding: 'storage',
+        uriKey: 'reports/A%26B.csv',
+        artifactUriQuery: '',
+      });
+      expect(
+        resolveArtifactCoordinates(makeRequest('/artifacts/https/files.example/reports/A%26B.csv')),
+      ).toEqual({
+        source: 'https',
+        bucket: 'files.example',
+        key: 'reports/A&B.csv',
+        keyEncoding: 'storage',
+        uriKey: 'reports/A%26B.csv',
+        artifactUriQuery: '',
+      });
+    });
+
     it('rejects escaped traversal segments in exact preview identity', () => {
       expect(
         resolveArtifactCoordinates(

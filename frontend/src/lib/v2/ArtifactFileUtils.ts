@@ -31,7 +31,7 @@ function decodeArtifactUriKey(key: string, enforceLauncherPathPolicy: boolean): 
     const segments = storageKey.split('/');
     if (
       /%2f/i.test(key) ||
-      /%26/i.test(key) ||
+      (enforceLauncherPathPolicy && /%26/i.test(key)) ||
       /[?#]/.test(storageKey) ||
       (enforceLauncherPathPolicy &&
         storageKey !== '' &&
