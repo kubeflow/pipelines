@@ -35,6 +35,7 @@ export const RUN_DETAILS_REFETCH_INTERVAL = 10000;
 const MAX_POST_RETRY_DISCOVERY_ATTEMPTS = 3;
 const RETRY_DISCOVERY_QUERY_FAMILY = ['run_retry_discovery'] as const;
 const RETRY_REFRESH_VERSION_QUERY_FAMILY = ['run_retry_refresh_version'] as const;
+const RETRY_TASK_BASELINE_QUERY_FAMILY = ['run_task_retry_baseline'] as const;
 const LEGACY_TASK_LINK_WARNING: BannerProps = {
   message:
     'This task link cannot be opened in the legacy Run Details view. Locate the task from the run graph instead.',
@@ -222,6 +223,10 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
       staleTime: Number.POSITIVE_INFINITY,
       gcTime: Number.POSITIVE_INFINITY,
     });
+    queryClient.setQueryDefaults(RETRY_TASK_BASELINE_QUERY_FAMILY, {
+      staleTime: Number.POSITIVE_INFINITY,
+      gcTime: Number.POSITIVE_INFINITY,
+    });
   }, [queryClient]);
 
   const [retryRefreshVersion, setRetryRefreshVersion] = useState<number>(
@@ -289,9 +294,15 @@ function PolledRunDetailsV2(props: RunDetailsV2Props) {
         event.query.state.data &&
         isAttemptTransitionCandidate(event.query.state.data as V2beta1Run, pending.baseline)
       ) {
-        const nextVersion =
-          (queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0) + 1;
+        const currentVersion = queryClient.getQueryData<number>(retryRefreshVersionQueryKey) || 0;
+        const nextVersion = currentVersion + 1;
         queryClient.setQueryData(retryRefreshVersionQueryKey, nextVersion);
+        if (currentVersion > 0) {
+          queryClient.removeQueries({
+            exact: true,
+            queryKey: queryKeys.runTaskRetryBaseline(runId, currentVersion),
+          });
+        }
         if (pending.preRetryTasks) {
           queryClient.setQueryData(
             queryKeys.runTaskRetryBaseline(runId, nextVersion),
