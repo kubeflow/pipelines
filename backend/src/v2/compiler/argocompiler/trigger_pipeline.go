@@ -16,7 +16,7 @@ package argocompiler
 
 import (
 	"fmt"
-	"os"
+	"strconv"
 
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -86,28 +86,21 @@ func (c *workflowCompiler) addTriggerPipelineTemplate() string {
 		"--ml_pipeline_server_address", config.GetMLPipelineServerConfig().Address,
 		"--ml_pipeline_server_port", config.GetMLPipelineServerConfig().Port,
 	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
-	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
+	args = append(args,
+		"--cache_disabled="+strconv.FormatBool(c.cacheDisabled),
+		"--ml_pipeline_tls_enabled="+strconv.FormatBool(c.mlPipelineTLSEnabled),
+		"--metadata_tls_enabled="+strconv.FormatBool(common.GetMetadataTLSEnabled()),
+	)
 
+	// Always passed; empty unless a custom CA bundle is configured.
+	caCertPath := ""
 	setCABundle := false
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
+		caCertPath = common.CustomCaCertPath
 		setCABundle = true
 	}
-
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
-	}
+	args = append(args, "--ca_cert_path", caCertPath)
+	args = append(args, "--log_level", pipelineLogLevelArg(), "--publish_logs", publishLogsArg())
 
 	triggerTemplate := &wfapi.Template{
 		Name: name,

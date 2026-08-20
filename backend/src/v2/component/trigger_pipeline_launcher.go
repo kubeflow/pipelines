@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -109,8 +110,21 @@ func newTriggerAPIClients(namespace string, tlsCfg *tls.Config) triggerAPIClient
 	return triggerAPIClients{
 		pipeline: pipelinehttp.New(httpRuntime, strfmt.Default),
 		run:      runhttp.New(httpRuntime, strfmt.Default),
-		auth:     api_server.SATokenVolumeProjectionAuth,
+		// Standalone KFP has no projected SA token volume; multi-user mounts
+		// /var/run/secrets/kubeflow/pipelines/token for Bearer auth.
+		auth: triggerAPIAuth(),
 	}
+}
+
+func triggerAPIAuth() runtime.ClientAuthInfoWriter {
+	tokenPath := os.Getenv("KF_PIPELINES_SA_TOKEN_PATH")
+	if tokenPath == "" {
+		tokenPath = "/var/run/secrets/kubeflow/pipelines/token"
+	}
+	if _, err := os.Stat(tokenPath); err != nil {
+		return api_server.PassThroughAuth
+	}
+	return api_server.SATokenVolumeProjectionAuth
 }
 
 func NewTriggerPipelineLauncher(

@@ -87,6 +87,13 @@ var (
 		"importer_spec",
 		"parent_dag_id",
 	}
+	triggerPipelineRequiredLauncherFlags = []string{
+		"task_spec",
+		"trigger_pipeline_spec",
+		"parent_dag_id",
+		"ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+	}
 )
 
 // collectProvidedFlags returns the flags explicitly set on the command line.
@@ -106,8 +113,10 @@ func requiredLauncherFlags(executorType string) ([]string, error) {
 		required = append(required, containerRequiredLauncherFlags...)
 	case "importer":
 		required = append(required, importerRequiredLauncherFlags...)
+	case "trigger_pipeline":
+		required = append(required, triggerPipelineRequiredLauncherFlags...)
 	default:
-		return nil, fmt.Errorf("unsupported executor type %q, must be one of container, importer", executorType)
+		return nil, fmt.Errorf("unsupported executor type %q, must be one of container, importer, trigger_pipeline", executorType)
 	}
 	return required, nil
 }
