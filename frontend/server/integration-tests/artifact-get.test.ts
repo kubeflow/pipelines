@@ -687,6 +687,61 @@ s3:
       });
     });
 
+    it('uses Go boolean syntax for anonymous GCS query settings', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const stream = new PassThrough();
+      stream.end('public artifact');
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { anonymous: '1', fromEnv: 'true', universe_domain: 'example.com' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'public artifact\n');
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        prefix: 'hello/world.txt',
+        universeDomain: 'example.com',
+      });
+    });
+
+    it('rejects invalid GCS anonymous values before resolving ADC', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { anonymous: 'yes', fromEnv: 'true' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          500,
+          'Failed to download GCS file(s). Error: Error: Invalid boolean value for provider option anonymous: yes',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+    });
+
     it('rejects authenticated GCS access to a provider-selected universe', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
       const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;

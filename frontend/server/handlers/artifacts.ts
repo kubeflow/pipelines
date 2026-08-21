@@ -26,6 +26,7 @@ import {
   isNoSuchKeyError,
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
+  parseGoBoolean,
 } from '../minio-helper.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
@@ -1009,8 +1010,9 @@ function getGCSArtifactHandler(
       let universeDomain: string | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
+        const anonymousParam = providerInfo?.Params.anonymous;
         anonymous =
-          providerInfo?.Params.anonymous?.toLowerCase() === 'true' ||
+          (anonymousParam ? parseGoBoolean(anonymousParam, 'anonymous') : false) ||
           providerInfo?.Params.access_id === '-';
         universeDomain = providerInfo?.Params.universe_domain || undefined;
         if (universeDomain && !anonymous && universeDomain !== 'googleapis.com') {

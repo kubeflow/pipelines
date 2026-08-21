@@ -18,7 +18,7 @@ import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { isAWSS3Endpoint } from './aws-helper.js';
-import { S3ProviderInfo } from './handlers/artifacts.js';
+import type { S3ProviderInfo } from './handlers/artifacts.js';
 import { getK8sSecret } from './k8s-helper.js';
 import { parseJSONString } from './utils.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
@@ -43,31 +43,61 @@ export interface Credentials {
 }
 
 const UNSUPPORTED_S3_READ_OPTIONS = new Set([
-  'accelerate',
-  'dualstack',
-  'fips',
-  'hostname_immutable',
   'profile',
-  'rate_limiter_capacity',
   'request_checksum_calculation',
   'response_checksum_validation',
   'role',
 ]);
+const UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS = [
+  'accelerate',
+  'dualstack',
+  'fips',
+  'hostname_immutable',
+] as const;
 
-function parseGoBoolean(value: string, option: string): boolean {
+export function parseGoBoolean(value: string, option: string): boolean {
   if (['1', 't', 'T', 'TRUE', 'true', 'True'].includes(value)) {
     return true;
   }
   if (['0', 'f', 'F', 'FALSE', 'false', 'False'].includes(value)) {
     return false;
   }
-  throw new Error(`Invalid value for S3 provider option ${option}: ${value}`);
+  throw new Error(`Invalid boolean value for provider option ${option}: ${value}`);
 }
 
 function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
-  const unsupported = Object.keys(providerInfo.Params)
+  const params = providerInfo.Params as Record<string, string | undefined>;
+  const unsupported = Object.keys(params)
     .filter((key) => UNSUPPORTED_S3_READ_OPTIONS.has(key))
     .sort();
+  for (const option of UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS) {
+    const value = params[option];
+    if (value !== undefined && parseGoBoolean(value, option)) {
+      unsupported.push(option);
+    }
+  }
+  const rateLimitCapacity = params.rate_limiter_capacity;
+  if (rateLimitCapacity !== undefined) {
+    if (!/^[+-]?\d+$/.test(rateLimitCapacity)) {
+      throw new Error(
+        `Invalid integer value for provider option rate_limiter_capacity: ${rateLimitCapacity}`,
+      );
+    }
+    const parsedCapacity = Number(rateLimitCapacity);
+    if (
+      !Number.isSafeInteger(parsedCapacity) ||
+      parsedCapacity < -2147483648 ||
+      parsedCapacity > 2147483647
+    ) {
+      throw new Error(
+        `Invalid integer value for provider option rate_limiter_capacity: ${rateLimitCapacity}`,
+      );
+    }
+    if (parsedCapacity > 0) {
+      unsupported.push('rate_limiter_capacity');
+    }
+  }
+  unsupported.sort();
   if (unsupported.length) {
     throw new Error(
       `Unsupported S3 artifact read option${unsupported.length === 1 ? '' : 's'}: ${unsupported.join(

@@ -156,7 +156,7 @@ export async function getLauncherProviderInfo(
     !!config &&
     (config.default != null || config.Overrides != null || config.overrides != null);
   if (effectiveQuery && !gcsProviderIsAuthoritative) {
-    return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
+    return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery, !underPipelineRoot));
   }
   if (!config) {
     return undefined;
@@ -302,9 +302,19 @@ function buildSessionInfo(
   return { Provider: provider, Params: params };
 }
 
-function buildQuerySessionInfo(provider: ArtifactProvider, query: string): StoreSessionInfo {
+function buildQuerySessionInfo(
+  provider: ArtifactProvider,
+  query: string,
+  enforceNativeS3Query: boolean,
+): StoreSessionInfo {
   const params: Record<string, string> = {};
   new URLSearchParams(query).forEach((value, key) => {
+    if (provider === 's3' && enforceNativeS3Query && !NATIVE_S3_QUERY_OPTIONS.has(key)) {
+      throw new LauncherConfigValidationError(
+        `S3 artifact URI query option "${key}" is not supported by Go Cloud. ` +
+          'Use a native S3 query option and retry.',
+      );
+    }
     // Go's url.Values.Get reads the first duplicate. Preserve that behavior so credential and
     // endpoint selection cannot diverge between the launcher and the artifact reader.
     if (!(key in params)) {
@@ -315,6 +325,27 @@ function buildQuerySessionInfo(provider: ArtifactProvider, query: string): Store
   params.fromEnv = 'true';
   return { Provider: provider, Params: params };
 }
+
+const NATIVE_S3_QUERY_OPTIONS = new Set([
+  'accelerate',
+  'anonymous',
+  'awssdk',
+  'disable_https',
+  'dualstack',
+  'endpoint',
+  'fips',
+  'hostname_immutable',
+  'kmskeyid',
+  'profile',
+  'rate_limiter_capacity',
+  'region',
+  'request_checksum_calculation',
+  'response_checksum_validation',
+  'role',
+  's3ForcePathStyle',
+  'ssetype',
+  'use_path_style',
+]);
 
 function getUriQuery(uri: string): string {
   try {

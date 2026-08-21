@@ -280,6 +280,53 @@ describe('minio-helper', () => {
       expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
+    it('accepts valid neutral S3 options that do not change read behavior', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            accelerate: '0',
+            dualstack: 'false',
+            endpoint: 'https://s3.us-west-2.amazonaws.com',
+            fips: 'False',
+            fromEnv: 'true',
+            hostname_immutable: 'FALSE',
+            rate_limiter_capacity: '0',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('rejects unsupported S3 behavior when its native boolean is enabled', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              accelerate: '1',
+              endpoint: 'https://s3.us-west-2.amazonaws.com',
+              fromEnv: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('Unsupported S3 artifact read option: accelerate');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
     it('parses an explicit HTTP AWS endpoint into Minio client options', async () => {
       await createMinioClient(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
