@@ -376,7 +376,24 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect())
+	return storage.NewDB(newdb, newStorageDialect(driverName))
+}
+
+// newStorageDialect returns the storage-layer dialect matching driverName. The
+// storage dialect is distinct from the SQLDialect used by the migration flow
+// above: it covers the query-building differences the stores rely on
+// (GROUP_CONCAT vs STRING_AGG, ON DUPLICATE KEY vs ON CONFLICT, UPDATE JOIN vs
+// UPDATE FROM, and driver-specific duplicate-key detection).
+func newStorageDialect(driverName string) storage.SQLDialect {
+	switch driverName {
+	case "mysql":
+		return storage.NewMySQLDialect()
+	case "pgx":
+		return storage.NewPostgreSQLDialect()
+	default:
+		glog.Fatalf("Driver %v is not supported, use \"mysql\" for MySQL, or \"pgx\" for PostgreSQL", driverName)
+		return nil
+	}
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:
