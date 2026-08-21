@@ -486,6 +486,12 @@ function getIterationState(
   if (states.includes(PipelineTaskTaskState.FAILED)) {
     return PipelineTaskTaskState.FAILED;
   }
+  if (
+    loopState === PipelineTaskTaskState.FAILED &&
+    states.includes(PipelineTaskTaskState.RUNNING)
+  ) {
+    return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+  }
   if (states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNNING;
   }

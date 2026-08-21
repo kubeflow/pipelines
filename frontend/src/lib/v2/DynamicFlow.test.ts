@@ -504,6 +504,32 @@ describe('DynamicFlow', () => {
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 
+      const staleRunningBody = { ...bodyA, state: PipelineTaskTaskState.RUNNING };
+      const failedWithStaleIncompleteElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        [rootTask, { ...loopTask, state: PipelineTaskTaskState.FAILED }, staleRunningBody],
+      );
+      expect(failedWithStaleIncompleteElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
+      const failedWithStaleCompleteElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        [rootTask, { ...loopTask, state: PipelineTaskTaskState.FAILED }, staleRunningBody, bodyB],
+      );
+      expect(failedWithStaleCompleteElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
+      const failedChildElements = updateFlowElementsState(['root', 'loop'], partialElements, [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.FAILED },
+        { ...bodyA, state: PipelineTaskTaskState.FAILED },
+      ]);
+      expect(failedChildElements[0].data?.state).toBe(PipelineTaskTaskState.FAILED);
+
       const completeElements = updateFlowElementsState(['root', 'loop'], partialElements, [
         rootTask,
         loopTask,
