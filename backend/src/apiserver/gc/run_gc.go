@@ -62,6 +62,7 @@ type leaderLifecycle struct {
 
 	mu               sync.Mutex
 	callbackStarted  bool
+	callbackDone     chan struct{}
 	cancelCollection context.CancelFunc
 	gracefulStop     bool
 }
@@ -97,11 +98,27 @@ func (l *leaderLifecycle) onStartedLeading(leaderCtx context.Context) {
 	defer cancelCollection()
 
 	l.mu.Lock()
+	// Serialize against a previous callback that is still draining even
+	// here: client-go dispatches OnStartedLeading as an unjoined goroutine
+	// and can re-enter the election before the previous callback registered
+	// itself, so the external drain gate alone cannot see it.
+	for l.callbackStarted {
+		previousDone := l.callbackDone
+		l.mu.Unlock()
+		select {
+		case <-previousDone:
+		case <-leaderCtx.Done():
+			// Lost this lease while waiting; nothing was started.
+			return
+		}
+		l.mu.Lock()
+	}
 	if l.gracefulStop || l.electionCtx.Err() != nil {
 		l.mu.Unlock()
 		return
 	}
 	l.callbackStarted = true
+	l.callbackDone = make(chan struct{})
 	l.cancelCollection = cancelCollection
 	if l.shutdownCtx.Err() != nil {
 		cancelCollection()
@@ -119,13 +136,37 @@ func (l *leaderLifecycle) onStartedLeading(leaderCtx context.Context) {
 	// shutdown wait group.
 	l.mu.Lock()
 	l.callbackStarted = false
+	done := l.callbackDone
 	shutdown := l.shutdownCtx.Err() != nil
 	if shutdown {
 		l.gracefulStop = true
 	}
 	l.mu.Unlock()
+	close(done)
 	if shutdown {
 		l.cancelElection()
+	}
+}
+
+// drainCallback blocks until no collection callback is running, or ctx is
+// canceled (returning false). client-go launches OnStartedLeading as an
+// unjoined goroutine and LeaderElector.Run returns without waiting for it, so
+// without this gate a re-entered election could start a second collection
+// loop while the first is still draining, and Start could return before all
+// database work has finished.
+func (l *leaderLifecycle) drainCallback(ctx context.Context) bool {
+	l.mu.Lock()
+	if !l.callbackStarted {
+		l.mu.Unlock()
+		return true
+	}
+	done := l.callbackDone
+	l.mu.Unlock()
+	select {
+	case <-done:
+		return true
+	case <-ctx.Done():
+		return false
 	}
 }
 
@@ -233,6 +274,11 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 	// per attempt; the config was validated once above so per-attempt
 	// construction cannot fail persistently.
 	wait.UntilWithContext(electionCtx, func(loopCtx context.Context) {
+		// Never re-enter the election while the previous collection callback
+		// is still draining: at most one collection loop may exist.
+		if !lifecycle.drainCallback(loopCtx) {
+			return
+		}
 		attemptElector, attemptError := leaderelection.NewLeaderElector(electionConfig)
 		if attemptError != nil {
 			glog.Errorf("Run GC: failed to recreate leader elector, retrying in %v: %v", reelectionBackoff, attemptError)
@@ -240,6 +286,13 @@ func (gc *RunGarbageCollector) Start(ctx context.Context) {
 		}
 		attemptElector.Run(loopCtx)
 	}, reelectionBackoff)
+
+	// Stop any not-yet-registered callback from starting (registration
+	// re-checks electionCtx under the lifecycle lock), then join the final
+	// callback so main's wait group only releases after all in-flight
+	// database work has drained.
+	cancelElection()
+	lifecycle.drainCallback(context.Background())
 }
 
 func (gc *RunGarbageCollector) runLoop(ctx context.Context) {

@@ -84,7 +84,7 @@ func (f *fakeRunStore) TerminateRun(_ string) error                             
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
 }
-func (f *fakeRunStore) ClaimRunForRetry(_ string) (string, string, int64, int64, error) {
+func (f *fakeRunStore) ClaimRunForRetry(_ string, _ bool) (string, string, int64, int64, error) {
 	return "", "", 0, 0, nil
 }
 func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64, _ int64) error {
@@ -519,4 +519,108 @@ func TestLeaderLifecycle_LeaseLossDuringShutdownCancelsElection(t *testing.T) {
 		t.Fatal("election context was never canceled after lease loss during shutdown; Start would re-enter the election forever")
 	}
 	assert.True(t, lifecycle.isGracefulStop())
+}
+
+// Regression: client-go launches OnStartedLeading as an unjoined goroutine,
+// so a re-entered election must not start a second collection loop while the
+// previous callback is still draining, and Start's final join must not
+// release until that drain completes.
+func TestLeaderLifecycle_DrainGatePreventsOverlappingCallbacks(t *testing.T) {
+	shutdownCtx, shutdown := context.WithCancel(context.Background())
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	leaderCtx, loseLease := context.WithCancel(context.Background())
+	defer cancelElection()
+
+	releaseRunLoop := make(chan struct{})
+	runLoopStarted := make(chan struct{})
+	lifecycle := newLeaderLifecycle(shutdownCtx, electionCtx, cancelElection, func(ctx context.Context) {
+		close(runLoopStarted)
+		<-ctx.Done()
+		<-releaseRunLoop // simulate a database batch that cannot be interrupted
+	})
+
+	callbackDone := make(chan struct{})
+	go func() {
+		lifecycle.onStartedLeading(leaderCtx)
+		close(callbackDone)
+	}()
+	requireSignal(t, runLoopStarted, "collection callback did not start")
+
+	// Lease lost: LeaderElector.Run would return now, and the re-election
+	// loop would attempt to acquire again while the callback still drains.
+	loseLease()
+
+	gateCtx, gateCancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer gateCancel()
+	assert.False(t, lifecycle.drainCallback(gateCtx),
+		"drain gate must block re-election while the previous callback is draining")
+
+	// Shutdown arrives mid-drain; the final join must wait for the drain.
+	shutdown()
+	lifecycle.onShutdown()
+	joined := make(chan struct{})
+	go func() {
+		lifecycle.drainCallback(context.Background())
+		close(joined)
+	}()
+	select {
+	case <-joined:
+		t.Fatal("final join released before the in-flight database work drained")
+	case <-time.After(100 * time.Millisecond):
+	}
+
+	close(releaseRunLoop)
+	requireSignal(t, callbackDone, "collection callback did not exit")
+	requireSignal(t, joined, "final join did not release after the drain completed")
+	select {
+	case <-electionCtx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("election context not canceled after shutdown completed the drain")
+	}
+}
+
+// Regression: client-go can dispatch OnStartedLeading and return from Run
+// before the callback registers itself, so serialization must also be
+// enforced inside onStartedLeading — a second callback must wait for the
+// first to drain (or abandon its lease) before starting a collection loop.
+func TestLeaderLifecycle_SecondCallbackWaitsForFirstToDrain(t *testing.T) {
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	defer cancelElection()
+	leader1 := context.Background()
+	leader2, cancelLeader2 := context.WithCancel(context.Background())
+
+	var runLoopStarts atomic.Int32
+	release := make(chan struct{})
+	lifecycle := newLeaderLifecycle(context.Background(), electionCtx, cancelElection, func(ctx context.Context) {
+		runLoopStarts.Add(1)
+		<-release
+	})
+
+	go lifecycle.onStartedLeading(leader1)
+	require.Eventually(t, func() bool { return runLoopStarts.Load() == 1 }, time.Second, time.Millisecond)
+
+	// Second callback dispatched while the first is still draining: it must
+	// wait, not start a second collection loop.
+	secondDone := make(chan struct{})
+	go func() {
+		lifecycle.onStartedLeading(leader2)
+		close(secondDone)
+	}()
+	require.Never(t, func() bool { return runLoopStarts.Load() > 1 }, 100*time.Millisecond, 5*time.Millisecond,
+		"second callback must not start a collection loop while the first is draining")
+
+	// Losing the waiting callback's lease releases it without running.
+	cancelLeader2()
+	requireSignal(t, secondDone, "waiting callback did not return after losing its lease")
+	assert.Equal(t, int32(1), runLoopStarts.Load())
+
+	// After the first drains, a fresh callback proceeds normally.
+	close(release)
+	thirdDone := make(chan struct{})
+	go func() {
+		lifecycle.onStartedLeading(context.Background())
+		close(thirdDone)
+	}()
+	requireSignal(t, thirdDone, "third callback did not run after the first drained")
+	assert.Equal(t, int32(2), runLoopStarts.Load())
 }

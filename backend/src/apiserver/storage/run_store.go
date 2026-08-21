@@ -178,7 +178,11 @@ type RunStoreInterface interface {
 	// Atomically claims a terminal run for retry (database-side CAS).
 	// Returns the original State, Conditions, FinishedAtInSec, and the new
 	// RetryGeneration claim token for rollback and reporter fencing.
-	ClaimRunForRetry(runID string) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+	// takeoverExpiredClaim additionally allows claiming a PENDING row whose
+	// previous claim has aged out; the caller must first reconcile against
+	// Kubernetes and prove the previous claim's workflow was never applied,
+	// otherwise a takeover can restart in-flight work.
+	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
 	// The claimGeneration must match the value returned by ClaimRunForRetry
@@ -910,7 +914,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	return nil
 }
 
-func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64, error) {
+func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
@@ -955,12 +959,17 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 		isTerminal = terminalRunStateValues[originalConditions]
 	}
 	if !isTerminal {
-		// Allow a new claim to take over an expired one. A previous retry
-		// that crashed after committing its claim but before creating the
-		// workflow leaves the row PENDING with no workflow to report it;
+		// Allow a new claim to take over an expired one, but only when the
+		// caller has explicitly authorized it after reconciling against
+		// Kubernetes (RetryRun proves the previous claim's workflow was
+		// never applied before setting takeoverExpiredClaim). A previous
+		// retry that crashed after committing its claim but before creating
+		// the workflow leaves the row PENDING with no workflow to report it;
 		// without takeover the run would be stuck forever (not terminal, so
-		// not claimable; FinishedAtInSec=0, so invisible to GC).
-		isAbandonedClaim := originalState == string(model.RuntimeStatePending) &&
+		// not claimable; FinishedAtInSec=0, so invisible to GC). Expiry is
+		// re-checked here under the row lock as defense in depth.
+		isAbandonedClaim := takeoverExpiredClaim &&
+			originalState == string(model.RuntimeStatePending) &&
 			currentGeneration > 0 &&
 			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
 		if !isAbandonedClaim {
@@ -1138,7 +1147,10 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	// re-scan the entire old finish-time range every tick only to reject
 	// fresh archival timestamps. Legacy rows (ArchivedAtInSec=0) are driven
 	// by idx_run_gc_lifecycle (StorageState, FinishedAtInSec); that set only
-	// shrinks, so its scan cost drains to zero.
+	// shrinks, so its scan cost drains to zero. Legacy candidates fill the
+	// batch first: they are by definition the oldest rows, and draining that
+	// bounded set first ends the dual-query era instead of starving it
+	// behind a steady stream of current-format rows.
 	currentSQL, currentArgs, err := sq.
 		Select("UUID").
 		From("run_details").
@@ -1189,7 +1201,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	for _, candidateQuery := range []struct {
 		sql  string
 		args []interface{}
-	}{{currentSQL, currentArgs}, {legacySQL, legacyArgs}} {
+	}{{legacySQL, legacyArgs}, {currentSQL, currentArgs}} {
 		if len(uuids) >= batchSize {
 			break
 		}

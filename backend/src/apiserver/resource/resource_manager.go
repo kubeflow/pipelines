@@ -1091,11 +1091,64 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		return util.Wrapf(err, "Failed to retry run %s", runId)
 	}
 
+	if namespace == "" {
+		namespace = common.GetPodNamespace()
+	}
+
+	// If a previous retry claim has aged out, reconcile against Kubernetes
+	// before deciding anything: an expired claim is not necessarily an
+	// abandoned one. If the claim's workflow exists (the previous API server
+	// crashed after applying the mutation but before persisting), adopt it
+	// instead of launching a duplicate; only a definitive absence (NotFound,
+	// or a live workflow still carrying an older generation) authorizes the
+	// takeover below.
+	allowClaimTakeover := false
+	if run.State == model.RuntimeStatePending && run.RetryGeneration > 0 {
+		claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
+		if run.RetryClaimedAtInSec == 0 || claimAge > int64(retryClaimGracePeriod()/time.Second) {
+			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+			switch {
+			case readError == nil && liveWorkflow != nil &&
+				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration:
+				// The previous retry was applied. Persist its current state
+				// and report success: the retry the user asked for is
+				// already running (or finished).
+				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
+				condition := string(liveWorkflow.ExecutionStatus().Condition())
+				run.Conditions = condition
+				run.State = model.RuntimeState(condition).ToV2()
+				run.FinishedAtInSec = liveWorkflow.ExecutionStatus().FinishedAt()
+				run.WorkflowRuntimeManifest = model.LargeText(liveWorkflow.ToStringForStore())
+				// The crashed retry may not have reached plugin
+				// notification, so adoption fires it (mirrors the normal
+				// retry path); delivery is documented as at-least-once and
+				// handlers deduplicate on (RunID, RetryGeneration).
+				if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+					if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
+						r.pluginDispatcher.OnRunRetry(ctx, pr)
+					}
+				}
+				run.PluginsOutputString = nil
+				if updateError := r.runStore.UpdateRun(run); updateError != nil {
+					return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", runId)
+				}
+				return nil
+			case readError != nil && !apierrors.IsNotFound(readError):
+				// Transient read: preserve the claim rather than risking a
+				// takeover that duplicates live work.
+				return util.NewUnavailableServerError(readError,
+					"Run %s has an expired retry claim but its workflow state could not be verified - try again later", runId)
+			default:
+				allowClaimTakeover = true
+			}
+		}
+	}
+
 	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
 	// from overwriting with a stale terminal state. The returned claimGeneration
 	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
 	// and RollbackRetryClaim checks it to prevent ABA rollback of a later retry.
-	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId)
+	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId, allowClaimTakeover)
 	if claimError != nil {
 		// Wrap (not re-classify) so NotFound / BadRequest from the claim
 		// reach the client as such instead of surfacing as HTTP 500.
@@ -1113,9 +1166,6 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	// of the pre-retry workflow, without comparing timestamps across clocks.
 	newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
 
-	if namespace == "" {
-		namespace = common.GetPodNamespace()
-	}
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
 		// Pod deletion is a local operation that precedes any workflow mutation.
 		// Safe to rollback unconditionally — no external state was changed.
@@ -1658,6 +1708,62 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			)
 		}
 	}
+	// If run already exists, simply update it
+	run, updateError := r.GetRun(runId)
+	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
+		// Fail closed: a transient run-store read error must not skip the
+		// generation fence below and fall through into the
+		// persisted-final-state deletion - with an empty-resourceVersion
+		// stale snapshot that would delete the live retried workflow.
+		// NotFound keeps its dedicated recovery paths (workflow GC and the
+		// grace-period handling further down).
+		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
+	}
+	// Fence terminal reports from stale pre-retry workflow snapshots.
+	// A retried workflow carries the claim's RetryGeneration as an
+	// annotation; a snapshot taken before the retry carries an older
+	// generation (or none). Accepting such a report would restore the
+	// old FinishedAtInSec and make the run GC-eligible while the retry
+	// is still running. No timestamps are compared across clocks here.
+	// This fence runs before the persisted-final-state deletion below so a
+	// stale snapshot can neither overwrite the row nor delete the live
+	// workflow that a retry has since resubmitted under the same name.
+	if updateError == nil && run.RetryGeneration > 0 && execStatus.IsInFinalState() {
+		if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
+			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
+			if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
+				// The retry is (or was moments ago) in flight; the retried
+				// workflow will report with the current generation. Skip
+				// this stale snapshot as a successful no-op so the
+				// persistence agent does not requeue it forever.
+				glog.Infof("Skipping stale terminal report for run %s: reported retry generation %d < claimed generation %d",
+					runId, reportedGeneration, run.RetryGeneration)
+				return execSpec, nil
+			}
+			// The claim has aged out, but age alone is not proof of
+			// abandonment (and the resource-version check above passes
+			// vacuously for reports without a resourceVersion). Never
+			// age-accept a lower generation while the claimed generation
+			// is live: consult the live workflow first.
+			liveWorkflow, readError := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+			switch {
+			case readError == nil && liveWorkflow != nil &&
+				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) >= run.RetryGeneration:
+				glog.Infof("Skipping stale terminal report for run %s: live workflow carries generation %d",
+					runId, reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()))
+				return execSpec, nil
+			case readError != nil && !util.IsNotFound(readError):
+				return nil, util.NewUnavailableServerError(readError,
+					"Cannot verify live workflow before accepting a stale-generation report for run %s - will retry", runId)
+			}
+			// Definitive: no live workflow, or the live workflow still
+			// carries an older generation, so the claimed generation was
+			// never applied. Accept this report so the run returns to its
+			// last real state instead of staying PENDING forever.
+			glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and provably not applied",
+				reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
+		}
+	}
 	// Delete a fully persisted workflow only after the version check above:
 	// a stale snapshot carrying the persisted-final-state label must not
 	// delete the live workflow object that a retry has since resubmitted
@@ -1679,36 +1785,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			workflowGCCounter.Inc()
 		}
 	}
-	// If run already exists, simply update it
-	run, updateError := r.GetRun(runId)
 	if updateError == nil {
-		// Fence terminal reports from stale pre-retry workflow snapshots.
-		// A retried workflow carries the claim's RetryGeneration as an
-		// annotation; a snapshot taken before the retry carries an older
-		// generation (or none). Accepting such a report would restore the
-		// old FinishedAtInSec and make the run GC-eligible while the retry
-		// is still running. No timestamps are compared across clocks here.
-		if run.RetryGeneration > 0 && execStatus.IsInFinalState() {
-			if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
-				claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
-				if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
-					// The retry is (or was moments ago) in flight; the retried
-					// workflow will report with the current generation. Skip
-					// this stale snapshot as a successful no-op so the
-					// persistence agent does not requeue it forever.
-					glog.Infof("Skipping stale terminal report for run %s: reported retry generation %d < claimed generation %d",
-						runId, reportedGeneration, run.RetryGeneration)
-					return execSpec, nil
-				}
-				// No workflow write carrying the claimed generation appeared
-				// within the grace period: the retry crashed between claiming
-				// the row and updating the workflow. Accept this report so
-				// the run returns to its last real state instead of staying
-				// PENDING forever.
-				glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and appears orphaned",
-					reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
-			}
-		}
 		run.State = state
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()
