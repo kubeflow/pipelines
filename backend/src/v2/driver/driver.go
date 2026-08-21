@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -58,9 +59,10 @@ type Options struct {
 	// optional, allows to specify kubernetes-specific executor config
 	KubernetesExecutorConfig *kubernetesplatform.KubernetesExecutorConfig
 
-	// optional, required only if the {{$.pipeline_job_resource_name}} placeholder is used or the run uses a workspace
+	// required, pipeline run name (Kubernetes object name); used by the
+	// {{$.pipeline_job_resource_name}} placeholder and workspace runs
 	RunName string
-	// optional, required only if the {{$.pipeline_job_name}} placeholder is used
+	// required, pipeline run display name; used by the {{$.pipeline_job_name}} placeholder
 	RunDisplayName string
 
 	PipelineLogLevel string
@@ -319,6 +321,8 @@ func initPodSpecPatch(
 	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
+		// Pass executor_type explicitly rather than relying on the launcher's default.
+		"--executor_type", "container",
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
 		"--pipeline_name", pipelineName,
 		"--run_id", runID,
@@ -335,25 +339,13 @@ func initPodSpecPatch(
 		"--mlmd_server_port", mlmdServerPort,
 		"--publish_logs", publishLogs,
 	}
-	if mlPipelineTLSEnabled {
-		launcherCmd = append(launcherCmd, "--ml_pipeline_tls_enabled")
-	}
-	if metadataTLSEnabled {
-		launcherCmd = append(launcherCmd, "--metadata_tls_enabled")
-	}
-	if caCertPath != "" {
-		launcherCmd = append(launcherCmd, "--ca_cert_path", caCertPath)
-	}
-	if cacheDisabled == "true" {
-		launcherCmd = append(launcherCmd, "--cache_disabled")
-	}
-	if pipelineLogLevel != "1" {
-		// Add log level to user code launcher if not default (set to 1)
-		launcherCmd = append(launcherCmd, "--log_level", pipelineLogLevel)
-	}
-	if publishLogs == "true" {
-		launcherCmd = append(launcherCmd, "--publish_logs", publishLogs)
-	}
+	launcherCmd = append(launcherCmd,
+		"--ml_pipeline_tls_enabled="+strconv.FormatBool(mlPipelineTLSEnabled),
+		"--metadata_tls_enabled="+strconv.FormatBool(metadataTLSEnabled),
+		"--ca_cert_path", caCertPath,
+		"--cache_disabled="+strconv.FormatBool(cacheDisabled == "true"),
+		"--log_level", pipelineLogLevel,
+	)
 	launcherCmd = append(launcherCmd, "--") // separater before user command and args
 	res := k8score.ResourceRequirements{
 		Limits:   map[k8score.ResourceName]k8sres.Quantity{},

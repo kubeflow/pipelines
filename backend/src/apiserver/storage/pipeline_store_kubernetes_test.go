@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/codes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -637,6 +638,96 @@ func TestGetPipelineVersionByName_NotFound(t *testing.T) {
 	_, err := store.GetPipelineVersionByName(DefaultFakePipelineIdTwo, "nonexistent")
 	require.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
+}
+
+func TestIsNewerPipelineVersion(t *testing.T) {
+	earlier := metav1.Unix(1700000000, 0)
+	later := metav1.Unix(1700000001, 0)
+
+	newerVersion := func(uid string, created metav1.Time) *v2beta1.PipelineVersion {
+		return &v2beta1.PipelineVersion{
+			ObjectMeta: metav1.ObjectMeta{UID: types.UID(uid), CreationTimestamp: created},
+		}
+	}
+
+	tests := []struct {
+		name     string
+		a        *v2beta1.PipelineVersion
+		b        *v2beta1.PipelineVersion
+		expected bool
+	}{
+		{"later timestamp wins", newerVersion("aaa", later), newerVersion("zzz", earlier), true},
+		{"earlier timestamp loses", newerVersion("zzz", earlier), newerVersion("aaa", later), false},
+		{"tie broken by higher uid", newerVersion("bbb", earlier), newerVersion("aaa", earlier), true},
+		{"tie broken against lower uid", newerVersion("aaa", earlier), newerVersion("bbb", earlier), false},
+		{"identical is not newer", newerVersion("aaa", earlier), newerVersion("aaa", earlier), false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, isNewerPipelineVersion(test.a, test.b))
+		})
+	}
+}
+
+// Versions created within the same second tie on CreationTimestamp.
+func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	const pipelineID = "e1b2c3d4-0000-4000-8000-000000000001"
+	sameSecond := metav1.Unix(1700000000, 0)
+
+	pipeline := &v2beta1.Pipeline{
+		ObjectMeta: metav1.ObjectMeta{UID: pipelineID, Name: "tie-pipeline", Namespace: "Test"},
+	}
+
+	version := func(name, uid string) *v2beta1.PipelineVersion {
+		return &v2beta1.PipelineVersion{
+			ObjectMeta: metav1.ObjectMeta{
+				UID:               types.UID(uid),
+				Name:              name,
+				Namespace:         "Test",
+				CreationTimestamp: sameSecond,
+				Labels:            map[string]string{"pipelines.kubeflow.org/pipeline-id": pipelineID},
+				OwnerReferences: []metav1.OwnerReference{{
+					APIVersion: v2beta1.GroupVersion.String(),
+					Kind:       "Pipeline",
+					Name:       "tie-pipeline",
+					UID:        pipelineID,
+				}},
+			},
+			Spec: v2beta1.PipelineVersionSpec{
+				VersionName:  name,
+				PipelineName: "tie-pipeline",
+				PipelineSpec: getBasicPipelineSpec(),
+			},
+		}
+	}
+
+	lowUID := version("tie-version-low", "00000000-0000-4000-8000-000000000001")
+	highUID := version("tie-version-high", "ffffffff-0000-4000-8000-000000000002")
+
+	// Seed both orderings; the same version must win regardless of list order.
+	for _, ordering := range [][]client.Object{
+		{lowUID, highUID},
+		{highUID, lowUID},
+	} {
+		k8sClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(append([]client.Object{pipeline}, ordering...)...).
+			Build()
+
+		store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+		latest, err := store.GetLatestPipelineVersion(pipelineID)
+		require.NoError(t, err)
+		assert.Equal(t, "tie-version-high", latest.Name)
+	}
 }
 
 func getClient() (client.Client, client.Client) {

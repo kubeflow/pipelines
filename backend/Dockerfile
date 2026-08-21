@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # 1. Build api server application
-FROM golang:1.26.5-bookworm@sha256:1ecb7edf62a0408027bd5729dfd6b1b8766e578e8df93995b225dfd0944eb651 AS builder
+FROM golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS builder
 WORKDIR /go/src/github.com/kubeflow/pipelines
 
 COPY ./go.mod ./
@@ -26,6 +26,7 @@ COPY ./api/go.mod ./api/go.mod
 # transient proxy.golang.org failure cannot fail the build.
 ENV GOPROXY=https://proxy.golang.org|direct
 RUN GO111MODULE=on go mod download
+RUN go list -mod=readonly -m -f '{{.Version}}' github.com/argoproj/argo-workflows/v4 > /tmp/argo-version
 
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
@@ -40,9 +41,11 @@ RUN python3 -m pip install -r requirements.txt --no-cache-dir
 ARG TARGETARCH
 RUN echo "Building for architecture: ${TARGETARCH}"
 
-# Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION=v4.0.8
-RUN curl -sL -H "Accept: application/octet-stream" \
+# Download the Argo CLI matching the runtime module so that the samples are
+# validated with the same release KFP builds against.
+COPY --from=builder /tmp/argo-version /tmp/argo-version
+RUN ARGO_VERSION="$(cat /tmp/argo-version)" && \
+    curl -fsSL -H "Accept: application/octet-stream" \
         https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-$TARGETARCH.gz \
     -o argo-linux-$TARGETARCH.gz && \
     gunzip argo-linux-$TARGETARCH.gz && \

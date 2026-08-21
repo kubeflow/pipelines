@@ -209,7 +209,10 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 		statusCode, _ := status.FromError(err)
 		if statusCode.Code() == codes.Unauthenticated && strings.Contains(err.Error(), "service account token has expired") {
 			// If unauthenticated because SA token is expired, re-read/refresh the token and try again
-			p.tokenRefresher.RefreshToken()
+			if refreshErr := p.tokenRefresher.RefreshToken(); refreshErr != nil {
+				return nil, util.NewCustomError(refreshErr, util.CUSTOM_CODE_PERMANENT,
+					"Failed to refresh token: %v", refreshErr.Error())
+			}
 			return nil, util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
 				"Error while reporting workflow resource (code: %v, message: %v): %v",
 				statusCode.Code(),

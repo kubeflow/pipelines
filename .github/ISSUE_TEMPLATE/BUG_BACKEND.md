@@ -1,7 +1,7 @@
 ---
 name: ⚠️ Report Backend Bug
 about: Report a Backend bug on Kubeflow Pipelines
-title: "[backend] <Bug Name>"
+title: "bug(backend): <Bug Name>"
 labels: kind/bug, area/backend
 ---
 

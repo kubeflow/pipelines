@@ -44,7 +44,7 @@ export function initFeatures() {
   }
   if (localStorage.getItem('flags')) {
     const originalFlags = localStorage.getItem('flags');
-    let originalFlagsJSON: Feature[] = [];
+    let originalFlagsJSON: Feature[];
     try {
       originalFlagsJSON = JSON.parse(originalFlags!);
       let originalFlagsMap = new Map(
@@ -81,7 +81,7 @@ export function saveFeatures(f: Feature[]) {
   }
 }
 
-function storageAvailable(type: string) {
+function storageAvailable(type: 'localStorage' | 'sessionStorage') {
   var storage;
   try {
     storage = window[type];

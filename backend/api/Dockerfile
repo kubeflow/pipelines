@@ -13,35 +13,21 @@
 # limitations under the License.
 
 # Generate client code (go & json) from API protocol buffers
-FROM golang:1.26.5@sha256:3aff6657219a4d9c14e27fb1d8976c49c29fddb70ba835014f477e1c70636647 AS generator
-ENV GRPC_GATEWAY_VERSION=v2.29.0
-ENV GO_SWAGGER_VERSION=v0.32.3
-ENV GRPC_VERSION=v1.82.0
+FROM golang:1.26.6@sha256:0d1d3a794be25f809dd2cb3160d8c73276c4056a9f8242a138e908ddeee7b6b6 AS generator
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
 # so we pin a specific commit to make the clone reproducible.
 ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 
-# **Note** that protoc-gen-go-grpc is packaged with grpc-go but is versioned
-# separately. You can find the releases for protoc-gen-go-grpc here:
-# https://github.com/grpc/grpc-go/releases
-# **Note** that these also include releases for grpc-go which is the grpc Go
-# runtime package. protoc-gen-go-grpc is the package used for generating
-# Go GRPC code from .proto files.
-# to list recent protoc-gen-go-grpc versions you can also do:
-# go list -m -versions google.golang.org/grpc/cmd/protoc-gen-go-grpc
-# PROTOC_GEN_GO_GRPC & PROTOBUF_GO versions should match reasonably close to each other.
-# You can check the protobuf in the go.mod for protoc-gen-go-grpc, like here:
-# https://github.com/grpc/grpc-go/blob/cmd/protoc-gen-go-grpc/v1.5.1/cmd/protoc-gen-go-grpc/go.mod#L7
-# **Note** That BOTH PROTOC_GEN_GO_GRPC & PROTOBUF_GO here are used for
-# Generating GO Code. These versions should be identical to the
-# runtime Go packages (in the project go.mod)
-ENV PROTOC_GEN_GO_GRPC=v1.6.2
-ENV PROTOBUF_GO=v1.36.12-0.20260120151049-f2248ac996af
+# Runtime-coupled Go generators use the exact versions selected by the root
+# module. Standalone generator tools use the dedicated tools module so
+# Dependabot can update them without adding build-only dependencies to KFP.
+COPY go.mod /tmp/kfp-module/go.mod
+COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
 
-# Install protoc.
-RUN apt-get update -y && apt-get install -y jq sed unzip
+# Install protoc and Java (needed for KFP server API package generation).
+RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
 RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
@@ -52,10 +38,19 @@ RUN rm -f protoc.zip
 ENV PROTOCCOMPILER=/usr/bin/protoc
 ENV PROTOCINCLUDE=/usr/include/google/protobuf
 
-# Need grpc-gateway source code for -I in protoc command.
-# Install protoc-gen-rpc-gateway && protoc-gen-swagger.
-RUN go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@${GRPC_GATEWAY_VERSION}
-RUN go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@${GRPC_GATEWAY_VERSION}
+# Install the Go-based generators at their manifest-selected versions. Keep the
+# grpc-gateway options alongside the plugins because protoc imports them.
+RUN set -eu; \
+    module_version() { cd "$1" && go mod edit -json | jq -er --arg module "$2" '.Require[] | select(.Path == $module) | .Version'; }; \
+    grpc_gateway_version="$(module_version /tmp/kfp-module github.com/grpc-ecosystem/grpc-gateway/v2)"; \
+    protobuf_go_version="$(module_version /tmp/kfp-module google.golang.org/protobuf)"; \
+    protoc_gen_go_grpc_version="$(module_version /tmp/kfp-module google.golang.org/grpc/cmd/protoc-gen-go-grpc)"; \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@"${grpc_gateway_version}"; \
+    go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@"${grpc_gateway_version}"; \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@"${protobuf_go_version}"; \
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@"${protoc_gen_go_grpc_version}"; \
+    mkdir -p /protoc-gen-openapiv2; \
+    cp -r "/go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@${grpc_gateway_version}/protoc-gen-openapiv2/options" /protoc-gen-openapiv2/options
 
 # Need to explicitly provide the googleapis protos and the OpenAPI options that were previously present in the grpc-gateway repo.
 RUN git init /googleapis && \
@@ -63,17 +58,11 @@ RUN git init /googleapis && \
     git remote add origin https://github.com/googleapis/googleapis.git && \
     git fetch --depth 1 origin ${GOOGLEAPIS_COMMIT} && \
     git checkout FETCH_HEAD
-RUN mkdir -p /protoc-gen-openapiv2 && \
-    cp -r /go/pkg/mod/github.com/grpc-ecosystem/grpc-gateway/v2@${GRPC_GATEWAY_VERSION}/protoc-gen-openapiv2/options /protoc-gen-openapiv2/options
-
 # Download go-swagger binary.
-RUN curl -LO "https://github.com/go-swagger/go-swagger/releases/download/${GO_SWAGGER_VERSION}/swagger_linux_amd64"
-RUN chmod +x swagger_linux_amd64 && mv swagger_linux_amd64 /usr/bin/swagger
-
-# Need protobuf source code for -I in protoc command.
-# Install protoc-gen-go.
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@${PROTOBUF_GO}
-RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@${PROTOC_GEN_GO_GRPC}
+RUN set -eu; \
+    go_swagger_version="$(cd /tmp/api-generator-tools && go mod edit -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
+    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
+    chmod +x /usr/bin/swagger
 
 # Needed for buildling python packages requiring protoc
 RUN apt-get update && apt-get install -y python3-pip

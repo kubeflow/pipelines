@@ -28,10 +28,9 @@ jobs:
     env:
       ARTIFACT_NAME: "runtime-base-images"
       ARTIFACTS_PATH: "runtime-base-images-cache"
-      RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure runtime base image artifact
         id: configure-runtime-base-images
@@ -42,7 +41,8 @@ jobs:
             .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
             .github/resources/runtime-base-images.txt \
             .github/resources/scripts/helper-functions.sh \
-            .github/workflows/runtime-base-images.yml)
+            .github/workflows/runtime-base-images.yml \
+            test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
           echo "artifact-name=runtime-base-images-${archive_fingerprint}" >> "$GITHUB_OUTPUT"
 
       - name: Find runtime base image producer
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          path: ${{ env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 
@@ -154,7 +154,7 @@ jobs:
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Read frontend Node version
         id: frontend_node
@@ -169,6 +169,10 @@ jobs:
             echo "image_tag=${{ env.IMAGE_TAG }}"
             echo "registry=${{ env.REGISTRY }}"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Set up Docker Buildx
         shell: bash
