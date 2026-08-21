@@ -17,6 +17,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
@@ -24,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
 	clientmanager "github.com/kubeflow/pipelines/backend/src/v2/client_manager"
+	"google.golang.org/protobuf/types/known/structpb"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
@@ -176,6 +178,61 @@ func TestContainer_K8sOpPostCreateErrorUpdatesExistingTask(t *testing.T) {
 	}
 	if failedTask.GetEndTime() == nil {
 		t.Fatal("expected failed task to have an end time")
+	}
+}
+
+func TestContainer_CreatePVCInvalidSizeFinalizesFailedTask(t *testing.T) {
+	tc := NewTestContextWithRootExecuted(t, &pipelinespec.PipelineJob_RuntimeConfig{}, "test_data/nested_k8s_pvc_outputs.yaml")
+
+	_, nestedTask := tc.RunDagDriver("nested", tc.RootTask)
+	err := tc.Push("createpvc")
+	if err != nil {
+		t.Fatalf("failed to push scope path: %v", err)
+	}
+	defer func() {
+		_, ok := tc.Pop()
+		if !ok {
+			t.Fatal("failed to pop scope path")
+		}
+	}()
+
+	taskSpec := tc.GetLast().GetTaskSpec()
+	sizeInput := taskSpec.GetInputs().GetParameters()["size"].GetRuntimeValue()
+	sizeInput.Value = &pipelinespec.ValueOrRuntimeParameter_Constant{
+		Constant: structpb.NewStringValue("invalid-size"),
+	}
+	kubernetesExecutorConfig, err := util.LoadKubernetesExecutorConfig(tc.GetLast().GetComponentSpec(), tc.PlatformSpec)
+	if err != nil {
+		t.Fatalf("failed to load kubernetes executor config: %v", err)
+	}
+	opts := tc.setupContainerOptions(nestedTask, taskSpec, kubernetesExecutorConfig)
+
+	execution, err := Container(context.Background(), opts, tc.ClientManager)
+	if err == nil {
+		t.Fatal("expected invalid PVC size to fail")
+	}
+	if !strings.Contains(err.Error(), `failed to parse pvc size "invalid-size"`) {
+		t.Fatalf("expected PVC size parse error, got: %v", err)
+	}
+	if execution == nil || execution.TaskID == "" {
+		t.Fatal("expected the failed create-PVC execution to retain its task ID")
+	}
+
+	failedTask, err := tc.ClientManager.KFPAPIClient().GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: execution.TaskID,
+		RunId:  tc.Run.GetRunId(),
+	})
+	if err != nil {
+		t.Fatalf("failed to reload create-PVC task: %v", err)
+	}
+	if failedTask.GetState() != apiv2beta1.PipelineTask_FAILED {
+		t.Fatalf("expected failed task state, got %v", failedTask.GetState())
+	}
+	if failedTask.GetEndTime() == nil {
+		t.Fatal("expected failed task to have an end time")
+	}
+	if !strings.Contains(failedTask.GetStatusMetadata().GetMessage(), `failed to parse pvc size "invalid-size"`) {
+		t.Fatalf("expected persisted PVC size parse error, got: %q", failedTask.GetStatusMetadata().GetMessage())
 	}
 }
 
