@@ -99,6 +99,9 @@ export interface GCSProviderInfo {
   Params: {
     fromEnv: string;
     access_id?: string;
+    // Go Cloud URI-query compatibility only. The launcher GCS provider configuration does not
+    // emit anonymous; it reaches this boundary through gs://...?anonymous=true when no provider
+    // credential policy is configured.
     anonymous?: string;
     universe_domain?: string;
     secretName?: string;
