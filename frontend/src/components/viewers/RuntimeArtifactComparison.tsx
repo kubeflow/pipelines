@@ -283,9 +283,13 @@ function RocCurveComparison({
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
   const validKeys = useMemo(() => new Set(entries.map(({ key }) => key)), [entries]);
-  const selectedKeys = (
-    explicitSelectedKeys || entries.slice(0, DEFAULT_SELECTED_ROC_CURVES).map(({ key }) => key)
-  ).filter((key) => validKeys.has(key));
+  const explicitValidKeys = explicitSelectedKeys?.filter((key) => validKeys.has(key));
+  const shouldUseDefaults =
+    explicitSelectedKeys === undefined ||
+    (!!explicitSelectedKeys.length && !explicitValidKeys?.length);
+  const selectedKeys = shouldUseDefaults
+    ? entries.slice(0, DEFAULT_SELECTED_ROC_CURVES).map(({ key }) => key)
+    : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
   const selectedColorByKey = allocateRocColors(selectedKeys, rocColorByKey);

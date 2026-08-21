@@ -102,6 +102,37 @@ describe('RuntimeArtifactComparison', () => {
     expect(screen.getAllByRole('combobox', { name: 'ROC curves' })).toHaveLength(1);
   });
 
+  it('uses default ROC selections when every explicit selection is unavailable', () => {
+    const artifacts = [
+      classificationEntry('First run', 'roc-1', {
+        confidenceMetrics: [{ confidenceThreshold: 0.8, falsePositiveRate: 0.1, recall: 0.9 }],
+      }),
+      classificationEntry('Second run', 'roc-2', {
+        confidenceMetrics: [{ confidenceThreshold: 0.7, falsePositiveRate: 0.2, recall: 0.95 }],
+      }),
+    ];
+    const selectionState = {
+      ...createRuntimeArtifactComparisonSelectionState(),
+      rocSelectedKeys: ['removed-run:removed-curve'],
+    };
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeArtifactComparison
+          artifacts={artifacts}
+          kind='classification'
+          selectionState={selectionState}
+          setSelectionState={vi.fn()}
+        />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByTestId('shared-roc-curve')).toHaveAttribute('data-config-count', '2');
+    expect(screen.getByRole('combobox', { name: 'ROC curves' })).toHaveTextContent(
+      '2 curves selected',
+    );
+  });
+
   it('builds two independently selectable confusion-matrix panels', async () => {
     const firstMatrix = {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
