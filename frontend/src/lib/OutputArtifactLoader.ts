@@ -54,6 +54,7 @@ export interface OutputArtifactLoadOptions {
 
 export interface OutputArtifactLoadResult {
   configs: ViewerConfig[];
+  configKeys?: string[];
   errors: string[];
 }
 
@@ -137,11 +138,16 @@ export class OutputArtifactLoader {
     );
 
     const configs: ViewerConfig[] = [];
+    const configKeys: string[] = [];
     const errors: string[] = [];
-    for (const result of results) {
+    for (const [index, result] of results.entries()) {
       if (result.status === 'fulfilled') {
         if (result.value) {
           configs.push(result.value);
+          // The metadata slot identifies a viewer independently of mutable source content. This
+          // lets recovered data update an existing viewer without transferring its local UI state
+          // to a sibling that happened to complete earlier.
+          configKeys.push(`metadata-${index}`);
         }
       } else {
         const message = await errorToMessage(result.reason);
@@ -149,7 +155,7 @@ export class OutputArtifactLoader {
         errors.push(message);
       }
     }
-    return { configs, errors };
+    return { configs, configKeys, errors };
   }
 
   private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {

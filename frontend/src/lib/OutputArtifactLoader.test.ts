@@ -137,6 +137,7 @@ describe('OutputArtifactLoader', () => {
       });
 
       await expect(OutputArtifactLoader.loadResult(storagePath)).resolves.toEqual({
+        configKeys: ['metadata-0'],
         configs: [{ markdownContent: '# valid', type: PlotType.MARKDOWN }],
         errors: ['missing source'],
       });

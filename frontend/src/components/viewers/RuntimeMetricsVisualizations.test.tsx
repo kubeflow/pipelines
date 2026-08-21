@@ -831,11 +831,48 @@ describe('RuntimeMetricsVisualizations', () => {
       type: PlotType.TABLE,
     };
 
-    const initialEntries = TEST_ONLY.buildViewerConfigEntries([retainedConfig]);
-    const recoveredEntries = TEST_ONLY.buildViewerConfigEntries([recoveredConfig, retainedConfig]);
+    const initialEntries = TEST_ONLY.buildViewerConfigEntries([retainedConfig], ['metadata-1']);
+    const recoveredEntries = TEST_ONLY.buildViewerConfigEntries(
+      [recoveredConfig, retainedConfig],
+      ['metadata-0', 'metadata-1'],
+    );
 
     expect(initialEntries[0].key).toBe(recoveredEntries[1].key);
     expect(recoveredEntries[0].key).not.toBe(recoveredEntries[1].key);
+  });
+
+  it('gives each partial visualization failure episode a fresh retry budget', () => {
+    const firstPartial = TEST_ONLY.getPartialVisualizationRetryDecision(
+      undefined,
+      'query',
+      1,
+      true,
+    );
+    expect(firstPartial.interval).toBe(10_000);
+    const exhausted = TEST_ONLY.getPartialVisualizationRetryDecision(
+      firstPartial.episode,
+      'query',
+      4,
+      true,
+    );
+    expect(exhausted.interval).toBe(false);
+
+    const recovered = TEST_ONLY.getPartialVisualizationRetryDecision(
+      exhausted.episode,
+      'query',
+      5,
+      false,
+    );
+    expect(recovered).toEqual({ interval: false });
+    const laterPartial = TEST_ONLY.getPartialVisualizationRetryDecision(
+      recovered.episode,
+      'query',
+      6,
+      true,
+    );
+
+    expect(laterPartial.interval).toBe(10_000);
+    expect(laterPartial.episode?.firstAttemptCount).toBe(5);
   });
 
   it('bounds retries when partial legacy data is followed by rejected refetches', async () => {

@@ -38,24 +38,9 @@ interface ConfusionMatrixState {
 }
 
 class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState> {
-  private _opacities: number[][] = [];
-  private _config = this.props.configs[0];
-  private _max =
-    this._config &&
-    Math.max(...this._config.data.map((d) => d.map((n) => +n)).map((d) => Math.max(...d)));
   private _minRegularCellDimension = 15;
   private _maxRegularCellDimension = 80;
-  private _cellDimension = this._config
-    ? Math.max(
-        Math.min(
-          (this.props.maxDimension || 700) / this._config.data.length,
-          this._maxRegularCellDimension,
-        ),
-        this._minRegularCellDimension,
-      ) - 1
-    : 0;
   private _shrinkThreshold = 600;
-  private _uiData: number[][] = [];
 
   private _css = stylesheet({
     activeLabel: {
@@ -66,13 +51,9 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
     cell: {
       border: 'solid 1px ' + color.background,
       fontSize: this._isSmall() ? fontsize.small : fontsize.base,
-      height: this._cellDimension,
-      minHeight: this._cellDimension,
-      minWidth: this._cellDimension,
       position: 'relative',
       textAlign: 'center',
       verticalAlign: 'middle',
-      width: this._cellDimension,
     },
     legend: {
       background: `linear-gradient(${color.theme}, ${color.background})`,
@@ -136,9 +117,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
       textAlign: 'right',
     },
     ylabel: {
-      lineHeight: `${this._cellDimension}px`,
       marginRight: 10,
-      minWidth: this._cellDimension,
       textAlign: 'right',
       whiteSpace: 'nowrap',
     },
@@ -146,50 +125,9 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
 
   constructor(props: any) {
     super(props);
-
-    if (!this._config) {
-      return;
-    }
-
     this.state = {
       activeCell: [-1, -1],
     };
-    // Raw data:
-    // [
-    //   [1, 2],
-    //   [3, 4],
-    // ]
-    // converts to UI data:
-    // y-axis
-    // ^
-    // |
-    // 1  [2, 4],
-    // |
-    // 0  [1, 3],
-    // |
-    // *---0--1---> x-axis
-    if (!this._config || !this._config.labels || !this._config.data) {
-      this._uiData = [];
-    } else {
-      const labelCount = this._config.labels.length;
-      const uiData: number[][] = new Array(labelCount)
-        .fill(undefined)
-        .map(() => new Array(labelCount));
-      for (let i = 0; i < labelCount; ++i) {
-        for (let j = 0; j < labelCount; ++j) {
-          uiData[labelCount - 1 - j][i] = this._config.data[i]?.[j];
-        }
-      }
-      this._uiData = uiData;
-    }
-
-    for (const i of this._uiData) {
-      const row = [];
-      for (const j of i) {
-        row.push(+j / this._max);
-      }
-      this._opacities.push(row);
-    }
   }
 
   public getDisplayName(): string {
@@ -197,12 +135,14 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
   }
 
   public render(): React.JSX.Element | null {
-    if (!this._config) {
+    const config = this.props.configs[0];
+    if (!config) {
       return null;
     }
 
+    const { cellDimension, max, opacities, uiData } = this._buildViewModel(config);
     const [activeRow, activeCol] = this.state.activeCell;
-    const [xAxisLabel, yAxisLabel] = this._config.axes;
+    const [xAxisLabel, yAxisLabel] = config.axes;
     const small = this._isSmall();
 
     return (
@@ -214,7 +154,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 <td className={this._css.yAxisLabel}>{yAxisLabel}</td>
               </tr>
             )}
-            {this._uiData.map((row, r) => (
+            {uiData.map((row, r) => (
               <tr key={r}>
                 {!small && (
                   <td>
@@ -223,10 +163,11 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                         this._css.ylabel,
                         r === activeRow ? this._css.activeLabel : '',
                       )}
+                      style={{ lineHeight: `${cellDimension}px`, minWidth: cellDimension }}
                     >
                       {
-                        this._config.labels[
-                          this._config.labels.length - 1 - r
+                        config.labels[
+                          config.labels.length - 1 - r
                         ] /* uiData's ith's row corresponds to the reverse ordered label */
                       }
                     </div>
@@ -237,8 +178,12 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                     key={c}
                     className={this._css.cell}
                     style={{
-                      backgroundColor: `rgba(41, 121, 255, ${this._opacities[r][c]})`,
-                      color: this._opacities[r][c] < 0.6 ? color.foreground : color.background,
+                      backgroundColor: `rgba(41, 121, 255, ${opacities[r][c]})`,
+                      color: opacities[r][c] < 0.6 ? color.foreground : color.background,
+                      height: cellDimension,
+                      minHeight: cellDimension,
+                      minWidth: cellDimension,
+                      width: cellDimension,
                     }}
                     onMouseOver={() => this.setState({ activeCell: [r, c] })}
                     onMouseLeave={() =>
@@ -267,7 +212,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
             {!small && (
               <tr>
                 <th className={this._css.xlabel} />
-                {this._config.labels.map((label, i) => (
+                {config.labels.map((label, i) => (
                   <th key={i}>
                     <div
                       className={classes(
@@ -288,10 +233,10 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
         {!small && (
           <div
             className={this._css.legend}
-            style={{ height: 0.75 * this._config.data.length * this._cellDimension }}
+            style={{ height: 0.75 * config.data.length * cellDimension }}
           >
             <div className={this._css.legendNotch} style={{ top: 0 }}>
-              <span className={this._css.legendLabel}>{this._max}</span>
+              <span className={this._css.legendLabel}>{max}</span>
             </div>
             {new Array(legendNotches).fill(0).map((_, i) => (
               <div
@@ -300,7 +245,7 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
                 style={{ top: ((legendNotches - i) / legendNotches) * 100 + '%' }}
               >
                 <span className={this._css.legendLabel}>
-                  {Math.floor((i / legendNotches) * this._max)}
+                  {Math.floor((i / legendNotches) * max)}
                 </span>
               </div>
             ))}
@@ -308,6 +253,38 @@ class ConfusionMatrix extends Viewer<ConfusionMatrixProps, ConfusionMatrixState>
         )}
       </div>
     );
+  }
+
+  private _buildViewModel(config: ConfusionMatrixConfig): {
+    cellDimension: number;
+    max: number;
+    opacities: number[][];
+    uiData: number[][];
+  } {
+    const max = Math.max(...config.data.map((row) => Math.max(...row.map((value) => +value))));
+    const cellDimension =
+      Math.max(
+        Math.min(
+          (this.props.maxDimension || 700) / config.data.length,
+          this._maxRegularCellDimension,
+        ),
+        this._minRegularCellDimension,
+      ) - 1;
+    const labelCount = config.labels?.length || 0;
+    const uiData: number[][] = new Array(labelCount)
+      .fill(undefined)
+      .map(() => new Array(labelCount));
+    for (let i = 0; i < labelCount; ++i) {
+      for (let j = 0; j < labelCount; ++j) {
+        uiData[labelCount - 1 - j][i] = config.data[i]?.[j];
+      }
+    }
+    return {
+      cellDimension,
+      max,
+      opacities: uiData.map((row) => row.map((value) => +value / max)),
+      uiData,
+    };
   }
 
   private _isSmall(): boolean {

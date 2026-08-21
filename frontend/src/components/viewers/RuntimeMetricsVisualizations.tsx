@@ -15,7 +15,7 @@
 import HelpIcon from '@mui/icons-material/Help';
 import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ArtifactArtifactType, V2beta1Artifact } from 'src/apisv2beta1/run';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import Banner from 'src/components/Banner';
@@ -58,6 +58,7 @@ export interface ClassificationVisualization {
 
 interface LegacyUiMetadataVisualizationResult {
   configs: ViewerConfig[];
+  configKeys?: string[];
   errors: string[];
 }
 
@@ -65,6 +66,11 @@ const ROC_CURVE_DEFINITION =
   'The receiver operating characteristic (ROC) curve shows the trade-off between true positive rate and false positive rate.';
 const PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS = 10_000;
 const PARTIAL_VISUALIZATION_MAX_ATTEMPTS = 4;
+
+interface PartialVisualizationRetryEpisode {
+  firstAttemptCount: number;
+  queryHash: string;
+}
 
 export function RuntimeMetricsVisualizations({
   artifacts,
@@ -146,7 +152,7 @@ export function RuntimeMetricsVisualizations({
       {confusionMatrixResult.matrices.map(({ visualization, configs }) => (
         <div className={padding(40)} key={visualization.key}>
           <h3>Confusion Matrix: {visualization.displayName}</h3>
-          <ConfusionMatrix configs={configs} key={getViewerConfigIdentity(configs[0])} />
+          <ConfusionMatrix configs={configs} />
         </div>
       ))}
       {!!scalarMetrics.length && (
@@ -328,6 +334,7 @@ function LegacyUiMetadataVisualization({
   sourceFinished?: boolean;
 }) {
   const artifactKey = getArtifactIdentity(artifact);
+  const partialRetryEpisode = useRef<PartialVisualizationRetryEpisode | undefined>(undefined);
   const { data, error, isLoading } = useQuery<LegacyUiMetadataVisualizationResult, Error>({
     queryKey: queryKeys.legacyRuntimeUiMetadata(artifactKey, namespace, sourceFinished),
     queryFn: () => loadLegacyUiMetadataVisualization(artifact, namespace),
@@ -335,14 +342,19 @@ function LegacyUiMetadataVisualization({
     staleTime: (query) => (query.state.data?.errors.length ? 0 : Infinity),
     refetchInterval: (query) => {
       const attemptCount = query.state.dataUpdateCount + query.state.errorUpdateCount;
-      return query.state.data?.errors.length && attemptCount < PARTIAL_VISUALIZATION_MAX_ATTEMPTS
-        ? PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS
-        : false;
+      const decision = getPartialVisualizationRetryDecision(
+        partialRetryEpisode.current,
+        query.queryHash,
+        attemptCount,
+        !!query.state.data?.errors.length,
+      );
+      partialRetryEpisode.current = decision.episode;
+      return decision.interval;
     },
   });
   const supportedConfigEntries = useMemo(
-    () => buildViewerConfigEntries(data?.configs || []),
-    [data?.configs],
+    () => buildViewerConfigEntries(data?.configs || [], data?.configKeys),
+    [data?.configKeys, data?.configs],
   );
   const containsUnsupportedConfig = supportedConfigEntries.length !== (data?.configs.length || 0);
   return (
@@ -385,23 +397,48 @@ function LegacyUiMetadataVisualization({
   );
 }
 
+function getPartialVisualizationRetryDecision(
+  currentEpisode: PartialVisualizationRetryEpisode | undefined,
+  queryHash: string,
+  attemptCount: number,
+  hasPartialErrors: boolean,
+): { episode?: PartialVisualizationRetryEpisode; interval: number | false } {
+  if (!hasPartialErrors) {
+    return { interval: false };
+  }
+  const episode =
+    !currentEpisode || currentEpisode.queryHash !== queryHash
+      ? { firstAttemptCount: Math.max(0, attemptCount - 1), queryHash }
+      : currentEpisode;
+  return {
+    episode,
+    interval:
+      attemptCount - episode.firstAttemptCount < PARTIAL_VISUALIZATION_MAX_ATTEMPTS
+        ? PARTIAL_VISUALIZATION_RETRY_INTERVAL_MS
+        : false,
+  };
+}
+
 function getViewerConfigIdentity(config: ViewerConfig): string {
   return JSON.stringify(config);
 }
 
-function buildViewerConfigEntries(configs: ViewerConfig[]): Array<{
+function buildViewerConfigEntries(
+  configs: ViewerConfig[],
+  configKeys?: string[],
+): Array<{
   config: ViewerConfig;
   key: string;
 }> {
   const identityOccurrences = new Map<string, number>();
-  return configs.flatMap((config) => {
+  return configs.flatMap((config, index) => {
     if (!componentMap[config.type]) {
       return [];
     }
     const identity = getViewerConfigIdentity(config);
     const occurrence = identityOccurrences.get(identity) || 0;
     identityOccurrences.set(identity, occurrence + 1);
-    return [{ config, key: JSON.stringify([identity, occurrence]) }];
+    return [{ config, key: configKeys?.[index] || JSON.stringify([identity, occurrence]) }];
   });
 }
 
@@ -602,6 +639,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export const TEST_ONLY = {
   buildViewerConfigEntries,
   downloadVisualization,
+  getPartialVisualizationRetryDecision,
   loadLegacyUiMetadataVisualization,
 };
 
