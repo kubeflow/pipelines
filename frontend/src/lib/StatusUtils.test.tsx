@@ -13,6 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {
+  describe, it, expect, vi
+} from 'vitest';
 
 import {
   NodePhase,
@@ -21,8 +24,9 @@ import {
   statusToBgColor,
   checkIfTerminated,
   parseNodePhase,
+  getPodDiagnosticInfo,
 } from './StatusUtils';
-import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
+import { NodeStatus, S3Artifact, Artifact } from '../third_party/argo-ui/argo_template';
 
 describe('StatusUtils', () => {
   describe('hasFinished', () => {
@@ -215,6 +219,28 @@ describe('StatusUtils', () => {
           },
         }),
       ).toEqual('Succeeded');
+    });
+  });
+
+  describe('getPodDiagnosticInfo', () => {
+    it('returns diagnostic infor for IMAGE_PULL_BACKOFF', () => {
+      const info = getPodDiagnosticInfo('IMAGE_PULL_BACKOFF');
+      expect(info).toBeDefined();
+      expect(info?.code).toBe('IMAGE_PULL_BACKOFF');
+      expect(info?.badgeColor).toBe('#e37400');
+    });
+
+    it('returns diagnostic infor for OOM_KILLED', () => {
+      const info = getPodDiagnosticInfo('OOM_KILLED');
+      expect(info).toBeDefined();
+      expect(info?.code).toBe('OOM_KILLED');
+      expect(info?.badgeColor).toBe('#d93025');
+    });
+    
+    it('returns undefined for unknown error code or empty string', () => {
+      expect(getPodDiagnosticInfo(undefined)).toBeUndefined();
+      expect(getPodDiagnosticInfo('')).toBeUndefined();
+      expect(getPodDiagnosticInfo('UNKNOWN_ERROR')).toBeUndefined();
     });
   });
 });

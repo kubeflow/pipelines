@@ -18,7 +18,7 @@ import * as Utils from 'src/lib/Utils';
 import { statusToIcon } from './StatusV2';
 import { render } from '@testing-library/react';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
-import { vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 describe('Status', () => {
   // We mock this because it uses toLocaleDateString, which causes mismatches between local and CI
@@ -118,5 +118,41 @@ describe('Status', () => {
         expect(asFragment()).toMatchSnapshot();
       }),
     );
+
+    it('renders diagnostic error code, message for ImagePullBackOff in PENDING state', () => {
+      const { getByTestId } = render(
+        statusToIcon(
+          V2beta1RuntimeState.PENDING,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          {
+            error_code: 'IMAGE_PULL_BACKOFF',
+            error_message: 'Back-off pulling image "gcr.io/invalid/image:v1"',
+          },
+        ),
+      );
+      const icon = getByTestId('node-status-sign');
+      expect(icon.style.color).toBe('rgb(227, 116, 0)'); // #e37400 in rgb
+    });
+
+    it('renders diagnostic error code, message for OOMKilled in FAILED state', () => {
+      const { getByTestId } = render(
+        statusToIcon(
+          V2beta1RuntimeState.FAILED,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          {
+            error_code: 'OOM_KILLED',
+            error_message: 'Container killed due to OOM (exit status 137)',
+          },
+        ),
+      );
+      const icon = getByTestId('node-status-sign');
+      expect(icon.style.color).toBe('rgb(217, 48, 37)'); // #d93025 in rgb
+    });
   });
 });

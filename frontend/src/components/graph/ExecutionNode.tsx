@@ -27,6 +27,8 @@ import { classes } from 'typestyle';
 import { ExecutionFlowElementData } from './Constants';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { ReadOnlyNodeHandles } from './ReadOnlyNodeHandles';
+import { getPodDiagnosticInfo } from 'src/lib/StatusUtils';
+import  WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 export interface ExecutionNodeProps {
   id: string;
@@ -36,7 +38,7 @@ export interface ExecutionNodeProps {
 }
 
 function ExecutionNode({ id, data }: ExecutionNodeProps) {
-  let icon = getIcon(data.state);
+  let icon = getIcon(data.state, data.errorCode);
   let executionIcon = getExecutionIcon(data.state);
 
   const fullWidth = icon ? 'w-64' : 'w-56';
@@ -76,7 +78,20 @@ export function getExecutionIcon(state: Execution.State | undefined) {
   return <ListAltIcon data-testid='execution-icon-active' className='text-mui-blue-600' />;
 }
 
-export function getIcon(state: Execution.State | undefined) {
+export function getIcon(state: Execution.State | undefined, errorCode?: string) {
+  const diagInfo = getPodDiagnosticInfo(errorCode);
+  if(diagInfo) {
+       if(diagInfo.code === 'IMAGE_PULL_BACKOFF' || diagInfo.code === 'UNSCHEDULABLE') {
+        return getStateIconWrapper(
+          <WarningAmberIcon style={{color: diagInfo.badgeColor}} />,
+          'bg-[#fef7f0]',
+        );
+       }
+       return getStateIconWrapper(
+        <ErrorIcon style={{ color:diagInfo.badgeColor }} />,
+        'bg-mui-red-50',
+       )
+  }
   if (state === undefined) {
     return null;
   }

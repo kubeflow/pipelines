@@ -21,6 +21,10 @@
 package go_client
 
 import (
+	reflect "reflect"
+	sync "sync"
+	unsafe "unsafe"
+
 	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	status "google.golang.org/genproto/googleapis/rpc/status"
@@ -29,9 +33,6 @@ import (
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
-	unsafe "unsafe"
 )
 
 const (
@@ -891,6 +892,7 @@ type PipelineTaskDetail struct {
 	PodName string `protobuf:"bytes,15,opt,name=pod_name,json=podName,proto3" json:"pod_name,omitempty"`
 	// Sequence of dependen tasks.
 	ChildTasks    []*PipelineTaskDetail_ChildTask `protobuf:"bytes,16,rep,name=child_tasks,json=childTasks,proto3" json:"child_tasks,omitempty"`
+	PodDiagnostics *PodLifecycleDiagnostics        `protobuf:"bytes,1,opt,name-error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2136,4 +2138,10 @@ func file_backend_api_v2beta1_run_proto_init() {
 	File_backend_api_v2beta1_run_proto = out.File
 	file_backend_api_v2beta1_run_proto_goTypes = nil
 	file_backend_api_v2beta1_run_proto_depIdxs = nil
+}
+
+type PodLifecycleDiagnostics struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	ErrorCode string  `protobuf:"bytes,1,opt,name=error_code,json=errorCode,proto3" json:"error_code,omitempty"`
+	ErrorMessage  string `protobuf:"bytes,1,opt,name=error_message,json=errorCode,proto3" json:"error_message,omitempty"`
 }

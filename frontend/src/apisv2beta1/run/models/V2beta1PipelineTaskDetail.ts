@@ -67,6 +67,12 @@ export interface V2beta1PipelineTaskDetail {
    * @type {string}
    * @memberof V2beta1PipelineTaskDetail
    */
+
+  pod_diagnostics?: {
+    error_code?: string;
+    error_message?: string;
+  }
+  
   run_id?: string;
   /**
    * System-generated ID of a task.

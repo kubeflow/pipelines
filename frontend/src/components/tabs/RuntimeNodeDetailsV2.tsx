@@ -27,6 +27,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getPodDiagnosticInfo } from 'src/lib/StatusUtils';
 import { errorToMessage } from 'src/lib/Utils';
 import { getTaskKeyFromNodeKey, NodeTypeNames, PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import {
@@ -171,11 +172,19 @@ function TaskNodeDetail({
   });
 
   const logsDetails = logsInfo?.get(LOGS_DETAILS);
+  const errorCode = (element?.data as any)?.errorCode;
+  const diagInfo = getPodDiagnosticInfo(errorCode);
   const logsBannerMessage =
-    logsInfo?.get(LOGS_BANNER_MESSAGE) ||
-    (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
+    diagInfo
+      ? `Pod Provisioning Failure: ${diagInfo.code}`
+      : logsInfo?.get(LOGS_BANNER_MESSAGE) ||
+        (logsQueryFailed ? 'Failed to retrieve pod logs.' : undefined);
   const logsBannerAdditionalInfo =
-    logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
+    diagInfo
+      ? diagInfo.code === 'IMAGE_PULL_BACKOFF'
+        ? 'Failed to pull container image (ImagePullBackOff). Container cannot be scheduled. Check image path, tag, and pull secrets.'
+        : 'Container terminated due to Out Of Memory (OOMKilled, exit code 137). Increase container memory allocation in task resources.'
+      : logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   const [selectedTab, setSelectedTab] = useState(0);
 
@@ -231,6 +240,14 @@ function getTaskDetailsFields(
   const details: Array<KeyValue<string>> = [];
   if (element) {
     details.push(['Task ID', element.id || '-']);
+    const errorCode = (element.data as any)?.errorCode;
+    const diagInfo = getPodDiagnosticInfo(errorCode);
+    if (diagInfo) {
+      details.push(['Diagnostic Code', diagInfo.code]);
+      details.push(['Diagnostic Summary', diagInfo.code === 'IMAGE_PULL_BACKOFF'
+        ? 'Image pull failed. Container unable to transition to Running.'
+        : 'Memory limit exceeded (Exit 137). Pod terminated by OOM killer.']);
+    }
     if (execution) {
       // Static execution info.
       details.push([

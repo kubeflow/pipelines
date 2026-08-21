@@ -311,7 +311,7 @@ export function updateFlowElementsState(
   return flowGraph;
 }
 
-function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
+export function cloneFlowElement(elem: PipelineFlowElement): PipelineFlowElement {
   if (isNode(elem)) {
     const {
       data,
