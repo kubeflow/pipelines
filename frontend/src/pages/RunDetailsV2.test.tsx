@@ -331,6 +331,60 @@ describe('RunDetailsV2', () => {
     expect(historyReplaceSpy).toHaveBeenCalled();
   });
 
+  it('recovers a fallback graph when polling supplies ancestry for the same task ID', async () => {
+    const initialTask: V2beta1PipelineTask = {
+      task_id: 'delayed-task',
+      name: 'orphan',
+      run_id: RUN_ID,
+      scope_path: 'root.missing.orphan',
+      state: PipelineTaskTaskState.RUNNING,
+      type: PipelineTaskTaskType.RUNTIME,
+    };
+    const resolvedTask: V2beta1PipelineTask = {
+      ...initialTask,
+      name: 'preprocess',
+      parent_task_id: 'root-task',
+      scope_path: 'root.preprocess',
+    };
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [initialTask] });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const props = generateProps();
+    props.location = {
+      pathname: `/runs/details/${RUN_ID}`,
+      search: '?task=delayed-task',
+    } as any;
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.orphan"]')).toHaveClass('selected'),
+    );
+    expect(
+      screen.getByText(
+        'Unable to open the requested pipeline graph. The run page remains available.',
+      ),
+    ).toBeVisible();
+
+    act(() => {
+      queryClient.setQueryData(queryKeys.runTasks(RUN_ID), [TEST_TASKS[0], resolvedTask]);
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.preprocess"]')).toHaveClass('selected');
+      expect(
+        screen.queryByText(
+          'Unable to open the requested pipeline graph. The run page remains available.',
+        ),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('selects a new task when query-only navigation changes the deep-link target', async () => {
     const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task');
     await waitFor(() =>

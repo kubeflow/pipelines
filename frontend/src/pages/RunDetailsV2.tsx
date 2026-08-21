@@ -326,7 +326,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       }
       return;
     }
-    if (appliedLinkedTaskId.current === linkedTaskId) {
+    if (appliedLinkedTaskId.current === linkedTaskId && !fallbackGraphActive.current) {
       return;
     }
 
