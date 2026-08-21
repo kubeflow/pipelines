@@ -276,7 +276,7 @@ describe('DynamicFlow', () => {
       ).toEqual({ task: iterationOneChild });
     });
 
-    it('resolves a synthetic ParallelFor iteration node to its iteration DAG task', () => {
+    it('does not attribute a synthetic ParallelFor iteration group to an arbitrary body task', () => {
       const loopTask: V2beta1PipelineTask = {
         task_id: 'loop-task',
         parent_task_id: rootTask.task_id,
@@ -284,18 +284,18 @@ describe('DynamicFlow', () => {
         type: PipelineTaskTaskType.LOOP,
         type_attributes: { iteration_count: '2' },
       };
-      const iterationZero: V2beta1PipelineTask = {
-        task_id: 'body-0',
+      const iterationOneBodyA: V2beta1PipelineTask = {
+        task_id: 'body-a-1',
         parent_task_id: loopTask.task_id,
-        name: 'body',
-        type: PipelineTaskTaskType.DAG,
-        type_attributes: { iteration_index: '0' },
+        name: 'body-a',
+        type: PipelineTaskTaskType.RUNTIME,
+        type_attributes: { iteration_index: '1' },
       };
-      const iterationOne: V2beta1PipelineTask = {
-        task_id: 'body-1',
+      const iterationOneBodyB: V2beta1PipelineTask = {
+        task_id: 'body-b-1',
         parent_task_id: loopTask.task_id,
-        name: 'body',
-        type: PipelineTaskTaskType.DAG,
+        name: 'body-b',
+        type: PipelineTaskTaskType.RUNTIME,
         type_attributes: { iteration_index: '1' },
       };
       const element: Node<FlowElementDataBase> = {
@@ -308,10 +308,10 @@ describe('DynamicFlow', () => {
       expect(
         getNodeRuntimeInfo(
           element,
-          [rootTask, loopTask, iterationZero, iterationOne],
+          [rootTask, loopTask, iterationOneBodyA, iterationOneBodyB],
           ['root', 'loop'],
         ),
-      ).toEqual({ task: iterationOne });
+      ).toEqual({});
     });
   });
 
@@ -428,6 +428,73 @@ describe('DynamicFlow', () => {
           (element) => element.id,
         ),
       ).toEqual(['task.loop.0', 'task.loop.1']);
+    });
+
+    it('keeps an iteration running until every declarative body task exists', () => {
+      const loopTask: V2beta1PipelineTask = {
+        task_id: 'loop-task',
+        parent_task_id: rootTask.task_id,
+        name: 'loop',
+        state: PipelineTaskTaskState.RUNNING,
+        type: PipelineTaskTaskType.LOOP,
+        type_attributes: { iteration_count: '1' },
+      };
+      const bodyA: V2beta1PipelineTask = {
+        task_id: 'body-a-0',
+        parent_task_id: loopTask.task_id,
+        name: 'body-a',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        type: PipelineTaskTaskType.RUNTIME,
+        type_attributes: { iteration_index: '0' },
+      };
+      const bodyB: V2beta1PipelineTask = {
+        task_id: 'body-b-0',
+        parent_task_id: loopTask.task_id,
+        name: 'body-b',
+        state: PipelineTaskTaskState.SUCCEEDED,
+        type: PipelineTaskTaskType.RUNTIME,
+        type_attributes: { iteration_index: '0' },
+      };
+      const pipelineSpec = PipelineSpec.fromJSON({
+        root: {
+          dag: {
+            tasks: {
+              loop: {
+                taskInfo: { name: 'loop' },
+                componentRef: { name: 'loop-component' },
+              },
+            },
+          },
+        },
+        components: {
+          'loop-component': {
+            dag: {
+              tasks: {
+                'body-a': { taskInfo: { name: 'body-a' } },
+                'body-b': { taskInfo: { name: 'body-b' } },
+              },
+            },
+          },
+        },
+      });
+
+      const partialElements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        ['root', 'loop'],
+        [rootTask, loopTask, bodyA],
+      );
+      expect(partialElements[0].data).toMatchObject({
+        expectedTaskCount: 2,
+        state: PipelineTaskTaskState.RUNNING,
+      });
+
+      const completeElements = updateFlowElementsState(['root', 'loop'], partialElements, [
+        rootTask,
+        loopTask,
+        bodyA,
+        bodyB,
+      ]);
+      expect(completeElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
     });
 
     it('keeps the static loop body when iteration_count is not yet available', () => {

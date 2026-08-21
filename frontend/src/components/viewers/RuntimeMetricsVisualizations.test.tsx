@@ -299,6 +299,29 @@ describe('RuntimeMetricsVisualizations', () => {
     ]);
   });
 
+  it('assigns distinct keys to classification artifacts with the same URI', () => {
+    const artifacts: V2beta1Artifact[] = [
+      {
+        name: 'first',
+        type: ArtifactArtifactType.ClassificationMetric,
+        uri: 's3://metrics/shared.json',
+        metadata: { confidenceMetrics: [] },
+      },
+      {
+        name: 'second',
+        type: ArtifactArtifactType.ClassificationMetric,
+        uri: 's3://metrics/shared.json',
+        metadata: { confusionMatrix: {} },
+      },
+    ];
+
+    const visualizations = expandClassificationMetrics(artifacts);
+
+    expect(visualizations.map(({ key }) => key)).toHaveLength(2);
+    expect(new Set(visualizations.map(({ key }) => key)).size).toBe(2);
+    expect(visualizations.map(({ sourceArtifact }) => sourceArtifact)).toEqual(artifacts);
+  });
+
   it('does not download multiple files of one type until one is selected', async () => {
     const readFileSpy = vi.spyOn(Apis, 'readFile');
     const artifacts: V2beta1Artifact[] = [

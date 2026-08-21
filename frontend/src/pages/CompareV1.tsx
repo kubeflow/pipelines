@@ -286,7 +286,7 @@ class CompareV1 extends Page<{}, CompareState> {
           try {
             const result = await OutputArtifactLoader.loadResult(
               path,
-              workflowObjects[0]?.metadata?.namespace,
+              workflowObjects[i]?.metadata?.namespace,
               { throwOnError: true },
             );
             configs = result.configs;

@@ -105,7 +105,11 @@ export function convertSubDagToRuntimeFlowElements(
     runtimeContext.task?.type === PipelineTaskTaskType.LOOP &&
     runtimeContext.iterationIndex === undefined
   ) {
-    return buildParallelForDag(runtimeContext.task, taskIndex) || buildDag(spec, componentSpec);
+    const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
+    return (
+      buildParallelForDag(runtimeContext.task, taskIndex, expectedTaskCount) ||
+      annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
+    );
   }
   return buildDag(spec, componentSpec);
 }
@@ -132,9 +136,12 @@ export function updateFlowElementsState(
         return updatedElement;
       }
       const iterationIndex = Number(getIterationIdFromNodeKey(updatedElement.id));
-      (updatedElement.data as SubDagFlowElementData).state = getIterationState(
+      const data = updatedElement.data as SubDagFlowElementData;
+      data.state = getIterationState(
         taskIndex.childrenByParentId.get(runtimeContext.task!.task_id || '') || [],
         iterationIndex,
+        data.expectedTaskCount,
+        runtimeContext.task!.state,
       );
       return updatedElement;
     });
@@ -185,7 +192,11 @@ export function reconcileRuntimeFlowElements(
     // failure and non-triggered paths). Keep the declarative body visible until runtime iteration
     // structure is authoritative instead of replacing it with an empty graph.
     runtimeStructure =
-      buildParallelForDag(runtimeContext.task, flowContext.taskIndex) || runtimeStructure;
+      buildParallelForDag(
+        runtimeContext.task,
+        flowContext.taskIndex,
+        getExpectedTaskCount(elements),
+      ) || runtimeStructure;
   }
 
   return updateFlowElementsState(layers, runtimeStructure, tasks, flowContext);
@@ -368,13 +379,6 @@ function findTaskForElement(
   }
 
   const taskName = getTaskKeyFromNodeKey(element.id);
-  const iterationLayer = parseRuntimeIterationLayer(taskName, runtimeContext.task?.name);
-  if (iterationLayer && runtimeContext.task?.type === PipelineTaskTaskType.LOOP) {
-    return getTasksUnderContext(
-      { task: runtimeContext.task, iterationIndex: iterationLayer.iterationIndex },
-      taskIndex,
-    )[0];
-  }
   return getTasksUnderContext(runtimeContext, taskIndex).find((task) => task.name === taskName);
 }
 
@@ -438,6 +442,7 @@ function getParallelForIterationCount(loopTask: V2beta1PipelineTask): number | u
 function buildParallelForDag(
   loopTask: V2beta1PipelineTask,
   taskIndex: TaskIndex,
+  expectedTaskCount?: number,
 ): PipelineFlowElement[] | undefined {
   const flowGraph: PipelineFlowElement[] = [];
   const iterationCount = getParallelForIterationCount(loopTask);
@@ -451,7 +456,8 @@ function buildParallelForDag(
       id: getTaskNodeKey(iterationNodeName),
       data: {
         label: iterationNodeName,
-        state: getIterationState(children, index),
+        expectedTaskCount,
+        state: getIterationState(children, index, expectedTaskCount, loopTask.state),
         taskType: TaskType.DAG,
       },
       position: { x: 100, y: 200 },
@@ -465,9 +471,13 @@ function buildParallelForDag(
 function getIterationState(
   childTasks: V2beta1PipelineTask[],
   iterationIndex: number,
+  expectedTaskCount?: number,
+  loopState?: PipelineTaskTaskState,
 ): PipelineTaskTaskState | undefined {
-  const states = childTasks
-    .filter((task) => Number(task.type_attributes?.iteration_index) === iterationIndex)
+  const iterationTasks = childTasks.filter(
+    (task) => Number(task.type_attributes?.iteration_index) === iterationIndex,
+  );
+  const states = iterationTasks
     .map((task) => task.state)
     .filter((state): state is PipelineTaskTaskState => !!state);
   if (!states.length) {
@@ -478,6 +488,11 @@ function getIterationState(
   }
   if (states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNNING;
+  }
+  if (expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount) {
+    return loopState === PipelineTaskTaskState.RUNNING
+      ? PipelineTaskTaskState.RUNNING
+      : PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
   if (states.every((state) => state === PipelineTaskTaskState.SKIPPED)) {
     return PipelineTaskTaskState.SKIPPED;
@@ -496,6 +511,24 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
+
+function annotateExpectedTaskCount(
+  elements: PipelineFlowElement[],
+  expectedTaskCount: number,
+): PipelineFlowElement[] {
+  return elements.map((element) =>
+    isNode(element) ? { ...element, data: { ...element.data, expectedTaskCount } } : element,
+  );
+}
+
+function getExpectedTaskCount(elements: PipelineFlowElement[]): number | undefined {
+  for (const element of elements) {
+    if (isNode(element) && typeof element.data.expectedTaskCount === 'number') {
+      return element.data.expectedTaskCount;
+    }
+  }
+  return undefined;
 }
 
 function cloneFlowElement(element: PipelineFlowElement): PipelineFlowElement {

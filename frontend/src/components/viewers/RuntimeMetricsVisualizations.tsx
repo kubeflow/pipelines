@@ -417,8 +417,18 @@ export function buildRocCurves(visualizations: ClassificationVisualization[]): {
 export function expandClassificationMetrics(
   artifacts: V2beta1Artifact[],
 ): ClassificationVisualization[] {
+  const identityOccurrences = new Map<string, number>();
   return artifacts.flatMap((artifact, artifactIndex) => {
-    const sourceKey = getArtifactIdentity(artifact) || `classification-${artifactIndex}`;
+    if (
+      artifact.type !== ArtifactArtifactType.ClassificationMetric &&
+      artifact.type !== ArtifactArtifactType.SlicedClassificationMetric
+    ) {
+      return [];
+    }
+    const identity = getArtifactIdentity(artifact) || `classification-${artifactIndex}`;
+    const occurrence = identityOccurrences.get(identity) || 0;
+    identityOccurrences.set(identity, occurrence + 1);
+    const sourceKey = occurrence ? JSON.stringify([identity, occurrence]) : identity;
     if (artifact.type === ArtifactArtifactType.ClassificationMetric) {
       return [
         {
@@ -428,9 +438,6 @@ export function expandClassificationMetrics(
           sourceArtifact: artifact,
         },
       ];
-    }
-    if (artifact.type !== ArtifactArtifactType.SlicedClassificationMetric) {
-      return [];
     }
     const slices = unwrapList(artifact.metadata?.evaluationSlices) || [];
     return slices.flatMap((rawSlice, index) => {

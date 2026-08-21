@@ -362,6 +362,53 @@ describe('CompareV1', () => {
     );
   });
 
+  it('loads each run visualization in that run workflow namespace', async () => {
+    const workflow = (namespace: string, key: string): Workflow =>
+      ({
+        metadata: { namespace },
+        status: {
+          nodes: {
+            node1: {
+              outputs: {
+                artifacts: [
+                  {
+                    name: 'mlpipeline-ui-metadata',
+                    s3: { s3Bucket: { bucket: 'test-bucket' }, key },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }) as Workflow;
+    const run1 = newMockRun('run-1');
+    run1.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow('team-a', 'run-1.json'));
+    const run2 = newMockRun('run-2');
+    run2.pipeline_runtime!.workflow_manifest = JSON.stringify(workflow('team-b', 'run-2.json'));
+    runs = [run1, run2];
+    getRunSpy.mockImplementation(
+      (id: string) => runs.find((run) => run.run!.id === id) || newMockRun(id),
+    );
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=run-1,run-2`;
+
+    await renderCompare(props);
+
+    await waitFor(() =>
+      expect(outputArtifactLoaderSpy.mock.calls.length).toBeGreaterThanOrEqual(2),
+    );
+    const run1Calls = outputArtifactLoaderSpy.mock.calls.filter(([path]) =>
+      path.key.includes('run-1.json'),
+    );
+    const run2Calls = outputArtifactLoaderSpy.mock.calls.filter(([path]) =>
+      path.key.includes('run-2.json'),
+    );
+    expect(run1Calls.length).toBeGreaterThan(0);
+    expect(run2Calls.length).toBeGreaterThan(0);
+    expect(run1Calls.every((call) => call[1] === 'team-a')).toBe(true);
+    expect(run2Calls.every((call) => call[1] === 'team-b')).toBe(true);
+  });
+
   it('shows an info banner if all runs are v2', async () => {
     runs = [
       newMockRun(MOCK_RUN_1_ID, true),

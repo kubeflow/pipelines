@@ -24,6 +24,7 @@ export type FlowElementDataBase = {
 export type SubDagFlowElementData = FlowElementDataBase & {
   // Callback action if a SubDag expand button is clicked.
   expand: (nodeKey: string) => void;
+  expectedTaskCount?: number;
   state?: PipelineTaskTaskState;
 };
 
