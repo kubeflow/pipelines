@@ -202,7 +202,6 @@ export function CompareV2(props: CompareV2Props) {
   );
   const runIdsKey = runIds.join(',');
   const [selectedIds, setSelectedIds] = useKeyedState<string[]>(runIdsKey, runIds);
-  const selectedRunSetKey = JSON.stringify([...selectedIds].sort());
   const [metricsTab, setMetricsTab] = useState(NativeMetricsTab.SCALAR);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
@@ -399,7 +398,6 @@ export function CompareV2(props: CompareV2Props) {
         collapseSectionUpdate={setIsMetricsCollapsed}
       />
       <NativeMetricsSection
-        key={selectedRunSetKey}
         comparisonData={selectedData}
         isCollapsed={isMetricsCollapsed}
         isLoading={isLoading}

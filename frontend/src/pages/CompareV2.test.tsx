@@ -891,7 +891,7 @@ describe('CompareV2', () => {
     expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
   });
 
-  it('discards artifact selections when the selected run set changes', async () => {
+  it('preserves valid artifact selections when the selected run set changes', async () => {
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -900,14 +900,14 @@ describe('CompareV2', () => {
     await screen.findByText('Train / accuracy');
 
     fireEvent.click(screen.getByText('HTML'));
-    fireEvent.click(screen.getByRole('button', { name: 'Select run-2 artifact' }));
-    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-2:html-2');
+    fireEvent.click(screen.getByRole('button', { name: 'Select comparison artifact' }));
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
 
     fireEvent.click(screen.getByRole('button', { name: 'Select only run-1' }));
-    expect(screen.getByTestId('comparison-selection')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
 
     fireEvent.click(screen.getByRole('button', { name: 'Select both runs' }));
-    expect(screen.getByTestId('comparison-selection')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('comparison-selection')).toHaveTextContent('run-1:html-1');
   });
 
   it('keeps available runs visible when one comparison query fails', async () => {
