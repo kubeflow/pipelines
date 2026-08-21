@@ -718,7 +718,7 @@ describe('DynamicFlow', () => {
       ]);
     });
 
-    it('does not show stale failed children below a successful nested DAG', () => {
+    it('does not show stale failed or running children below a successful nested DAG', () => {
       const successfulDag: V2beta1PipelineTask = {
         task_id: 'successful-dag',
         parent_task_id: rootTask.task_id,
@@ -731,22 +731,39 @@ describe('DynamicFlow', () => {
         name: 'child',
         state: PipelineTaskTaskState.FAILED,
       };
-      const childElement: Node<FlowElementDataBase> = {
-        id: 'task.child',
-        data: { label: 'child' },
-        position: { x: 0, y: 0 },
-        type: NodeTypeNames.EXECUTION,
+      const staleRunningChild: V2beta1PipelineTask = {
+        task_id: 'stale-running-child',
+        parent_task_id: successfulDag.task_id,
+        name: 'running-child',
+        state: PipelineTaskTaskState.RUNNING,
       };
-      const tasks = [rootTask, successfulDag, staleFailedChild];
+      const childElements: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.child',
+          data: { label: 'child' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.EXECUTION,
+        },
+        {
+          id: 'task.running-child',
+          data: { label: 'running-child' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.EXECUTION,
+        },
+      ];
+      const tasks = [rootTask, successfulDag, staleFailedChild, staleRunningChild];
 
       const graph = updateFlowElementsState(
         ['root', 'successful-dag'],
-        [childElement],
+        childElements,
         tasks,
-        buildRuntimeFlowContext(['root', 'successful-dag'], tasks, true, false),
+        buildRuntimeFlowContext(['root', 'successful-dag'], tasks, false, false),
       );
 
-      expect(graph[0].data?.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+      expect(graph.map((element) => element.data?.state)).toEqual([
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      ]);
     });
 
     it('keeps the static loop body when iteration_count is not yet available', () => {

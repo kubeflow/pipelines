@@ -589,11 +589,11 @@ function getIterationState(
 function getRuntimeTaskState(
   taskState: PipelineTaskTaskState | undefined,
   runIsTerminal: boolean,
-  runCompletedSuccessfully: boolean,
+  enclosingScopeCompletedSuccessfully: boolean,
 ): PipelineTaskTaskState | undefined {
-  return runIsTerminal &&
-    (taskState === PipelineTaskTaskState.RUNNING ||
-      (runCompletedSuccessfully && taskState === PipelineTaskTaskState.FAILED))
+  return ((runIsTerminal || enclosingScopeCompletedSuccessfully) &&
+    taskState === PipelineTaskTaskState.RUNNING) ||
+    (enclosingScopeCompletedSuccessfully && taskState === PipelineTaskTaskState.FAILED)
     ? PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED
     : taskState;
 }
