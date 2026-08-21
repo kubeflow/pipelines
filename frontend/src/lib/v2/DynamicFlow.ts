@@ -515,10 +515,13 @@ function getIterationState(
   const iterationIsIncomplete =
     expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount;
   if (iterationIsIncomplete) {
-    if (loopState === PipelineTaskTaskState.RUNNING) {
+    if (
+      loopState === PipelineTaskTaskState.RUNNING ||
+      (loopState === PipelineTaskTaskState.FAILED && !runIsTerminal)
+    ) {
       return PipelineTaskTaskState.RUNNING;
     }
-    if (loopState === PipelineTaskTaskState.FAILED && runIsTerminal) {
+    if (loopState === PipelineTaskTaskState.FAILED) {
       return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
     }
   }

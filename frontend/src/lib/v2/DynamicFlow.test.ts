@@ -501,7 +501,7 @@ describe('DynamicFlow', () => {
         { ...loopTask, state: PipelineTaskTaskState.FAILED },
         bodyA,
       ]);
-      expect(failedPartialElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
+      expect(failedPartialElements[0].data?.state).toBe(PipelineTaskTaskState.RUNNING);
 
       const terminalFailedPartialTasks = [
         rootTask,
