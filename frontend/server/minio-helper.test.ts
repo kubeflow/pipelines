@@ -27,6 +27,7 @@ import {
   Credentials,
 } from './minio-helper.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { getK8sSecret } from './k8s-helper.js';
 
 vi.mock('minio');
 vi.mock('@aws-sdk/credential-providers');
@@ -41,6 +42,36 @@ describe('minio-helper', () => {
   });
 
   describe('createMinioClient', () => {
+    it.each([
+      ['', 'secret'],
+      ['access', ''],
+    ])(
+      'fails closed when an explicit provider Secret contains credentials %j / %j',
+      async (accessKey, secretKey) => {
+        vi.mocked(getK8sSecret).mockResolvedValueOnce(accessKey).mockResolvedValueOnce(secretKey);
+
+        await expect(
+          createMinioClient(
+            { endPoint: 'central.example' },
+            's3',
+            JSON.stringify({
+              Provider: 's3',
+              Params: {
+                accessKeyKey: 'access-key',
+                fromEnv: 'false',
+                secretKeyKey: 'secret-key',
+                secretName: 'artifact-store',
+              },
+            }),
+            'team-a',
+          ),
+        ).rejects.toThrow('Provider Secret contains an empty access key or secret key');
+
+        expect(fromNodeProviderChain).not.toHaveBeenCalled();
+        expect(MockedMinioClient).not.toHaveBeenCalled();
+      },
+    );
+
     it('creates a minio client with the provided configs.', async () => {
       const client = await createMinioClient(
         {
@@ -118,6 +149,66 @@ describe('minio-helper', () => {
         secretKey: 'secretkey',
         useSSL: true,
       });
+    });
+
+    it('uses standard AWS HTTPS for an explicitly empty structured S3 endpoint', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'central.example',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { disableSSL: 'false', endpoint: '', fromEnv: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('applies structured provider retry settings', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '5' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        retryOptions: { maximumRetryCount: 5 },
+        secretKey: 'secretkey',
+      });
+    });
+
+    it('rejects malformed native endpoint authorities instead of repairing them', async () => {
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'http:///evil.example/base',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('must contain a valid authority');
+
+      expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('uses the secure default when provider info does not specify disableSSL', async () => {
@@ -656,6 +747,39 @@ describe('minio-helper', () => {
         secretKey: 'secretkey',
         useSSL: true,
       });
+    });
+
+    it('preserves an explicitly selected global AWS endpoint authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.us-west-2.amazonaws.com' },
+        host: 'bucket.s3.us-west-2.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+            region: 'us-west-2',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.amazonaws.com' },
+          host: 'bucket.s3.amazonaws.com',
+          path: '/base/object',
+        }),
+      );
     });
 
     it('does not mutate shared defaults when applying per-request provider settings', async () => {

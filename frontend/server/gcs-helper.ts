@@ -25,10 +25,14 @@ interface GCSListResponse {
   nextPageToken?: string;
 }
 
-export async function getGCSClient(credentials?: CredentialBody): Promise<GCSClient> {
+export async function getGCSClient(
+  credentials?: CredentialBody,
+  universeDomain = DEFAULT_GCS_UNIVERSE_DOMAIN,
+): Promise<GCSClient> {
   const auth = new GoogleAuth({
     credentials,
     scopes: GCS_SCOPE,
+    universeDomain,
   });
   return auth.getClient();
 }
@@ -72,7 +76,9 @@ export async function listGCSObjectNames(options: {
   universeDomain?: string;
 }): Promise<string[]> {
   const { anonymous, bucket, prefix, credentials, client, universeDomain } = options;
-  const resolvedClient = anonymous ? undefined : (client ?? (await getGCSClient(credentials)));
+  const resolvedClient = anonymous
+    ? undefined
+    : (client ?? (await getGCSClient(credentials, universeDomain)));
   const objectNames: string[] = [];
 
   let pageToken: string | undefined;
@@ -117,7 +123,7 @@ export async function downloadGCSObjectStream(options: {
     }
     return Readable.fromWeb(response.body);
   }
-  const resolvedClient = client ?? (await getGCSClient(credentials));
+  const resolvedClient = client ?? (await getGCSClient(credentials, universeDomain));
   const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
     url,

@@ -104,6 +104,7 @@ export interface S3ProviderInfo {
     s3ForcePathStyle?: string;
     use_path_style?: string;
     nativeQuery?: string;
+    maxRetries?: string;
   };
 }
 
@@ -131,6 +132,8 @@ const GCS_PROVIDER_INFO_PARAMS = new Set([
   'universe_domain',
 ]);
 
+class NamespaceIsolatedProviderRequiredError extends Error {}
+
 function retainDestinationSafeProviderInfo(providerInfoString: string): string {
   const providerInfo = parseJSONString<S3ProviderInfo | GCSProviderInfo>(providerInfoString);
   if (!providerInfo?.Params) {
@@ -141,6 +144,15 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
     const params = (providerInfo as GCSProviderInfo).Params;
     if (params.anonymous !== undefined) {
       parseGoBoolean(params.anonymous, 'anonymous');
+    }
+    if (
+      params.fromEnv === 'false' ||
+      params.secretName !== undefined ||
+      params.tokenKey !== undefined
+    ) {
+      throw new NamespaceIsolatedProviderRequiredError(
+        'Secret-backed GCS provider settings require the namespace-isolated artifact proxy.',
+      );
     }
     const safe = { ...params };
     delete safe.secretName;
@@ -155,7 +167,19 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
   // Without a destination allowlist, a customer-selected S3 endpoint would make the shared UI an
   // object-store proxy. Endpoint-free settings retain the shared service's trusted destination.
   if (params.endpoint) {
-    return '';
+    throw new NamespaceIsolatedProviderRequiredError(
+      'Custom S3-compatible endpoints require the namespace-isolated artifact proxy.',
+    );
+  }
+  if (
+    params.fromEnv === 'false' ||
+    params.secretName !== undefined ||
+    params.accessKeyKey !== undefined ||
+    params.secretKeyKey !== undefined
+  ) {
+    throw new NamespaceIsolatedProviderRequiredError(
+      'Secret-backed S3 provider settings require the namespace-isolated artifact proxy.',
+    );
   }
   const safe = { ...params };
   delete safe.accessKeyKey;
@@ -191,10 +215,10 @@ function retainDestinationSafeProviderInfo(providerInfoString: string): string {
  * Note: Secret-backed provider mode (fromEnv === 'false') names a Kubernetes
  * Secret to source object-store credentials from. The frontend server only
  * honors it when the requested namespace is the server's own namespace, so it
- * never reads Secrets from a customer namespace. In multi-user deployments the
- * provider info is dropped for user namespaces and artifact retrieval falls
- * back to the server's own environment credentials (SeaweedFS in the kubeflow
- * namespace) or the per-namespace artifact proxy.
+ * never reads Secrets from a customer namespace. In shared direct mode an
+ * explicit Secret or custom destination is rejected rather than substituted
+ * with central credentials; those settings require the namespace-isolated
+ * artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
  *
  * Security: This addresses the vulnerability where the namespace parameter
@@ -486,22 +510,19 @@ export function getArtifactsHandler({
         ? resolvedProviderInfo
         : retainDestinationSafeProviderInfo(resolvedProviderInfo);
     } catch (error) {
+      if (error instanceof NamespaceIsolatedProviderRequiredError) {
+        res
+          .status(400)
+          .send(
+            `${error.message} Enable the namespace-isolated artifact proxy and retry the request.`,
+          );
+        return;
+      }
       res
         .status(400)
         .send(`Invalid artifact provider configuration. Correct it and retry: ${error}`);
       return;
     }
-    if (
-      !allowProviderSecrets &&
-      resolvedProviderInfo &&
-      resolvedProviderInfo !== effectiveProviderInfo
-    ) {
-      console.warn(
-        `Ignoring credentialed or custom-endpoint provider info for namespace "${namespace}": ` +
-          'use the namespace-isolated artifact proxy for those settings.',
-      );
-    }
-
     let client: MinioClient;
     switch (source) {
       case 'gcs':
@@ -1131,7 +1152,7 @@ function getGCSArtifactHandler(
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const client = anonymous ? undefined : await getGCSClient(credentials);
+      const client = anonymous ? undefined : await getGCSClient(credentials, universeDomain);
       const universeOptions = { universeDomain };
       const accessOptions = anonymous
         ? { anonymous: true, ...universeOptions }

@@ -360,6 +360,7 @@ s3:
         pathStyle: true,
         port: 9443,
         region: 'custom-region',
+        retryOptions: { maximumRetryCount: 5 },
         secretKey: 'launcher-secret',
         useSSL: true,
       });
@@ -705,10 +706,13 @@ s3:
         objectName: 'hello/world.txt',
         universeDomain: 'googleapis.com',
       });
-      expect(mockedGetGCSClient).toBeCalledWith({
-        client_email: 'testemail',
-        private_key: 'testkey',
-      });
+      expect(mockedGetGCSClient).toBeCalledWith(
+        {
+          client_email: 'testemail',
+          private_key: 'testkey',
+        },
+        'googleapis.com',
+      );
       expect(mockedGetK8sSecret).toBeCalledWith('someSecret', 'somekey', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
     });
@@ -909,7 +913,7 @@ s3:
         )
         .expect(200, 'private artifact\n');
 
-      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined);
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined, 'gdc.example');
       expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
         bucket: 'private-bucket',
         client,
@@ -988,6 +992,69 @@ s3:
         region: 'us-east-1',
         useSSL: false,
       });
+    });
+
+    it('rejects customer-selected S3 endpoints instead of using the shared store', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline?anonymous=true&endpoint=https%3A%2F%2Ftenant-store.example',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/Custom S3-compatible endpoints require the namespace-isolated artifact proxy/);
+
+      expect(mockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('rejects customer Secret policy instead of substituting shared credentials', async () => {
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline',
+            providers: `
+s3:
+  default:
+    credentials:
+      fromEnv: false
+      secretRef:
+        secretName: tenant-store
+        accessKeyKey: access-key
+        secretKeyKey: secret-key
+`,
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/Secret-backed S3 provider settings require the namespace-isolated artifact proxy/);
+
+      expect(mockedGetK8sSecret).not.toHaveBeenCalled();
+      expect(mockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('rejects malformed anonymous settings instead of using ambient credentials', async () => {
@@ -1094,7 +1161,7 @@ s3:
         )
         .expect(200, 'private artifact\n');
 
-      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined);
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined, 'googleapis.com');
       expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
         bucket: 'private-bucket',
         client,
@@ -1111,11 +1178,9 @@ s3:
       });
     });
 
-    it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
+    it('rejects browser-provided S3 Secret policy for a customer namespace (security)', async () => {
       // When the requested namespace is not the server's own namespace, the
-      // secret-backed provider info must be ignored so the UI never reads
-      // Secrets cross-namespace. Credential resolution falls back to the
-      // server's own environment credentials.
+      // UI must neither read the Secret nor substitute its central credentials.
       // See: https://github.com/kubeflow/pipelines/pull/12860
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       const configs = loadConfigs(argv, {
@@ -1143,11 +1208,12 @@ s3:
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent);
+        .expect(400)
+        .expect(/namespace-isolated artifact proxy/);
       expect(mockedGetK8sSecret).not.toBeCalled();
     });
 
-    it('does not read a provider Secret from a customer namespace for source=gcs (security)', async () => {
+    it('rejects browser-provided GCS Secret policy for a customer namespace (security)', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
       const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
       const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
@@ -1177,10 +1243,10 @@ s3:
             providerInfo,
           )}`,
         )
-        .expect(200, 'hello world\n');
+        .expect(400)
+        .expect(/namespace-isolated artifact proxy/);
       expect(mockedGetK8sSecret).not.toBeCalled();
-      // Falls back to default (environment) credentials rather than a Secret.
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).not.toBeCalled();
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', async () => {
@@ -1656,7 +1722,7 @@ s3:
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n');
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).toBeCalledWith(undefined, 'googleapis.com');
       expect(mockedListGCSObjectNames).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,
@@ -1691,7 +1757,7 @@ s3:
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
         .expect(200, artifactContent.slice(0, 5));
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).toBeCalledWith(undefined, 'googleapis.com');
       expect(mockedListGCSObjectNames).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,

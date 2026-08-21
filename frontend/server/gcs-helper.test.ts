@@ -39,12 +39,13 @@ describe('gcs-helper', () => {
       private_key: 'test-private-key',
     } as any;
 
-    const client = await getGCSClient(credentials);
+    const client = await getGCSClient(credentials, 'gdc.example');
 
     expect(client).toBe(mockClient);
     expect(MockedGoogleAuth).toHaveBeenCalledWith({
       credentials,
       scopes: 'https://www.googleapis.com/auth/devstorage.read_write',
+      universeDomain: 'gdc.example',
     });
     expect(mockedGetClient).toHaveBeenCalledTimes(1);
   });

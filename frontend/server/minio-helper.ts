@@ -34,6 +34,7 @@ export interface MinioRequestConfig {
 export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
   endpointBasePath?: string;
+  endpointAuthority?: string;
   endpointRewrite?: string;
 }
 
@@ -262,21 +263,39 @@ export async function createMinioClient(
 }
 
 function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
-  const { endpointBasePath, ...clientOptions } = config;
+  const { endpointAuthority, endpointBasePath, ...clientOptions } = config;
   const client = new MinioClient(clientOptions as MinioClientOptions);
-  if (!endpointBasePath) {
+  if (!endpointBasePath && !endpointAuthority) {
     return client;
   }
 
   // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path before
   // MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
   const requestOptionsClient = client as unknown as {
-    getRequestOptions: (options: unknown) => { path: string; [key: string]: unknown };
+    getRequestOptions: (options: { bucketName?: string }) => {
+      headers: Record<string, string>;
+      host: string;
+      path: string;
+      [key: string]: unknown;
+    };
   };
   const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
   requestOptionsClient.getRequestOptions = (options) => {
     const requestOptions = getRequestOptions(options);
-    requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
+    if (endpointBasePath) {
+      requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
+    }
+    if (endpointAuthority) {
+      const host =
+        options.bucketName && clientOptions.pathStyle === false
+          ? `${options.bucketName}.${endpointAuthority}`
+          : endpointAuthority;
+      requestOptions.host = host;
+      requestOptions.headers.host =
+        clientOptions.port && ![80, 443].includes(clientOptions.port)
+          ? `${host}:${clientOptions.port}`
+          : host;
+    }
     return requestOptions;
   };
   return client;
@@ -313,6 +332,9 @@ function applyEndpointRewrite(
       continue;
     }
     clientConfig.endPoint = to.host;
+    if (clientConfig.endpointAuthority) {
+      clientConfig.endpointAuthority = to.host;
+    }
     if (to.port !== undefined) {
       clientConfig.port = to.port;
     }
@@ -353,8 +375,12 @@ function parseProviderEndpoint(
   basePath?: string;
   useSSL?: boolean;
 } {
-  if (requireScheme && !/^https?:\/\//i.test(endpoint)) {
+  const hasHttpScheme = /^https?:\/\//i.test(endpoint);
+  if (requireScheme && !hasHttpScheme) {
     throw new Error(`Provider info endpoint must be an absolute HTTP(S) URL: ${endpoint}`);
+  }
+  if (hasHttpScheme && !/^https?:\/\/[^/?#]+(?:[/?#]|$)/i.test(endpoint)) {
+    throw new Error(`Provider info endpoint must contain a valid authority: ${endpoint}`);
   }
   const parsed = parseEndpoint(endpoint);
   if (!parsed) {
@@ -377,9 +403,9 @@ function parseProviderEndpoint(
  * Security: This reads a Kubernetes Secret named by the provider info. The
  * artifact handler only forwards provider info when the requested namespace is
  * the frontend server's own namespace, so this function never reads Secrets
- * from a customer namespace. In multi-user deployments the provider info is
- * dropped for user namespaces and credentials fall back to the server's own
- * environment credentials or the per-namespace artifact proxy.
+ * from a customer namespace. Shared direct mode rejects customer Secret policy
+ * before reaching this function; those settings require the namespace-isolated
+ * artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
  */
 async function applyS3ProviderInfo(
@@ -427,6 +453,9 @@ async function applyS3ProviderInfo(
         { cause: e },
       );
     }
+    if (!config.accessKey || !config.secretKey) {
+      throw new Error('Provider Secret contains an empty access key or secret key.');
+    }
   }
 
   if (providerInfo.Params.endpoint) {
@@ -434,6 +463,10 @@ async function applyS3ProviderInfo(
     const disableTransport = disableHttpsValue ?? disableSSLValue;
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
+    // MinIO rewrites the explicit global AWS endpoint to a regional authority. Go Cloud keeps an
+    // explicit endpoint authoritative, so pin that one host after MinIO builds request options.
+    config.endpointAuthority =
+      nativeQuery && endpoint.host.toLowerCase() === 's3.amazonaws.com' ? endpoint.host : undefined;
     config.port = endpoint.port;
     // AWS DisableHTTPS is asymmetric: true downgrades an explicit HTTPS endpoint, while false does
     // not upgrade an explicit HTTP endpoint. The legacy and Go Cloud spellings share this rule.
@@ -441,6 +474,18 @@ async function applyS3ProviderInfo(
       disableTransport === true
         ? false
         : (endpoint.useSSL ?? (disableTransport === false ? true : undefined));
+  } else if (
+    providerInfo.Provider === 's3' &&
+    providerInfo.Params.endpoint !== undefined &&
+    !nativeQuery
+  ) {
+    // An explicit empty endpoint in structured launcher configuration means standard AWS S3,
+    // not the UI server's separately configured MinIO-compatible endpoint.
+    config.endPoint = 's3.amazonaws.com';
+    config.endpointBasePath = undefined;
+    config.endpointAuthority = undefined;
+    config.port = undefined;
+    config.useSSL = disableSSLValue === true ? false : true;
   } else if (disableHttpsValue !== undefined) {
     config.useSSL = !disableHttpsValue;
   } else if (disableSSLValue) {
@@ -449,6 +494,15 @@ async function applyS3ProviderInfo(
 
   if (providerInfo.Params.region) {
     config.region = providerInfo.Params.region;
+  }
+  if (providerInfo.Params.maxRetries !== undefined) {
+    const maxRetries = Number(providerInfo.Params.maxRetries);
+    if (!/^\d+$/.test(providerInfo.Params.maxRetries) || !Number.isSafeInteger(maxRetries)) {
+      throw new Error(
+        `Invalid non-negative integer value for provider option maxRetries: ${providerInfo.Params.maxRetries}`,
+      );
+    }
+    config.retryOptions = { ...config.retryOptions, maximumRetryCount: maxRetries };
   }
   const pathStyle =
     providerInfo.Params.forcePathStyle ??
