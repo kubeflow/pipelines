@@ -437,7 +437,7 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                     val, component_dict=component_dict) for val in else_
             ]
         else:
-            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+            else_ = maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 else_, component_dict=component_dict)
 
         return IfPresentPlaceholder(
