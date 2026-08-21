@@ -30,7 +30,7 @@ jobs:
       ARTIFACTS_PATH: "runtime-base-images-cache"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Configure runtime base image artifact
         id: configure-runtime-base-images
@@ -154,7 +154,7 @@ jobs:
       ARTIFACTS_PATH: "images_${{ github.run_id }}"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Read frontend Node version
         id: frontend_node
