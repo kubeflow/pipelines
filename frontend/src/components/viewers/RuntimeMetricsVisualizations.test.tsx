@@ -602,6 +602,38 @@ describe('RuntimeMetricsVisualizations', () => {
     );
   });
 
+  it('gives duplicate legacy UI metadata artifacts collision-free render keys', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [],
+      errors: [],
+    });
+    const artifact: V2beta1Artifact = {
+      name: 'mlpipeline-ui-metadata',
+      uri: 's3://reports/shared-metadata.json',
+    };
+
+    try {
+      render(
+        <CommonTestWrapper>
+          <RuntimeMetricsVisualizations
+            artifacts={[artifact, { ...artifact }]}
+            namespace='team-a'
+          />
+        </CommonTestWrapper>,
+      );
+
+      await waitFor(() => expect(loadSpy).toHaveBeenCalledTimes(2));
+      expect(
+        consoleErrorSpy.mock.calls.some(([message]) =>
+          String(message).includes('Encountered two children with the same key'),
+        ),
+      ).toBe(false);
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   it('refetches legacy UI metadata once when its source task finishes', async () => {
     const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
       configs: [{ data: [['updated']], labels: ['value'], type: PlotType.TABLE }],

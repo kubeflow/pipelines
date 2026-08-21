@@ -72,18 +72,25 @@ export function RuntimeMetricsVisualizations({
   namespace,
   sourceFinished,
 }: RuntimeMetricsVisualizationsProps) {
-  const { scalarMetrics, classificationMetrics, fileArtifacts, legacyUiMetadataArtifacts } =
+  const { scalarMetrics, classificationMetrics, fileArtifacts, legacyUiMetadataEntries } =
     useMemo(() => {
       const files = artifacts.filter(
         (artifact) => isHtmlArtifact(artifact) || isMarkdownArtifact(artifact),
       );
+      const legacyIdentityOccurrences = new Map<string, number>();
+      const legacyUiMetadataEntries = artifacts
+        .filter((artifact) => isLegacyUiMetadataArtifact(artifact, artifactKey))
+        .map((artifact, index) => {
+          const identity = getArtifactIdentity(artifact) || `legacy-ui-metadata-${index}`;
+          const occurrence = legacyIdentityOccurrences.get(identity) || 0;
+          legacyIdentityOccurrences.set(identity, occurrence + 1);
+          return { artifact, key: JSON.stringify([identity, occurrence]) };
+        });
       return {
         scalarMetrics: artifacts.filter(isScalarMetricArtifact),
         classificationMetrics: expandClassificationMetrics(artifacts),
         fileArtifacts: files,
-        legacyUiMetadataArtifacts: artifacts.filter((artifact) =>
-          isLegacyUiMetadataArtifact(artifact, artifactKey),
-        ),
+        legacyUiMetadataEntries,
       };
     }, [artifactKey, artifacts]);
 
@@ -100,7 +107,7 @@ export function RuntimeMetricsVisualizations({
     confusionMatrixResult.matrices.length === 0 &&
     confusionMatrixResult.errors.length === 0 &&
     fileArtifacts.length === 0 &&
-    legacyUiMetadataArtifacts.length === 0
+    legacyUiMetadataEntries.length === 0
   ) {
     return <Banner message='There is no metrics artifact available in this step.' mode='info' />;
   }
@@ -170,10 +177,10 @@ export function RuntimeMetricsVisualizations({
         namespace={namespace}
         sourceFinished={sourceFinished}
       />
-      {legacyUiMetadataArtifacts.map((artifact, index) => (
+      {legacyUiMetadataEntries.map(({ artifact, key }) => (
         <LegacyUiMetadataVisualization
           artifact={artifact}
-          key={getArtifactIdentity(artifact) || `legacy-ui-metadata-${index}`}
+          key={key}
           namespace={artifact.namespace || namespace}
           sourceFinished={sourceFinished}
         />
