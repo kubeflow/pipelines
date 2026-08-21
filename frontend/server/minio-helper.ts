@@ -240,6 +240,7 @@ async function applyS3ProviderInfo(
   providerInfo: S3ProviderInfo,
   namespace?: string,
 ): Promise<MinioClientOptionsWithOptionalSecrets> {
+  const disableSSL = providerInfo.Params.disableSSL ?? providerInfo.Params.disable_https;
   if (providerInfo.Params.fromEnv === 'false') {
     if (!namespace) {
       throw new Error('Artifact Store provider given, but no namespace provided.');
@@ -281,7 +282,9 @@ async function applyS3ProviderInfo(
       }
       config.endPoint = endpoint.host;
       config.port = endpoint.port;
-      config.useSSL = endpoint.useSSL;
+      config.useSSL =
+        endpoint.useSSL ??
+        (disableSSL === undefined ? undefined : disableSSL.toLowerCase() !== 'true');
     } else {
       throw new Error('Provider info missing endpoint parameter.');
     }
@@ -316,18 +319,18 @@ async function applyS3ProviderInfo(
       } else if (providerInfo.Params.endpoint.startsWith('https://')) {
         config.useSSL = true;
       } else {
-        config.useSSL =
-          providerInfo.Params.disableSSL === undefined
-            ? undefined
-            : !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
+        config.useSSL = disableSSL === undefined ? undefined : disableSSL.toLowerCase() !== 'true';
       }
-    } else if (providerInfo.Params.disableSSL?.toLowerCase() === 'true') {
+    } else if (disableSSL?.toLowerCase() === 'true') {
       // The runtime applies an explicit disableSSL=true even when credentials inherit the server
       // endpoint. A materialized false remains inheritance so it cannot flip a plaintext default.
       config.useSSL = false;
     }
   }
-  const pathStyle = providerInfo.Params.forcePathStyle ?? providerInfo.Params.s3ForcePathStyle;
+  const pathStyle =
+    providerInfo.Params.forcePathStyle ??
+    providerInfo.Params.s3ForcePathStyle ??
+    providerInfo.Params.use_path_style;
   if (pathStyle !== undefined) {
     config.pathStyle = pathStyle.toLowerCase() === 'true';
   }

@@ -154,9 +154,7 @@ export async function getLauncherProviderInfo(
   const gcsProviderIsAuthoritative =
     provider === 'gs' &&
     !!config &&
-    (config.default !== undefined ||
-      config.Overrides !== undefined ||
-      config.overrides !== undefined);
+    (config.default != null || config.Overrides != null || config.overrides != null);
   if (effectiveQuery && !gcsProviderIsAuthoritative) {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }

@@ -281,6 +281,54 @@ describe('minio-helper', () => {
       });
     });
 
+    it('applies disableSSL to a scheme-less AWS endpoint', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            disableSSL: 'true',
+            endpoint: 's3.us-west-2.amazonaws.com',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('applies runtime S3 query aliases', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            disable_https: 'true',
+            endpoint: 'ceph.example:9000',
+            fromEnv: 'true',
+            use_path_style: 'false',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        pathStyle: false,
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
     it('does not mutate shared defaults when applying per-request provider settings', async () => {
       const sharedConfig = {
         accessKey: 'default-access-key',

@@ -88,9 +88,11 @@ export interface S3ProviderInfo {
     region?: string;
     endpoint?: string;
     disableSSL?: string;
+    disable_https?: string;
     anonymous?: string;
     forcePathStyle?: string;
     s3ForcePathStyle?: string;
+    use_path_style?: string;
   };
 }
 
@@ -1011,6 +1013,14 @@ function getGCSArtifactHandler(
           providerInfo?.Params.anonymous?.toLowerCase() === 'true' ||
           providerInfo?.Params.access_id === '-';
         universeDomain = providerInfo?.Params.universe_domain || undefined;
+        if (universeDomain && !anonymous) {
+          res
+            .status(400)
+            .send(
+              'Authenticated GCS universe_domain is not supported. Use configured server-side credentials or anonymous access.',
+            );
+          return;
+        }
         if (providerInfo && !anonymous && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');

@@ -248,7 +248,7 @@ describe('/artifacts', () => {
         port: undefined,
         region: 'us-east-2',
         secretKey: 'someSecret',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledWith('aws-s3-creds', 'someSecret', `${namespace}`);
@@ -436,7 +436,7 @@ s3:
         port: undefined,
         region: 'us-east-2',
         secretKey: 'somevalue',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
@@ -488,7 +488,7 @@ s3:
         port: undefined,
         region: 'us-east-2',
         secretKey: 'somevalue',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
@@ -685,6 +685,32 @@ s3:
         objectName: 'hello/world.txt',
         universeDomain: 'example.com',
       });
+    });
+
+    it('rejects authenticated GCS access to a provider-selected universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', universe_domain: 'attacker.example' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          400,
+          'Authenticated GCS universe_domain is not supported. Use configured server-side credentials or anonymous access.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+      expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
     });
 
     it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
