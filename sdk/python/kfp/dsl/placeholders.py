@@ -374,6 +374,10 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
         for output in outputs:
             if output['name'] == first_value:
                 type_ = output.get('type')
+                if isinstance(type_, dict) and not type_:
+                    raise ValueError(
+                        f'Invalid empty type {{}} for output {first_value!r}. Specify a type name, such as type: String, or remove the type field.'
+                    )
                 is_parameter = type_utils.is_parameter_type(type_)
                 if is_parameter:
                     return OutputParameterPlaceholder(

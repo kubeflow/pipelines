@@ -183,6 +183,8 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     if isinstance(type_name, str):
         type_name = type_annotations.get_short_type_name(type_name)
     elif isinstance(type_name, dict):
+        if not type_name:
+            return False
         type_name = list(type_name.keys())[0]
     else:
         return False
@@ -208,7 +210,7 @@ def bundled_artifact_to_artifact_proto(
 
 def get_parameter_type(
     param_type: Optional[Union[Type, str, dict]]
-) -> 'pipeline_spec_pb2.ParameterType':
+) -> Optional['pipeline_spec_pb2.ParameterType']:
     """Get the IR I/O parameter type for the given ComponentSpec I/O type.
 
     Args:
@@ -216,7 +218,8 @@ def get_parameter_type(
         builtin type or a type name.
 
     Returns:
-      The enum value of the mapped IR I/O primitive type.
+      The enum value of the mapped IR I/O primitive type, or None if the type
+      does not map to a parameter type.
 
     Raises:
       AttributeError: if type_name is not a string type.
@@ -227,6 +230,8 @@ def get_parameter_type(
     if type(param_type) == type:
         type_name = param_type.__name__
     elif isinstance(param_type, dict):
+        if not param_type:
+            return None
         type_name = list(param_type.keys())[0]
     else:
         type_name = type_annotations.get_short_type_name(str(param_type))

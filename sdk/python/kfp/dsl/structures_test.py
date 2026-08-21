@@ -859,6 +859,24 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             outputs=None)
         self.assertEqual(loaded_component_spec, component_spec)
 
+    def test_v1_output_with_empty_type_and_output_path_placeholder(self):
+        component_yaml_v1 = textwrap.dedent("""\
+            name: bad-comp
+            outputs:
+            - {name: out, type: {}}
+            implementation:
+              container:
+                image: python:3.11
+                command: [sh, -c]
+                args: [cp, {outputPath: out}, /tmp/x]
+            """)
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Invalid empty type \{\} for output 'out'\. Specify a type name"
+        ):
+            structures.ComponentSpec.from_yaml_documents(component_yaml_v1)
+
 
 class TestNormalizeTimeString(parameterized.TestCase):
 
