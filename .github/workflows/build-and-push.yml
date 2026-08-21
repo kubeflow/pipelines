@@ -190,7 +190,7 @@ jobs:
       # The images value provides the base name for the tags and labels.
       - name: Extract metadata (tags, labels) for Build
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         if: steps.check_tag.outcome == 'success'
         with:
           images: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_ORG }}/${{ inputs.app_to_build }}
