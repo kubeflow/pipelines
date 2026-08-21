@@ -27,9 +27,15 @@ typing, launcher integration, and UI linkage.
 2. Compile to a single Argo template `system-trigger-pipeline` that runs
    launcher-v2 with `--executor_type trigger_pipeline`.
 3. Create a child run via the ml-pipeline API; optionally wait for completion.
-4. Publish task outputs `run_id` and `state`; store MLMD custom property
-   `child_run_id` for UI.
-5. Minimal UI: **Open Run** button on the parent task when `child_run_id` is set.
+4. Publish task outputs `run_id`, `state`, and resolved `pipeline_version_id`;
+   store MLMD custom properties `child_run_id` and `child_pipeline_version_id`.
+5. UI: show **Child run** ID link + **Open Child Run** on the parent task when
+   `child_run_id` is set; Input/Output tab shows launch parameters and outputs
+   (`run_id`, `state`, `pipeline_version_id`), with `run_id` linked to the child run.
+   Empty `pipeline_version_id` in the DSL resolves in order:
+   (1) child version with the same `display_name`/`name` as the parent run's
+   PipelineVersion, (2) else the **latest** child version (`created_at desc`).
+   An explicit ID always pins that version.
 
 ### Non-Goals
 
@@ -40,6 +46,10 @@ typing, launcher integration, and UI linkage.
 4. Dedicated React Flow canvas node type `TRIGGER` (MVP reuses `EXECUTION`).
 5. KFP local (Subprocess/Docker) execution of trigger nodes in the first
    iteration.
+6. Cross-run **Lineage Explorer** edges between parent task and child run
+   (child is a separate PipelineRun MLMD context; classic lineage stays
+   within one run). Follow-up if/when Run labels or cross-context lineage
+   APIs land.
 
 ## Proposal
 
@@ -107,18 +117,25 @@ as other in-cluster API clients).
 - Argo: `trigger_pipeline.go` → template `system-trigger-pipeline`
 - `dag.go`: single task, no separate driver (like importer)
 - `component/trigger_pipeline_launcher.go`: resolve pipeline by name → CreateRun
-  → optional poll → publish outputs + MLMD `child_run_id`
+  → optional poll → publish outputs + MLMD `child_run_id`; record resolved
+  child-launch parameters as MLMD execution `inputs` for the Input/Output tab
 
 ### Frontend
 
-`RuntimeNodeDetailsV2`: if execution has custom property `child_run_id`, show
-**Child Run ID** in Task Details and an **Open Run** button linking to
-`/runs/details/{id}`.
+`RuntimeNodeDetailsV2`: if execution has custom property `child_run_id`, show an
+explicit **Child run** ID link and **Open Child Run** button, plus a linked
+**Child Run ID** in Task Details. Input/Output tab surfaces launch parameters
+(recorded on the MLMD execution) and outputs `run_id` / `state`, with `run_id`
+linked to the child run.
+
+Cross-run lineage is out of scope for MVP: the child run is a separate MLMD
+PipelineRun context, so Lineage Explorer does not draw parent→child edges.
 
 ## Frontend Considerations
 
-MVP only adds Open Run / Child Run ID in the existing execution side panel.
-No new canvas node type in this iteration.
+MVP adds Open Child Run / Child Run ID / I/O parameter display in the existing
+execution side panel. No new canvas node type and no Lineage Explorer changes
+in this iteration.
 
 ## KFP Local Considerations
 
@@ -130,10 +147,9 @@ remote API-server execution is required.
 
 - SDK unit tests for `dsl.trigger_pipeline` IR emission and validation
 - Go unit tests for parent-label helpers and input-parameter resolution
-- Frontend Vitest for Open Run when `child_run_id` is present
-- Manual: compile a toy pipeline; confirm IR contains `triggerPipeline` and
-  parent WF does not inline child templates; Argo template name is
-  `system-trigger-pipeline`
+- Frontend Vitest for Open Child Run when `child_run_id` is present
+- Manual: confirm Input Parameters (child launch args) and Output Parameters
+  (`run_id`, `state`) on the trigger task; navigate via Child run link
 
 ## Migration Strategy
 

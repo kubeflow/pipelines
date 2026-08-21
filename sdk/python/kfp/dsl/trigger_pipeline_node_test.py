@@ -46,6 +46,7 @@ class TestTriggerPipeline(unittest.TestCase):
             # Ensure outputs are wired
             assert task.outputs['run_id'] is not None
             assert task.outputs['state'] is not None
+            assert task.outputs['pipeline_version_id'] is not None
 
         pipeline_spec = parent_pipeline.pipeline_spec
         deployment = pipeline_spec.deployment_spec
@@ -83,6 +84,8 @@ class TestTriggerPipeline(unittest.TestCase):
         self.assertIn('run_id',
                       comp.output_definitions.parameters)
         self.assertIn('state',
+                      comp.output_definitions.parameters)
+        self.assertIn('pipeline_version_id',
                       comp.output_definitions.parameters)
 
     def test_export_via_dsl(self):

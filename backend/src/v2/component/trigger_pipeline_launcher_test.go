@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	pipelinemodel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/pipeline_model"
 	runmodel "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,6 +80,38 @@ func TestStructpbValueToInterface(t *testing.T) {
 	assert.Equal(t, true, structpbValueToInterface(structpb.NewBoolValue(true)))
 	assert.Equal(t, float64(3), structpbValueToInterface(structpb.NewNumberValue(3)))
 }
+
+func TestPipelineVersionIdentityKeys(t *testing.T) {
+	keys := pipelineVersionIdentityKeys(&pipelinemodel.V2beta1PipelineVersion{
+		DisplayName: "release-1",
+		Name:        "release-1",
+	})
+	assert.Equal(t, []string{"release-1"}, keys)
+
+	keys = pipelineVersionIdentityKeys(&pipelinemodel.V2beta1PipelineVersion{
+		DisplayName: "display",
+		Name:        "name",
+	})
+	assert.Equal(t, []string{"display", "name"}, keys)
+
+	assert.Nil(t, pipelineVersionIdentityKeys(nil))
+	assert.Nil(t, pipelineVersionIdentityKeys(&pipelinemodel.V2beta1PipelineVersion{}))
+}
+
+func TestFindPipelineVersionByIdentity(t *testing.T) {
+	versions := []*pipelinemodel.V2beta1PipelineVersion{
+		{PipelineVersionID: "new", DisplayName: "latest-auto", Name: "latest-auto"},
+		{PipelineVersionID: "match", DisplayName: "release-1", Name: "release-1"},
+		{PipelineVersionID: "old", DisplayName: "old", Name: "old"},
+	}
+	got := findPipelineVersionByIdentity(versions, []string{"release-1"})
+	require.NotNil(t, got)
+	assert.Equal(t, "match", got.PipelineVersionID)
+
+	assert.Nil(t, findPipelineVersionByIdentity(versions, []string{"missing"}))
+	assert.Nil(t, findPipelineVersionByIdentity(nil, []string{"release-1"}))
+}
+
 
 func TestTriggerPipelineLauncherOptionsValidate(t *testing.T) {
 	err := (&TriggerPipelineLauncherOptions{}).validate()

@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/runtime"
@@ -47,9 +48,12 @@ const (
 	LabelParentTaskName = "pipelines.kubeflow.org/parent-task-name"
 	// MLMDChildRunIDKey is the MLMD custom property used by the UI for Open Run.
 	MLMDChildRunIDKey = "child_run_id"
+	// MLMDChildPipelineVersionIDKey records which PipelineVersion was launched.
+	MLMDChildPipelineVersionIDKey = "child_pipeline_version_id"
 
-	triggerOutputRunID = "run_id"
-	triggerOutputState = "state"
+	triggerOutputRunID              = "run_id"
+	triggerOutputState              = "state"
+	triggerOutputPipelineVersionID  = "pipeline_version_id"
 )
 
 // ParentRunLabels returns the parent linkage labels for a triggered child run.
@@ -187,20 +191,24 @@ func (l *TriggerPipelineLauncher) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	ecfg := &metadata.ExecutionConfig{
-		TaskName:      l.task.GetTaskInfo().GetName(),
-		PodName:       l.launcherV2Options.PodName,
-		PodUID:        l.launcherV2Options.PodUID,
-		Namespace:     l.launcherV2Options.Namespace,
-		ExecutionType: metadata.ContainerExecutionTypeName,
-		ParentDagID:   l.triggerOpts.ParentDagID,
-	}
-	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
+
+	params, err := l.resolveInputParameters(ctx, pipeline)
 	if err != nil {
 		return err
 	}
 
-	params, err := l.resolveInputParameters(ctx, pipeline)
+	ecfg := &metadata.ExecutionConfig{
+		TaskName:         l.task.GetTaskInfo().GetName(),
+		PodName:          l.launcherV2Options.PodName,
+		PodUID:           l.launcherV2Options.PodUID,
+		Namespace:        l.launcherV2Options.Namespace,
+		ExecutionType:    metadata.ContainerExecutionTypeName,
+		ParentDagID:      l.triggerOpts.ParentDagID,
+		// Persist resolved child-launch parameters so the parent task Input/Output
+		// tab shows what was passed into the child run.
+		InputParameters: params,
+	}
+	createdExecution, err := l.metadataClient.CreateExecution(ctx, pipeline, ecfg)
 	if err != nil {
 		return err
 	}
@@ -214,6 +222,12 @@ func (l *TriggerPipelineLauncher) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to get parent run %q: %w", l.triggerOpts.RunID, err)
 	}
+
+	versionID, err := l.resolvePipelineVersionID(childPipeline.PipelineID, parentRun)
+	if err != nil {
+		return err
+	}
+	glog.Infof("Triggering pipeline %q version %q", l.trigger.GetPipelineName(), versionID)
 
 	taskName := l.task.GetTaskInfo().GetName()
 	displayName := fmt.Sprintf("%s-from-%s", l.trigger.GetPipelineName(), taskName)
@@ -232,7 +246,7 @@ func (l *TriggerPipelineLauncher) Execute(ctx context.Context) (err error) {
 		Description:  FormatParentLabelsDescription(l.triggerOpts.RunID, taskName),
 		PipelineVersionReference: &runmodel.V2beta1PipelineVersionReference{
 			PipelineID:        childPipeline.PipelineID,
-			PipelineVersionID: l.trigger.GetPipelineVersionId(),
+			PipelineVersionID: versionID,
 		},
 		RuntimeConfig: &runmodel.V2beta1RuntimeConfig{
 			Parameters: runtimeParams,
@@ -242,7 +256,7 @@ func (l *TriggerPipelineLauncher) Execute(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("failed to create child run: %w", err)
 	}
-	glog.Infof("Created child run %s for pipeline %s", childRun.RunID, l.trigger.GetPipelineName())
+	glog.Infof("Created child run %s for pipeline %s version %s", childRun.RunID, l.trigger.GetPipelineName(), versionID)
 
 	state := ""
 	if childRun.State != nil {
@@ -262,12 +276,12 @@ func (l *TriggerPipelineLauncher) Execute(ctx context.Context) (err error) {
 			state = string(*childRun.State)
 		}
 		if childRun.State == nil || *childRun.State != runmodel.V2beta1RuntimeStateSUCCEEDED {
-			_ = l.publish(ctx, createdExecution, childRun.RunID, state, pb.Execution_FAILED)
+			_ = l.publish(ctx, createdExecution, childRun.RunID, versionID, state, pb.Execution_FAILED)
 			return fmt.Errorf("child run %s finished with state %s (expected SUCCEEDED)", childRun.RunID, state)
 		}
 	}
 
-	return l.publish(ctx, createdExecution, childRun.RunID, state, pb.Execution_COMPLETE)
+	return l.publish(ctx, createdExecution, childRun.RunID, versionID, state, pb.Execution_COMPLETE)
 }
 
 func (l *TriggerPipelineLauncher) getPipelineByName(name string) (*pipelinemodel.V2beta1Pipeline, error) {
@@ -282,6 +296,155 @@ func (l *TriggerPipelineLauncher) getPipelineByName(name string) (*pipelinemodel
 		return nil, err
 	}
 	return resp.Payload, nil
+}
+
+// resolvePipelineVersionID picks the child PipelineVersion to run:
+//  1. Explicit trigger.pipeline_version_id, if set
+//  2. Else a child version whose display_name or name matches the parent run's
+//     PipelineVersion (so coordinated releases with the same version label stay aligned)
+//  3. Else the latest child version (created_at desc)
+func (l *TriggerPipelineLauncher) resolvePipelineVersionID(
+	childPipelineID string,
+	parentRun *runmodel.V2beta1Run,
+) (string, error) {
+	if id := l.trigger.GetPipelineVersionId(); id != "" {
+		pv, err := l.getPipelineVersion(childPipelineID, id)
+		if err != nil {
+			return "", fmt.Errorf("failed to get pipeline version %q for pipeline %q: %w", id, childPipelineID, err)
+		}
+		return pv.PipelineVersionID, nil
+	}
+
+	versions, err := l.listPipelineVersionsNewestFirst(childPipelineID)
+	if err != nil {
+		return "", err
+	}
+	if len(versions) == 0 {
+		return "", fmt.Errorf("pipeline %q has no versions", childPipelineID)
+	}
+
+	if keys := l.parentVersionIdentityKeys(parentRun); len(keys) > 0 {
+		if match := findPipelineVersionByIdentity(versions, keys); match != nil {
+			glog.Infof(
+				"Matched child pipeline version %q (%q) to parent version identity %v",
+				match.PipelineVersionID, firstNonEmpty(match.DisplayName, match.Name), keys,
+			)
+			return match.PipelineVersionID, nil
+		}
+		glog.Infof(
+			"No child version of pipeline %q matched parent version identity %v; falling back to latest",
+			childPipelineID, keys,
+		)
+	}
+
+	return versions[0].PipelineVersionID, nil
+}
+
+func (l *TriggerPipelineLauncher) parentVersionIdentityKeys(parentRun *runmodel.V2beta1Run) []string {
+	if parentRun == nil || parentRun.PipelineVersionReference == nil {
+		return nil
+	}
+	ref := parentRun.PipelineVersionReference
+	if ref.PipelineID == "" || ref.PipelineVersionID == "" {
+		return nil
+	}
+	pv, err := l.getPipelineVersion(ref.PipelineID, ref.PipelineVersionID)
+	if err != nil {
+		glog.Warningf(
+			"Could not load parent pipeline version %s/%s for identity match: %v",
+			ref.PipelineID, ref.PipelineVersionID, err,
+		)
+		return nil
+	}
+	return pipelineVersionIdentityKeys(pv)
+}
+
+func pipelineVersionIdentityKeys(pv *pipelinemodel.V2beta1PipelineVersion) []string {
+	if pv == nil {
+		return nil
+	}
+	var keys []string
+	seen := map[string]struct{}{}
+	for _, key := range []string{pv.DisplayName, pv.Name} {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+func findPipelineVersionByIdentity(
+	versions []*pipelinemodel.V2beta1PipelineVersion,
+	keys []string,
+) *pipelinemodel.V2beta1PipelineVersion {
+	if len(versions) == 0 || len(keys) == 0 {
+		return nil
+	}
+	wanted := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		wanted[key] = struct{}{}
+	}
+	for _, version := range versions {
+		if version == nil {
+			continue
+		}
+		if _, ok := wanted[version.DisplayName]; ok {
+			return version
+		}
+		if _, ok := wanted[version.Name]; ok {
+			return version
+		}
+	}
+	return nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func (l *TriggerPipelineLauncher) getPipelineVersion(pipelineID, versionID string) (*pipelinemodel.V2beta1PipelineVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+	params := pipelineparams.NewPipelineServiceGetPipelineVersionParams().
+		WithContext(ctx).
+		WithPipelineID(pipelineID).
+		WithPipelineVersionID(versionID)
+	resp, err := l.api.pipeline.PipelineService.PipelineServiceGetPipelineVersion(params, l.api.auth)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Payload, nil
+}
+
+func (l *TriggerPipelineLauncher) listPipelineVersionsNewestFirst(pipelineID string) ([]*pipelinemodel.V2beta1PipelineVersion, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
+	defer cancel()
+	pageSize := int32(100)
+	sortBy := "created_at desc"
+	params := pipelineparams.NewPipelineServiceListPipelineVersionsParams().
+		WithContext(ctx).
+		WithPipelineID(pipelineID).
+		WithPageSize(&pageSize).
+		WithSortBy(&sortBy)
+	resp, err := l.api.pipeline.PipelineService.PipelineServiceListPipelineVersions(params, l.api.auth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list versions for pipeline %q: %w", pipelineID, err)
+	}
+	if resp.Payload == nil {
+		return nil, nil
+	}
+	return resp.Payload.PipelineVersions, nil
 }
 
 func (l *TriggerPipelineLauncher) getRun(runID string) (*runmodel.V2beta1Run, error) {
@@ -309,16 +472,20 @@ func (l *TriggerPipelineLauncher) createRun(run *runmodel.V2beta1Run) (*runmodel
 func (l *TriggerPipelineLauncher) publish(
 	ctx context.Context,
 	execution *metadata.Execution,
-	childRunID, state string,
+	childRunID, versionID, state string,
 	mlmdState pb.Execution_State,
 ) error {
 	if execution.GetExecution().CustomProperties == nil {
 		execution.GetExecution().CustomProperties = map[string]*pb.Value{}
 	}
 	execution.GetExecution().CustomProperties[MLMDChildRunIDKey] = metadata.StringValue(childRunID)
+	if versionID != "" {
+		execution.GetExecution().CustomProperties[MLMDChildPipelineVersionIDKey] = metadata.StringValue(versionID)
+	}
 	outputs := map[string]*structpb.Value{
-		triggerOutputRunID: structpb.NewStringValue(childRunID),
-		triggerOutputState: structpb.NewStringValue(state),
+		triggerOutputRunID:             structpb.NewStringValue(childRunID),
+		triggerOutputState:             structpb.NewStringValue(state),
+		triggerOutputPipelineVersionID: structpb.NewStringValue(versionID),
 	}
 	if err := l.metadataClient.PublishExecution(ctx, execution, outputs, nil, mlmdState); err != nil {
 		return fmt.Errorf("failed to publish trigger pipeline execution: %w", err)

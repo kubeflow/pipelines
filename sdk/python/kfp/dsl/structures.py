@@ -459,7 +459,8 @@ class TriggerPipelineSpec:
 
     Attributes:
         pipeline_name: Registered pipeline display/lookup name to run.
-        pipeline_version_id: Optional PipelineVersion ID; empty uses default.
+        pipeline_version_id: Optional PipelineVersion ID; empty matches parent
+            version name/display_name when possible, else latest.
         wait_for_completion: Wait for child run terminal state when True.
         poke_interval_seconds: Poll interval when waiting.
     """

@@ -66,6 +66,7 @@ export const LOGS_BANNER_MESSAGE = 'logs_banner_message';
 export const LOGS_BANNER_ADDITIONAL_INFO = 'logs_banner_additional_info';
 export const K8S_PLATFORM_KEY = 'kubernetes';
 export const CHILD_RUN_ID_PROPERTY = 'child_run_id';
+export const CHILD_PIPELINE_VERSION_ID_PROPERTY = 'child_pipeline_version_id';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -181,17 +182,26 @@ function TaskNodeDetail({
     logsInfo?.get(LOGS_BANNER_ADDITIONAL_INFO) || logsQueryError?.message;
 
   const [selectedTab, setSelectedTab] = useState(0);
-  const childRunId = execution?.getCustomPropertiesMap()?.get(CHILD_RUN_ID_PROPERTY)?.getStringValue();
+  const childRunId = execution
+    ?.getCustomPropertiesMap()
+    ?.get(CHILD_RUN_ID_PROPERTY)
+    ?.getStringValue();
+  const childRunPath = childRunId
+    ? RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, childRunId)
+    : undefined;
 
   return (
     <div className={commonCss.page}>
-      {childRunId && (
+      {childRunId && childRunPath && (
         <div className={padding(20, 'blr')}>
-          <Link
-            to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, childRunId)}
-            style={{ textDecoration: 'none' }}
-          >
-            <Button variant='contained'>Open Run</Button>
+          <div style={{ marginBottom: 12 }}>
+            Child run:{' '}
+            <Link className={commonCss.link} to={childRunPath}>
+              {childRunId}
+            </Link>
+          </div>
+          <Link to={childRunPath} style={{ textDecoration: 'none' }}>
+            <Button variant='contained'>Open Child Run</Button>
           </Link>
         </div>
       )}
@@ -213,7 +223,18 @@ function TaskNodeDetail({
         {/* Task Details tab */}
         {selectedTab === 1 && (
           <div className={padding(20)}>
-            <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+            <DetailsTable
+              title='Task Details'
+              fields={getTaskDetailsFields(element, execution)}
+              valueComponent={TaskDetailValue}
+            />
+            {getTriggeredChildRunFields(execution).length > 0 && (
+              <DetailsTable
+                title='Triggered Child Run'
+                fields={getTriggeredChildRunFields(execution)}
+                valueComponent={TaskDetailValue}
+              />
+            )}
             <DetailsTable
               title='Volume Mounts'
               fields={getNodeVolumeMounts(layers, pipelineJobString, element)}
@@ -238,11 +259,15 @@ function TaskNodeDetail({
   );
 }
 
+function TaskDetailValue({ value }: { value?: string | React.JSX.Element }) {
+  return <>{value ?? '-'}</>;
+}
+
 function getTaskDetailsFields(
   element?: PipelineFlowElement | null,
   execution?: Execution,
-): Array<KeyValue<string>> {
-  const details: Array<KeyValue<string>> = [];
+): Array<KeyValue<string | React.JSX.Element>> {
+  const details: Array<KeyValue<string | React.JSX.Element>> = [];
   if (element) {
     details.push(['Task ID', element.id || '-']);
     if (execution) {
@@ -275,15 +300,42 @@ function getTaskDetailsFields(
         finishedAt = new Date(lastUpdatedTime).toString();
       }
       details.push(['Finished At', finishedAt]);
-
-      const childRunId = execution
-        .getCustomPropertiesMap()
-        .get(CHILD_RUN_ID_PROPERTY)
-        ?.getStringValue();
-      if (childRunId) {
-        details.push(['Child Run ID', childRunId]);
-      }
     }
+  }
+
+  return details;
+}
+
+function getTriggeredChildRunFields(
+  execution?: Execution,
+): Array<KeyValue<string | React.JSX.Element>> {
+  if (!execution) {
+    return [];
+  }
+  const details: Array<KeyValue<string | React.JSX.Element>> = [];
+  const childRunId = execution
+    .getCustomPropertiesMap()
+    .get(CHILD_RUN_ID_PROPERTY)
+    ?.getStringValue();
+  if (childRunId) {
+    details.push([
+      'Child Run',
+      <Link
+        key={childRunId}
+        className={commonCss.link}
+        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, childRunId)}
+      >
+        {childRunId}
+      </Link>,
+    ]);
+  }
+
+  const childPipelineVersionId = execution
+    .getCustomPropertiesMap()
+    .get(CHILD_PIPELINE_VERSION_ID_PROPERTY)
+    ?.getStringValue();
+  if (childPipelineVersionId) {
+    details.push(['Pipeline Version ID', childPipelineVersionId]);
   }
 
   return details;
@@ -489,7 +541,7 @@ function ArtifactInfo({ execution, artifactTypes, linkedArtifact, namespace }: A
         <DetailsTable<string>
           key={`artifact-url`}
           title='Artifact URI'
-          fields={artifactParams}
+          fields={artifactParams as Array<KeyValue<string>>}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
             namespace: namespace,
@@ -562,7 +614,15 @@ function SubDAGNodeDetail({
               <DetailsTable
                 title='Task Details'
                 fields={getTaskDetailsFields(element, execution)}
+                valueComponent={TaskDetailValue}
               />
+              {getTriggeredChildRunFields(execution).length > 0 && (
+                <DetailsTable
+                  title='Triggered Child Run'
+                  fields={getTriggeredChildRunFields(execution)}
+                  valueComponent={TaskDetailValue}
+                />
+              )}
             </div>
           )}
         </div>

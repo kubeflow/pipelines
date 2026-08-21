@@ -177,7 +177,7 @@ describe('RuntimeNodeDetailsV2', () => {
     screen.getByTestId(TEST_LOG_VIEW_ID); // Still can load log view window
   });
 
-  it('displays Open Run when child_run_id custom property is present', async () => {
+  it('displays Open Child Run when child_run_id custom property is present', async () => {
     TEST_EXECUTION.getCustomPropertiesMap().set(
       'child_run_id',
       new Value().setStringValue('child-run-abc'),
@@ -204,12 +204,21 @@ describe('RuntimeNodeDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    const openRun = await screen.findByText('Open Run');
+    const openRun = await screen.findByText('Open Child Run');
     expect(openRun.closest('a')).toHaveAttribute('href', '/runs/details/child-run-abc');
+    // Explicit ID link in the banner
+    const idLinks = screen.getAllByText('child-run-abc');
+    expect(idLinks.length).toBeGreaterThanOrEqual(1);
+    expect(idLinks[0].closest('a')).toHaveAttribute('href', '/runs/details/child-run-abc');
 
     fireEvent.click(await screen.findByText('Task Details'));
-    await screen.findByText('Child Run ID');
-    screen.getByText('child-run-abc');
+    await screen.findByText('Triggered Child Run');
+    await screen.findByText('Child Run');
+    // Child Run value is a link in the Triggered Child Run block
+    const detailsLinks = screen.getAllByText('child-run-abc');
+    expect(
+      detailsLinks.some((el) => el.closest('a')?.getAttribute('href') === '/runs/details/child-run-abc'),
+    ).toBe(true);
   });
 
   it('displays volume mounts in details tab on side panel of execution node', async () => {

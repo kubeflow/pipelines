@@ -22,6 +22,7 @@ from kfp.dsl import trigger_pipeline_component
 
 RUN_ID_KEY = 'run_id'
 STATE_KEY = 'state'
+PIPELINE_VERSION_ID_KEY = 'pipeline_version_id'
 
 
 def _infer_parameter_type(value: Any) -> tuple[str, Any]:
@@ -59,14 +60,16 @@ def trigger_pipeline(
         pipeline_name: Name of the registered pipeline to run.
         arguments: Parameter map passed to the child run. Values may be
             constants or ``PipelineParameterChannel`` from upstream tasks.
-        pipeline_version_id: Optional PipelineVersion ID. Empty uses the
-            default / latest version.
+        pipeline_version_id: Optional PipelineVersion ID. When empty, the
+            launcher prefers a child version whose ``display_name``/``name``
+            matches the parent run's PipelineVersion; if none matches, it
+            falls back to the latest child version (``created_at`` desc).
         wait_for_completion: When True, wait until the child reaches a
             terminal state; fail the parent task if not SUCCEEDED.
         poke_interval_seconds: Polling interval when waiting.
 
     Returns:
-        A task with outputs ``run_id`` and ``state``.
+        A task with outputs ``run_id``, ``state``, and ``pipeline_version_id``.
 
     Examples::
 
@@ -118,6 +121,7 @@ def trigger_pipeline(
         outputs={
             RUN_ID_KEY: structures.OutputSpec(type='String'),
             STATE_KEY: structures.OutputSpec(type='String'),
+            PIPELINE_VERSION_ID_KEY: structures.OutputSpec(type='String'),
         },
     )
     component = trigger_pipeline_component.TriggerPipelineComponent(
