@@ -125,6 +125,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const preRetryTasks = props.retryTaskState?.preRetryTasks;
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
+  const fallbackGraphActive = useRef(false);
   const queryClient = useQueryClient();
   const taskQueryKey = useMemo(
     () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
@@ -269,10 +270,23 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     }
   }, [isError, isSuccess, error, experimentIsError, experimentError, updateBanner]);
 
+  const restoreFallbackGraph = useCallback(() => {
+    if (!fallbackGraphActive.current) {
+      return false;
+    }
+    fallbackGraphActive.current = false;
+    setLayerNavigationError(null);
+    setLayers(['root']);
+    setFlowElements(initialElements);
+    setSelectedNodeState(null);
+    return true;
+  }, [initialElements]);
+
   const layerChange = useCallback(
     (layers: string[]) => {
       try {
         const nextElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []);
+        fallbackGraphActive.current = false;
         clearLinkedTaskQuery();
         setLayerNavigationError(null);
         setSelectedNodeState(null);
@@ -302,9 +316,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   useEffect(() => {
     if (!linkedTaskId) {
       appliedLinkedTaskId.current = null;
+      restoreFallbackGraph();
       return;
     }
     if (!linkedTask) {
+      if (appliedLinkedTaskId.current !== linkedTaskId) {
+        appliedLinkedTaskId.current = null;
+        restoreFallbackGraph();
+      }
       return;
     }
     if (appliedLinkedTaskId.current === linkedTaskId) {
@@ -321,10 +340,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     let navigationError: string | undefined;
     try {
       targetElements = convertSubDagToRuntimeFlowElements(pipelineSpec, targetLayers, tasks || []);
+      fallbackGraphActive.current = false;
       targetElement =
         targetElements.find((element) => element.id === targetNodeId) ||
         buildLinkedTaskElement(linkedTask);
     } catch (error) {
+      fallbackGraphActive.current = true;
       targetLayers = ['root'];
       targetElement = buildLinkedTaskElement(linkedTask);
       targetElements = [targetElement];
@@ -334,7 +355,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setLayers(targetLayers);
     setFlowElements(targetElements);
     setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
-  }, [linkedTask, linkedTaskId, pipelineSpec, tasks]);
+  }, [linkedTask, linkedTaskId, pipelineSpec, restoreFallbackGraph, tasks]);
 
   const linkedSelectionMatchesUrl =
     !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;
@@ -357,19 +378,20 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   }, [activeSelectedNode, layers, linkedTask, runtimeFlowContext, tasks]);
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
+    const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
-    setLayerNavigationError(null);
-    setSelectedNodeState({ element });
+    if (!restoredFallbackGraph) {
+      setLayerNavigationError(null);
+      setSelectedNodeState({ element });
+    }
   };
 
   const closeNodeDetails = () => {
+    const restoredFallbackGraph = restoreFallbackGraph();
     clearLinkedTaskQuery();
-    if (selectedNodeState?.navigationError !== undefined) {
-      setLayerNavigationError(null);
-      setLayers(['root']);
-      setFlowElements(initialElements);
+    if (!restoredFallbackGraph) {
+      setSelectedNodeState(null);
     }
-    setSelectedNodeState(null);
   };
 
   // Update page title and experiment information.

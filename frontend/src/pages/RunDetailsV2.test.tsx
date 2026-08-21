@@ -174,6 +174,33 @@ describe('RunDetailsV2', () => {
     };
   }
 
+  function renderOrphanTaskFallback() {
+    const linkedTask: V2beta1PipelineTask = {
+      task_id: 'orphan-task',
+      name: 'orphan',
+      run_id: RUN_ID,
+      scope_path: 'root.missing.orphan',
+      state: PipelineTaskTaskState.SUCCEEDED,
+      type: PipelineTaskTaskType.RUNTIME,
+    };
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [linkedTask] });
+    const props = generateProps();
+    const renderPage = (search: string) => (
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={TEST_RUN}
+          {...props}
+          location={{ pathname: `/runs/details/${RUN_ID}`, search } as any}
+        />
+      </CommonTestWrapper>
+    );
+    const view = render(renderPage('?task=orphan-task'));
+    return {
+      rerenderWithSearch: (search: string) => view.rerender(renderPage(search)),
+    };
+  }
+
   beforeEach(() => {
     mockResizeObserver();
 
@@ -231,26 +258,7 @@ describe('RunDetailsV2', () => {
   });
 
   it('keeps Run Details usable when a linked task scope is absent from the pipeline spec', async () => {
-    const linkedTask: V2beta1PipelineTask = {
-      task_id: 'orphan-task',
-      name: 'orphan',
-      run_id: RUN_ID,
-      scope_path: 'root.missing.orphan',
-      state: PipelineTaskTaskState.SUCCEEDED,
-      type: PipelineTaskTaskType.RUNTIME,
-    };
-    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [linkedTask] });
-    const props = generateProps();
-    props.location = {
-      pathname: `/runs/details/${RUN_ID}`,
-      search: '?task=orphan-task',
-    } as any;
-
-    render(
-      <CommonTestWrapper>
-        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
-      </CommonTestWrapper>,
-    );
+    renderOrphanTaskFallback();
 
     expect(
       await screen.findByText(
@@ -271,6 +279,56 @@ describe('RunDetailsV2', () => {
         'Unable to open the requested pipeline graph. The run page remains available.',
       ),
     ).not.toBeInTheDocument();
+  });
+
+  it('restores the root graph when browser navigation removes an invalid task link', async () => {
+    const { rerenderWithSearch } = renderOrphanTaskFallback();
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.orphan"]')).toHaveClass('selected'),
+    );
+
+    rerenderWithSearch('');
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(
+        'Unable to open the requested pipeline graph. The run page remains available.',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  it('restores the root graph when navigation replaces the fallback with an unknown task', async () => {
+    const { rerenderWithSearch } = renderOrphanTaskFallback();
+    await waitFor(() =>
+      expect(document.querySelector('[data-id="task.orphan"]')).toHaveClass('selected'),
+    );
+
+    rerenderWithSearch('?task=missing-task');
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
+    });
+  });
+
+  it('restores the root graph when the fallback node is clicked', async () => {
+    renderOrphanTaskFallback();
+    const orphanNode = await waitFor(() => {
+      const node = document.querySelector('[data-id="task.orphan"]');
+      expect(node).toHaveClass('selected');
+      return node!;
+    });
+
+    fireEvent.click(orphanNode);
+
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
+    });
+    expect(historyReplaceSpy).toHaveBeenCalled();
   });
 
   it('selects a new task when query-only navigation changes the deep-link target', async () => {
