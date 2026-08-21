@@ -112,6 +112,15 @@ export interface GCSProviderInfo {
   };
 }
 
+const GCS_PROVIDER_INFO_PARAMS = new Set([
+  'access_id',
+  'anonymous',
+  'fromEnv',
+  'secretName',
+  'tokenKey',
+  'universe_domain',
+]);
+
 /**
  * Returns an authorization middleware for artifact endpoints.
  * This middleware handles 3 modes:
@@ -316,12 +325,13 @@ export function getArtifactsHandler({
     http: HttpConfigs;
     minio: MinioConfigs;
     allowedDomain: string;
+    allowedGcsUniverseDomains?: string[];
   };
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
 }): Handler {
-  const { aws, http, minio, allowedDomain } = artifactsConfigs;
+  const { aws, http, minio, allowedDomain, allowedGcsUniverseDomains } = artifactsConfigs;
   return async (req, res) => {
     const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
@@ -442,6 +452,7 @@ export function getArtifactsHandler({
           peek,
           effectiveProviderInfo,
           namespace,
+          allowedGcsUniverseDomains,
         )(req, res);
         break;
       case 'minio':
@@ -1001,6 +1012,7 @@ function getGCSArtifactHandler(
   peek: number = 0,
   providerInfoString?: string,
   namespace?: string,
+  allowedUniverseDomains: string[] = ['googleapis.com'],
 ) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
@@ -1010,16 +1022,29 @@ function getGCSArtifactHandler(
       let universeDomain: string | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
+        if (!providerInfo) {
+          throw new Error('Failed to parse GCS provider info. Correct it and retry.');
+        }
+        const unsupportedParams = Object.keys(providerInfo.Params).filter(
+          (key) => !GCS_PROVIDER_INFO_PARAMS.has(key),
+        );
+        if (unsupportedParams.length) {
+          throw new Error(
+            `Unsupported GCS artifact read option${unsupportedParams.length === 1 ? '' : 's'}: ${unsupportedParams
+              .sort()
+              .join(', ')}. Remove unsupported options and retry.`,
+          );
+        }
         const anonymousParam = providerInfo?.Params.anonymous;
         anonymous =
           (anonymousParam ? parseGoBoolean(anonymousParam, 'anonymous') : false) ||
           providerInfo?.Params.access_id === '-';
-        universeDomain = providerInfo?.Params.universe_domain || undefined;
-        if (universeDomain && !anonymous && universeDomain !== 'googleapis.com') {
+        universeDomain = providerInfo.Params.universe_domain?.toLowerCase() || undefined;
+        if (universeDomain && !allowedUniverseDomains.includes(universeDomain)) {
           res
             .status(400)
             .send(
-              'Authenticated GCS universe_domain is not supported. Use configured server-side credentials or anonymous access.',
+              `GCS universe_domain "${universeDomain}" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.`,
             );
           return;
         }

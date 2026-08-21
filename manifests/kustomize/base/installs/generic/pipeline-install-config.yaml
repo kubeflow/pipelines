@@ -100,6 +100,10 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/pull/11965
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## ALLOWED_GCS_UNIVERSE_DOMAINS: Comma-separated exact GCS universe domains that the
+  ## shared UI server may contact for artifact reads. This is an SSRF boundary: only add
+  ## domains whose storage API is intentionally reachable from the UI server.
+  ALLOWED_GCS_UNIVERSE_DOMAINS: "googleapis.com"
   ## ARTIFACT_RETENTION_DAYS: Defines the retention period (in days) for artifacts stored in SeaweedFS.
   ## - A positive integer specifies the number of days after which the artifact will be automatically deleted.
   ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.

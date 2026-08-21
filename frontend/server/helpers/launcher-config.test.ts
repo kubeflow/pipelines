@@ -641,6 +641,32 @@ gs:
     });
   });
 
+  it.each([
+    ['unknown native option', 'not_a_gcs_option=true', 'is not supported by Go Cloud'],
+    [
+      'unsupported private key path',
+      'private_key_path=%2Fvar%2Frun%2Fkey.pem',
+      'is not supported by frontend artifact reads',
+    ],
+  ])('rejects GCS query %s', async (_name, artifactUriQuery, expectedMessage) => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 'gs://bucket/root' } },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        {
+          source: 'gcs',
+          bucket: 'external-bucket',
+          key: 'artifact',
+          artifactUriQuery,
+        },
+        'kubeflow',
+      ),
+    ).rejects.toThrow(expectedMessage);
+  });
+
   it('uses normal server defaults under the default pipeline root when config is absent', async () => {
     mockedGetConfigMap.mockResolvedValue([
       undefined,

@@ -118,6 +118,15 @@ spec:
                 name: pipeline-install-config
                 key: ARTIFACTS_PROXY_ENABLED
                 optional: true
+          # Comma-separated exact GCS universe domains the UI artifact reader may contact.
+          # Keep the default restricted to public Google APIs; add GDC or air-gapped domains only
+          # when the UI server is intentionally allowed to reach them.
+          - name: ALLOWED_GCS_UNIVERSE_DOMAINS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ALLOWED_GCS_UNIVERSE_DOMAINS
+                optional: true
         readinessProbe:
           httpGet:
             path: /apis/v1beta1/healthz

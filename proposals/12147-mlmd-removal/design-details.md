@@ -440,6 +440,11 @@ provenance signal. The following rollout constraints are therefore intentional:
 * Authenticated `volume://` requests are rejected by the shared central UI. They remain supported
   in single-user mode and through a namespace-isolated artifact service, where the serving pod's
   mounts share the caller's namespace boundary.
+* GCS artifact reads may contact only exact domains listed in
+  `ALLOWED_GCS_UNIVERSE_DOMAINS`, which defaults to `googleapis.com`. Operators using Google
+  Distributed Cloud or an air-gapped GCS-compatible universe must explicitly add that domain.
+  This restriction applies to anonymous reads as well as authenticated reads because the shared UI
+  has a different network trust boundary from a pipeline pod.
 * Direct custom-root reads are denied unless ownership is independently established by the
   standard namespace prefix. An Artifact API row alone does not authorize the central UI to use
   privileged credentials for an arbitrary URI.

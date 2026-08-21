@@ -658,7 +658,9 @@ s3:
       stream.end('public artifact');
       mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
       mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
-      app = new UIServer(loadConfigs(argv, {}));
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,example.com' }),
+      );
 
       const providerInfo = {
         Params: { access_id: '-', fromEnv: 'true', universe_domain: 'example.com' },
@@ -695,7 +697,9 @@ s3:
       stream.end('public artifact');
       mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
       mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
-      app = new UIServer(loadConfigs(argv, {}));
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,example.com' }),
+      );
 
       const providerInfo = {
         Params: { anonymous: '1', fromEnv: 'true', universe_domain: 'example.com' },
@@ -760,12 +764,66 @@ s3:
         )
         .expect(
           400,
-          'Authenticated GCS universe_domain is not supported. Use configured server-side credentials or anonymous access.',
+          'GCS universe_domain "attacker.example" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.',
         );
 
       expect(mockedGetGCSClient).not.toHaveBeenCalled();
       expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
       expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
+    });
+
+    it('rejects anonymous alternate GCS universes by default before making a request', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: {
+          anonymous: 'true',
+          fromEnv: 'true',
+          universe_domain: 'internal.svc.cluster.local',
+        },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          400,
+          'GCS universe_domain "internal.svc.cluster.local" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+      expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
+    });
+
+    it('rejects unsupported GCS provider options before resolving ADC', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', private_key_path: '/var/run/key.pem' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          500,
+          'Failed to download GCS file(s). Error: Error: Unsupported GCS artifact read option: private_key_path. Remove unsupported options and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
     });
 
     it('allows authenticated GCS access to the default universe', async () => {

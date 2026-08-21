@@ -67,6 +67,8 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     HTTP_BASE_URL = '',
     /** By default, allowing access to all domains. Modify this flag to allow querying matching domains */
     ALLOWED_ARTIFACT_DOMAIN_REGEX = '^.*$',
+    /** Exact GCS universe domains the shared UI server may contact. */
+    ALLOWED_GCS_UNIVERSE_DOMAINS = 'googleapis.com',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
     HTTP_AUTHORIZATION_KEY = '',
     /** http/https fetch with this authorization header value by default when absent in client request at above key */
@@ -173,6 +175,9 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
       proxy: loadArtifactsProxyConfig(env),
       streamLogsFromServerApi: asBool(STREAM_LOGS_FROM_SERVER_API),
       allowedDomain: ALLOWED_ARTIFACT_DOMAIN_REGEX,
+      allowedGcsUniverseDomains: ALLOWED_GCS_UNIVERSE_DOMAINS.split(',')
+        .map((domain) => domain.trim().toLowerCase())
+        .filter(Boolean),
     },
     pipeline: {
       host: ML_PIPELINE_SERVICE_HOST,
@@ -292,6 +297,7 @@ export interface UIConfigs {
     proxy: ArtifactsProxyConfig;
     streamLogsFromServerApi: boolean;
     allowedDomain: string;
+    allowedGcsUniverseDomains: string[];
   };
   pod: {
     logContainerName: string;

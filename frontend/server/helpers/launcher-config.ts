@@ -315,6 +315,18 @@ function buildQuerySessionInfo(
           'Use a native S3 query option and retry.',
       );
     }
+    if (provider === 'gs' && !NATIVE_GCS_QUERY_OPTIONS.has(key)) {
+      throw new LauncherConfigValidationError(
+        `GCS artifact URI query option "${key}" is not supported by Go Cloud. ` +
+          'Use a native GCS query option and retry.',
+      );
+    }
+    if (provider === 'gs' && key === 'private_key_path') {
+      throw new LauncherConfigValidationError(
+        'GCS artifact URI query option "private_key_path" is not supported by frontend artifact reads. ' +
+          'Use anonymous access or configured credentials and retry.',
+      );
+    }
     // Go's url.Values.Get reads the first duplicate. Preserve that behavior so credential and
     // endpoint selection cannot diverge between the launcher and the artifact reader.
     if (!(key in params)) {
@@ -345,6 +357,13 @@ const NATIVE_S3_QUERY_OPTIONS = new Set([
   's3ForcePathStyle',
   'ssetype',
   'use_path_style',
+]);
+
+const NATIVE_GCS_QUERY_OPTIONS = new Set([
+  'access_id',
+  'anonymous',
+  'private_key_path',
+  'universe_domain',
 ]);
 
 function getUriQuery(uri: string): string {

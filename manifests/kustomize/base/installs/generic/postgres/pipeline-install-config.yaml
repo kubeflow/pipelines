@@ -100,6 +100,10 @@ data:
   ## Valid values are 'true' and 'false'. Defaults to 'false'.
   ## For more information see: https://github.com/kubeflow/pipelines/issues/11987
   ARTIFACTS_PROXY_ENABLED: "false"
+  ## ALLOWED_GCS_UNIVERSE_DOMAINS: Comma-separated exact GCS universe domains that the
+  ## shared UI server may contact for artifact reads. This is an SSRF boundary: only add
+  ## domains whose storage API is intentionally reachable from the UI server.
+  ALLOWED_GCS_UNIVERSE_DOMAINS: "googleapis.com"
   ## Default security context for customer workload containers.
   ## Leave empty to disable (default). When set, SDK-specified values
   ## for the corresponding field are ignored.
