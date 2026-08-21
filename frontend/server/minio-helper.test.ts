@@ -549,51 +549,36 @@ describe('minio-helper', () => {
       expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
-    it('lets disable_https override an explicit HTTPS endpoint scheme', async () => {
-      await createMinioClient(
-        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
-        's3',
-        JSON.stringify({
-          Provider: 's3',
-          Params: {
-            disable_https: 'true',
-            endpoint: 'https://ceph.example:9000',
-            fromEnv: 'true',
-          },
-        }),
-      );
+    it.each([
+      ['disableSSL', 'true', 'https://store.example:9000', true],
+      ['disableSSL', 'false', 'http://store.example:9000', false],
+      ['disable_https', 'true', 'https://store.example:9000', true],
+      ['disable_https', 'false', 'http://store.example:9000', false],
+    ])(
+      'lets the explicit endpoint scheme take precedence over %s=%s',
+      async (option, value, endpoint, expectedUseSSL) => {
+        await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              [option]: value,
+              endpoint,
+              fromEnv: 'true',
+            },
+          }),
+        );
 
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 'ceph.example',
-        port: 9000,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
-    });
-
-    it('lets disable_https override an explicit HTTPS AWS endpoint scheme', async () => {
-      await createMinioClient(
-        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
-        's3',
-        JSON.stringify({
-          Provider: 's3',
-          Params: {
-            disable_https: 'true',
-            endpoint: 'https://s3.us-west-2.amazonaws.com',
-            fromEnv: 'true',
-          },
-        }),
-      );
-
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        accessKey: 'accesskey',
-        endPoint: 's3.us-west-2.amazonaws.com',
-        port: undefined,
-        secretKey: 'secretkey',
-        useSSL: false,
-      });
-    });
+        expect(MockedMinioClient).toHaveBeenCalledWith({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: expectedUseSSL,
+        });
+      },
+    );
 
     it('preserves endpoint base paths in the path MinIO signs and requests', async () => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object?versionId=1' }));

@@ -449,13 +449,18 @@ async function applyS3ProviderInfo(
 
   if (providerInfo.Params.endpoint) {
     const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint, nativeQuery);
+    const configuredUseSSL =
+      disableHttpsValue === undefined
+        ? disableSSLValue === undefined
+          ? undefined
+          : !disableSSLValue
+        : !disableHttpsValue;
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
     config.port = endpoint.port;
-    config.useSSL =
-      disableHttpsValue === undefined
-        ? (endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue))
-        : !disableHttpsValue;
+    // A scheme-qualified custom endpoint is the runtime's authoritative transport choice. The
+    // legacy and Go Cloud TLS flags apply only when the endpoint itself does not select a scheme.
+    config.useSSL = endpoint.useSSL ?? configuredUseSSL;
   } else if (disableHttpsValue !== undefined) {
     config.useSSL = !disableHttpsValue;
   } else if (disableSSLValue) {
