@@ -1,6 +1,7 @@
 ## Upcoming release
 
 * Remove deprecated Wide and Deep Tabular Workflow pipeline.
+* Dynamically set default boot disk type in CustomJob component for Vertex Pipelines based on machine type.
 
 ## Release 2.22.0
 

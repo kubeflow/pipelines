@@ -86,8 +86,8 @@ def check_if_job_exists(gcp_resources: str) -> Optional[str]:
       job_name_pattern = re.compile(_BQ_JOB_NAME_TEMPLATE)
       match = job_name_pattern.match(job_resources.resources[0].resource_uri)
       try:
-        project = match.group('project')
-        job = match.group('job')
+        project = match.group('project')  # pyrefly: ignore[missing-attribute]
+        job = match.group('job')  # pyrefly: ignore[missing-attribute]
       except AttributeError as err:
         raise ValueError(
             'Invalid bigquery job uri: {}. Expect: {}.'.format(
