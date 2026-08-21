@@ -34,6 +34,7 @@ images:
 
 patches:
   - path: api-server-patch.yaml
+  - path: cache-server-patch.yaml
 # !!! If you want to customize the namespace,
 # please refer sample/cluster-scoped-resources to update the namespace for cluster-scoped-resources
 namespace: kubeflow
