@@ -89,6 +89,47 @@ func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
 	assert.Equal(t, "2026-01-09T13:00:00Z", val.GetStringValue())
 }
 
+func TestResolveInputArtifactSourcesPreservesOrder(t *testing.T) {
+	first := &pipelinespec.RuntimeArtifact{Uri: "s3://models/svc"}
+	second := &pipelinespec.RuntimeArtifact{Uri: "s3://models/xgb"}
+	third := &pipelinespec.RuntimeArtifact{Uri: "s3://models/lr"}
+	artifactSpec := &pipelinespec.TaskInputsSpec_InputArtifactSpec{
+		Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSources{
+			ArtifactSources: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ArtifactSourcesSpec{
+				Artifacts: []*pipelinespec.TaskInputsSpec_InputArtifactSpec{
+					{
+						Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact{
+							ComponentInputArtifact: "first",
+						},
+					},
+					{
+						Kind: &pipelinespec.TaskInputsSpec_InputArtifactSpec_ComponentInputArtifact{
+							ComponentInputArtifact: "second-and-third",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	resolved, err := resolveInputArtifact(
+		context.Background(),
+		nil,
+		nil,
+		nil,
+		"models",
+		artifactSpec,
+		map[string]*pipelinespec.ArtifactList{
+			"first":            {Artifacts: []*pipelinespec.RuntimeArtifact{first}},
+			"second-and-third": {Artifacts: []*pipelinespec.RuntimeArtifact{second, third}},
+		},
+		&pipelinespec.PipelineTaskSpec{},
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, []*pipelinespec.RuntimeArtifact{first, second, third}, resolved.GetArtifacts())
+}
+
 func Test_InferIndexedTaskName(t *testing.T) {
 	tests := []struct {
 		name             string
