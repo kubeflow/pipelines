@@ -189,12 +189,13 @@ function ArtifactOverview({
       artifact.type === ArtifactArtifactType.TYPE_UNSPECIFIED ||
       artifact.type === ArtifactArtifactType.Artifact);
   const artifactCreatedAt = artifact.created_at?.getTime();
+  const artifactAge = artifactCreatedAt === undefined ? undefined : mountedAt - artifactCreatedAt;
   // The timestamp comes from the API server while mountedAt comes from the browser. A bounded skew
   // allowance preserves eventual-consistency recovery without polling every historical artifact.
   const shouldReconcileMissingKey =
-    artifactCreatedAt !== undefined &&
-    mountedAt - artifactCreatedAt <=
-      LEGACY_KEY_RECONCILIATION_WINDOW_MS + LEGACY_KEY_CLOCK_SKEW_TOLERANCE_MS;
+    artifactAge !== undefined &&
+    artifactAge >= -LEGACY_KEY_CLOCK_SKEW_TOLERANCE_MS &&
+    artifactAge <= LEGACY_KEY_RECONCILIATION_WINDOW_MS + LEGACY_KEY_CLOCK_SKEW_TOLERANCE_MS;
   const queryClient = useQueryClient();
   const visualizationQueryKey = queryKeys.artifactVisualizationKey(artifact.artifact_id || '');
   const { data: legacyKeyResult } = useQuery<LegacyUiMetadataKeyResult, Error>({

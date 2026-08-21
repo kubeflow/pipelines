@@ -222,28 +222,38 @@ describe('ArtifactDetails', () => {
     }
   });
 
-  it('does not poll an old generic artifact with no legacy metadata relationship', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
-      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
-        artifact_id: TEST_ARTIFACT_ID,
-        created_at: new Date('2020-01-01T00:00:00Z'),
-        name: 'ordinary-artifact',
-        uri: 's3://reports/data.json',
-        namespace: 'kubeflow',
-      });
-      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({ artifact_tasks: [] });
+  it.each([
+    ['old', () => new Date('2020-01-01T00:00:00Z')],
+    ['far-future', () => new Date(Date.now() + 10 * 60_000)],
+  ] as const)(
+    'does not poll a %s generic artifact with no legacy metadata relationship',
+    async (_age, createdAt) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+          artifact_id: TEST_ARTIFACT_ID,
+          created_at: createdAt(),
+          name: 'ordinary-artifact',
+          uri: 's3://reports/data.json',
+          namespace: 'kubeflow',
+        });
+        vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+          artifact_tasks: [],
+        });
 
-      renderPage();
-      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+        renderPage();
+        await waitFor(() =>
+          expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4),
+        );
 
-      await act(async () => vi.advanceTimersByTimeAsync(100_000));
+        await act(async () => vi.advanceTimersByTimeAsync(100_000));
 
-      expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
+        expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
 
   it('clears a transient relationship warning even when the visualization key was found', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
