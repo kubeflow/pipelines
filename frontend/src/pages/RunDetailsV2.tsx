@@ -276,6 +276,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     runIsTerminal &&
     terminalTaskSnapshot?.runId === runId &&
     terminalTaskSnapshot.retryRefreshVersion === retryRefreshVersion;
+  const runtimeTaskSnapshotCompletedSuccessfully =
+    runtimeTaskSnapshotIsTerminal && run.state === V2beta1RuntimeState.SUCCEEDED;
 
   // The terminal run update stops active polling. Capture an operation-scoped baseline before the
   // first reconciliation fetch so the interval can accept a few eventually consistent snapshots
@@ -362,6 +364,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           layers,
           tasks || [],
           runtimeTaskSnapshotIsTerminal,
+          runtimeTaskSnapshotCompletedSuccessfully,
         );
         fallbackGraphActive.current = false;
         clearLinkedTaskQuery();
@@ -373,12 +376,24 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         setLayerNavigationError(error instanceof Error ? error.message : String(error));
       }
     },
-    [clearLinkedTaskQuery, pipelineSpec, runtimeTaskSnapshotIsTerminal, tasks],
+    [
+      clearLinkedTaskQuery,
+      pipelineSpec,
+      runtimeTaskSnapshotCompletedSuccessfully,
+      runtimeTaskSnapshotIsTerminal,
+      tasks,
+    ],
   );
 
   const runtimeFlowContext = useMemo(
-    () => buildRuntimeFlowContext(layers, tasks || [], runtimeTaskSnapshotIsTerminal),
-    [layers, runtimeTaskSnapshotIsTerminal, tasks],
+    () =>
+      buildRuntimeFlowContext(
+        layers,
+        tasks || [],
+        runtimeTaskSnapshotIsTerminal,
+        runtimeTaskSnapshotCompletedSuccessfully,
+      ),
+    [layers, runtimeTaskSnapshotCompletedSuccessfully, runtimeTaskSnapshotIsTerminal, tasks],
   );
 
   const dynamicFlowElements = useMemo(() => {
@@ -421,6 +436,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         targetLayers,
         tasks || [],
         runtimeTaskSnapshotIsTerminal,
+        runtimeTaskSnapshotCompletedSuccessfully,
       );
       fallbackGraphActive.current = false;
       targetElement =
@@ -442,6 +458,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     linkedTaskId,
     pipelineSpec,
     restoreFallbackGraph,
+    runtimeTaskSnapshotCompletedSuccessfully,
     runtimeTaskSnapshotIsTerminal,
     tasks,
   ]);

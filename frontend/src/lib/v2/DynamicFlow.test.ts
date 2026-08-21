@@ -518,6 +518,17 @@ describe('DynamicFlow', () => {
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 
+      const terminalStaleRunningLoopTasks = [rootTask, loopTask, bodyA];
+      const terminalStaleRunningLoopElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        terminalStaleRunningLoopTasks,
+        buildRuntimeFlowContext(['root', 'loop'], terminalStaleRunningLoopTasks, true),
+      );
+      expect(terminalStaleRunningLoopElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
       const staleRunningBody = { ...bodyA, state: PipelineTaskTaskState.RUNNING };
       const failedIncompleteTasks = [
         rootTask,
@@ -610,6 +621,26 @@ describe('DynamicFlow', () => {
       ]);
       expect(failedChildElements[0].data?.state).toBe(PipelineTaskTaskState.FAILED);
 
+      const successfulRunWithStaleFailedChildTasks = [
+        rootTask,
+        loopTask,
+        { ...bodyA, state: PipelineTaskTaskState.FAILED },
+      ];
+      const successfulRunWithStaleFailedChildElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        successfulRunWithStaleFailedChildTasks,
+        buildRuntimeFlowContext(
+          ['root', 'loop'],
+          successfulRunWithStaleFailedChildTasks,
+          true,
+          true,
+        ),
+      );
+      expect(successfulRunWithStaleFailedChildElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
       const completeElements = updateFlowElementsState(['root', 'loop'], partialElements, [
         rootTask,
         loopTask,
@@ -643,6 +674,48 @@ describe('DynamicFlow', () => {
       expect(terminalGraph.find((element) => element.id === 'task.preprocess')?.data?.state).toBe(
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
+    });
+
+    it('does not show stale failed task or sub-DAG nodes after a successful run', () => {
+      const failedExecution: V2beta1PipelineTask = {
+        task_id: 'execution-task',
+        parent_task_id: rootTask.task_id,
+        name: 'execution',
+        state: PipelineTaskTaskState.FAILED,
+      };
+      const failedSubDag: V2beta1PipelineTask = {
+        task_id: 'sub-dag-task',
+        parent_task_id: rootTask.task_id,
+        name: 'sub-dag',
+        state: PipelineTaskTaskState.FAILED,
+      };
+      const elements: Node<FlowElementDataBase>[] = [
+        {
+          id: 'task.execution',
+          data: { label: 'execution' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.EXECUTION,
+        },
+        {
+          id: 'task.sub-dag',
+          data: { label: 'sub-dag' },
+          position: { x: 0, y: 0 },
+          type: NodeTypeNames.SUB_DAG,
+        },
+      ];
+      const tasks = [rootTask, failedExecution, failedSubDag];
+
+      const graph = updateFlowElementsState(
+        ['root'],
+        elements,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true, true),
+      );
+
+      expect(graph.map((element) => element.data?.state)).toEqual([
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      ]);
     });
 
     it('keeps the static loop body when iteration_count is not yet available', () => {

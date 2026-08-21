@@ -65,6 +65,7 @@ interface RuntimeLayerContext {
 interface RuntimeFlowContext {
   taskIndex: TaskIndex;
   runtimeLayerContext: RuntimeLayerContext;
+  runCompletedSuccessfully: boolean;
   runIsTerminal: boolean;
 }
 
@@ -73,6 +74,7 @@ export function convertSubDagToRuntimeFlowElements(
   layers: string[],
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
+  runCompletedSuccessfully = false,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
@@ -109,8 +111,13 @@ export function convertSubDagToRuntimeFlowElements(
   ) {
     const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
     return (
-      buildParallelForDag(runtimeContext.task, taskIndex, expectedTaskCount, runIsTerminal) ||
-      annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
+      buildParallelForDag(
+        runtimeContext.task,
+        taskIndex,
+        expectedTaskCount,
+        runIsTerminal,
+        runCompletedSuccessfully,
+      ) || annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
     );
   }
   return buildDag(spec, componentSpec);
@@ -145,6 +152,7 @@ export function updateFlowElementsState(
         data.expectedTaskCount,
         runtimeContext.task!.state,
         flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
       );
       return updatedElement;
     });
@@ -159,12 +167,20 @@ export function updateFlowElementsState(
     const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, flowContext);
     if (updatedElement.type === NodeTypeNames.EXECUTION && runtimeInfo.task) {
       const data = updatedElement.data as ExecutionFlowElementData;
-      data.state = getRuntimeTaskState(runtimeInfo.task.state, flowContext.runIsTerminal);
+      data.state = getRuntimeTaskState(
+        runtimeInfo.task.state,
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
+      );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
-      data.state = getRuntimeTaskState(runtimeInfo.task.state, flowContext.runIsTerminal);
+      data.state = getRuntimeTaskState(
+        runtimeInfo.task.state,
+        flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
+      );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
@@ -200,6 +216,7 @@ export function reconcileRuntimeFlowElements(
         flowContext.taskIndex,
         getExpectedTaskCount(elements),
         flowContext.runIsTerminal,
+        flowContext.runCompletedSuccessfully,
       ) || runtimeStructure;
   }
 
@@ -259,11 +276,13 @@ export function buildRuntimeFlowContext(
   layers: string[],
   tasks: V2beta1PipelineTask[],
   runIsTerminal = false,
+  runCompletedSuccessfully = false,
 ): RuntimeFlowContext {
   const taskIndex = buildTaskIndex(tasks);
   return {
     taskIndex,
     runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
+    runCompletedSuccessfully,
     runIsTerminal,
   };
 }
@@ -453,6 +472,7 @@ function buildParallelForDag(
   taskIndex: TaskIndex,
   expectedTaskCount?: number,
   runIsTerminal = false,
+  runCompletedSuccessfully = false,
 ): PipelineFlowElement[] | undefined {
   const flowGraph: PipelineFlowElement[] = [];
   const iterationCount = getParallelForIterationCount(loopTask);
@@ -467,7 +487,14 @@ function buildParallelForDag(
       data: {
         label: iterationNodeName,
         expectedTaskCount,
-        state: getIterationState(children, index, expectedTaskCount, loopTask.state, runIsTerminal),
+        state: getIterationState(
+          children,
+          index,
+          expectedTaskCount,
+          loopTask.state,
+          runIsTerminal,
+          runCompletedSuccessfully,
+        ),
         taskType: TaskType.DAG,
       },
       position: { x: 100, y: 200 },
@@ -484,6 +511,7 @@ function getIterationState(
   expectedTaskCount?: number,
   loopState?: PipelineTaskTaskState,
   runIsTerminal = false,
+  runCompletedSuccessfully = false,
 ): PipelineTaskTaskState | undefined {
   const iterationTasks = childTasks.filter(
     (task) => Number(task.type_attributes?.iteration_index) === iterationIndex,
@@ -498,14 +526,16 @@ function getIterationState(
     loopState === PipelineTaskTaskState.SUCCEEDED ||
     loopState === PipelineTaskTaskState.SKIPPED ||
     loopState === PipelineTaskTaskState.CACHED;
-  if (loopCompletedSuccessfully && states.includes(PipelineTaskTaskState.FAILED)) {
+  if (
+    (runCompletedSuccessfully || loopCompletedSuccessfully) &&
+    states.includes(PipelineTaskTaskState.FAILED)
+  ) {
     return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
   if (states.includes(PipelineTaskTaskState.FAILED)) {
     return PipelineTaskTaskState.FAILED;
   }
-  const loopIsTerminal =
-    loopCompletedSuccessfully || (loopState === PipelineTaskTaskState.FAILED && runIsTerminal);
+  const loopIsTerminal = runIsTerminal || loopCompletedSuccessfully;
   if (loopIsTerminal && states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
@@ -516,12 +546,15 @@ function getIterationState(
     expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount;
   if (iterationIsIncomplete) {
     if (
-      loopState === PipelineTaskTaskState.RUNNING ||
-      (loopState === PipelineTaskTaskState.FAILED && !runIsTerminal)
+      !runIsTerminal &&
+      (loopState === PipelineTaskTaskState.RUNNING || loopState === PipelineTaskTaskState.FAILED)
     ) {
       return PipelineTaskTaskState.RUNNING;
     }
-    if (loopState === PipelineTaskTaskState.FAILED) {
+    if (
+      runIsTerminal &&
+      (loopState === PipelineTaskTaskState.RUNNING || loopState === PipelineTaskTaskState.FAILED)
+    ) {
       return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
     }
   }
@@ -547,8 +580,11 @@ function getIterationState(
 function getRuntimeTaskState(
   taskState: PipelineTaskTaskState | undefined,
   runIsTerminal: boolean,
+  runCompletedSuccessfully: boolean,
 ): PipelineTaskTaskState | undefined {
-  return runIsTerminal && taskState === PipelineTaskTaskState.RUNNING
+  return runIsTerminal &&
+    (taskState === PipelineTaskTaskState.RUNNING ||
+      (runCompletedSuccessfully && taskState === PipelineTaskTaskState.FAILED))
     ? PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED
     : taskState;
 }
