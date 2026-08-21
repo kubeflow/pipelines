@@ -87,18 +87,12 @@ describe('minio-helper', () => {
       });
     });
 
-    it('fallbacks to the provided configs if EC2 metadata is not available.', async () => {
-      const client = await createMinioClient(
-        {
-          endPoint: 'minio.kubeflow:80',
-        },
-        's3',
+    it('fails closed if authenticated S3 credentials are unavailable.', async () => {
+      await expect(createMinioClient({ endPoint: 'minio.kubeflow:80' }, 's3')).rejects.toThrow(
+        'Unable to resolve AWS credentials',
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
-      expect(MockedMinioClient).toHaveBeenCalledWith({
-        endPoint: 'minio.kubeflow:80',
-      });
+      expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('applies endpoint and region settings when credentials come from the environment', async () => {
@@ -550,12 +544,12 @@ describe('minio-helper', () => {
     });
 
     it.each([
-      ['disableSSL', 'true', 'https://store.example:9000', true],
+      ['disableSSL', 'true', 'https://store.example:9000', false],
       ['disableSSL', 'false', 'http://store.example:9000', false],
-      ['disable_https', 'true', 'https://store.example:9000', true],
+      ['disable_https', 'true', 'https://store.example:9000', false],
       ['disable_https', 'false', 'http://store.example:9000', false],
     ])(
-      'lets the explicit endpoint scheme take precedence over %s=%s',
+      'applies asymmetric TLS precedence for %s=%s and an explicit endpoint',
       async (option, value, endpoint, expectedUseSSL) => {
         await createMinioClient(
           { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
@@ -579,6 +573,61 @@ describe('minio-helper', () => {
         });
       },
     );
+
+    it('uses the AWS default credential chain with a custom S3 endpoint', async () => {
+      (fromNodeProviderChain as Mock).mockReturnValueOnce(async () => ({
+        accessKeyId: 'irsa-access-key',
+        secretAccessKey: 'irsa-secret-key',
+        sessionToken: 'irsa-session-token',
+      }));
+
+      await createMinioClient(
+        { endPoint: 's3.amazonaws.com' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://ceph.example:9443/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'irsa-access-key',
+        endPoint: 'ceph.example',
+        pathStyle: false,
+        port: 9443,
+        secretKey: 'irsa-secret-key',
+        sessionToken: 'irsa-session-token',
+        useSSL: true,
+      });
+    });
+
+    it('passes bare IPv6 addresses from native endpoints to MinIO', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'http://[2001:db8::1]:9000/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: '2001:db8::1',
+        pathStyle: false,
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
 
     it('preserves endpoint base paths in the path MinIO signs and requests', async () => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object?versionId=1' }));

@@ -240,6 +240,7 @@ describe('/artifacts/get namespaced proxy', () => {
       Params: {
         endpoint: 'https://trusted.example',
         fromEnv: 'true',
+        nativeQuery: 'true',
         region: 'trusted',
       },
     });
@@ -278,6 +279,7 @@ describe('/artifacts/get namespaced proxy', () => {
       Params: {
         endpoint: 'https://trusted.example',
         fromEnv: 'true',
+        nativeQuery: 'true',
         region: 'trusted',
       },
     });

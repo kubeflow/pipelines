@@ -17,11 +17,11 @@ import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { isAWSS3Endpoint } from './aws-helper.js';
 import type { S3ProviderInfo } from './handlers/artifacts.js';
 import { getK8sSecret } from './k8s-helper.js';
 import { parseJSONString } from './utils.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { parseGoBoolean } from './helpers/provider-options.js';
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -50,16 +50,6 @@ const UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS = [
   'fips',
   'hostname_immutable',
 ] as const;
-
-export function parseGoBoolean(value: string, option: string): boolean {
-  if (['1', 't', 'T', 'TRUE', 'true', 'True'].includes(value)) {
-    return true;
-  }
-  if (['0', 'f', 'F', 'FALSE', 'false', 'False'].includes(value)) {
-    return false;
-  }
-  throw new Error(`Invalid boolean value for provider option ${option}: ${value}`);
-}
 
 function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
   const params = providerInfo.Params as Record<string, string | undefined>;
@@ -210,14 +200,12 @@ export async function createMinioClient(
       const creds = await customCredentialProvider();
 
       if (creds && creds.accessKeyId && creds.secretAccessKey) {
-        return createConfiguredMinioClient(
-          applyEndpointRewrite({
-            ...config,
-            accessKey: creds.accessKeyId,
-            secretKey: creds.secretAccessKey,
-            sessionToken: creds.sessionToken,
-          }) as MinioClientOptions,
-        );
+        config = {
+          ...config,
+          accessKey: creds.accessKeyId,
+          secretKey: creds.secretAccessKey,
+          sessionToken: creds.sessionToken,
+        };
       } else {
         console.warn(
           'Custom credential resolver returned incomplete credentials, falling back to default chain',
@@ -240,33 +228,26 @@ export async function createMinioClient(
 
   // If using s3 and sourcing credentials from environment (currently only aws is supported)
   if (providerType === 's3' && !anonymous && !(config.accessKey && config.secretKey)) {
-    // AWS S3 with credentials from provider chain
-    if (isAWSS3Endpoint(config.endPoint)) {
-      try {
-        const credentials = fromNodeProviderChain({ ignoreCache: true });
-        const awsCredentials = await credentials();
-        if (awsCredentials) {
-          const {
-            accessKeyId: accessKey,
-            secretAccessKey: secretKey,
+    // Go Cloud resolves the AWS default chain independently of endpoint selection, so IRSA and
+    // instance-profile credentials also apply to S3-compatible custom endpoints.
+    try {
+      const credentials = fromNodeProviderChain({ ignoreCache: true });
+      const awsCredentials = await credentials();
+      if (awsCredentials) {
+        const { accessKeyId: accessKey, secretAccessKey: secretKey, sessionToken } = awsCredentials;
+        return createConfiguredMinioClient(
+          applyEndpointRewrite({
+            ...config,
+            accessKey,
+            secretKey,
             sessionToken,
-          } = awsCredentials;
-          return createConfiguredMinioClient(
-            applyEndpointRewrite({
-              ...config,
-              accessKey,
-              secretKey,
-              sessionToken,
-            }) as MinioClientOptions,
-          );
-        }
-      } catch (e) {
-        console.error('Unable to get aws instance profile credentials: ', e);
+          }) as MinioClientOptions,
+        );
       }
-    } else {
-      console.error(
-        'Encountered S3-compatible provider type with no provided credentials, and unsupported environment based credential support.',
-      );
+    } catch (error) {
+      throw new Error('Unable to resolve AWS credentials for the S3 artifact store.', {
+        cause: error,
+      });
     }
   }
 
@@ -351,7 +332,8 @@ function parseEndpoint(
     const hasHttpScheme = /^https?:\/\//i.test(endpoint);
     const url = new URL(hasHttpScheme ? endpoint : `http://${endpoint}`);
     return {
-      host: url.hostname,
+      // WHATWG URL retains brackets around IPv6 hostnames; MinIO expects the bare address.
+      host: url.hostname.replace(/^\[(.*)\]$/, '$1'),
       port: url.port ? Number(url.port) : undefined,
       useSSL: hasHttpScheme ? url.protocol.toLowerCase() === 'https:' : undefined,
     };
@@ -449,18 +431,16 @@ async function applyS3ProviderInfo(
 
   if (providerInfo.Params.endpoint) {
     const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint, nativeQuery);
-    const configuredUseSSL =
-      disableHttpsValue === undefined
-        ? disableSSLValue === undefined
-          ? undefined
-          : !disableSSLValue
-        : !disableHttpsValue;
+    const disableTransport = disableHttpsValue ?? disableSSLValue;
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
     config.port = endpoint.port;
-    // A scheme-qualified custom endpoint is the runtime's authoritative transport choice. The
-    // legacy and Go Cloud TLS flags apply only when the endpoint itself does not select a scheme.
-    config.useSSL = endpoint.useSSL ?? configuredUseSSL;
+    // AWS DisableHTTPS is asymmetric: true downgrades an explicit HTTPS endpoint, while false does
+    // not upgrade an explicit HTTP endpoint. The legacy and Go Cloud spellings share this rule.
+    config.useSSL =
+      disableTransport === true
+        ? false
+        : (endpoint.useSSL ?? (disableTransport === false ? true : undefined));
   } else if (disableHttpsValue !== undefined) {
     config.useSSL = !disableHttpsValue;
   } else if (disableSSLValue) {

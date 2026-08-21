@@ -292,15 +292,22 @@ function RocCurveComparison({
     : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const selectedColorByKey = allocateRocColors(selectedKeys, rocColorByKey);
-  const getColor = (key: string) => selectedColorByKey[key] || getStableRocColor(key);
+  const defaultColorByKey = Object.fromEntries(
+    selectedKeys.map((key) => [key, getStableDefaultRocColor(key)]),
+  );
+  const selectedColorByKey = shouldUseDefaults
+    ? defaultColorByKey
+    : allocateRocColors(selectedKeys, rocColorByKey);
+  const getColor = (key: string) => selectedColorByKey[key] || getStableDefaultRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
     updateSelectionState((current) => {
       // Materialize the rendered default colors before applying the first explicit selection so
       // deselecting one default curve cannot reassign another curve's color.
-      const establishedColors = allocateRocColors(selectedKeys, current.rocColorByKey);
+      const establishedColors = shouldUseDefaults
+        ? defaultColorByKey
+        : allocateRocColors(selectedKeys, current.rocColorByKey);
       return {
         ...current,
         rocColorByKey: allocateRocColors(nextKeys, establishedColors),
@@ -499,6 +506,17 @@ function getStableRocColor(key: string): string {
   return lineColors[Math.abs(hash) % lineColors.length];
 }
 
+function getStableDefaultRocColor(key: string): string {
+  let hash = 0;
+  for (let index = 0; index < key.length; index++) {
+    hash = (hash * 31 + key.charCodeAt(index)) | 0;
+  }
+  // Use a much larger deterministic color space than the finite chart palette so default curves
+  // retain identity-derived colors across refreshes without realistic collisions.
+  const hue = ((hash >>> 0) % 36_000) / 100;
+  return `hsl(${hue}deg 65% 45%)`;
+}
+
 function allocateRocColors(
   keys: string[],
   existingColors: Record<string, string> = {},
@@ -508,7 +526,7 @@ function allocateRocColors(
 
   keys.forEach((key) => {
     const existingColor = existingColors[key];
-    if (existingColor && lineColors.includes(existingColor) && !usedColors.has(existingColor)) {
+    if (existingColor && !usedColors.has(existingColor)) {
       colorsByKey[key] = existingColor;
       usedColors.add(existingColor);
     }
@@ -536,6 +554,7 @@ export const TEST_ONLY = {
   allocateRocColors,
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
+  getStableDefaultRocColor,
   getStableRocColor,
   limitRocSelection,
 };

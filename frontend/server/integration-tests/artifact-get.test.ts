@@ -144,6 +144,34 @@ describe('/artifacts', () => {
       });
     });
 
+    it('uses native S3 resolution for a query inherited from a MinIO pipeline root', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        { data: { defaultPipelineRoot: 'minio://ml-pipeline?anonymous=true' } },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+          MINIO_ACCESS_KEY: 'central-minio-key',
+          MINIO_HOST: 'seaweedfs',
+          MINIO_SECRET_KEY: 'central-minio-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        useSSL: true,
+      });
+    });
+
     it('distinguishes a literal storage escape from a native URI escape', async () => {
       const getObject = vi.fn(async () => {
         const objStream = new PassThrough();
@@ -414,7 +442,8 @@ s3:
       );
     });
 
-    it('falls back when customer credential-free provider settings cannot be resolved', async () => {
+    it('fails closed when customer provider settings cannot be resolved', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
       const configs = loadConfigs(argv, {
         AWS_ACCESS_KEY_ID: 'aws123',
         AWS_SECRET_ACCESS_KEY: 'awsSecret123',
@@ -428,9 +457,11 @@ s3:
 
       await requests(app.app)
         .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
-        .expect(200, artifactContent);
+        .expect(500)
+        .expect(/Failed to resolve artifact storage configuration/);
 
       expect(getConfigMap).toHaveBeenCalledWith('kfp-launcher', 'team-a');
+      expect(mockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', async () => {
@@ -850,28 +881,49 @@ s3:
       expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
     });
 
-    it('rejects authenticated alternate GCS universes even when their destination is allowed', async () => {
+    it('uses authenticated GCS access for an allowlisted alternate universe', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      stream.end('private artifact');
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 'gs://private-bucket?universe_domain=gdc.example',
+          },
+        },
+        undefined,
+      ]);
       app = new UIServer(
         loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,gdc.example' }),
       );
-      const providerInfo = {
-        Params: { fromEnv: 'true', universe_domain: 'gdc.example' },
-        Provider: 'gs',
-      };
 
       await requests(app.app)
         .get(
-          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&providerInfo=${encodeURIComponent(
-            JSON.stringify(providerInfo),
-          )}`,
+          '/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=team-a',
         )
-        .expect(
-          400,
-          'Authenticated GCS reads for universe_domain "gdc.example" are not supported by the frontend authentication client. Use anonymous access or googleapis.com and retry.',
-        );
+        .expect(200, 'private artifact\n');
 
-      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined);
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+        universeDomain: 'gdc.example',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+        universeDomain: 'gdc.example',
+      });
     });
 
     it('retains anonymous GCS launcher settings for customer namespaces in direct mode', async () => {
@@ -914,7 +966,7 @@ s3:
       vi.mocked(getConfigMap).mockResolvedValueOnce([
         {
           data: {
-            defaultPipelineRoot: 's3://public-bucket?anonymous=true&disable_https=true',
+            defaultPipelineRoot: 's3://ml-pipeline?anonymous=true&disable_https=true',
           },
         },
         undefined,
@@ -927,12 +979,69 @@ s3:
       );
 
       await requests(app.app)
-        .get('/artifacts/get?source=s3&bucket=public-bucket&key=hello%2Fworld.txt&namespace=team-a')
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
         .expect(200, artifactContent);
 
       expect(mockedMinioClient).toHaveBeenCalledWith({
         endPoint: 's3.amazonaws.com',
+        pathStyle: false,
         region: 'us-east-1',
+        useSSL: false,
+      });
+    });
+
+    it('rejects malformed anonymous settings instead of using ambient credentials', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline?anonymous=bogus',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/anonymous.*invalid value/i);
+
+      expect(mockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('retains authenticated endpoint-free S3 settings for customer namespaces', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline?disable_https=true',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'central-aws-key',
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        secretKey: 'central-aws-secret',
         useSSL: false,
       });
     });

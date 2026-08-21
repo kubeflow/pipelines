@@ -14,6 +14,7 @@
 
 import { load } from 'js-yaml';
 import { getConfigMap, K8sError } from '../k8s-helper.js';
+import { parseGoBoolean } from './provider-options.js';
 import {
   ArtifactCoordinates,
   normalizeArtifactStorageCoordinates,
@@ -156,7 +157,7 @@ export async function getLauncherProviderInfo(
     !!config &&
     (config.default != null || config.Overrides != null || config.overrides != null);
   if (effectiveQuery && !gcsProviderIsAuthoritative) {
-    return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery, !underPipelineRoot));
+    return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery, true));
   }
   if (!config) {
     return undefined;
@@ -337,6 +338,9 @@ function buildQuerySessionInfo(
       params[key] = value;
     }
   });
+  if (provider === 'gs' && params.anonymous !== undefined) {
+    validateNativeBooleanOption(params, 'anonymous');
+  }
   if ((provider === 's3' || provider === 'minio') && enforceNativeQuery) {
     validateNativeS3QueryValues(params);
     params.nativeQuery = 'true';
@@ -348,6 +352,11 @@ function buildQuerySessionInfo(
 }
 
 function validateNativeS3QueryValues(params: Record<string, string>): void {
+  for (const option of NATIVE_S3_BOOLEAN_QUERY_OPTIONS) {
+    if (params[option] !== undefined) {
+      validateNativeBooleanOption(params, option);
+    }
+  }
   if (params.endpoint !== undefined) {
     let endpoint: URL;
     try {
@@ -379,6 +388,28 @@ function validateNativeS3QueryValues(params: Record<string, string>): void {
     );
   }
 }
+
+function validateNativeBooleanOption(params: Record<string, string>, option: string): void {
+  try {
+    parseGoBoolean(params[option], option);
+  } catch (error) {
+    throw new LauncherConfigValidationError(
+      `Artifact URI query option "${option}" has invalid value "${params[option]}". ` +
+        `Use a Go boolean value and retry: ${error}`,
+    );
+  }
+}
+
+const NATIVE_S3_BOOLEAN_QUERY_OPTIONS = [
+  'accelerate',
+  'anonymous',
+  'disable_https',
+  'dualstack',
+  'fips',
+  'hostname_immutable',
+  's3ForcePathStyle',
+  'use_path_style',
+] as const;
 
 const NATIVE_S3_QUERY_OPTIONS = new Set([
   'accelerate',

@@ -26,8 +26,8 @@ import {
   isNoSuchKeyError,
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
-  parseGoBoolean,
 } from '../minio-helper.js';
+import { parseGoBoolean } from '../helpers/provider-options.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
 import * as serverInfo from '../helpers/server-info.js';
@@ -66,7 +66,11 @@ import {
   AuthorizeRequestResources,
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
-import { getLauncherProviderInfo, LauncherConfigError } from '../helpers/launcher-config.js';
+import {
+  getLauncherProviderInfo,
+  LauncherConfigError,
+  LauncherConfigValidationError,
+} from '../helpers/launcher-config.js';
 
 const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'source',
@@ -127,56 +131,40 @@ const GCS_PROVIDER_INFO_PARAMS = new Set([
   'universe_domain',
 ]);
 
-function retainCredentialFreeProviderInfo(providerInfoString: string): string {
+function retainDestinationSafeProviderInfo(providerInfoString: string): string {
   const providerInfo = parseJSONString<S3ProviderInfo | GCSProviderInfo>(providerInfoString);
   if (!providerInfo?.Params) {
     return '';
   }
 
-  try {
-    if (providerInfo.Provider === 'gs') {
-      const params = (providerInfo as GCSProviderInfo).Params;
-      const anonymous =
-        params.access_id === '-' ||
-        (params.anonymous !== undefined && parseGoBoolean(params.anonymous, 'anonymous'));
-      if (!anonymous) {
-        return '';
-      }
-      return JSON.stringify({
-        Provider: 'gs',
-        Params: {
-          ...(params.access_id !== undefined ? { access_id: params.access_id } : {}),
-          ...(params.anonymous !== undefined ? { anonymous: params.anonymous } : {}),
-          fromEnv: 'true',
-          ...(params.universe_domain !== undefined
-            ? { universe_domain: params.universe_domain }
-            : {}),
-        },
-      });
-    }
-
-    const params = (providerInfo as S3ProviderInfo).Params;
-    const anonymous =
-      params.anonymous !== undefined && parseGoBoolean(params.anonymous, 'anonymous');
-    // Without a destination allowlist, a customer-selected S3 endpoint would make the shared UI
-    // an object-store proxy. Only credential-free native AWS resolution is safe in direct mode.
-    if (!anonymous || params.endpoint) {
-      return '';
+  if (providerInfo.Provider === 'gs') {
+    const params = (providerInfo as GCSProviderInfo).Params;
+    if (params.anonymous !== undefined) {
+      parseGoBoolean(params.anonymous, 'anonymous');
     }
     const safe = { ...params };
-    delete safe.accessKeyKey;
-    delete safe.secretKeyKey;
     delete safe.secretName;
-    return JSON.stringify({
-      Provider: providerInfo.Provider,
-      Params: { ...safe, fromEnv: 'true' },
-    });
-  } catch {
-    // Invalid provider booleans must not turn an authenticated artifact request into a 500. The
-    // trusted launcher parser normally rejects them first; fail closed if malformed data reaches
-    // this defense-in-depth boundary.
+    delete safe.tokenKey;
+    return JSON.stringify({ Provider: 'gs', Params: { ...safe, fromEnv: 'true' } });
+  }
+
+  const params = (providerInfo as S3ProviderInfo).Params;
+  if (params.anonymous !== undefined) {
+    parseGoBoolean(params.anonymous, 'anonymous');
+  }
+  // Without a destination allowlist, a customer-selected S3 endpoint would make the shared UI an
+  // object-store proxy. Endpoint-free settings retain the shared service's trusted destination.
+  if (params.endpoint) {
     return '';
   }
+  const safe = { ...params };
+  delete safe.accessKeyKey;
+  delete safe.secretKeyKey;
+  delete safe.secretName;
+  return JSON.stringify({
+    Provider: providerInfo.Provider,
+    Params: { ...safe, fromEnv: 'true' },
+  });
 }
 
 /**
@@ -454,8 +442,8 @@ export function getArtifactsHandler({
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
 
     // Security: The ml-pipeline-ui service account is only permitted to read Secrets from its own
-    // (server) namespace. For customer namespaces, retain only provider settings that are both
-    // credential-free and destination-safe. Secret-backed credentials and customer-selected S3
+    // (server) namespace. For customer namespaces, retain only provider settings that keep the
+    // shared service's trusted destination. Secret-backed credentials and customer-selected S3
     // endpoints require the namespace-isolated artifact proxy; otherwise the shared UI could read
     // customer Secrets or send ambient credentials to an untrusted destination. See:
     // https://github.com/kubeflow/pipelines/pull/12860
@@ -472,21 +460,16 @@ export function getArtifactsHandler({
             namespace,
           )) || '';
       } catch (error) {
-        if (!allowProviderSecrets) {
-          console.warn(
-            `Unable to resolve credential-free artifact settings for namespace "${namespace}"; ` +
-              `falling back to the shared store configuration: ${error}`,
+        // Direct mode must not substitute central credentials when native provider validation or
+        // trusted launcher configuration fails. The namespace-isolated proxy has its own explicit
+        // delegation path for ConfigMap availability failures.
+        const status = error instanceof LauncherConfigValidationError ? 400 : 500;
+        res
+          .status(status)
+          .send(
+            `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
           );
-        } else {
-          // Direct mode would otherwise substitute the central UI server's environment
-          // credentials for an unreadable or invalid namespace storage policy.
-          res
-            .status(500)
-            .send(
-              `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
-            );
-          return;
-        }
+        return;
       }
     }
 
@@ -497,10 +480,22 @@ export function getArtifactsHandler({
       resolvedProviderInfo = providerInfo;
     }
 
-    const effectiveProviderInfo = allowProviderSecrets
-      ? resolvedProviderInfo
-      : retainCredentialFreeProviderInfo(resolvedProviderInfo);
-    if (!allowProviderSecrets && resolvedProviderInfo && !effectiveProviderInfo) {
+    let effectiveProviderInfo: string;
+    try {
+      effectiveProviderInfo = allowProviderSecrets
+        ? resolvedProviderInfo
+        : retainDestinationSafeProviderInfo(resolvedProviderInfo);
+    } catch (error) {
+      res
+        .status(400)
+        .send(`Invalid artifact provider configuration. Correct it and retry: ${error}`);
+      return;
+    }
+    if (
+      !allowProviderSecrets &&
+      resolvedProviderInfo &&
+      resolvedProviderInfo !== effectiveProviderInfo
+    ) {
       console.warn(
         `Ignoring credentialed or custom-endpoint provider info for namespace "${namespace}": ` +
           'use the namespace-isolated artifact proxy for those settings.',
@@ -1127,15 +1122,9 @@ function getGCSArtifactHandler(
           );
         return;
       }
-      if (!anonymous && universeDomain !== DEFAULT_GCS_UNIVERSE_DOMAIN) {
-        res
-          .status(400)
-          .send(
-            `Authenticated GCS reads for universe_domain "${universeDomain}" are not supported by ` +
-              'the frontend authentication client. Use anonymous access or googleapis.com and retry.',
-          );
-        return;
-      }
+      // The operator allowlist is the destination trust grant for both anonymous and authenticated
+      // reads. This preserves GDC/air-gapped support without allowing artifact URIs to choose an
+      // arbitrary host for the shared UI's ADC bearer token.
       // Read all files that match the key pattern, which can include wildcards '*'.
       // The way this works is we list all paths whose prefix is the substring
       // of the pattern until the first wildcard, then we create a regular

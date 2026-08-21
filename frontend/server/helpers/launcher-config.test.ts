@@ -304,7 +304,7 @@ s3:
       {
         data: {
           defaultPipelineRoot:
-            's3://team-bucket/pipelines/team-a?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph&disableSSL=false',
+            's3://team-bucket/pipelines/team-a?endpoint=https%3A%2F%2Fceph.example%3A9443&region=ceph&disable_https=false',
         },
       },
       undefined,
@@ -318,12 +318,52 @@ s3:
     expect(JSON.parse(result || '')).toEqual({
       Provider: 's3',
       Params: {
-        disableSSL: 'false',
+        disable_https: 'false',
         endpoint: 'https://ceph.example:9443',
         fromEnv: 'true',
+        nativeQuery: 'true',
         region: 'ceph',
       },
     });
+  });
+
+  it('normalizes a query inherited from a MinIO pipeline root to native S3 settings', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 'minio://mlpipeline/v2/artifacts?anonymous=true',
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      { source: 'minio', bucket: 'mlpipeline', key: 'v2/artifacts/run/model' },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 's3',
+      Params: { anonymous: 'true', fromEnv: 'true', nativeQuery: 'true' },
+    });
+  });
+
+  it('rejects an invalid anonymous value inherited from the pipeline root', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket/pipelines/team-a?anonymous=bogus',
+        },
+      },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/run/model' },
+        'team-a',
+      ),
+    ).rejects.toThrow('Invalid boolean value');
   });
 
   it.each([
@@ -360,6 +400,7 @@ s3:
         Params: {
           endpoint: 'https://ceph.example:9443',
           fromEnv: 'true',
+          nativeQuery: 'true',
           region: 'ceph',
         },
       });

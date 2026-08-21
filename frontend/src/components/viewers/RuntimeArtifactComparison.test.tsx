@@ -169,6 +169,37 @@ describe('RuntimeArtifactComparison', () => {
     expect(remainingColors).toEqual(initialColors.slice(1));
   });
 
+  it('preserves default ROC colors across refreshes before explicit selection', () => {
+    const artifacts = Array.from({ length: 3 }, (_, index) =>
+      classificationEntry(`Run ${index}`, `roc-${index}`, {
+        confidenceMetrics: [
+          {
+            confidenceThreshold: 0.8,
+            falsePositiveRate: index / 100,
+            recall: 0.9,
+          },
+        ],
+      }),
+    );
+    const view = (visibleArtifacts: RuntimeComparisonArtifact[]) => (
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={visibleArtifacts} kind='classification' />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(artifacts));
+    const initialColors = screen
+      .getByTestId('shared-roc-curve')
+      .getAttribute('data-colors')!
+      .split(',');
+    rerender(view([artifacts[2], artifacts[1]]));
+
+    expect(screen.getByTestId('shared-roc-curve').getAttribute('data-colors')!.split(',')).toEqual([
+      initialColors[2],
+      initialColors[1],
+    ]);
+  });
+
   it('builds two independently selectable confusion-matrix panels', async () => {
     const firstMatrix = {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],
@@ -363,8 +394,10 @@ describe('RuntimeArtifactComparison', () => {
   it('assigns unique stable colors to the selected ROC curves', () => {
     const keys = Array.from({ length: 10 }, (_, index) => `run-${index + 1}:roc-${index + 1}`);
     const colors = TEST_ONLY.allocateRocColors(keys);
+    const defaultColors = keys.map(TEST_ONLY.getStableDefaultRocColor);
 
     expect(new Set(Object.values(colors)).size).toBe(keys.length);
     expect(TEST_ONLY.allocateRocColors(keys, colors)).toEqual(colors);
+    expect(new Set(defaultColors).size).toBe(keys.length);
   });
 });
