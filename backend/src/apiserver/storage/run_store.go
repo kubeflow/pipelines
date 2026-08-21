@@ -114,6 +114,15 @@ var nonArchivedStorageStateStrings = []string{
 	model.LegacyStateEmpty,
 }
 
+// RetryClaimGraceSeconds bounds how long a retry claim is trusted without any
+// sign of the retried workflow. Two recovery paths key off it: the reporter
+// accepts a stale-generation terminal report past this age (resource manager),
+// and ClaimRunForRetry allows a new claim to take over an expired one, which
+// covers a crash after the claim committed but before the retried workflow was
+// created (no workflow exists, so no report can ever trigger the reporter
+// path). Variable rather than const so tests can shorten it.
+var RetryClaimGraceSeconds int64 = 600
+
 // archivedStorageStateStrings is the closed set of StorageState values that
 // StorageState.ToV2() maps to ARCHIVED.
 var archivedStorageStateStrings = []string{
@@ -910,7 +919,7 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 	// Lock the row and read current state. Use sql.NullString for State
 	// because legacy runs intentionally have State NULL.
 	selectSQL, selectArgs, err := sq.
-		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration").
+		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec").
 		From("run_details").
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
@@ -923,7 +932,8 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 	var originalConditions string
 	var originalFinishedAtInSec int64
 	var currentGeneration int64
-	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration); err != nil {
+	var retryClaimedAtInSec int64
+	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec); err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
@@ -945,10 +955,21 @@ func (s *RunStore) ClaimRunForRetry(runID string) (string, string, int64, int64,
 		isTerminal = terminalRunStateValues[originalConditions]
 	}
 	if !isTerminal {
-		tx.Rollback()
-		return "", "", 0, 0, util.NewBadRequestError(
-			fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
-			"Cannot claim run %s for retry: not in a terminal state", runID)
+		// Allow a new claim to take over an expired one. A previous retry
+		// that crashed after committing its claim but before creating the
+		// workflow leaves the row PENDING with no workflow to report it;
+		// without takeover the run would be stuck forever (not terminal, so
+		// not claimable; FinishedAtInSec=0, so invisible to GC).
+		isAbandonedClaim := originalState == string(model.RuntimeStatePending) &&
+			currentGeneration > 0 &&
+			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
+		if !isAbandonedClaim {
+			tx.Rollback()
+			return "", "", 0, 0, util.NewBadRequestError(
+				fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
+				"Cannot claim run %s for retry: not in a terminal state", runID)
+		}
+		glog.Warningf("Run %s has an abandoned retry claim (generation %d, claimed at %d); taking it over", runID, currentGeneration, retryClaimedAtInSec)
 	}
 
 	// Atomically transition to PENDING and increment RetryGeneration.
@@ -1110,29 +1131,50 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	if batchSize <= 0 {
 		batchSize = 100
 	}
-	selectSQL, selectArgs, err := sq.
+	// Candidate selection runs as two index-aligned queries. Rows archived
+	// since ArchivedAtInSec existed are driven by idx_run_gc_archived
+	// (StorageState, ArchivedAtInSec); a single combined query would be
+	// driven by the finish-time index and, after a mass archival, would
+	// re-scan the entire old finish-time range every tick only to reject
+	// fresh archival timestamps. Legacy rows (ArchivedAtInSec=0) are driven
+	// by idx_run_gc_lifecycle (StorageState, FinishedAtInSec); that set only
+	// shrinks, so its scan cost drains to zero.
+	currentSQL, currentArgs, err := sq.
 		Select("UUID").
 		From("run_details").
 		Where(sq.And{
 			sq.Eq{"StorageState": archivedStorageStateStrings},
-			// FinishedAtInSec drives idx_run_gc_lifecycle and is a
-			// conservative lower bound: a run is never deletable less than
-			// the retention period after it finished.
+			// Observation window measured from archival time.
+			sq.Gt{"ArchivedAtInSec": 0},
+			sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			// Conservative extra bound: never deletable less than the
+			// retention period after the run finished (covers runs archived
+			// while still running). Filter only; ArchivedAtInSec drives.
 			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
 			sq.Gt{"FinishedAtInSec": 0},
-			// The observation window is measured from archival time.
+		}).
+		OrderBy("ArchivedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build query for deleting expired archived runs")
+	}
+	legacySQL, legacyArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"StorageState": archivedStorageStateStrings},
 			// Rows archived before ArchivedAtInSec existed carry 0 and fall
-			// back to the FinishedAtInSec bound above.
-			sq.Or{
-				sq.Eq{"ArchivedAtInSec": 0},
-				sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
-			},
+			// back to the finish-time bound.
+			sq.Eq{"ArchivedAtInSec": 0},
+			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
 		}).
 		OrderBy("FinishedAtInSec ASC").
 		Limit(uint64(batchSize)).
 		ToSql()
 	if err != nil {
-		return 0, util.NewInternalServerError(err, "Failed to build query for deleting expired archived runs")
+		return 0, util.NewInternalServerError(err, "Failed to build legacy query for deleting expired archived runs")
 	}
 
 	tx, err := s.db.Begin()
@@ -1143,26 +1185,34 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	// Lock the candidate rows for the duration of the transaction so a
 	// concurrent unarchive cannot flip StorageState between this select and the
 	// deletes below, which would otherwise delete a run the user just restored.
-	lockedCandidateRows, err := tx.Query(s.db.SelectForUpdate(selectSQL), selectArgs...)
-	if err != nil {
-		tx.Rollback()
-		return 0, util.NewInternalServerError(err, "Failed to query expired archived runs for deletion")
-	}
-
 	var uuids []string
-	for lockedCandidateRows.Next() {
-		var uuid string
-		if scanError := lockedCandidateRows.Scan(&uuid); scanError != nil {
-			lockedCandidateRows.Close()
-			tx.Rollback()
-			return 0, util.NewInternalServerError(scanError, "Failed to scan run UUID during delete")
+	for _, candidateQuery := range []struct {
+		sql  string
+		args []interface{}
+	}{{currentSQL, currentArgs}, {legacySQL, legacyArgs}} {
+		if len(uuids) >= batchSize {
+			break
 		}
-		uuids = append(uuids, uuid)
-	}
-	lockedCandidateRows.Close()
-	if iterationError := lockedCandidateRows.Err(); iterationError != nil {
-		tx.Rollback()
-		return 0, util.NewInternalServerError(iterationError, "Failed to iterate expired archived runs for deletion")
+		lockedCandidateRows, err := tx.Query(s.db.SelectForUpdate(candidateQuery.sql), candidateQuery.args...)
+		if err != nil {
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to query expired archived runs for deletion")
+		}
+		for lockedCandidateRows.Next() && len(uuids) < batchSize {
+			var uuid string
+			if scanError := lockedCandidateRows.Scan(&uuid); scanError != nil {
+				lockedCandidateRows.Close()
+				tx.Rollback()
+				return 0, util.NewInternalServerError(scanError, "Failed to scan run UUID during delete")
+			}
+			uuids = append(uuids, uuid)
+		}
+		iterationError := lockedCandidateRows.Err()
+		lockedCandidateRows.Close()
+		if iterationError != nil {
+			tx.Rollback()
+			return 0, util.NewInternalServerError(iterationError, "Failed to iterate expired archived runs for deletion")
+		}
 	}
 
 	if len(uuids) == 0 {

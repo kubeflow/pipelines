@@ -2476,3 +2476,91 @@ func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
 	assert.Equal(t, model.StorageStateArchived, run.StorageState)
 	assert.True(t, run.ArchivedAtInSec > 0, "archive pass must stamp ArchivedAtInSec")
 }
+
+// Regression: a retry that crashes after committing its claim but before
+// creating the workflow leaves the row PENDING with no workflow to report it.
+// A later claim must be able to take over once the claim has aged out (or its
+// timestamp was cleared); a fresh claim must still be protected.
+func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-abandoned-claim",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-abandoned-claim",
+		DisplayName:  "run-abandoned-claim",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+
+	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim")
+	require.Nil(t, claimErr)
+	require.Equal(t, int64(1), firstGeneration)
+
+	// A fresh claim is protected: the row is PENDING with a recent timestamp.
+	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim")
+	require.NotNil(t, secondErr, "a fresh claim must not be taken over")
+	assert.Contains(t, secondErr.Error(), "not in a terminal state")
+
+	// Simulate the crash aftermath: claim timestamp gone (or aged out).
+	_, err = db.Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, "run-abandoned-claim")
+	require.Nil(t, err)
+
+	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim")
+	require.Nil(t, takeoverErr, "an abandoned claim must be recoverable by a new retry")
+	assert.Equal(t, int64(2), takeoverGeneration, "takeover must advance the generation")
+}
+
+// Regression: the delete pass selects candidates with two index-aligned
+// queries (archival-time-driven and legacy finish-time-driven) and must pick
+// up both kinds in one call while respecting the batch cap.
+func TestDeleteExpiredArchivedRuns_LegacyAndCurrentCandidates(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	for _, id := range []string{"run-legacy-archived", "run-current-archived", "run-fresh-archived"} {
+		_, err := runStore.CreateRun(&model.Run{
+			UUID:         id,
+			ExperimentId: defaultFakeExpId,
+			K8SName:      id,
+			DisplayName:  id,
+			Namespace:    "ns1",
+			StorageState: model.StorageStateArchived,
+			RunDetails: model.RunDetails{
+				CreatedAtInSec:  1,
+				FinishedAtInSec: 100,
+				State:           model.RuntimeStateSucceeded,
+				Conditions:      string(model.RuntimeStateSucceededV1),
+			},
+		})
+		require.Nil(t, err)
+	}
+	// Legacy: ArchivedAtInSec stays 0. Current: archived before the cutoff.
+	// Fresh: archived after the cutoff, must survive.
+	_, err := db.Exec(`UPDATE run_details SET ArchivedAtInSec = 150 WHERE UUID = ?`, "run-current-archived")
+	require.Nil(t, err)
+	_, err = db.Exec(`UPDATE run_details SET ArchivedAtInSec = 1000 WHERE UUID = ?`, "run-fresh-archived")
+	require.Nil(t, err)
+
+	deleted, err := runStore.DeleteExpiredArchivedRuns(200, 100)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2), deleted, "one legacy and one current candidate must both be deleted")
+
+	_, err = runStore.GetRun("run-fresh-archived")
+	assert.Nil(t, err, "recently archived run must survive its observation window")
+}

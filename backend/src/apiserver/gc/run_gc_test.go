@@ -386,7 +386,11 @@ func TestLeaderLifecycle_ShutdownBeforeCallbackPreventsCollectionStart(t *testin
 	assert.True(t, lifecycle.isGracefulStop())
 }
 
-func TestLeaderLifecycle_UnexpectedLossDuringShutdownRemainsFatal(t *testing.T) {
+// A lease lost while shutdown is draining must still end with the election
+// canceled once the collection callback returns; the pre-round-5 design kept
+// gracefulStop=false here to arm a fatal fallback, which left the election
+// loop running forever after shutdown (context.AfterFunc fires only once).
+func TestLeaderLifecycle_UnexpectedLossDuringShutdownStopsElection(t *testing.T) {
 	shutdownCtx, cancelShutdown := context.WithCancel(context.Background())
 	electionCtx, cancelElection := context.WithCancel(context.Background())
 	defer cancelElection()
@@ -415,13 +419,19 @@ func TestLeaderLifecycle_UnexpectedLossDuringShutdownRemainsFatal(t *testing.T) 
 	cancelLeader()
 	cancelShutdown()
 
+	// While the collection is still draining, the stop is not yet graceful.
 	require.Never(t, lifecycle.isGracefulStop, 50*time.Millisecond, time.Millisecond,
-		"shutdown masked an unexpected lease loss while collection was active")
+		"stop classified graceful while collection was still draining")
 
 	close(releaseRunLoop)
 
 	requireSignal(t, callbackDone, "collection callback did not exit")
-	assert.False(t, lifecycle.isGracefulStop(), "unexpected lease loss was classified as graceful")
+	assert.True(t, lifecycle.isGracefulStop(), "shutdown after drain must be graceful even when the lease was also lost")
+	select {
+	case <-electionCtx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("election context not canceled; Start would re-enter the election after shutdown")
+	}
 }
 
 func requireSignal(t *testing.T, signal <-chan struct{}, message string) {
@@ -455,4 +465,58 @@ func TestCollect_IndexGateReevaluatedPerTick(t *testing.T) {
 	ready = true
 	gc.collect(context.Background())
 	assert.Equal(t, 1, fake.archiveCalls, "collection must start once the index is ready, without a restart")
+}
+
+// Regression: a lease lost while a graceful shutdown is draining must still
+// cancel the election once the collection loop returns. onShutdown has
+// already fired (context.AfterFunc runs once), so if onStartedLeading does
+// not cancel the election here, Start's re-election loop runs forever and
+// the process's shutdown wait group never releases.
+func TestLeaderLifecycle_LeaseLossDuringShutdownCancelsElection(t *testing.T) {
+	shutdownCtx, shutdown := context.WithCancel(context.Background())
+	electionCtx, cancelElection := context.WithCancel(context.Background())
+	leaderCtx, loseLease := context.WithCancel(context.Background())
+
+	collectionCanceled := make(chan struct{})
+	lifecycle := newLeaderLifecycle(shutdownCtx, electionCtx, cancelElection, func(ctx context.Context) {
+		// Simulate an in-flight collection: block until the shutdown path
+		// cancels the collection context, then lose the lease before
+		// returning — the race the regression targets.
+		<-ctx.Done()
+		close(collectionCanceled)
+		loseLease()
+	})
+
+	done := make(chan struct{})
+	go func() {
+		lifecycle.onStartedLeading(leaderCtx)
+		close(done)
+	}()
+
+	// Wait for the callback to register itself, then begin shutdown.
+	for {
+		lifecycle.mu.Lock()
+		started := lifecycle.callbackStarted
+		lifecycle.mu.Unlock()
+		if started {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	shutdown()
+	lifecycle.onShutdown()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("onStartedLeading did not return after shutdown")
+	}
+	<-collectionCanceled
+	select {
+	case <-electionCtx.Done():
+		// Election canceled: Start's election loop can exit.
+	case <-time.After(5 * time.Second):
+		t.Fatal("election context was never canceled after lease loss during shutdown; Start would re-enter the election forever")
+	}
+	assert.True(t, lifecycle.isGracefulStop())
 }

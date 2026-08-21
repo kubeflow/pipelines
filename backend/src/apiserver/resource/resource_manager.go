@@ -1139,6 +1139,17 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		workflowClient := r.getWorkflowClient(namespace)
 		liveWorkflow, readError := workflowClient.Get(ctx, retryWorkflowName, v1.GetOptions{})
 		switch {
+		case readError == nil && liveWorkflow != nil &&
+			reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == claimGeneration:
+			// The mutation was applied despite the error: the live workflow
+			// carries this claim's generation (it may even be terminal
+			// already if the retry finished quickly). Adopt it and complete
+			// the retry instead of rolling back — a rollback here would
+			// restore a GC-eligible FinishedAtInSec under a live retried
+			// workflow and permit a duplicate retry.
+			glog.Warningf("Retry workflow for run %s returned error but the live workflow carries claim generation %d; adopting it. Original error: %v",
+				runId, claimGeneration, err)
+			newExecSpec = liveWorkflow
 		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState():
 			// Workflow exists and is running — mutation was applied.
 			// Preserve the claimed row for reconciliation.
@@ -1156,8 +1167,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 			return util.NewUnavailableServerError(err,
 				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
 		default:
-			// Workflow definitively absent (NotFound) or in terminal state.
-			// Mutation was provably not applied. Safe to rollback.
+			// Workflow definitively absent (NotFound), or terminal without
+			// this claim's generation — a pre-retry leftover, so the
+			// mutation was provably not applied. Safe to rollback.
 			if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
 				glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
 			}
@@ -1173,7 +1185,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	run.Conditions = condition
-	run.FinishedAtInSec = 0
+	// 0 for a freshly resubmitted (running) workflow; the real finish time
+	// when the reconciliation path adopted an already-terminal retry.
+	run.FinishedAtInSec = newExecSpec.ExecutionStatus().FinishedAt()
 	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
@@ -1677,7 +1691,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if run.RetryGeneration > 0 && execStatus.IsInFinalState() {
 			if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
 				claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
-				if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod/time.Second) {
+				if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
 					// The retry is (or was moments ago) in flight; the retried
 					// workflow will report with the current generation. Skip
 					// this stale snapshot as a successful no-op so the
@@ -1692,7 +1706,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				// the run returns to its last real state instead of staying
 				// PENDING forever.
 				glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and appears orphaned",
-					reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod)
+					reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
 			}
 		}
 		run.State = state
@@ -1920,7 +1934,11 @@ func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSp
 // workflow write is trusted. RetryRun's claim-to-workflow-update window is
 // bounded by a handful of client-side retries (seconds), so a claim this old
 // with no workflow carrying its generation means the retry crashed mid-flight.
-const retryClaimGracePeriod = 10 * time.Minute
+// Shared with ClaimRunForRetry's abandoned-claim takeover so both recovery
+// paths age out together.
+func retryClaimGracePeriod() time.Duration {
+	return time.Duration(storage.RetryClaimGraceSeconds) * time.Second
+}
 
 // reportedRetryGeneration extracts the retry-generation annotation stamped by
 // RetryRun. Workflows created before any retry (or before this annotation

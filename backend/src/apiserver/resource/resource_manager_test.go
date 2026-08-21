@@ -6046,3 +6046,43 @@ func TestRetryRun_StampsRetryGenerationAnnotation(t *testing.T) {
 	assert.Contains(t, string(retried.WorkflowRuntimeManifest), util.AnnotationKeyRetryGeneration,
 		"retried workflow manifest must carry the retry-generation annotation")
 }
+
+// Regression: when the workflow mutation errors but was actually applied (the
+// live workflow carries this claim's retry-generation annotation), RetryRun
+// must adopt the live workflow — even if it already reached a terminal state —
+// instead of rolling back the claim, which would restore a GC-eligible
+// FinishedAtInSec under a live retried workflow and permit a duplicate retry.
+func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	// Seed the retried workflow as already terminal and carrying the
+	// generation the upcoming claim will produce (1), simulating a timed-out
+	// update that was applied and a retry that finished quickly.
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	appliedWorkflow := retryExecSpec.(*util.Workflow)
+	appliedWorkflow.Status.Phase = v1alpha1.WorkflowSucceeded
+	appliedWorkflow.Status.FinishedAt = v1.Time{Time: time.Unix(500, 0)}
+
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(context.Background(), appliedWorkflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	conflictClient := &persistentConflictWorkflowClient{FakeWorkflowClient: workflowClient}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictClient}
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err, "an applied retry must be adopted, not treated as failed")
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, adopted.State, "run must reflect the adopted live workflow")
+	assert.Equal(t, int64(1), adopted.RetryGeneration, "claim must not be rolled back")
+	assert.Equal(t, int64(500), adopted.FinishedAtInSec, "adopted terminal workflow's finish time must be persisted")
+}

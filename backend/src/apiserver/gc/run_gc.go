@@ -110,18 +110,21 @@ func (l *leaderLifecycle) onStartedLeading(leaderCtx context.Context) {
 
 	l.runLoop(collectionCtx)
 
-	// leaderCtx remains active while this process still holds the lease. If it
-	// was canceled first, the lease was lost unexpectedly; reset the callback
-	// state so a later shutdown cancels the election rather than a stale
-	// collection context, and let Start's election loop re-enter the election.
+	// Reset the callback state so a later shutdown cancels the election
+	// rather than a stale collection context. If shutdown has begun, stop
+	// the election now regardless of whether the lease was also lost while
+	// draining: onShutdown has already fired (context.AfterFunc runs once),
+	// so nothing else will cancel electionCtx, and leaving it live would
+	// keep Start re-entering the election forever and hang the process's
+	// shutdown wait group.
 	l.mu.Lock()
 	l.callbackStarted = false
-	graceful := l.shutdownCtx.Err() != nil && leaderCtx.Err() == nil
-	if graceful {
+	shutdown := l.shutdownCtx.Err() != nil
+	if shutdown {
 		l.gracefulStop = true
 	}
 	l.mu.Unlock()
-	if graceful {
+	if shutdown {
 		l.cancelElection()
 	}
 }
@@ -274,7 +277,7 @@ func (gc *RunGarbageCollector) collect(ctx context.Context) {
 	// effect without an API-server restart, and dropping the index stops the
 	// unindexed scans instead of silently continuing them.
 	if gc.indexReady != nil && !gc.indexReady() {
-		glog.Warning("Run GC: skipping collection pass, idx_run_gc_lifecycle is missing or not usable. " +
+		glog.Warning("Run GC: skipping collection pass, a required index (idx_run_gc_lifecycle, idx_run_gc_archived) is missing or not usable. " +
 			"Apply the online index migration in docs/agents/development.md.")
 		return
 	}

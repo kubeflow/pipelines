@@ -48,10 +48,10 @@ Standalone mode is single-user and unauthenticated. Multi-user deployments requi
 
 ## Run garbage collection database migration
 
-Before enabling either retention setting, create the required lifecycle index
+Before enabling either retention setting, create the two required indexes
 once using the same database and schema as the API server. The API server only
-validates the index at startup; it does not run heavyweight DDL from every
-replica.
+validates the indexes (at startup and on every collection tick); it does not
+run heavyweight DDL from every replica.
 
 For PostgreSQL, inspect the existing index first. Replace `public` if the API
 server's current schema is different:
@@ -63,13 +63,14 @@ FROM pg_index AS index_metadata
 JOIN pg_class AS index_class ON index_class.oid = index_metadata.indexrelid
 JOIN pg_namespace AS index_namespace ON index_namespace.oid = index_class.relnamespace
 WHERE index_namespace.nspname = 'public'
-  AND index_class.relname = 'idx_run_gc_lifecycle';
+  AND index_class.relname IN ('idx_run_gc_lifecycle', 'idx_run_gc_archived');
 ```
 
-If no row is returned, create the index outside a transaction:
+If a row is missing, create that index outside a transaction:
 
 ```sql
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_run_gc_lifecycle ON public.run_details ("StorageState", "FinishedAtInSec");
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_run_gc_archived ON public.run_details ("StorageState", "ArchivedAtInSec");
 ```
 
 For MySQL, explicitly require online DDL so the command fails instead of falling
@@ -77,6 +78,7 @@ back to a table-copying or write-blocking operation:
 
 ```sql
 ALTER TABLE run_details ADD INDEX idx_run_gc_lifecycle (StorageState, FinishedAtInSec), ALGORITHM=INPLACE, LOCK=NONE;
+ALTER TABLE run_details ADD INDEX idx_run_gc_archived (StorageState, ArchivedAtInSec), ALGORITHM=INPLACE, LOCK=NONE;
 ```
 
 If a same-named index has different columns, remove it in a coordinated
@@ -86,13 +88,17 @@ concurrent build can leave an invalid index; remove only that invalid index with
 MySQL, use `SHOW INDEX FROM run_details` first and run the `ALTER TABLE` only
 when the exact index is absent.
 
-**Note on archive query performance:** The `idx_run_gc_lifecycle` index on
-`(StorageState, FinishedAtInSec)` serves both passes. The delete pass filters
-`StorageState = 'ARCHIVED'`; the archive pass matches a positive `IN` list of
-non-archived storage states (plus `IS NULL`), so both drive the index's
-leading column. The collector re-validates the index against the database
-catalog on every tick: applying this migration takes effect without an
-API-server restart, and GC pauses automatically if the index is dropped.
+**Note on query/index alignment:** `idx_run_gc_lifecycle`
+`(StorageState, FinishedAtInSec)` drives the archive pass (positive `IN` list
+of non-archived storage states plus `IS NULL`) and the delete pass's legacy
+predicate (rows archived before `ArchivedAtInSec` existed, which only
+shrinks). `idx_run_gc_archived` `(StorageState, ArchivedAtInSec)` drives the
+delete pass's archival-time predicate, so a mass archival does not cause the
+delete pass to re-scan the old finish-time range every tick while it waits
+out the observation window. The collector re-validates both indexes against
+the database catalog on every tick: applying this migration takes effect
+without an API-server restart, and GC pauses automatically if either index
+is dropped.
 
 ### Argo Workflow cleanup
 

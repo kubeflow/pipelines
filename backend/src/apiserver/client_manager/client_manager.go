@@ -340,11 +340,23 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-const (
-	garbageCollectorIndexName    = "idx_run_gc_lifecycle"
-	garbageCollectorTableName    = "run_details"
-	garbageCollectorIndexColumns = "StorageState,FinishedAtInSec"
-)
+const garbageCollectorTableName = "run_details"
+
+// garbageCollectorIndexSpec names one index the run GC requires and the exact
+// column list it must have.
+type garbageCollectorIndexSpec struct {
+	name    string
+	columns string
+}
+
+// garbageCollectorRequiredIndexes are all indexes the run GC needs: the
+// lifecycle index drives the archive pass and the legacy delete predicate
+// (rows archived before ArchivedAtInSec existed); the archived index drives
+// the delete pass's archival-time predicate.
+var garbageCollectorRequiredIndexes = []garbageCollectorIndexSpec{
+	{name: "idx_run_gc_lifecycle", columns: "StorageState,FinishedAtInSec"},
+	{name: "idx_run_gc_archived", columns: "StorageState,ArchivedAtInSec"},
+}
 
 type garbageCollectorIndexStatus struct {
 	currentSchema string
@@ -357,19 +369,33 @@ type garbageCollectorIndexStatus struct {
 	unconditional bool
 }
 
-func (status garbageCollectorIndexStatus) isReady() bool {
+func (status garbageCollectorIndexStatus) isReady(spec garbageCollectorIndexSpec) bool {
 	return status.currentSchema != "" &&
 		status.tableSchema == status.currentSchema &&
 		status.tableName == garbageCollectorTableName &&
-		status.indexName == garbageCollectorIndexName &&
-		status.columns == garbageCollectorIndexColumns &&
+		status.indexName == spec.name &&
+		status.columns == spec.columns &&
 		status.valid && status.ready && status.unconditional
 }
 
-// validateGarbageCollectorIndex only reads database catalog metadata. Index
+// validateGarbageCollectorIndexes only reads database catalog metadata. Index
 // creation is an explicit operator migration so API-server startup never runs
-// heavyweight DDL from every replica.
-func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error) {
+// heavyweight DDL from every replica. All required indexes must be present
+// and usable.
+func validateGarbageCollectorIndexes(db *gorm.DB, dialect SQLDialect) (bool, error) {
+	for _, spec := range garbageCollectorRequiredIndexes {
+		ready, err := validateGarbageCollectorIndex(db, dialect, spec)
+		if err != nil {
+			return false, err
+		}
+		if !ready {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect, spec garbageCollectorIndexSpec) (bool, error) {
 	var status garbageCollectorIndexStatus
 	var row *sql.Row
 
@@ -403,7 +429,7 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error
 			  AND index_class.relname = ?
 			  AND index_metadata.indexprs IS NULL
 			GROUP BY table_namespace.nspname, table_class.relname, index_class.relname,
-			         index_metadata.indisvalid, index_metadata.indisready`, garbageCollectorTableName, garbageCollectorIndexName).Row()
+			         index_metadata.indisvalid, index_metadata.indisready`, garbageCollectorTableName, spec.name).Row()
 	case "mysql":
 		row = db.Raw(`
 			SELECT DATABASE(), TABLE_SCHEMA, TABLE_NAME, INDEX_NAME,
@@ -414,7 +440,7 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error
 			WHERE TABLE_SCHEMA = DATABASE()
 			  AND TABLE_NAME = ?
 			  AND INDEX_NAME = ?
-			GROUP BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME`, garbageCollectorTableName, garbageCollectorIndexName).Row()
+			GROUP BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME`, garbageCollectorTableName, spec.name).Row()
 	default:
 		return false, fmt.Errorf("garbage collector index validation is not supported for dialect %q", dialect.Name)
 	}
@@ -436,7 +462,7 @@ func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect) (bool, error
 		return false, fmt.Errorf("query garbage collector index metadata: %w", err)
 	}
 
-	return status.isReady(), nil
+	return status.isReady(spec), nil
 }
 
 func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool) {
@@ -485,7 +511,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool
 	// the connection pool with the returned *storage.DB. The GC loop calls
 	// this on every tick, so index migrations take effect without a restart.
 	gcIndexChecker := func() bool {
-		ready, indexValidationError := validateGarbageCollectorIndex(db, dialect)
+		ready, indexValidationError := validateGarbageCollectorIndexes(db, dialect)
 		if indexValidationError != nil {
 			glog.Errorf("Failed to validate GC lifecycle index: %v", indexValidationError)
 			return false
@@ -493,7 +519,7 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool
 		return ready
 	}
 	if (common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) && !gcIndexChecker() {
-		glog.Warning("Run GC paused: idx_run_gc_lifecycle is missing or incompatible. " +
+		glog.Warning("Run GC paused: idx_run_gc_lifecycle and/or idx_run_gc_archived is missing or incompatible. " +
 			"Apply the online index migration in docs/agents/development.md; " +
 			"GC re-checks the index on every collection tick and starts automatically once it is ready.")
 	}
