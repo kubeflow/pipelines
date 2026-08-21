@@ -199,6 +199,42 @@ s3:
     });
   });
 
+  it('matches overrides against the artifact parent prefix like the launcher', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket',
+          providers: `
+s3:
+  default:
+    endpoint: default-s3.example.com
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: team-bucket
+      keyPrefix: pipelines/team-a
+      endpoint: override-s3.example.com
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const boundaryResult = await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a' },
+      'team-a',
+    );
+    expect(JSON.parse(boundaryResult || '').Params.endpoint).toBe('default-s3.example.com');
+
+    const nestedResult = await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/artifact' },
+      'team-a',
+    );
+    expect(JSON.parse(nestedResult || '').Params.endpoint).toBe('override-s3.example.com');
+  });
+
   it('rejects default credentials for an artifact outside defaultPipelineRoot', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

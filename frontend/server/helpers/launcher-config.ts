@@ -242,8 +242,13 @@ function findOverride(
 ): ProviderEntry | undefined {
   const configuredOverrides = config?.Overrides ?? config?.overrides;
   const overrides = Array.isArray(configuredOverrides) ? configuredOverrides : [];
+  // The launcher opens the artifact basename inside a bucket session selected from its parent URI.
+  // Match overrides against that same parent prefix rather than the full object key.
+  const normalizedKey = key.replace(/\/+$/, '');
+  const separatorIndex = normalizedKey.lastIndexOf('/');
+  const parentPrefix = separatorIndex === -1 ? '' : normalizedKey.slice(0, separatorIndex);
   return overrides.find(
-    (entry) => entry.bucketName === bucket && prefixMatches(key, entry.keyPrefix || ''),
+    (entry) => entry.bucketName === bucket && prefixMatches(parentPrefix, entry.keyPrefix || ''),
   );
 }
 
