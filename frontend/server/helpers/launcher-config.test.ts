@@ -545,6 +545,28 @@ gs:
     });
   });
 
+  it('keeps GCS URI query settings when the provider block has no policy', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 'gs://bucket/root?access_id=-',
+          providers: 'gs: {}',
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      { source: 'gcs', bucket: 'bucket', key: 'root/artifact' },
+      'kubeflow',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 'gs',
+      Params: { access_id: '-', fromEnv: 'true' },
+    });
+  });
+
   it('uses normal server defaults under the default pipeline root when config is absent', async () => {
     mockedGetConfigMap.mockResolvedValue([
       undefined,

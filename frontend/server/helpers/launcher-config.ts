@@ -149,9 +149,15 @@ export async function getLauncherProviderInfo(
   const effectiveQuery = underPipelineRoot
     ? getUriQuery(defaultPipelineRoot)
     : storageCoordinates.artifactUriQuery;
-  // GCS provider configuration is authoritative whenever it exists. Unlike the S3 runtime, the
-  // GCS runtime does not let an artifact URI query replace configured namespace credentials.
-  if (effectiveQuery && !(provider === 'gs' && config)) {
+  // GCS provider credential policy is authoritative whenever it exists. Unlike the S3 runtime,
+  // the GCS runtime does not let an artifact URI query replace configured namespace credentials.
+  const gcsProviderIsAuthoritative =
+    provider === 'gs' &&
+    !!config &&
+    (config.default !== undefined ||
+      config.Overrides !== undefined ||
+      config.overrides !== undefined);
+  if (effectiveQuery && !gcsProviderIsAuthoritative) {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }
   if (!config) {
