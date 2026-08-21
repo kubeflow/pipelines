@@ -440,7 +440,13 @@ func initDBDriver(driverName string, initConnectionTimeout time.Duration) string
 	}
 	b = backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = initConnectionTimeout
-	err = backoff.Retry(operation, b)
+	// Report each failed attempt. A plain backoff.Retry here logs nothing for the
+	// whole initConnectionTimeout window, and the startup probe restarts the
+	// container long before that deadline turns the error into a fatal, so a
+	// misconfigured database is otherwise invisible.
+	err = backoff.RetryNotify(operation, b, func(e error, duration time.Duration) {
+		glog.Errorf("Failed to create database %v: %v. Retrying in %v", dbName, e, duration)
+	})
 
 	util.TerminateIfError(err)
 
