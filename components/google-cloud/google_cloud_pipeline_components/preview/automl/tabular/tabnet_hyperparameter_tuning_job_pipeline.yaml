@@ -1370,12 +1370,12 @@ components:
             \ max clipping will not occur. Defaults to None.\nMultiHotEncoding: Performs\
             \ multi-hot encoding on a categorical array column.\n    Example:  ..\
             \ code-block:: python  { \"transformation\": \"MultiHotEncoding\", \"\
-            input_columns\": [\"col1\"], }  The number of classes is determened by\
+            input_columns\": [\"col1\"], }  The number of classes is determined by\
             \ the largest number included in the input if it is numeric or the total\
             \ number of unique values of the input if it is type str.  If the input\
-            \ is has type str and an element contians separator tokens, the input\
+            \ is has type str and an element contains separator tokens, the input\
             \ will be split at separator indices, and the each element of the split\
-            \ list will be considered a seperate class. For example,\n    Input: \
+            \ list will be considered a separate class. For example,\n    Input: \
             \ .. code-block:: python  [ [\"foo bar\"],      # Example 0 [\"foo\",\
             \ \"bar\"],   # Example 1 [\"foo\"],          # Example 2 [\"bar\"], \
             \         # Example 3 ] Output (with default separator=\" \"):  .. code-block::\
