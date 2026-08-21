@@ -134,7 +134,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
       {previewRequested && isFetching && (
         <CircularProgress aria-label='Loading artifact preview' size={20} />
       )}
-      {isError && !isFetching && (
+      {previewRequested && isError && !isFetching && (
         <>
           <Banner
             message='Error in retrieving artifact preview.'
@@ -146,7 +146,8 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
           </Button>
         </>
       )}
-      {isSuccess &&
+      {previewRequested &&
+        isSuccess &&
         !isFetching &&
         (data ? (
           <div className={css.preview}>

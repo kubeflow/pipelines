@@ -119,6 +119,53 @@ describe('ArtifactPreview', () => {
     expect(await screen.findByText('Artifact preview is empty.')).toBeVisible();
   });
 
+  it('does not display cached preview state before a remounted row requests it', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('cached preview');
+    const preview = (
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/key' namespace='kubeflow' />
+      </CommonTestWrapper>
+    );
+    const { rerender } = render(preview);
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    expect(await screen.findByText('cached preview')).toBeVisible();
+
+    rerender(
+      <CommonTestWrapper>
+        <div>row removed</div>
+      </CommonTestWrapper>,
+    );
+    rerender(preview);
+
+    expect(screen.getByRole('button', { name: 'Load preview' })).toBeVisible();
+    expect(screen.queryByText('cached preview')).toBeNull();
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not display a cached preview error before a remounted row requests it', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockRejectedValue(new Error('cached failure'));
+    const preview = (
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/key' namespace='kubeflow' />
+      </CommonTestWrapper>
+    );
+    const { rerender } = render(preview);
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    expect(await screen.findByText('Error in retrieving artifact preview.')).toBeVisible();
+
+    rerender(
+      <CommonTestWrapper>
+        <div>row removed</div>
+      </CommonTestWrapper>,
+    );
+    rerender(preview);
+
+    expect(screen.getByRole('button', { name: 'Load preview' })).toBeVisible();
+    expect(screen.queryByText('Error in retrieving artifact preview.')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry preview' })).toBeNull();
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('handles gcs artifact', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
     render(
