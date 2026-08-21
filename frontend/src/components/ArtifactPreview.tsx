@@ -72,7 +72,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
   maxbytes = 255,
   maxlines = 20,
 }) => {
-  const [previewRequested, setPreviewRequested] = React.useState(false);
+  const [previewRequestedFor, setPreviewRequestedFor] = React.useState<string>();
   const rawUri = typeof value === 'object' && value !== null ? value.uri : value;
   const uri = typeof rawUri === 'string' ? rawUri : undefined;
   let storage: StoragePath | undefined;
@@ -87,6 +87,9 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
       logger.error(error);
     }
   }
+
+  const previewRequestKey = JSON.stringify([uri, namespace, artifactUriQuery, maxbytes, maxlines]);
+  const previewRequested = previewRequestedFor === previewRequestKey;
 
   const { isSuccess, isError, isFetching, data, error, refetch } = useQuery<string, Error>({
     queryKey: queryKeys.artifactPreview(uri, namespace, artifactUriQuery, maxbytes, maxlines),
@@ -127,7 +130,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
         </ExternalLink>
       </div>
       {!previewRequested && (
-        <Button size='small' onClick={() => setPreviewRequested(true)}>
+        <Button size='small' onClick={() => setPreviewRequestedFor(previewRequestKey)}>
           Load preview
         </Button>
       )}

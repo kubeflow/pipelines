@@ -718,6 +718,37 @@ describe('DynamicFlow', () => {
       ]);
     });
 
+    it('does not show stale failed children below a successful nested DAG', () => {
+      const successfulDag: V2beta1PipelineTask = {
+        task_id: 'successful-dag',
+        parent_task_id: rootTask.task_id,
+        name: 'successful-dag',
+        state: PipelineTaskTaskState.SUCCEEDED,
+      };
+      const staleFailedChild: V2beta1PipelineTask = {
+        task_id: 'stale-failed-child',
+        parent_task_id: successfulDag.task_id,
+        name: 'child',
+        state: PipelineTaskTaskState.FAILED,
+      };
+      const childElement: Node<FlowElementDataBase> = {
+        id: 'task.child',
+        data: { label: 'child' },
+        position: { x: 0, y: 0 },
+        type: NodeTypeNames.EXECUTION,
+      };
+      const tasks = [rootTask, successfulDag, staleFailedChild];
+
+      const graph = updateFlowElementsState(
+        ['root', 'successful-dag'],
+        [childElement],
+        tasks,
+        buildRuntimeFlowContext(['root', 'successful-dag'], tasks, true, false),
+      );
+
+      expect(graph[0].data?.state).toBe(PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED);
+    });
+
     it('keeps the static loop body when iteration_count is not yet available', () => {
       const loopTask: V2beta1PipelineTask = {
         task_id: 'loop-task',

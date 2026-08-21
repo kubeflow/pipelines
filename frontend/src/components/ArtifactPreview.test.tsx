@@ -166,6 +166,34 @@ describe('ArtifactPreview', () => {
     expect(readFileSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('requires fresh preview consent when the artifact changes in place', async () => {
+    const readFileSpy = vi
+      .spyOn(Apis, 'readFile')
+      .mockResolvedValueOnce('artifact A preview')
+      .mockResolvedValueOnce('artifact B preview');
+    const { rerender } = render(
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/artifact-a' namespace='kubeflow' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    expect(await screen.findByText('artifact A preview')).toBeVisible();
+
+    rerender(
+      <CommonTestWrapper>
+        <ArtifactPreview value='minio://bucket/artifact-b' namespace='kubeflow' />
+      </CommonTestWrapper>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Load preview' })).toBeVisible();
+    expect(screen.queryByText('artifact A preview')).toBeNull();
+    expect(readFileSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load preview' }));
+    expect(await screen.findByText('artifact B preview')).toBeVisible();
+    expect(readFileSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('handles gcs artifact', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('gcs preview');
     render(

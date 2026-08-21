@@ -165,12 +165,13 @@ export function updateFlowElementsState(
     }
 
     const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, flowContext);
+    const parentCompletedSuccessfully = taskCompletedSuccessfully(runtimeContext.task?.state);
     if (updatedElement.type === NodeTypeNames.EXECUTION && runtimeInfo.task) {
       const data = updatedElement.data as ExecutionFlowElementData;
       data.state = getRuntimeTaskState(
         runtimeInfo.task.state,
         flowContext.runIsTerminal,
-        flowContext.runCompletedSuccessfully,
+        flowContext.runCompletedSuccessfully || parentCompletedSuccessfully,
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
@@ -179,7 +180,7 @@ export function updateFlowElementsState(
       data.state = getRuntimeTaskState(
         runtimeInfo.task.state,
         flowContext.runIsTerminal,
-        flowContext.runCompletedSuccessfully,
+        flowContext.runCompletedSuccessfully || parentCompletedSuccessfully,
       );
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
@@ -191,6 +192,14 @@ export function updateFlowElementsState(
     }
     return updatedElement;
   });
+}
+
+function taskCompletedSuccessfully(state: PipelineTaskTaskState | undefined): boolean {
+  return (
+    state === PipelineTaskTaskState.SUCCEEDED ||
+    state === PipelineTaskTaskState.SKIPPED ||
+    state === PipelineTaskTaskState.CACHED
+  );
 }
 
 export function reconcileRuntimeFlowElements(
