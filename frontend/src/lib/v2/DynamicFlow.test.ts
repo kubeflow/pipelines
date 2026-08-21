@@ -495,6 +495,15 @@ describe('DynamicFlow', () => {
       ]);
       expect(terminalPartialElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
 
+      const failedPartialElements = updateFlowElementsState(['root', 'loop'], partialElements, [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.FAILED },
+        bodyA,
+      ]);
+      expect(failedPartialElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
       const completeElements = updateFlowElementsState(['root', 'loop'], partialElements, [
         rootTask,
         loopTask,

@@ -489,12 +489,15 @@ function getIterationState(
   if (states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNNING;
   }
-  if (
-    loopState === PipelineTaskTaskState.RUNNING &&
-    expectedTaskCount !== undefined &&
-    iterationTasks.length < expectedTaskCount
-  ) {
-    return PipelineTaskTaskState.RUNNING;
+  const iterationIsIncomplete =
+    expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount;
+  if (iterationIsIncomplete) {
+    if (loopState === PipelineTaskTaskState.RUNNING) {
+      return PipelineTaskTaskState.RUNNING;
+    }
+    if (loopState === PipelineTaskTaskState.FAILED) {
+      return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+    }
   }
   if (states.every((state) => state === PipelineTaskTaskState.SKIPPED)) {
     return PipelineTaskTaskState.SKIPPED;
