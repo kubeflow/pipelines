@@ -412,4 +412,16 @@ describe('RuntimeArtifactComparison', () => {
     expect(new Set(keys.map(TEST_ONLY.getStableDefaultRocColor)).size).toBe(2);
     expect(new Set(Object.values(TEST_ONLY.allocateRocColors(keys))).size).toBe(2);
   });
+
+  it('resolves HSL values that quantize to the same rendered RGB color', () => {
+    const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
+    const initialColors = keys.map(TEST_ONLY.getStableDefaultRocColor);
+
+    expect(new Set(initialColors).size).toBe(2);
+    expect(new Set(initialColors.map(TEST_ONLY.getRenderedRocColor)).size).toBe(1);
+    expect(
+      new Set(Object.values(TEST_ONLY.allocateRocColors(keys)).map(TEST_ONLY.getRenderedRocColor))
+        .size,
+    ).toBe(2);
+  });
 });

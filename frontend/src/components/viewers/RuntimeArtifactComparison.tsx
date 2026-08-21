@@ -491,20 +491,43 @@ function getStableDefaultRocColor(key: string): string {
 
 function allocateRocColors(keys: string[]): Record<string, string> {
   const colorsByKey: Record<string, string> = {};
-  const usedColors = new Set<string>();
+  const usedRenderedColors = new Set<string>();
 
   [...new Set(keys)].sort().forEach((key) => {
     let salt = 0;
     let candidate = getStableDefaultRocColor(key);
-    while (usedColors.has(candidate)) {
+    let renderedColor = getRenderedRocColor(candidate);
+    while (usedRenderedColors.has(renderedColor)) {
       salt += 1;
       candidate = getStableDefaultRocColor(`${key}\0${salt}`);
+      renderedColor = getRenderedRocColor(candidate);
     }
     colorsByKey[key] = candidate;
-    usedColors.add(candidate);
+    usedRenderedColors.add(renderedColor);
   });
 
   return colorsByKey;
+}
+
+function getRenderedRocColor(color: string): string {
+  const match = /^hsl\(([\d.]+)deg ([\d.]+)% ([\d.]+)%\)$/.exec(color);
+  if (!match) {
+    return color;
+  }
+  const hue = Number(match[1]);
+  const saturation = Number(match[2]) / 100;
+  const lightness = Number(match[3]) / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const secondary = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const offset = lightness - chroma / 2;
+  let channels: [number, number, number];
+  if (hue < 60) channels = [chroma, secondary, 0];
+  else if (hue < 120) channels = [secondary, chroma, 0];
+  else if (hue < 180) channels = [0, chroma, secondary];
+  else if (hue < 240) channels = [0, secondary, chroma];
+  else if (hue < 300) channels = [secondary, 0, chroma];
+  else channels = [chroma, 0, secondary];
+  return channels.map((channel) => Math.round((channel + offset) * 255)).join(',');
 }
 
 export const TEST_ONLY = {
@@ -512,6 +535,7 @@ export const TEST_ONLY = {
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
   getStableDefaultRocColor,
+  getRenderedRocColor,
   limitRocSelection,
 };
 
