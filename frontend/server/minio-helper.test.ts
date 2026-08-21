@@ -153,6 +153,31 @@ describe('minio-helper', () => {
       });
     });
 
+    it('retains the server TLS setting when provider info does not override the endpoint', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'minio-service.kubeflow',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
     it('does not mutate shared defaults when applying per-request provider settings', async () => {
       const sharedConfig = {
         accessKey: 'default-access-key',

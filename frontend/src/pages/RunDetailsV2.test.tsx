@@ -230,6 +230,38 @@ describe('RunDetailsV2', () => {
     });
   });
 
+  it('keeps Run Details usable when a linked task scope is absent from the pipeline spec', async () => {
+    const linkedTask: V2beta1PipelineTask = {
+      task_id: 'orphan-task',
+      name: 'orphan',
+      run_id: RUN_ID,
+      scope_path: 'root.missing.orphan',
+      state: PipelineTaskTaskState.SUCCEEDED,
+      type: PipelineTaskTaskType.RUNTIME,
+    };
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [linkedTask] });
+    const props = generateProps();
+    props.location = {
+      pathname: `/runs/details/${RUN_ID}`,
+      search: '?task=orphan-task',
+    } as any;
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2 pipeline_job={v2YamlTemplateString} run={TEST_RUN} {...props} />
+      </CommonTestWrapper>,
+    );
+
+    expect(
+      await screen.findByText(
+        'Unable to open the requested pipeline graph. The run page remains available.',
+      ),
+    ).toBeVisible();
+    expect(document.querySelector('[data-id="task.orphan"]')).toHaveClass('selected');
+    fireEvent.click(screen.getByText('Task Details'));
+    expect(await screen.findByText('orphan-task')).toBeVisible();
+  });
+
   it('selects a new task when query-only navigation changes the deep-link target', async () => {
     const { rerenderWithSearch } = renderRunDetailsWithSearch('?task=preprocess-task');
     await waitFor(() =>

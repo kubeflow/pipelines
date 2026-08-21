@@ -299,6 +299,12 @@ s3:
       {
         data: {
           defaultPipelineRoot: 's3://team-bucket/root%20dir',
+          providers: `
+s3:
+  default:
+    credentials:
+      fromEnv: true
+`,
         },
       },
       undefined,
@@ -369,7 +375,17 @@ s3:
 
   it('treats a fragment marker as object-key data when checking the pipeline root', async () => {
     mockedGetConfigMap.mockResolvedValue([
-      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a/model' } },
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket/pipelines/team-a/model',
+          providers: `
+s3:
+  default:
+    credentials:
+      fromEnv: true
+`,
+        },
+      },
       undefined,
     ]);
 
@@ -442,6 +458,24 @@ gs:
     await expect(
       getLauncherProviderInfo(
         { source: 'minio', bucket: 'mlpipeline', key: 'outside/run/artifact' },
+        'kubeflow',
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('preserves legacy environment-credential reads when the ConfigMap has no provider policy', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 'minio://mlpipeline/v2/artifacts' } },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        {
+          source: 'minio',
+          bucket: 'mlpipeline',
+          key: 'artifacts/my-workflow/pod/mlpipeline-ui-metadata.tgz',
+        },
         'kubeflow',
       ),
     ).resolves.toBeUndefined();

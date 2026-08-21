@@ -93,6 +93,7 @@ export interface RunTaskRetryState {
 interface SelectedNodeState {
   element: PipelineFlowElement;
   linkedTaskId?: string;
+  navigationError?: string;
 }
 
 export interface RunDetailsV2Params {
@@ -117,6 +118,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [layers, setLayers] = useState(['root']);
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedNodeState, setSelectedNodeState] = useState<SelectedNodeState | null>(null);
+  const [layerNavigationError, setLayerNavigationError] = useState<string | null>(null);
   const [, forceUpdate] = useState();
   const runIsTerminal = hasFinishedV2(run.state);
   const retryRefreshVersion = props.retryTaskState?.version || 0;
@@ -269,10 +271,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const layerChange = useCallback(
     (layers: string[]) => {
-      clearLinkedTaskQuery();
-      setSelectedNodeState(null);
-      setLayers(layers);
-      setFlowElements(convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []));
+      try {
+        const nextElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []);
+        clearLinkedTaskQuery();
+        setLayerNavigationError(null);
+        setSelectedNodeState(null);
+        setLayers(layers);
+        setFlowElements(nextElements);
+      } catch (error) {
+        setLayerNavigationError(error instanceof Error ? error.message : String(error));
+      }
     },
     [clearLinkedTaskQuery, pipelineSpec, tasks],
   );
@@ -306,24 +314,34 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     // The query parameter is external navigation state. Materialize it through the same real
     // runtime layer and element set used by ordinary canvas navigation so the target is visible,
     // selected, and backed by its actual graph node rather than a detached details-only object.
-    const targetLayers = getTaskRuntimeLayers(linkedTask, tasks || []);
-    const targetElements = convertSubDagToRuntimeFlowElements(
-      pipelineSpec,
-      targetLayers,
-      tasks || [],
-    );
+    let targetLayers = getTaskRuntimeLayers(linkedTask, tasks || []);
+    let targetElements: PipelineFlowElement[];
     const targetNodeId = getTaskNodeKey(linkedTask.name || linkedTask.task_id || 'task');
-    const targetElement =
-      targetElements.find((element) => element.id === targetNodeId) ||
-      buildLinkedTaskElement(linkedTask);
+    let targetElement: PipelineFlowElement;
+    let navigationError: string | undefined;
+    try {
+      targetElements = convertSubDagToRuntimeFlowElements(pipelineSpec, targetLayers, tasks || []);
+      targetElement =
+        targetElements.find((element) => element.id === targetNodeId) ||
+        buildLinkedTaskElement(linkedTask);
+    } catch (error) {
+      targetLayers = ['root'];
+      targetElement = buildLinkedTaskElement(linkedTask);
+      targetElements = [targetElement];
+      navigationError = error instanceof Error ? error.message : String(error);
+    }
     appliedLinkedTaskId.current = linkedTaskId;
     setLayers(targetLayers);
     setFlowElements(targetElements);
-    setSelectedNodeState({ element: targetElement, linkedTaskId });
+    setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
   }, [linkedTask, linkedTaskId, pipelineSpec, tasks]);
 
   const linkedSelectionMatchesUrl =
     !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;
+  const graphNavigationError =
+    (selectedNodeState?.linkedTaskId === linkedTaskId
+      ? selectedNodeState.navigationError
+      : undefined) || layerNavigationError;
   const linkedTargetIsResolved = !linkedTaskId || !tasks || !!linkedTask;
   const activeSelectedNode =
     linkedSelectionMatchesUrl && linkedTargetIsResolved ? selectedNodeState?.element || null : null;
@@ -340,6 +358,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   const onElementSelection = (_event: ReactMouseEvent, element: PipelineFlowElement) => {
     clearLinkedTaskQuery();
+    setLayerNavigationError(null);
     setSelectedNodeState({ element });
   };
 
@@ -375,6 +394,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         <Banner
           message='Unable to refresh this run. The last known run state is still shown. Refresh the page to try again.'
           additionalInfo={props.runRefreshError.message}
+          mode='warning'
+        />
+      )}
+      {graphNavigationError && (
+        <Banner
+          message='Unable to open the requested pipeline graph. The run page remains available.'
+          additionalInfo={graphNavigationError}
           mode='warning'
         />
       )}

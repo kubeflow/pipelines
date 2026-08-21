@@ -131,7 +131,10 @@ export async function getLauncherProviderInfo(
   );
   const underPipelineRoot = isWithinPipelineRoot(storageCoordinates, defaultPipelineRoot);
   if (!underPipelineRoot && !storageCoordinates.artifactUriQuery && !override) {
-    if (!configMapPresent) {
+    // A ConfigMap with only defaultPipelineRoot contributes no provider credentials for legacy or
+    // custom-root artifacts. Preserve the environment-credential path unless this scheme actually
+    // has provider policy that would otherwise be bypassed.
+    if (!configMapPresent || !config) {
       return undefined;
     }
     throw new LauncherConfigValidationError(

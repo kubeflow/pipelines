@@ -368,6 +368,13 @@ function findTaskForElement(
   }
 
   const taskName = getTaskKeyFromNodeKey(element.id);
+  const iterationLayer = parseRuntimeIterationLayer(taskName, runtimeContext.task?.name);
+  if (iterationLayer && runtimeContext.task?.type === PipelineTaskTaskType.LOOP) {
+    return getTasksUnderContext(
+      { task: runtimeContext.task, iterationIndex: iterationLayer.iterationIndex },
+      taskIndex,
+    )[0];
+  }
   return getTasksUnderContext(runtimeContext, taskIndex).find((task) => task.name === taskName);
 }
 

@@ -308,7 +308,9 @@ async function applyS3ProviderInfo(
 
     if (providerInfo.Params.disableSSL !== undefined) {
       config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
-    } else {
+    } else if (providerInfo.Params.endpoint !== undefined) {
+      // Do not inherit the server's TLS setting when switching to a provider-supplied endpoint;
+      // without an endpoint override, retain the server default unchanged.
       config.useSSL = undefined;
     }
   }
