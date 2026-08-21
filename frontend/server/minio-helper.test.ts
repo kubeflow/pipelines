@@ -165,7 +165,7 @@ describe('minio-helper', () => {
         'minio',
         JSON.stringify({
           Provider: 'minio',
-          Params: { fromEnv: 'true' },
+          Params: { disableSSL: 'false', fromEnv: 'true' },
         }),
       );
 

@@ -306,12 +306,13 @@ async function applyS3ProviderInfo(
       config.region = providerInfo.Params.region;
     }
 
-    if (providerInfo.Params.disableSSL !== undefined) {
-      config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
-    } else if (providerInfo.Params.endpoint !== undefined) {
+    if (providerInfo.Params.endpoint) {
       // Do not inherit the server's TLS setting when switching to a provider-supplied endpoint;
       // without an endpoint override, retain the server default unchanged.
-      config.useSSL = undefined;
+      config.useSSL =
+        providerInfo.Params.disableSSL === undefined
+          ? undefined
+          : !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
     }
   }
   return config;
