@@ -614,6 +614,15 @@ message PipelineTaskSpec {
 
   // Iterator related settings.
   IteratorPolicy iterator_policy = 12;
+
+  // Autoscaling policy for Kubernetes Vertical Pod Autoscaler (VPA).
+  message AutoscalingPolicy {
+    // Mode for VPA update policy (e.g., "Auto", "Off", "Initial").
+    string mode = 1;
+  }
+
+  // Autoscaling policy of the task.
+  AutoscalingPolicy autoscaling_policy = 13;
 }
 
 // The spec of an artifact iterator. It supports fan-out a workflow from a list

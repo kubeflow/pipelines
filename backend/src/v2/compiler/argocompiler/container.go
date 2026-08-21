@@ -595,6 +595,14 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 		extendPodMetadata(&executor.Metadata, k8sExecCfg)
 	}
 
+	// Apply VPA autoscaling policy
+	if task.GetAutoscalingPolicy() != nil && task.GetAutoscalingPolicy().GetMode() != "" {
+		if executor.Metadata.Annotations == nil {
+			executor.Metadata.Annotations = make(map[string]string)
+		}
+		executor.Metadata.Annotations["vpa.autoscaling.k8s.io/update-mode"] = task.GetAutoscalingPolicy().GetMode()
+	}
+
 	c.templates[nameContainerImpl] = executor
 	c.wf.Spec.Templates = append(c.wf.Spec.Templates, *container, *executor)
 	return nameContainerExecutor
