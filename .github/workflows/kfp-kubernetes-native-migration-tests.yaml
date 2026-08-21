@@ -35,7 +35,7 @@ jobs:
     name: KFP Kubernetes Native Migration Tests - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
         uses: ./.github/actions/setup-python-pip-cache

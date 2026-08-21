@@ -54,7 +54,7 @@ jobs:
     name: API integration tests v2 - K8s with ${{ matrix.pipeline_store }} ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} testGroup=${{ matrix.test_group }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
