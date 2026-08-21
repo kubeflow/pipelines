@@ -146,7 +146,7 @@ export function RuntimeMetricsVisualizations({
       {confusionMatrixResult.matrices.map(({ visualization, configs }) => (
         <div className={padding(40)} key={visualization.key}>
           <h3>Confusion Matrix: {visualization.displayName}</h3>
-          <ConfusionMatrix configs={configs} />
+          <ConfusionMatrix configs={configs} key={getViewerConfigIdentity(configs[0])} />
         </div>
       ))}
       {!!scalarMetrics.length && (
@@ -340,8 +340,11 @@ function LegacyUiMetadataVisualization({
         : false;
     },
   });
-  const supportedConfigs = data?.configs.filter((config) => !!componentMap[config.type]);
-  const containsUnsupportedConfig = supportedConfigs?.length !== data?.configs.length;
+  const supportedConfigEntries = useMemo(
+    () => buildViewerConfigEntries(data?.configs || []),
+    [data?.configs],
+  );
+  const containsUnsupportedConfig = supportedConfigEntries.length !== (data?.configs.length || 0);
   return (
     <div className={padding(20, 'lrt')}>
       {error && (
@@ -371,15 +374,35 @@ function LegacyUiMetadataVisualization({
           mode='error'
         />
       )}
-      {supportedConfigs?.map((config, index) => (
+      {supportedConfigEntries.map(({ config, key }) => (
         <PlotCard
           configs={[config]}
-          key={`${config.type}-${index}`}
+          key={key}
           title={componentMap[config.type].prototype.getDisplayName()}
         />
       ))}
     </div>
   );
+}
+
+function getViewerConfigIdentity(config: ViewerConfig): string {
+  return JSON.stringify(config);
+}
+
+function buildViewerConfigEntries(configs: ViewerConfig[]): Array<{
+  config: ViewerConfig;
+  key: string;
+}> {
+  const identityOccurrences = new Map<string, number>();
+  return configs.flatMap((config) => {
+    if (!componentMap[config.type]) {
+      return [];
+    }
+    const identity = getViewerConfigIdentity(config);
+    const occurrence = identityOccurrences.get(identity) || 0;
+    identityOccurrences.set(identity, occurrence + 1);
+    return [{ config, key: JSON.stringify([identity, occurrence]) }];
+  });
 }
 
 async function loadLegacyUiMetadataVisualization(
@@ -577,6 +600,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export const TEST_ONLY = {
+  buildViewerConfigEntries,
   downloadVisualization,
   loadLegacyUiMetadataVisualization,
 };

@@ -142,6 +142,39 @@ describe('RuntimeMetricsVisualizations', () => {
     ]);
   });
 
+  it('renders recovered confusion matrix data instead of retaining the initial config', () => {
+    const artifact = (value: number): V2beta1Artifact => ({
+      artifact_id: 'matrix-recovery',
+      name: 'recovered matrix',
+      type: ArtifactArtifactType.ClassificationMetric,
+      metadata: {
+        confusionMatrix: {
+          annotationSpecs: [{ displayName: 'cat' }],
+          rows: [{ row: [value] }],
+        },
+      },
+    });
+    const view = (value: number) => (
+      <CommonTestWrapper>
+        <RuntimeMetricsVisualizations artifacts={[artifact(value)]} />
+      </CommonTestWrapper>
+    );
+
+    const { container, rerender } = render(view(1));
+    expect(
+      Array.from(container.querySelectorAll('td')).some((cell) => cell.textContent === '1'),
+    ).toBe(true);
+
+    rerender(view(7));
+
+    expect(
+      Array.from(container.querySelectorAll('td')).some((cell) => cell.textContent === '1'),
+    ).toBe(false);
+    expect(
+      Array.from(container.querySelectorAll('td')).some((cell) => cell.textContent === '7'),
+    ).toBe(true);
+  });
+
   it('reports dimension and cell errors in malformed confusion matrices', () => {
     const artifacts: V2beta1Artifact[] = [
       {
@@ -784,6 +817,25 @@ describe('RuntimeMetricsVisualizations', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('keeps existing legacy viewer identity when an earlier same-type config recovers', () => {
+    const retainedConfig: ViewerConfig = {
+      data: [['retained']],
+      labels: ['value'],
+      type: PlotType.TABLE,
+    };
+    const recoveredConfig: ViewerConfig = {
+      data: [['recovered']],
+      labels: ['value'],
+      type: PlotType.TABLE,
+    };
+
+    const initialEntries = TEST_ONLY.buildViewerConfigEntries([retainedConfig]);
+    const recoveredEntries = TEST_ONLY.buildViewerConfigEntries([recoveredConfig, retainedConfig]);
+
+    expect(initialEntries[0].key).toBe(recoveredEntries[1].key);
+    expect(recoveredEntries[0].key).not.toBe(recoveredEntries[1].key);
   });
 
   it('bounds retries when partial legacy data is followed by rejected refetches', async () => {
