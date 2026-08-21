@@ -51,42 +51,61 @@ function getDownloadObjectUrl(bucket: string, objectName: string): string {
 }
 
 export async function listGCSObjectNames(options: {
+  anonymous?: boolean;
   bucket: string;
   prefix: string;
   credentials?: CredentialBody;
   client?: GCSClient;
 }): Promise<string[]> {
-  const { bucket, prefix, credentials, client } = options;
-  const resolvedClient = client ?? (await getGCSClient(credentials));
+  const { anonymous, bucket, prefix, credentials, client } = options;
+  const resolvedClient = anonymous ? undefined : (client ?? (await getGCSClient(credentials)));
   const objectNames: string[] = [];
 
   let pageToken: string | undefined;
   do {
-    const response = await resolvedClient.request<GCSListResponse>({
-      url: getListObjectsUrl(bucket, prefix, pageToken),
-    });
+    const url = getListObjectsUrl(bucket, prefix, pageToken);
+    let data: GCSListResponse;
+    if (anonymous) {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Anonymous GCS list request failed with HTTP ${response.status}.`);
+      }
+      data = (await response.json()) as GCSListResponse;
+    } else {
+      const response = await resolvedClient!.request<GCSListResponse>({ url });
+      data = response.data;
+    }
     objectNames.push(
-      ...(response.data.items ?? [])
+      ...(data.items ?? [])
         .map((item) => item.name)
         .filter((name): name is string => typeof name === 'string' && name.length > 0),
     );
-    pageToken = response.data.nextPageToken;
+    pageToken = data.nextPageToken;
   } while (pageToken);
 
   return objectNames;
 }
 
 export async function downloadGCSObjectStream(options: {
+  anonymous?: boolean;
   bucket: string;
   objectName: string;
   credentials?: CredentialBody;
   client?: GCSClient;
 }): Promise<Readable> {
-  const { bucket, objectName, credentials, client } = options;
+  const { anonymous, bucket, objectName, credentials, client } = options;
+  const url = getDownloadObjectUrl(bucket, objectName);
+  if (anonymous) {
+    const response = await fetch(url);
+    if (!response.ok || !response.body) {
+      throw new Error(`Anonymous GCS download request failed with HTTP ${response.status}.`);
+    }
+    return Readable.fromWeb(response.body);
+  }
   const resolvedClient = client ?? (await getGCSClient(credentials));
   const response = await resolvedClient.request<Readable>({
     responseType: 'stream',
-    url: getDownloadObjectUrl(bucket, objectName),
+    url,
   });
   return response.data;
 }

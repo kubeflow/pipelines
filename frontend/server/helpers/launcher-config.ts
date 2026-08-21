@@ -347,8 +347,9 @@ function isWithinPipelineRoot(
 }
 
 function applyS3Settings(params: Record<string, string>, entry: ProviderEntry): void {
-  if (entry.endpoint !== undefined) params.endpoint = entry.endpoint;
-  if (entry.region !== undefined) params.region = entry.region;
+  // Launcher treats empty string overrides as inheritance from the selected default entry.
+  if (entry.endpoint) params.endpoint = entry.endpoint;
+  if (entry.region) params.region = entry.region;
   if (entry.disableSSL !== undefined) params.disableSSL = String(entry.disableSSL);
   if (entry.forcePathStyle !== undefined) params.forcePathStyle = String(entry.forcePathStyle);
   if (entry.maxRetries !== undefined) params.maxRetries = String(entry.maxRetries);

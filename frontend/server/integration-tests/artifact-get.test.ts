@@ -649,6 +649,41 @@ s3:
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
     });
 
+    it('uses anonymous GCS access when provider query settings request it', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const stream = new PassThrough();
+      stream.end('public artifact');
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { anonymous: 'true', fromEnv: 'true' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'public artifact\n');
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        prefix: 'hello/world.txt',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        objectName: 'hello/world.txt',
+      });
+    });
+
     it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
       // When the requested namespace is not the server's own namespace, the
       // secret-backed provider info must be ignored so the UI never reads

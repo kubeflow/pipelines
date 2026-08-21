@@ -235,6 +235,42 @@ s3:
     expect(JSON.parse(nestedResult || '').Params.endpoint).toBe('override-s3.example.com');
   });
 
+  it('inherits default S3 settings when a matching override uses empty strings', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 's3://team-bucket',
+          providers: `
+s3:
+  default:
+    endpoint: default-s3.example.com
+    region: default-region
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: team-bucket
+      keyPrefix: pipelines/team-a
+      endpoint: ''
+      region: ''
+      credentials:
+        fromEnv: true
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      { source: 's3', bucket: 'team-bucket', key: 'pipelines/team-a/artifact' },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params).toMatchObject({
+      endpoint: 'default-s3.example.com',
+      region: 'default-region',
+    });
+  });
+
   it('rejects default credentials for an artifact outside defaultPipelineRoot', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

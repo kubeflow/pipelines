@@ -309,10 +309,16 @@ async function applyS3ProviderInfo(
     if (providerInfo.Params.endpoint) {
       // Do not inherit the server's TLS setting when switching to a provider-supplied endpoint;
       // without an endpoint override, retain the server default unchanged.
-      config.useSSL =
-        providerInfo.Params.disableSSL === undefined
-          ? undefined
-          : !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
+      if (providerInfo.Params.endpoint.startsWith('http://')) {
+        config.useSSL = false;
+      } else if (providerInfo.Params.endpoint.startsWith('https://')) {
+        config.useSSL = true;
+      } else {
+        config.useSSL =
+          providerInfo.Params.disableSSL === undefined
+            ? undefined
+            : !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
+      }
     }
   }
   return config;

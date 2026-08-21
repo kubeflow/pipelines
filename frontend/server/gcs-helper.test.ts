@@ -100,4 +100,40 @@ describe('gcs-helper', () => {
     });
     expect(MockedGoogleAuth).not.toHaveBeenCalled();
   });
+
+  it('lists and downloads public objects anonymously without resolving ADC', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [{ name: 'public/report.csv' }] }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response('public contents', { status: 200 }));
+    try {
+      await expect(
+        listGCSObjectNames({ anonymous: true, bucket: 'public-bucket', prefix: 'public/' }),
+      ).resolves.toEqual(['public/report.csv']);
+      const stream = await downloadGCSObjectStream({
+        anonymous: true,
+        bucket: 'public-bucket',
+        objectName: 'public/report.csv',
+      });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+
+      expect(Buffer.concat(chunks).toString()).toBe('public contents');
+      expect(fetchSpy).toHaveBeenNthCalledWith(
+        1,
+        'https://storage.googleapis.com/storage/v1/b/public-bucket/o?prefix=public%2F',
+      );
+      expect(fetchSpy).toHaveBeenNthCalledWith(
+        2,
+        'https://storage.googleapis.com/storage/v1/b/public-bucket/o/public%2Freport.csv?alt=media',
+      );
+      expect(MockedGoogleAuth).not.toHaveBeenCalled();
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
 });

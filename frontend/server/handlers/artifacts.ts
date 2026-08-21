@@ -95,6 +95,7 @@ export interface GCSProviderInfo {
   Provider: string;
   Params: {
     fromEnv: string;
+    anonymous?: string;
     secretName?: string;
     tokenKey?: string;
   };
@@ -969,10 +970,9 @@ async function parseGCSProviderInfo(
 async function readGCSObjectText(
   bucket: string,
   objectName: string,
-  client: GCSClient,
-  credentials?: CredentialBody,
+  options: { anonymous?: boolean; client?: GCSClient; credentials?: CredentialBody },
 ): Promise<string> {
-  const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
+  const stream = await downloadGCSObjectStream({ bucket, objectName, ...options });
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
@@ -989,10 +989,12 @@ function getGCSArtifactHandler(
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
     try {
+      let anonymous = false;
       let credentials: CredentialBody | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
-        if (providerInfo && providerInfo.Params.fromEnv === 'false') {
+        anonymous = providerInfo?.Params.anonymous?.toLowerCase() === 'true';
+        if (providerInfo && !anonymous && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
             return;
@@ -1007,12 +1009,12 @@ function getGCSArtifactHandler(
       // expression out of the pattern, escaping all non-wildcard characters,
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
-      const client = await getGCSClient(credentials);
+      const client = anonymous ? undefined : await getGCSClient(credentials);
+      const accessOptions = anonymous ? { anonymous: true } : { client, credentials };
       const matchingFiles = (
         await listGCSObjectNames({
+          ...accessOptions,
           bucket,
-          client,
-          credentials,
           prefix,
         })
       ).filter((name) => {
@@ -1034,9 +1036,8 @@ function getGCSArtifactHandler(
       // TODO: support peek for concatenated matching files
       if (peek) {
         const stream = await downloadGCSObjectStream({
+          ...accessOptions,
           bucket,
-          client,
-          credentials,
           objectName: matchingFiles[0],
         });
         stream.pipe(new PreviewStream({ peek })).pipe(res);
@@ -1045,7 +1046,7 @@ function getGCSArtifactHandler(
 
       // if not peeking, iterate and append all the files
       for (const fileName of matchingFiles) {
-        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
+        contents += (await readGCSObjectText(bucket, fileName, accessOptions)).trim() + '\n';
       }
       res.send(contents);
     } catch (err) {

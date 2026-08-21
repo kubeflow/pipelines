@@ -149,7 +149,35 @@ describe('minio-helper', () => {
         endPoint: 'ceph.example',
         port: 9443,
         secretKey: 'secretkey',
-        useSSL: undefined,
+        useSSL: true,
+      });
+    });
+
+    it('preserves an explicit HTTP endpoint scheme when disableSSL is false', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'default-store',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'http://ceph.example:9000',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
       });
     });
 
