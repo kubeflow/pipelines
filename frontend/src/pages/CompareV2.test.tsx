@@ -481,17 +481,45 @@ describe('CompareV2', () => {
     expect(collectRuntimeComparisonArtifacts(comparisonData, 'team-a')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          key: 'run-1:task-1:classification:0:classification-1',
+          key: 'run-1:task-1:classification:classification-1',
           label: 'First run / Train / evaluation',
           namespace: 'team-a',
           sourceFinished: false,
         }),
         expect.objectContaining({
-          key: 'run-2:task-2:accuracy:0:metric-2',
+          key: 'run-2:task-2:accuracy:metric-2',
           sourceFinished: true,
         }),
       ]),
     );
+  });
+
+  it('keeps comparison artifact keys stable when a sibling is inserted', () => {
+    const originalTask = tasksByRun['run-1'][0];
+    const original = collectRuntimeComparisonArtifacts([{ run: runs[0], tasks: [originalTask] }]);
+    const insertedArtifact = {
+      artifact_id: 'inserted-artifact',
+      name: 'inserted',
+      type: ArtifactArtifactType.HTML,
+      uri: 's3://reports/inserted.html',
+    };
+    const updatedTask = {
+      ...originalTask,
+      outputs: {
+        ...originalTask.outputs,
+        artifacts: [
+          { artifact_key: 'inserted', artifacts: [insertedArtifact] },
+          ...(originalTask.outputs?.artifacts || []),
+        ],
+      },
+    };
+    const updated = collectRuntimeComparisonArtifacts([{ run: runs[0], tasks: [updatedTask] }]);
+
+    for (const entry of original) {
+      expect(
+        updated.find(({ artifact }) => artifact.artifact_id === entry.artifact.artifact_id)?.key,
+      ).toBe(entry.key);
+    }
   });
 
   it('marks artifact sources finished after bounded terminal reconciliation', () => {
@@ -661,6 +689,7 @@ describe('CompareV2', () => {
 
   it('preserves final tasks when the terminal reconciliation run refresh fails', async () => {
     vi.useFakeTimers();
+    const refetchQueriesSpy = vi.spyOn(QueryClient.prototype, 'refetchQueries');
     const runningTask = { ...tasksByRun['run-1'][0], state: PipelineTaskTaskState.RUNNING };
     const finalTask: V2beta1PipelineTask = {
       ...runningTask,
@@ -726,6 +755,14 @@ describe('CompareV2', () => {
       await vi.advanceTimersByTimeAsync(1);
     });
     expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(4);
+    expect(refetchQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ['runtime_artifact_visualization'],
+      type: 'active',
+    });
+    expect(refetchQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ['legacy_runtime_ui_metadata'],
+      type: 'active',
+    });
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 

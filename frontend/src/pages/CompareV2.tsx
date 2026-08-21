@@ -312,7 +312,15 @@ export function CompareV2(props: CompareV2Props) {
 
   const updateComparisonToolbar = useEffectEvent(() => {
     const refresh = async () => {
-      await Promise.all([runlistRef.current?.refresh(), refetch()]);
+      await Promise.all([
+        runlistRef.current?.refresh(),
+        refetch(),
+        queryClient.refetchQueries({
+          queryKey: ['runtime_artifact_visualization'],
+          type: 'active',
+        }),
+        queryClient.refetchQueries({ queryKey: ['legacy_runtime_ui_metadata'], type: 'active' }),
+      ]);
     };
     const buttons = new Buttons(props, refresh);
     updateToolbar({
@@ -552,25 +560,30 @@ export function collectRuntimeComparisonArtifacts(
       run.state !== undefined &&
       hasFinishedV2(run.state) &&
       terminalTaskReconciliationPending !== true;
+    const keyOccurrences = new Map<string, number>();
     return collectOutputArtifacts(tasks).map(
-      ({ artifact, artifactKey, group, index, sourceFinished, taskKey, taskName }) => ({
-        artifact,
-        key: [
+      ({ artifact, artifactKey, group, index, sourceFinished, taskKey, taskName }) => {
+        const baseKey = [
           run.run_id || runLabel,
           taskKey,
           artifactKey,
-          index,
           getArtifactIdentity(artifact) || 'artifact',
-        ].join(':'),
-        label: `${runLabel} / ${taskName} / ${getArtifactDisplayName(
+        ].join(':');
+        const occurrence = keyOccurrences.get(baseKey) || 0;
+        keyOccurrences.set(baseKey, occurrence + 1);
+        return {
           artifact,
-          artifactKey,
-          index,
-          group.artifacts,
-        )}`,
-        namespace: artifact.namespace || defaultNamespace,
-        sourceFinished: sourceFinished || terminalRunFinishedSources,
-      }),
+          key: occurrence ? `${baseKey}:duplicate-${occurrence}` : baseKey,
+          label: `${runLabel} / ${taskName} / ${getArtifactDisplayName(
+            artifact,
+            artifactKey,
+            index,
+            group.artifacts,
+          )}`,
+          namespace: artifact.namespace || defaultNamespace,
+          sourceFinished: sourceFinished || terminalRunFinishedSources,
+        };
+      },
     );
   });
 }
