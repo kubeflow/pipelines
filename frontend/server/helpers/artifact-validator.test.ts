@@ -79,7 +79,7 @@ describe('artifact-validator', () => {
     });
   });
 
-  it('requires exact ArtifactService evidence for an encoded namespace alias', async () => {
+  it('allows an encoded standard-prefix alias only with exact ArtifactService evidence', async () => {
     const fetchSpy = vi
       .fn()
       .mockResolvedValueOnce(

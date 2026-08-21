@@ -189,6 +189,9 @@ export async function validateArtifactNamespace(
       // A namespaced Artifact API row alone is not proof that a custom-root URI belongs to the
       // namespace: a tenant can import an arbitrary URI into its own run. Custom roots are safe
       // only when the actual read is delegated to the namespace-isolated artifact proxy.
+      // An encoded-prefix match is different: its decoded path is still under the caller's standard
+      // namespace prefix. The exact row proves the alternate identity spelling, so it may use the
+      // same direct serving path as a canonical prefix without weakening the custom-root boundary.
       return keyPrefixValidation.valid || allowNamespaceIsolatedCustomRoots
         ? { valid: true, reason: 'artifact-api-match' }
         : { valid: false, reason: 'custom-root-requires-namespace-isolation' };
