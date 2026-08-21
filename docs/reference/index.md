@@ -10,6 +10,5 @@ version-compatibility
 architecture
 api/kubeflow-pipeline-api-spec
 component-spec
-sdk
 kfp-kubernetes
 ```

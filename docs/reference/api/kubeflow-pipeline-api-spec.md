@@ -8,7 +8,7 @@ In most deployments of the [Kubeflow Community Distribution](https://www.kubeflo
 For example, if you host Kubeflow at `https://kubeflow.example.com`, the API will be available at `https://kubeflow.example.com/pipeline/`.
 
 :::{tip}
-We recommend using the [Kubeflow Pipelines Python SDK](../sdk.md) as it provides a more user-friendly interface.
+We recommend using the {doc}`Kubeflow Pipelines Python SDK </python-sdk>` as it provides a more user-friendly interface.
 See the [Connect SDK to the API](../../user-guides/core-functions/connect-api.md) guide for more information.
 :::
 
