@@ -139,6 +139,13 @@ func ParseBucketPathToConfig(path string) (*Config, error) {
 	}
 
 	prefix := strings.TrimPrefix(ms[3], "/")
+
+	if strings.Contains(prefix, "%") {
+		return nil, fmt.Errorf(
+			"parse bucket config failed: pipeline root prefix %q contains unsupported percent sign",
+			prefix,
+		)
+	}
 	if len(prefix) > 0 && !strings.HasSuffix(prefix, "/") {
 		prefix = prefix + "/"
 	}

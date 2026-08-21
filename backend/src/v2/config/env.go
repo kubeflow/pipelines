@@ -79,6 +79,16 @@ func FromConfigMap(ctx context.Context, clientSet kubernetes.Interface, namespac
 		}
 		return nil, err
 	}
+
+	if pipelineRoot := config.Data[configKeyDefaultPipelineRoot]; pipelineRoot != "" {
+		if _, err := objectstore.ParseBucketPathToConfig(pipelineRoot); err != nil {
+			return nil, fmt.Errorf(
+				"invalid default pipeline root %q: %w",
+				pipelineRoot,
+				err,
+			)
+		}
+	}
 	return &Config{data: config.Data}, nil
 }
 
