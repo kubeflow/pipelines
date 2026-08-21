@@ -149,7 +149,9 @@ export async function getLauncherProviderInfo(
   const effectiveQuery = underPipelineRoot
     ? getUriQuery(defaultPipelineRoot)
     : storageCoordinates.artifactUriQuery;
-  if (effectiveQuery) {
+  // GCS provider configuration is authoritative whenever it exists. Unlike the S3 runtime, the
+  // GCS runtime does not let an artifact URI query replace configured namespace credentials.
+  if (effectiveQuery && !(provider === 'gs' && config)) {
     return JSON.stringify(buildQuerySessionInfo(provider, effectiveQuery));
   }
   if (!config) {

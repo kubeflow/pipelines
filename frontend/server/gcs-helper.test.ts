@@ -136,4 +136,33 @@ describe('gcs-helper', () => {
       fetchSpy.mockRestore();
     }
   });
+
+  it('uses the requested universe domain for GCS API requests', async () => {
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ data: { items: [{ name: 'report.csv' }] } })
+      .mockResolvedValueOnce({ data: new PassThrough() });
+    const client = { request } as any;
+
+    await listGCSObjectNames({
+      bucket: 'bucket',
+      client,
+      prefix: '',
+      universeDomain: 'example.com',
+    });
+    await downloadGCSObjectStream({
+      bucket: 'bucket',
+      client,
+      objectName: 'report.csv',
+      universeDomain: 'example.com',
+    });
+
+    expect(request).toHaveBeenNthCalledWith(1, {
+      url: 'https://storage.example.com/storage/v1/b/bucket/o?prefix=',
+    });
+    expect(request).toHaveBeenNthCalledWith(2, {
+      responseType: 'stream',
+      url: 'https://storage.example.com/storage/v1/b/bucket/o/report.csv?alt=media',
+    });
+  });
 });

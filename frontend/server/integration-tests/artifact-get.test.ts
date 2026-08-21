@@ -299,6 +299,7 @@ s3:
       expect(mockedMinioClient).toHaveBeenCalledWith({
         accessKey: 'launcher-secret',
         endPoint: 'custom-s3.example.com',
+        pathStyle: true,
         port: 9443,
         region: 'custom-region',
         secretKey: 'launcher-secret',
@@ -649,7 +650,7 @@ s3:
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
     });
 
-    it('uses anonymous GCS access when provider query settings request it', async () => {
+    it('uses access_id=- and universe_domain GCS query settings', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
       const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
       const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
@@ -660,7 +661,7 @@ s3:
       app = new UIServer(loadConfigs(argv, {}));
 
       const providerInfo = {
-        Params: { anonymous: 'true', fromEnv: 'true' },
+        Params: { access_id: '-', fromEnv: 'true', universe_domain: 'example.com' },
         Provider: 'gs',
       };
       await requests(app.app)
@@ -676,11 +677,13 @@ s3:
         anonymous: true,
         bucket: 'public-bucket',
         prefix: 'hello/world.txt',
+        universeDomain: 'example.com',
       });
       expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
         anonymous: true,
         bucket: 'public-bucket',
         objectName: 'hello/world.txt',
+        universeDomain: 'example.com',
       });
     });
 

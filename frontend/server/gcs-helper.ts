@@ -16,7 +16,7 @@ import { CredentialBody, GoogleAuth } from 'google-auth-library';
 import { Readable } from 'stream';
 
 const GCS_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write';
-const GCS_API_BASE = 'https://storage.googleapis.com/storage/v1';
+const DEFAULT_GCS_UNIVERSE_DOMAIN = 'googleapis.com';
 
 export type GCSClient = Awaited<ReturnType<GoogleAuth['getClient']>>;
 
@@ -33,8 +33,21 @@ export async function getGCSClient(credentials?: CredentialBody): Promise<GCSCli
   return auth.getClient();
 }
 
-function getListObjectsUrl(bucket: string, prefix: string, pageToken?: string): string {
-  const url = new URL(`${GCS_API_BASE}/b/${encodeURIComponent(bucket)}/o`);
+function getGCSApiBase(universeDomain?: string): string {
+  const domain = universeDomain || DEFAULT_GCS_UNIVERSE_DOMAIN;
+  if (!/^[a-z0-9.-]+$/i.test(domain) || domain.startsWith('.') || domain.endsWith('.')) {
+    throw new Error(`Invalid GCS universe_domain: ${domain}`);
+  }
+  return `https://storage.${domain}/storage/v1`;
+}
+
+function getListObjectsUrl(
+  bucket: string,
+  prefix: string,
+  pageToken?: string,
+  universeDomain?: string,
+): string {
+  const url = new URL(`${getGCSApiBase(universeDomain)}/b/${encodeURIComponent(bucket)}/o`);
   url.searchParams.set('prefix', prefix);
   if (pageToken) {
     url.searchParams.set('pageToken', pageToken);
@@ -42,9 +55,9 @@ function getListObjectsUrl(bucket: string, prefix: string, pageToken?: string): 
   return url.toString();
 }
 
-function getDownloadObjectUrl(bucket: string, objectName: string): string {
+function getDownloadObjectUrl(bucket: string, objectName: string, universeDomain?: string): string {
   const url = new URL(
-    `${GCS_API_BASE}/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`,
+    `${getGCSApiBase(universeDomain)}/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(objectName)}`,
   );
   url.searchParams.set('alt', 'media');
   return url.toString();
@@ -56,14 +69,15 @@ export async function listGCSObjectNames(options: {
   prefix: string;
   credentials?: CredentialBody;
   client?: GCSClient;
+  universeDomain?: string;
 }): Promise<string[]> {
-  const { anonymous, bucket, prefix, credentials, client } = options;
+  const { anonymous, bucket, prefix, credentials, client, universeDomain } = options;
   const resolvedClient = anonymous ? undefined : (client ?? (await getGCSClient(credentials)));
   const objectNames: string[] = [];
 
   let pageToken: string | undefined;
   do {
-    const url = getListObjectsUrl(bucket, prefix, pageToken);
+    const url = getListObjectsUrl(bucket, prefix, pageToken, universeDomain);
     let data: GCSListResponse;
     if (anonymous) {
       const response = await fetch(url);
@@ -92,9 +106,10 @@ export async function downloadGCSObjectStream(options: {
   objectName: string;
   credentials?: CredentialBody;
   client?: GCSClient;
+  universeDomain?: string;
 }): Promise<Readable> {
-  const { anonymous, bucket, objectName, credentials, client } = options;
-  const url = getDownloadObjectUrl(bucket, objectName);
+  const { anonymous, bucket, objectName, credentials, client, universeDomain } = options;
+  const url = getDownloadObjectUrl(bucket, objectName, universeDomain);
   if (anonymous) {
     const response = await fetch(url);
     if (!response.ok || !response.body) {

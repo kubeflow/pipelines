@@ -88,6 +88,9 @@ export interface S3ProviderInfo {
     region?: string;
     endpoint?: string;
     disableSSL?: string;
+    anonymous?: string;
+    forcePathStyle?: string;
+    s3ForcePathStyle?: string;
   };
 }
 
@@ -95,7 +98,9 @@ export interface GCSProviderInfo {
   Provider: string;
   Params: {
     fromEnv: string;
+    access_id?: string;
     anonymous?: string;
+    universe_domain?: string;
     secretName?: string;
     tokenKey?: string;
   };
@@ -970,7 +975,12 @@ async function parseGCSProviderInfo(
 async function readGCSObjectText(
   bucket: string,
   objectName: string,
-  options: { anonymous?: boolean; client?: GCSClient; credentials?: CredentialBody },
+  options: {
+    anonymous?: boolean;
+    client?: GCSClient;
+    credentials?: CredentialBody;
+    universeDomain?: string;
+  },
 ): Promise<string> {
   const stream = await downloadGCSObjectStream({ bucket, objectName, ...options });
   const chunks: Buffer[] = [];
@@ -991,9 +1001,13 @@ function getGCSArtifactHandler(
     try {
       let anonymous = false;
       let credentials: CredentialBody | undefined;
+      let universeDomain: string | undefined;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
-        anonymous = providerInfo?.Params.anonymous?.toLowerCase() === 'true';
+        anonymous =
+          providerInfo?.Params.anonymous?.toLowerCase() === 'true' ||
+          providerInfo?.Params.access_id === '-';
+        universeDomain = providerInfo?.Params.universe_domain || undefined;
         if (providerInfo && !anonymous && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
@@ -1010,7 +1024,10 @@ function getGCSArtifactHandler(
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
       const client = anonymous ? undefined : await getGCSClient(credentials);
-      const accessOptions = anonymous ? { anonymous: true } : { client, credentials };
+      const universeOptions = universeDomain ? { universeDomain } : {};
+      const accessOptions = anonymous
+        ? { anonymous: true, ...universeOptions }
+        : { client, credentials, ...universeOptions };
       const matchingFiles = (
         await listGCSObjectNames({
           ...accessOptions,

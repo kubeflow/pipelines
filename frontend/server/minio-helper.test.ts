@@ -206,6 +206,81 @@ describe('minio-helper', () => {
       });
     });
 
+    it('applies endpoint-less disableSSL=true while inheriting the server endpoint and region', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          region: 'environment-region',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { disableSSL: 'true', fromEnv: 'true', region: '' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'minio-service.kubeflow',
+        region: 'environment-region',
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('supports anonymous virtual-hosted S3 access without resolving credentials', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'environment-access',
+          endPoint: 'default-store',
+          secretKey: 'environment-secret',
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            anonymous: 'true',
+            endpoint: 'https://s3.us-west-2.amazonaws.com',
+            forcePathStyle: 'false',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.us-west-2.amazonaws.com',
+        pathStyle: false,
+        port: undefined,
+        useSSL: true,
+      });
+    });
+
+    it('parses an explicit HTTP AWS endpoint into Minio client options', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'http://s3.us-west-2.amazonaws.com',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
     it('does not mutate shared defaults when applying per-request provider settings', async () => {
       const sharedConfig = {
         accessKey: 'default-access-key',

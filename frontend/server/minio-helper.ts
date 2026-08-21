@@ -103,16 +103,23 @@ export async function createMinioClient(
     }
   }
 
+  let anonymous = false;
   if (providerInfoString) {
     const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
     if (!providerInfo) {
       throw new Error('Failed to parse provider info.');
     }
+    anonymous = providerInfo.Params.anonymous?.toLowerCase() === 'true';
     config = await applyS3ProviderInfo(config, providerInfo, namespace);
+    if (anonymous) {
+      delete config.accessKey;
+      delete config.secretKey;
+      delete config.sessionToken;
+    }
   }
 
   // If using s3 and sourcing credentials from environment (currently only aws is supported)
-  if (providerType === 's3' && !(config.accessKey && config.secretKey)) {
+  if (providerType === 's3' && !anonymous && !(config.accessKey && config.secretKey)) {
     // AWS S3 with credentials from provider chain
     if (isAWSS3Endpoint(config.endPoint)) {
       try {
@@ -268,12 +275,13 @@ async function applyS3ProviderInfo(
 
   if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
     if (providerInfo.Params.endpoint) {
-      if (providerInfo.Params.endpoint.startsWith('https')) {
-        const parseEndpoint = new URL(providerInfo.Params.endpoint);
-        config.endPoint = parseEndpoint.hostname;
-      } else {
-        config.endPoint = providerInfo.Params.endpoint;
+      const endpoint = parseEndpoint(providerInfo.Params.endpoint);
+      if (!endpoint) {
+        throw new Error(`Provider info has invalid endpoint: ${providerInfo.Params.endpoint}`);
       }
+      config.endPoint = endpoint.host;
+      config.port = endpoint.port;
+      config.useSSL = endpoint.useSSL;
     } else {
       throw new Error('Provider info missing endpoint parameter.');
     }
@@ -281,12 +289,6 @@ async function applyS3ProviderInfo(
     if (providerInfo.Params.region) {
       config.region = providerInfo.Params.region;
     }
-
-    // It's possible the user specifies these via config
-    // since aws s3 and s3-compatible use the same config parameters
-    // safeguard the user by ensuring these remain unset (default)
-    config.port = undefined;
-    config.useSSL = undefined;
   } else {
     if (providerInfo.Params.endpoint) {
       const url = providerInfo.Params.endpoint;
@@ -302,7 +304,7 @@ async function applyS3ProviderInfo(
       config.port = port ? Number(port) : undefined;
     }
 
-    if (providerInfo.Params.region !== undefined) {
+    if (providerInfo.Params.region) {
       config.region = providerInfo.Params.region;
     }
 
@@ -319,7 +321,15 @@ async function applyS3ProviderInfo(
             ? undefined
             : !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
       }
+    } else if (providerInfo.Params.disableSSL?.toLowerCase() === 'true') {
+      // The runtime applies an explicit disableSSL=true even when credentials inherit the server
+      // endpoint. A materialized false remains inheritance so it cannot flip a plaintext default.
+      config.useSSL = false;
     }
+  }
+  const pathStyle = providerInfo.Params.forcePathStyle ?? providerInfo.Params.s3ForcePathStyle;
+  if (pathStyle !== undefined) {
+    config.pathStyle = pathStyle.toLowerCase() === 'true';
   }
   return config;
 }

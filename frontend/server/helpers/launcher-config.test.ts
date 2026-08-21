@@ -507,6 +507,44 @@ gs:
     });
   });
 
+  it('keeps configured GCS credentials authoritative over artifact URI queries', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      {
+        data: {
+          defaultPipelineRoot: 'gs://bucket/root?anonymous=true',
+          providers: `
+gs:
+  default:
+    credentials:
+      fromEnv: false
+      secretRef:
+        secretName: gcs-credentials
+        tokenKey: key.json
+`,
+        },
+      },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 'gcs',
+        bucket: 'bucket',
+        key: 'root/artifact',
+      },
+      'kubeflow',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 'gs',
+      Params: {
+        fromEnv: 'false',
+        secretName: 'gcs-credentials',
+        tokenKey: 'key.json',
+      },
+    });
+  });
+
   it('uses normal server defaults under the default pipeline root when config is absent', async () => {
     mockedGetConfigMap.mockResolvedValue([
       undefined,
