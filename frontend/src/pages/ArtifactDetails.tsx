@@ -63,6 +63,7 @@ const TAB_NAMES = ['Overview', 'Related tasks'];
 const LEGACY_KEY_RECONCILIATION_INTERVAL_MS = 10_000;
 const LEGACY_KEY_RECONCILIATION_ATTEMPTS = 4;
 const LEGACY_KEY_RECONCILIATION_WINDOW_MS = 60_000;
+const LEGACY_KEY_CLOCK_SKEW_TOLERANCE_MS = 5 * 60_000;
 const RELATED_TASK_COLUMNS: Column[] = [
   { flex: 2, label: 'Relationship', sortKey: 'id' },
   { customRenderer: RelatedTaskLink, flex: 3, label: 'Task' },
@@ -188,9 +189,12 @@ function ArtifactOverview({
       artifact.type === ArtifactArtifactType.TYPE_UNSPECIFIED ||
       artifact.type === ArtifactArtifactType.Artifact);
   const artifactCreatedAt = artifact.created_at?.getTime();
+  // The timestamp comes from the API server while mountedAt comes from the browser. A bounded skew
+  // allowance preserves eventual-consistency recovery without polling every historical artifact.
   const shouldReconcileMissingKey =
     artifactCreatedAt !== undefined &&
-    mountedAt - artifactCreatedAt <= LEGACY_KEY_RECONCILIATION_WINDOW_MS;
+    mountedAt - artifactCreatedAt <=
+      LEGACY_KEY_RECONCILIATION_WINDOW_MS + LEGACY_KEY_CLOCK_SKEW_TOLERANCE_MS;
   const queryClient = useQueryClient();
   const visualizationQueryKey = queryKeys.artifactVisualizationKey(artifact.artifact_id || '');
   const { data: legacyKeyResult } = useQuery<LegacyUiMetadataKeyResult, Error>({

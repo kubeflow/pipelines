@@ -177,12 +177,12 @@ describe('ArtifactDetails', () => {
     expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('reconciles a legacy UI metadata relationship created after the artifact', async () => {
+  it('reconciles a delayed relationship when the browser clock is ahead of the server', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
         artifact_id: TEST_ARTIFACT_ID,
-        created_at: new Date(),
+        created_at: new Date(Date.now() - 2 * 60_000),
         name: 'legacy-output',
         uri: 's3://reports/metadata.json',
         namespace: 'kubeflow',
