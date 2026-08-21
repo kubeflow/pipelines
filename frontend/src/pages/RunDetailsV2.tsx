@@ -17,6 +17,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -96,6 +97,56 @@ interface SelectedNodeState {
   navigationError?: string;
 }
 
+interface TerminalTaskReconciliation {
+  dataUpdateBaseline: number;
+  errorUpdateBaseline: number;
+  retryRefreshVersion: number;
+  runId: string;
+}
+
+interface TaskReconciliationQueryState {
+  data?: V2beta1PipelineTask[];
+  dataUpdateCount: number;
+  error: unknown | null;
+  errorUpdateCount: number;
+}
+
+function evaluateTerminalTaskReconciliation(
+  queryState: TaskReconciliationQueryState,
+  reconciliation: TerminalTaskReconciliation | null,
+  runId: string,
+  retryRefreshVersion: number,
+  preRetryTasks: V2beta1PipelineTask[] | undefined,
+): { completedAttemptCount: number; hasBaseline: boolean; needsReconciliation: boolean } {
+  const reconciliationMatchesCurrentQuery =
+    reconciliation?.runId === runId && reconciliation.retryRefreshVersion === retryRefreshVersion;
+  const dataUpdateBaseline = reconciliationMatchesCurrentQuery
+    ? reconciliation.dataUpdateBaseline
+    : retryRefreshVersion > 0
+      ? 0
+      : undefined;
+  const errorUpdateBaseline = reconciliationMatchesCurrentQuery
+    ? reconciliation.errorUpdateBaseline
+    : retryRefreshVersion > 0
+      ? 0
+      : undefined;
+  if (dataUpdateBaseline === undefined || errorUpdateBaseline === undefined) {
+    return { completedAttemptCount: 0, hasBaseline: false, needsReconciliation: true };
+  }
+  return {
+    completedAttemptCount:
+      Math.max(0, queryState.dataUpdateCount - dataUpdateBaseline) +
+      Math.max(0, queryState.errorUpdateCount - errorUpdateBaseline),
+    hasBaseline: true,
+    needsReconciliation:
+      queryState.error !== null ||
+      queryState.data === undefined ||
+      queryState.data.some((task) => !isTaskFinished(task.state)) ||
+      (retryRefreshVersion > 0 &&
+        (preRetryTasks === undefined || isEqual(queryState.data, preRetryTasks))),
+  };
+}
+
 export interface RunDetailsV2Params {
   [RouteParams.runId]: string;
 }
@@ -126,17 +177,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const previousRunStatus = useRef({ runId, isTerminal: runIsTerminal });
   const appliedLinkedTaskId = useRef<string | null>(null);
   const fallbackGraphActive = useRef(false);
+  const [terminalTaskSnapshot, setTerminalTaskSnapshot] = useState<{
+    retryRefreshVersion: number;
+    runId: string;
+  } | null>(null);
   const queryClient = useQueryClient();
   const taskQueryKey = useMemo(
     () => queryKeys.runTasks(runId, retryRefreshVersion || undefined),
     [retryRefreshVersion, runId],
   );
-  const terminalTaskReconciliation = useRef<{
-    dataUpdateBaseline: number;
-    errorUpdateBaseline: number;
-    retryRefreshVersion: number;
-    runId: string;
-  } | null>(
+  const terminalTaskReconciliation = useRef<TerminalTaskReconciliation | null>(
     runIsTerminal
       ? {
           dataUpdateBaseline: queryClient.getQueryState(taskQueryKey)?.dataUpdateCount || 0,
@@ -164,39 +214,23 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       if (!runIsTerminal) {
         return QUERY_REFETCH_INTERVAL;
       }
-      const reconciliation = terminalTaskReconciliation.current;
-      const dataUpdateBaseline =
-        reconciliation?.runId === runId &&
-        reconciliation.retryRefreshVersion === retryRefreshVersion
-          ? reconciliation.dataUpdateBaseline
-          : retryRefreshVersion > 0
-            ? 0
-            : undefined;
-      const errorUpdateBaseline =
-        reconciliation?.runId === runId &&
-        reconciliation.retryRefreshVersion === retryRefreshVersion
-          ? reconciliation.errorUpdateBaseline
-          : retryRefreshVersion > 0
-            ? 0
-            : undefined;
-      if (dataUpdateBaseline === undefined || errorUpdateBaseline === undefined) {
+      const evaluation = evaluateTerminalTaskReconciliation(
+        query.state,
+        terminalTaskReconciliation.current,
+        runId,
+        retryRefreshVersion,
+        preRetryTasks,
+      );
+      if (!evaluation.hasBaseline) {
         return false;
       }
       // Count accepted data and terminal errors. Cancelled requests update neither counter, while
       // persistent failures must still consume this bounded reconciliation budget.
-      const completedAttemptCount =
-        Math.max(0, query.state.dataUpdateCount - dataUpdateBaseline) +
-        Math.max(0, query.state.errorUpdateCount - errorUpdateBaseline);
-      if (completedAttemptCount === 0) {
+      if (evaluation.completedAttemptCount === 0) {
         return QUERY_REFETCH_INTERVAL;
       }
-      const needsTaskReconciliation =
-        query.state.data === undefined ||
-        query.state.data.some((task) => !isTaskFinished(task.state)) ||
-        (retryRefreshVersion > 0 &&
-          (preRetryTasks === undefined || isEqual(query.state.data, preRetryTasks)));
-      return completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
-        needsTaskReconciliation
+      return evaluation.completedAttemptCount < MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS &&
+        evaluation.needsReconciliation
         ? QUERY_REFETCH_INTERVAL
         : false;
     },
@@ -204,6 +238,44 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     // task state on a terminal mount instead of preserving a potentially running graph forever.
     refetchOnMount: retryRefreshVersion > 0 || runIsTerminal ? 'always' : true,
   });
+
+  useLayoutEffect(() => {
+    const queryCache = queryClient.getQueryCache();
+    const taskQuery = queryCache.find({ exact: true, queryKey: taskQueryKey });
+    if (!taskQuery) {
+      return undefined;
+    }
+    return queryCache.subscribe((event) => {
+      if (
+        !runIsTerminal ||
+        event.type !== 'updated' ||
+        event.query !== taskQuery ||
+        (event.action.type !== 'success' && event.action.type !== 'error')
+      ) {
+        return;
+      }
+      const evaluation = evaluateTerminalTaskReconciliation(
+        event.query.state as TaskReconciliationQueryState,
+        terminalTaskReconciliation.current,
+        runId,
+        retryRefreshVersion,
+        preRetryTasks,
+      );
+      if (!evaluation.hasBaseline) {
+        return;
+      }
+      const reconciliationComplete =
+        evaluation.completedAttemptCount > 0 &&
+        (evaluation.completedAttemptCount >= MAX_TERMINAL_TASK_RECONCILIATION_ATTEMPTS ||
+          !evaluation.needsReconciliation);
+      setTerminalTaskSnapshot(reconciliationComplete ? { retryRefreshVersion, runId } : null);
+    });
+  }, [preRetryTasks, queryClient, retryRefreshVersion, runId, runIsTerminal, taskQueryKey]);
+
+  const runtimeTaskSnapshotIsTerminal =
+    runIsTerminal &&
+    terminalTaskSnapshot?.runId === runId &&
+    terminalTaskSnapshot.retryRefreshVersion === retryRefreshVersion;
 
   // The terminal run update stops active polling. Capture an operation-scoped baseline before the
   // first reconciliation fetch so the interval can accept a few eventually consistent snapshots
@@ -289,7 +361,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           pipelineSpec,
           layers,
           tasks || [],
-          runIsTerminal,
+          runtimeTaskSnapshotIsTerminal,
         );
         fallbackGraphActive.current = false;
         clearLinkedTaskQuery();
@@ -301,12 +373,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         setLayerNavigationError(error instanceof Error ? error.message : String(error));
       }
     },
-    [clearLinkedTaskQuery, pipelineSpec, runIsTerminal, tasks],
+    [clearLinkedTaskQuery, pipelineSpec, runtimeTaskSnapshotIsTerminal, tasks],
   );
 
   const runtimeFlowContext = useMemo(
-    () => buildRuntimeFlowContext(layers, tasks || [], runIsTerminal),
-    [layers, runIsTerminal, tasks],
+    () => buildRuntimeFlowContext(layers, tasks || [], runtimeTaskSnapshotIsTerminal),
+    [layers, runtimeTaskSnapshotIsTerminal, tasks],
   );
 
   const dynamicFlowElements = useMemo(() => {
@@ -348,7 +420,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         pipelineSpec,
         targetLayers,
         tasks || [],
-        runIsTerminal,
+        runtimeTaskSnapshotIsTerminal,
       );
       fallbackGraphActive.current = false;
       targetElement =
@@ -365,7 +437,14 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setLayers(targetLayers);
     setFlowElements(targetElements);
     setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
-  }, [linkedTask, linkedTaskId, pipelineSpec, restoreFallbackGraph, runIsTerminal, tasks]);
+  }, [
+    linkedTask,
+    linkedTaskId,
+    pipelineSpec,
+    restoreFallbackGraph,
+    runtimeTaskSnapshotIsTerminal,
+    tasks,
+  ]);
 
   const linkedSelectionMatchesUrl =
     !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;

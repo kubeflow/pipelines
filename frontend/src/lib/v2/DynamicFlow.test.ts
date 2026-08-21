@@ -576,6 +576,20 @@ describe('DynamicFlow', () => {
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 
+      const succeededWithStaleFailedElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        [
+          rootTask,
+          { ...loopTask, state: PipelineTaskTaskState.SUCCEEDED },
+          { ...bodyA, state: PipelineTaskTaskState.FAILED },
+          bodyB,
+        ],
+      );
+      expect(succeededWithStaleFailedElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
+
       const failedChildElements = updateFlowElementsState(['root', 'loop'], partialElements, [
         rootTask,
         { ...loopTask, state: PipelineTaskTaskState.FAILED },
@@ -590,6 +604,32 @@ describe('DynamicFlow', () => {
         bodyB,
       ]);
       expect(completeElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
+    });
+
+    it('does not leave ordinary task nodes running after the enclosing run terminates', () => {
+      const runningTask: V2beta1PipelineTask = {
+        task_id: 'preprocess-task',
+        parent_task_id: rootTask.task_id,
+        name: 'preprocess',
+        state: PipelineTaskTaskState.RUNNING,
+      };
+      const graph = convertFlowElements(PipelineSpec.fromJSON(load(v2YamlTemplateString)));
+      const tasks = [rootTask, runningTask];
+
+      const activeGraph = updateFlowElementsState(['root'], graph, tasks);
+      expect(activeGraph.find((element) => element.id === 'task.preprocess')?.data?.state).toBe(
+        PipelineTaskTaskState.RUNNING,
+      );
+
+      const terminalGraph = updateFlowElementsState(
+        ['root'],
+        graph,
+        tasks,
+        buildRuntimeFlowContext(['root'], tasks, true),
+      );
+      expect(terminalGraph.find((element) => element.id === 'task.preprocess')?.data?.state).toBe(
+        PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
+      );
     });
 
     it('keeps the static loop body when iteration_count is not yet available', () => {

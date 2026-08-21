@@ -159,12 +159,12 @@ export function updateFlowElementsState(
     const runtimeInfo = getNodeRuntimeInfo(updatedElement, tasks, layers, flowContext);
     if (updatedElement.type === NodeTypeNames.EXECUTION && runtimeInfo.task) {
       const data = updatedElement.data as ExecutionFlowElementData;
-      data.state = runtimeInfo.task.state;
+      data.state = getRuntimeTaskState(runtimeInfo.task.state, flowContext.runIsTerminal);
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.SUB_DAG && runtimeInfo.task) {
       const data = updatedElement.data as SubDagFlowElementData;
-      data.state = runtimeInfo.task.state;
+      data.state = getRuntimeTaskState(runtimeInfo.task.state, flowContext.runIsTerminal);
       data.taskId = runtimeInfo.task.task_id;
       data.label = getTaskDisplayName(runtimeInfo.task, data.label);
     } else if (updatedElement.type === NodeTypeNames.ARTIFACT && runtimeInfo.artifactGroup) {
@@ -494,14 +494,18 @@ function getIterationState(
   if (!states.length) {
     return undefined;
   }
+  const loopCompletedSuccessfully =
+    loopState === PipelineTaskTaskState.SUCCEEDED ||
+    loopState === PipelineTaskTaskState.SKIPPED ||
+    loopState === PipelineTaskTaskState.CACHED;
+  if (loopCompletedSuccessfully && states.includes(PipelineTaskTaskState.FAILED)) {
+    return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+  }
   if (states.includes(PipelineTaskTaskState.FAILED)) {
     return PipelineTaskTaskState.FAILED;
   }
   const loopIsTerminal =
-    loopState === PipelineTaskTaskState.SUCCEEDED ||
-    loopState === PipelineTaskTaskState.SKIPPED ||
-    loopState === PipelineTaskTaskState.CACHED ||
-    (loopState === PipelineTaskTaskState.FAILED && runIsTerminal);
+    loopCompletedSuccessfully || (loopState === PipelineTaskTaskState.FAILED && runIsTerminal);
   if (loopIsTerminal && states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
@@ -535,6 +539,15 @@ function getIterationState(
     return PipelineTaskTaskState.SUCCEEDED;
   }
   return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+}
+
+function getRuntimeTaskState(
+  taskState: PipelineTaskTaskState | undefined,
+  runIsTerminal: boolean,
+): PipelineTaskTaskState | undefined {
+  return runIsTerminal && taskState === PipelineTaskTaskState.RUNNING
+    ? PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED
+    : taskState;
 }
 
 function annotateExpectedTaskCount(

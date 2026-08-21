@@ -1123,6 +1123,36 @@ describe('RunDetailsV2', () => {
     expect(tasksSpy).toHaveBeenCalledTimes(3);
   });
 
+  it('continues terminal reconciliation after a cached terminal snapshot fails to refresh', async () => {
+    vi.useFakeTimers();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(queryKeys.runTasks(RUN_ID), TEST_TASKS);
+    const tasksSpy = vi
+      .mocked(Apis.runServiceApiV2.tasks)
+      .mockRejectedValueOnce(new Error('temporary task outage'))
+      .mockResolvedValue({ tasks: TEST_TASKS });
+
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            run={{ ...TEST_RUN, state: V2beta1RuntimeState.SUCCEEDED }}
+            {...generateProps()}
+          />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(tasksSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(10_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(tasksSpy).toHaveBeenCalledTimes(2);
+  });
+
   it('keeps cached task data in the graph when a background refresh fails', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     queryClient.setQueryData(queryKeys.runTasks(RUN_ID), TEST_TASKS);
@@ -1193,6 +1223,7 @@ describe('RunDetailsV2', () => {
 
   it('bounds unfinished task reconciliation after an active run becomes terminal', async () => {
     vi.useFakeTimers();
+    const reconcileSpy = vi.spyOn(DynamicFlow, 'reconcileRuntimeFlowElements');
     const tasksSpy = vi.mocked(Apis.runServiceApiV2.tasks);
     const unfinishedTasks = TEST_TASKS.map((task) =>
       task.task_id === 'preprocess-task' ? { ...task, state: PipelineTaskTaskState.RUNNING } : task,
@@ -1220,12 +1251,18 @@ describe('RunDetailsV2', () => {
     );
     await act(async () => vi.advanceTimersByTimeAsync(0));
     expect(tasksSpy).toHaveBeenCalledTimes(2);
+    expect((reconcileSpy.mock.lastCall?.[3] as { runIsTerminal?: boolean }).runIsTerminal).toBe(
+      false,
+    );
 
     await act(async () => vi.advanceTimersByTimeAsync(10_000));
     expect(tasksSpy).toHaveBeenCalledTimes(3);
 
     await act(async () => vi.advanceTimersByTimeAsync(10_000));
     expect(tasksSpy).toHaveBeenCalledTimes(4);
+    expect((reconcileSpy.mock.lastCall?.[3] as { runIsTerminal?: boolean }).runIsTerminal).toBe(
+      true,
+    );
 
     await act(async () => vi.advanceTimersByTimeAsync(20_000));
     expect(tasksSpy).toHaveBeenCalledTimes(4);
