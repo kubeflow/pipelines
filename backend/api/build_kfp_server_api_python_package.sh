@@ -72,15 +72,20 @@ if [[ "$API_VERSION" == "v1beta1" ]]; then
 fi
 
 echo "Removing unnecessary GitLab and TravisCI generated files"
-rm $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml
-rm $CURRENT_DIR/$API_VERSION/python_http_client/.travis.yml
+rm -f $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml
+rm -f $CURRENT_DIR/$API_VERSION/python_http_client/.travis.yml
 
 echo "Copying LICENSE to $DIR"
 cp "$CURRENT_DIR/../../LICENSE" "$DIR"
 
+echo "Using codegen-generated pyproject.toml (from setup.mustache template)."
+mv "$DIR/setup.py" "$DIR/pyproject.toml"
+rm -f "$DIR/requirements.txt" "$DIR/setup.cfg"
+
 echo "Building the python package in $DIR."
 pushd "$DIR"
-python3 setup.py --quiet sdist
+python3 -m pip install --quiet build hatchling
+python3 -m build --sdist
 popd
 
 echo "Run the following commands to update the package on PyPI"
