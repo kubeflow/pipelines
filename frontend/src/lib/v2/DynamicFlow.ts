@@ -489,10 +489,12 @@ function getIterationState(
   if (states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNNING;
   }
-  if (expectedTaskCount !== undefined && iterationTasks.length < expectedTaskCount) {
-    return loopState === PipelineTaskTaskState.RUNNING
-      ? PipelineTaskTaskState.RUNNING
-      : PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
+  if (
+    loopState === PipelineTaskTaskState.RUNNING &&
+    expectedTaskCount !== undefined &&
+    iterationTasks.length < expectedTaskCount
+  ) {
+    return PipelineTaskTaskState.RUNNING;
   }
   if (states.every((state) => state === PipelineTaskTaskState.SKIPPED)) {
     return PipelineTaskTaskState.SKIPPED;

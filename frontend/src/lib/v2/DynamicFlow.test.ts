@@ -488,6 +488,13 @@ describe('DynamicFlow', () => {
         state: PipelineTaskTaskState.RUNNING,
       });
 
+      const terminalPartialElements = updateFlowElementsState(['root', 'loop'], partialElements, [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.SUCCEEDED },
+        bodyA,
+      ]);
+      expect(terminalPartialElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
+
       const completeElements = updateFlowElementsState(['root', 'loop'], partialElements, [
         rootTask,
         loopTask,
