@@ -17,6 +17,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"sort"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -82,6 +83,11 @@ type RunStoreInterface interface {
 	// Updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
+
+	// Updates a run from a workflow report if its state has not changed since it
+	// was read and the report does not regress a canceling or terminal run.
+	// Returns false without modifying the run when the report is stale.
+	UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
@@ -611,18 +617,127 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
-	tx, err := s.db.DB.Begin()
-	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+// UpdateRunFromWorkflow applies workflow-reported state atomically against the
+// state observed by the reporter. Explicit lifecycle operations such as retry
+// continue to use UpdateRun and are not constrained by this transition policy.
+func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error) {
+	expectedState = expectedState.ToV2()
+	incomingState := run.State.ToV2()
+
+	switch expectedState {
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled:
+		if incomingState != expectedState {
+			return false, nil
+		}
+	case model.RuntimeStateCancelling:
+		switch incomingState {
+		case model.RuntimeStateCancelling,
+			model.RuntimeStateSucceeded,
+			model.RuntimeStateSkipped,
+			model.RuntimeStateFailed,
+			model.RuntimeStateCanceled:
+			// A canceling run may remain canceling or reach a terminal state.
+		default:
+			return false, nil
+		}
 	}
-	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
-			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
+
+	return s.updateRun(run, &expectedState)
+}
+
+// storedRuntimeStates lists every stored representation that normalizes to the
+// given runtime state. Rows predating the State column carry a v1 condition
+// instead, and older writers stored non-canonical spellings, so a compare-and-set
+// that only matched the canonical v2 string would silently match nothing.
+func storedRuntimeStates(state model.RuntimeState) []string {
+	canonical := state.ToV2()
+	candidates := []model.RuntimeState{
+		model.RuntimeStateUnspecified, model.RuntimeStatePending, model.RuntimeStateRunning,
+		model.RuntimeStateSucceeded, model.RuntimeStateSkipped, model.RuntimeStateFailed,
+		model.RuntimeStateCancelling, model.RuntimeStateCanceled, model.RuntimeStatePaused,
+		model.RuntimeStatePendingV1, model.RuntimeStateRunningV1, model.RuntimeStateSucceededV1,
+		model.RuntimeStateSkippedV1, model.RuntimeStateTerminatingV1, model.RuntimeStateFailedV1,
+		model.RuntimeStateErrorV1, model.RuntimeStateUnknownV1,
+		model.RuntimeState(model.LegacyStateNoStatus), model.RuntimeState(model.LegacyStateEnabled),
+		model.RuntimeState(model.LegacyStateDisabled), model.RuntimeState(model.LegacyStateError),
+		model.RuntimeState(model.LegacyStateReady), model.RuntimeState(model.LegacyStateRunning),
+		model.RuntimeState(model.LegacyStateSucceeded), model.RuntimeState(model.LegacyStateDone),
+		model.RuntimeState(model.RunTerminatingConditionsV1),
+	}
+	seen := make(map[string]bool, len(candidates))
+	stored := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		value := string(candidate)
+		if value == "" || seen[value] || candidate.ToV2() != canonical {
+			continue
+		}
+		seen[value] = true
+		stored = append(stored, value)
+	}
+	sort.Strings(stored)
+	return stored
+}
+
+// effectiveStatePredicate matches rows whose runtime state, as model.Run.ToV2
+// reconstructs it on read, is one of the given states. Rows written before the
+// State column existed leave it NULL or empty and keep their state in
+// Conditions, and a row with neither reads back as unspecified. A predicate that
+// only compared the State column would never match those rows, so an update
+// guarded by one would silently affect nothing.
+func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
+	stored := make([]string, 0, len(states))
+	matchesUnspecified := false
+	for _, state := range states {
+		stored = append(stored, storedRuntimeStates(state)...)
+		if state.ToV2() == model.RuntimeStateUnspecified {
+			matchesUnspecified = true
+		}
+	}
+
+	// storedRuntimeStates never yields an empty string, so an IN comparison
+	// cannot match a row that stores no state at all.
+	stateAbsent := sq.Or{sq.Eq{"State": nil}, sq.Eq{"State": ""}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"Conditions": stored}}}
+	if matchesUnspecified {
+		fromConditions = append(fromConditions, sq.And{
+			stateAbsent,
+			sq.Or{sq.Eq{"Conditions": nil}, sq.Eq{"Conditions": ""}},
 		})
 	}
+
+	return sq.Or{sq.Eq{"State": stored}, fromConditions}
+}
+
+func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
+	tx, err := s.db.DB.Begin()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	stateHistory := run.StateHistory
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != run.State {
+		newStatus := &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           run.State,
+		}
+		if expectedState == nil {
+			// Preserve UpdateRun's existing caller-visible mutation, including
+			// when the update later reports that the run does not exist.
+			run.StateHistory = append(run.StateHistory, newStatus)
+			stateHistory = run.StateHistory
+		} else {
+			// A rejected workflow report must not mutate its caller's snapshot.
+			stateHistory = append(append([]*model.RuntimeStatus(nil), stateHistory...), newStatus)
+		}
+	}
 	stateHistoryString := ""
-	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+	if historyString, err := json.Marshal(stateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
 	updateFields := sq.Eq{
@@ -640,40 +755,58 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if run.PluginsOutputString != nil {
 		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
 	}
-	sql, args, err := sq.
+	updateBuilder := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.Eq{"UUID": run.UUID}).
-		ToSql()
+		Where(sq.Eq{"UUID": run.UUID})
+	if expectedState != nil {
+		updateBuilder = updateBuilder.Where(effectiveStatePredicate(*expectedState))
+	}
+	sql, args, err := updateBuilder.ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		if expectedState == nil {
+			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		}
+		currentRun, getErr := s.GetRun(run.UUID)
+		if getErr != nil {
+			return false, getErr
+		}
+		// MySQL may report zero affected rows when the matching row already has
+		// the requested values. Only treat it as applied when the compare state
+		// still matches; reaching the incoming state through another update must
+		// retry so this report cannot skip its manifest and history write.
+		if currentRun.State == expectedState.ToV2() {
+			return true, nil
+		}
+		return false, nil
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	run.StateHistory = stateHistory
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given
@@ -822,18 +955,25 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 
 func (s *RunStore) TerminateRun(runId string) error {
 	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Conditions": string(model.RuntimeStateCancelling.ToV1()),
+			"State":      model.RuntimeStateCancelling.ToString(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		Where(effectiveStatePredicate(
+			model.RuntimeStatePaused,
+			model.RuntimeStatePending,
+			model.RuntimeStateRunning,
+			model.RuntimeStateUnspecified,
+		)).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to terminate a run %s", runId)
+	}
+	result, err := s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
