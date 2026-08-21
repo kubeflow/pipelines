@@ -518,7 +518,7 @@ function getIterationState(
     if (loopState === PipelineTaskTaskState.RUNNING) {
       return PipelineTaskTaskState.RUNNING;
     }
-    if (loopState === PipelineTaskTaskState.FAILED) {
+    if (loopState === PipelineTaskTaskState.FAILED && runIsTerminal) {
       return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
     }
   }

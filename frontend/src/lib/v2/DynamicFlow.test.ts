@@ -501,7 +501,20 @@ describe('DynamicFlow', () => {
         { ...loopTask, state: PipelineTaskTaskState.FAILED },
         bodyA,
       ]);
-      expect(failedPartialElements[0].data?.state).toBe(
+      expect(failedPartialElements[0].data?.state).toBe(PipelineTaskTaskState.SUCCEEDED);
+
+      const terminalFailedPartialTasks = [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.FAILED },
+        bodyA,
+      ];
+      const terminalFailedPartialElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        terminalFailedPartialTasks,
+        buildRuntimeFlowContext(['root', 'loop'], terminalFailedPartialTasks, true),
+      );
+      expect(terminalFailedPartialElements[0].data?.state).toBe(
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 
