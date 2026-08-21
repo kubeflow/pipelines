@@ -297,11 +297,16 @@ function RocCurveComparison({
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
-    updateSelectionState((current) => ({
-      ...current,
-      rocColorByKey: allocateRocColors(nextKeys, current.rocColorByKey),
-      rocSelectedKeys: nextKeys,
-    }));
+    updateSelectionState((current) => {
+      // Materialize the rendered default colors before applying the first explicit selection so
+      // deselecting one default curve cannot reassign another curve's color.
+      const establishedColors = allocateRocColors(selectedKeys, current.rocColorByKey);
+      return {
+        ...current,
+        rocColorByKey: allocateRocColors(nextKeys, establishedColors),
+        rocSelectedKeys: nextKeys,
+      };
+    });
   };
 
   return (

@@ -133,6 +133,42 @@ describe('RuntimeArtifactComparison', () => {
     );
   });
 
+  it('preserves default ROC colors when a default curve is deselected', async () => {
+    const artifacts = ['First', 'Second', 'Third'].map((run, index) =>
+      classificationEntry(`${run} run`, `roc-${index + 1}`, {
+        confidenceMetrics: [
+          {
+            confidenceThreshold: 0.8 - index * 0.1,
+            falsePositiveRate: 0.1 + index * 0.1,
+            recall: 0.9,
+          },
+        ],
+      }),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+      </CommonTestWrapper>,
+    );
+
+    const initialColors = screen
+      .getByTestId('shared-roc-curve')
+      .getAttribute('data-colors')!
+      .split(',');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    fireEvent.click(await screen.findByRole('option', { name: /First run/ }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('shared-roc-curve')).toHaveAttribute('data-config-count', '2'),
+    );
+    const remainingColors = screen
+      .getByTestId('shared-roc-curve')
+      .getAttribute('data-colors')!
+      .split(',');
+    expect(remainingColors).toEqual(initialColors.slice(1));
+  });
+
   it('builds two independently selectable confusion-matrix panels', async () => {
     const firstMatrix = {
       annotationSpecs: [{ displayName: 'cat' }, { displayName: 'dog' }],

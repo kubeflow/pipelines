@@ -339,13 +339,31 @@ function buildQuerySessionInfo(
   });
   if ((provider === 's3' || provider === 'minio') && enforceNativeQuery) {
     validateNativeS3QueryValues(params);
+    params.nativeQuery = 'true';
   }
   // URI queries configure the provider but never authorize namespace Secret reads.
   params.fromEnv = 'true';
-  return { Provider: provider, Params: params };
+  // The runtime normalizes query-bearing minio:// URLs to the Go Cloud S3 driver.
+  return { Provider: provider === 'minio' && enforceNativeQuery ? 's3' : provider, Params: params };
 }
 
 function validateNativeS3QueryValues(params: Record<string, string>): void {
+  if (params.endpoint !== undefined) {
+    let endpoint: URL;
+    try {
+      endpoint = new URL(params.endpoint);
+    } catch (error) {
+      throw new LauncherConfigValidationError(
+        `S3 artifact URI query option "endpoint" must be an absolute HTTP(S) URL. ` +
+          `Correct it and retry: ${error}`,
+      );
+    }
+    if (!['http:', 'https:'].includes(endpoint.protocol.toLowerCase()) || !endpoint.hostname) {
+      throw new LauncherConfigValidationError(
+        'S3 artifact URI query option "endpoint" must be an absolute HTTP(S) URL. Correct it and retry.',
+      );
+    }
+  }
   if (params.ssetype !== undefined) {
     const validSseTypes = new Set(['aes256', 'aws:kms', 'aws:kms:dsse']);
     if (!validSseTypes.has(params.ssetype.toLowerCase())) {

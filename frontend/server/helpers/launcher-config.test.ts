@@ -440,6 +440,7 @@ s3:
       Params: {
         endpoint: 'https://ceph.example:9443',
         fromEnv: 'true',
+        nativeQuery: 'true',
         region: 'ceph',
       },
     });
@@ -468,6 +469,7 @@ s3:
         anonymous: '1',
         endpoint: 'https://s3.us-west-2.amazonaws.com',
         fromEnv: 'true',
+        nativeQuery: 'true',
       },
     });
   });
@@ -493,6 +495,69 @@ s3:
       ).rejects.toThrow('is not supported by Go Cloud');
     },
   );
+
+  it('normalizes a raw MinIO query to the runtime S3 provider', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 'minio://mlpipeline/v2/artifacts' } },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 'minio',
+        bucket: 'external-bucket',
+        key: 'model',
+        artifactUriQuery: 'anonymous=true',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 's3',
+      Params: { anonymous: 'true', fromEnv: 'true', nativeQuery: 'true' },
+    });
+  });
+
+  it.each(['store.example:9000', 'ftp://store.example'])(
+    'rejects native S3 endpoint %s that Go Cloud cannot use',
+    async (endpoint) => {
+      mockedGetConfigMap.mockResolvedValue([
+        { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+        undefined,
+      ]);
+
+      await expect(
+        getLauncherProviderInfo(
+          {
+            source: 's3',
+            bucket: 'external-bucket',
+            key: 'model',
+            artifactUriQuery: `endpoint=${encodeURIComponent(endpoint)}`,
+          },
+          'team-a',
+        ),
+      ).rejects.toThrow('absolute HTTP(S) URL');
+    },
+  );
+
+  it('accepts a native S3 endpoint with an uppercase HTTPS scheme', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'external-bucket',
+        key: 'model',
+        artifactUriQuery: `endpoint=${encodeURIComponent('HTTPS://store.example/base')}`,
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params.endpoint).toBe('HTTPS://store.example/base');
+  });
 
   it.each(['disableSSL=true', 'anonymuos=true'])(
     'rejects non-native raw MinIO query option %s',

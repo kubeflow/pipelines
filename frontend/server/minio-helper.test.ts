@@ -457,6 +457,98 @@ describe('minio-helper', () => {
       });
     });
 
+    it('applies endpoint-less disable_https from a native S3 query', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 's3.amazonaws.com',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { disable_https: 'true', fromEnv: 'true', nativeQuery: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('defaults native custom S3 endpoints to virtual-host addressing', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://store.example/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        pathStyle: false,
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('parses uppercase native HTTPS endpoint schemes', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'HTTPS://store.example:9443/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        pathStyle: false,
+        port: 9443,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('rejects scheme-less endpoints from native S3 queries', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'store.example:9000',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('absolute HTTP(S) URL');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
     it('lets disable_https override an explicit HTTPS endpoint scheme', async () => {
       await createMinioClient(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },

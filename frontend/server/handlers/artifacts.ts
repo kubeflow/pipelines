@@ -35,7 +35,12 @@ import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS } from '../consts.js';
 import { URL } from 'url';
-import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
+import {
+  DEFAULT_GCS_UNIVERSE_DOMAIN,
+  getGCSClient,
+  listGCSObjectNames,
+  downloadGCSObjectStream,
+} from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
 import { isAllowedDomain } from './domain-checker.js';
@@ -94,6 +99,7 @@ export interface S3ProviderInfo {
     forcePathStyle?: string;
     s3ForcePathStyle?: string;
     use_path_style?: string;
+    nativeQuery?: string;
   };
 }
 
@@ -120,6 +126,58 @@ const GCS_PROVIDER_INFO_PARAMS = new Set([
   'tokenKey',
   'universe_domain',
 ]);
+
+function retainCredentialFreeProviderInfo(providerInfoString: string): string {
+  const providerInfo = parseJSONString<S3ProviderInfo | GCSProviderInfo>(providerInfoString);
+  if (!providerInfo?.Params) {
+    return '';
+  }
+
+  try {
+    if (providerInfo.Provider === 'gs') {
+      const params = (providerInfo as GCSProviderInfo).Params;
+      const anonymous =
+        params.access_id === '-' ||
+        (params.anonymous !== undefined && parseGoBoolean(params.anonymous, 'anonymous'));
+      if (!anonymous) {
+        return '';
+      }
+      return JSON.stringify({
+        Provider: 'gs',
+        Params: {
+          ...(params.access_id !== undefined ? { access_id: params.access_id } : {}),
+          ...(params.anonymous !== undefined ? { anonymous: params.anonymous } : {}),
+          fromEnv: 'true',
+          ...(params.universe_domain !== undefined
+            ? { universe_domain: params.universe_domain }
+            : {}),
+        },
+      });
+    }
+
+    const params = (providerInfo as S3ProviderInfo).Params;
+    const anonymous =
+      params.anonymous !== undefined && parseGoBoolean(params.anonymous, 'anonymous');
+    // Without a destination allowlist, a customer-selected S3 endpoint would make the shared UI
+    // an object-store proxy. Only credential-free native AWS resolution is safe in direct mode.
+    if (!anonymous || params.endpoint) {
+      return '';
+    }
+    const safe = { ...params };
+    delete safe.accessKeyKey;
+    delete safe.secretKeyKey;
+    delete safe.secretName;
+    return JSON.stringify({
+      Provider: providerInfo.Provider,
+      Params: { ...safe, fromEnv: 'true' },
+    });
+  } catch {
+    // Invalid provider booleans must not turn an authenticated artifact request into a 500. The
+    // trusted launcher parser normally rejects them first; fail closed if malformed data reaches
+    // this defense-in-depth boundary.
+    return '';
+  }
+}
 
 /**
  * Returns an authorization middleware for artifact endpoints.
@@ -395,22 +453,18 @@ export function getArtifactsHandler({
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${storageKey}`);
 
-    // Security: The ml-pipeline-ui service account is only permitted to read
-    // Secrets from its own (server) namespace. Secret-backed provider info
-    // (fromEnv === 'false') names a Secret to read for object-store
-    // credentials; honoring it for a customer/user namespace would read
-    // Secrets cross-namespace, which is forbidden. When the requested
-    // namespace is not the server's own namespace we drop the provider info so
-    // credential resolution falls back to the server's own environment
-    // credentials (SeaweedFS in the kubeflow namespace) or, when enabled, the
-    // per-namespace artifact proxy. See:
+    // Security: The ml-pipeline-ui service account is only permitted to read Secrets from its own
+    // (server) namespace. For customer namespaces, retain only provider settings that are both
+    // credential-free and destination-safe. Secret-backed credentials and customer-selected S3
+    // endpoints require the namespace-isolated artifact proxy; otherwise the shared UI could read
+    // customer Secrets or send ambient credentials to an untrusted destination. See:
     // https://github.com/kubeflow/pipelines/pull/12860
     // A missing namespace only occurs when auth is disabled (single-tenant): the
     // auth middleware rejects namespace-less requests whenever auth is enabled, so
     // treating it as server-local cannot be triggered by a multi-user caller.
     const allowProviderSecrets = !namespace || namespace === options.server.serverNamespace;
     let resolvedProviderInfo = '';
-    if (allowProviderSecrets && isLauncherArtifactSource(source)) {
+    if (isLauncherArtifactSource(source)) {
       try {
         resolvedProviderInfo =
           (await getLauncherProviderInfo(
@@ -418,14 +472,21 @@ export function getArtifactsHandler({
             namespace,
           )) || '';
       } catch (error) {
-        // Direct mode would otherwise substitute the central UI server's environment
-        // credentials for an unreadable or invalid namespace storage policy.
-        res
-          .status(500)
-          .send(
-            `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+        if (!allowProviderSecrets) {
+          console.warn(
+            `Unable to resolve credential-free artifact settings for namespace "${namespace}"; ` +
+              `falling back to the shared store configuration: ${error}`,
           );
-        return;
+        } else {
+          // Direct mode would otherwise substitute the central UI server's environment
+          // credentials for an unreadable or invalid namespace storage policy.
+          res
+            .status(500)
+            .send(
+              `Failed to resolve artifact storage configuration. Check the kfp-launcher providers configuration: ${error}`,
+            );
+          return;
+        }
       }
     }
 
@@ -436,13 +497,15 @@ export function getArtifactsHandler({
       resolvedProviderInfo = providerInfo;
     }
 
-    if (!allowProviderSecrets && resolvedProviderInfo) {
+    const effectiveProviderInfo = allowProviderSecrets
+      ? resolvedProviderInfo
+      : retainCredentialFreeProviderInfo(resolvedProviderInfo);
+    if (!allowProviderSecrets && resolvedProviderInfo && !effectiveProviderInfo) {
       console.warn(
-        `Ignoring secret-backed provider info for namespace "${namespace}": Secrets may ` +
-          `only be read from the server namespace; falling back to environment credentials.`,
+        `Ignoring credentialed or custom-endpoint provider info for namespace "${namespace}": ` +
+          'use the namespace-isolated artifact proxy for those settings.',
       );
     }
-    const effectiveProviderInfo = allowProviderSecrets ? resolvedProviderInfo : '';
 
     let client: MinioClient;
     switch (source) {
@@ -457,7 +520,13 @@ export function getArtifactsHandler({
         break;
       case 'minio':
         try {
-          client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
+          const resolvedProvider = parseJSONString<S3ProviderInfo>(effectiveProviderInfo)?.Provider;
+          client = await createMinioClient(
+            resolvedProvider === 's3' ? aws : minio,
+            resolvedProvider === 's3' ? 's3' : 'minio',
+            effectiveProviderInfo,
+            namespace,
+          );
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
@@ -1019,7 +1088,7 @@ function getGCSArtifactHandler(
     try {
       let anonymous = false;
       let credentials: CredentialBody | undefined;
-      let universeDomain: string | undefined;
+      let universeDomain = DEFAULT_GCS_UNIVERSE_DOMAIN;
       if (providerInfoString) {
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
         if (!providerInfo) {
@@ -1039,15 +1108,8 @@ function getGCSArtifactHandler(
         anonymous =
           (anonymousParam ? parseGoBoolean(anonymousParam, 'anonymous') : false) ||
           providerInfo?.Params.access_id === '-';
-        universeDomain = providerInfo.Params.universe_domain?.toLowerCase() || undefined;
-        if (universeDomain && !allowedUniverseDomains.includes(universeDomain)) {
-          res
-            .status(400)
-            .send(
-              `GCS universe_domain "${universeDomain}" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.`,
-            );
-          return;
-        }
+        universeDomain =
+          providerInfo.Params.universe_domain?.toLowerCase() || DEFAULT_GCS_UNIVERSE_DOMAIN;
         if (providerInfo && !anonymous && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
             res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
@@ -1057,6 +1119,23 @@ function getGCSArtifactHandler(
           }
         }
       }
+      if (!allowedUniverseDomains.includes(universeDomain)) {
+        res
+          .status(400)
+          .send(
+            `GCS universe_domain "${universeDomain}" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.`,
+          );
+        return;
+      }
+      if (!anonymous && universeDomain !== DEFAULT_GCS_UNIVERSE_DOMAIN) {
+        res
+          .status(400)
+          .send(
+            `Authenticated GCS reads for universe_domain "${universeDomain}" are not supported by ` +
+              'the frontend authentication client. Use anonymous access or googleapis.com and retry.',
+          );
+        return;
+      }
       // Read all files that match the key pattern, which can include wildcards '*'.
       // The way this works is we list all paths whose prefix is the substring
       // of the pattern until the first wildcard, then we create a regular
@@ -1064,7 +1143,7 @@ function getGCSArtifactHandler(
       // and we use it to match all enumerated paths.
       const prefix = key.indexOf('*') > -1 ? key.substr(0, key.indexOf('*')) : key;
       const client = anonymous ? undefined : await getGCSClient(credentials);
-      const universeOptions = universeDomain ? { universeDomain } : {};
+      const universeOptions = { universeDomain };
       const accessOptions = anonymous
         ? { anonymous: true, ...universeOptions }
         : { client, credentials, ...universeOptions };

@@ -16,7 +16,7 @@ import { CredentialBody, GoogleAuth } from 'google-auth-library';
 import { Readable } from 'stream';
 
 const GCS_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write';
-const DEFAULT_GCS_UNIVERSE_DOMAIN = 'googleapis.com';
+export const DEFAULT_GCS_UNIVERSE_DOMAIN = 'googleapis.com';
 
 export type GCSClient = Awaited<ReturnType<GoogleAuth['getClient']>>;
 

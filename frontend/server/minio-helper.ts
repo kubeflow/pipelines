@@ -129,7 +129,7 @@ function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
     );
   }
   if (params.endpoint) {
-    parseProviderEndpoint(params.endpoint);
+    parseProviderEndpoint(params.endpoint, params.nativeQuery === 'true');
   }
 }
 
@@ -348,15 +348,12 @@ function parseEndpoint(
   endpoint: string,
 ): { host: string; port?: number; useSSL?: boolean } | undefined {
   try {
-    const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+    const hasHttpScheme = /^https?:\/\//i.test(endpoint);
+    const url = new URL(hasHttpScheme ? endpoint : `http://${endpoint}`);
     return {
       host: url.hostname,
       port: url.port ? Number(url.port) : undefined,
-      useSSL: endpoint.startsWith('https://')
-        ? true
-        : endpoint.startsWith('http://')
-          ? false
-          : undefined,
+      useSSL: hasHttpScheme ? url.protocol.toLowerCase() === 'https:' : undefined,
     };
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
@@ -365,17 +362,23 @@ function parseEndpoint(
   }
 }
 
-function parseProviderEndpoint(endpoint: string): {
+function parseProviderEndpoint(
+  endpoint: string,
+  requireScheme: boolean,
+): {
   host: string;
   port?: number;
   basePath?: string;
   useSSL?: boolean;
 } {
+  if (requireScheme && !/^https?:\/\//i.test(endpoint)) {
+    throw new Error(`Provider info endpoint must be an absolute HTTP(S) URL: ${endpoint}`);
+  }
   const parsed = parseEndpoint(endpoint);
   if (!parsed) {
     throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
   }
-  const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+  const url = new URL(/^https?:\/\//i.test(endpoint) ? endpoint : `http://${endpoint}`);
   if (url.search || url.hash) {
     throw new Error(
       `Provider endpoint "${endpoint}" contains a query or fragment that the frontend artifact ` +
@@ -410,6 +413,7 @@ async function applyS3ProviderInfo(
     providerInfo.Params.disable_https === undefined
       ? undefined
       : parseGoBoolean(providerInfo.Params.disable_https, 'disable_https');
+  const nativeQuery = providerInfo.Params.nativeQuery === 'true';
   if (providerInfo.Params.fromEnv === 'false') {
     if (!namespace) {
       throw new Error('Artifact Store provider given, but no namespace provided.');
@@ -443,54 +447,23 @@ async function applyS3ProviderInfo(
     }
   }
 
-  if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
-    if (providerInfo.Params.endpoint) {
-      const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint);
-      config.endPoint = endpoint.host;
-      config.endpointBasePath = endpoint.basePath;
-      config.port = endpoint.port;
-      config.useSSL =
-        disableHttpsValue === undefined
-          ? (endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue))
-          : !disableHttpsValue;
-    } else {
-      throw new Error('Provider info missing endpoint parameter.');
-    }
+  if (providerInfo.Params.endpoint) {
+    const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint, nativeQuery);
+    config.endPoint = endpoint.host;
+    config.endpointBasePath = endpoint.basePath;
+    config.port = endpoint.port;
+    config.useSSL =
+      disableHttpsValue === undefined
+        ? (endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue))
+        : !disableHttpsValue;
+  } else if (disableHttpsValue !== undefined) {
+    config.useSSL = !disableHttpsValue;
+  } else if (disableSSLValue) {
+    config.useSSL = false;
+  }
 
-    if (providerInfo.Params.region) {
-      config.region = providerInfo.Params.region;
-    }
-  } else {
-    if (providerInfo.Params.endpoint) {
-      const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint);
-      config.endPoint = endpoint.host;
-      config.endpointBasePath = endpoint.basePath;
-      // user provided port in endpoint takes precedence
-      // e.g. if the user has provided <service-name>.<namespace>.svc.cluster.local:<service-port>
-      config.port = endpoint.port;
-    }
-
-    if (providerInfo.Params.region) {
-      config.region = providerInfo.Params.region;
-    }
-
-    if (providerInfo.Params.endpoint) {
-      // Do not inherit the server's TLS setting when switching to a provider-supplied endpoint;
-      // without an endpoint override, retain the server default unchanged.
-      if (disableHttpsValue !== undefined) {
-        config.useSSL = !disableHttpsValue;
-      } else if (providerInfo.Params.endpoint.startsWith('http://')) {
-        config.useSSL = false;
-      } else if (providerInfo.Params.endpoint.startsWith('https://')) {
-        config.useSSL = true;
-      } else {
-        config.useSSL = disableSSLValue === undefined ? undefined : !disableSSLValue;
-      }
-    } else if (disableSSLValue) {
-      // The runtime applies an explicit disableSSL=true even when credentials inherit the server
-      // endpoint. A materialized false remains inheritance so it cannot flip a plaintext default.
-      config.useSSL = false;
-    }
+  if (providerInfo.Params.region) {
+    config.region = providerInfo.Params.region;
   }
   const pathStyle =
     providerInfo.Params.forcePathStyle ??
@@ -498,6 +471,8 @@ async function applyS3ProviderInfo(
     providerInfo.Params.use_path_style;
   if (pathStyle !== undefined) {
     config.pathStyle = parseGoBoolean(pathStyle, 'use_path_style');
+  } else if (nativeQuery) {
+    config.pathStyle = false;
   }
   return config;
 }
