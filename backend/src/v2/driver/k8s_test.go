@@ -4050,3 +4050,45 @@ func Test_extendPodSpecPatch_InitContainers_AdminSecurityDefaults(t *testing.T) 
 	assert.NotNil(t, got.HostUsers)
 	assert.False(t, *got.HostUsers)
 }
+
+func Test_extendPodSpecPatch_InvalidStorageQuantities(t *testing.T) {
+	invalidSize := "invalid-size"
+	tests := []struct {
+		name       string
+		k8sExecCfg *kubernetesplatform.KubernetesExecutorConfig
+		errorText  string
+	}{
+		{
+			name: "generic ephemeral volume",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				GenericEphemeralVolume: []*kubernetesplatform.GenericEphemeralVolume{
+					{VolumeName: "ephemeral", MountPath: "/mnt/data", Size: invalidSize},
+				},
+			},
+			errorText: "failed to parse generic ephemeral volume size",
+		},
+		{
+			name: "emptyDir size limit",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				EmptyDirMounts: []*kubernetesplatform.EmptyDirMount{
+					{VolumeName: "emptydir", MountPath: "/mnt/data", SizeLimit: &invalidSize},
+				},
+			},
+			errorText: "failed to parse size limit",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			podSpec := &k8score.PodSpec{Containers: []k8score.Container{{Name: "main"}}}
+			err := extendPodSpecPatch(
+				context.Background(),
+				podSpec,
+				common.Options{KubernetesExecutorConfig: tt.k8sExecCfg},
+				nil,
+				nil,
+			)
+			assert.ErrorContains(t, err, tt.errorText)
+		})
+	}
+}
