@@ -59,7 +59,6 @@ vi.mock('src/pages/RunList', () => ({
 vi.mock('src/components/viewers/RuntimeArtifactComparison', () => ({
   createRuntimeArtifactComparisonSelectionState: () => ({
     panelSelections: { 'confusion matrix': ['', ''], html: ['', ''], markdown: ['', ''] },
-    rocColorByKey: {},
   }),
   RuntimeArtifactComparison: ({
     artifacts,

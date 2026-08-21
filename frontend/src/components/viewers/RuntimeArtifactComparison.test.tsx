@@ -167,6 +167,11 @@ describe('RuntimeArtifactComparison', () => {
       .getAttribute('data-colors')!
       .split(',');
     expect(remainingColors).toEqual(initialColors.slice(1));
+
+    fireEvent.click(await screen.findByRole('option', { name: /First run/ }));
+    expect(screen.getByTestId('shared-roc-curve').getAttribute('data-colors')!.split(',')[0]).toBe(
+      initialColors[0],
+    );
   });
 
   it('preserves default ROC colors across refreshes before explicit selection', () => {
@@ -397,7 +402,14 @@ describe('RuntimeArtifactComparison', () => {
     const defaultColors = keys.map(TEST_ONLY.getStableDefaultRocColor);
 
     expect(new Set(Object.values(colors)).size).toBe(keys.length);
-    expect(TEST_ONLY.allocateRocColors(keys, colors)).toEqual(colors);
+    expect(TEST_ONLY.allocateRocColors(keys)).toEqual(colors);
     expect(new Set(defaultColors).size).toBe(keys.length);
+  });
+
+  it('distinguishes identities that collided in the former single-hash color space', () => {
+    const keys = ['Run 40:roc-40:roc-40', 'Run 206:roc-206:roc-206'];
+
+    expect(new Set(keys.map(TEST_ONLY.getStableDefaultRocColor)).size).toBe(2);
+    expect(new Set(Object.values(TEST_ONLY.allocateRocColors(keys))).size).toBe(2);
   });
 });
