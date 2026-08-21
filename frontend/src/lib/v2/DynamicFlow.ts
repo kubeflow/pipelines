@@ -34,6 +34,7 @@ import {
   TaskType,
 } from 'src/lib/v2/StaticFlow';
 import { getArtifactNameFromEvent, LinkedArtifact, ExecutionHelpers } from 'src/mlmd/MlmdUtils';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 
@@ -221,6 +222,7 @@ export function updateFlowElementsState(
   executions: Execution[],
   events: Event[],
   artifacts: Artifact[],
+  taskStateMap?: Map<string, string>,
 ): PipelineFlowElement[] {
   const executionLayers = getExecutionLayers(layers, executions);
   if (executionLayers.length < layers.length) {
@@ -265,13 +267,14 @@ export function updateFlowElementsState(
   for (let elem of elems) {
     const updatedElem = cloneFlowElement(elem);
     if (NodeTypeNames.EXECUTION === elem.type) {
-      const executions = getExecutionsUnderDAG(
-        taskNameToExecution,
-        getTaskLabelByPipelineFlowElement(elem),
-        executionLayers,
-      );
+      const taskLabel = getTaskLabelByPipelineFlowElement(elem);
+      const executions = getExecutionsUnderDAG(taskNameToExecution, taskLabel, executionLayers);
       if (executions) {
-        (updatedElem.data as ExecutionFlowElementData).state = executions[0]?.getLastKnownState();
+        const state = executions[0]?.getLastKnownState();
+        (updatedElem.data as ExecutionFlowElementData).state = state;
+        if (taskStateMap?.get(taskLabel) === V2beta1RuntimeState.PAUSED) {
+          (updatedElem.data as ExecutionFlowElementData).debugPaused = true;
+        }
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
         // Use ExecutionHelpers.getName() which reads display_name from MLMD custom properties
         (updatedElem.data as ExecutionFlowElementData).label = ExecutionHelpers.getName(
