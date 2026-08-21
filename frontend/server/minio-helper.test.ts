@@ -237,12 +237,13 @@ describe('minio-helper', () => {
           accessKey: 'environment-access',
           endPoint: 'default-store',
           secretKey: 'environment-secret',
+          sessionToken: 'environment-session-token',
         },
         's3',
         JSON.stringify({
           Provider: 's3',
           Params: {
-            anonymous: 'true',
+            anonymous: '1',
             endpoint: 'https://s3.us-west-2.amazonaws.com',
             forcePathStyle: 'false',
             fromEnv: 'true',
@@ -257,6 +258,26 @@ describe('minio-helper', () => {
         port: undefined,
         useSSL: true,
       });
+    });
+
+    it('rejects unsupported S3 read options before resolving ambient credentials', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'https://s3.us-west-2.amazonaws.com',
+              fromEnv: 'true',
+              role: 'arn:aws:iam::123456789012:role/ArtifactReader',
+            },
+          }),
+        ),
+      ).rejects.toThrow('Unsupported S3 artifact read option: role');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('parses an explicit HTTP AWS endpoint into Minio client options', async () => {

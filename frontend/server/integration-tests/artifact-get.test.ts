@@ -713,6 +713,47 @@ s3:
       expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
     });
 
+    it('allows authenticated GCS access to the default universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      stream.end('private artifact');
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', universe_domain: 'googleapis.com' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'private artifact\n');
+
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined);
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
+      });
+    });
+
     it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
       // When the requested namespace is not the server's own namespace, the
       // secret-backed provider info must be ignored so the UI never reads

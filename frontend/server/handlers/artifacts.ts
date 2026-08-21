@@ -1013,7 +1013,7 @@ function getGCSArtifactHandler(
           providerInfo?.Params.anonymous?.toLowerCase() === 'true' ||
           providerInfo?.Params.access_id === '-';
         universeDomain = providerInfo?.Params.universe_domain || undefined;
-        if (universeDomain && !anonymous) {
+        if (universeDomain && !anonymous && universeDomain !== 'googleapis.com') {
           res
             .status(400)
             .send(

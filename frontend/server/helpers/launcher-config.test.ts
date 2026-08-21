@@ -445,6 +445,33 @@ s3:
     });
   });
 
+  it('preserves the first duplicate S3 query value used by Go Cloud', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'external-bucket',
+        key: 'model',
+        artifactUriQuery:
+          'anonymous=1&anonymous=false&endpoint=https%3A%2F%2Fs3.us-west-2.amazonaws.com',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '')).toEqual({
+      Provider: 's3',
+      Params: {
+        anonymous: '1',
+        endpoint: 'https://s3.us-west-2.amazonaws.com',
+        fromEnv: 'true',
+      },
+    });
+  });
+
   it('treats a fragment marker as object-key data when checking the pipeline root', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

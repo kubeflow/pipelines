@@ -305,7 +305,11 @@ function buildSessionInfo(
 function buildQuerySessionInfo(provider: ArtifactProvider, query: string): StoreSessionInfo {
   const params: Record<string, string> = {};
   new URLSearchParams(query).forEach((value, key) => {
-    params[key] = value;
+    // Go's url.Values.Get reads the first duplicate. Preserve that behavior so credential and
+    // endpoint selection cannot diverge between the launcher and the artifact reader.
+    if (!(key in params)) {
+      params[key] = value;
+    }
   });
   // URI queries configure the provider but never authorize namespace Secret reads.
   params.fromEnv = 'true';

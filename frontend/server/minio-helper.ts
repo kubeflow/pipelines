@@ -42,6 +42,41 @@ export interface Credentials {
   sessionToken?: string;
 }
 
+const UNSUPPORTED_S3_READ_OPTIONS = new Set([
+  'accelerate',
+  'dualstack',
+  'fips',
+  'hostname_immutable',
+  'profile',
+  'rate_limiter_capacity',
+  'request_checksum_calculation',
+  'response_checksum_validation',
+  'role',
+]);
+
+function parseGoBoolean(value: string, option: string): boolean {
+  if (['1', 't', 'T', 'TRUE', 'true', 'True'].includes(value)) {
+    return true;
+  }
+  if (['0', 'f', 'F', 'FALSE', 'false', 'False'].includes(value)) {
+    return false;
+  }
+  throw new Error(`Invalid value for S3 provider option ${option}: ${value}`);
+}
+
+function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
+  const unsupported = Object.keys(providerInfo.Params)
+    .filter((key) => UNSUPPORTED_S3_READ_OPTIONS.has(key))
+    .sort();
+  if (unsupported.length) {
+    throw new Error(
+      `Unsupported S3 artifact read option${unsupported.length === 1 ? '' : 's'}: ${unsupported.join(
+        ', ',
+      )}. Remove the option or configure an artifact store supported by the frontend.`,
+    );
+  }
+}
+
 /**
  * Create minio client for s3 compatible storage
  *
@@ -79,7 +114,20 @@ export async function createMinioClient(
   // and endpoint overrides, so always work on a request-local copy.
   config = { ...config };
 
-  if (customCredentialProvider) {
+  let providerInfo: S3ProviderInfo | undefined;
+  let anonymous = false;
+  if (providerInfoString) {
+    providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
+    if (!providerInfo) {
+      throw new Error('Failed to parse provider info.');
+    }
+    rejectUnsupportedS3ReadOptions(providerInfo);
+    if (providerInfo.Params.anonymous !== undefined) {
+      anonymous = parseGoBoolean(providerInfo.Params.anonymous, 'anonymous');
+    }
+  }
+
+  if (customCredentialProvider && !anonymous) {
     try {
       const creds = await customCredentialProvider();
 
@@ -103,13 +151,7 @@ export async function createMinioClient(
     }
   }
 
-  let anonymous = false;
-  if (providerInfoString) {
-    const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
-    if (!providerInfo) {
-      throw new Error('Failed to parse provider info.');
-    }
-    anonymous = providerInfo.Params.anonymous?.toLowerCase() === 'true';
+  if (providerInfo) {
     config = await applyS3ProviderInfo(config, providerInfo, namespace);
     if (anonymous) {
       delete config.accessKey;
@@ -241,6 +283,8 @@ async function applyS3ProviderInfo(
   namespace?: string,
 ): Promise<MinioClientOptionsWithOptionalSecrets> {
   const disableSSL = providerInfo.Params.disableSSL ?? providerInfo.Params.disable_https;
+  const disableSSLValue =
+    disableSSL === undefined ? undefined : parseGoBoolean(disableSSL, 'disableSSL');
   if (providerInfo.Params.fromEnv === 'false') {
     if (!namespace) {
       throw new Error('Artifact Store provider given, but no namespace provided.');
@@ -283,8 +327,7 @@ async function applyS3ProviderInfo(
       config.endPoint = endpoint.host;
       config.port = endpoint.port;
       config.useSSL =
-        endpoint.useSSL ??
-        (disableSSL === undefined ? undefined : disableSSL.toLowerCase() !== 'true');
+        endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue);
     } else {
       throw new Error('Provider info missing endpoint parameter.');
     }
@@ -319,9 +362,9 @@ async function applyS3ProviderInfo(
       } else if (providerInfo.Params.endpoint.startsWith('https://')) {
         config.useSSL = true;
       } else {
-        config.useSSL = disableSSL === undefined ? undefined : disableSSL.toLowerCase() !== 'true';
+        config.useSSL = disableSSLValue === undefined ? undefined : !disableSSLValue;
       }
-    } else if (disableSSL?.toLowerCase() === 'true') {
+    } else if (disableSSLValue) {
       // The runtime applies an explicit disableSSL=true even when credentials inherit the server
       // endpoint. A materialized false remains inheritance so it cannot flip a plaintext default.
       config.useSSL = false;
@@ -332,7 +375,7 @@ async function applyS3ProviderInfo(
     providerInfo.Params.s3ForcePathStyle ??
     providerInfo.Params.use_path_style;
   if (pathStyle !== undefined) {
-    config.pathStyle = pathStyle.toLowerCase() === 'true';
+    config.pathStyle = parseGoBoolean(pathStyle, 'use_path_style');
   }
   return config;
 }
