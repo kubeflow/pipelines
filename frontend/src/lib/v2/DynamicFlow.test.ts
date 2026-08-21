@@ -25,6 +25,7 @@ import v2YamlTemplateString from 'src/data/test/lightweight_python_functions_v2_
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { convertFlowElements, NodeTypeNames } from './StaticFlow';
 import {
+  buildRuntimeFlowContext,
   convertSubDagToRuntimeFlowElements,
   getNodeRuntimeInfo,
   getTaskRuntimeLayers,
@@ -505,21 +506,50 @@ describe('DynamicFlow', () => {
       );
 
       const staleRunningBody = { ...bodyA, state: PipelineTaskTaskState.RUNNING };
-      const failedWithStaleIncompleteElements = updateFlowElementsState(
+      const failedIncompleteTasks = [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.FAILED },
+        staleRunningBody,
+      ];
+      const activeFailedWithRunningIncompleteElements = updateFlowElementsState(
         ['root', 'loop'],
         partialElements,
-        [rootTask, { ...loopTask, state: PipelineTaskTaskState.FAILED }, staleRunningBody],
+        failedIncompleteTasks,
       );
-      expect(failedWithStaleIncompleteElements[0].data?.state).toBe(
+      expect(activeFailedWithRunningIncompleteElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNNING,
+      );
+      const terminalFailedWithStaleIncompleteElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        failedIncompleteTasks,
+        buildRuntimeFlowContext(['root', 'loop'], failedIncompleteTasks, true),
+      );
+      expect(terminalFailedWithStaleIncompleteElements[0].data?.state).toBe(
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 
-      const failedWithStaleCompleteElements = updateFlowElementsState(
+      const failedCompleteTasks = [
+        rootTask,
+        { ...loopTask, state: PipelineTaskTaskState.FAILED },
+        staleRunningBody,
+        bodyB,
+      ];
+      const activeFailedWithRunningCompleteElements = updateFlowElementsState(
         ['root', 'loop'],
         partialElements,
-        [rootTask, { ...loopTask, state: PipelineTaskTaskState.FAILED }, staleRunningBody, bodyB],
+        failedCompleteTasks,
       );
-      expect(failedWithStaleCompleteElements[0].data?.state).toBe(
+      expect(activeFailedWithRunningCompleteElements[0].data?.state).toBe(
+        PipelineTaskTaskState.RUNNING,
+      );
+      const terminalFailedWithStaleCompleteElements = updateFlowElementsState(
+        ['root', 'loop'],
+        partialElements,
+        failedCompleteTasks,
+        buildRuntimeFlowContext(['root', 'loop'], failedCompleteTasks, true),
+      );
+      expect(terminalFailedWithStaleCompleteElements[0].data?.state).toBe(
         PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED,
       );
 

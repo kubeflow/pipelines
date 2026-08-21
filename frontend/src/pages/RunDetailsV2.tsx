@@ -285,7 +285,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const layerChange = useCallback(
     (layers: string[]) => {
       try {
-        const nextElements = convertSubDagToRuntimeFlowElements(pipelineSpec, layers, tasks || []);
+        const nextElements = convertSubDagToRuntimeFlowElements(
+          pipelineSpec,
+          layers,
+          tasks || [],
+          runIsTerminal,
+        );
         fallbackGraphActive.current = false;
         clearLinkedTaskQuery();
         setLayerNavigationError(null);
@@ -296,12 +301,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         setLayerNavigationError(error instanceof Error ? error.message : String(error));
       }
     },
-    [clearLinkedTaskQuery, pipelineSpec, tasks],
+    [clearLinkedTaskQuery, pipelineSpec, runIsTerminal, tasks],
   );
 
   const runtimeFlowContext = useMemo(
-    () => buildRuntimeFlowContext(layers, tasks || []),
-    [layers, tasks],
+    () => buildRuntimeFlowContext(layers, tasks || [], runIsTerminal),
+    [layers, runIsTerminal, tasks],
   );
 
   const dynamicFlowElements = useMemo(() => {
@@ -339,7 +344,12 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     let targetElement: PipelineFlowElement;
     let navigationError: string | undefined;
     try {
-      targetElements = convertSubDagToRuntimeFlowElements(pipelineSpec, targetLayers, tasks || []);
+      targetElements = convertSubDagToRuntimeFlowElements(
+        pipelineSpec,
+        targetLayers,
+        tasks || [],
+        runIsTerminal,
+      );
       fallbackGraphActive.current = false;
       targetElement =
         targetElements.find((element) => element.id === targetNodeId) ||
@@ -355,7 +365,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setLayers(targetLayers);
     setFlowElements(targetElements);
     setSelectedNodeState({ element: targetElement, linkedTaskId, navigationError });
-  }, [linkedTask, linkedTaskId, pipelineSpec, restoreFallbackGraph, tasks]);
+  }, [linkedTask, linkedTaskId, pipelineSpec, restoreFallbackGraph, runIsTerminal, tasks]);
 
   const linkedSelectionMatchesUrl =
     !selectedNodeState?.linkedTaskId || selectedNodeState.linkedTaskId === linkedTaskId;

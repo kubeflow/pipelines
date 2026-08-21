@@ -65,12 +65,14 @@ interface RuntimeLayerContext {
 interface RuntimeFlowContext {
   taskIndex: TaskIndex;
   runtimeLayerContext: RuntimeLayerContext;
+  runIsTerminal: boolean;
 }
 
 export function convertSubDagToRuntimeFlowElements(
   spec: PipelineSpec,
   layers: string[],
   tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
 ): PipelineFlowElement[] {
   let componentSpec = spec.root;
   if (!componentSpec) {
@@ -107,7 +109,7 @@ export function convertSubDagToRuntimeFlowElements(
   ) {
     const expectedTaskCount = Object.keys(componentSpec.dag?.tasks || {}).length;
     return (
-      buildParallelForDag(runtimeContext.task, taskIndex, expectedTaskCount) ||
+      buildParallelForDag(runtimeContext.task, taskIndex, expectedTaskCount, runIsTerminal) ||
       annotateExpectedTaskCount(buildDag(spec, componentSpec), expectedTaskCount)
     );
   }
@@ -142,6 +144,7 @@ export function updateFlowElementsState(
         iterationIndex,
         data.expectedTaskCount,
         runtimeContext.task!.state,
+        flowContext.runIsTerminal,
       );
       return updatedElement;
     });
@@ -196,6 +199,7 @@ export function reconcileRuntimeFlowElements(
         runtimeContext.task,
         flowContext.taskIndex,
         getExpectedTaskCount(elements),
+        flowContext.runIsTerminal,
       ) || runtimeStructure;
   }
 
@@ -254,9 +258,14 @@ export function getNodeRuntimeInfo(
 export function buildRuntimeFlowContext(
   layers: string[],
   tasks: V2beta1PipelineTask[],
+  runIsTerminal = false,
 ): RuntimeFlowContext {
   const taskIndex = buildTaskIndex(tasks);
-  return { taskIndex, runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex) };
+  return {
+    taskIndex,
+    runtimeLayerContext: getRuntimeLayerContext(layers, taskIndex),
+    runIsTerminal,
+  };
 }
 
 export function getTaskRuntimeLayers(
@@ -443,6 +452,7 @@ function buildParallelForDag(
   loopTask: V2beta1PipelineTask,
   taskIndex: TaskIndex,
   expectedTaskCount?: number,
+  runIsTerminal = false,
 ): PipelineFlowElement[] | undefined {
   const flowGraph: PipelineFlowElement[] = [];
   const iterationCount = getParallelForIterationCount(loopTask);
@@ -457,7 +467,7 @@ function buildParallelForDag(
       data: {
         label: iterationNodeName,
         expectedTaskCount,
-        state: getIterationState(children, index, expectedTaskCount, loopTask.state),
+        state: getIterationState(children, index, expectedTaskCount, loopTask.state, runIsTerminal),
         taskType: TaskType.DAG,
       },
       position: { x: 100, y: 200 },
@@ -473,6 +483,7 @@ function getIterationState(
   iterationIndex: number,
   expectedTaskCount?: number,
   loopState?: PipelineTaskTaskState,
+  runIsTerminal = false,
 ): PipelineTaskTaskState | undefined {
   const iterationTasks = childTasks.filter(
     (task) => Number(task.type_attributes?.iteration_index) === iterationIndex,
@@ -488,9 +499,9 @@ function getIterationState(
   }
   const loopIsTerminal =
     loopState === PipelineTaskTaskState.SUCCEEDED ||
-    loopState === PipelineTaskTaskState.FAILED ||
     loopState === PipelineTaskTaskState.SKIPPED ||
-    loopState === PipelineTaskTaskState.CACHED;
+    loopState === PipelineTaskTaskState.CACHED ||
+    (loopState === PipelineTaskTaskState.FAILED && runIsTerminal);
   if (loopIsTerminal && states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
