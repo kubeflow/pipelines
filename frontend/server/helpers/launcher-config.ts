@@ -305,14 +305,18 @@ function buildSessionInfo(
 function buildQuerySessionInfo(
   provider: ArtifactProvider,
   query: string,
-  enforceNativeS3Query: boolean,
+  enforceNativeQuery: boolean,
 ): StoreSessionInfo {
   const params: Record<string, string> = {};
   new URLSearchParams(query).forEach((value, key) => {
-    if (provider === 's3' && enforceNativeS3Query && !NATIVE_S3_QUERY_OPTIONS.has(key)) {
+    if (
+      (provider === 's3' || provider === 'minio') &&
+      enforceNativeQuery &&
+      !NATIVE_S3_QUERY_OPTIONS.has(key)
+    ) {
       throw new LauncherConfigValidationError(
-        `S3 artifact URI query option "${key}" is not supported by Go Cloud. ` +
-          'Use a native S3 query option and retry.',
+        `${provider === 's3' ? 'S3' : 'MinIO'} artifact URI query option "${key}" is not ` +
+          'supported by Go Cloud. Use a native S3 query option and retry.',
       );
     }
     if (provider === 'gs' && !NATIVE_GCS_QUERY_OPTIONS.has(key)) {
@@ -333,9 +337,29 @@ function buildQuerySessionInfo(
       params[key] = value;
     }
   });
+  if ((provider === 's3' || provider === 'minio') && enforceNativeQuery) {
+    validateNativeS3QueryValues(params);
+  }
   // URI queries configure the provider but never authorize namespace Secret reads.
   params.fromEnv = 'true';
   return { Provider: provider, Params: params };
+}
+
+function validateNativeS3QueryValues(params: Record<string, string>): void {
+  if (params.ssetype !== undefined) {
+    const validSseTypes = new Set(['aes256', 'aws:kms', 'aws:kms:dsse']);
+    if (!validSseTypes.has(params.ssetype.toLowerCase())) {
+      throw new LauncherConfigValidationError(
+        `S3 artifact URI query option "ssetype" has invalid value "${params.ssetype}". ` +
+          'Use AES256, aws:kms, or aws:kms:dsse and retry.',
+      );
+    }
+  }
+  if (params.kmskeyid !== undefined && params.kmskeyid === '') {
+    throw new LauncherConfigValidationError(
+      'S3 artifact URI query option "kmskeyid" cannot be empty. Remove it or provide a KMS key ID and retry.',
+    );
+  }
 }
 
 const NATIVE_S3_QUERY_OPTIONS = new Set([

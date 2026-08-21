@@ -494,6 +494,74 @@ s3:
     },
   );
 
+  it.each(['disableSSL=true', 'anonymuos=true'])(
+    'rejects non-native raw MinIO query option %s',
+    async (artifactUriQuery) => {
+      mockedGetConfigMap.mockResolvedValue([
+        { data: { defaultPipelineRoot: 'minio://mlpipeline/v2/artifacts' } },
+        undefined,
+      ]);
+
+      await expect(
+        getLauncherProviderInfo(
+          {
+            source: 'minio',
+            bucket: 'external-bucket',
+            key: 'model',
+            artifactUriQuery,
+          },
+          'team-a',
+        ),
+      ).rejects.toThrow('is not supported by Go Cloud');
+    },
+  );
+
+  it.each([
+    ['ssetype=', 'ssetype'],
+    ['ssetype=invalid', 'ssetype'],
+    ['kmskeyid=', 'kmskeyid'],
+  ])('rejects invalid native S3 query value %s', async (artifactUriQuery, option) => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    await expect(
+      getLauncherProviderInfo(
+        {
+          source: 's3',
+          bucket: 'external-bucket',
+          key: 'model',
+          artifactUriQuery,
+        },
+        'team-a',
+      ),
+    ).rejects.toThrow(option);
+  });
+
+  it('accepts valid native S3 write options without applying them to reads', async () => {
+    mockedGetConfigMap.mockResolvedValue([
+      { data: { defaultPipelineRoot: 's3://team-bucket/pipelines/team-a' } },
+      undefined,
+    ]);
+
+    const result = await getLauncherProviderInfo(
+      {
+        source: 's3',
+        bucket: 'external-bucket',
+        key: 'model',
+        artifactUriQuery: 'ssetype=aws%3Akms&kmskeyid=key-1',
+      },
+      'team-a',
+    );
+
+    expect(JSON.parse(result || '').Params).toMatchObject({
+      fromEnv: 'true',
+      kmskeyid: 'key-1',
+      ssetype: 'aws:kms',
+    });
+  });
+
   it('treats a fragment marker as object-key data when checking the pipeline root', async () => {
     mockedGetConfigMap.mockResolvedValue([
       {

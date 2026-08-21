@@ -33,6 +33,7 @@ export interface MinioRequestConfig {
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
 export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClientOptions> {
   endPoint: string;
+  endpointBasePath?: string;
   endpointRewrite?: string;
 }
 
@@ -42,12 +43,7 @@ export interface Credentials {
   sessionToken?: string;
 }
 
-const UNSUPPORTED_S3_READ_OPTIONS = new Set([
-  'profile',
-  'request_checksum_calculation',
-  'response_checksum_validation',
-  'role',
-]);
+const UNSUPPORTED_S3_READ_OPTIONS = new Set(['role']);
 const UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS = [
   'accelerate',
   'dualstack',
@@ -67,9 +63,36 @@ export function parseGoBoolean(value: string, option: string): boolean {
 
 function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
   const params = providerInfo.Params as Record<string, string | undefined>;
+  if (
+    params.ssetype !== undefined &&
+    !['aes256', 'aws:kms', 'aws:kms:dsse'].includes(params.ssetype.toLowerCase())
+  ) {
+    throw new Error(
+      `Invalid value for provider option ssetype: ${params.ssetype}. ` +
+        'Use AES256, aws:kms, or aws:kms:dsse.',
+    );
+  }
+  if (params.kmskeyid !== undefined && params.kmskeyid === '') {
+    throw new Error(
+      'Invalid empty value for provider option kmskeyid. Remove it or provide a key ID.',
+    );
+  }
   const unsupported = Object.keys(params)
     .filter((key) => UNSUPPORTED_S3_READ_OPTIONS.has(key))
     .sort();
+  if (params.profile !== undefined && params.profile !== '') {
+    unsupported.push('profile');
+  }
+  validateNeutralS3Option(
+    params.request_checksum_calculation,
+    'request_checksum_calculation',
+    unsupported,
+  );
+  validateNeutralS3Option(
+    params.response_checksum_validation,
+    'response_checksum_validation',
+    unsupported,
+  );
   for (const option of UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS) {
     const value = params[option];
     if (value !== undefined && parseGoBoolean(value, option)) {
@@ -104,6 +127,31 @@ function rejectUnsupportedS3ReadOptions(providerInfo: S3ProviderInfo): void {
         ', ',
       )}. Remove the option or configure an artifact store supported by the frontend.`,
     );
+  }
+  if (params.endpoint) {
+    parseProviderEndpoint(params.endpoint);
+  }
+}
+
+function validateNeutralS3Option(
+  value: string | undefined,
+  option: string,
+  unsupported: string[],
+): void {
+  if (value === undefined) {
+    return;
+  }
+  switch (value.toLowerCase()) {
+    case 'when_supported':
+      return;
+    case 'when_required':
+      unsupported.push(option);
+      return;
+    default:
+      throw new Error(
+        `Invalid value for provider option ${option}: ${value}. ` +
+          'Use when_supported or when_required.',
+      );
   }
 }
 
@@ -162,7 +210,7 @@ export async function createMinioClient(
       const creds = await customCredentialProvider();
 
       if (creds && creds.accessKeyId && creds.secretAccessKey) {
-        return new MinioClient(
+        return createConfiguredMinioClient(
           applyEndpointRewrite({
             ...config,
             accessKey: creds.accessKeyId,
@@ -203,7 +251,7 @@ export async function createMinioClient(
             secretAccessKey: secretKey,
             sessionToken,
           } = awsCredentials;
-          return new MinioClient(
+          return createConfiguredMinioClient(
             applyEndpointRewrite({
               ...config,
               accessKey,
@@ -225,11 +273,32 @@ export async function createMinioClient(
   // If using any AWS or S3 compatible store (e.g. minio, aws s3 when using manual creds, ceph, etc.)
   let mc: MinioClient;
   try {
-    mc = await new MinioClient(applyEndpointRewrite(config) as MinioClientOptions);
+    mc = createConfiguredMinioClient(applyEndpointRewrite(config));
   } catch (err) {
     throw new Error(`Failed to create MinioClient: ${err}`, { cause: err });
   }
   return mc;
+}
+
+function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
+  const { endpointBasePath, ...clientOptions } = config;
+  const client = new MinioClient(clientOptions as MinioClientOptions);
+  if (!endpointBasePath) {
+    return client;
+  }
+
+  // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path before
+  // MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
+  const requestOptionsClient = client as unknown as {
+    getRequestOptions: (options: unknown) => { path: string; [key: string]: unknown };
+  };
+  const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
+  requestOptionsClient.getRequestOptions = (options) => {
+    const requestOptions = getRequestOptions(options);
+    requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
+    return requestOptions;
+  };
+  return client;
 }
 
 function applyEndpointRewrite(
@@ -296,6 +365,27 @@ function parseEndpoint(
   }
 }
 
+function parseProviderEndpoint(endpoint: string): {
+  host: string;
+  port?: number;
+  basePath?: string;
+  useSSL?: boolean;
+} {
+  const parsed = parseEndpoint(endpoint);
+  if (!parsed) {
+    throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
+  }
+  const url = new URL(endpoint.match(/^https?:\/\//) ? endpoint : `http://${endpoint}`);
+  if (url.search || url.hash) {
+    throw new Error(
+      `Provider endpoint "${endpoint}" contains a query or fragment that the frontend artifact ` +
+        'reader cannot preserve. Remove it and retry.',
+    );
+  }
+  const basePath = url.pathname.replace(/\/$/, '');
+  return { ...parsed, basePath: basePath || undefined };
+}
+
 /**
  * Parse provider info for any S3-compatible store that is not AWS S3.
  *
@@ -312,9 +402,14 @@ async function applyS3ProviderInfo(
   providerInfo: S3ProviderInfo,
   namespace?: string,
 ): Promise<MinioClientOptionsWithOptionalSecrets> {
-  const disableSSL = providerInfo.Params.disableSSL ?? providerInfo.Params.disable_https;
   const disableSSLValue =
-    disableSSL === undefined ? undefined : parseGoBoolean(disableSSL, 'disableSSL');
+    providerInfo.Params.disableSSL === undefined
+      ? undefined
+      : parseGoBoolean(providerInfo.Params.disableSSL, 'disableSSL');
+  const disableHttpsValue =
+    providerInfo.Params.disable_https === undefined
+      ? undefined
+      : parseGoBoolean(providerInfo.Params.disable_https, 'disable_https');
   if (providerInfo.Params.fromEnv === 'false') {
     if (!namespace) {
       throw new Error('Artifact Store provider given, but no namespace provided.');
@@ -350,14 +445,14 @@ async function applyS3ProviderInfo(
 
   if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
     if (providerInfo.Params.endpoint) {
-      const endpoint = parseEndpoint(providerInfo.Params.endpoint);
-      if (!endpoint) {
-        throw new Error(`Provider info has invalid endpoint: ${providerInfo.Params.endpoint}`);
-      }
+      const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint);
       config.endPoint = endpoint.host;
+      config.endpointBasePath = endpoint.basePath;
       config.port = endpoint.port;
       config.useSSL =
-        endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue);
+        disableHttpsValue === undefined
+          ? (endpoint.useSSL ?? (disableSSLValue === undefined ? undefined : !disableSSLValue))
+          : !disableHttpsValue;
     } else {
       throw new Error('Provider info missing endpoint parameter.');
     }
@@ -367,17 +462,12 @@ async function applyS3ProviderInfo(
     }
   } else {
     if (providerInfo.Params.endpoint) {
-      const url = providerInfo.Params.endpoint;
-      // this is a bit of a hack to add support for endpoints without a protocol (required by WHATWG URL standard)
-      // example: <ip>:<port> format. In general should expect most endpoints to provide a protocol as serviced
-      // by the backend
-      const parseEndpoint = new URL(url.startsWith('http') ? url : `https://${url}`);
-      const host = parseEndpoint.hostname;
-      const port = parseEndpoint.port;
-      config.endPoint = host;
+      const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint);
+      config.endPoint = endpoint.host;
+      config.endpointBasePath = endpoint.basePath;
       // user provided port in endpoint takes precedence
       // e.g. if the user has provided <service-name>.<namespace>.svc.cluster.local:<service-port>
-      config.port = port ? Number(port) : undefined;
+      config.port = endpoint.port;
     }
 
     if (providerInfo.Params.region) {
@@ -387,7 +477,9 @@ async function applyS3ProviderInfo(
     if (providerInfo.Params.endpoint) {
       // Do not inherit the server's TLS setting when switching to a provider-supplied endpoint;
       // without an endpoint override, retain the server default unchanged.
-      if (providerInfo.Params.endpoint.startsWith('http://')) {
+      if (disableHttpsValue !== undefined) {
+        config.useSSL = !disableHttpsValue;
+      } else if (providerInfo.Params.endpoint.startsWith('http://')) {
         config.useSSL = false;
       } else if (providerInfo.Params.endpoint.startsWith('https://')) {
         config.useSSL = true;
