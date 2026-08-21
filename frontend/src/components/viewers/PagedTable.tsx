@@ -98,7 +98,9 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
     }
 
     const { data, labels } = config;
-    const { order, orderBy, rowsPerPage, page } = this.state;
+    const { order, orderBy, rowsPerPage } = this.state;
+    const lastPage = Math.max(0, Math.ceil(data.length / rowsPerPage) - 1);
+    const page = Math.min(this.state.page, lastPage);
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
 
     return (
