@@ -187,7 +187,24 @@ describe('minio-helper', () => {
       expect(MockedMinioClient).toHaveBeenCalledWith({
         accessKey: 'accesskey',
         endPoint: 'store.example',
-        retryOptions: { maximumRetryCount: 5 },
+        retryOptions: { maximumRetryCount: 4 },
+        secretKey: 'secretkey',
+      });
+    });
+
+    it('retains the client retry default when structured maxRetries is zero', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '0' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
         secretKey: 'secretkey',
       });
     });
@@ -207,6 +224,25 @@ describe('minio-helper', () => {
           }),
         ),
       ).rejects.toThrow('must contain a valid authority');
+
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('rejects backslashes in native endpoint authorities', async () => {
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'http://evil.example\\@trusted.example/base',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('must not contain backslashes');
 
       expect(MockedMinioClient).not.toHaveBeenCalled();
     });
@@ -778,6 +814,99 @@ describe('minio-helper', () => {
           headers: { host: 'bucket.s3.amazonaws.com' },
           host: 'bucket.s3.amazonaws.com',
           path: '/base/object',
+        }),
+      );
+    });
+
+    it('preserves MinIO path-style addressing for dotted HTTPS buckets', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 's3.amazonaws.com' },
+        host: 's3.amazonaws.com',
+        path: '/bucket.with.dot/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(
+        (client as any).getRequestOptions({ bucketName: 'bucket.with.dot', method: 'GET' }),
+      ).toEqual(
+        expect.objectContaining({
+          headers: { host: 's3.amazonaws.com' },
+          host: 's3.amazonaws.com',
+          path: '/bucket.with.dot/object',
+        }),
+      );
+    });
+
+    it.each([
+      ['https://s3.amazonaws.com:80', 80],
+      ['http://s3.amazonaws.com:443', 443],
+    ])('preserves cross-scheme port in the signed Host for %s', async (endpoint, port) => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.amazonaws.com' },
+        host: 'bucket.s3.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { endpoint, fromEnv: 'true', nativeQuery: 'true' },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({ headers: { host: `bucket.s3.amazonaws.com:${port}` } }),
+      );
+    });
+
+    it('preserves an explicit China partition S3 authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.cn-northwest-1.amazonaws.com.cn' },
+        host: 'bucket.s3.cn-northwest-1.amazonaws.com.cn',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.cn-north-1.amazonaws.com.cn',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+            region: 'cn-northwest-1',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
+          host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
         }),
       );
     });

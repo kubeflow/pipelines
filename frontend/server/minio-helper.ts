@@ -286,13 +286,17 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
       requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
     }
     if (endpointAuthority) {
-      const host =
-        options.bucketName && clientOptions.pathStyle === false
-          ? `${options.bucketName}.${endpointAuthority}`
-          : endpointAuthority;
+      // Preserve MinIO's addressing decision (not merely the configured preference). In
+      // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
+      const usesVirtualHostStyle =
+        !!options.bucketName && requestOptions.host.startsWith(`${options.bucketName}.`);
+      const host = usesVirtualHostStyle
+        ? `${options.bucketName}.${endpointAuthority}`
+        : endpointAuthority;
       requestOptions.host = host;
+      const defaultPort = clientOptions.useSSL === false ? 80 : 443;
       requestOptions.headers.host =
-        clientOptions.port && ![80, 443].includes(clientOptions.port)
+        clientOptions.port && clientOptions.port !== defaultPort
           ? `${host}:${clientOptions.port}`
           : host;
     }
@@ -382,6 +386,9 @@ function parseProviderEndpoint(
   if (hasHttpScheme && !/^https?:\/\/[^/?#]+(?:[/?#]|$)/i.test(endpoint)) {
     throw new Error(`Provider info endpoint must contain a valid authority: ${endpoint}`);
   }
+  if (endpoint.includes('\\')) {
+    throw new Error(`Provider info endpoint must not contain backslashes: ${endpoint}`);
+  }
   const parsed = parseEndpoint(endpoint);
   if (!parsed) {
     throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
@@ -463,10 +470,10 @@ async function applyS3ProviderInfo(
     const disableTransport = disableHttpsValue ?? disableSSLValue;
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
-    // MinIO rewrites the explicit global AWS endpoint to a regional authority. Go Cloud keeps an
-    // explicit endpoint authoritative, so pin that one host after MinIO builds request options.
+    // MinIO rewrites explicit AWS endpoints according to its own region table. Go Cloud keeps an
+    // explicit endpoint authoritative, so pin AWS-partition hosts after MinIO builds the request.
     config.endpointAuthority =
-      nativeQuery && endpoint.host.toLowerCase() === 's3.amazonaws.com' ? endpoint.host : undefined;
+      nativeQuery && isAwsS3Endpoint(endpoint.host) ? endpoint.host : undefined;
     config.port = endpoint.port;
     // AWS DisableHTTPS is asymmetric: true downgrades an explicit HTTPS endpoint, while false does
     // not upgrade an explicit HTTP endpoint. The legacy and Go Cloud spellings share this rule.
@@ -502,7 +509,10 @@ async function applyS3ProviderInfo(
         `Invalid non-negative integer value for provider option maxRetries: ${providerInfo.Params.maxRetries}`,
       );
     }
-    config.retryOptions = { ...config.retryOptions, maximumRetryCount: maxRetries };
+    if (maxRetries > 0) {
+      // AWS MaxAttempts includes the initial request; MinIO configures only retries.
+      config.retryOptions = { ...config.retryOptions, maximumRetryCount: maxRetries - 1 };
+    }
   }
   const pathStyle =
     providerInfo.Params.forcePathStyle ??
@@ -514,6 +524,14 @@ async function applyS3ProviderInfo(
     config.pathStyle = false;
   }
   return config;
+}
+
+function isAwsS3Endpoint(host: string): boolean {
+  const normalized = host.toLowerCase();
+  return (
+    normalized === 's3.amazonaws.com' ||
+    /^s3[.-][a-z0-9-]+\.amazonaws\.com(?:\.cn)?$/.test(normalized)
+  );
 }
 
 /**

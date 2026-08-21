@@ -22,9 +22,11 @@ import { commonSetup } from './test-helper.js';
 import { getConfigMap } from '../k8s-helper.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
+vi.mock('@aws-sdk/credential-providers');
 vi.mock('../k8s-helper.js', () => ({
   getArgoWorkflow: vi.fn(),
   getConfigMap: vi.fn().mockResolvedValue([undefined, { message: 'not found' }]),
@@ -35,6 +37,7 @@ vi.mock('../k8s-helper.js', () => ({
 }));
 
 vi.mock('../gcs-helper.js', () => ({
+  DEFAULT_GCS_UNIVERSE_DOMAIN: 'googleapis.com',
   getGCSClient: () => Promise.resolve({}),
   listGCSObjectNames: ({ bucket, prefix }: { bucket: string; prefix: string }) =>
     bucket === 'ml-pipeline' && prefix === 'hello/world.txt'
@@ -68,6 +71,10 @@ describe('/artifacts authorization', () => {
   beforeEach(() => {
     launcherConfigTestOnly.clearLauncherConfigurationCache();
     vi.mocked(getConfigMap).mockResolvedValue([undefined, { message: 'not found' }]);
+    vi.mocked(fromNodeProviderChain).mockReturnValue(async () => ({
+      accessKeyId: 'test-access-key',
+      secretAccessKey: 'test-secret-key',
+    }));
   });
 
   const artifactContent = 'hello world';
@@ -750,7 +757,7 @@ describe('/artifacts authorization', () => {
       );
     });
 
-    it('validates the complete stored URI for query-bearing artifacts', async () => {
+    it('validates the complete stored URI before rejecting customer endpoint authority', async () => {
       mockAuthPass();
       mockedValidateArtifactNamespace.mockResolvedValue({ valid: true });
 
@@ -761,7 +768,8 @@ describe('/artifacts authorization', () => {
           '/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Fceph.example%26region%3Dceph&namespace=my-namespace',
         )
         .set('kubeflow-userid', 'user@example.com')
-        .expect(200);
+        .expect(400)
+        .expect(/namespace-isolated artifact proxy/);
 
       expect(mockedValidateArtifactNamespace).toHaveBeenCalledWith(
         expect.any(String),
