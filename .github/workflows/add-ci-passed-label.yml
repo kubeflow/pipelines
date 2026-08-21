@@ -138,7 +138,7 @@ jobs:
             }
 
             const labels = new Set(pullRequest.labels.map((label) => label.name));
-            const eligible = labels.has("ok-to-test") && !labels.has("needs-ok-to-test");
+            const eligible = (labels.has("ok-to-test") || pullRequest.user.login === "dependabot[bot]") && !labels.has("needs-ok-to-test");
 
             core.info(`PR #${pullRequest.number} labels: ${Array.from(labels).join(", ")}`);
             core.setOutput("pr_number", String(pullRequest.number));
