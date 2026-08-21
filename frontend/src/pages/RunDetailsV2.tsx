@@ -362,6 +362,16 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setSelectedNodeState({ element });
   };
 
+  const closeNodeDetails = () => {
+    clearLinkedTaskQuery();
+    if (selectedNodeState?.navigationError !== undefined) {
+      setLayerNavigationError(null);
+      setLayers(['root']);
+      setFlowElements(initialElements);
+    }
+    setSelectedNodeState(null);
+  };
+
   // Update page title and experiment information.
   useEffect(() => {
     updateToolBar(run, experiment, updateToolbar);
@@ -424,10 +434,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               <SidePanel
                 isOpen={!!activeSelectedNode}
                 title={getNodeName(activeSelectedNode)}
-                onClose={() => {
-                  clearLinkedTaskQuery();
-                  setSelectedNodeState(null);
-                }}
+                onClose={closeNodeDetails}
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2

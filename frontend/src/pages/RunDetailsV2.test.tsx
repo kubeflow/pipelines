@@ -260,6 +260,17 @@ describe('RunDetailsV2', () => {
     expect(document.querySelector('[data-id="task.orphan"]')).toHaveClass('selected');
     fireEvent.click(screen.getByText('Task Details'));
     expect(await screen.findByText('orphan-task')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'close' }));
+    await waitFor(() => {
+      expect(document.querySelector('[data-id="task.orphan"]')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-id="task.preprocess"]')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(
+        'Unable to open the requested pipeline graph. The run page remains available.',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('selects a new task when query-only navigation changes the deep-link target', async () => {
