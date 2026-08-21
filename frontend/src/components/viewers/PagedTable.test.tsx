@@ -46,6 +46,20 @@ describe('PagedTable', () => {
     expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
+  it('renders updated table data when configs change', () => {
+    const { rerender } = render(
+      <PagedTable configs={[{ data: [['initial']], labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+    expect(screen.getByText('initial')).toBeVisible();
+
+    rerender(
+      <PagedTable configs={[{ data: [['recovered']], labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+
+    expect(screen.queryByText('initial')).toBeNull();
+    expect(screen.getByText('recovered')).toBeVisible();
+  });
+
   it('renders simple data without labels', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,
