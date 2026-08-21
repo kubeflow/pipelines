@@ -486,10 +486,12 @@ function getIterationState(
   if (states.includes(PipelineTaskTaskState.FAILED)) {
     return PipelineTaskTaskState.FAILED;
   }
-  if (
-    loopState === PipelineTaskTaskState.FAILED &&
-    states.includes(PipelineTaskTaskState.RUNNING)
-  ) {
+  const loopIsTerminal =
+    loopState === PipelineTaskTaskState.SUCCEEDED ||
+    loopState === PipelineTaskTaskState.FAILED ||
+    loopState === PipelineTaskTaskState.SKIPPED ||
+    loopState === PipelineTaskTaskState.CACHED;
+  if (loopIsTerminal && states.includes(PipelineTaskTaskState.RUNNING)) {
     return PipelineTaskTaskState.RUNTIME_STATE_UNSPECIFIED;
   }
   if (states.includes(PipelineTaskTaskState.RUNNING)) {
