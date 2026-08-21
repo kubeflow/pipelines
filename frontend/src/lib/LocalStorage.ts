@@ -17,6 +17,7 @@
 export enum LocalStorageKey {
   navbarCollapsed = 'navbarCollapsed',
   tablePageSize = 'tablePageSize',
+  themeMode = 'themeMode',
 }
 
 export class LocalStorage {
@@ -30,6 +31,18 @@ export class LocalStorage {
 
   public static saveNavbarCollapsed(value: boolean): void {
     localStorage.setItem(LocalStorageKey.navbarCollapsed, value.toString());
+  }
+
+  public static getThemeMode(): 'light' | 'dark' | 'system' {
+    const value = localStorage.getItem(LocalStorageKey.themeMode);
+    if (value === 'light' || value === 'dark' || value === 'system') {
+      return value;
+    }
+    return 'system';
+  }
+
+  public static saveThemeMode(value: 'light' | 'dark' | 'system'): void {
+    localStorage.setItem(LocalStorageKey.themeMode, value);
   }
 
   public static getTablePageSize(pageId?: string): number {
