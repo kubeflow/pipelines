@@ -788,6 +788,12 @@ def build_container_spec_for_task(
             if task.container_spec.resources.memory_limit == placeholder:
                 container_spec.resources.memory_limit = compiler_utils._memory_to_float(
                     task.container_spec.resources.memory_limit)
+        if task.container_spec.resources.ephemeral_storage_request is not None:
+            container_spec.resources.resource_ephemeral_storage_request = convert_to_placeholder(
+                task.container_spec.resources.ephemeral_storage_request)
+        if task.container_spec.resources.ephemeral_storage_limit is not None:
+            container_spec.resources.resource_ephemeral_storage_limit = convert_to_placeholder(
+                task.container_spec.resources.ephemeral_storage_limit)
         if task.container_spec.resources.accelerator_count is not None:
             ac_type = None
             ac_type_placholder = convert_to_placeholder(

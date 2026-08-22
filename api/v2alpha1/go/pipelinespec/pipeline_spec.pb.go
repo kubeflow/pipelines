@@ -5106,10 +5106,18 @@ type PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec struct {
 	// The memory request in GB. This container execution
 	// needs at least resource_memory_request RAM to run. Handles static
 	// values and placeholders.
-	ResourceMemoryRequest string                                                                         `protobuf:"bytes,10,opt,name=resource_memory_request,json=resourceMemoryRequest,proto3" json:"resource_memory_request,omitempty"`
-	Accelerator           *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig `protobuf:"bytes,3,opt,name=accelerator,proto3" json:"accelerator,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	ResourceMemoryRequest string `protobuf:"bytes,10,opt,name=resource_memory_request,json=resourceMemoryRequest,proto3" json:"resource_memory_request,omitempty"`
+	// The ephemeral storage limit in GB. This container execution needs
+	// at most resource_ephemeral_storage_limit ephemeral storage to run.
+	// Handles static values and placeholders.
+	ResourceEphemeralStorageLimit string `protobuf:"bytes,11,opt,name=resource_ephemeral_storage_limit,json=resourceEphemeralStorageLimit,proto3" json:"resource_ephemeral_storage_limit,omitempty"`
+	// The ephemeral storage request in GB. This container execution needs
+	// at least resource_ephemeral_storage_request ephemeral storage to run.
+	// Handles static values and placeholders.
+	ResourceEphemeralStorageRequest string                                                                         `protobuf:"bytes,12,opt,name=resource_ephemeral_storage_request,json=resourceEphemeralStorageRequest,proto3" json:"resource_ephemeral_storage_request,omitempty"`
+	Accelerator                     *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec_AcceleratorConfig `protobuf:"bytes,3,opt,name=accelerator,proto3" json:"accelerator,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec) Reset() {
@@ -5198,6 +5206,20 @@ func (x *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec) GetResourc
 func (x *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec) GetResourceMemoryRequest() string {
 	if x != nil {
 		return x.ResourceMemoryRequest
+	}
+	return ""
+}
+
+func (x *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec) GetResourceEphemeralStorageLimit() string {
+	if x != nil {
+		return x.ResourceEphemeralStorageLimit
+	}
+	return ""
+}
+
+func (x *PipelineDeploymentConfig_PipelineContainerSpec_ResourceSpec) GetResourceEphemeralStorageRequest() string {
+	if x != nil {
+		return x.ResourceEphemeralStorageRequest
 	}
 	return ""
 }
@@ -5963,9 +5985,9 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x0econstant_value\x18\x01 \x01(\v2\x13.ml_pipelines.ValueB\x02\x18\x01H\x00R\rconstantValue\x12-\n" +
 	"\x11runtime_parameter\x18\x02 \x01(\tH\x00R\x10runtimeParameter\x124\n" +
 	"\bconstant\x18\x03 \x01(\v2\x16.google.protobuf.ValueH\x00R\bconstantB\a\n" +
-	"\x05value\"\x83\x18\n" +
+	"\x05value\"\x99\x19\n" +
 	"\x18PipelineDeploymentConfig\x12S\n" +
-	"\texecutors\x18\x01 \x03(\v25.ml_pipelines.PipelineDeploymentConfig.ExecutorsEntryR\texecutors\x1a\xfc\t\n" +
+	"\texecutors\x18\x01 \x03(\v25.ml_pipelines.PipelineDeploymentConfig.ExecutorsEntryR\texecutors\x1a\x92\v\n" +
 	"\x15PipelineContainerSpec\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x18\n" +
 	"\acommand\x18\x02 \x03(\tR\acommand\x12\x12\n" +
@@ -5977,7 +5999,7 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x0fpre_cache_check\x18\x01 \x01(\v2K.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.Lifecycle.ExecR\rpreCacheCheck\x1a4\n" +
 	"\x04Exec\x12\x18\n" +
 	"\acommand\x18\x02 \x03(\tR\acommand\x12\x12\n" +
-	"\x04args\x18\x03 \x03(\tR\x04args\x1a\x8b\x05\n" +
+	"\x04args\x18\x03 \x03(\tR\x04args\x1a\xa1\x06\n" +
 	"\fResourceSpec\x12\x1f\n" +
 	"\tcpu_limit\x18\x01 \x01(\x01B\x02\x18\x01R\bcpuLimit\x12%\n" +
 	"\fmemory_limit\x18\x02 \x01(\x01B\x02\x18\x01R\vmemoryLimit\x12#\n" +
@@ -5988,7 +6010,9 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x15resource_memory_limit\x18\b \x01(\tR\x13resourceMemoryLimit\x120\n" +
 	"\x14resource_cpu_request\x18\t \x01(\tR\x12resourceCpuRequest\x126\n" +
 	"\x17resource_memory_request\x18\n" +
-	" \x01(\tR\x15resourceMemoryRequest\x12}\n" +
+	" \x01(\tR\x15resourceMemoryRequest\x12G\n" +
+	" resource_ephemeral_storage_limit\x18\v \x01(\tR\x1dresourceEphemeralStorageLimit\x12K\n" +
+	"\"resource_ephemeral_storage_request\x18\f \x01(\tR\x1fresourceEphemeralStorageRequest\x12}\n" +
 	"\vaccelerator\x18\x03 \x01(\v2[.ml_pipelines.PipelineDeploymentConfig.PipelineContainerSpec.ResourceSpec.AcceleratorConfigR\vaccelerator\x1a\x91\x01\n" +
 	"\x11AcceleratorConfig\x12\x16\n" +
 	"\x04type\x18\x01 \x01(\tB\x02\x18\x01R\x04type\x12\x18\n" +
