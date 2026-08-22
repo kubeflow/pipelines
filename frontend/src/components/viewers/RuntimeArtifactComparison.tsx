@@ -17,7 +17,6 @@ import {
   FormControl,
   InputLabel,
   ListItemText,
-  ListSubheader,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -429,45 +428,35 @@ function RocCurveComparison({
                 <ListItemText primary={label} />
               </MenuItem>
             ))}
-            {!matchingEntries.length ? (
-              <ListSubheader role='presentation'>
-                <span aria-live='polite' role='status'>
-                  No ROC curves match this search.
-                </span>
-              </ListSubheader>
-            ) : matchingEntries.length > MAX_ROC_SELECTOR_OPTIONS ? (
-              <ListSubheader role='presentation'>
-                <button
-                  disabled={visibleSelectorPage === 0}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectorPage((page) => Math.max(0, page - 1));
-                  }}
-                  onMouseDown={(event) => event.stopPropagation()}
-                  type='button'
-                >
-                  Previous ROC curves
-                </button>
-                <span aria-live='polite'>
-                  Showing {selectorStart + 1}–
-                  {Math.min(selectorStart + selectorEntries.length, matchingEntries.length)} of{' '}
-                  {matchingEntries.length} {normalizedFilter ? 'matching ' : ''}curves.
-                </span>
-                <button
-                  disabled={visibleSelectorPage >= selectorPageCount - 1}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectorPage((page) => Math.min(selectorPageCount - 1, page + 1));
-                  }}
-                  onMouseDown={(event) => event.stopPropagation()}
-                  type='button'
-                >
-                  Next ROC curves
-                </button>
-              </ListSubheader>
-            ) : null}
           </Select>
         </FormControl>
+        {!matchingEntries.length ? (
+          <p aria-live='polite' role='status'>
+            No ROC curves match this search.
+          </p>
+        ) : matchingEntries.length > MAX_ROC_SELECTOR_OPTIONS ? (
+          <nav aria-label='ROC curve result pages'>
+            <button
+              disabled={visibleSelectorPage === 0}
+              onClick={() => setSelectorPage((page) => Math.max(0, page - 1))}
+              type='button'
+            >
+              Previous ROC curves
+            </button>
+            <span aria-live='polite'>
+              Showing {selectorStart + 1}–
+              {Math.min(selectorStart + selectorEntries.length, matchingEntries.length)} of{' '}
+              {matchingEntries.length} {normalizedFilter ? 'matching ' : ''}curves.
+            </span>
+            <button
+              disabled={visibleSelectorPage >= selectorPageCount - 1}
+              onClick={() => setSelectorPage((page) => Math.min(selectorPageCount - 1, page + 1))}
+              type='button'
+            >
+              Next ROC curves
+            </button>
+          </nav>
+        ) : null}
       </div>
       {!!errors.length && (
         <Banner

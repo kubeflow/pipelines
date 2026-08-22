@@ -181,7 +181,7 @@ describe('/artifacts', () => {
       });
       const mockedMinioClient: Mock = minio.Client as any;
       mockedMinioClient.mockImplementation(function () {
-        return { getObject };
+        return { getObject, listObjectsV2Query: vi.fn() };
       });
       app = new UIServer(
         loadConfigs(argv, {

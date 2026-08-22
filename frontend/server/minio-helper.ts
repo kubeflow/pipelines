@@ -279,20 +279,18 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
     ...clientOptions
   } = config;
   const client = new MinioClient(clientOptions as MinioClientOptions);
-  const retryContext =
-    maxAttempts === undefined ? undefined : createS3RetryContext(maxAttempts, retrySignal);
-  if (maxAttempts !== undefined) {
-    const retryClient = client as unknown as {
-      retryOptions: { maximumRetryCount?: number };
-    };
-    retryClient.retryOptions = {
-      ...retryClient.retryOptions,
-      // A single outer controller owns the total-attempt budget across HTTP, parsed S3, and
-      // transport failures. Leaving MinIO's narrower loop enabled would multiply mixed failures.
-      maximumRetryCount: 0,
-    };
-    exposeParsedS3Errors(client, retryContext!);
-  }
+  const retryContext = createS3RetryContext(maxAttempts ?? 3, retrySignal);
+  const retryClient = client as unknown as {
+    retryOptions: { maximumRetryCount?: number };
+  };
+  retryClient.retryOptions = {
+    ...retryClient.retryOptions,
+    // One outer controller owns both the per-operation compatibility budget and the independent
+    // ten-attempt request ceiling. Leaving MinIO's narrower loop enabled would hide transport
+    // attempts from that aggregate ceiling and multiply mixed failures.
+    maximumRetryCount: 0,
+  };
+  exposeParsedS3Errors(client, retryContext);
   if (endpointBasePath || endpointAuthority) {
     // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path
     // before MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
@@ -342,9 +340,7 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
       return requestOptions;
     };
   }
-  if (maxAttempts !== undefined) {
-    wrapRetryableS3Methods(client, retryContext!);
-  }
+  wrapRetryableS3Methods(client, retryContext);
   return client;
 }
 
@@ -402,12 +398,12 @@ function isRetryableS3Error(error: unknown, transportStatus?: number): boolean {
   if (code !== undefined && RETRYABLE_S3_ERROR_CODES.has(code)) {
     return true;
   }
-  if (
-    candidate.errno !== undefined &&
-    (candidate.syscall === 'connect' || candidate.syscall === 'getaddrinfo')
-  ) {
-    // Node system errors preserve the operation that failed. Treat dial/DNS failures as the same
-    // connection class as Go's net.Error rather than maintaining an incomplete errno allowlist.
+  if (candidate.errno !== undefined && candidate.syscall === 'connect') {
+    // Node system errors preserve the operation that failed. Treat connection establishment as
+    // Go's retryable dial class without also retrying permanent DNS failures such as ENOTFOUND.
+    return true;
+  }
+  if (candidate.code === 'ENETRESET' && candidate.syscall === 'read') {
     return true;
   }
   const status = candidate.statusCode ?? candidate.status;
@@ -440,13 +436,15 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
     // Unit-test doubles do not expose MinIO's protected transport. Production clients always do.
     return;
   }
+  retryContext.countAttemptsAtTransport = true;
   const originalRequest = originalTransport.request.bind(originalTransport);
   transportClient.transport = {
     ...originalTransport,
     request: (options: unknown, callback: (response: RetryResponse) => void) => {
+      consumeS3RequestAttempt(retryContext);
       const request = originalRequest(options, (response) => {
         retryContext.transportStatus = response.statusCode;
-        bindS3Abort(response, retryContext.signal);
+        bindS3Abort(response, retryContext.signal, true);
         if (response.statusCode !== undefined && statusOnlyResponses.has(response.statusCode)) {
           // MinIO retries these statuses before reading their S3 XML body. Present them to its
           // parser as a generic client error so the outer AWS-compatible controller can decide
@@ -462,13 +460,22 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
 }
 
 interface S3RetryContext {
+  countAttemptsAtTransport?: boolean;
   maxAttempts: number;
+  remainingRequestAttempts: number;
   signal?: AbortSignal;
   transportStatus?: number;
 }
 
 function createS3RetryContext(maxAttempts: number, signal?: AbortSignal): S3RetryContext {
-  return { maxAttempts, signal };
+  return { maxAttempts, remainingRequestAttempts: MAX_S3_ATTEMPTS, signal };
+}
+
+function consumeS3RequestAttempt(retryContext: S3RetryContext): void {
+  if (retryContext.remainingRequestAttempts <= 0) {
+    throw new Error('S3 request attempt limit exhausted for this artifact request.');
+  }
+  retryContext.remainingRequestAttempts -= 1;
 }
 
 function createS3AbortError(): Error {
@@ -481,9 +488,19 @@ function bindS3Abort(
     once: (event: string, listener: () => void) => unknown;
   },
   signal?: AbortSignal,
+  absorbAbortError: boolean = false,
 ) {
   if (!signal) return;
-  const abort = () => target.destroy(createS3AbortError());
+  const abort = () => {
+    if (absorbAbortError) {
+      // IncomingMessage emits the supplied destroy error on the raw response. Consumers usually
+      // observe only a derived transform, so install a one-shot listener before the deliberate
+      // abort to prevent Node from treating the expected error as uncaught. Existing listeners
+      // still receive the same AbortError.
+      target.once('error', () => undefined);
+    }
+    target.destroy(createS3AbortError());
+  };
   if (signal.aborted) {
     abort();
     return;
@@ -526,6 +543,8 @@ async function retryS3Operation<T>(
   let operationAttempt = 1;
   while (true) {
     throwIfS3RequestAborted(retryContext.signal);
+    if (retryContext.remainingRequestAttempts <= 0) consumeS3RequestAttempt(retryContext);
+    if (!retryContext.countAttemptsAtTransport) consumeS3RequestAttempt(retryContext);
     retryContext.transportStatus = undefined;
     try {
       return await operation();
@@ -533,6 +552,7 @@ async function retryS3Operation<T>(
       throwIfS3RequestAborted(retryContext.signal);
       if (
         operationAttempt >= retryContext.maxAttempts ||
+        retryContext.remainingRequestAttempts <= 0 ||
         !isRetryableS3Error(error, retryContext.transportStatus)
       ) {
         throw error;
@@ -688,7 +708,7 @@ function parseProviderEndpoint(
   // composed with an object key. Match the launcher's wire target by dropping the delimiter and
   // the remainder instead of sending the escaped delimiter as object-path data.
   const encodedDelimiter = rawSuffix.search(/%(?:3f|23)/i);
-  if (/%(?:25|00|7f)/i.test(rawSuffix)) {
+  if (/%(?:00|7f)/i.test(rawSuffix) || containsInvalidSecondLayerEscape(rawSuffix)) {
     throw new Error(`Provider info endpoint contains an unsupported URL escape: ${endpoint}`);
   }
   const pathBeforeDelimiter =
@@ -701,6 +721,15 @@ function parseProviderEndpoint(
     useSSL: schemeMatch ? schemeMatch[1].toLowerCase() === 'https' : undefined,
     truncatesAtDelimiter: encodedDelimiter !== -1,
   };
+}
+
+function containsInvalidSecondLayerEscape(rawPath: string): boolean {
+  for (let index = 0; index < rawPath.length; index++) {
+    if (rawPath.slice(index, index + 3).toLowerCase() !== '%25') continue;
+    if (!/^[0-9a-f]{2}$/i.test(rawPath.slice(index + 3, index + 5))) return true;
+    index += 2;
+  }
+  return false;
 }
 
 function normalizeGoEndpointPath(rawPath: string): string {

@@ -1069,14 +1069,24 @@ describe('minio-helper', () => {
       expect(
         TEST_ONLY.parseProviderEndpoint('https://store/%41/%7e/%2f/%3A/raw[bracket]', true),
       ).toEqual(expect.objectContaining({ basePath: '/A/~///:/raw[bracket]', host: 'store' }));
-      expect(() => TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toThrow(
-        'unsupported URL escape',
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toEqual(
+        expect.objectContaining({ basePath: '/%2e/%2f', host: 'store' }),
       );
       expect(() => TEST_ONLY.parseProviderEndpoint('https://store/%00', true)).toThrow(
         'unsupported URL escape',
       );
       expect(TEST_ONLY.parseProviderEndpoint('https://store/%FF/%C0%AF/%ED%A0%80', true)).toEqual(
         expect.objectContaining({ basePath: '/%FF/%C0%AF/%ED%A0%80', host: 'store' }),
+      );
+    });
+
+    it.each([
+      ['%2525', '/%25'],
+      ['%25FF', '/%FF'],
+      ['%253F', '/%3F'],
+    ])('accepts the Go-valid second-layer endpoint escape %s', (path, basePath) => {
+      expect(TEST_ONLY.parseProviderEndpoint(`https://store/${path}`, true)).toEqual(
+        expect.objectContaining({ basePath, host: 'store' }),
       );
     });
 
@@ -1372,6 +1382,36 @@ describe('minio-helper', () => {
       },
     );
 
+    it('does not retry a permanent DNS lookup failure', async () => {
+      const operation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('not found'), {
+          code: 'ENOTFOUND',
+          errno: -3008,
+          syscall: 'getaddrinfo',
+        }),
+      );
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        'not found',
+      );
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries a network reset while reading a response', async () => {
+      const operation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('network reset'), {
+          code: 'ENETRESET',
+          errno: -102,
+          syscall: 'read',
+        }),
+      );
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        'network reset',
+      );
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
     it('gives each fallback operation its own attempt budget', async () => {
       const context = TEST_ONLY.createS3RetryContext(3);
       const missingObject = vi
@@ -1425,6 +1465,39 @@ describe('minio-helper', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    it('enforces the request-wide ten-attempt ceiling across operations', async () => {
+      const context = TEST_ONLY.createS3RetryContext(10);
+      const missingObject = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
+      const failingSummary = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(missingObject, context, async () => undefined),
+      ).rejects.toThrow('missing');
+      await expect(
+        TEST_ONLY.retryS3Operation(failingSummary, context, async () => undefined),
+      ).rejects.toThrow('reset');
+
+      expect(missingObject).toHaveBeenCalledTimes(1);
+      expect(failingSummary).toHaveBeenCalledTimes(9);
+    });
+
+    it('counts successful child reads against the request-wide ceiling', async () => {
+      const context = TEST_ONLY.createS3RetryContext(10);
+      const operation = vi.fn().mockResolvedValue('object');
+
+      for (let index = 0; index < 10; index++) {
+        await expect(TEST_ONLY.retryS3Operation(operation, context)).resolves.toBe('object');
+      }
+      await expect(TEST_ONLY.retryS3Operation(operation, context)).rejects.toThrow(
+        'S3 request attempt limit exhausted',
+      );
+      expect(operation).toHaveBeenCalledTimes(10);
     });
 
     it('stops retrying when the artifact HTTP request is aborted', async () => {

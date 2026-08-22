@@ -105,6 +105,7 @@ describe('/artifacts authorization', () => {
             throw new Error(`Unable to retrieve ${bucket}/${key} artifact.`);
           }
         },
+        listObjectsV2Query: vi.fn(),
       };
     });
   });

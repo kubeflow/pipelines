@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ComponentProps, useState } from 'react';
 import { ArtifactArtifactType } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
@@ -317,6 +318,7 @@ describe('RuntimeArtifactComparison', () => {
   });
 
   it('pages through duplicate-label matches and announces an empty search', async () => {
+    const user = userEvent.setup();
     const artifacts = Array.from({ length: 150 }, (_, index) =>
       classificationEntry('Same run', `opaque-${index}`, {
         confidenceMetrics: [
@@ -338,7 +340,16 @@ describe('RuntimeArtifactComparison', () => {
       (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
     ).toHaveLength(100);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Next ROC curves' }));
+    const listbox = screen.getByRole('listbox', { name: 'ROC curves' });
+    expect(listbox).toBeVisible();
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
+    const nextPage = screen.getByRole('button', { name: 'Next ROC curves' });
+    expect(nextPage.closest('[role="listbox"]')).toBeNull();
+    await user.tab();
+    expect(nextPage).toHaveFocus();
+    await user.keyboard('{Enter}');
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
     await waitFor(() =>
       expect(screen.getAllByRole('option').filter((option) => option.dataset.value)).toHaveLength(
         50,
@@ -360,8 +371,7 @@ describe('RuntimeArtifactComparison', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
       target: { value: 'not present' },
     });
-    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('No ROC curves match this search.');
+    expect(screen.getByRole('status')).toHaveTextContent('No ROC curves match this search.');
   });
 
   it('builds two independently selectable confusion-matrix panels', async () => {
