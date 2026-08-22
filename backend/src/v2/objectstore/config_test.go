@@ -103,6 +103,18 @@ func TestSplitObjectURI_PreservesDecodedObjectKeys(t *testing.T) {
 			wantPrefix: "s3://bucket/path",
 			wantBase:   "café",
 		},
+		{
+			name:       "alternate ASCII escape",
+			uri:        "s3://bucket/path/discount%50off",
+			wantPrefix: "s3://bucket/path",
+			wantBase:   "discountPoff",
+		},
+		{
+			name:       "lowercase Unicode escapes",
+			uri:        "s3://bucket/path/caf%c3%a9",
+			wantPrefix: "s3://bucket/path",
+			wantBase:   "café",
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -113,6 +125,12 @@ func TestSplitObjectURI_PreservesDecodedObjectKeys(t *testing.T) {
 			require.Equal(t, testCase.wantBase, base)
 		})
 	}
+}
+
+func TestSplitObjectURI_RejectsMalformedRawPercent(t *testing.T) {
+	_, _, err := SplitObjectURI("s3://bucket/path/100%complete")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid URL escape")
 }
 
 func TestParseBucketPathToConfig_RejectsEncodedQueryDelimitersInPath(t *testing.T) {
