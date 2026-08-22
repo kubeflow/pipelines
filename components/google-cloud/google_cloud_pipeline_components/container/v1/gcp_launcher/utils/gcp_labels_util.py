@@ -45,7 +45,7 @@ def attach_system_labels(existing_labels=None):
   if system_labels is None:
     return existing_labels
 
-  # If the system label is malformated, warn and return existing_labels.
+  # If the system label is malformatted, warn and return existing_labels.
   try:
     labels = json.loads(system_labels)
   except json.decoder.JSONDecodeError:
