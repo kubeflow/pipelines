@@ -25,7 +25,8 @@ type V2beta1ListRunsResponse struct {
 	// List of retrieved runs.
 	Runs []*V2beta1Run `json:"runs"`
 
-	// The total number of runs for the given query.
+	// The total number of runs for the given query. If the request set
+	// skip_count to true, this is -1 rather than a real count.
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 

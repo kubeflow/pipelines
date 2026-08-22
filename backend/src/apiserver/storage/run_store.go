@@ -211,11 +211,6 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
-	sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -237,21 +232,32 @@ func (s *RunStore) ListRuns(
 	}
 	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
+	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
+	// computing it requires a second, potentially expensive query that some
+	// callers (e.g. a paginated UI that never displays the total) don't need.
+	totalSize := -1
+	if !opts.SkipCount {
+		sizeSQL, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		if err := sizeRow.Err(); err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		totalSize, err = list.ScanRowToTotalSize(sizeRow)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		defer sizeRow.Close()
 	}
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -260,11 +266,11 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], totalSize, npt, err
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,

@@ -454,6 +454,11 @@ message ListRunsRequest {
   // A url-encoded, JSON-serialized Filter protocol buffer (see
   // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
   string filter = 6;
+
+  // Optional input field. If true, the server skips computing total_size in
+  // the response, avoiding an extra count query. Defaults to false, which
+  // preserves the existing behavior of always computing total_size.
+  bool skip_count = 7;
 }
 
 message TerminateRunRequest {
@@ -468,7 +473,8 @@ message ListRunsResponse {
   // List of retrieved runs.
   repeated Run runs = 1;
 
-  // The total number of runs for the given query.
+  // The total number of runs for the given query. If the request set
+  // skip_count to true, this is -1 rather than a real count.
   int32 total_size = 2;
 
   // The token to list the next page of runs.
