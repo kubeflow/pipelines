@@ -61,7 +61,7 @@ func (s *BaseReportServer) reportTasksFromExecution(execSpec util.ExecutionSpec,
 }
 
 // Reports a workflow.
-func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) (*emptypb.Empty, error) {
+func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string, metricErrors []string) (*emptypb.Empty, error) {
 	execSpec, err := validateReportWorkflowRequest(workflow)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed")
@@ -77,7 +77,7 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 		return nil, err
 	}
 
-	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec, metricErrors)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
 	}
@@ -93,13 +93,13 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 func (s *ReportServerV1) ReportWorkflowV1(ctx context.Context,
 	request *apiv1beta1.ReportWorkflowRequest,
 ) (*emptypb.Empty, error) {
-	return s.reportWorkflow(ctx, request.GetWorkflow())
+	return s.reportWorkflow(ctx, request.GetWorkflow(), request.GetMetricErrors())
 }
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	request *apiv2beta1.ReportWorkflowRequest,
 ) (*emptypb.Empty, error) {
-	return s.reportWorkflow(ctx, request.GetWorkflow())
+	return s.reportWorkflow(ctx, request.GetWorkflow(), request.GetMetricErrors())
 }
 
 // Reports a scheduled workflow.

@@ -314,6 +314,9 @@ message RunDetails {
 
   // Runtime details of the tasks that belong to the run.
   repeated PipelineTaskDetail task_details = 3;
+
+  // Errors encountered while collecting or reporting run metrics.
+  string metric_errors = 4;
 }
 
 // Runtime information of a task execution.

@@ -45,7 +45,8 @@ class ApiRun(object):
         'finished_at': 'datetime',
         'status': 'str',
         'error': 'str',
-        'metrics': 'list[ApiRunMetric]'
+        'metrics': 'list[ApiRunMetric]',
+        'metric_errors': 'str'
     }
 
     attribute_map = {
@@ -61,10 +62,11 @@ class ApiRun(object):
         'finished_at': 'finished_at',
         'status': 'status',
         'error': 'error',
-        'metrics': 'metrics'
+        'metrics': 'metrics',
+        'metric_errors': 'metric_errors'
     }
 
-    def __init__(self, id=None, name=None, storage_state=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, status=None, error=None, metrics=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, name=None, storage_state=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, status=None, error=None, metrics=None, metric_errors=None, local_vars_configuration=None):  # noqa: E501
         """ApiRun - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -83,6 +85,7 @@ class ApiRun(object):
         self._status = None
         self._error = None
         self._metrics = None
+        self._metric_errors = None
         self.discriminator = None
 
         if id is not None:
@@ -111,6 +114,8 @@ class ApiRun(object):
             self.error = error
         if metrics is not None:
             self.metrics = metrics
+        if metric_errors is not None:
+            self.metric_errors = metric_errors
 
     @property
     def id(self):
@@ -402,6 +407,27 @@ class ApiRun(object):
         """
 
         self._metrics = metrics
+
+    @property
+    def metric_errors(self):
+        """Gets the metric_errors of this ApiRun.  # noqa: E501
+
+
+        :return: The metric_errors of this ApiRun.  # noqa: E501
+        :rtype: str
+        """
+        return self._metric_errors
+
+    @metric_errors.setter
+    def metric_errors(self, metric_errors):
+        """Sets the metric_errors of this ApiRun.
+
+
+        :param metric_errors: The metric_errors of this ApiRun.  # noqa: E501
+        :type metric_errors: str
+        """
+
+        self._metric_errors = metric_errors
 
     def to_dict(self):
         """Returns the model properties as a dict"""

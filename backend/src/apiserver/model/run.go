@@ -345,6 +345,8 @@ type RunDetails struct {
 	// value; rows archived before this column existed carry 0 and fall back
 	// to FinishedAtInSec.
 	ArchivedAtInSec int64 `gorm:"column:ArchivedAtInSec; default:0;"`
+	// Errors encountered while collecting or reporting run metrics.
+	MetricErrors LargeText `gorm:"column:MetricErrors; default:null;"`
 	// Add gorm:"-" so that GORM ignores TaskDetails when generating schema.
 	// This avoids GORM auto-detecting the circular relationship (RunDetails <--> Tasks) and blocking the FK on tasks.RunUUID → run_details.UUID.
 	TaskDetails []*Task `gorm:"-"`
@@ -444,6 +446,8 @@ func (r *Run) GetFieldValue(name string) interface{} {
 		return r.RunDetails.FinishedAtInSec
 	case "Description":
 		return r.Description
+	case "MetricErrors":
+		return r.MetricErrors
 	case "ScheduledAtInSec":
 		return r.RunDetails.ScheduledAtInSec
 	case "StorageState":

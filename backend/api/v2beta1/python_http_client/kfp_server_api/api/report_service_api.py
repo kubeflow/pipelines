@@ -173,6 +173,8 @@ class ReportServiceApi(object):
 
         :param workflow: Workflow is a workflow custom resource marshalled into a json string. (required)
         :type workflow: str
+        :param metric_errors: MetricErrors contains permanent errors encountered while collecting or reporting metrics for the workflow.
+        :type metric_errors: list[str]
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -201,6 +203,8 @@ class ReportServiceApi(object):
 
         :param workflow: Workflow is a workflow custom resource marshalled into a json string. (required)
         :type workflow: str
+        :param metric_errors: MetricErrors contains permanent errors encountered while collecting or reporting metrics for the workflow.
+        :type metric_errors: list[str]
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -223,7 +227,8 @@ class ReportServiceApi(object):
         local_var_params = locals()
 
         all_params = [
-            'workflow'
+            'workflow',
+            'metric_errors'
         ]
         all_params.extend(
             [
@@ -252,6 +257,9 @@ class ReportServiceApi(object):
         path_params = {}
 
         query_params = []
+        if 'metric_errors' in local_var_params and local_var_params['metric_errors'] is not None:  # noqa: E501
+            query_params.append(('metric_errors', local_var_params['metric_errors']))  # noqa: E501
+            collection_formats['metric_errors'] = 'multi'  # noqa: E501
 
         header_params = {}
 

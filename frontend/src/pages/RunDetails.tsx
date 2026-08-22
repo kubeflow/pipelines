@@ -776,6 +776,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       }
 
       const runMetadata = runDetail.run!;
+      if (runMetadata.metric_errors) {
+        this.props.updateBanner({
+          message: 'Errors occurred while collecting or reporting run metrics.',
+          additionalInfo: runMetadata.metric_errors,
+          mode: 'warning',
+        });
+      }
 
       let runFinished = this.state.runFinished;
       // If the run has finished, stop auto refreshing

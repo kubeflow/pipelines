@@ -41,7 +41,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 	}
 }
 
-func (p *PipelineClientFake) ReportWorkflow(workflow util.ExecutionSpec) error {
+func (p *PipelineClientFake) ReportWorkflow(workflow util.ExecutionSpec, metricErrors []string) error {
 	if p.err != nil {
 		return p.err
 	}

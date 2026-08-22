@@ -135,6 +135,12 @@ export interface ApiRun {
    * @memberof ApiRun
    */
   metrics?: Array<ApiRunMetric>;
+  /**
+   *
+   * @type {string}
+   * @memberof ApiRun
+   */
+  metric_errors?: string;
 }
 
 /**
@@ -174,6 +180,7 @@ export function ApiRunFromJSONTyped(json: any, ignoreDiscriminator: boolean): Ap
       json['metrics'] == null
         ? undefined
         : (json['metrics'] as Array<any>).map(ApiRunMetricFromJSON),
+    metric_errors: json['metric_errors'] == null ? undefined : json['metric_errors'],
   };
 }
 
@@ -212,5 +219,6 @@ export function ApiRunToJSONTyped(
       value['metrics'] == null
         ? undefined
         : (value['metrics'] as Array<any>).map(ApiRunMetricToJSON),
+    metric_errors: value['metric_errors'],
   };
 }

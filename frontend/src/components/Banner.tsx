@@ -31,7 +31,6 @@ export const css = stylesheet({
     border: `1px solid ${color.divider}`,
     boxSizing: 'border-box',
     justifyContent: 'space-between',
-    margin: spacing.units(-1),
     minHeight: '50px',
     padding: spacing.units(-4),
   },
