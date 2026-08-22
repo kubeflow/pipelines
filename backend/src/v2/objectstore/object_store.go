@@ -360,7 +360,10 @@ func newS3Client(ctx context.Context, params *S3Params, creds *credentials.Stati
 		if params == nil {
 			return
 		}
-		awsEndpoint, _ := regexp.MatchString(`^(https://)?s3.amazonaws.com`, strings.ToLower(params.Endpoint))
+		awsEndpoint, _ := regexp.MatchString(
+			`^(https://)?s3[.]amazonaws[.]com(?::[0-9]+)?(?:/|$)`,
+			strings.ToLower(params.Endpoint),
+		)
 		o.UsePathStyle = *aws.Bool(params.ForcePathStyle)
 		o.EndpointOptions.DisableHTTPS = *aws.Bool(params.DisableSSL)
 		if !awsEndpoint && params.Endpoint != "" {
