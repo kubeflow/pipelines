@@ -14,12 +14,15 @@
 
 import { createServer } from 'http';
 import type { AddressInfo } from 'net';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMinioClient } from './minio-helper.js';
 
 vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
 describe('MinIO retry integration', () => {
+  beforeEach(() => vi.spyOn(Math, 'random').mockReturnValue(0));
+  afterEach(() => vi.restoreAllMocks());
+
   it.each([
     [0, 3],
     [5, 5],
@@ -105,6 +108,10 @@ describe('MinIO retry integration', () => {
     [400, 'SlowDown', 3],
     [400, 'RequestTimeout', 3],
     [400, 'Throttling', 3],
+    [408, 'SlowDown', 3],
+    [429, 'RequestTimeout', 3],
+    [499, 'Throttling', 3],
+    [520, 'SlowDown', 3],
     [408, 'UnknownError', 1],
     [429, 'UnknownError', 1],
     [499, 'UnknownError', 1],
@@ -138,6 +145,44 @@ describe('MinIO retry integration', () => {
 
       await expect(client.getObject('bucket', 'key')).rejects.toThrow();
       expect(requestCount).toBe(attempts);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it('does not retry service-controlled text that resembles MinIO retry output', async () => {
+    let requestCount = 0;
+    const server = createServer((_request, response) => {
+      requestCount += 1;
+      response
+        .writeHead(400, { 'content-type': 'application/xml' })
+        .end(
+          '<Error><Code>AccessDenied</Code>' +
+            '<Message>Retryable HTTP status: 500</Message></Error>',
+        );
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: '127.0.0.1',
+          pathStyle: true,
+          port,
+          region: 'us-east-1',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
+      );
+
+      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      expect(requestCount).toBe(1);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -180,6 +225,50 @@ describe('MinIO retry integration', () => {
 
       await client.getObject('bucket', 'key');
       expect(requestPath).toBe('/../A/~///:/raw[bracket]/bucket/key');
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it.each([
+    ['/%252e/%252f', '/%2e/%2f/bucket/key'],
+    ['/%FF/%C0%AF/%ED%A0%80', '/%FF/%C0%AF/%ED%A0%80/bucket/key'],
+  ])('preserves Go byte-path semantics for endpoint path %s', async (basePath, expectedPath) => {
+    let requestPath: string | undefined;
+    const server = createServer((request, response) => {
+      requestPath = request.url;
+      response.writeHead(200).end('artifact');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: '127.0.0.1',
+          pathStyle: true,
+          port,
+          region: 'us-east-1',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: `http://127.0.0.1:${port}${basePath}`,
+            fromEnv: 'true',
+            nativeQuery: 'true',
+            use_path_style: 'true',
+          },
+        }),
+      );
+
+      await client.getObject('bucket', 'key');
+      expect(requestPath).toBe(expectedPath);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

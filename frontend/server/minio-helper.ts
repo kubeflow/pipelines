@@ -278,6 +278,7 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
       // transport failures. Leaving MinIO's narrower loop enabled would multiply mixed failures.
       maximumRetryCount: 0,
     };
+    exposeParsedS3Errors(client);
   }
   if (endpointBasePath || endpointAuthority) {
     // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path
@@ -331,6 +332,9 @@ const RETRYABLE_S3_ERROR_CODES = new Set([
   'EAI_AGAIN',
   'ECONNREFUSED',
   'ECONNRESET',
+  'ECONNABORTED',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
   'EPIPE',
   'ETIMEDOUT',
   'NetworkingError',
@@ -376,15 +380,46 @@ function isRetryableS3Error(error: unknown): boolean {
   // With MinIO retries disabled, its request helper wraps a retryable response in this message
   // before the response parser can retain status metadata. Parse only that exact SDK message and
   // apply the pinned AWS SDK's narrower status allowlist.
-  const wrappedStatus = /Retryable HTTP status: (\d+)/.exec(candidate.message || '');
+  const wrappedStatus =
+    /^Request failed after 0 retries: Error: Retryable HTTP status: (\d+)$/.exec(
+      candidate.message || '',
+    );
   return wrappedStatus ? RETRYABLE_S3_HTTP_STATUSES.has(Number(wrappedStatus[1])) : false;
+}
+
+function exposeParsedS3Errors(client: MinioClient): void {
+  const statusOnlyResponses = new Set([408, 429, 499, 520]);
+  type RetryResponse = { statusCode?: number };
+  type RetryTransport = {
+    request: (options: unknown, callback: (response: RetryResponse) => void) => unknown;
+  };
+  const transportClient = client as unknown as { transport?: RetryTransport };
+  const originalTransport = transportClient.transport;
+  if (!originalTransport?.request) {
+    // Unit-test doubles do not expose MinIO's protected transport. Production clients always do.
+    return;
+  }
+  const originalRequest = originalTransport.request.bind(originalTransport);
+  transportClient.transport = {
+    ...originalTransport,
+    request: (options: unknown, callback: (response: RetryResponse) => void) =>
+      originalRequest(options, (response) => {
+        if (response.statusCode !== undefined && statusOnlyResponses.has(response.statusCode)) {
+          // MinIO retries these statuses before reading their S3 XML body. Present them to its
+          // parser as a generic client error so the outer AWS-compatible controller can decide
+          // from SlowDown/RequestTimeout/Throttling rather than status alone.
+          response.statusCode = 400;
+        }
+        callback(response);
+      }),
+  };
 }
 
 async function retryS3Operation<T>(
   operation: () => Promise<T>,
   maxAttempts: number,
   delay: (attempt: number) => Promise<void> = (attempt) =>
-    new Promise((resolve) => setTimeout(resolve, Math.min(100 * 2 ** (attempt - 1), 1_000))),
+    new Promise((resolve) => setTimeout(resolve, getS3RetryDelayMs(attempt))),
 ): Promise<T> {
   let attempt = 1;
   while (true) {
@@ -398,6 +433,10 @@ async function retryS3Operation<T>(
       attempt += 1;
     }
   }
+}
+
+function getS3RetryDelayMs(attempt: number, random: () => number = Math.random): number {
+  return random() * Math.min(1_000 * 2 ** attempt, 20_000);
 }
 
 function wrapRetryableS3Methods(client: MinioClient, maxAttempts: number): void {
@@ -532,20 +571,50 @@ function parseProviderEndpoint(
     throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
   }
   // Go parses endpoint escapes into URL.Path before the AWS signer serializes the request. Decode
-  // once, then emit the same path spelling without passing through WHATWG normalization. Brackets
-  // remain literal in Go's final request target; query/fragment delimiters remain path data.
-  const basePath = encodeURI(decodeURIComponent(rawSuffix))
-    .replace(/%5B/gi, '[')
-    .replace(/%5D/gi, ']')
-    .replace(/\?/g, '%3F')
-    .replace(/#/g, '%23')
-    .replace(/\/$/, '');
+  // exactly one byte layer, then emit the same path spelling without WHATWG normalization.
+  const basePath = normalizeGoEndpointPath(rawSuffix).replace(/\/$/, '');
   return {
     basePath: basePath || undefined,
     host: authorityUrl.hostname.replace(/^\[(.*)\]$/, '$1'),
     port: authorityUrl.port ? Number(authorityUrl.port) : undefined,
     useSSL: schemeMatch ? schemeMatch[1].toLowerCase() === 'https' : undefined,
   };
+}
+
+function normalizeGoEndpointPath(rawPath: string): string {
+  const bytes: number[] = [];
+  for (let index = 0; index < rawPath.length; ) {
+    if (rawPath[index] === '%' && /^[0-9a-f]{2}$/i.test(rawPath.slice(index + 1, index + 3))) {
+      bytes.push(Number.parseInt(rawPath.slice(index + 1, index + 3), 16));
+      index += 3;
+      continue;
+    }
+    const codePoint = rawPath.codePointAt(index)!;
+    bytes.push(...new TextEncoder().encode(String.fromCodePoint(codePoint)));
+    index += codePoint > 0xffff ? 2 : 1;
+  }
+
+  const isHexByte = (value: number | undefined) =>
+    value !== undefined && /[0-9a-f]/i.test(String.fromCharCode(value));
+  const allowedAscii = new Set(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~/:@!$&'()*+,;=[]",
+  );
+  let normalized = '';
+  for (let index = 0; index < bytes.length; index++) {
+    const byte = bytes[index];
+    const character = String.fromCharCode(byte);
+    // Go's parsed Path can contain a literal second-layer %HH escape. The AWS serializer preserves
+    // that spelling instead of escaping the percent again.
+    if (character === '%' && isHexByte(bytes[index + 1]) && isHexByte(bytes[index + 2])) {
+      normalized += `%${String.fromCharCode(bytes[index + 1], bytes[index + 2])}`;
+      index += 2;
+    } else if (byte < 0x80 && allowedAscii.has(character)) {
+      normalized += character;
+    } else {
+      normalized += `%${byte.toString(16).toUpperCase().padStart(2, '0')}`;
+    }
+  }
+  return normalized;
 }
 
 /**
@@ -697,6 +766,7 @@ function isAwsS3Endpoint(host: string): boolean {
 }
 
 export const TEST_ONLY = {
+  getS3RetryDelayMs,
   isRetryableS3Error,
   parseProviderEndpoint,
   retryS3Operation,

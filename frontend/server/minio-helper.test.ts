@@ -1069,6 +1069,12 @@ describe('minio-helper', () => {
       expect(
         TEST_ONLY.parseProviderEndpoint('https://store/%41/%7e/%2f/%3A/raw[bracket]', true),
       ).toEqual(expect.objectContaining({ basePath: '/A/~///:/raw[bracket]', host: 'store' }));
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toEqual(
+        expect.objectContaining({ basePath: '/%2e/%2f', host: 'store' }),
+      );
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/%FF/%C0%AF/%ED%A0%80', true)).toEqual(
+        expect.objectContaining({ basePath: '/%FF/%C0%AF/%ED%A0%80', host: 'store' }),
+      );
     });
 
     it('does not normalize a hostname that merely starts with the standard AWS name', async () => {
@@ -1243,6 +1249,25 @@ describe('minio-helper', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    it.each(['EHOSTUNREACH', 'ENETUNREACH', 'ECONNABORTED'])(
+      'retries the Go connection error %s',
+      async (code) => {
+        const operation = vi.fn().mockRejectedValue(Object.assign(new Error(code), { code }));
+
+        await expect(
+          TEST_ONLY.retryS3Operation(operation, 3, async () => undefined),
+        ).rejects.toThrow(code);
+        expect(operation).toHaveBeenCalledTimes(3);
+      },
+    );
+
+    it('uses randomized exponential backoff with the Go twenty-second cap', () => {
+      expect(TEST_ONLY.getS3RetryDelayMs(1, () => 0.25)).toBe(500);
+      expect(TEST_ONLY.getS3RetryDelayMs(4, () => 0.25)).toBe(4_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(5, () => 0.25)).toBe(5_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(9, () => 0.75)).toBe(15_000);
     });
 
     it('fails loudly when a required retryable method is unavailable', async () => {
