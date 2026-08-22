@@ -21,6 +21,7 @@ import {
   statusToBgColor,
   checkIfTerminated,
   parseNodePhase,
+  isPodLifecycleFailure,
 } from './StatusUtils';
 import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
 
@@ -215,6 +216,49 @@ describe('StatusUtils', () => {
           },
         }),
       ).toEqual('Succeeded');
+    });
+  });
+
+  describe('isPodLifecycleFailure', () => {
+    // Kept in sync with podFailurePatterns in
+    // backend/src/common/util/pod_failure_classifier.go, so the frontend
+    // recognizes exactly the reasons the backend does.
+    [
+      'ImagePullBackOff',
+      'ErrImagePull',
+      'ErrImageNeverPull',
+      'InvalidImageName',
+      'Unschedulable',
+      'CrashLoopBackOff',
+      'OOMKilled',
+      'DeadlineExceeded',
+      'ContainerCannotRun',
+      'CreateContainerConfigError',
+      'CreateContainerError',
+      'RunContainerError',
+      'NodeLost',
+      'Preempted',
+      'PreemptionByScheduler',
+      'Evicted',
+      'TerminationByKubelet',
+    ].forEach((reason) => {
+      it(`returns true for a message containing ${reason}`, () => {
+        expect(isPodLifecycleFailure(`some prefix text ${reason} some suffix text`)).toBe(true);
+      });
+    });
+
+    it('returns false for a plain pipeline code error', () => {
+      expect(
+        isPodLifecycleFailure('Traceback (most recent call last): ValueError: bad input'),
+      ).toBe(false);
+    });
+
+    it('returns false for an empty message', () => {
+      expect(isPodLifecycleFailure('')).toBe(false);
+    });
+
+    it('returns false for an undefined message', () => {
+      expect(isPodLifecycleFailure(undefined)).toBe(false);
     });
   });
 });
