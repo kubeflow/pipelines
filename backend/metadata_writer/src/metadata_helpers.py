@@ -83,7 +83,7 @@ def get_or_create_artifact_type(store, type_name, properties: dict = None) -> me
     try:
         artifact_type = store.get_artifact_type(type_name=type_name)
         return artifact_type
-    except:
+    except Exception:
         artifact_type = metadata_store_pb2.ArtifactType(
             name=type_name,
             properties=properties,
@@ -96,7 +96,7 @@ def get_or_create_execution_type(store, type_name, properties: dict = None) -> m
     try:
         execution_type = store.get_execution_type(type_name=type_name)
         return execution_type
-    except:
+    except Exception:
         execution_type = metadata_store_pb2.ExecutionType(
             name=type_name,
             properties=properties,
@@ -109,7 +109,7 @@ def get_or_create_context_type(store, type_name, properties: dict = None) -> met
     try:
         context_type = store.get_context_type(type_name=type_name)
         return context_type
-    except:
+    except Exception:
         context_type = metadata_store_pb2.ContextType(
             name=type_name,
             properties=properties,
@@ -208,7 +208,7 @@ def get_or_create_context_with_type(
 ) -> metadata_store_pb2.Context:
     try:
         context = get_context_by_name(store, context_name)
-    except:
+    except Exception:
         context = create_context_with_type(
             store=store,
             context_name=context_name,
