@@ -21,7 +21,7 @@ import {
   Select,
   SelectChangeEvent,
 } from '@mui/material';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import Banner from 'src/components/Banner';
@@ -35,7 +35,7 @@ import {
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { stylesheet } from 'typestyle';
 import { ConfusionMatrixConfig } from './ConfusionMatrix';
-import ROCCurve, { ROCCurveConfig } from './ROCCurve';
+import ROCCurve, { lineColors, ROCCurveConfig } from './ROCCurve';
 import {
   buildConfusionMatrixResult,
   buildRocCurves,
@@ -284,7 +284,28 @@ function RocCurveComparison({
     : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const getColor = getStableDefaultRocColor;
+  const selectedKeySetId = JSON.stringify([...selectedKeys].sort());
+  const [colorState, setColorState] = useState<{
+    colors: Record<string, string>;
+    keySetId: string;
+    registry: Record<string, string>;
+  }>(() => ({ colors: {}, keySetId: '', registry: {} }));
+  let currentColorState = colorState;
+  if (colorState.keySetId !== selectedKeySetId) {
+    const registry = new Map(Object.entries(colorState.registry));
+    const colors = allocateSelectedRocColors(selectedKeys, registry);
+    currentColorState = {
+      colors,
+      keySetId: selectedKeySetId,
+      registry: Object.fromEntries(registry),
+    };
+    // This guarded render-phase update preserves prior identity assignments without an effect-driven
+    // state-reset chain. React immediately retries this component with the reconciled selection set.
+    setColorState(currentColorState);
+  }
+  const selectedColors = currentColorState.colors;
+  const getColor = (key: string) =>
+    selectedColors[key] || currentColorState.registry[key] || getStableDefaultRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
@@ -477,26 +498,63 @@ function limitRocSelection(keys: string[]): string[] {
 }
 
 function getStableDefaultRocColor(key: string): string {
-  let hash = 2166136261;
-  for (let index = 0; index < key.length; index++) {
-    hash ^= key.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  // Avalanche the string hash, then use independent bit ranges for hue, saturation, and lightness.
-  // Each identity maps directly to its color, so selection and entry ordering cannot recolor it.
-  hash ^= hash >>> 16;
-  hash = Math.imul(hash, 0x85ebca6b);
-  hash ^= hash >>> 13;
-  hash = Math.imul(hash, 0xc2b2ae35);
-  hash ^= hash >>> 16;
-  const unsignedHash = hash >>> 0;
+  // Use an identity-only fallback for unselected menu entries. Selected curves use the persistent
+  // bounded allocation below so overlapping lines remain perceptually distinguishable.
+  const unsignedHash = getStableRocHash(key);
   const hue = unsignedHash % 360;
   const saturation = 55 + ((unsignedHash >>> 9) % 36);
   const lightness = 32 + ((unsignedHash >>> 17) % 29);
   return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
 }
 
+function allocateSelectedRocColors(
+  keys: string[],
+  registry: Map<string, string> = new Map(),
+): Record<string, string> {
+  const usedColors = new Set<string>();
+  const colors: Record<string, string> = {};
+  // Reserve every surviving assignment before considering new keys. Otherwise an inserted key at
+  // the front could claim an existing curve's color and force that survivor to move.
+  keys.forEach((key) => {
+    const existingColor = registry.get(key);
+    if (existingColor && !usedColors.has(existingColor)) {
+      colors[key] = existingColor;
+      usedColors.add(existingColor);
+    }
+  });
+  keys.forEach((key) => {
+    if (colors[key]) {
+      return;
+    }
+    const startIndex = getStableRocHash(key) % lineColors.length;
+    const color =
+      Array.from(
+        { length: lineColors.length },
+        (_, offset) => lineColors[(startIndex + offset) % lineColors.length],
+      ).find((candidate) => !usedColors.has(candidate)) || lineColors[startIndex];
+    registry.set(key, color);
+    colors[key] = color;
+    usedColors.add(color);
+  });
+  return colors;
+}
+
+function getStableRocHash(key: string): number {
+  let hash = 2166136261;
+  for (let index = 0; index < key.length; index++) {
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+  return hash >>> 0;
+}
+
 export const TEST_ONLY = {
+  allocateSelectedRocColors,
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
   getStableDefaultRocColor,
