@@ -321,6 +321,13 @@ function RocCurveComparison({
   const selectedColors = currentColorState.colors;
   const getColor = (key: string) =>
     selectedColors[key] || currentColorState.registry[key] || getStableDefaultRocColor(key);
+  const getSelectorColor = (key: string) => {
+    if (selectedKeySet.has(key)) {
+      return getColor(key);
+    }
+    const registry = new Map(Object.entries(currentColorState.registry));
+    return allocateSelectedRocColors([...selectedKeys, key], registry)[key];
+  };
   const initiallyVisibleEntries = entries.slice(0, MAX_ROC_SELECTOR_OPTIONS);
   const initiallyVisibleKeys = new Set(initiallyVisibleEntries.map(({ key }) => key));
   const selectorEntries = [
@@ -376,7 +383,7 @@ function RocCurveComparison({
                 <span
                   aria-hidden='true'
                   className={css.curveSwatch}
-                  style={{ backgroundColor: getColor(key) }}
+                  style={{ backgroundColor: getSelectorColor(key) }}
                 />
                 <ListItemText primary={label} />
               </MenuItem>

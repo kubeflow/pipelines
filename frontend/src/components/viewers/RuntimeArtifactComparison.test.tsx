@@ -240,6 +240,36 @@ describe('RuntimeArtifactComparison', () => {
     ]);
   });
 
+  it('shows the color an unselected ROC curve will receive when selected', async () => {
+    const artifacts = Array.from({ length: 5 }, (_, index) =>
+      classificationEntry(`Run ${index}`, `roc-${index}`, {
+        confidenceMetrics: [
+          { confidenceThreshold: 0.8, falsePositiveRate: index / 100, recall: 0.9 },
+        ],
+      }),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    const option = await screen.findByRole('option', { name: /Run 3/ });
+    const swatchColor = option.querySelector<HTMLElement>('span[style]')!.style.backgroundColor;
+
+    fireEvent.click(option);
+    await waitFor(() =>
+      expect(screen.getByTestId('shared-roc-curve')).toHaveAttribute('data-config-count', '4'),
+    );
+    const selectedColor = screen
+      .getByTestId('shared-roc-curve')
+      .getAttribute('data-colors')!
+      .split(',')
+      .at(-1)!;
+    expect(swatchColor).toBe(`rgb(${getRenderedRocColor(selectedColor).replaceAll(',', ', ')})`);
+  });
+
   it('keeps selector checkboxes out of the tab order and caps large option lists', async () => {
     const artifacts = Array.from({ length: 400 }, (_, index) =>
       classificationEntry(`Run ${index}`, `roc-${index}`, {
