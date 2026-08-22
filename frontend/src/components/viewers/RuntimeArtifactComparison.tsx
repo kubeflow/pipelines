@@ -116,6 +116,7 @@ type PanelSelections = Record<ComparisonPanelKind, [string, string]>;
 
 export interface RuntimeArtifactComparisonSelectionState {
   panelSelections: PanelSelections;
+  rocColorByKey?: Record<string, string>;
   rocSelectedKeys?: string[];
 }
 
@@ -166,6 +167,7 @@ export function RuntimeArtifactComparison({
       <ClassificationComparison
         artifacts={classificationArtifacts}
         panelSelections={selectionState.panelSelections['confusion matrix']}
+        rocColorByKey={selectionState.rocColorByKey}
         rocSelectedKeys={selectionState.rocSelectedKeys}
         updateSelectionState={setSelectionState}
         updatePanelSelection={updatePanelSelection}
@@ -194,12 +196,14 @@ export function RuntimeArtifactComparison({
 function ClassificationComparison({
   artifacts,
   panelSelections,
+  rocColorByKey,
   rocSelectedKeys,
   updateSelectionState,
   updatePanelSelection,
 }: {
   artifacts: RuntimeComparisonArtifact[];
   panelSelections: [string, string];
+  rocColorByKey: Record<string, string> | undefined;
   rocSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
   updatePanelSelection: (kind: ComparisonPanelKind, panelIndex: number, key: string) => void;
@@ -230,6 +234,7 @@ function ClassificationComparison({
         <RocCurveComparison
           entries={rocEntries}
           errors={rocErrors}
+          explicitColorByKey={rocColorByKey}
           explicitSelectedKeys={rocSelectedKeys}
           updateSelectionState={updateSelectionState}
         />
@@ -266,11 +271,13 @@ function ClassificationComparison({
 function RocCurveComparison({
   entries,
   errors,
+  explicitColorByKey,
   explicitSelectedKeys,
   updateSelectionState,
 }: {
   entries: RocComparisonEntry[];
   errors: string[];
+  explicitColorByKey: Record<string, string> | undefined;
   explicitSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
@@ -284,12 +291,25 @@ function RocCurveComparison({
     : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const colorByKey = allocateRocColors(entries.map(({ key }) => key));
+  const remainingKeys = entries
+    .map(({ key }) => key)
+    .filter((key) => !selectedKeySet.has(key))
+    .sort();
+  // Seed from persisted assignments and allocate selected curves first. New or unselected entries
+  // may move to a salted color on collision, but an existing selected identity never changes.
+  const colorByKey = allocateRocColors(
+    [...selectedKeys, ...remainingKeys],
+    new Map(Object.entries(explicitColorByKey || {})),
+  );
   const getColor = (key: string) => colorByKey[key] || getStableDefaultRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
-    updateSelectionState((current) => ({ ...current, rocSelectedKeys: nextKeys }));
+    updateSelectionState((current) => ({
+      ...current,
+      rocColorByKey: { ...current.rocColorByKey, ...colorByKey },
+      rocSelectedKeys: nextKeys,
+    }));
   };
 
   return (
@@ -495,29 +515,25 @@ function getStableDefaultRocColor(key: string): string {
   return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
 }
 
-function allocateRocColors(keys: string[]): Record<string, string> {
-  return Object.fromEntries([...new Set(keys)].map((key) => [key, getStableDefaultRocColor(key)]));
-}
-
-function getRenderedRocColor(color: string): string {
-  const match = /^hsl\(([\d.]+)deg ([\d.]+)% ([\d.]+)%\)$/.exec(color);
-  if (!match) {
-    return color;
-  }
-  const hue = Number(match[1]);
-  const saturation = Number(match[2]) / 100;
-  const lightness = Number(match[3]) / 100;
-  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
-  const secondary = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
-  const offset = lightness - chroma / 2;
-  let channels: [number, number, number];
-  if (hue < 60) channels = [chroma, secondary, 0];
-  else if (hue < 120) channels = [secondary, chroma, 0];
-  else if (hue < 180) channels = [0, chroma, secondary];
-  else if (hue < 240) channels = [0, secondary, chroma];
-  else if (hue < 300) channels = [secondary, 0, chroma];
-  else channels = [chroma, 0, secondary];
-  return channels.map((channel) => Math.round((channel + offset) * 255)).join(',');
+function allocateRocColors(
+  keys: string[],
+  registry: Map<string, string> = new Map(),
+): Record<string, string> {
+  const usedColors = new Set(registry.values());
+  [...new Set(keys)].forEach((key) => {
+    if (registry.has(key)) {
+      return;
+    }
+    let salt = 0;
+    let color = getStableDefaultRocColor(key);
+    while (usedColors.has(color)) {
+      salt += 1;
+      color = getStableDefaultRocColor(`${key}\0${salt}`);
+    }
+    registry.set(key, color);
+    usedColors.add(color);
+  });
+  return Object.fromEntries(keys.map((key) => [key, registry.get(key)!]));
 }
 
 export const TEST_ONLY = {
@@ -525,7 +541,6 @@ export const TEST_ONLY = {
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
   getStableDefaultRocColor,
-  getRenderedRocColor,
   limitRocSelection,
 };
 

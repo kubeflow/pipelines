@@ -44,6 +44,25 @@ function StatefulRuntimeArtifactComparison(
   );
 }
 
+function getRenderedRocColor(color: string): string {
+  const match = /^hsl\(([\d.]+)deg ([\d.]+)% ([\d.]+)%\)$/.exec(color);
+  if (!match) return color;
+  const hue = Number(match[1]);
+  const saturation = Number(match[2]) / 100;
+  const lightness = Number(match[3]) / 100;
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const secondary = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+  const offset = lightness - chroma / 2;
+  let channels: [number, number, number];
+  if (hue < 60) channels = [chroma, secondary, 0];
+  else if (hue < 120) channels = [secondary, chroma, 0];
+  else if (hue < 180) channels = [0, chroma, secondary];
+  else if (hue < 240) channels = [0, secondary, chroma];
+  else if (hue < 300) channels = [secondary, 0, chroma];
+  else channels = [chroma, 0, secondary];
+  return channels.map((channel) => Math.round((channel + offset) * 255)).join(',');
+}
+
 vi.mock('./ROCCurve', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./ROCCurve')>();
   return {
@@ -413,25 +432,28 @@ describe('RuntimeArtifactComparison', () => {
     expect(new Set(Object.values(TEST_ONLY.allocateRocColors(keys))).size).toBe(2);
   });
 
-  it('keeps identity colors independent of unrelated comparison entries', () => {
-    const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
-    const isolatedColor = TEST_ONLY.allocateRocColors([keys[1]])[keys[1]];
-    const withCollidingIdentity = TEST_ONLY.allocateRocColors(keys)[keys[1]];
-    const withUnrelatedIdentity = TEST_ONLY.allocateRocColors([
-      keys[0],
-      'Run 999:roc-999:roc-999',
-      keys[1],
-    ])[keys[1]];
+  it('resolves exact collisions without recoloring existing identities', () => {
+    const existingKey = 'Run 23:roc-23:roc-23';
+    const collidingKey = 'Run 12:roc-12:roc-12';
+    const registry = new Map<string, string>();
+    const isolatedColor = TEST_ONLY.allocateRocColors([existingKey], registry)[existingKey];
+    const expandedColors = TEST_ONLY.allocateRocColors(
+      [collidingKey, existingKey, 'Run 999:roc-999:roc-999'],
+      registry,
+    );
 
-    expect(withCollidingIdentity).toBe(isolatedColor);
-    expect(withUnrelatedIdentity).toBe(isolatedColor);
+    expect(TEST_ONLY.getStableDefaultRocColor(collidingKey)).toBe(
+      TEST_ONLY.getStableDefaultRocColor(existingKey),
+    );
+    expect(expandedColors[existingKey]).toBe(isolatedColor);
+    expect(expandedColors[collidingKey]).not.toBe(isolatedColor);
   });
 
   it('keeps formerly near-identical ROC colors perceptually separated', () => {
     const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
     const renderedColors = keys
       .map(TEST_ONLY.getStableDefaultRocColor)
-      .map((color) => TEST_ONLY.getRenderedRocColor(color).split(',').map(Number));
+      .map((color) => getRenderedRocColor(color).split(',').map(Number));
     const rgbDistance = Math.sqrt(
       renderedColors[0].reduce(
         (sum, channel, index) => sum + (channel - renderedColors[1][index]) ** 2,
