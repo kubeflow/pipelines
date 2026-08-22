@@ -29,6 +29,8 @@ const pollTimeout = 3 * time.Second
 var (
 	ErrNoV1             = errors.New("the v1 API is not available for the Kubernetes pipeline store")
 	ErrUnsupportedField = errors.New("the field is unsupported")
+
+	errDefaultVersionUnresolved = errors.New("spec.defaultVersionName does not resolve to exactly one pipeline version")
 )
 
 type PipelineStoreKubernetes struct {
@@ -331,15 +333,35 @@ func (k *PipelineStoreKubernetes) CreatePipelineVersion(pipelineVersion *model.P
 }
 
 func (k *PipelineStoreKubernetes) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
-	// Default version was used in KFPv1 and is deprecated. In KFPv2, we do not support this.
 	return util.NewBadRequestError(errors.New("pipeline default version is unsupported"),
-		"pipeline default version is unsupported when storing in Kubernetes")
+		"setting a pipeline default version by ID is unsupported when storing in Kubernetes; "+
+			"set spec.defaultVersionName on the Pipeline instead")
 }
 
-func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
-	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineId, "")
+// GetDefaultPipelineVersion returns spec.defaultVersionName when set, otherwise the newest version.
+// A default that does not resolve is an error, not a fallback.
+func (k *PipelineStoreKubernetes) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
+	k8sPipeline, err := k.getK8sPipeline(pipelineID)
 	if err != nil {
 		return nil, err
+	}
+
+	k8sPipelineVersions, err := k.getK8sPipelineVersions(context.TODO(), pipelineID, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if defaultVersionName := k8sPipeline.Spec.DefaultVersionName; defaultVersionName != "" {
+		pipelineVersion, err := resolveDefaultPipelineVersion(k8sPipelineVersions.Items, defaultVersionName)
+		if err != nil {
+			return nil, util.Wrapf(
+				err,
+				"Failed to resolve the default pipeline version %q of pipeline %v",
+				defaultVersionName, pipelineID,
+			)
+		}
+
+		return pipelineVersion, nil
 	}
 
 	var latestK8sPipelineVersion *v2beta1.PipelineVersion
@@ -351,10 +373,48 @@ func (k *PipelineStoreKubernetes) GetLatestPipelineVersion(pipelineId string) (*
 	}
 
 	if latestK8sPipelineVersion == nil {
-		return nil, util.NewResourceNotFoundError("PipelineVersion", "Latest")
+		return nil, util.NewResourceNotFoundError("PipelineVersion", "Default")
 	}
 
 	return latestK8sPipelineVersion.ToModel()
+}
+
+// resolveDefaultPipelineVersion matches the pin on the name ToModel reports: spec.versionName, or
+// metadata.name when unset.
+func resolveDefaultPipelineVersion(
+	k8sPipelineVersions []v2beta1.PipelineVersion, defaultVersionName string,
+) (*model.PipelineVersion, error) {
+	var matches []*v2beta1.PipelineVersion
+
+	for i := range k8sPipelineVersions {
+		k8sPipelineVersion := &k8sPipelineVersions[i]
+
+		versionName := k8sPipelineVersion.Spec.VersionName
+		if versionName == "" {
+			versionName = k8sPipelineVersion.Name
+		}
+
+		if versionName == defaultVersionName {
+			matches = append(matches, k8sPipelineVersion)
+		}
+	}
+
+	switch len(matches) {
+	case 0:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"no pipeline version is named %q; set spec.defaultVersionName to an existing version",
+			defaultVersionName,
+		)
+	case 1:
+		return matches[0].ToModel()
+	default:
+		return nil, util.NewFailedPreconditionError(
+			errDefaultVersionUnresolved,
+			"%d pipeline versions are named %q; spec.defaultVersionName must match exactly one",
+			len(matches), defaultVersionName,
+		)
+	}
 }
 
 // isNewerPipelineVersion reports whether a should be preferred over b. CreationTimestamp has second
