@@ -172,11 +172,12 @@ describe('RuntimeArtifactComparison', () => {
       }),
     );
 
-    render(
+    const view = (kind: 'classification' | 'html') => (
       <CommonTestWrapper>
-        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
-      </CommonTestWrapper>,
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind={kind} />
+      </CommonTestWrapper>
     );
+    const { rerender } = render(view('classification'));
 
     const initialColors = screen
       .getByTestId('shared-roc-curve')
@@ -195,8 +196,16 @@ describe('RuntimeArtifactComparison', () => {
     expect(remainingColors).toEqual(initialColors.slice(1));
 
     fireEvent.click(await screen.findByRole('option', { name: /First run/ }));
-    expect(screen.getByTestId('shared-roc-curve').getAttribute('data-colors')!.split(',')[0]).toBe(
-      initialColors[0],
+    const reselectedColors = screen
+      .getByTestId('shared-roc-curve')
+      .getAttribute('data-colors')!
+      .split(',');
+    expect(reselectedColors[0]).toBe(initialColors[0]);
+
+    rerender(view('html'));
+    rerender(view('classification'));
+    expect(screen.getByTestId('shared-roc-curve').getAttribute('data-colors')!.split(',')).toEqual(
+      reselectedColors,
     );
   });
 
@@ -229,6 +238,30 @@ describe('RuntimeArtifactComparison', () => {
       initialColors[2],
       initialColors[1],
     ]);
+  });
+
+  it('keeps selector checkboxes out of the tab order and caps large option lists', async () => {
+    const artifacts = Array.from({ length: 400 }, (_, index) =>
+      classificationEntry(`Run ${index}`, `roc-${index}`, {
+        confidenceMetrics: [
+          { confidenceThreshold: 0.8, falsePositiveRate: index / 1_000, recall: 0.9 },
+        ],
+      }),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+
+    expect(await screen.findAllByRole('option')).toHaveLength(100);
+    document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
+      expect(checkbox.tabIndex).toBe(-1);
+      expect(checkbox).toHaveAttribute('aria-hidden', 'true');
+    });
+    expect(screen.getByText(/Showing 100 of 400 curves/)).toBeVisible();
   });
 
   it('builds two independently selectable confusion-matrix panels', async () => {
@@ -432,6 +465,7 @@ describe('RuntimeArtifactComparison', () => {
     );
 
     expect(new Set(Object.values(colors)).size).toBe(keys.length);
+    expect(TEST_ONLY.allocateSelectedRocColors([...keys].reverse())).toEqual(colors);
     const renderedColors = Object.values(colors).map((color) =>
       getRenderedRocColor(color).split(',').map(Number),
     );

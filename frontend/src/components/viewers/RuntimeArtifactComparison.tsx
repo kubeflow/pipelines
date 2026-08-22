@@ -46,6 +46,7 @@ import {
 
 const MAX_SELECTED_ROC_CURVES = 10;
 const DEFAULT_SELECTED_ROC_CURVES = 3;
+const MAX_ROC_SELECTOR_OPTIONS = 100;
 
 const css = stylesheet({
   comparisonGrid: {
@@ -116,6 +117,7 @@ type PanelSelections = Record<ComparisonPanelKind, [string, string]>;
 
 export interface RuntimeArtifactComparisonSelectionState {
   panelSelections: PanelSelections;
+  rocColorByKey?: Record<string, string>;
   rocSelectedKeys?: string[];
 }
 
@@ -166,6 +168,7 @@ export function RuntimeArtifactComparison({
       <ClassificationComparison
         artifacts={classificationArtifacts}
         panelSelections={selectionState.panelSelections['confusion matrix']}
+        rocColorByKey={selectionState.rocColorByKey}
         rocSelectedKeys={selectionState.rocSelectedKeys}
         updateSelectionState={setSelectionState}
         updatePanelSelection={updatePanelSelection}
@@ -194,12 +197,14 @@ export function RuntimeArtifactComparison({
 function ClassificationComparison({
   artifacts,
   panelSelections,
+  rocColorByKey,
   rocSelectedKeys,
   updateSelectionState,
   updatePanelSelection,
 }: {
   artifacts: RuntimeComparisonArtifact[];
   panelSelections: [string, string];
+  rocColorByKey: Record<string, string> | undefined;
   rocSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
   updatePanelSelection: (kind: ComparisonPanelKind, panelIndex: number, key: string) => void;
@@ -230,6 +235,7 @@ function ClassificationComparison({
         <RocCurveComparison
           entries={rocEntries}
           errors={rocErrors}
+          explicitColorByKey={rocColorByKey}
           explicitSelectedKeys={rocSelectedKeys}
           updateSelectionState={updateSelectionState}
         />
@@ -266,11 +272,13 @@ function ClassificationComparison({
 function RocCurveComparison({
   entries,
   errors,
+  explicitColorByKey,
   explicitSelectedKeys,
   updateSelectionState,
 }: {
   entries: RocComparisonEntry[];
   errors: string[];
+  explicitColorByKey: Record<string, string> | undefined;
   explicitSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
@@ -289,7 +297,14 @@ function RocCurveComparison({
     colors: Record<string, string>;
     keySetId: string;
     registry: Record<string, string>;
-  }>(() => ({ colors: {}, keySetId: '', registry: {} }));
+  }>(() => {
+    const registry = new Map(Object.entries(explicitColorByKey || {}));
+    return {
+      colors: allocateSelectedRocColors(selectedKeys, registry),
+      keySetId: selectedKeySetId,
+      registry: Object.fromEntries(registry),
+    };
+  });
   let currentColorState = colorState;
   if (colorState.keySetId !== selectedKeySetId) {
     const registry = new Map(Object.entries(colorState.registry));
@@ -306,11 +321,25 @@ function RocCurveComparison({
   const selectedColors = currentColorState.colors;
   const getColor = (key: string) =>
     selectedColors[key] || currentColorState.registry[key] || getStableDefaultRocColor(key);
+  const initiallyVisibleEntries = entries.slice(0, MAX_ROC_SELECTOR_OPTIONS);
+  const initiallyVisibleKeys = new Set(initiallyVisibleEntries.map(({ key }) => key));
+  const selectorEntries = [
+    ...selectedEntries.filter(({ key }) => !initiallyVisibleKeys.has(key)),
+    ...initiallyVisibleEntries,
+  ].slice(0, MAX_ROC_SELECTOR_OPTIONS);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
+    const registry = new Map(Object.entries(currentColorState.registry));
+    const nextColorState = {
+      colors: allocateSelectedRocColors(nextKeys, registry),
+      keySetId: JSON.stringify([...nextKeys].sort()),
+      registry: Object.fromEntries(registry),
+    };
+    setColorState(nextColorState);
     updateSelectionState((current) => ({
       ...current,
+      rocColorByKey: nextColorState.registry,
       rocSelectedKeys: nextKeys,
     }));
   };
@@ -331,7 +360,7 @@ function RocCurveComparison({
             }
             inputProps={{ 'aria-label': 'ROC curves' }}
           >
-            {entries.map(({ key, label }) => (
+            {selectorEntries.map(({ key, label }) => (
               <MenuItem
                 disabled={
                   selectedKeys.length >= MAX_SELECTED_ROC_CURVES && !selectedKeySet.has(key)
@@ -339,7 +368,11 @@ function RocCurveComparison({
                 key={key}
                 value={key}
               >
-                <Checkbox checked={selectedKeySet.has(key)} />
+                <Checkbox
+                  checked={selectedKeySet.has(key)}
+                  inputProps={{ 'aria-hidden': true }}
+                  tabIndex={-1}
+                />
                 <span
                   aria-hidden='true'
                   className={css.curveSwatch}
@@ -349,6 +382,12 @@ function RocCurveComparison({
               </MenuItem>
             ))}
           </Select>
+          {entries.length > selectorEntries.length && (
+            <p>
+              Showing {selectorEntries.length} of {entries.length} curves. Narrow the compared runs
+              to choose from the remaining curves.
+            </p>
+          )}
         </FormControl>
       </div>
       {!!errors.length && (
@@ -513,16 +552,17 @@ function allocateSelectedRocColors(
 ): Record<string, string> {
   const usedColors = new Set<string>();
   const colors: Record<string, string> = {};
+  const allocationKeys = [...keys].sort();
   // Reserve every surviving assignment before considering new keys. Otherwise an inserted key at
   // the front could claim an existing curve's color and force that survivor to move.
-  keys.forEach((key) => {
+  allocationKeys.forEach((key) => {
     const existingColor = registry.get(key);
     if (existingColor && !usedColors.has(existingColor)) {
       colors[key] = existingColor;
       usedColors.add(existingColor);
     }
   });
-  keys.forEach((key) => {
+  allocationKeys.forEach((key) => {
     if (colors[key]) {
       return;
     }
