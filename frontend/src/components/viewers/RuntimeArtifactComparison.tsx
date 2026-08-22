@@ -46,7 +46,6 @@ import {
 
 const MAX_SELECTED_ROC_CURVES = 10;
 const DEFAULT_SELECTED_ROC_CURVES = 3;
-const ROC_COLOR_PALETTE_SIZE = 24 * 3 * 3;
 
 const css = stylesheet({
   comparisonGrid: {
@@ -117,7 +116,6 @@ type PanelSelections = Record<ComparisonPanelKind, [string, string]>;
 
 export interface RuntimeArtifactComparisonSelectionState {
   panelSelections: PanelSelections;
-  rocColorByKey?: Record<string, string>;
   rocSelectedKeys?: string[];
 }
 
@@ -168,7 +166,6 @@ export function RuntimeArtifactComparison({
       <ClassificationComparison
         artifacts={classificationArtifacts}
         panelSelections={selectionState.panelSelections['confusion matrix']}
-        rocColorByKey={selectionState.rocColorByKey}
         rocSelectedKeys={selectionState.rocSelectedKeys}
         updateSelectionState={setSelectionState}
         updatePanelSelection={updatePanelSelection}
@@ -197,14 +194,12 @@ export function RuntimeArtifactComparison({
 function ClassificationComparison({
   artifacts,
   panelSelections,
-  rocColorByKey,
   rocSelectedKeys,
   updateSelectionState,
   updatePanelSelection,
 }: {
   artifacts: RuntimeComparisonArtifact[];
   panelSelections: [string, string];
-  rocColorByKey: Record<string, string> | undefined;
   rocSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
   updatePanelSelection: (kind: ComparisonPanelKind, panelIndex: number, key: string) => void;
@@ -235,7 +230,6 @@ function ClassificationComparison({
         <RocCurveComparison
           entries={rocEntries}
           errors={rocErrors}
-          explicitColorByKey={rocColorByKey}
           explicitSelectedKeys={rocSelectedKeys}
           updateSelectionState={updateSelectionState}
         />
@@ -272,13 +266,11 @@ function ClassificationComparison({
 function RocCurveComparison({
   entries,
   errors,
-  explicitColorByKey,
   explicitSelectedKeys,
   updateSelectionState,
 }: {
   entries: RocComparisonEntry[];
   errors: string[];
-  explicitColorByKey: Record<string, string> | undefined;
   explicitSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
@@ -292,25 +284,12 @@ function RocCurveComparison({
     : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const allocationKeys = getRocColorAllocationKeys(
-    selectedKeys,
-    entries.map(({ key }) => key),
-  );
-  const persistedColors = new Map(
-    allocationKeys.flatMap((key) =>
-      explicitColorByKey?.[key] ? [[key, explicitColorByKey[key]] as const] : [],
-    ),
-  );
-  // Seed from persisted assignments and allocate selected curves first. New or unselected entries
-  // may move to a salted color on collision, but an existing selected identity never changes.
-  const colorByKey = allocateRocColors(allocationKeys, persistedColors);
-  const getColor = (key: string) => colorByKey[key] || getStableDefaultRocColor(key);
+  const getColor = getStableDefaultRocColor;
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
     updateSelectionState((current) => ({
       ...current,
-      rocColorByKey: colorByKey,
       rocSelectedKeys: nextKeys,
     }));
   };
@@ -503,59 +482,23 @@ function getStableDefaultRocColor(key: string): string {
     hash ^= key.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  // Avalanche the string hash before selecting a deliberately coarse color cell. Fine-grained HSL
-  // hashes can differ numerically while rendering only one RGB level apart; these bins make every
-  // distinct cell visibly separated and keep a key's color independent of the surrounding curves.
+  // Avalanche the string hash, then use independent bit ranges for hue, saturation, and lightness.
+  // Each identity maps directly to its color, so selection and entry ordering cannot recolor it.
   hash ^= hash >>> 16;
   hash = Math.imul(hash, 0x85ebca6b);
   hash ^= hash >>> 13;
   hash = Math.imul(hash, 0xc2b2ae35);
   hash ^= hash >>> 16;
   const unsignedHash = hash >>> 0;
-  const hue = (unsignedHash % 24) * 15;
-  const saturation = [58, 70, 82][(unsignedHash >>> 5) % 3];
-  const lightness = [36, 48, 60][(unsignedHash >>> 10) % 3];
+  const hue = unsignedHash % 360;
+  const saturation = 55 + ((unsignedHash >>> 9) % 36);
+  const lightness = 32 + ((unsignedHash >>> 17) % 29);
   return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
 }
 
-function allocateRocColors(
-  keys: string[],
-  registry: Map<string, string> = new Map(),
-): Record<string, string> {
-  const usedColors = new Set(registry.values());
-  [...new Set(keys)].forEach((key) => {
-    if (registry.has(key)) {
-      return;
-    }
-    const fallbackColor = getStableDefaultRocColor(key);
-    let color = fallbackColor;
-    // The coarse palette is finite. Probe at most every cell, then accept a duplicate; duplicate
-    // styling beyond the palette capacity is preferable to blocking React's synchronous render.
-    for (let salt = 0; salt < ROC_COLOR_PALETTE_SIZE; salt++) {
-      const candidate = salt === 0 ? fallbackColor : getStableDefaultRocColor(`${key}\0${salt}`);
-      if (!usedColors.has(candidate)) {
-        color = candidate;
-        break;
-      }
-    }
-    registry.set(key, color);
-    usedColors.add(color);
-  });
-  return Object.fromEntries(keys.map((key) => [key, registry.get(key)!]));
-}
-
-function getRocColorAllocationKeys(selectedKeys: string[], entryKeys: string[]): string[] {
-  const selectedKeySet = new Set(selectedKeys);
-  const remainingKeys = entryKeys.filter((key) => !selectedKeySet.has(key)).sort();
-  return [...selectedKeys, ...remainingKeys].slice(0, ROC_COLOR_PALETTE_SIZE);
-}
-
 export const TEST_ONLY = {
-  ROC_COLOR_PALETTE_SIZE,
-  allocateRocColors,
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
-  getRocColorAllocationKeys,
   getStableDefaultRocColor,
   limitRocSelection,
 };

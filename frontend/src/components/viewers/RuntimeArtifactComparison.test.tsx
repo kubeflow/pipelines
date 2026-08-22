@@ -417,87 +417,31 @@ describe('RuntimeArtifactComparison', () => {
 
   it('assigns unique stable colors to the selected ROC curves', () => {
     const keys = Array.from({ length: 10 }, (_, index) => `run-${index + 1}:roc-${index + 1}`);
-    const colors = TEST_ONLY.allocateRocColors(keys);
-    const defaultColors = keys.map(TEST_ONLY.getStableDefaultRocColor);
+    const colors = keys.map(TEST_ONLY.getStableDefaultRocColor);
 
-    expect(new Set(Object.values(colors)).size).toBe(keys.length);
-    expect(TEST_ONLY.allocateRocColors(keys)).toEqual(colors);
-    expect(new Set(defaultColors).size).toBe(keys.length);
+    expect(new Set(colors).size).toBe(keys.length);
+    expect(keys.map(TEST_ONLY.getStableDefaultRocColor)).toEqual(colors);
   });
 
   it('distinguishes identities that collided in the former single-hash color space', () => {
     const keys = ['Run 40:roc-40:roc-40', 'Run 206:roc-206:roc-206'];
 
     expect(new Set(keys.map(TEST_ONLY.getStableDefaultRocColor)).size).toBe(2);
-    expect(new Set(Object.values(TEST_ONLY.allocateRocColors(keys))).size).toBe(2);
   });
 
-  it('resolves exact collisions without recoloring existing identities', () => {
-    const existingKey = 'Run 23:roc-23:roc-23';
-    const collidingKey = 'Run 12:roc-12:roc-12';
-    const registry = new Map<string, string>();
-    const isolatedColor = TEST_ONLY.allocateRocColors([existingKey], registry)[existingKey];
-    const expandedColors = TEST_ONLY.allocateRocColors(
-      [collidingKey, existingKey, 'Run 999:roc-999:roc-999'],
-      registry,
-    );
+  it('maps hundreds of identities directly without a set-dependent allocation pass', () => {
+    const keys = Array.from({ length: 400 }, (_, index) => `curve-${index}`);
+    const colors = keys.map(TEST_ONLY.getStableDefaultRocColor);
 
-    expect(TEST_ONLY.getStableDefaultRocColor(collidingKey)).toBe(
-      TEST_ONLY.getStableDefaultRocColor(existingKey),
-    );
-    expect(expandedColors[existingKey]).toBe(isolatedColor);
-    expect(expandedColors[collidingKey]).not.toBe(isolatedColor);
+    expect(colors).toHaveLength(keys.length);
+    expect([...keys].reverse().map(TEST_ONLY.getStableDefaultRocColor).reverse()).toEqual(colors);
   });
 
-  it('bounds color allocation and prioritizes selected curves for large comparisons', () => {
-    const selectedKeys = Array.from({ length: 10 }, (_, index) => `selected-${index}`);
-    const entryKeys = [
-      ...Array.from({ length: 400 }, (_, index) => `entry-${index}`),
-      ...selectedKeys,
-    ];
-
-    const allocationKeys = TEST_ONLY.getRocColorAllocationKeys(selectedKeys, entryKeys);
-
-    expect(allocationKeys).toHaveLength(TEST_ONLY.ROC_COLOR_PALETTE_SIZE);
-    expect(allocationKeys.slice(0, selectedKeys.length)).toEqual(selectedKeys);
-  });
-
-  it('returns after palette exhaustion instead of searching forever', () => {
-    const saturatedRegistry = new Map<string, string>();
-    for (let hue = 0; hue < 360; hue += 15) {
-      for (const saturation of [58, 70, 82]) {
-        for (const lightness of [36, 48, 60]) {
-          saturatedRegistry.set(
-            `used-${hue}-${saturation}-${lightness}`,
-            `hsl(${hue}deg ${saturation}% ${lightness}%)`,
-          );
-        }
-      }
-    }
-
-    const colors = TEST_ONLY.allocateRocColors(['overflow'], saturatedRegistry);
-
-    expect(saturatedRegistry.size).toBe(TEST_ONLY.ROC_COLOR_PALETTE_SIZE + 1);
-    expect(colors.overflow).toBe(TEST_ONLY.getStableDefaultRocColor('overflow'));
-  });
-
-  it('terminates allocation for more identities than the finite palette can represent', () => {
-    const keys = Array.from(
-      { length: TEST_ONLY.ROC_COLOR_PALETTE_SIZE + 184 },
-      (_, index) => `curve-${index}`,
-    );
-
-    const colors = TEST_ONLY.allocateRocColors(keys);
-
-    expect(Object.keys(colors)).toHaveLength(keys.length);
-    expect(new Set(Object.values(colors)).size).toBeLessThanOrEqual(
-      TEST_ONLY.ROC_COLOR_PALETTE_SIZE,
-    );
-  });
-
-  it('keeps formerly near-identical ROC colors perceptually separated', () => {
-    const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
-    const renderedColors = keys
+  it.each([
+    ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'],
+    ['Run 341:roc-341:roc-341', 'Run 521:roc-521:roc-521'],
+  ])('keeps formerly near-identical ROC colors perceptually separated', (firstKey, secondKey) => {
+    const renderedColors = [firstKey, secondKey]
       .map(TEST_ONLY.getStableDefaultRocColor)
       .map((color) => getRenderedRocColor(color).split(',').map(Number));
     const rgbDistance = Math.sqrt(
