@@ -456,9 +456,11 @@ provenance signal. The following rollout constraints are therefore intentional:
   Legacy structured spellings such as `disableSSL` in an otherwise native
   `defaultPipelineRoot` query are rejected instead of being silently interpreted differently from
   the launcher.
-* The frontend accepts at most ten total S3 read attempts. A larger structured `maxRetries` value is
-  clamped to ten so launcher-compatible configuration remains readable without allowing a shared UI
-  request to hold an operator-supplied unbounded attempt budget.
+* The frontend accepts at most ten retry attempts across one S3 artifact request. Initial attempts
+  for distinct operations are not charged: directory downloads require one object probe, one
+  listing, and one GET per child. A larger structured `maxRetries` value is clamped to ten total
+  attempts per operation so launcher-compatible configuration remains readable without allowing a
+  shared UI request to hold an operator-supplied unbounded retry budget.
 * Native endpoint base paths follow Go's URL/AWS signing behavior by decoding one percent-escape
   layer before signing. Any proxy between the UI and object store must preserve the signed request
   path rather than normalizing dot segments or encoded separators; this is also required by launcher

@@ -198,7 +198,7 @@ describe('MinIO retry integration', () => {
     }
   });
 
-  it('caps distinct object and directory operations at ten total requests', async () => {
+  it('does not charge distinct first attempts against the retry ceiling', async () => {
     let requestCount = 0;
     const server = createServer((_request, response) => {
       requestCount += 1;
@@ -227,16 +227,10 @@ describe('MinIO retry integration', () => {
         }),
       );
 
-      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
-      for (let index = 0; index < 9; index++) {
-        await expect(
-          summarizeDirectoryUnderPrefix(client, 'bucket', `key-${index}/`),
-        ).rejects.toThrow();
+      for (let index = 0; index < 12; index++) {
+        await expect(client.getObject('bucket', `key-${index}`)).rejects.toThrow();
       }
-      await expect(
-        summarizeDirectoryUnderPrefix(client, 'bucket', 'key-over-limit/'),
-      ).rejects.toThrow('S3 request attempt limit exhausted');
-      expect(requestCount).toBe(10);
+      expect(requestCount).toBe(12);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

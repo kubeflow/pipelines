@@ -2276,6 +2276,27 @@ s3:
         expect(entries.get('sub/file2.txt')!.toString()).toBe('second file contents');
       });
 
+      it('packages directories with more than eight children without truncating the archive', async () => {
+        const fileContents = Object.fromEntries(
+          Array.from({ length: 12 }, (_, index) => [
+            `directory/file-${index}.txt`,
+            `contents-${index}`,
+          ]),
+        );
+        mockMinioForDirectory(fileContents);
+
+        app = new UIServer(loadConfigs(argv, minioConfigEnv));
+        const res = await captureBinaryResponse(
+          requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+        ).expect(200);
+
+        const entries = await readTarGzEntries(res.body as Buffer);
+        expect(entries.size).toBe(12);
+        Object.entries(fileContents).forEach(([name, contents]) => {
+          expect(entries.get(name.slice('directory/'.length))?.toString()).toBe(contents);
+        });
+      });
+
       it('returns a small text summary for preview requests instead of streaming the archive', async () => {
         // The run details panel calls Apis.readFile with peek=N to render a
         // small inline preview. Falling through to the tar fallback would

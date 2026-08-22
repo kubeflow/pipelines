@@ -49,6 +49,7 @@ export interface Credentials {
 }
 
 const MAX_S3_ATTEMPTS = 10;
+const MAX_S3_RETRY_ATTEMPTS_PER_REQUEST = 10;
 
 const UNSUPPORTED_S3_READ_OPTIONS = new Set(['role']);
 const UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS = [
@@ -346,16 +347,20 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
 
 const RETRYABLE_S3_ERROR_CODES = new Set([
   'EAI_AGAIN',
+  'EAI_FAIL',
   'ECONNREFUSED',
   'ECONNRESET',
   'ECONNABORTED',
   'EHOSTUNREACH',
   'EHOSTDOWN',
+  'EINTR',
+  'ENOBUFS',
   'ENETUNREACH',
   'ENETDOWN',
   'EADDRNOTAVAIL',
   'EADDRINUSE',
   'EPIPE',
+  'ESHUTDOWN',
   'ETIMEDOUT',
   'NetworkingError',
   'RequestTimeout',
@@ -436,12 +441,10 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
     // Unit-test doubles do not expose MinIO's protected transport. Production clients always do.
     return;
   }
-  retryContext.countAttemptsAtTransport = true;
   const originalRequest = originalTransport.request.bind(originalTransport);
   transportClient.transport = {
     ...originalTransport,
     request: (options: unknown, callback: (response: RetryResponse) => void) => {
-      consumeS3RequestAttempt(retryContext);
       const request = originalRequest(options, (response) => {
         retryContext.transportStatus = response.statusCode;
         bindS3Abort(response, retryContext.signal, true);
@@ -460,22 +463,21 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
 }
 
 interface S3RetryContext {
-  countAttemptsAtTransport?: boolean;
   maxAttempts: number;
-  remainingRequestAttempts: number;
+  remainingRetryAttempts: number;
   signal?: AbortSignal;
   transportStatus?: number;
 }
 
 function createS3RetryContext(maxAttempts: number, signal?: AbortSignal): S3RetryContext {
-  return { maxAttempts, remainingRequestAttempts: MAX_S3_ATTEMPTS, signal };
+  return { maxAttempts, remainingRetryAttempts: MAX_S3_RETRY_ATTEMPTS_PER_REQUEST, signal };
 }
 
-function consumeS3RequestAttempt(retryContext: S3RetryContext): void {
-  if (retryContext.remainingRequestAttempts <= 0) {
-    throw new Error('S3 request attempt limit exhausted for this artifact request.');
+function consumeS3RetryAttempt(retryContext: S3RetryContext): void {
+  if (retryContext.remainingRetryAttempts <= 0) {
+    throw new Error('S3 retry attempt limit exhausted for this artifact request.');
   }
-  retryContext.remainingRequestAttempts -= 1;
+  retryContext.remainingRetryAttempts -= 1;
 }
 
 function createS3AbortError(): Error {
@@ -543,8 +545,10 @@ async function retryS3Operation<T>(
   let operationAttempt = 1;
   while (true) {
     throwIfS3RequestAborted(retryContext.signal);
-    if (retryContext.remainingRequestAttempts <= 0) consumeS3RequestAttempt(retryContext);
-    if (!retryContext.countAttemptsAtTransport) consumeS3RequestAttempt(retryContext);
+    // Distinct first attempts are legitimate work: directory downloads perform one object probe,
+    // one listing, and one GET per child. Meter only amplification beyond each operation's first
+    // attempt so large successful archives are not truncated by the retry safety guard.
+    if (operationAttempt > 1) consumeS3RetryAttempt(retryContext);
     retryContext.transportStatus = undefined;
     try {
       return await operation();
@@ -552,7 +556,7 @@ async function retryS3Operation<T>(
       throwIfS3RequestAborted(retryContext.signal);
       if (
         operationAttempt >= retryContext.maxAttempts ||
-        retryContext.remainingRequestAttempts <= 0 ||
+        retryContext.remainingRetryAttempts <= 0 ||
         !isRetryableS3Error(error, retryContext.transportStatus)
       ) {
         throw error;

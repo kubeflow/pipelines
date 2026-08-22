@@ -1397,17 +1397,23 @@ describe('minio-helper', () => {
       expect(operation).toHaveBeenCalledTimes(1);
     });
 
-    it('retries a network reset while reading a response', async () => {
+    it.each([
+      ['EAI_FAIL', 'getaddrinfo'],
+      ['ENETRESET', 'read'],
+      ['ENOBUFS', 'read'],
+      ['EINTR', 'read'],
+      ['ESHUTDOWN', 'read'],
+    ])('retries transient network failure %s during %s', async (code, syscall) => {
       const operation = vi.fn().mockRejectedValue(
-        Object.assign(new Error('network reset'), {
-          code: 'ENETRESET',
+        Object.assign(new Error(code), {
+          code,
           errno: -102,
-          syscall: 'read',
+          syscall,
         }),
       );
 
       await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
-        'network reset',
+        code,
       );
       expect(operation).toHaveBeenCalledTimes(3);
     });
@@ -1467,37 +1473,41 @@ describe('minio-helper', () => {
       }
     });
 
-    it('enforces the request-wide ten-attempt ceiling across operations', async () => {
+    it('enforces the request-wide ten-retry ceiling across operations', async () => {
       const context = TEST_ONLY.createS3RetryContext(10);
-      const missingObject = vi
+      const firstOperation = vi
         .fn()
-        .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
-      const failingSummary = vi
+        .mockRejectedValue(Object.assign(new Error('first reset'), { code: 'ECONNRESET' }));
+      const secondOperation = vi
         .fn()
-        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+        .mockRejectedValue(Object.assign(new Error('second reset'), { code: 'ECONNRESET' }));
+      const thirdOperation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('third reset'), { code: 'ECONNRESET' }));
 
       await expect(
-        TEST_ONLY.retryS3Operation(missingObject, context, async () => undefined),
-      ).rejects.toThrow('missing');
+        TEST_ONLY.retryS3Operation(firstOperation, context, async () => undefined),
+      ).rejects.toThrow('first reset');
       await expect(
-        TEST_ONLY.retryS3Operation(failingSummary, context, async () => undefined),
-      ).rejects.toThrow('reset');
+        TEST_ONLY.retryS3Operation(secondOperation, context, async () => undefined),
+      ).rejects.toThrow('second reset');
+      await expect(
+        TEST_ONLY.retryS3Operation(thirdOperation, context, async () => undefined),
+      ).rejects.toThrow('third reset');
 
-      expect(missingObject).toHaveBeenCalledTimes(1);
-      expect(failingSummary).toHaveBeenCalledTimes(9);
+      expect(firstOperation).toHaveBeenCalledTimes(10);
+      expect(secondOperation).toHaveBeenCalledTimes(2);
+      expect(thirdOperation).toHaveBeenCalledTimes(1);
     });
 
-    it('counts successful child reads against the request-wide ceiling', async () => {
+    it('does not charge successful child reads against the retry ceiling', async () => {
       const context = TEST_ONLY.createS3RetryContext(10);
       const operation = vi.fn().mockResolvedValue('object');
 
-      for (let index = 0; index < 10; index++) {
+      for (let index = 0; index < 20; index++) {
         await expect(TEST_ONLY.retryS3Operation(operation, context)).resolves.toBe('object');
       }
-      await expect(TEST_ONLY.retryS3Operation(operation, context)).rejects.toThrow(
-        'S3 request attempt limit exhausted',
-      );
-      expect(operation).toHaveBeenCalledTimes(10);
+      expect(operation).toHaveBeenCalledTimes(20);
     });
 
     it('stops retrying when the artifact HTTP request is aborted', async () => {
