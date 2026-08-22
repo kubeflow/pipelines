@@ -37,6 +37,7 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
   endpointAuthority?: string;
   endpointRewrite?: string;
   maxAttempts?: number;
+  retrySignal?: AbortSignal;
 }
 
 export interface Credentials {
@@ -181,10 +182,11 @@ export async function createMinioClient(
   providerInfoString?: string,
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
+  retrySignal?: AbortSignal,
 ) {
   // Handler configuration is shared by every request. Provider resolution below adds credentials
   // and endpoint overrides, so always work on a request-local copy.
-  config = { ...config };
+  config = { ...config, retrySignal };
 
   let providerInfo: S3ProviderInfo | undefined;
   let anonymous = false;
@@ -266,7 +268,8 @@ export async function createMinioClient(
 }
 
 function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
-  const { endpointAuthority, endpointBasePath, maxAttempts, ...clientOptions } = config;
+  const { endpointAuthority, endpointBasePath, maxAttempts, retrySignal, ...clientOptions } =
+    config;
   const client = new MinioClient(clientOptions as MinioClientOptions);
   if (maxAttempts !== undefined) {
     const retryClient = client as unknown as {
@@ -323,7 +326,7 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
     };
   }
   if (maxAttempts !== undefined) {
-    wrapRetryableS3Methods(client, maxAttempts);
+    wrapRetryableS3Methods(client, createS3RetryContext(maxAttempts, retrySignal));
   }
   return client;
 }
@@ -334,7 +337,11 @@ const RETRYABLE_S3_ERROR_CODES = new Set([
   'ECONNRESET',
   'ECONNABORTED',
   'EHOSTUNREACH',
+  'EHOSTDOWN',
   'ENETUNREACH',
+  'ENETDOWN',
+  'EADDRNOTAVAIL',
+  'EADDRINUSE',
   'EPIPE',
   'ETIMEDOUT',
   'NetworkingError',
@@ -377,6 +384,11 @@ function isRetryableS3Error(error: unknown): boolean {
   if (status !== undefined) {
     return RETRYABLE_S3_HTTP_STATUSES.has(status);
   }
+  if (code !== undefined) {
+    // A parsed non-retryable S3 code is authoritative when status metadata is unavailable. Do not
+    // let service-controlled error text impersonate the exact MinIO wrapper after AccessDenied.
+    return false;
+  }
   // With MinIO retries disabled, its request helper wraps a retryable response in this message
   // before the response parser can retain status metadata. Parse only that exact SDK message and
   // apply the pinned AWS SDK's narrower status allowlist.
@@ -415,31 +427,73 @@ function exposeParsedS3Errors(client: MinioClient): void {
   };
 }
 
+interface S3RetryContext {
+  failedAttempts: number;
+  maxAttempts: number;
+  signal?: AbortSignal;
+}
+
+function createS3RetryContext(maxAttempts: number, signal?: AbortSignal): S3RetryContext {
+  return { failedAttempts: 0, maxAttempts, signal };
+}
+
+function throwIfS3RequestAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw Object.assign(new Error('Artifact request was aborted.'), { name: 'AbortError' });
+  }
+}
+
+async function waitForS3Retry(delayMs: number, signal?: AbortSignal): Promise<void> {
+  throwIfS3RequestAborted(signal);
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, delayMs);
+    const abort = () => {
+      clearTimeout(timeout);
+      reject(Object.assign(new Error('Artifact request was aborted.'), { name: 'AbortError' }));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+  });
+}
+
 async function retryS3Operation<T>(
   operation: () => Promise<T>,
-  maxAttempts: number,
-  delay: (attempt: number) => Promise<void> = (attempt) =>
-    new Promise((resolve) => setTimeout(resolve, getS3RetryDelayMs(attempt))),
+  retryContextOrMaxAttempts: S3RetryContext | number,
+  delay: (attempt: number, signal?: AbortSignal) => Promise<void> = (attempt, signal) =>
+    waitForS3Retry(getS3RetryDelayMs(attempt), signal),
 ): Promise<T> {
-  let attempt = 1;
+  const retryContext =
+    typeof retryContextOrMaxAttempts === 'number'
+      ? createS3RetryContext(retryContextOrMaxAttempts)
+      : retryContextOrMaxAttempts;
+  let operationAttempt = 1;
   while (true) {
+    throwIfS3RequestAborted(retryContext.signal);
+    if (retryContext.failedAttempts >= retryContext.maxAttempts) {
+      throw new Error('S3 attempt budget exhausted for this artifact request.');
+    }
     try {
       return await operation();
     } catch (error) {
-      if (attempt >= maxAttempts || !isRetryableS3Error(error)) {
+      throwIfS3RequestAborted(retryContext.signal);
+      retryContext.failedAttempts += 1;
+      if (retryContext.failedAttempts >= retryContext.maxAttempts || !isRetryableS3Error(error)) {
         throw error;
       }
-      await delay(attempt);
-      attempt += 1;
+      await delay(operationAttempt, retryContext.signal);
+      operationAttempt += 1;
     }
   }
 }
 
 function getS3RetryDelayMs(attempt: number, random: () => number = Math.random): number {
-  return random() * Math.min(1_000 * 2 ** attempt, 20_000);
+  const exponentialDelay = 1_000 * 2 ** attempt;
+  return exponentialDelay >= 20_000 ? 20_000 : random() * exponentialDelay;
 }
 
-function wrapRetryableS3Methods(client: MinioClient, maxAttempts: number): void {
+function wrapRetryableS3Methods(client: MinioClient, retryContext: S3RetryContext): void {
   const retryableMethods = ['getObject', 'listObjectsV2Query'] as const;
   const mutableClient = client as unknown as Record<string, unknown>;
   retryableMethods.forEach((method) => {
@@ -455,7 +509,7 @@ function wrapRetryableS3Methods(client: MinioClient, maxAttempts: number): void 
     // bytes have been consumed, replaying the request here would duplicate or corrupt the caller's
     // stream; downstream failures therefore remain visible to the caller.
     mutableClient[method] = (...args: unknown[]) =>
-      retryS3Operation(() => operation(...args), maxAttempts);
+      retryS3Operation(() => operation(...args), retryContext);
   });
 }
 
@@ -574,7 +628,13 @@ function parseProviderEndpoint(
   // exactly one byte layer, then emit the same path spelling without WHATWG normalization. A proxy
   // must preserve this signed target; normalizing dot segments or separators also breaks Go
   // launcher requests using the same endpoint contract.
-  const basePath = normalizeGoEndpointPath(rawSuffix).replace(/\/$/, '');
+  // net/url exposes a once-decoded '?' or '#' as a delimiter when the Go Cloud endpoint is
+  // composed with an object key. Match the launcher's wire target by dropping the delimiter and
+  // the remainder instead of sending the escaped delimiter as object-path data.
+  const encodedDelimiter = rawSuffix.search(/%(?:3f|23)/i);
+  const pathBeforeDelimiter =
+    encodedDelimiter === -1 ? rawSuffix : rawSuffix.slice(0, encodedDelimiter);
+  const basePath = normalizeGoEndpointPath(pathBeforeDelimiter).replace(/\/$/, '');
   return {
     basePath: basePath || undefined,
     host: authorityUrl.hostname.replace(/^\[(.*)\]$/, '$1'),
@@ -763,6 +823,7 @@ function isAwsS3Endpoint(host: string): boolean {
 }
 
 export const TEST_ONLY = {
+  createS3RetryContext,
   getS3RetryDelayMs,
   isRetryableS3Error,
   parseProviderEndpoint,

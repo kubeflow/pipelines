@@ -523,6 +523,21 @@ export function getArtifactsHandler({
         .send(`Invalid artifact provider configuration. Correct it and retry: ${error}`);
       return;
     }
+    const retryAbortController = new AbortController();
+    const abortRetry = () => retryAbortController.abort();
+    const cleanupRetryAbort = () => req.removeListener('aborted', abortRetry);
+    if (req.aborted) {
+      retryAbortController.abort();
+    } else {
+      req.once('aborted', abortRetry);
+      res.once('finish', cleanupRetryAbort);
+      res.once('close', () => {
+        if (!res.writableFinished) {
+          retryAbortController.abort();
+        }
+        cleanupRetryAbort();
+      });
+    }
     let client: MinioClient;
     switch (source) {
       case 'gcs':
@@ -542,6 +557,8 @@ export function getArtifactsHandler({
             resolvedProvider === 's3' ? 's3' : 'minio',
             effectiveProviderInfo,
             namespace,
+            undefined,
+            retryAbortController.signal,
           );
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
@@ -559,7 +576,14 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
+          client = await createMinioClient(
+            aws,
+            's3',
+            effectiveProviderInfo,
+            namespace,
+            undefined,
+            retryAbortController.signal,
+          );
         } catch (e) {
           res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
@@ -888,9 +912,16 @@ function getMinioArtifactHandler(
   options: { bucket: string; key: string; client: MinioClient; tryExtract?: boolean },
   peek: number = 0,
 ) {
-  return async (_: Request, res: Response) => {
+  return async (req: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
+      const abortStream = () => stream.destroy();
+      if (req.aborted) {
+        abortStream();
+        return;
+      }
+      req.once('aborted', abortStream);
+      stream.once('close', () => req.removeListener('aborted', abortStream));
       stream
         .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
         .pipe(new PreviewStream({ peek }))

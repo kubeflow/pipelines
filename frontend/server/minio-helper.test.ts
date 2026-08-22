@@ -824,6 +824,8 @@ describe('minio-helper', () => {
     it.each([
       ['https://store.example/root dir/café', '/root%20dir/caf%C3%A9/bucket/object'],
       ['https://store.example/base/%2e%2e/inner', '/base/../inner/bucket/object'],
+      ['https://store.example/base/%3F/discarded', '/base/bucket/object'],
+      ['https://store.example/base/%23/discarded', '/base/bucket/object'],
     ])('preserves the Go request spelling for endpoint path %s', async (endpoint, expectedPath) => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object' }));
       MockedMinioClient.mockImplementationOnce(function () {
@@ -1250,23 +1252,28 @@ describe('minio-helper', () => {
       }
     });
 
-    it.each(['EHOSTUNREACH', 'ENETUNREACH', 'ECONNABORTED'])(
-      'retries the Go connection error %s',
-      async (code) => {
-        const operation = vi.fn().mockRejectedValue(Object.assign(new Error(code), { code }));
+    it.each([
+      'EADDRINUSE',
+      'EADDRNOTAVAIL',
+      'ECONNABORTED',
+      'EHOSTDOWN',
+      'EHOSTUNREACH',
+      'ENETDOWN',
+      'ENETUNREACH',
+    ])('retries the Go connection error %s', async (code) => {
+      const operation = vi.fn().mockRejectedValue(Object.assign(new Error(code), { code }));
 
-        await expect(
-          TEST_ONLY.retryS3Operation(operation, 3, async () => undefined),
-        ).rejects.toThrow(code);
-        expect(operation).toHaveBeenCalledTimes(3);
-      },
-    );
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        code,
+      );
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
 
     it('uses randomized exponential backoff with the Go twenty-second cap', () => {
       expect(TEST_ONLY.getS3RetryDelayMs(1, () => 0.25)).toBe(500);
       expect(TEST_ONLY.getS3RetryDelayMs(4, () => 0.25)).toBe(4_000);
-      expect(TEST_ONLY.getS3RetryDelayMs(5, () => 0.25)).toBe(5_000);
-      expect(TEST_ONLY.getS3RetryDelayMs(9, () => 0.75)).toBe(15_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(5, () => 0.25)).toBe(20_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(9, () => 0.75)).toBe(20_000);
     });
 
     it('fails loudly when a required retryable method is unavailable', async () => {
@@ -1314,6 +1321,112 @@ describe('minio-helper', () => {
         'denied',
       );
       expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let a parsed S3 message impersonate the MinIO retry wrapper', () => {
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          code: 'AccessDenied',
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
+      expect(TEST_ONLY.isRetryableS3Error({ code: 'UnknownError', statusCode: 500 })).toBe(true);
+    });
+
+    it('shares one failed-attempt budget across fallback operations', async () => {
+      const context = TEST_ONLY.createS3RetryContext(3);
+      const missingObject = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
+      const failingSummary = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(missingObject, context, async () => undefined),
+      ).rejects.toThrow('missing');
+      await expect(
+        TEST_ONLY.retryS3Operation(failingSummary, context, async () => undefined),
+      ).rejects.toThrow('reset');
+
+      expect(missingObject).toHaveBeenCalledTimes(1);
+      expect(failingSummary).toHaveBeenCalledTimes(2);
+    });
+
+    it('shares the configured budget across the client object and fallback methods', async () => {
+      vi.useFakeTimers();
+      try {
+        const getObject = vi
+          .fn()
+          .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
+        const listObjectsV2Query = vi
+          .fn()
+          .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+        MockedMinioClient.mockImplementationOnce(function () {
+          return { getObject, listObjectsV2Query };
+        });
+        const client = await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: '3' },
+          }),
+        );
+
+        await expect(client.getObject('bucket', 'key')).rejects.toThrow('missing');
+        const fallback = expect(
+          (client as any).listObjectsV2Query('bucket', 'key/', '', 1),
+        ).rejects.toThrow('reset');
+        await vi.runAllTimersAsync();
+        await fallback;
+
+        expect(getObject).toHaveBeenCalledTimes(1);
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('stops retrying when the artifact HTTP request is aborted', async () => {
+      const abortController = new AbortController();
+      const context = TEST_ONLY.createS3RetryContext(3, abortController.signal);
+      const operation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(operation, context, async () => abortController.abort()),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it('passes request cancellation through a configured MinIO client', async () => {
+      const abortController = new AbortController();
+      const getObject = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject, listObjectsV2Query: vi.fn() };
+      });
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '3' },
+        }),
+        undefined,
+        undefined,
+        abortController.signal,
+      );
+
+      const request = expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      await vi.waitFor(() => expect(getObject).toHaveBeenCalledTimes(1));
+      abortController.abort();
+      await request;
     });
   });
 

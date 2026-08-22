@@ -15,7 +15,7 @@
 import { createServer } from 'http';
 import type { AddressInfo } from 'net';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createMinioClient } from './minio-helper.js';
+import { createMinioClient, summarizeDirectoryUnderPrefix } from './minio-helper.js';
 
 vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
@@ -104,6 +104,92 @@ describe('MinIO retry integration', () => {
     }
   });
 
+  it('shares the request budget across a missing object and its failing directory fallback', async () => {
+    let requestCount = 0;
+    const server = createServer((_request, response) => {
+      requestCount += 1;
+      if (requestCount === 1) {
+        response
+          .writeHead(404, { 'content-type': 'application/xml' })
+          .end('<Error><Code>NoSuchKey</Code><Message>missing</Message></Error>');
+        return;
+      }
+      response.writeHead(500).end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: '127.0.0.1',
+          pathStyle: true,
+          port,
+          region: 'us-east-1',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '3' },
+        }),
+      );
+
+      await expect(client.getObject('bucket', 'key')).rejects.toThrow();
+      await expect(summarizeDirectoryUnderPrefix(client, 'bucket', 'key/')).rejects.toThrow();
+      expect(requestCount).toBe(3);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it('stops retrying after the artifact request aborts', async () => {
+    let requestCount = 0;
+    const abortController = new AbortController();
+    const server = createServer((_request, response) => {
+      requestCount += 1;
+      abortController.abort();
+      response.writeHead(500).end();
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+    try {
+      const { port } = server.address() as AddressInfo;
+      const client = await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: '127.0.0.1',
+          pathStyle: true,
+          port,
+          region: 'us-east-1',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '3' },
+        }),
+        undefined,
+        undefined,
+        abortController.signal,
+      );
+
+      await expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      expect(requestCount).toBe(1);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
   it.each([
     [400, 'SlowDown', 3],
     [400, 'RequestTimeout', 3],
@@ -160,7 +246,7 @@ describe('MinIO retry integration', () => {
         .writeHead(400, { 'content-type': 'application/xml' })
         .end(
           '<Error><Code>AccessDenied</Code>' +
-            '<Message>Retryable HTTP status: 500</Message></Error>',
+            '<Message>Request failed after 0 retries: Error: Retryable HTTP status: 500</Message></Error>',
         );
     });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -231,6 +317,50 @@ describe('MinIO retry integration', () => {
       );
     }
   });
+
+  it.each(['%3F', '%23'])(
+    'matches the Go wire path when an endpoint path contains %s',
+    async (delimiter) => {
+      let requestPath: string | undefined;
+      const server = createServer((request, response) => {
+        requestPath = request.url;
+        response.writeHead(200).end('artifact');
+      });
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+      try {
+        const { port } = server.address() as AddressInfo;
+        const client = await createMinioClient(
+          {
+            accessKey: 'accesskey',
+            endPoint: '127.0.0.1',
+            pathStyle: true,
+            port,
+            region: 'us-east-1',
+            secretKey: 'secretkey',
+            useSSL: false,
+          },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: `http://127.0.0.1:${port}/base/${delimiter}/discarded`,
+              fromEnv: 'true',
+              nativeQuery: 'true',
+              use_path_style: 'true',
+            },
+          }),
+        );
+
+        await client.getObject('bucket', 'key');
+        expect(requestPath).toBe('/base/bucket/key');
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    },
+  );
 
   it.each([
     ['/%252e/%252f', '/%2e/%2f/bucket/key'],
