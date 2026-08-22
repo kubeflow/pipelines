@@ -596,6 +596,24 @@ class TestInputSpec(unittest.TestCase):
                                     r'must be True if `default` is not None'):
             input_spec = structures.InputSpec(type='String', default='text')
 
+    def test_default_matching_literals_is_valid(self):
+        input_spec = structures.InputSpec(
+            type='String', default='a', optional=True, literals=['a', 'b'])
+        self.assertEqual(input_spec.default, 'a')
+
+    def test_default_not_in_literals_raises(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r"Default value 'z' is not one of the allowed values \['a', 'b'\]"
+        ):
+            structures.InputSpec(
+                type='String', default='z', optional=True, literals=['a', 'b'])
+
+    def test_no_default_with_literals_is_valid(self):
+        input_spec = structures.InputSpec(
+            type='String', optional=False, literals=['a', 'b'])
+        self.assertIsNone(input_spec.default)
+
 
 class TestOutputSpec(parameterized.TestCase):
 
