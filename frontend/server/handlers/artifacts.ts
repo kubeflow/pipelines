@@ -27,6 +27,7 @@ import {
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
 } from '../minio-helper.js';
+import type { MinioRequestConfig } from '../minio-helper.js';
 import { parseGoBoolean } from '../helpers/provider-options.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
@@ -569,6 +570,7 @@ export function getArtifactsHandler({
             bucket,
             client,
             key: storageKey,
+            signal: retryAbortController.signal,
             tryExtract,
           },
           peek,
@@ -593,6 +595,7 @@ export function getArtifactsHandler({
             bucket,
             client,
             key: storageKey,
+            signal: retryAbortController.signal,
           },
           peek,
         )(req, res);
@@ -908,10 +911,7 @@ function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string
   }
 }
 
-function getMinioArtifactHandler(
-  options: { bucket: string; key: string; client: MinioClient; tryExtract?: boolean },
-  peek: number = 0,
-) {
+function getMinioArtifactHandler(options: MinioRequestConfig, peek: number = 0) {
   return async (req: Request, res: Response) => {
     try {
       const stream = await getObjectStream(options);
@@ -923,7 +923,11 @@ function getMinioArtifactHandler(
       req.once('aborted', abortStream);
       stream.once('close', () => req.removeListener('aborted', abortStream));
       stream
-        .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
+        .on('error', (err) => {
+          if (!isArtifactRequestCancelled(req, res, err)) {
+            res.status(500).send(`Failed to get object in bucket: ${err}`);
+          }
+        })
         .pipe(new PreviewStream({ peek }))
         .pipe(res);
     } catch (err) {
@@ -945,6 +949,7 @@ function getMinioArtifactHandler(
             await previewDirectorySummary(options, res);
             return;
           } catch (summaryErr) {
+            if (isArtifactRequestCancelled(req, res, summaryErr)) return;
             console.error(summaryErr);
             res.status(500).send(`Failed to summarize directory: ${summaryErr}`);
             return;
@@ -954,6 +959,7 @@ function getMinioArtifactHandler(
           await streamDirectoryAsTarGz(options, res);
           return;
         } catch (tarErr) {
+          if (isArtifactRequestCancelled(req, res, tarErr)) return;
           console.error(tarErr);
           if (!res.headersSent) {
             res.status(500).send(`Failed to get object in bucket: ${tarErr}`);
@@ -963,10 +969,15 @@ function getMinioArtifactHandler(
           return;
         }
       }
+      if (isArtifactRequestCancelled(req, res, err)) return;
       console.error(err);
       res.status(500).send(`Failed to get object in bucket: ${err}`);
     }
   };
+}
+
+function isArtifactRequestCancelled(req: Request, res: Response, error: unknown): boolean {
+  return req.aborted || res.destroyed || (error instanceof Error && error.name === 'AbortError');
 }
 
 async function previewDirectorySummary(

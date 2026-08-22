@@ -298,12 +298,14 @@ describe('RuntimeArtifactComparison', () => {
     );
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
 
-    expect(await screen.findAllByRole('option')).toHaveLength(100);
+    expect(
+      (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
+    ).toHaveLength(100);
     document.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach((checkbox) => {
       expect(checkbox.tabIndex).toBe(-1);
       expect(checkbox).toHaveAttribute('aria-hidden', 'true');
     });
-    expect(screen.getByText(/Showing 100 of 400 curves/)).toBeVisible();
+    expect(screen.getByText(/Showing 1–100 of 400 curves/)).toBeVisible();
 
     fireEvent.keyDown(screen.getByRole('listbox', { name: 'ROC curves' }), { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
@@ -312,6 +314,54 @@ describe('RuntimeArtifactComparison', () => {
     });
     fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
     expect(await screen.findByRole('option', { name: /Run 399/ })).toBeVisible();
+  });
+
+  it('pages through duplicate-label matches and announces an empty search', async () => {
+    const artifacts = Array.from({ length: 150 }, (_, index) =>
+      classificationEntry('Same run', `opaque-${index}`, {
+        confidenceMetrics: [
+          { confidenceThreshold: 0.8, falsePositiveRate: index / 1_000, recall: 0.9 },
+        ],
+      }),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='classification' />
+      </CommonTestWrapper>,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
+      target: { value: 'Same run / Evaluate / evaluation' },
+    });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    expect(
+      (await screen.findAllByRole('option')).filter((option) => option.dataset.value),
+    ).toHaveLength(100);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next ROC curves' }));
+    await waitFor(() =>
+      expect(screen.getAllByRole('option').filter((option) => option.dataset.value)).toHaveLength(
+        50,
+      ),
+    );
+    expect(screen.getByText(/Showing 101–150 of 150 matching curves/)).toBeVisible();
+    fireEvent.click(
+      screen
+        .getAllByRole('option')
+        .filter((option) => option.dataset.value)
+        .at(-1)!,
+    );
+    expect(screen.getByRole('combobox', { name: 'ROC curves', hidden: true })).toHaveTextContent(
+      '4 curves selected',
+    );
+
+    fireEvent.keyDown(screen.getByRole('listbox', { name: 'ROC curves' }), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
+      target: { value: 'not present' },
+    });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('No ROC curves match this search.');
   });
 
   it('builds two independently selectable confusion-matrix panels', async () => {

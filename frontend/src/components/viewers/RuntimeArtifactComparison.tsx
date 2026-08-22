@@ -17,6 +17,7 @@ import {
   FormControl,
   InputLabel,
   ListItemText,
+  ListSubheader,
   MenuItem,
   Select,
   SelectChangeEvent,
@@ -284,6 +285,7 @@ function RocCurveComparison({
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
   const [selectorFilter, setSelectorFilter] = useState('');
+  const [selectorPage, setSelectorPage] = useState(0);
   const validKeys = useMemo(() => new Set(entries.map(({ key }) => key)), [entries]);
   const explicitValidKeys = explicitSelectedKeys?.filter((key) => validKeys.has(key));
   const shouldUseDefaults =
@@ -352,12 +354,16 @@ function RocCurveComparison({
           label.toLocaleLowerCase().includes(normalizedFilter),
       )
     : entries;
-  const initiallyVisibleEntries = matchingEntries.slice(0, MAX_ROC_SELECTOR_OPTIONS);
-  const initiallyVisibleKeys = new Set(initiallyVisibleEntries.map(({ key }) => key));
-  const selectorEntries = [
-    ...selectedEntries.filter(({ key }) => !normalizedFilter && !initiallyVisibleKeys.has(key)),
-    ...initiallyVisibleEntries,
-  ].slice(0, MAX_ROC_SELECTOR_OPTIONS);
+  const selectorPageCount = Math.max(
+    1,
+    Math.ceil(matchingEntries.length / MAX_ROC_SELECTOR_OPTIONS),
+  );
+  const visibleSelectorPage = Math.min(selectorPage, selectorPageCount - 1);
+  const selectorStart = visibleSelectorPage * MAX_ROC_SELECTOR_OPTIONS;
+  const selectorEntries = matchingEntries.slice(
+    selectorStart,
+    selectorStart + MAX_ROC_SELECTOR_OPTIONS,
+  );
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
@@ -382,7 +388,10 @@ function RocCurveComparison({
         <TextField
           fullWidth
           label='Search ROC curves'
-          onChange={(event) => setSelectorFilter(event.target.value)}
+          onChange={(event) => {
+            setSelectorFilter(event.target.value);
+            setSelectorPage(0);
+          }}
           size='small'
           value={selectorFilter}
           variant='standard'
@@ -420,14 +429,44 @@ function RocCurveComparison({
                 <ListItemText primary={label} />
               </MenuItem>
             ))}
+            {!matchingEntries.length ? (
+              <ListSubheader role='presentation'>
+                <span aria-live='polite' role='status'>
+                  No ROC curves match this search.
+                </span>
+              </ListSubheader>
+            ) : matchingEntries.length > MAX_ROC_SELECTOR_OPTIONS ? (
+              <ListSubheader role='presentation'>
+                <button
+                  disabled={visibleSelectorPage === 0}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectorPage((page) => Math.max(0, page - 1));
+                  }}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  type='button'
+                >
+                  Previous ROC curves
+                </button>
+                <span aria-live='polite'>
+                  Showing {selectorStart + 1}–
+                  {Math.min(selectorStart + selectorEntries.length, matchingEntries.length)} of{' '}
+                  {matchingEntries.length} {normalizedFilter ? 'matching ' : ''}curves.
+                </span>
+                <button
+                  disabled={visibleSelectorPage >= selectorPageCount - 1}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelectorPage((page) => Math.min(selectorPageCount - 1, page + 1));
+                  }}
+                  onMouseDown={(event) => event.stopPropagation()}
+                  type='button'
+                >
+                  Next ROC curves
+                </button>
+              </ListSubheader>
+            ) : null}
           </Select>
-          {matchingEntries.length > selectorEntries.length && (
-            <p>
-              Showing {selectorEntries.length} of {matchingEntries.length}{' '}
-              {normalizedFilter ? 'matching ' : ''}curves. Search to choose from the remaining
-              curves.
-            </p>
-          )}
         </FormControl>
       </div>
       {!!errors.length && (

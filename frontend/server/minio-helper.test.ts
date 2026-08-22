@@ -1069,13 +1069,25 @@ describe('minio-helper', () => {
       expect(
         TEST_ONLY.parseProviderEndpoint('https://store/%41/%7e/%2f/%3A/raw[bracket]', true),
       ).toEqual(expect.objectContaining({ basePath: '/A/~///:/raw[bracket]', host: 'store' }));
-      expect(TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toEqual(
-        expect.objectContaining({ basePath: '/%2e/%2f', host: 'store' }),
+      expect(() => TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toThrow(
+        'unsupported URL escape',
+      );
+      expect(() => TEST_ONLY.parseProviderEndpoint('https://store/%00', true)).toThrow(
+        'unsupported URL escape',
       );
       expect(TEST_ONLY.parseProviderEndpoint('https://store/%FF/%C0%AF/%ED%A0%80', true)).toEqual(
         expect.objectContaining({ basePath: '/%FF/%C0%AF/%ED%A0%80', host: 'store' }),
       );
     });
+
+    it.each(['%25', '%00', '%7F', '%25zz', '%252G'])(
+      'rejects the endpoint path escape %s that Go rejects',
+      (path) => {
+        expect(() => TEST_ONLY.parseProviderEndpoint(`https://store/${path}`, true)).toThrow(
+          'unsupported URL escape',
+        );
+      },
+    );
 
     it('does not normalize a hostname that merely starts with the standard AWS name', async () => {
       await createMinioClient(
@@ -1331,9 +1343,36 @@ describe('minio-helper', () => {
         }),
       ).toBe(false);
       expect(TEST_ONLY.isRetryableS3Error({ code: 'UnknownError', statusCode: 500 })).toBe(true);
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          code: '',
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
     });
 
-    it('shares one failed-attempt budget across fallback operations', async () => {
+    it.each(['EALREADY', 'ENETRESET', 'ESHUTDOWN', 'ENOBUFS'])(
+      'retries structurally identified dial failure %s',
+      async (code) => {
+        const operation = vi
+          .fn()
+          .mockRejectedValue(
+            Object.assign(new Error(code), { code, errno: -1, syscall: 'connect' }),
+          );
+
+        await expect(
+          TEST_ONLY.retryS3Operation(operation, 3, async () => undefined),
+        ).rejects.toThrow(code);
+        expect(operation).toHaveBeenCalledTimes(3);
+      },
+    );
+
+    it('gives each fallback operation its own attempt budget', async () => {
       const context = TEST_ONLY.createS3RetryContext(3);
       const missingObject = vi
         .fn()
@@ -1350,10 +1389,10 @@ describe('minio-helper', () => {
       ).rejects.toThrow('reset');
 
       expect(missingObject).toHaveBeenCalledTimes(1);
-      expect(failingSummary).toHaveBeenCalledTimes(2);
+      expect(failingSummary).toHaveBeenCalledTimes(3);
     });
 
-    it('shares the configured budget across the client object and fallback methods', async () => {
+    it('gives configured client object and fallback methods independent budgets', async () => {
       vi.useFakeTimers();
       try {
         const getObject = vi
@@ -1382,7 +1421,7 @@ describe('minio-helper', () => {
         await fallback;
 
         expect(getObject).toHaveBeenCalledTimes(1);
-        expect(listObjectsV2Query).toHaveBeenCalledTimes(2);
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(3);
       } finally {
         vi.useRealTimers();
       }
@@ -1536,6 +1575,23 @@ describe('minio-helper', () => {
       stream.on('finish', () => {
         expect(stream.read().toString().trim()).toBe('hello world');
       });
+    });
+
+    it('destroys the upstream object stream when the request is aborted', async () => {
+      const abortController = new AbortController();
+      const objStream = new PassThrough();
+      const destroy = vi.spyOn(objStream, 'destroy');
+      mockedMinioGetObject.mockResolvedValueOnce(objStream);
+
+      await getObjectStream({
+        bucket: 'bucket',
+        client: minioClient,
+        key: 'key',
+        signal: abortController.signal,
+      });
+      abortController.abort();
+
+      expect(destroy).toHaveBeenCalledWith();
     });
   });
 
