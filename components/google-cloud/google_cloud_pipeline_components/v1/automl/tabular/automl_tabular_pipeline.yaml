@@ -9166,7 +9166,7 @@ deploymentSpec:
         command:
         - python3
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-feature-attribution-2:
       container:
         args:
@@ -9219,7 +9219,7 @@ deploymentSpec:
         command:
         - python3
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-feature-attribution-3:
       container:
         args:
@@ -9272,7 +9272,7 @@ deploymentSpec:
         command:
         - python3
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.9.2
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-get-model-display-name:
       container:
         args:
@@ -9769,7 +9769,7 @@ deploymentSpec:
         command:
         - python
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.4
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-model-evaluation-2:
       container:
         args:
@@ -9834,7 +9834,7 @@ deploymentSpec:
         command:
         - python
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.4
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-model-evaluation-3:
       container:
         args:
@@ -9899,7 +9899,7 @@ deploymentSpec:
         command:
         - python
         - /main.py
-        image: gcr.io/ml-pipeline/model-evaluation:v0.4
+        image: gcr.io/ml-pipeline/model-evaluation:v0.9.5
     exec-model-evaluation-import:
       container:
         args:
