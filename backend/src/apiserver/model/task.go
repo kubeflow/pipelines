@@ -44,6 +44,11 @@ type Task struct {
 	StateHistory       []*RuntimeStatus `gorm:"-;"`
 	ChildrenPods       []string         `gorm:"-;"`
 	Payload            LargeText        `gorm:"column:Payload; default:null;"`
+
+	// LifecycleFailureMessage carries the pod lifecycle failure message (e.g. ImagePullBackOff,
+	// OOMKilled, Unschedulable) propagated from the underlying execution engine, so the UI can
+	// surface workload failures the same way it surfaces user-script failures.
+	LifecycleFailureMessage LargeText `gorm:"column:LifecycleFailureMessage; default:null;"`
 }
 
 func (t Task) ToString() string {
