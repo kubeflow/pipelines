@@ -20,8 +20,9 @@ import {
   MenuItem,
   Select,
   SelectChangeEvent,
+  TextField,
 } from '@mui/material';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { V2beta1Artifact } from 'src/apisv2beta1/run';
 import Banner from 'src/components/Banner';
@@ -282,6 +283,7 @@ function RocCurveComparison({
   explicitSelectedKeys: string[] | undefined;
   updateSelectionState: Dispatch<SetStateAction<RuntimeArtifactComparisonSelectionState>>;
 }) {
+  const [selectorFilter, setSelectorFilter] = useState('');
   const validKeys = useMemo(() => new Set(entries.map(({ key }) => key)), [entries]);
   const explicitValidKeys = explicitSelectedKeys?.filter((key) => validKeys.has(key));
   const shouldUseDefaults =
@@ -308,7 +310,11 @@ function RocCurveComparison({
   let currentColorState = colorState;
   if (colorState.keySetId !== selectedKeySetId) {
     const registry = new Map(Object.entries(colorState.registry));
-    const colors = allocateSelectedRocColors(selectedKeys, registry);
+    const colors = allocateSelectedRocColors(
+      selectedKeys,
+      registry,
+      Object.keys(colorState.colors),
+    );
     currentColorState = {
       colors,
       keySetId: selectedKeySetId,
@@ -318,6 +324,16 @@ function RocCurveComparison({
     // state-reset chain. React immediately retries this component with the reconciled selection set.
     setColorState(currentColorState);
   }
+  useEffect(() => {
+    // Persist implicit query-refresh reconciliation in the parent-owned comparison state. This is
+    // the lifecycle boundary that survives switching visualization tabs or collapsing the section;
+    // selection events already write through synchronously below.
+    updateSelectionState((current) =>
+      areRocColorRegistriesEqual(current.rocColorByKey, currentColorState.registry)
+        ? current
+        : { ...current, rocColorByKey: currentColorState.registry },
+    );
+  }, [currentColorState.registry, updateSelectionState]);
   const selectedColors = currentColorState.colors;
   const getColor = (key: string) =>
     selectedColors[key] || currentColorState.registry[key] || getStableDefaultRocColor(key);
@@ -326,12 +342,20 @@ function RocCurveComparison({
       return getColor(key);
     }
     const registry = new Map(Object.entries(currentColorState.registry));
-    return allocateSelectedRocColors([...selectedKeys, key], registry)[key];
+    return allocateSelectedRocColors([...selectedKeys, key], registry, selectedKeys)[key];
   };
-  const initiallyVisibleEntries = entries.slice(0, MAX_ROC_SELECTOR_OPTIONS);
+  const normalizedFilter = selectorFilter.trim().toLocaleLowerCase();
+  const matchingEntries = normalizedFilter
+    ? entries.filter(
+        ({ key, label }) =>
+          key.toLocaleLowerCase().includes(normalizedFilter) ||
+          label.toLocaleLowerCase().includes(normalizedFilter),
+      )
+    : entries;
+  const initiallyVisibleEntries = matchingEntries.slice(0, MAX_ROC_SELECTOR_OPTIONS);
   const initiallyVisibleKeys = new Set(initiallyVisibleEntries.map(({ key }) => key));
   const selectorEntries = [
-    ...selectedEntries.filter(({ key }) => !initiallyVisibleKeys.has(key)),
+    ...selectedEntries.filter(({ key }) => !normalizedFilter && !initiallyVisibleKeys.has(key)),
     ...initiallyVisibleEntries,
   ].slice(0, MAX_ROC_SELECTOR_OPTIONS);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
@@ -339,7 +363,7 @@ function RocCurveComparison({
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
     const registry = new Map(Object.entries(currentColorState.registry));
     const nextColorState = {
-      colors: allocateSelectedRocColors(nextKeys, registry),
+      colors: allocateSelectedRocColors(nextKeys, registry, selectedKeys),
       keySetId: JSON.stringify([...nextKeys].sort()),
       registry: Object.fromEntries(registry),
     };
@@ -355,6 +379,14 @@ function RocCurveComparison({
     <section className={padding(20, 'lrt')}>
       <h3>Cross-run ROC curve comparison</h3>
       <div className={css.selectorSection}>
+        <TextField
+          fullWidth
+          label='Search ROC curves'
+          onChange={(event) => setSelectorFilter(event.target.value)}
+          size='small'
+          value={selectorFilter}
+          variant='standard'
+        />
         <FormControl className={css.selector} variant='standard'>
           <InputLabel id='roc-comparison-label'>ROC curves</InputLabel>
           <Select
@@ -389,10 +421,11 @@ function RocCurveComparison({
               </MenuItem>
             ))}
           </Select>
-          {entries.length > selectorEntries.length && (
+          {matchingEntries.length > selectorEntries.length && (
             <p>
-              Showing {selectorEntries.length} of {entries.length} curves. Narrow the compared runs
-              to choose from the remaining curves.
+              Showing {selectorEntries.length} of {matchingEntries.length}{' '}
+              {normalizedFilter ? 'matching ' : ''}curves. Search to choose from the remaining
+              curves.
             </p>
           )}
         </FormControl>
@@ -556,10 +589,16 @@ function getStableDefaultRocColor(key: string): string {
 function allocateSelectedRocColors(
   keys: string[],
   registry: Map<string, string> = new Map(),
+  priorityKeys: string[] = [],
 ): Record<string, string> {
   const usedColors = new Set<string>();
   const colors: Record<string, string> = {};
-  const allocationKeys = [...keys].sort();
+  const keySet = new Set(keys);
+  const prioritized = priorityKeys.filter(
+    (key, index) => keySet.has(key) && priorityKeys.indexOf(key) === index,
+  );
+  const prioritizedSet = new Set(prioritized);
+  const allocationKeys = [...prioritized, ...keys.filter((key) => !prioritizedSet.has(key)).sort()];
   // Reserve every surviving assignment before considering new keys. Otherwise an inserted key at
   // the front could claim an existing curve's color and force that survivor to move.
   allocationKeys.forEach((key) => {
@@ -584,6 +623,20 @@ function allocateSelectedRocColors(
     usedColors.add(color);
   });
   return colors;
+}
+
+function areRocColorRegistriesEqual(
+  left: Record<string, string> | undefined,
+  right: Record<string, string>,
+): boolean {
+  if (!left) {
+    return !Object.keys(right).length;
+  }
+  const rightEntries = Object.entries(right);
+  return (
+    Object.keys(left).length === rightEntries.length &&
+    rightEntries.every(([key, color]) => left[key] === color)
+  );
 }
 
 function getStableRocHash(key: string): number {

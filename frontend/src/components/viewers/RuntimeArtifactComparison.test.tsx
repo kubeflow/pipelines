@@ -209,7 +209,7 @@ describe('RuntimeArtifactComparison', () => {
     );
   });
 
-  it('preserves default ROC colors across refreshes before explicit selection', () => {
+  it('persists implicit ROC refresh colors across a comparison-tab remount', async () => {
     const artifacts = Array.from({ length: 3 }, (_, index) =>
       classificationEntry(`Run ${index}`, `roc-${index}`, {
         confidenceMetrics: [
@@ -238,6 +238,18 @@ describe('RuntimeArtifactComparison', () => {
       initialColors[2],
       initialColors[1],
     ]);
+
+    rerender(
+      <CommonTestWrapper>
+        <StatefulRuntimeArtifactComparison artifacts={artifacts} kind='html' />
+      </CommonTestWrapper>,
+    );
+    rerender(view([artifacts[2], artifacts[1]]));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId('shared-roc-curve').getAttribute('data-colors')!.split(','),
+      ).toEqual([initialColors[2], initialColors[1]]),
+    );
   });
 
   it('shows the color an unselected ROC curve will receive when selected', async () => {
@@ -270,7 +282,7 @@ describe('RuntimeArtifactComparison', () => {
     expect(swatchColor).toBe(`rgb(${getRenderedRocColor(selectedColor).replaceAll(',', ', ')})`);
   });
 
-  it('keeps selector checkboxes out of the tab order and caps large option lists', async () => {
+  it('keeps checkboxes out of the tab order and searches beyond the first option window', async () => {
     const artifacts = Array.from({ length: 400 }, (_, index) =>
       classificationEntry(`Run ${index}`, `roc-${index}`, {
         confidenceMetrics: [
@@ -292,6 +304,14 @@ describe('RuntimeArtifactComparison', () => {
       expect(checkbox).toHaveAttribute('aria-hidden', 'true');
     });
     expect(screen.getByText(/Showing 100 of 400 curves/)).toBeVisible();
+
+    fireEvent.keyDown(screen.getByRole('listbox', { name: 'ROC curves' }), { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('listbox', { name: 'ROC curves' })).toBeNull());
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search ROC curves' }), {
+      target: { value: 'Run 399' },
+    });
+    fireEvent.mouseDown(screen.getByRole('combobox', { name: 'ROC curves' }));
+    expect(await screen.findByRole('option', { name: /Run 399/ })).toBeVisible();
   });
 
   it('builds two independently selectable confusion-matrix panels', async () => {
@@ -514,6 +534,18 @@ describe('RuntimeArtifactComparison', () => {
         ),
     );
     keys.slice(0, 9).forEach((key) => expect(expandedColors[key]).toBe(colors[key]));
+  });
+
+  it('reserves an active survivor color before a historical curve is re-added', () => {
+    const registry = new Map([
+      ['historical', '#4285f4'],
+      ['survivor', '#4285f4'],
+    ]);
+
+    expect(
+      TEST_ONLY.allocateSelectedRocColors(['historical', 'survivor'], registry, ['survivor'])
+        .survivor,
+    ).toBe('#4285f4');
   });
 
   it('maps hundreds of unselected identities directly without an allocation loop', () => {
