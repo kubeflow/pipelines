@@ -173,6 +173,41 @@ describe('InoutOutputTab', () => {
     expect(screen.queryByText('thisKeyIsNotOutput')).toBeNull();
   });
 
+  it('links run_id output to child run when child_run_id is present', async () => {
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getEventsByExecutionIDs').mockResolvedValue(
+      new GetEventsByExecutionIDsResponse(),
+    );
+    vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID').mockReturnValue(
+      new GetArtifactsByIDResponse(),
+    );
+
+    const execution = buildBasicExecution();
+    execution.getCustomPropertiesMap().set(
+      'child_run_id',
+      new Value().setStringValue('child-run-xyz'),
+    );
+    execution.getCustomPropertiesMap().set(
+      'outputs',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          run_id: 'child-run-xyz',
+          state: 'SUCCEEDED',
+        }),
+      ),
+    );
+
+    render(
+      <CommonTestWrapper>
+        <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+      </CommonTestWrapper>,
+    );
+
+    await screen.findByText('run_id');
+    const runLink = screen.getByText('child-run-xyz');
+    expect(runLink.closest('a')).toHaveAttribute('href', '/runs/details/child-run-xyz');
+    screen.getByText('"SUCCEEDED"');
+  });
+
   it('shows Input artifacts', async () => {
     vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact preview');
     const getEventResponse = new GetEventsByExecutionIDsResponse();

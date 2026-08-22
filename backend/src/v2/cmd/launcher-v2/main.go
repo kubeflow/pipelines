@@ -38,6 +38,7 @@ var (
 	executorInputJSON       = flag.String("executor_input", "", "The JSON-encoded ExecutorInput.")
 	componentSpecJSON       = flag.String("component_spec", "", "The JSON-encoded ComponentSpec.")
 	importerSpecJSON        = flag.String("importer_spec", "", "The JSON-encoded ImporterSpec.")
+	triggerPipelineSpecJSON = flag.String("trigger_pipeline_spec", "", "The JSON-encoded TriggerPipelineSpec.")
 	taskSpecJSON            = flag.String("task_spec", "", "The JSON-encoded TaskSpec.")
 	podName                 = flag.String("pod_name", "", "Kubernetes Pod name.")
 	podUID                  = flag.String("pod_uid", "", "Kubernetes Pod UID.")
@@ -86,6 +87,13 @@ var (
 		"importer_spec",
 		"parent_dag_id",
 	}
+	triggerPipelineRequiredLauncherFlags = []string{
+		"task_spec",
+		"trigger_pipeline_spec",
+		"parent_dag_id",
+		"ml_pipeline_server_address",
+		"ml_pipeline_server_port",
+	}
 )
 
 // collectProvidedFlags returns the flags explicitly set on the command line.
@@ -105,8 +113,10 @@ func requiredLauncherFlags(executorType string) ([]string, error) {
 		required = append(required, containerRequiredLauncherFlags...)
 	case "importer":
 		required = append(required, importerRequiredLauncherFlags...)
+	case "trigger_pipeline":
+		required = append(required, triggerPipelineRequiredLauncherFlags...)
 	default:
-		return nil, fmt.Errorf("unsupported executor type %q, must be one of container, importer", executorType)
+		return nil, fmt.Errorf("unsupported executor type %q, must be one of container, importer, trigger_pipeline", executorType)
 	}
 	return required, nil
 }
@@ -186,6 +196,20 @@ func run() error {
 			return err
 		}
 		if err := importerLauncher.Execute(ctx); err != nil {
+			return err
+		}
+		return nil
+	case "trigger_pipeline":
+		triggerOpts := &component.TriggerPipelineLauncherOptions{
+			PipelineName: *pipelineName,
+			RunID:        *runID,
+			ParentDagID:  *parentDagID,
+		}
+		triggerLauncher, err := component.NewTriggerPipelineLauncher(ctx, *componentSpecJSON, *triggerPipelineSpecJSON, *taskSpecJSON, launcherV2Opts, triggerOpts)
+		if err != nil {
+			return err
+		}
+		if err := triggerLauncher.Execute(ctx); err != nil {
 			return err
 		}
 		return nil
