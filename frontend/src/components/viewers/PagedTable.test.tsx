@@ -46,6 +46,36 @@ describe('PagedTable', () => {
     expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
+  it('renders updated table data when configs change', () => {
+    const { rerender } = render(
+      <PagedTable configs={[{ data: [['initial']], labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+    expect(screen.getByText('initial')).toBeVisible();
+
+    rerender(
+      <PagedTable configs={[{ data: [['recovered']], labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+
+    expect(screen.queryByText('initial')).toBeNull();
+    expect(screen.getByText('recovered')).toBeVisible();
+  });
+
+  it('clamps the current page when updated table data has fewer pages', () => {
+    const initialData = Array.from({ length: 15 }, (_, index) => [`row-${index}`]);
+    const { rerender } = render(
+      <PagedTable configs={[{ data: initialData, labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Go to next page' }));
+    expect(screen.getByText('11–15 of 15')).toBeVisible();
+
+    rerender(
+      <PagedTable configs={[{ data: [['only-row']], labels: ['value'], type: PlotType.TABLE }]} />,
+    );
+
+    expect(screen.getByText('only-row')).toBeVisible();
+    expect(screen.getByText('1–1 of 1')).toBeVisible();
+  });
+
   it('renders simple data without labels', () => {
     const { asFragment } = render(
       <PagedTable configs={[{ data, labels: [], type: PlotType.TABLE }]} />,

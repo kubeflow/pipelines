@@ -13,32 +13,225 @@
 // limitations under the License.
 
 import type { Request } from 'express';
+import {
+  buildArtifactUri,
+  isArtifactSource,
+  isLauncherArtifactSource,
+} from './artifact-sources.js';
+import { applyArtifactPathPolicy, ARTIFACT_PATH_POLICIES } from './artifact-path.js';
+
+export interface ArtifactCoordinates<TSource extends string = string> {
+  source: TSource;
+  bucket: string;
+  key: string;
+  // Preview callers declare whether their key is decoded storage text or a canonical URI path.
+  keyEncoding?: 'storage' | 'uri';
+  // Exact path spelling used by persisted artifact identity when `key` is decoded storage.
+  uriKey?: string;
+  artifactUriQuery?: string;
+}
+
+/**
+ * Rejects URI spellings that are not canonical for their source handler.
+ *
+ * Launcher sources require one URI spelling per decoded object. HTTP retains exact escaped path
+ * identity where its handler accepts both forms, such as an encoded ampersand.
+ */
+export function isCanonicalArtifactUriKey(key: string, source: string): boolean {
+  try {
+    const decodedKey = decodeURIComponent(key);
+    // Query and fragment delimiters are not supported inside native KFP object keys.
+    // Launcher-backed artifacts follow Go SplitObjectURI, which rejects encoded ampersands.
+    // Non-launcher handlers keep exact escaped delimiters that are valid path data for them.
+    const isLauncherArtifact = isLauncherArtifactSource(source);
+    const comparableKey = isLauncherArtifact
+      ? key
+      : key.replace(/%26/gi, '&').replace(/%3f/gi, '?').replace(/%23/gi, '#');
+    return (
+      !/[?#]/.test(key) &&
+      !/%2f/i.test(key) &&
+      !(isLauncherArtifact && /%26/i.test(key)) &&
+      !(isLauncherArtifact && /[?#]/.test(decodedKey)) &&
+      comparableKey === encodeURI(decodedKey)
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Converts a URI-path key to the object-store key representation used by the launcher. */
+export function normalizeArtifactStorageCoordinates<TSource extends string>(
+  coordinates: ArtifactCoordinates<TSource>,
+): ArtifactCoordinates<TSource> {
+  if (coordinates.keyEncoding !== 'uri') {
+    return coordinates;
+  }
+  return {
+    ...coordinates,
+    key: decodeURIComponent(coordinates.key),
+    keyEncoding: 'storage',
+  };
+}
+
+function decodeExactArtifactUriKey(uriKey: string, source: string): string | undefined {
+  try {
+    const decodedKey = decodeURIComponent(uriKey);
+    const sourceStorageKey =
+      isLauncherArtifactSource(source) && decodedKey.endsWith('/')
+        ? decodedKey.slice(0, -1)
+        : decodedKey;
+    const storageKey =
+      source === 'volume'
+        ? sourceStorageKey
+            .split('/')
+            .filter((segment) => segment !== '.')
+            .join('/')
+        : sourceStorageKey;
+    const pathPolicy =
+      source === 'http' || source === 'https'
+        ? ARTIFACT_PATH_POLICIES.http
+        : source === 'volume'
+          ? ARTIFACT_PATH_POLICIES.volume
+          : ARTIFACT_PATH_POLICIES.ownership;
+    if (
+      /[?#]/.test(uriKey) ||
+      /%2f/i.test(uriKey) ||
+      (isLauncherArtifactSource(source) && /%26/i.test(uriKey)) ||
+      // Deliberately validate the pre-normalization identity. `storageKey` is only the fetch target
+      // and may have volume `.` segments removed; substituting it here would hide that distinction.
+      applyArtifactPathPolicy(sourceStorageKey, pathPolicy) === undefined ||
+      (isLauncherArtifactSource(source) && /[?#]/.test(storageKey))
+    ) {
+      return undefined;
+    }
+    return storageKey;
+  } catch {
+    return undefined;
+  }
+}
 
 export function resolveArtifactCoordinates(
-  request: Request,
-): { source: string; bucket: string; key: string } | null {
+  request: Pick<Request, 'path' | 'query'>,
+): ArtifactCoordinates | null | undefined {
   const artifactPathStart = request.path.indexOf('/artifacts/');
   const artifactPath =
     artifactPathStart >= 0 ? request.path.slice(artifactPathStart) : request.path;
   const isExactGetEndpoint = artifactPath === '/artifacts/get';
-  if (!isExactGetEndpoint) {
-    const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
-    if (downloadPathMatch) {
-      try {
-        return {
-          source: decodeURIComponent(downloadPathMatch[1]),
-          bucket: decodeURIComponent(downloadPathMatch[2]),
-          key: decodeURIComponent(downloadPathMatch[3]),
-        };
-      } catch {
+  if (isExactGetEndpoint) {
+    const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+    const source = asString(request.query.source);
+    const bucket = asString(request.query.bucket);
+    const requestKey = asString(request.query.key);
+    const requestUriKey = asString(request.query.uriKey);
+    const requestedKeyEncoding = asString(request.query.keyEncoding) || 'storage';
+    const artifactUriQuery = asString(request.query.artifactUriQuery);
+    if (requestUriKey) {
+      const decodedUriKey = decodeExactArtifactUriKey(requestUriKey, source);
+      if (decodedUriKey === undefined || decodedUriKey !== requestKey) {
+        return null;
+      }
+      return {
+        source,
+        bucket,
+        key: requestKey,
+        keyEncoding: 'storage',
+        uriKey: requestUriKey,
+        artifactUriQuery,
+      };
+    }
+    if (/[?#]/.test(requestKey)) {
+      return null;
+    }
+    if (isArtifactSource(source) && !isLauncherArtifactSource(source)) {
+      return {
+        source,
+        bucket,
+        key: requestKey,
+        keyEncoding: 'storage',
+        artifactUriQuery,
+      };
+    }
+    if (requestedKeyEncoding !== 'storage' && requestedKeyEncoding !== 'uri') {
+      return null;
+    }
+    if (requestedKeyEncoding === 'uri') {
+      if (!isCanonicalArtifactUriKey(requestKey, source)) {
+        return null;
+      }
+      return { source, bucket, key: requestKey, keyEncoding: 'uri', artifactUriQuery };
+    }
+
+    // Legacy preview callers pass decoded object-store keys. Keep that storage spelling intact,
+    // while encoding it once for the distinct URI identity used by ownership validation.
+    const uriKey = encodeURI(requestKey);
+    return {
+      source,
+      bucket,
+      key: requestKey,
+      keyEncoding: 'storage',
+      ...(uriKey === requestKey ? {} : { uriKey }),
+      artifactUriQuery,
+    };
+  }
+
+  const downloadPathMatch = artifactPath.match(/^\/artifacts\/([^/]+)\/([^/]+)\/(.+)$/);
+  if (!downloadPathMatch) {
+    return undefined;
+  }
+  try {
+    const source = decodeURIComponent(downloadPathMatch[1]);
+    const uriKey = downloadPathMatch[3];
+    if (!isCanonicalArtifactUriKey(uriKey, source)) {
+      return null;
+    }
+    const decodedKey = decodeURIComponent(uriKey);
+    const key =
+      isLauncherArtifactSource(source) && decodedKey.endsWith('/')
+        ? decodedKey.slice(0, -1)
+        : decodedKey;
+    const requestedIdentityKey =
+      typeof request.query.uriKey === 'string' ? request.query.uriKey : undefined;
+    if (requestedIdentityKey !== undefined) {
+      const decodedIdentityKey = decodeExactArtifactUriKey(requestedIdentityKey, source);
+      if (decodedIdentityKey === undefined || decodedIdentityKey !== key) {
         return null;
       }
     }
+    return {
+      source,
+      bucket: decodeURIComponent(downloadPathMatch[2]),
+      key,
+      keyEncoding: 'storage',
+      ...((requestedIdentityKey ?? uriKey) === key
+        ? {}
+        : { uriKey: requestedIdentityKey ?? uriKey }),
+      artifactUriQuery:
+        typeof request.query.artifactUriQuery === 'string' ? request.query.artifactUriQuery : '',
+    };
+  } catch {
+    return null;
   }
-  const asString = (v: unknown): string => (typeof v === 'string' ? v : '');
-  return {
-    source: asString(request.query.source),
-    bucket: asString(request.query.bucket),
-    key: asString(request.query.key),
-  };
+}
+
+export function buildArtifactCoordinateUri(coordinates: ArtifactCoordinates): string {
+  const artifactUri = buildArtifactUri(
+    coordinates.source,
+    coordinates.bucket,
+    coordinates.uriKey ?? coordinates.key,
+  );
+  return coordinates.key && coordinates.artifactUriQuery
+    ? `${artifactUri}?${coordinates.artifactUriQuery}`
+    : artifactUri;
+}
+
+/**
+ * Removes launcher provider configuration from a KFP artifact URI.
+ *
+ * Raw `?` starts the provider query. Native object-store parsing rejects percent-encoded query
+ * delimiters in object paths, so object keys containing those delimiters are outside the supported
+ * KFP artifact URI contract.
+ */
+export function stripArtifactUriQuery(artifactUri: string): string {
+  const queryStart = artifactUri.indexOf('?');
+  return queryStart < 0 ? artifactUri : artifactUri.slice(0, queryStart);
 }

@@ -28,7 +28,7 @@ const config: StorybookConfig = {
     viteConfig.build = viteConfig.build || {};
     viteConfig.build.commonjsOptions = {
       ...viteConfig.build.commonjsOptions,
-      include: [/node_modules/, /src\/generated/, /src\/third_party\/mlmd\/generated/],
+      include: [/node_modules/, /src\/generated/],
     };
     return viteConfig;
   },

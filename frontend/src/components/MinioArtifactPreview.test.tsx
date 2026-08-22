@@ -108,7 +108,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=s3&bucket=foo&key=bar"
+              href="artifacts/get?source=s3&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -165,7 +165,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -222,7 +222,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -279,7 +279,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -330,7 +330,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -392,7 +392,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >
@@ -454,7 +454,7 @@ describe('MinioArtifactPreview', () => {
             />
             <a
               class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
+              href="artifacts/get?source=minio&bucket=foo&key=bar&keyEncoding=storage"
               rel="noopener"
               target="_blank"
             >

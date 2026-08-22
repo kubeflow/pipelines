@@ -19,7 +19,6 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import JupyterhubIcon from '@mui/icons-material/Code';
 import DescriptionIcon from '@mui/icons-material/Description';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import ExecutionsIcon from '@mui/icons-material/PlayArrow';
 import DirectionsRun from '@mui/icons-material/DirectionsRun';
 import * as React from 'react';
 import { RouterProps } from 'react-router';
@@ -469,34 +468,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               </SideNavButton>
             </Link>
           </Tooltip>
-          <div
-            className={classes(
-              css.indicator,
-              !this._highlightExecutionsButton(page) && css.indicatorHidden,
-            )}
-          />
-          <Tooltip
-            title={'Executions List'}
-            enterDelay={300}
-            placement={'right-start'}
-            disableFocusListener={!collapsed}
-            disableHoverListener={!collapsed}
-            disableTouchListener={!collapsed}
-          >
-            <Link id='executionsBtn' to={RoutePage.EXECUTIONS} className={commonCss.unstyled}>
-              <SideNavButton
-                collapsed={collapsed}
-                className={this._highlightExecutionsButton(page) ? css.active : undefined}
-              >
-                <div className={tailwindcss.sideNavItem}>
-                  <ExecutionsIcon />
-                  <span className={classes(collapsed && css.collapsedLabel, css.label)}>
-                    Executions
-                  </span>
-                </div>
-              </SideNavButton>
-            </Link>
-          </Tooltip>
           {this.state.jupyterHubAvailable && (
             <Tooltip
               title={'Open Jupyter Notebook'}
@@ -644,10 +615,6 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
 
   private _highlightArtifactsButton(page: string): boolean {
     return page.startsWith(RoutePrefix.ARTIFACT);
-  }
-
-  private _highlightExecutionsButton(page: string): boolean {
-    return page.startsWith(RoutePrefix.EXECUTION);
   }
 
   private _toggleNavClicked(): void {

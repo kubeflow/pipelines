@@ -14,382 +14,748 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
-import { MemoryRouter, Route, Router } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { vi, Mock } from 'vitest';
-import { Api } from 'src/mlmd/library';
-import { Artifact, ArtifactType, GetArtifactsByIDResponse, Value } from 'src/third_party/mlmd';
-import { GetArtifactTypesByIDResponse } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_service_pb';
+import * as React from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { ArtifactArtifactType, V2beta1Artifact, V2beta1IOType } from 'src/apisv2beta1/artifact';
+import { V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { testBestPractices } from 'src/TestUtils';
-import EnhancedArtifactDetails from 'src/pages/ArtifactDetails';
+import { PlotType } from 'src/components/viewers/Viewer';
+import { queryKeys } from 'src/hooks/queryKeys';
+import { Apis } from 'src/lib/Apis';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import EnhancedArtifactDetails, { ArtifactDetailsPage } from 'src/pages/ArtifactDetails';
 import { PageProps } from 'src/pages/Page';
+import { testBestPractices } from 'src/TestUtils';
 
-vi.mock('src/mlmd/LineageView', () => ({
-  LineageView: () => <div data-testid='lineage-view'>LineageView Mock</div>,
-}));
+vi.mock('src/components/ArtifactPreview', () => ({ default: () => <div>Artifact preview</div> }));
 
 testBestPractices();
 
 describe('ArtifactDetails', () => {
-  let updateBannerSpy: Mock;
-  let updateToolbarSpy: Mock;
-  let historyPushSpy: Mock;
-  let getArtifactsByIDSpy: Mock;
-  let getArtifactTypesByIDSpy: Mock;
+  const TEST_ARTIFACT_ID = 'artifact-42';
+  const updateBannerSpy = vi.fn();
+  const updateToolbarSpy = vi.fn();
+  const historyPushSpy = vi.fn();
+  const artifact: V2beta1Artifact = {
+    artifact_id: TEST_ARTIFACT_ID,
+    name: 'test-artifact',
+    description: 'A native artifact',
+    type: ArtifactArtifactType.Dataset,
+    uri: 's3://pipeline-root/dataset',
+    namespace: 'kubeflow',
+    metadata: { accuracy: 0.9 },
+    created_at: new Date('2026-08-11T12:00:00Z'),
+  };
 
-  const TEST_ARTIFACT_ID = 42;
-
-  function buildArtifact(id = TEST_ARTIFACT_ID, name = 'test-artifact'): Artifact {
-    const artifact = new Artifact();
-    artifact.setId(id);
-    artifact.setTypeId(7);
-    const nameValue = new Value();
-    nameValue.setStringValue(name);
-    artifact.getPropertiesMap().set('name', nameValue);
-    return artifact;
-  }
-
-  function buildArtifactType(): ArtifactType {
-    const artifactType = new ArtifactType();
-    artifactType.setId(7);
-    artifactType.setName('system/Dataset');
-    return artifactType;
-  }
-
-  function buildGetArtifactsByIDResponse(artifacts: Artifact[]): GetArtifactsByIDResponse {
-    const response = new GetArtifactsByIDResponse();
-    response.setArtifactsList(artifacts);
-    return response;
-  }
-
-  function buildGetArtifactTypesByIDResponse(types: ArtifactType[]): GetArtifactTypesByIDResponse {
-    const response = new GetArtifactTypesByIDResponse();
-    response.setArtifactTypesList(types);
-    return response;
-  }
-
-  function generateProps(artifactId = TEST_ARTIFACT_ID): PageProps {
-    const match = {
-      isExact: true,
-      path: RoutePage.ARTIFACT_DETAILS,
-      url: `/artifacts/${artifactId}`,
-      params: { [RouteParams.ID]: String(artifactId) },
-    } as any;
+  function generateProps(): PageProps {
     return {
       history: { push: historyPushSpy } as any,
-      location: { pathname: `/artifacts/${artifactId}` } as any,
-      match,
-      toolbarProps: {
-        actions: {},
-        breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-        pageTitle: `Artifact #${artifactId}`,
-      },
+      location: { pathname: `/artifacts/${TEST_ARTIFACT_ID}` } as any,
+      match: {
+        isExact: true,
+        path: RoutePage.ARTIFACT_DETAILS,
+        url: `/artifacts/${TEST_ARTIFACT_ID}`,
+        params: { [RouteParams.ID]: TEST_ARTIFACT_ID },
+      } as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
       updateBanner: updateBannerSpy,
       updateDialog: vi.fn(),
       updateSnackbar: vi.fn(),
       updateToolbar: updateToolbarSpy,
-    } as any;
+    };
   }
 
-  function renderWithRouter(props: PageProps, initialPath?: string) {
-    const path = initialPath || `/artifacts/${props.match.params[RouteParams.ID]}`;
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-    return render(
+  function renderPage(initialPath = `/artifacts/${TEST_ARTIFACT_ID}`) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const view = render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[path]}>
-          <Route path={['/artifacts/:id/lineage', '/artifacts/:id']}>
-            {(routeProps: any) => (
-              <EnhancedArtifactDetails
-                {...routeProps}
-                {...props}
-                match={{ ...routeProps.match, ...props.match }}
-              />
-            )}
-          </Route>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <EnhancedArtifactDetails {...generateProps()} />
         </MemoryRouter>
       </QueryClientProvider>,
     );
+    return { ...view, queryClient };
+  }
+
+  function renderPageWithRef() {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const pageRef = React.createRef<ArtifactDetailsPage>();
+    const view = render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[`/artifacts/${TEST_ARTIFACT_ID}`]}>
+          <ArtifactDetailsPage {...generateProps()} ref={pageRef} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    return { ...view, pageRef };
   }
 
   beforeEach(() => {
-    updateBannerSpy = vi.fn();
-    updateToolbarSpy = vi.fn();
-    historyPushSpy = vi.fn();
-    getArtifactsByIDSpy = vi.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
-    getArtifactTypesByIDSpy = vi.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getArtifactTypesByID',
+    localStorage.clear();
+    vi.spyOn(Apis.artifactServiceApiV2, 'artifact_1').mockResolvedValue(artifact);
+    vi.spyOn(Apis.artifactServiceApiV2, 'artifactTasks').mockResolvedValue({
+      artifact_tasks: [
+        {
+          id: 'relationship-1',
+          artifact_id: TEST_ARTIFACT_ID,
+          run_id: 'run-1',
+          task_id: 'task-1',
+          key: 'dataset',
+          type: V2beta1IOType.OUTPUT,
+        },
+      ],
+    });
+  });
+
+  it('shows a spinner while the artifact is loading', () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockReturnValue(new Promise(() => {}));
+    renderPage();
+
+    screen.getByRole('progressbar');
+  });
+
+  it('renders native artifact details and updates the toolbar', async () => {
+    renderPage();
+
+    await screen.findByText('Artifact details');
+    expect(screen.getAllByText('test-artifact')).toHaveLength(2);
+    screen.getByText('system.Dataset');
+    screen.getByText('A native artifact');
+    screen.getByText('Artifact preview');
+    expect(updateToolbarSpy).toHaveBeenCalledWith({ pageTitle: 'test-artifact' });
+    expect(Apis.artifactServiceApiV2.artifactTasks).not.toHaveBeenCalled();
+  });
+
+  it('uses the producing output key to render legacy UI metadata', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) =>
+        type === V2beta1IOType.OUTPUT
+          ? {
+              artifact_tasks: [
+                {
+                  artifact_id: TEST_ARTIFACT_ID,
+                  key: 'mlpipeline_ui_metadata',
+                  type: V2beta1IOType.OUTPUT,
+                },
+              ],
+            }
+          : { artifact_tasks: [] },
     );
-  });
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
 
-  function mockSuccessfulLoad(artifact?: Artifact) {
-    const a = artifact || buildArtifact();
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([a]));
-    getArtifactTypesByIDSpy.mockResolvedValue(
-      buildGetArtifactTypesByIDResponse([buildArtifactType()]),
+    renderPage();
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      V2beta1IOType.OUTPUT,
+      undefined,
+      1,
+      'id asc',
+      expect.stringContaining('mlpipeline-ui-metadata'),
     );
-  }
-
-  it('shows CircularProgress spinner while artifact is loading', () => {
-    getArtifactsByIDSpy.mockReturnValue(new Promise(() => {}));
-
-    renderWithRouter(generateProps());
-
-    expect(screen.getByRole('progressbar')).toBeInTheDocument();
-  });
-
-  it('renders Overview tab with ResourceInfo after artifact loads', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
+    const encodedFilter = vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mock.calls[0][7];
+    expect(JSON.parse(decodeURIComponent(encodedFilter!))).toEqual({
+      predicates: [
+        {
+          key: 'key',
+          operation: V2beta1PredicateOperation.IN,
+          string_values: {
+            values: ['mlpipeline-ui-metadata', 'mlpipeline_ui_metadata'],
+          },
+        },
+      ],
     });
-    expect(screen.getByText('Lineage Explorer')).toBeInTheDocument();
+    expect(
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mock.calls.map((call) => call[3]),
+    ).toEqual([
+      V2beta1IOType.OUTPUT,
+      V2beta1IOType.ITERATOR_OUTPUT,
+      V2beta1IOType.ONE_OF_OUTPUT,
+      V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+    ]);
+    expect(loadSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('updates toolbar title with artifact name after load', async () => {
-    mockSuccessfulLoad();
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: expect.stringContaining('test-artifact'),
-        }),
+  it('reconciles a delayed relationship when the browser clock is ahead of the server', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        created_at: new Date(Date.now() - 2 * 60_000),
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let outputChecks = 0;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) => {
+          if (type !== V2beta1IOType.OUTPUT || ++outputChecks === 1) {
+            return { artifact_tasks: [] };
+          }
+          return {
+            artifact_tasks: [
+              {
+                artifact_id: TEST_ARTIFACT_ID,
+                key: 'mlpipeline_ui_metadata',
+                type: V2beta1IOType.OUTPUT,
+              },
+            ],
+          };
+        },
       );
-    });
+      vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+        configs: [{ data: [['reconciled']], labels: ['value'], type: PlotType.TABLE }],
+        errors: [],
+      });
+
+      renderPage();
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+      expect(screen.queryByText('reconciled')).not.toBeInTheDocument();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      expect(await screen.findByText('reconciled')).toBeVisible();
+      expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(8);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
-  it('shows page error banner when no artifact found for the given ID', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([]));
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining(`No artifact identified by id: ${TEST_ARTIFACT_ID}`),
-          mode: 'error',
-        }),
+  it('starts a fresh relationship reconciliation budget after manual refresh', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        created_at: new Date(),
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let relationshipAvailable = false;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) =>
+          type === V2beta1IOType.OUTPUT && relationshipAvailable
+            ? {
+                artifact_tasks: [
+                  {
+                    artifact_id: TEST_ARTIFACT_ID,
+                    key: 'mlpipeline_ui_metadata',
+                    type: V2beta1IOType.OUTPUT,
+                  },
+                ],
+              }
+            : { artifact_tasks: [] },
       );
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
+      vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+        configs: [{ data: [['after-refresh']], labels: ['value'], type: PlotType.TABLE }],
+        errors: [],
+      });
 
-  it('shows page error banner when multiple artifacts found for the given ID', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(
-      buildGetArtifactsByIDResponse([buildArtifact(), buildArtifact()]),
-    );
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining(`Found multiple artifacts with ID: ${TEST_ARTIFACT_ID}`),
-          mode: 'error',
-        }),
-      );
-    });
-  });
-
-  it('shows page error banner on service error', async () => {
-    getArtifactsByIDSpy.mockRejectedValue({ message: 'Service unavailable' });
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: expect.stringContaining('Service unavailable'),
-          mode: 'error',
-        }),
-      );
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('shows fallback error message when a non-service error with no message is thrown', async () => {
-    getArtifactsByIDSpy.mockRejectedValue(undefined);
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Error: failed to load artifact.',
-          mode: 'error',
-        }),
-      );
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('shows extracted error message when a non-service error with text() is thrown', async () => {
-    getArtifactsByIDSpy.mockRejectedValue({ text: () => 'detailed failure info' });
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          message: 'Error: detailed failure info',
-          mode: 'error',
-        }),
-      );
-    });
-  });
-
-  it('shows spinner again when retrying after a failure', async () => {
-    getArtifactsByIDSpy.mockRejectedValueOnce(new Error('transient'));
-
-    renderWithRouter(generateProps());
-
-    let refreshFn: (() => Promise<void>) | undefined;
-    await waitFor(() => {
-      expect(updateBannerSpy).toHaveBeenCalledWith(expect.objectContaining({ mode: 'error' }));
-      const bannerCall = updateBannerSpy.mock.calls.find(
-        (call) => call[0]?.mode === 'error' && typeof call[0]?.refresh === 'function',
-      );
-      expect(bannerCall).toBeDefined();
-      refreshFn = bannerCall![0].refresh;
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-
-    mockSuccessfulLoad();
-    updateBannerSpy.mockClear();
-
-    await refreshFn!();
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-    expect(screen.queryByRole('progressbar')).toBeNull();
-  });
-
-  it('renders a new ArtifactDetails instance when artifact ID in URL changes', async () => {
-    getArtifactsByIDSpy.mockImplementation((req) => {
-      const id = req.getArtifactIdsList()[0];
-      if (id === 1) {
-        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(1, 'artifact-one')]));
+      const { pageRef } = renderPageWithRef();
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+      for (let refresh = 0; refresh < 4; refresh += 1) {
+        await act(async () => pageRef.current!.refresh());
       }
-      if (id === 2) {
-        return Promise.resolve(buildGetArtifactsByIDResponse([buildArtifact(2, 'artifact-two')]));
+      relationshipAvailable = true;
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      expect(await screen.findByText('after-refresh')).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['old', () => new Date('2020-01-01T00:00:00Z')],
+    ['far-future', () => new Date(Date.now() + 10 * 60_000)],
+  ] as const)(
+    'does not poll a %s generic artifact with no legacy metadata relationship',
+    async (_age, createdAt) => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+          artifact_id: TEST_ARTIFACT_ID,
+          created_at: createdAt(),
+          name: 'ordinary-artifact',
+          uri: 's3://reports/data.json',
+          namespace: 'kubeflow',
+        });
+        vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+          artifact_tasks: [],
+        });
+
+        renderPage();
+        await waitFor(() =>
+          expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4),
+        );
+
+        await act(async () => vi.advanceTimersByTimeAsync(100_000));
+
+        expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4);
+      } finally {
+        vi.useRealTimers();
       }
-      return Promise.resolve(buildGetArtifactsByIDResponse([]));
+    },
+  );
+
+  it('clears a transient relationship warning even when the visualization key was found', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+        artifact_id: TEST_ARTIFACT_ID,
+        name: 'legacy-output',
+        uri: 's3://reports/metadata.json',
+        namespace: 'kubeflow',
+      });
+      let iteratorChecks = 0;
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+        async (_taskIds, _runIds, _artifactIds, type) => {
+          if (type === V2beta1IOType.ITERATOR_OUTPUT && ++iteratorChecks === 1) {
+            throw new Error('temporary relationship failure');
+          }
+          return type === V2beta1IOType.OUTPUT
+            ? {
+                artifact_tasks: [
+                  {
+                    artifact_id: TEST_ARTIFACT_ID,
+                    key: 'mlpipeline_ui_metadata',
+                    type: V2beta1IOType.OUTPUT,
+                  },
+                ],
+              }
+            : { artifact_tasks: [] };
+        },
+      );
+      vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+        configs: [{ data: [['available']], labels: ['value'], type: PlotType.TABLE }],
+        errors: [],
+      });
+
+      renderPage();
+      expect(await screen.findByText('available')).toBeVisible();
+      expect(
+        screen.getByText('Some artifact relationships could not be checked.', { exact: false }),
+      ).toBeVisible();
+
+      await act(async () => vi.advanceTimersByTimeAsync(10_000));
+
+      await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(8));
+      expect(
+        screen.queryByText('Some artifact relationships could not be checked.', { exact: false }),
+      ).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('preserves a confirmed visualization through a partial lookup failure', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
     });
-    getArtifactTypesByIDSpy.mockResolvedValue(
-      buildGetArtifactTypesByIDResponse([buildArtifactType()]),
+    let outputChecks = 0;
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) => {
+        if (type !== V2beta1IOType.OUTPUT) {
+          return { artifact_tasks: [] };
+        }
+        outputChecks += 1;
+        if (outputChecks === 2) {
+          throw new Error('temporary output relationship failure');
+        }
+        return {
+          artifact_tasks:
+            outputChecks === 1
+              ? [
+                  {
+                    artifact_id: TEST_ARTIFACT_ID,
+                    key: 'mlpipeline_ui_metadata',
+                    type: V2beta1IOType.OUTPUT,
+                  },
+                ]
+              : [],
+        };
+      },
+    );
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['confirmed']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+
+    const { queryClient } = renderPage();
+    expect(await screen.findByText('confirmed')).toBeVisible();
+
+    await act(async () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.artifactVisualizationKey(TEST_ARTIFACT_ID),
+      }),
     );
 
-    const history = createMemoryHistory({ initialEntries: ['/artifacts/1'] });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+    expect(screen.getByText('confirmed')).toBeVisible();
+    expect(
+      await screen.findByText('Some artifact relationships could not be checked.', {
+        exact: false,
+      }),
+    ).toBeVisible();
 
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Router history={history}>
-          <Route path={['/artifacts/:id/lineage', '/artifacts/:id']}>
-            {(routeProps: any) => (
-              <EnhancedArtifactDetails
-                {...routeProps}
-                updateBanner={updateBannerSpy}
-                updateDialog={vi.fn()}
-                updateSnackbar={vi.fn()}
-                updateToolbar={updateToolbarSpy}
-                toolbarProps={{
-                  actions: {},
-                  breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-                  pageTitle: '',
-                }}
-              />
-            )}
-          </Route>
-        </Router>
-      </QueryClientProvider>,
+    await act(async () =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.artifactVisualizationKey(TEST_ARTIFACT_ID),
+      }),
     );
 
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ pageTitle: expect.stringContaining('artifact-one') }),
-      );
-    });
-
-    updateToolbarSpy.mockClear();
-    history.push('/artifacts/2');
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ pageTitle: expect.stringContaining('artifact-two') }),
-      );
-    });
+    await waitFor(() => expect(screen.queryByText('confirmed')).toBeNull());
+    expect(
+      screen.queryByText('Some artifact relationships could not be checked.', { exact: false }),
+    ).toBeNull();
   });
 
-  it('renders with empty type name when artifact type list is empty', async () => {
-    getArtifactsByIDSpy.mockResolvedValue(buildGetArtifactsByIDResponse([buildArtifact()]));
-    getArtifactTypesByIDSpy.mockResolvedValue(buildGetArtifactTypesByIDResponse([]));
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
+  it('does not treat a consumed mlpipeline-ui-metadata key as viewer metadata', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'ordinary-input',
+      uri: 's3://reports/data.json',
+      namespace: 'kubeflow',
     });
-    expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [
+        {
+          artifact_id: TEST_ARTIFACT_ID,
+          key: 'mlpipeline-ui-metadata',
+          type: V2beta1IOType.TASK_OUTPUT_INPUT,
+        },
+      ],
+    });
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'load');
+
+    renderPage();
+
+    await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(4));
+    expect(loadSpy).not.toHaveBeenCalled();
   });
 
-  it('includes version in toolbar title when artifact has a version property', async () => {
-    const artifact = buildArtifact();
-    const versionValue = new Value();
-    versionValue.setStringValue('v1.2');
-    artifact.getPropertiesMap().set('version', versionValue);
-
-    mockSuccessfulLoad(artifact);
-
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(updateToolbarSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          pageTitle: expect.stringContaining('(version: v1.2)'),
-        }),
-      );
+  it('keeps a confirmed legacy visualization when another relationship lookup fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockResolvedValue({
+      artifact_id: TEST_ARTIFACT_ID,
+      name: 'legacy-output',
+      uri: 's3://reports/metadata.json',
+      namespace: 'kubeflow',
     });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, type) => {
+        if (type === V2beta1IOType.OUTPUT) {
+          return {
+            artifact_tasks: [
+              {
+                artifact_id: TEST_ARTIFACT_ID,
+                key: 'mlpipeline-ui-metadata',
+                type: V2beta1IOType.OUTPUT,
+              },
+            ],
+          };
+        }
+        throw new Error(`${type} unavailable`);
+      },
+    );
+    vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(screen.getByText(/Some artifact relationships could not be checked/)).toBeVisible();
   });
 
-  it('navigates to lineage URL when Lineage Explorer tab is clicked', async () => {
-    mockSuccessfulLoad();
+  it('renders native producer and consumer relationships with run links', async () => {
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
 
-    renderWithRouter(generateProps());
-
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Lineage Explorer'));
-
-    expect(historyPushSpy).toHaveBeenCalledWith(expect.stringContaining('/lineage'));
+    await screen.findByText('Producing and consuming tasks');
+    const runLink = await screen.findByRole('link', { name: 'Run run-1 · Task task-1' });
+    expect(runLink).toHaveAttribute('href', '/runs/details/run-1?task=task-1');
+    screen.getByText('Produced as dataset');
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      undefined,
+      '',
+      10,
+      'id asc',
+    );
   });
 
-  it('navigates back to overview URL when Overview tab is clicked', async () => {
-    mockSuccessfulLoad();
+  it('requests and renders one relationship page at a time', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) =>
+        pageToken === 'next-page'
+          ? {
+              artifact_tasks: [
+                {
+                  id: 'relationship-2',
+                  run_id: 'run-2',
+                  task_id: 'task-2',
+                  key: 'consumer-input',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+            }
+          : {
+              artifact_tasks: [
+                {
+                  id: 'relationship-1',
+                  run_id: 'run-1',
+                  task_id: 'task-1',
+                  key: 'producer-output',
+                  type: V2beta1IOType.OUTPUT,
+                },
+              ],
+              next_page_token: 'next-page',
+            },
+    );
 
-    renderWithRouter(generateProps(), `/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
 
-    await waitFor(() => {
-      expect(screen.getByText('Overview')).toBeInTheDocument();
+    await screen.findByText('Produced as producer-output');
+    expect(screen.queryByText('Consumed as consumer-input')).not.toBeInTheDocument();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+
+    await screen.findByText('Consumed as consumer-input');
+    expect(screen.queryByText('Produced as producer-output')).not.toBeInTheDocument();
+    expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenLastCalledWith(
+      undefined,
+      undefined,
+      [TEST_ARTIFACT_ID],
+      undefined,
+      'next-page',
+      10,
+      'id asc',
+    );
+
+    fireEvent.click(screen.getByTestId('prev-page-btn'));
+
+    await screen.findByText('Produced as producer-output');
+    expect(screen.queryByText('Consumed as consumer-input')).not.toBeInTheDocument();
+  });
+
+  it('renders an empty related-task page', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({ artifact_tasks: [] });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('No related tasks found.');
+  });
+
+  it('shows an actionable error when a relationship page fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockRejectedValue(
+      new Error('Artifact service unavailable'),
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Unable to load related tasks. Refresh the page to try again.');
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    await screen.findByText('Artifact service unavailable');
+  });
+
+  it('keeps the cached relationship page visible when returning to it fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) =>
+        pageToken === 'next-page'
+          ? {
+              artifact_tasks: [
+                {
+                  id: 'relationship-2',
+                  key: 'second-page',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+            }
+          : {
+              artifact_tasks: [
+                {
+                  id: 'relationship-1',
+                  key: 'cached-first-page',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+              next_page_token: 'next-page',
+            },
+    );
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await screen.findByText('Consumed as cached-first-page');
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+    await screen.findByText('Consumed as second-page');
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockRejectedValue(
+      new Error('Artifact service unavailable'),
+    );
+
+    fireEvent.click(screen.getByTestId('prev-page-btn'));
+
+    await screen.findByText('Consumed as cached-first-page');
+    screen.getByText('Unable to load related tasks. Refresh the page to try again.');
+  });
+
+  it('stops pagination when the service repeats the current page token', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, pageToken) => ({
+        artifact_tasks: [
+          {
+            id: pageToken || 'first',
+            key: pageToken || 'first',
+            type: V2beta1IOType.TASK_OUTPUT_INPUT,
+          },
+        ],
+        next_page_token: pageToken || 'repeated-page',
+      }),
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await screen.findByText('Consumed as first');
+
+    fireEvent.click(screen.getByTestId('next-page-btn'));
+
+    await screen.findByText('Unable to load related tasks. Refresh the page to try again.');
+    fireEvent.click(screen.getByRole('button', { name: 'Details' }));
+    await screen.findByText('Artifact service returned a repeated page token: repeated-page');
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
+  });
+
+  it('does not replace a newer page-size result when an older request finishes later', async () => {
+    let resolveFirstPage!: (value: {
+      artifact_tasks: Array<{ id: string; key: string; type?: V2beta1IOType }>;
+      next_page_token: string;
+    }) => void;
+    const firstPage = new Promise<{
+      artifact_tasks: Array<{ id: string; key: string; type?: V2beta1IOType }>;
+      next_page_token: string;
+    }>((resolve) => {
+      resolveFirstPage = resolve;
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockImplementation(
+      async (_taskIds, _runIds, _artifactIds, _type, _pageToken, pageSize) =>
+        pageSize === 10
+          ? firstPage
+          : {
+              artifact_tasks: [
+                {
+                  id: 'newer',
+                  key: 'newer-page-size',
+                  type: V2beta1IOType.TASK_OUTPUT_INPUT,
+                },
+              ],
+            },
+    );
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+    await waitFor(() => expect(Apis.artifactServiceApiV2.artifactTasks).toHaveBeenCalledTimes(1));
+
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByRole('option', { name: '20' }));
+    await screen.findByText('Consumed as newer-page-size');
+
+    await act(async () => {
+      resolveFirstPage({
+        artifact_tasks: [
+          {
+            id: 'older',
+            key: 'older-page-size',
+            type: V2beta1IOType.TASK_OUTPUT_INPUT,
+          },
+        ],
+        next_page_token: 'older-next-page',
+      });
+      await firstPage;
     });
 
-    fireEvent.click(screen.getByText('Overview'));
+    expect(screen.queryByText('Consumed as older-page-size')).not.toBeInTheDocument();
+    screen.getByText('Consumed as newer-page-size');
+    expect(screen.getByTestId('next-page-btn')).toBeDisabled();
+  });
 
-    expect(historyPushSpy).toHaveBeenCalledWith(expect.stringMatching(/\/artifacts\/42$/));
+  it.each([
+    V2beta1IOType.ITERATOR_OUTPUT,
+    V2beta1IOType.ONE_OF_OUTPUT,
+    V2beta1IOType.TASK_FINAL_STATUS_OUTPUT,
+  ])('labels %s relationships as produced', async (type) => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [{ id: type, key: type, type }],
+    });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText(`Produced as ${type}`);
+  });
+
+  it.each([undefined, V2beta1IOType.UNSPECIFIED])(
+    'labels %s relationships as unknown instead of consumed',
+    async (type) => {
+      vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+        artifact_tasks: [{ id: 'unknown', key: 'dataset', type }],
+      });
+
+      renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+      await screen.findByText('Related as unknown: dataset');
+      expect(screen.queryByText('Consumed as dataset')).not.toBeInTheDocument();
+    },
+  );
+
+  it('preserves a future relationship type instead of classifying it as consumed', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: [
+        { id: 'future', key: 'dataset', type: 'FUTURE_RELATIONSHIP' as V2beta1IOType },
+      ],
+    });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    await screen.findByText('Related as FUTURE_RELATIONSHIP: dataset');
+    expect(screen.queryByText('Consumed as dataset')).not.toBeInTheDocument();
+  });
+
+  it('keeps the old lineage bookmark path but labels it as related tasks', async () => {
+    renderPage();
+    await screen.findByText('Related tasks');
+
+    fireEvent.click(screen.getByText('Related tasks'));
+
+    expect(historyPushSpy).toHaveBeenCalledWith(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+  });
+
+  it('shows a page error when the native service fails', async () => {
+    vi.mocked(Apis.artifactServiceApiV2.artifact_1).mockRejectedValue(
+      new Error('Artifact not found'),
+    );
+    renderPage();
+
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ additionalInfo: 'Artifact not found', mode: 'error' }),
+      ),
+    );
+    expect(screen.queryByRole('progressbar')).toBeNull();
   });
 });

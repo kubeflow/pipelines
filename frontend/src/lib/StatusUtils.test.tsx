@@ -16,12 +16,14 @@
 
 import {
   NodePhase,
+  hasFinishedV2,
   hasFinished,
   statusBgColors,
   statusToBgColor,
   checkIfTerminated,
   parseNodePhase,
 } from './StatusUtils';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
 
 describe('StatusUtils', () => {
@@ -54,6 +56,12 @@ describe('StatusUtils', () => {
 
     it("returns 'false' if status is invalid", () => {
       expect(hasFinished('bad phase' as any)).toBe(false);
+    });
+  });
+
+  describe('hasFinishedV2', () => {
+    it('treats a paused run as active', () => {
+      expect(hasFinishedV2(V2beta1RuntimeState.PAUSED)).toBe(false);
     });
   });
 

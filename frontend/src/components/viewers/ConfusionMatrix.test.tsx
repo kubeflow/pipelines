@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { PlotType } from './Viewer';
 
@@ -66,6 +66,22 @@ describe('ConfusionMatrix', () => {
     const overlay = targetCell.querySelector('div');
     expect(overlay).not.toBeNull();
     expect(overlay).toHaveStyle('opacity: 0.05');
+  });
+
+  it('applies refreshed data without resetting the active cell', async () => {
+    const { container, rerender } = render(<ConfusionMatrix configs={[config]} />);
+    const targetCell = container.querySelectorAll('td')[2];
+    fireEvent.mouseOver(targetCell);
+
+    rerender(
+      <ConfusionMatrix
+        configs={[{ ...config, data: config.data.map((row) => row.map((value) => value + 10)) }]}
+      />,
+    );
+
+    await waitFor(() => expect(container.querySelectorAll('td')[2]).toHaveTextContent('11'));
+    const refreshedTarget = container.querySelectorAll('td')[2];
+    expect(refreshedTarget.querySelector('div')).toHaveStyle('opacity: 0.05');
   });
 
   it('returns a user friendly display name', () => {

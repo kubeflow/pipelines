@@ -148,9 +148,10 @@ describe('Apis', () => {
         path: { source: StorageService.GCS, key: 'testkey', bucket: 'testbucket' },
       }),
     ).toEqual('file contents');
-    expect(spy).toHaveBeenCalledWith('artifacts/get?source=gcs&bucket=testbucket&key=testkey', {
-      credentials: 'same-origin',
-    });
+    expect(spy).toHaveBeenCalledWith(
+      'artifacts/get?source=gcs&bucket=testbucket&key=testkey&keyEncoding=storage',
+      { credentials: 'same-origin' },
+    );
   });
 
   it('buildReadFileUrl', () => {
@@ -165,7 +166,7 @@ describe('Apis', () => {
         peek: 255,
       }),
     ).toEqual(
-      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey',
+      'artifacts/get?source=gcs&namespace=testnamespace&peek=255&bucket=testbucket&key=testkey&keyEncoding=storage',
     );
   });
 
@@ -183,6 +184,103 @@ describe('Apis', () => {
       }),
     ).toEqual(
       'artifacts/s3/testbucket/testkey?namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+    );
+  });
+
+  it('buildReadFileUrl carries the stored artifact URI query separately', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'testkey',
+          source: StorageService.S3,
+        },
+        namespace: 'testnamespace',
+        artifactUriQuery: 'endpoint=https%3A%2F%2Ftrusted.example&region=test',
+      }),
+    ).toEqual(
+      'artifacts/get?source=s3&namespace=testnamespace&artifactUriQuery=endpoint%3Dhttps%253A%252F%252Ftrusted.example%26region%3Dtest&bucket=testbucket&key=testkey&keyEncoding=storage',
+    );
+  });
+
+  it('distinguishes literal storage escapes from native URI escapes', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'literal%20token/model.txt',
+          source: StorageService.S3,
+        },
+      }),
+    ).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=literal%2520token%2Fmodel.txt&keyEncoding=storage',
+    );
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'root%20dir/model.txt',
+          keyEncoding: 'uri',
+          source: StorageService.S3,
+        },
+      }),
+    ).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=root%2520dir%2Fmodel.txt&keyEncoding=uri',
+    );
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'literal%20token/model.txt',
+          source: StorageService.S3,
+        },
+        isDownload: true,
+      }),
+    ).toBe('artifacts/s3/testbucket/literal%2520token/model.txt');
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'testbucket',
+          key: 'root%20dir/model.txt',
+          keyEncoding: 'uri',
+          source: StorageService.S3,
+        },
+        isDownload: true,
+      }),
+    ).toBe('artifacts/s3/testbucket/root%20dir/model.txt');
+  });
+
+  it('carries exact artifact URI identity separately from its decoded storage key', () => {
+    const path = {
+      bucket: 'testbucket',
+      key: 'rootsecret/café.txt',
+      keyEncoding: 'storage' as const,
+      source: StorageService.S3,
+      uriKey: 'root%73ecret/caf%c3%a9.txt',
+    };
+
+    expect(Apis.buildReadFileUrl({ path })).toBe(
+      'artifacts/get?source=s3&bucket=testbucket&key=rootsecret%2Fcaf%C3%A9.txt&keyEncoding=storage&uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+    );
+    expect(Apis.buildReadFileUrl({ path, isDownload: true })).toBe(
+      'artifacts/s3/testbucket/rootsecret/caf%C3%A9.txt?uriKey=root%2573ecret%2Fcaf%25c3%25a9.txt',
+    );
+  });
+
+  it('keeps an exact escaped HTTP identity in the download path', () => {
+    expect(
+      Apis.buildReadFileUrl({
+        path: {
+          bucket: 'files.example',
+          key: 'reports/A?B#C&D.csv',
+          keyEncoding: 'storage',
+          source: StorageService.HTTPS,
+          uriKey: 'reports/A%3FB%23C%26D.csv',
+        },
+        isDownload: true,
+      }),
+    ).toBe(
+      'artifacts/https/files.example/reports/A%3FB%23C&D.csv?uriKey=reports%2FA%253FB%2523C%2526D.csv',
     );
   });
 

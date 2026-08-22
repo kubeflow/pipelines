@@ -296,6 +296,8 @@ export interface GoogleRpcStatus {
       expect(normalizedV1).not.toContain('backend/api/');
       expect(normalizedV1).not.toContain('/**');
       expect(normalizedV1).toContain('export interface GoogleRpcStatus');
+      expect(normalizedV1).toContain('\n  code?: number;');
+      expect(normalizedV1).not.toContain('\n    code?: number;');
     });
 
     it('rewrites generated client and server support files to shared re-export shims', () => {

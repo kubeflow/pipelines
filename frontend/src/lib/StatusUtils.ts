@@ -15,7 +15,7 @@
  */
 
 import { logger } from 'src/lib/Utils';
-import { NodeStatus } from 'src/third_party/mlmd/argo_template';
+import { NodeStatus } from 'src/third_party/argo/argo_template';
 import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 export const statusBgColors = {
@@ -142,6 +142,7 @@ export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
       return true;
     case V2beta1RuntimeState.PENDING: // Fall through
     case V2beta1RuntimeState.RUNNING: // Fall through
+    case V2beta1RuntimeState.PAUSED: // Fall through
     case V2beta1RuntimeState.CANCELING: // Fall through
     case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       return false;

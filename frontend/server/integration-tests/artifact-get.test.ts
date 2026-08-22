@@ -24,12 +24,21 @@ import { UIServer } from '../app.js';
 import { loadConfigs } from '../configs.js';
 import * as serverInfo from '../helpers/server-info.js';
 import { commonSetup, mkTempDir } from './test-helper.js';
-import { getK8sSecret } from '../k8s-helper.js';
+import { getConfigMap, getK8sSecret } from '../k8s-helper.js';
 import { downloadGCSObjectStream, getGCSClient, listGCSObjectNames } from '../gcs-helper.js';
+import { TEST_ONLY as launcherConfigTestOnly } from '../helpers/launcher-config.js';
+import { TEST_ONLY as minioHelperTestOnly } from '../minio-helper.js';
 
 const MinioClient = minio.Client;
 vi.mock('minio');
-vi.mock('../k8s-helper');
+vi.mock('../k8s-helper.js', () => ({
+  getArgoWorkflow: vi.fn(),
+  getConfigMap: vi.fn(),
+  getK8sSecret: vi.fn(),
+  getPod: vi.fn(),
+  getPodLogs: vi.fn(),
+  getServerNamespace: vi.fn(),
+}));
 vi.mock('../gcs-helper.js');
 
 const mockedFetch = vi.fn();
@@ -52,7 +61,11 @@ describe('/artifacts', () => {
 
   let artifactContent: any = 'hello world';
   beforeEach(() => {
+    launcherConfigTestOnly.clearLauncherConfigurationCache();
     artifactContent = 'hello world'; // reset
+    vi.mocked(getConfigMap)
+      .mockReset()
+      .mockResolvedValue([undefined, { message: 'not found' }]);
     const mockedMinioClient = MinioClient as any;
     mockedMinioClient.mockImplementation(function () {
       return {
@@ -65,6 +78,7 @@ describe('/artifacts', () => {
             throw new Error(`Unable to retrieve ${bucket}/${key} artifact.`);
           }
         },
+        listObjectsV2Query: vi.fn(),
       };
     });
   });
@@ -100,6 +114,108 @@ describe('/artifacts', () => {
         secretKey: 'minio123',
         useSSL: false,
       });
+    });
+
+    it('uses native S3 resolution for a raw query-bearing MinIO artifact', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        { data: { defaultPipelineRoot: 'minio://mlpipeline/v2/artifacts' } },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+          MINIO_ACCESS_KEY: 'central-minio-key',
+          MINIO_HOST: 'seaweedfs',
+          MINIO_SECRET_KEY: 'central-minio-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&artifactUriQuery=anonymous%3Dtrue',
+        )
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        useSSL: true,
+      });
+    });
+
+    it('uses native S3 resolution for a query inherited from a MinIO pipeline root', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        { data: { defaultPipelineRoot: 'minio://ml-pipeline?anonymous=true' } },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+          MINIO_ACCESS_KEY: 'central-minio-key',
+          MINIO_HOST: 'seaweedfs',
+          MINIO_SECRET_KEY: 'central-minio-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        useSSL: true,
+      });
+    });
+
+    it('distinguishes a literal storage escape from a native URI escape', async () => {
+      const getObject = vi.fn(async () => {
+        const objStream = new PassThrough();
+        objStream.end(artifactContent);
+        return objStream;
+      });
+      const mockedMinioClient: Mock = minio.Client as any;
+      mockedMinioClient.mockImplementation(function () {
+        return { getObject, listObjectsV2Query: vi.fn() };
+      });
+      app = new UIServer(
+        loadConfigs(argv, {
+          MINIO_ACCESS_KEY: 'minio',
+          MINIO_HOST: 'seaweedfs',
+          MINIO_NAMESPACE: 'kubeflow',
+          MINIO_PORT: '9000',
+          MINIO_SECRET_KEY: 'minio123',
+          MINIO_SSL: 'false',
+        }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=literal%2520token%2Fmodel.txt&keyEncoding=storage',
+        )
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=root%2520dir%2Fmodel.txt&keyEncoding=uri',
+        )
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/minio/ml-pipeline/literal%2520token/model.txt')
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/minio/ml-pipeline/root%20dir/model.txt/')
+        .expect(200, artifactContent);
+
+      expect(getObject).toHaveBeenNthCalledWith(1, 'ml-pipeline', 'literal%20token/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(2, 'ml-pipeline', 'root dir/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(3, 'ml-pipeline', 'literal%20token/model.txt');
+      expect(getObject).toHaveBeenNthCalledWith(4, 'ml-pipeline', 'root dir/model.txt');
     });
 
     it('rejects artifact requests with multi-valued query parameters', async () => {
@@ -192,11 +308,162 @@ describe('/artifacts', () => {
         port: undefined,
         region: 'us-east-2',
         secretKey: 'someSecret',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledWith('aws-s3-creds', 'someSecret', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
+    });
+
+    it('uses the server namespace for launcher config when standalone sends an empty namespace', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      mockedGetK8sSecret.mockResolvedValue('launcher-secret');
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            providers: `
+s3:
+  default:
+    endpoint: s3.amazonaws.com
+    region: us-east-1
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: ml-pipeline
+      keyPrefix: hello
+      endpoint: https://custom-s3.example.com:9443
+      region: custom-region
+      disableSSL: false
+      credentials:
+        fromEnv: false
+        secretRef:
+          secretName: custom-store
+          accessKeyKey: access-key
+          secretKeyKey: secret-key
+`,
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=')
+        .expect(200, artifactContent);
+
+      expect(getConfigMap).toHaveBeenCalledWith('kfp-launcher', 'kubeflow');
+      expect(mockedGetK8sSecret).toHaveBeenCalledWith('custom-store', 'access-key', 'kubeflow');
+      expect(mockedGetK8sSecret).toHaveBeenCalledWith('custom-store', 'secret-key', 'kubeflow');
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'launcher-secret',
+        endPoint: 'custom-s3.example.com',
+        pathStyle: true,
+        port: 9443,
+        region: 'custom-region',
+        secretKey: 'launcher-secret',
+        useSSL: true,
+      });
+    });
+
+    it('prefers trusted launcher-root settings over caller providerInfo', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline/hello?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&providerInfo=${encodeURIComponent(
+            JSON.stringify({
+              Provider: 's3',
+              Params: { endpoint: 'https://attacker.example', fromEnv: 'true' },
+            }),
+          )}`,
+        )
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'trusted.example', region: 'trusted' }),
+      );
+      expect(mockedMinioClient).not.toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'attacker.example' }),
+      );
+    });
+
+    it('uses the same decoded launcher-root key for previews and downloads', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      const getObject = vi.fn(async () => {
+        const objStream = new PassThrough();
+        objStream.end(artifactContent);
+        return objStream;
+      });
+      mockedMinioClient.mockImplementation(function () {
+        return { getObject, listObjectsV2Query: vi.fn(), retryOptions: {} };
+      });
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline/root%20dir?endpoint=https%3A%2F%2Ftrusted.example&region=trusted',
+          },
+        },
+        undefined,
+      ]);
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+      });
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=s3&bucket=ml-pipeline&key=root%2520dir%2Fartifact.txt&keyEncoding=uri',
+        )
+        .expect(200, artifactContent);
+      await requests(app.app)
+        .get('/artifacts/s3/ml-pipeline/root%20dir/artifact.txt')
+        .expect(200, artifactContent);
+
+      expect(getObject).toHaveBeenNthCalledWith(1, 'ml-pipeline', 'root dir/artifact.txt');
+      expect(getObject).toHaveBeenNthCalledWith(2, 'ml-pipeline', 'root dir/artifact.txt');
+      expect(mockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 'trusted.example', region: 'trusted' }),
+      );
+    });
+
+    it('fails closed when customer provider settings cannot be resolved', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      const configs = loadConfigs(argv, {
+        AWS_ACCESS_KEY_ID: 'aws123',
+        AWS_SECRET_ACCESS_KEY: 'awsSecret123',
+        FRONTEND_SERVER_NAMESPACE: 'kubeflow',
+      });
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        { data: { providers: 's3: [unterminated' } },
+        undefined,
+      ]);
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(500)
+        .expect(/Failed to resolve artifact storage configuration/);
+
+      expect(getConfigMap).toHaveBeenCalledWith('kfp-launcher', 'team-a');
+      expect(mockedMinioClient).not.toHaveBeenCalled();
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Provider Configs, and uses default kubeflow namespace when no namespace is provided', async () => {
@@ -232,7 +499,7 @@ describe('/artifacts', () => {
         port: undefined,
         region: 'us-east-2',
         secretKey: 'somevalue',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
@@ -284,7 +551,7 @@ describe('/artifacts', () => {
         port: undefined,
         region: 'us-east-2',
         secretKey: 'somevalue',
-        useSSL: undefined,
+        useSSL: true,
       });
       expect(mockedMinioClient).toBeCalledTimes(1);
       expect(mockedGetK8sSecret).toBeCalledTimes(2);
@@ -427,6 +694,7 @@ describe('/artifacts', () => {
           private_key: 'testkey',
         },
         prefix: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       };
       expect(mockedListGCSObjectNames).toBeCalledWith(expectedArg);
       expect(mockedDownloadGCSObjectStream).toBeCalledWith({
@@ -437,20 +705,483 @@ describe('/artifacts', () => {
           private_key: 'testkey',
         },
         objectName: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       });
-      expect(mockedGetGCSClient).toBeCalledWith({
-        client_email: 'testemail',
-        private_key: 'testkey',
-      });
+      expect(mockedGetGCSClient).toBeCalledWith(
+        {
+          client_email: 'testemail',
+          private_key: 'testkey',
+        },
+        'googleapis.com',
+      );
       expect(mockedGetK8sSecret).toBeCalledWith('someSecret', 'somekey', `${namespace}`);
       expect(mockedGetK8sSecret).toBeCalledTimes(1);
     });
 
-    it('does not read a provider Secret from a customer namespace for source=s3 (security)', async () => {
+    it('uses access_id=- and universe_domain GCS query settings', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const stream = new PassThrough();
+      stream.end('public artifact');
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,example.com' }),
+      );
+
+      const providerInfo = {
+        Params: { access_id: '-', fromEnv: 'true', universe_domain: 'example.com' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'public artifact\n');
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        prefix: 'hello/world.txt',
+        universeDomain: 'example.com',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        objectName: 'hello/world.txt',
+        universeDomain: 'example.com',
+      });
+    });
+
+    it('uses Go boolean syntax for anonymous GCS query settings', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const stream = new PassThrough();
+      stream.end('public artifact');
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,example.com' }),
+      );
+
+      const providerInfo = {
+        Params: { anonymous: '1', fromEnv: 'true', universe_domain: 'example.com' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'public artifact\n');
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        prefix: 'hello/world.txt',
+        universeDomain: 'example.com',
+      });
+    });
+
+    it('rejects invalid GCS anonymous values before resolving ADC', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { anonymous: 'yes', fromEnv: 'true' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          500,
+          'Failed to download GCS file(s). Error: Error: Invalid boolean value for provider option anonymous: yes',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+    });
+
+    it('rejects authenticated GCS access to a provider-selected universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', universe_domain: 'attacker.example' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          400,
+          'GCS universe_domain "attacker.example" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+      expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
+    });
+
+    it('rejects anonymous alternate GCS universes by default before making a request', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: {
+          anonymous: 'true',
+          fromEnv: 'true',
+          universe_domain: 'internal.svc.cluster.local',
+        },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          400,
+          'GCS universe_domain "internal.svc.cluster.local" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+      expect(mockedDownloadGCSObjectStream).not.toHaveBeenCalled();
+    });
+
+    it('applies the GCS universe allowlist to the implicit default universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      app = new UIServer(loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'example.com' }));
+
+      await requests(app.app)
+        .get('/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt')
+        .expect(
+          400,
+          'GCS universe_domain "googleapis.com" is not allowed. Add it to ALLOWED_GCS_UNIVERSE_DOMAINS and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+    });
+
+    it('uses authenticated GCS access for an allowlisted alternate universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      stream.end('private artifact');
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 'gs://private-bucket?universe_domain=gdc.example',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,gdc.example' }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=team-a',
+        )
+        .expect(200, 'private artifact\n');
+
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined, 'gdc.example');
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+        universeDomain: 'gdc.example',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+        universeDomain: 'gdc.example',
+      });
+    });
+
+    it('retains anonymous GCS launcher settings for customer namespaces in direct mode', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const stream = new PassThrough();
+      stream.end('public artifact');
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 'gs://public-bucket?anonymous=true&universe_domain=example.com',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, { ALLOWED_GCS_UNIVERSE_DOMAINS: 'googleapis.com,example.com' }),
+      );
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=gcs&bucket=public-bucket&key=hello%2Fworld.txt&namespace=team-a',
+        )
+        .expect(200, 'public artifact\n');
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        anonymous: true,
+        bucket: 'public-bucket',
+        prefix: 'hello/world.txt',
+        universeDomain: 'example.com',
+      });
+    });
+
+    it('retains endpoint-free anonymous S3 settings for customer namespaces in direct mode', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline?anonymous=true&disable_https=true',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        useSSL: false,
+      });
+    });
+
+    it('rejects customer-selected S3 endpoints instead of using the shared store', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot:
+              's3://ml-pipeline?anonymous=true&endpoint=https%3A%2F%2Ftenant-store.example',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/Custom S3-compatible endpoints require the namespace-isolated artifact proxy/);
+
+      expect(mockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('rejects customer Secret policy instead of substituting shared credentials', async () => {
+      const mockedGetK8sSecret: Mock = getK8sSecret as any;
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline',
+            providers: `
+s3:
+  default:
+    credentials:
+      fromEnv: false
+      secretRef:
+        secretName: tenant-store
+        accessKeyKey: access-key
+        secretKeyKey: secret-key
+`,
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/Secret-backed S3 provider settings require the namespace-isolated artifact proxy/);
+
+      expect(mockedGetK8sSecret).not.toHaveBeenCalled();
+      expect(mockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('rejects malformed anonymous settings instead of using ambient credentials', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline?anonymous=bogus',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(400)
+        .expect(/anonymous.*invalid value/i);
+
+      expect(mockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('retains authenticated endpoint-free S3 settings for customer namespaces', async () => {
+      const mockedMinioClient: Mock = minio.Client as any;
+      vi.mocked(getConfigMap).mockResolvedValueOnce([
+        {
+          data: {
+            defaultPipelineRoot: 's3://ml-pipeline?disable_https=true',
+          },
+        },
+        undefined,
+      ]);
+      app = new UIServer(
+        loadConfigs(argv, {
+          AWS_ACCESS_KEY_ID: 'central-aws-key',
+          AWS_SECRET_ACCESS_KEY: 'central-aws-secret',
+        }),
+      );
+
+      await requests(app.app)
+        .get('/artifacts/get?source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt&namespace=team-a')
+        .expect(200, artifactContent);
+
+      expect(mockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'central-aws-key',
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        region: 'us-east-1',
+        secretKey: 'central-aws-secret',
+        useSSL: false,
+      });
+    });
+
+    it('rejects unsupported GCS provider options before resolving ADC', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', private_key_path: '/var/run/key.pem' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(
+          500,
+          'Failed to download GCS file(s). Error: Error: Unsupported GCS artifact read option: private_key_path. Remove unsupported options and retry.',
+        );
+
+      expect(mockedGetGCSClient).not.toHaveBeenCalled();
+      expect(mockedListGCSObjectNames).not.toHaveBeenCalled();
+    });
+
+    it('allows authenticated GCS access to the default universe', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      stream.end('private artifact');
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const providerInfo = {
+        Params: { fromEnv: 'true', universe_domain: 'googleapis.com' },
+        Provider: 'gs',
+      };
+      await requests(app.app)
+        .get(
+          `/artifacts/get?source=gcs&bucket=private-bucket&key=hello%2Fworld.txt&namespace=kubeflow&providerInfo=${encodeURIComponent(
+            JSON.stringify(providerInfo),
+          )}`,
+        )
+        .expect(200, 'private artifact\n');
+
+      expect(mockedGetGCSClient).toHaveBeenCalledWith(undefined, 'googleapis.com');
+      expect(mockedListGCSObjectNames).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        prefix: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
+      });
+      expect(mockedDownloadGCSObjectStream).toHaveBeenCalledWith({
+        bucket: 'private-bucket',
+        client,
+        credentials: undefined,
+        objectName: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
+      });
+    });
+
+    it('rejects browser-provided S3 Secret policy for a customer namespace (security)', async () => {
       // When the requested namespace is not the server's own namespace, the
-      // secret-backed provider info must be ignored so the UI never reads
-      // Secrets cross-namespace. Credential resolution falls back to the
-      // server's own environment credentials.
+      // UI must neither read the Secret nor substitute its central credentials.
       // See: https://github.com/kubeflow/pipelines/pull/12860
       const mockedGetK8sSecret: Mock = getK8sSecret as any;
       const configs = loadConfigs(argv, {
@@ -478,11 +1209,12 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, artifactContent);
+        .expect(400)
+        .expect(/namespace-isolated artifact proxy/);
       expect(mockedGetK8sSecret).not.toBeCalled();
     });
 
-    it('does not read a provider Secret from a customer namespace for source=gcs (security)', async () => {
+    it('rejects browser-provided GCS Secret policy for a customer namespace (security)', async () => {
       const mockedGetGCSClient: Mock = getGCSClient as any;
       const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
       const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
@@ -512,10 +1244,10 @@ describe('/artifacts', () => {
             providerInfo,
           )}`,
         )
-        .expect(200, 'hello world\n');
+        .expect(400)
+        .expect(/namespace-isolated artifact proxy/);
       expect(mockedGetK8sSecret).not.toBeCalled();
-      // Falls back to default (environment) credentials rather than a Secret.
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).not.toBeCalled();
     });
 
     it('responds with partial s3 artifact if peek=5 flag is set', async () => {
@@ -616,12 +1348,56 @@ describe('/artifacts', () => {
 
       const request = requests(app.app);
       await request
-        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken%3Dsecret%23frag')
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken%3Dsecret%23frag&uriKey=hello%253Ftoken%3Dsecret%2523frag',
+        )
         .expect(200, artifactContent);
       expect(mockedFetch).toBeCalledWith('http://foo.bar/ml-pipeline/hello%3Ftoken=secret%23frag', {
         headers: {},
         redirect: 'manual',
       });
+    });
+
+    it('rejects markerless HTTP keys containing decoded query or fragment delimiters', async () => {
+      mockedFetch.mockClear();
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'foo.bar/' }));
+
+      await requests(app.app)
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%3Ftoken')
+        .expect(
+          400,
+          'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.',
+        );
+      await requests(app.app)
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%23fragment')
+        .expect(
+          400,
+          'Artifact path has malformed or noncanonical URI encoding. Use the canonical artifact URI and retry.',
+        );
+      expect(mockedFetch).not.toHaveBeenCalled();
+    });
+
+    it('fetches the exact escaped HTTP artifact identity that was authorized', async () => {
+      const artifactContent = 'escaped path identity';
+      mockedFetch.mockImplementationOnce((url: string, opts: any) =>
+        url === 'http://foo.bar/ml-pipeline/reports/A%26B%3FC%23D.csv'
+          ? Promise.resolve({
+              buffer: () => Promise.resolve(artifactContent),
+              body: toWebStream(artifactContent),
+            })
+          : Promise.reject(`Unexpected HTTP artifact URL: ${url}`),
+      );
+      app = new UIServer(loadConfigs(argv, { HTTP_BASE_URL: 'foo.bar/' }));
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=http&bucket=ml-pipeline&key=reports%2FA%26B%3FC%23D.csv&uriKey=reports%2FA%2526B%253FC%2523D.csv',
+        )
+        .expect(200, artifactContent);
+      expect(mockedFetch).toHaveBeenCalledWith(
+        'http://foo.bar/ml-pipeline/reports/A%26B%3FC%23D.csv',
+        { headers: {}, redirect: 'manual' },
+      );
     });
 
     it.each([
@@ -947,18 +1723,20 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(200, artifactContent + '\n');
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).toBeCalledWith(undefined, 'googleapis.com');
       expect(mockedListGCSObjectNames).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         prefix: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       });
       expect(mockedDownloadGCSObjectStream).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         objectName: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       });
     });
 
@@ -980,18 +1758,20 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
         .expect(200, artifactContent.slice(0, 5));
-      expect(mockedGetGCSClient).toBeCalledWith(undefined);
+      expect(mockedGetGCSClient).toBeCalledWith(undefined, 'googleapis.com');
       expect(mockedListGCSObjectNames).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         prefix: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       });
       expect(mockedDownloadGCSObjectStream).toBeCalledWith({
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         objectName: 'hello/world.txt',
+        universeDomain: 'googleapis.com',
       });
     });
 
@@ -1025,18 +1805,21 @@ describe('/artifacts', () => {
         client,
         credentials: undefined,
         prefix: 'hello/world-',
+        universeDomain: 'googleapis.com',
       });
       expect(mockedDownloadGCSObjectStream).toHaveBeenNthCalledWith(1, {
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         objectName: 'hello/world-1.txt',
+        universeDomain: 'googleapis.com',
       });
       expect(mockedDownloadGCSObjectStream).toHaveBeenNthCalledWith(2, {
         bucket: 'ml-pipeline',
         client,
         credentials: undefined,
         objectName: 'hello/world-2.txt',
+        universeDomain: 'googleapis.com',
       });
     });
 
@@ -1465,9 +2248,17 @@ describe('/artifacts', () => {
       function captureBinaryResponse(req: requests.Test): requests.Test {
         return req.buffer(true).parse((response: any, callback: any) => {
           const chunks: Uint8Array[] = [];
+          let settled = false;
+          const complete = (error: Error | null, body?: Buffer) => {
+            if (settled) return;
+            settled = true;
+            callback(error, body);
+          };
           response.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-          response.on('end', () => callback(null, Buffer.concat(chunks)));
-          response.on('error', callback);
+          response.on('end', () => complete(null, Buffer.concat(chunks)));
+          response.on('aborted', () => complete(new Error('Artifact response was aborted.')));
+          response.on('close', () => complete(new Error('Artifact response closed early.')));
+          response.on('error', (error: Error) => complete(error));
         });
       }
 
@@ -1492,6 +2283,109 @@ describe('/artifacts', () => {
         expect(Array.from(entries.keys()).sort()).toEqual(['file1.txt', 'sub/file2.txt']);
         expect(entries.get('file1.txt')!.toString()).toBe('first file contents');
         expect(entries.get('sub/file2.txt')!.toString()).toBe('second file contents');
+      });
+
+      it('packages directories with more than eight children without truncating the archive', async () => {
+        const fileContents = Object.fromEntries(
+          Array.from({ length: 12 }, (_, index) => [
+            `directory/file-${index}.txt`,
+            `contents-${index}`,
+          ]),
+        );
+        mockMinioForDirectory(fileContents);
+
+        app = new UIServer(loadConfigs(argv, minioConfigEnv));
+        const res = await captureBinaryResponse(
+          requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+        ).expect(200);
+
+        const entries = await readTarGzEntries(res.body as Buffer);
+        expect(entries.size).toBe(12);
+        Object.entries(fileContents).forEach(([name, contents]) => {
+          expect(entries.get(name.slice('directory/'.length))?.toString()).toBe(contents);
+        });
+      });
+
+      it('aborts a directory download when a later child exhausts the retry allowance', async () => {
+        const childAttempts = new Map<string, number>();
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return {
+            getObject: async (bucket: string, key: string) => {
+              if (bucket !== 'ml-pipeline') throw new Error(`unexpected bucket ${bucket}`);
+              if (key === 'directory') throw makeNoSuchKeyError();
+              const attempt = (childAttempts.get(key) || 0) + 1;
+              childAttempts.set(key, attempt);
+              if (attempt === 1) {
+                throw minioHelperTestOnly.markS3TransportError(
+                  Object.assign(new Error('transient read failure'), {
+                    code: 'ECONNRESET',
+                    errno: -104,
+                    syscall: 'read',
+                  }),
+                );
+              }
+              const objStream = new PassThrough();
+              objStream.end(`contents for ${key}`);
+              return objStream;
+            },
+            listObjectsV2Query: async () => ({
+              isTruncated: false,
+              nextContinuationToken: '',
+              objects: Array.from({ length: 11 }, (_, index) => ({
+                name: `directory/file-${index}.txt`,
+                size: `contents for directory/file-${index}.txt`.length,
+              })),
+            }),
+          };
+        });
+
+        app = new UIServer(loadConfigs(argv, minioConfigEnv));
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+        try {
+          await expect(
+            captureBinaryResponse(
+              requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+            ),
+          ).rejects.toThrow();
+        } finally {
+          randomSpy.mockRestore();
+          consoleSpy.mockRestore();
+        }
+
+        expect(childAttempts.get('directory/file-9.txt')).toBe(2);
+        expect(childAttempts.get('directory/file-10.txt')).toBe(1);
+      });
+
+      it('uses plain-text error headers when the first directory child cannot be opened', async () => {
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return {
+            getObject: async (_bucket: string, key: string) => {
+              if (key === 'directory') throw makeNoSuchKeyError();
+              throw Object.assign(new Error('access denied'), { code: 'AccessDenied' });
+            },
+            listObjectsV2Query: async () => ({
+              isTruncated: false,
+              nextContinuationToken: '',
+              objects: [{ name: 'directory/file.txt', size: 8 }],
+            }),
+          };
+        });
+
+        app = new UIServer(loadConfigs(argv, minioConfigEnv));
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        try {
+          const response = await captureBinaryResponse(
+            requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+          ).expect(500);
+          expect(response.headers['content-type']).toMatch(/^text\/plain/);
+          expect(response.headers['content-disposition']).toBeUndefined();
+          expect((response.body as Buffer).toString()).toContain('access denied');
+        } finally {
+          consoleSpy.mockRestore();
+        }
       });
 
       it('returns a small text summary for preview requests instead of streaming the archive', async () => {

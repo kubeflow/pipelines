@@ -70,26 +70,36 @@ spec:
             value: "true"
           - name: DISABLE_GKE_METADATA
             value: "true"
-          # Namespace-ownership resolution for artifacts the metadata store does not track
-          # (for example pod logs and other objects legitimately absent from the metadata
-          # store). The default "mlmd-then-prefix" derives the owning namespace from the
-          # "private-artifacts/<namespace>/" object-key prefix, restoring v1 and v2 artifact
-          # retrieval while still blocking cross-namespace access; an object that carries no
-          # such prefix has no derivable owner and is denied, because nothing is ever written
-          # to the bucket root. Set to "mlmd-only" to enforce the strict guard that denies
-          # every artifact absent from the metadata store. Deployments with a customized
-          # Argo keyFormat / pipeline root can override the expected leading key segment
-          # via ARTIFACT_NAMESPACE_KEY_PREFIX (default "private-artifacts").
+          # Namespace-ownership resolution for objects the artifact database does not track.
+          # The default "artifact-then-prefix" checks the
+          # "private-artifacts/<namespace>/" object-key prefix after an Artifact API miss.
+          # The legacy "mlmd-then-prefix" alias remains supported. Use "artifact-only" for
+          # strict Artifact API validation; the legacy "mlmd-only" value is also supported.
           - name: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
             valueFrom:
               configMapKeyRef:
                 name: pipeline-install-config
                 key: ARTIFACT_NAMESPACE_OWNERSHIP_MODE
                 optional: true
-          # Leading object-key segment used by the "mlmd-then-prefix" mode above to derive
-          # an artifact's owning namespace (the "<prefix>/<namespace>/" convention). Override
-          # only when a customized Argo keyFormat / pipeline root changes that leading
-          # segment; when unset the frontend server defaults to "private-artifacts".
+          # Artifact ownership lookups fail closed so an Artifact API outage cannot weaken
+          # namespace authorization. Increase this timeout for slower API deployments. The
+          # legacy MLMD_VALIDATION_TIMEOUT_MS key remains wired during the migration; when
+          # both are set, ARTIFACT_VALIDATION_TIMEOUT_MS takes precedence.
+          - name: ARTIFACT_VALIDATION_TIMEOUT_MS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ARTIFACT_VALIDATION_TIMEOUT_MS
+                optional: true
+          - name: MLMD_VALIDATION_TIMEOUT_MS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: MLMD_VALIDATION_TIMEOUT_MS
+                optional: true
+          # Leading object-key segment used to derive ownership for objects that the artifact
+          # database does not track, such as archived logs. Override only when a customized
+          # Argo keyFormat / pipeline root changes the "<prefix>/<namespace>/" convention.
           - name: ARTIFACT_NAMESPACE_KEY_PREFIX
             valueFrom:
               configMapKeyRef:
@@ -107,6 +117,15 @@ spec:
               configMapKeyRef:
                 name: pipeline-install-config
                 key: ARTIFACTS_PROXY_ENABLED
+                optional: true
+          # Comma-separated exact GCS universe domains the UI artifact reader may contact.
+          # Keep the default restricted to public Google APIs; add GDC or air-gapped domains only
+          # when the UI server is intentionally allowed to reach them.
+          - name: ALLOWED_GCS_UNIVERSE_DOMAINS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ALLOWED_GCS_UNIVERSE_DOMAINS
                 optional: true
         readinessProbe:
           httpGet:

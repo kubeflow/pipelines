@@ -18,7 +18,6 @@ module.exports = [
       '**/*.test.ts',
       '**/*.test.tsx',
       'src/generated/**',
-      'src/third_party/mlmd/generated/**',
       'src/stories/**',
     ],
   },
