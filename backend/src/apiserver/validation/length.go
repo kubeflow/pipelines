@@ -45,6 +45,7 @@ var LengthSpecs = []ColLenSpec{
 
 	{Model: &model.PipelineVersion{}, Field: "UUID", Max: 191},
 	{Model: &model.PipelineVersion{}, Field: "Name", Max: 127},
+	{Model: &model.PipelineVersion{}, Field: "DisplayName", Max: 255},
 	{Model: &model.PipelineVersion{}, Field: "PipelineId", Max: 64},
 
 	{Model: &model.Pipeline{}, Field: "UUID", Max: 64},

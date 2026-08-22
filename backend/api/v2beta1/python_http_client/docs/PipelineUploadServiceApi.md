@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> V2beta1Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
+> V2beta1Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, version_name=version_name, version_display_name=version_display_name, version_description=version_description, namespace=namespace, tags=tags, code_source_url=code_source_url)
 
 
 
@@ -51,12 +51,15 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 name = 'name_example' # str |  (optional)
 display_name = 'display_name_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
+version_name = 'version_name_example' # str | Optional name of the initial pipeline version. Defaults to the pipeline name when omitted. (optional)
+version_display_name = 'version_display_name_example' # str | Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted. (optional)
+version_description = 'version_description_example' # str | Optional description of the initial pipeline version. Defaults to the pipeline description when omitted. (optional)
 namespace = 'namespace_example' # str |  (optional)
 tags = 'tags_example' # str | JSON-encoded map of key-value pairs for pipeline tags. (optional)
 code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline source code. (optional)
 
     try:
-        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
+        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, version_name=version_name, version_display_name=version_display_name, version_description=version_description, namespace=namespace, tags=tags, code_source_url=code_source_url)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline: %s\n" % e)
@@ -70,6 +73,9 @@ Name | Type | Description  | Notes
  **name** | **str**|  | [optional] 
  **display_name** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
+ **version_name** | **str**| Optional name of the initial pipeline version. Defaults to the pipeline name when omitted. | [optional] 
+ **version_display_name** | **str**| Optional display name of the initial pipeline version. Defaults to the pipeline display name when omitted. | [optional] 
+ **version_description** | **str**| Optional description of the initial pipeline version. Defaults to the pipeline description when omitted. | [optional] 
  **namespace** | **str**|  | [optional] 
  **tags** | **str**| JSON-encoded map of key-value pairs for pipeline tags. | [optional] 
  **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
