@@ -274,7 +274,9 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
     };
     retryClient.retryOptions = {
       ...retryClient.retryOptions,
-      maximumRetryCount: maxAttempts - 1,
+      // A single outer controller owns the total-attempt budget across HTTP, parsed S3, and
+      // transport failures. Leaving MinIO's narrower loop enabled would multiply mixed failures.
+      maximumRetryCount: 0,
     };
   }
   if (endpointBasePath || endpointAuthority) {
@@ -325,14 +327,32 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
   return client;
 }
 
-const RETRYABLE_S3_TRANSPORT_ERROR_CODES = new Set([
+const RETRYABLE_S3_ERROR_CODES = new Set([
   'EAI_AGAIN',
   'ECONNREFUSED',
   'ECONNRESET',
   'EPIPE',
   'ETIMEDOUT',
   'NetworkingError',
+  'RequestTimeout',
+  'RequestTimeoutException',
+  'Throttling',
+  'ThrottlingException',
+  'ThrottledException',
+  'RequestThrottledException',
+  'TooManyRequestsException',
+  'ProvisionedThroughputExceededException',
+  'TransactionInProgressException',
+  'RequestLimitExceeded',
+  'BandwidthLimitExceeded',
+  'LimitExceededException',
+  'RequestThrottled',
+  'SlowDown',
+  'PriorRequestNotComplete',
+  'EC2ThrottledException',
 ]);
+
+const RETRYABLE_S3_HTTP_STATUSES = new Set([500, 502, 503, 504]);
 
 function isRetryableS3Error(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
@@ -341,11 +361,23 @@ function isRetryableS3Error(error: unknown): boolean {
   const candidate = error as {
     code?: string;
     Code?: string;
+    message?: string;
+    status?: number;
+    statusCode?: number;
   };
   const code = candidate.code || candidate.Code;
-  // MinIO's request loop owns retryable HTTP statuses. This outer layer covers only transport
-  // failures that MinIO immediately rethrows, avoiding a multiplied nested attempt budget.
-  return code !== undefined && RETRYABLE_S3_TRANSPORT_ERROR_CODES.has(code);
+  if (code !== undefined && RETRYABLE_S3_ERROR_CODES.has(code)) {
+    return true;
+  }
+  const status = candidate.statusCode ?? candidate.status;
+  if (status !== undefined) {
+    return RETRYABLE_S3_HTTP_STATUSES.has(status);
+  }
+  // With MinIO retries disabled, its request helper wraps a retryable response in this message
+  // before the response parser can retain status metadata. Parse only that exact SDK message and
+  // apply the pinned AWS SDK's narrower status allowlist.
+  const wrappedStatus = /Retryable HTTP status: (\d+)/.exec(candidate.message || '');
+  return wrappedStatus ? RETRYABLE_S3_HTTP_STATUSES.has(Number(wrappedStatus[1])) : false;
 }
 
 async function retryS3Operation<T>(
@@ -499,13 +531,14 @@ function parseProviderEndpoint(
   } catch {
     throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
   }
-  // Parse the authority independently, but retain the raw escaped path. WHATWG URL parsing would
-  // otherwise repair encoded dot segments and disagree with Go's net/url endpoint contract.
-  const basePath = rawSuffix
-    .replace(/\\/g, '%5C')
-    .split(/(%[0-9a-f]{2})/i)
-    .map((segment) => (/^%[0-9a-f]{2}$/i.test(segment) ? segment : encodeURI(segment)))
-    .join('')
+  // Go parses endpoint escapes into URL.Path before the AWS signer serializes the request. Decode
+  // once, then emit the same path spelling without passing through WHATWG normalization. Brackets
+  // remain literal in Go's final request target; query/fragment delimiters remain path data.
+  const basePath = encodeURI(decodeURIComponent(rawSuffix))
+    .replace(/%5B/gi, '[')
+    .replace(/%5D/gi, ']')
+    .replace(/\?/g, '%3F')
+    .replace(/#/g, '%23')
     .replace(/\/$/, '');
   return {
     basePath: basePath || undefined,
@@ -637,9 +670,9 @@ async function applyS3ProviderInfo(
         `Provider option maxRetries cannot exceed ${MAX_S3_ATTEMPTS}: ${configuredMaxRetries}`,
       );
     }
-    // Go's zero value retains the AWS standard retryer's default of three total attempts. MinIO's
-    // request loop owns retryable HTTP statuses; the outer operation wrapper applies the same total
-    // budget to connection failures that MinIO does not retry itself.
+    // Go's zero value retains the AWS standard retryer's default of three total attempts. One outer
+    // controller owns that budget so alternating HTTP, S3-code, and transport failures cannot
+    // multiply retries across nested loops.
     const maxAttempts = maxRetries > 0 ? maxRetries : 3;
     config.maxAttempts = maxAttempts;
   }

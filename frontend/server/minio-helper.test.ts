@@ -196,7 +196,7 @@ describe('minio-helper', () => {
         endPoint: 'store.example',
         secretKey: 'secretkey',
       });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(4);
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
     });
 
     it('uses an operation retry budget when structured maxRetries is zero', async () => {
@@ -214,7 +214,7 @@ describe('minio-helper', () => {
         endPoint: 'store.example',
         secretKey: 'secretkey',
       });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(2);
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
     });
 
     it('uses the Go default retry budget when maxRetries is omitted', async () => {
@@ -229,7 +229,7 @@ describe('minio-helper', () => {
         endPoint: 'store.example',
         secretKey: 'secretkey',
       });
-      expect((client as any).retryOptions.maximumRetryCount).toBe(2);
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
     });
 
     it('rejects retry budgets above the frontend safety limit', async () => {
@@ -825,7 +825,7 @@ describe('minio-helper', () => {
 
     it.each([
       ['https://store.example/root dir/café', '/root%20dir/caf%C3%A9/bucket/object'],
-      ['https://store.example/base/%2e%2e/inner', '/base/%2e%2e/inner/bucket/object'],
+      ['https://store.example/base/%2e%2e/inner', '/base/../inner/bucket/object'],
     ])('preserves the Go request spelling for endpoint path %s', async (endpoint, expectedPath) => {
       const getRequestOptions = vi.fn(() => ({ path: '/bucket/object' }));
       MockedMinioClient.mockImplementationOnce(function () {
@@ -1058,7 +1058,7 @@ describe('minio-helper', () => {
 
     it('preserves escaped dot segments and encodes path backslashes without repairing them', () => {
       expect(TEST_ONLY.parseProviderEndpoint('https://store/base/%2e%2e/inner', true)).toEqual(
-        expect.objectContaining({ basePath: '/base/%2e%2e/inner', host: 'store' }),
+        expect.objectContaining({ basePath: '/base/../inner', host: 'store' }),
       );
       expect(TEST_ONLY.parseProviderEndpoint('https://store/base\\name/object', true)).toEqual(
         expect.objectContaining({ basePath: '/base%5Cname/object', host: 'store' }),
@@ -1066,6 +1066,9 @@ describe('minio-helper', () => {
       expect(TEST_ONLY.parseProviderEndpoint('https://store/root dir/café', true)).toEqual(
         expect.objectContaining({ basePath: '/root%20dir/caf%C3%A9', host: 'store' }),
       );
+      expect(
+        TEST_ONLY.parseProviderEndpoint('https://store/%41/%7e/%2f/%3A/raw[bracket]', true),
+      ).toEqual(expect.objectContaining({ basePath: '/A/~///:/raw[bracket]', host: 'store' }));
     });
 
     it('does not normalize a hostname that merely starts with the standard AWS name', async () => {
