@@ -739,6 +739,15 @@ func compileTempCABundleWithCustomCA(customCAPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Always close the file handle, and remove the temp file if we return
+	// early due to an error after it was created.
+	succeeded := false
+	defer func() {
+		tmpCaBundle.Close()
+		if !succeeded {
+			os.Remove(tmpCaBundle.Name())
+		}
+	}()
 	var systemCaBundle []byte
 	for _, file := range systemCAs {
 		systemCaBundle, err = os.ReadFile(file)
@@ -765,6 +774,7 @@ func compileTempCABundleWithCustomCA(customCAPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	succeeded = true
 	// Return filepath for tmpCaBundle
 	return tmpCaBundle.Name(), nil
 }
