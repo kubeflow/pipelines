@@ -285,8 +285,7 @@ function RocCurveComparison({
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
   const colorByKey = allocateRocColors(entries.map(({ key }) => key));
-  const selectedColorByKey = Object.fromEntries(selectedKeys.map((key) => [key, colorByKey[key]]));
-  const getColor = (key: string) => selectedColorByKey[key] || getStableDefaultRocColor(key);
+  const getColor = (key: string) => colorByKey[key] || getStableDefaultRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
@@ -476,37 +475,28 @@ function limitRocSelection(keys: string[]): string[] {
 }
 
 function getStableDefaultRocColor(key: string): string {
-  let primaryHash = 2166136261;
-  let secondaryHash = 5381;
+  let hash = 2166136261;
   for (let index = 0; index < key.length; index++) {
-    primaryHash ^= key.charCodeAt(index);
-    primaryHash = Math.imul(primaryHash, 16777619);
-    secondaryHash = Math.imul(secondaryHash, 33) ^ key.charCodeAt(index);
+    hash ^= key.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
   }
-  const hue = ((primaryHash >>> 0) % 360_000) / 1000;
-  const saturation = 55 + ((secondaryHash >>> 0) % 1_500) / 100;
-  const lightness = 38 + (((primaryHash ^ secondaryHash) >>> 0) % 1_400) / 100;
+  // Avalanche the string hash before selecting a deliberately coarse color cell. Fine-grained HSL
+  // hashes can differ numerically while rendering only one RGB level apart; these bins make every
+  // distinct cell visibly separated and keep a key's color independent of the surrounding curves.
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x85ebca6b);
+  hash ^= hash >>> 13;
+  hash = Math.imul(hash, 0xc2b2ae35);
+  hash ^= hash >>> 16;
+  const unsignedHash = hash >>> 0;
+  const hue = (unsignedHash % 24) * 15;
+  const saturation = [58, 70, 82][(unsignedHash >>> 5) % 3];
+  const lightness = [36, 48, 60][(unsignedHash >>> 10) % 3];
   return `hsl(${hue}deg ${saturation}% ${lightness}%)`;
 }
 
 function allocateRocColors(keys: string[]): Record<string, string> {
-  const colorsByKey: Record<string, string> = {};
-  const usedRenderedColors = new Set<string>();
-
-  [...new Set(keys)].sort().forEach((key) => {
-    let salt = 0;
-    let candidate = getStableDefaultRocColor(key);
-    let renderedColor = getRenderedRocColor(candidate);
-    while (usedRenderedColors.has(renderedColor)) {
-      salt += 1;
-      candidate = getStableDefaultRocColor(`${key}\0${salt}`);
-      renderedColor = getRenderedRocColor(candidate);
-    }
-    colorsByKey[key] = candidate;
-    usedRenderedColors.add(renderedColor);
-  });
-
-  return colorsByKey;
+  return Object.fromEntries([...new Set(keys)].map((key) => [key, getStableDefaultRocColor(key)]));
 }
 
 function getRenderedRocColor(color: string): string {

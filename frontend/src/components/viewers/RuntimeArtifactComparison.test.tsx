@@ -413,15 +413,32 @@ describe('RuntimeArtifactComparison', () => {
     expect(new Set(Object.values(TEST_ONLY.allocateRocColors(keys))).size).toBe(2);
   });
 
-  it('resolves HSL values that quantize to the same rendered RGB color', () => {
+  it('keeps identity colors independent of unrelated comparison entries', () => {
     const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
-    const initialColors = keys.map(TEST_ONLY.getStableDefaultRocColor);
+    const isolatedColor = TEST_ONLY.allocateRocColors([keys[1]])[keys[1]];
+    const withCollidingIdentity = TEST_ONLY.allocateRocColors(keys)[keys[1]];
+    const withUnrelatedIdentity = TEST_ONLY.allocateRocColors([
+      keys[0],
+      'Run 999:roc-999:roc-999',
+      keys[1],
+    ])[keys[1]];
 
-    expect(new Set(initialColors).size).toBe(2);
-    expect(new Set(initialColors.map(TEST_ONLY.getRenderedRocColor)).size).toBe(1);
-    expect(
-      new Set(Object.values(TEST_ONLY.allocateRocColors(keys)).map(TEST_ONLY.getRenderedRocColor))
-        .size,
-    ).toBe(2);
+    expect(withCollidingIdentity).toBe(isolatedColor);
+    expect(withUnrelatedIdentity).toBe(isolatedColor);
+  });
+
+  it('keeps formerly near-identical ROC colors perceptually separated', () => {
+    const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
+    const renderedColors = keys
+      .map(TEST_ONLY.getStableDefaultRocColor)
+      .map((color) => TEST_ONLY.getRenderedRocColor(color).split(',').map(Number));
+    const rgbDistance = Math.sqrt(
+      renderedColors[0].reduce(
+        (sum, channel, index) => sum + (channel - renderedColors[1][index]) ** 2,
+        0,
+      ),
+    );
+
+    expect(rgbDistance).toBeGreaterThan(40);
   });
 });
