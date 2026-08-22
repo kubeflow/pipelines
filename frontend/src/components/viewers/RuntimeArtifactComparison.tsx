@@ -46,6 +46,7 @@ import {
 
 const MAX_SELECTED_ROC_CURVES = 10;
 const DEFAULT_SELECTED_ROC_CURVES = 3;
+const ROC_COLOR_PALETTE_SIZE = 24 * 3 * 3;
 
 const css = stylesheet({
   comparisonGrid: {
@@ -291,23 +292,25 @@ function RocCurveComparison({
     : explicitValidKeys || [];
   const selectedKeySet = new Set(selectedKeys);
   const selectedEntries = entries.filter(({ key }) => selectedKeySet.has(key));
-  const remainingKeys = entries
-    .map(({ key }) => key)
-    .filter((key) => !selectedKeySet.has(key))
-    .sort();
+  const allocationKeys = getRocColorAllocationKeys(
+    selectedKeys,
+    entries.map(({ key }) => key),
+  );
+  const persistedColors = new Map(
+    allocationKeys.flatMap((key) =>
+      explicitColorByKey?.[key] ? [[key, explicitColorByKey[key]] as const] : [],
+    ),
+  );
   // Seed from persisted assignments and allocate selected curves first. New or unselected entries
   // may move to a salted color on collision, but an existing selected identity never changes.
-  const colorByKey = allocateRocColors(
-    [...selectedKeys, ...remainingKeys],
-    new Map(Object.entries(explicitColorByKey || {})),
-  );
+  const colorByKey = allocateRocColors(allocationKeys, persistedColors);
   const getColor = (key: string) => colorByKey[key] || getStableDefaultRocColor(key);
   const handleSelection = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     const nextKeys = limitRocSelection(typeof value === 'string' ? value.split(',') : value);
     updateSelectionState((current) => ({
       ...current,
-      rocColorByKey: { ...current.rocColorByKey, ...colorByKey },
+      rocColorByKey: colorByKey,
       rocSelectedKeys: nextKeys,
     }));
   };
@@ -524,11 +527,16 @@ function allocateRocColors(
     if (registry.has(key)) {
       return;
     }
-    let salt = 0;
-    let color = getStableDefaultRocColor(key);
-    while (usedColors.has(color)) {
-      salt += 1;
-      color = getStableDefaultRocColor(`${key}\0${salt}`);
+    const fallbackColor = getStableDefaultRocColor(key);
+    let color = fallbackColor;
+    // The coarse palette is finite. Probe at most every cell, then accept a duplicate; duplicate
+    // styling beyond the palette capacity is preferable to blocking React's synchronous render.
+    for (let salt = 0; salt < ROC_COLOR_PALETTE_SIZE; salt++) {
+      const candidate = salt === 0 ? fallbackColor : getStableDefaultRocColor(`${key}\0${salt}`);
+      if (!usedColors.has(candidate)) {
+        color = candidate;
+        break;
+      }
     }
     registry.set(key, color);
     usedColors.add(color);
@@ -536,10 +544,18 @@ function allocateRocColors(
   return Object.fromEntries(keys.map((key) => [key, registry.get(key)!]));
 }
 
+function getRocColorAllocationKeys(selectedKeys: string[], entryKeys: string[]): string[] {
+  const selectedKeySet = new Set(selectedKeys);
+  const remainingKeys = entryKeys.filter((key) => !selectedKeySet.has(key)).sort();
+  return [...selectedKeys, ...remainingKeys].slice(0, ROC_COLOR_PALETTE_SIZE);
+}
+
 export const TEST_ONLY = {
+  ROC_COLOR_PALETTE_SIZE,
   allocateRocColors,
   buildComparisonClassificationVisualizations,
   buildRocComparisonEntries,
+  getRocColorAllocationKeys,
   getStableDefaultRocColor,
   limitRocSelection,
 };

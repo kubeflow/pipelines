@@ -449,6 +449,52 @@ describe('RuntimeArtifactComparison', () => {
     expect(expandedColors[collidingKey]).not.toBe(isolatedColor);
   });
 
+  it('bounds color allocation and prioritizes selected curves for large comparisons', () => {
+    const selectedKeys = Array.from({ length: 10 }, (_, index) => `selected-${index}`);
+    const entryKeys = [
+      ...Array.from({ length: 400 }, (_, index) => `entry-${index}`),
+      ...selectedKeys,
+    ];
+
+    const allocationKeys = TEST_ONLY.getRocColorAllocationKeys(selectedKeys, entryKeys);
+
+    expect(allocationKeys).toHaveLength(TEST_ONLY.ROC_COLOR_PALETTE_SIZE);
+    expect(allocationKeys.slice(0, selectedKeys.length)).toEqual(selectedKeys);
+  });
+
+  it('returns after palette exhaustion instead of searching forever', () => {
+    const saturatedRegistry = new Map<string, string>();
+    for (let hue = 0; hue < 360; hue += 15) {
+      for (const saturation of [58, 70, 82]) {
+        for (const lightness of [36, 48, 60]) {
+          saturatedRegistry.set(
+            `used-${hue}-${saturation}-${lightness}`,
+            `hsl(${hue}deg ${saturation}% ${lightness}%)`,
+          );
+        }
+      }
+    }
+
+    const colors = TEST_ONLY.allocateRocColors(['overflow'], saturatedRegistry);
+
+    expect(saturatedRegistry.size).toBe(TEST_ONLY.ROC_COLOR_PALETTE_SIZE + 1);
+    expect(colors.overflow).toBe(TEST_ONLY.getStableDefaultRocColor('overflow'));
+  });
+
+  it('terminates allocation for more identities than the finite palette can represent', () => {
+    const keys = Array.from(
+      { length: TEST_ONLY.ROC_COLOR_PALETTE_SIZE + 184 },
+      (_, index) => `curve-${index}`,
+    );
+
+    const colors = TEST_ONLY.allocateRocColors(keys);
+
+    expect(Object.keys(colors)).toHaveLength(keys.length);
+    expect(new Set(Object.values(colors)).size).toBeLessThanOrEqual(
+      TEST_ONLY.ROC_COLOR_PALETTE_SIZE,
+    );
+  });
+
   it('keeps formerly near-identical ROC colors perceptually separated', () => {
     const keys = ['Run 1204:roc-1204:roc-1204', 'Run 1402:roc-1402:roc-1402'];
     const renderedColors = keys
