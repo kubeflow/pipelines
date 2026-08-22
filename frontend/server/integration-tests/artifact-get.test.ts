@@ -361,7 +361,6 @@ s3:
         pathStyle: true,
         port: 9443,
         region: 'custom-region',
-        retryOptions: { maximumRetryCount: 0 },
         secretKey: 'launcher-secret',
         useSSL: true,
       });
@@ -411,7 +410,7 @@ s3:
         return objStream;
       });
       mockedMinioClient.mockImplementation(function () {
-        return { getObject };
+        return { getObject, listObjectsV2Query: vi.fn(), retryOptions: {} };
       });
       vi.mocked(getConfigMap).mockResolvedValueOnce([
         {

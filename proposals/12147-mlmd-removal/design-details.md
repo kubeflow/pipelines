@@ -456,6 +456,10 @@ provenance signal. The following rollout constraints are therefore intentional:
   Legacy structured spellings such as `disableSSL` in an otherwise native
   `defaultPipelineRoot` query are rejected instead of being silently interpreted differently from
   the launcher.
+* The frontend accepts at most ten total S3 read attempts. A structured `maxRetries` value above
+  ten returns a configuration error instead of silently clamping or holding a shared UI request for
+  an operator-supplied unbounded duration. The launcher currently permits larger values, so
+  operators must keep this setting at ten or below when artifact content is served by the UI.
 * Ownership lookup failures fail closed for non-prefix/custom-root reads. In the default
   `artifact-then-prefix` mode, a canonical `private-artifacts/<namespace>/...` key can be accepted
   without an Artifact API request; strict `artifact-only` mode always requires the native record.

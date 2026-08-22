@@ -268,6 +268,15 @@ export async function createMinioClient(
 function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
   const { endpointAuthority, endpointBasePath, maxAttempts, ...clientOptions } = config;
   const client = new MinioClient(clientOptions as MinioClientOptions);
+  if (maxAttempts !== undefined) {
+    const retryClient = client as unknown as {
+      retryOptions: { maximumRetryCount?: number };
+    };
+    retryClient.retryOptions = {
+      ...retryClient.retryOptions,
+      maximumRetryCount: maxAttempts - 1,
+    };
+  }
   if (endpointBasePath || endpointAuthority) {
     // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path
     // before MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
@@ -282,16 +291,14 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
     const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
     requestOptionsClient.getRequestOptions = (options) => {
       const requestOptions = getRequestOptions(options);
-      if (endpointBasePath) {
-        requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
-      }
+      const storagePath = requestOptions.path;
       if (endpointAuthority) {
         // Preserve MinIO's addressing decision (not merely the configured preference). In
         // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
         const bucketPath = options.bucketName ? `/${options.bucketName}` : undefined;
         const usesPathStyle =
           bucketPath !== undefined &&
-          (requestOptions.path === bucketPath || requestOptions.path.startsWith(`${bucketPath}/`));
+          (storagePath === bucketPath || storagePath.startsWith(`${bucketPath}/`));
         const usesVirtualHostStyle =
           !!options.bucketName &&
           requestOptions.host.startsWith(`${options.bucketName}.`) &&
@@ -306,6 +313,9 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
             ? `${host}:${clientOptions.port}`
             : host;
       }
+      if (endpointBasePath) {
+        requestOptions.path = `${endpointBasePath}${storagePath}`;
+      }
       return requestOptions;
     };
   }
@@ -315,17 +325,13 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
   return client;
 }
 
-const RETRYABLE_S3_ERROR_CODES = new Set([
+const RETRYABLE_S3_TRANSPORT_ERROR_CODES = new Set([
   'EAI_AGAIN',
   'ECONNREFUSED',
   'ECONNRESET',
   'EPIPE',
   'ETIMEDOUT',
-  'InternalError',
   'NetworkingError',
-  'RequestTimeout',
-  'SlowDown',
-  'Throttling',
 ]);
 
 function isRetryableS3Error(error: unknown): boolean {
@@ -335,19 +341,11 @@ function isRetryableS3Error(error: unknown): boolean {
   const candidate = error as {
     code?: string;
     Code?: string;
-    retryable?: boolean;
-    status?: number;
-    statusCode?: number;
   };
   const code = candidate.code || candidate.Code;
-  const status = candidate.statusCode ?? candidate.status;
-  return (
-    candidate.retryable === true ||
-    (code !== undefined && RETRYABLE_S3_ERROR_CODES.has(code)) ||
-    status === 408 ||
-    status === 429 ||
-    (status !== undefined && status >= 500)
-  );
+  // MinIO's request loop owns retryable HTTP statuses. This outer layer covers only transport
+  // failures that MinIO immediately rethrows, avoiding a multiplied nested attempt budget.
+  return code !== undefined && RETRYABLE_S3_TRANSPORT_ERROR_CODES.has(code);
 }
 
 async function retryS3Operation<T>(
@@ -503,7 +501,12 @@ function parseProviderEndpoint(
   }
   // Parse the authority independently, but retain the raw escaped path. WHATWG URL parsing would
   // otherwise repair encoded dot segments and disagree with Go's net/url endpoint contract.
-  const basePath = rawSuffix.replace(/\\/g, '%5C').replace(/\/$/, '');
+  const basePath = rawSuffix
+    .replace(/\\/g, '%5C')
+    .split(/(%[0-9a-f]{2})/i)
+    .map((segment) => (/^%[0-9a-f]{2}$/i.test(segment) ? segment : encodeURI(segment)))
+    .join('')
+    .replace(/\/$/, '');
   return {
     basePath: basePath || undefined,
     host: authorityUrl.hostname.replace(/^\[(.*)\]$/, '$1'),
@@ -576,7 +579,7 @@ async function applyS3ProviderInfo(
   const structuredStandardAwsEndpoint =
     !nativeQuery &&
     providerInfo.Params.endpoint !== undefined &&
-    /^(https:\/\/)?s3\.amazonaws\.com/i.test(providerInfo.Params.endpoint);
+    /^(https:\/\/)?s3\.amazonaws\.com(?::\d+)?(?:\/|$)/i.test(providerInfo.Params.endpoint);
   if (structuredStandardAwsEndpoint) {
     // The runtime intentionally discards this structured endpoint and lets the AWS resolver choose
     // the regional authority. Its path, port, and explicit scheme are therefore not authoritative.
@@ -621,18 +624,24 @@ async function applyS3ProviderInfo(
   if (providerInfo.Params.region) {
     config.region = providerInfo.Params.region;
   }
-  if (providerInfo.Params.maxRetries !== undefined) {
-    const maxRetries = Number(providerInfo.Params.maxRetries);
-    if (!/^\d+$/.test(providerInfo.Params.maxRetries) || !Number.isSafeInteger(maxRetries)) {
+  {
+    const configuredMaxRetries = providerInfo.Params.maxRetries ?? '0';
+    const maxRetries = Number(configuredMaxRetries);
+    if (!/^\d+$/.test(configuredMaxRetries) || !Number.isSafeInteger(maxRetries)) {
       throw new Error(
-        `Invalid non-negative integer value for provider option maxRetries: ${providerInfo.Params.maxRetries}`,
+        `Invalid non-negative integer value for provider option maxRetries: ${configuredMaxRetries}`,
+      );
+    }
+    if (maxRetries > MAX_S3_ATTEMPTS) {
+      throw new Error(
+        `Provider option maxRetries cannot exceed ${MAX_S3_ATTEMPTS}: ${configuredMaxRetries}`,
       );
     }
     // Go's zero value retains the AWS standard retryer's default of three total attempts. MinIO's
-    // built-in retry option covers only selected HTTP responses, so perform this total-attempt
-    // budget around the actual operation and disable the narrower nested retry loop.
-    config.maxAttempts = Math.min(maxRetries > 0 ? maxRetries : 3, MAX_S3_ATTEMPTS);
-    config.retryOptions = { ...config.retryOptions, maximumRetryCount: 0 };
+    // request loop owns retryable HTTP statuses; the outer operation wrapper applies the same total
+    // budget to connection failures that MinIO does not retry itself.
+    const maxAttempts = maxRetries > 0 ? maxRetries : 3;
+    config.maxAttempts = maxAttempts;
   }
   const pathStyle =
     providerInfo.Params.forcePathStyle ??
