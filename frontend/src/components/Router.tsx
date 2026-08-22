@@ -16,7 +16,7 @@
 
 import { SnackbarProps } from '@mui/material/Snackbar';
 import * as React from 'react';
-import { Redirect, Route, Switch } from 'react-router-dom';
+import { Redirect, Route, RouteComponentProps, Switch } from 'react-router-dom';
 import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
@@ -31,9 +31,7 @@ import AllExperimentsAndArchive, {
 import AllRecurringRunsPage from 'src/pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from 'src/pages/AllRunsAndArchive';
 import ArtifactDetails from 'src/pages/ArtifactDetails';
-import ArtifactListSwitcher from 'src/pages/ArtifactListSwitcher';
-import ExecutionDetails from 'src/pages/ExecutionDetails';
-import ExecutionListSwitcher from 'src/pages/ExecutionListSwitcher';
+import EnhancedArtifactList from 'src/pages/ArtifactList';
 import ExperimentDetailsPage from 'src/pages/ExperimentDetails';
 import { GettingStarted } from 'src/pages/GettingStarted';
 import NewExperimentPage from 'src/pages/NewExperiment';
@@ -48,7 +46,15 @@ import SideNavigation from './SideNav';
 import Toolbar, { ToolbarProps } from './Toolbar';
 import { BuildInfoContext } from 'src/lib/BuildInfo';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Snackbar } from '@mui/material';
+import {
+  Alert,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Snackbar,
+} from '@mui/material';
 
 export type RouteConfig = {
   path: string;
@@ -75,7 +81,9 @@ export enum QUERY_PARAMS {
   fromRunId = 'fromRun',
   fromRecurringRunId = 'fromRecurringRun',
   runlist = 'runlist',
+  taskId = 'task',
   view = 'view',
+  executionRedirect = 'executionRedirect',
 }
 
 export enum RouteParams {
@@ -84,7 +92,7 @@ export enum RouteParams {
   pipelineVersionId = 'vid',
   runId = 'rid',
   recurringRunId = 'rrid',
-  // TODO: create one of these for artifact and execution?
+  // Legacy execution routes below are retained only to redirect old bookmarks.
   ID = 'id',
   executionId = 'executionid',
 }
@@ -92,7 +100,6 @@ export enum RouteParams {
 // tslint:disable-next-line:variable-name
 export const RoutePrefix = {
   ARTIFACT: '/artifact',
-  EXECUTION: '/execution',
   RECURRING_RUN: '/recurringrun',
 };
 
@@ -124,11 +131,15 @@ export const RoutePage = {
 };
 
 export const RoutePageFactory = {
-  artifactDetails: (artifactId: number) => {
+  artifactDetails: (artifactId: string | number) => {
     return RoutePage.ARTIFACT_DETAILS.replace(`:${RouteParams.ID}`, '' + artifactId);
   },
-  executionDetails: (executionId: number) => {
-    return RoutePage.EXECUTION_DETAILS.replace(`:${RouteParams.ID}`, '' + executionId);
+  runDetails: (runId: string) => {
+    return RoutePage.RUN_DETAILS.replace(`:${RouteParams.runId}`, runId);
+  },
+  runDetailsTask: (runId: string, taskId: string) => {
+    const search = new URLSearchParams({ [QUERY_PARAMS.taskId]: taskId });
+    return `${RoutePageFactory.runDetails(runId)}?${search.toString()}`;
   },
   pipelineDetails: (id: string) => {
     return RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(`:${RouteParams.pipelineId}`, id);
@@ -171,6 +182,55 @@ export interface RouterProps {
 const DEFAULT_ROUTE =
   KFP_FLAGS.DEPLOYMENT === Deployments.MARKETPLACE ? RoutePage.START : RoutePage.PIPELINES;
 
+const RemovedExecutionRoute = ({ match }: RouteComponentProps<{ [RouteParams.ID]?: string }>) => (
+  <Redirect
+    to={`${RoutePage.RUNS}?${QUERY_PARAMS.executionRedirect}=${match.params[RouteParams.ID] ? 'detail' : 'list'}`}
+  />
+);
+
+type LegacyRunExecutionRouteParams = {
+  [RouteParams.runId]: string;
+  [RouteParams.executionId]: string;
+};
+
+const LegacyRunExecutionRoute = ({
+  location,
+  match,
+}: RouteComponentProps<LegacyRunExecutionRouteParams>) => {
+  const query = new URLSearchParams(location.search);
+  query.set(QUERY_PARAMS.executionRedirect, 'detail');
+  return (
+    <Redirect
+      to={{
+        pathname: RoutePageFactory.runDetails(match.params[RouteParams.runId]),
+        search: `?${query}`,
+        hash: location.hash,
+      }}
+    />
+  );
+};
+
+// Keep navigation guidance separate from page-owned loading and error banners.
+const ExecutionRedirectNotice = ({ location, history }: RouteComponentProps) => {
+  const query = new URLSearchParams(location.search);
+  const reason = query.get(QUERY_PARAMS.executionRedirect);
+  if (reason !== 'list' && reason !== 'detail') return null;
+  return (
+    <Alert
+      severity='info'
+      onClose={() => {
+        query.delete(QUERY_PARAMS.executionRedirect);
+        history.replace({ ...location, search: query.size ? `?${query}` : '' });
+      }}
+    >
+      Execution pages have moved to Runs and task details. Open a run and select a task to view its
+      inputs, outputs, status, and logs.
+      {reason === 'detail' &&
+        ' This legacy execution link cannot select the corresponding task automatically.'}
+    </Alert>
+  );
+};
+
 // This component is made as a wrapper to separate toolbar state for different pages.
 const Router: React.FC<RouterProps> = ({ configs }) => {
   const buildInfo = React.useContext(BuildInfoContext);
@@ -187,10 +247,10 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
       path: RoutePage.ARCHIVED_EXPERIMENTS,
       view: AllExperimentsAndArchiveTab.ARCHIVE,
     },
-    { path: RoutePage.ARTIFACTS, Component: ArtifactListSwitcher },
+    { path: RoutePage.ARTIFACTS, Component: EnhancedArtifactList },
     { path: RoutePage.ARTIFACT_DETAILS, Component: ArtifactDetails, notExact: true },
-    { path: RoutePage.EXECUTIONS, Component: ExecutionListSwitcher },
-    { path: RoutePage.EXECUTION_DETAILS, Component: ExecutionDetails },
+    { path: RoutePage.EXECUTIONS, Component: RemovedExecutionRoute },
+    { path: RoutePage.EXECUTION_DETAILS, Component: RemovedExecutionRoute },
     {
       Component: AllExperimentsAndArchive,
       path: RoutePage.EXPERIMENTS,
@@ -216,7 +276,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.RECURRING_RUNS, Component: AllRecurringRunsPage },
     { path: RoutePage.RECURRING_RUN_DETAILS, Component: RecurringRunDetailsRouter },
     { path: RoutePage.RUN_DETAILS, Component: RunDetailsRouter },
-    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: RunDetailsRouter },
+    { path: RoutePage.RUN_DETAILS_WITH_EXECUTION, Component: LegacyRunExecutionRoute },
     { path: RoutePage.COMPARE, Component: Compare },
     { path: RoutePage.FRONTEND_FEATURES, Component: FrontendFeatures },
   ];
@@ -239,14 +299,20 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
         {routes.map((route, i) => {
           const { path } = { ...route };
           return (
-            // Setting a key here, so that two different routes are considered two instances from
-            // react. Therefore, they don't share toolbar state. This avoids many bugs like dangling
-            // network response handlers.
+            // Keep canonical Run Details mounted while its task-selection query changes. Other
+            // routes retain query-sensitive identity because some initialize state from the URL.
             <Route
               key={i}
               exact={!route.notExact}
               path={path}
-              render={(props) => <RoutedPage key={props.location.key} route={route} />}
+              render={(props) => {
+                const routeIdentity =
+                  route.path === RoutePage.RUN_DETAILS
+                    ? props.location.pathname
+                    : props.location.key ||
+                      `${props.location.pathname}${props.location.search}${props.location.hash}`;
+                return <RoutedPage key={routeIdentity} route={route} />;
+              }}
             />
           );
         })}
@@ -293,6 +359,9 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     return (
       <div className={classes(commonCss.page)}>
         <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
+        {(route?.path === RoutePage.RUNS || route?.path === RoutePage.RUN_DETAILS) && (
+          <Route component={ExecutionRedirectNotice} />
+        )}
         {this.state.bannerProps.message && (
           <Banner
             message={this.state.bannerProps.message}

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { PlotType } from './Viewer';
 
@@ -57,6 +57,64 @@ describe('ConfusionMatrix', () => {
     expect(asFragment()).toMatchSnapshot();
   });
 
+  it('keeps long column labels and the axis caption in the table flow', () => {
+    const labels = ['negative-class-with-a-long-name', 'positive class with a long name'];
+    const { container, getAllByRole, getByText } = render(
+      <ConfusionMatrix configs={[{ ...config, labels }]} />,
+    );
+    const columnLabels = getAllByRole('columnheader').filter(
+      (header) => header.getAttribute('scope') === 'col',
+    );
+
+    expect(columnLabels).toHaveLength(2);
+    columnLabels.forEach((header, index) => {
+      expect(header).toHaveTextContent(labels[index]);
+      expect(header).not.toHaveStyle('position: absolute');
+      expect(header.firstElementChild).toHaveStyle('overflow-wrap: anywhere; width: 79px');
+    });
+    const axisCaption = getByText(config.axes[0]);
+    expect(axisCaption).toHaveAttribute('colspan', '2');
+    expect(axisCaption.parentElement).toBe(container.querySelector('tbody')?.lastElementChild);
+    expect(axisCaption).not.toHaveStyle('position: absolute');
+  });
+
+  it('keeps distinct comparison values in the displayed matrix orientation', () => {
+    const { container, rerender } = render(
+      <ConfusionMatrix
+        configs={[
+          {
+            ...config,
+            data: [
+              [42, 8],
+              [3, 47],
+            ],
+          },
+        ]}
+      />,
+    );
+    const displayedValues = () =>
+      Array.from(container.querySelectorAll('td'))
+        .map((cell) => cell.textContent?.trim())
+        .filter((text) => text && /^\d+$/.test(text))
+        .map(Number);
+
+    expect(displayedValues()).toEqual([8, 47, 42, 3]);
+    rerender(
+      <ConfusionMatrix
+        configs={[
+          {
+            ...config,
+            data: [
+              [38, 12],
+              [7, 43],
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(displayedValues()).toEqual([12, 43, 38, 7]);
+  });
+
   it('activates row/column on cell hover', () => {
     const { container } = render(<ConfusionMatrix configs={[config]} />);
     const cells = container.querySelectorAll('td');
@@ -66,6 +124,22 @@ describe('ConfusionMatrix', () => {
     const overlay = targetCell.querySelector('div');
     expect(overlay).not.toBeNull();
     expect(overlay).toHaveStyle('opacity: 0.05');
+  });
+
+  it('applies refreshed data without resetting the active cell', async () => {
+    const { container, rerender } = render(<ConfusionMatrix configs={[config]} />);
+    const targetCell = container.querySelectorAll('td')[2];
+    fireEvent.mouseOver(targetCell);
+
+    rerender(
+      <ConfusionMatrix
+        configs={[{ ...config, data: config.data.map((row) => row.map((value) => value + 10)) }]}
+      />,
+    );
+
+    await waitFor(() => expect(container.querySelectorAll('td')[2]).toHaveTextContent('11'));
+    const refreshedTarget = container.querySelectorAll('td')[2];
+    expect(refreshedTarget.querySelector('div')).toHaveStyle('opacity: 0.05');
   });
 
   it('returns a user friendly display name', () => {

@@ -147,6 +147,13 @@ rules:
   - readArtifact
   - readLog
 - apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - artifacts
+  verbs:
+  - get
+  - list
+- apiGroups:
   - kubeflow.org
   resources:
   - viewers

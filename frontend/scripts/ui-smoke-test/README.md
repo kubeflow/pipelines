@@ -199,7 +199,7 @@ kill 12345
 lsof -i :3001
 ```
 
-Ports used: 3001 (frontend server), 3002 (ml-pipeline proxy), 4001 (base proxy), 4002 (PR proxy), 9000 (minio), 9090 (metadata-envoy).
+Ports used: 3001 (frontend server), 3002 (ml-pipeline proxy), 4001 (base proxy), 4002 (PR proxy), and 9000 (minio).
 
 ### Stale worktrees from a previous failed run
 
@@ -257,15 +257,14 @@ kubectl -n kubeflow scale deployment/ml-pipeline-ui --replicas=1
 | Page | Route | Wait Condition | Description |
 |------|-------|----------------|-------------|
 | pipelines | `/#/pipelines` | Table rows + pipeline links | Pipeline list |
-| pipeline-details-seeded | `/#/pipelines/details/{seed.pipelineId}` | Root + details content | Seeded pipeline details (default view) |
-| pipeline-details-seeded-sidepanel | `/#/pipelines/details/{seed.pipelineId}` | Side panel close button visible | Seeded pipeline details with side panel open |
+| pipeline-details-seeded | `/#/pipelines/details/?fromRun={seed.runId}` | Root + details content | Pipeline details loaded from the seeded run spec |
+| pipeline-details-seeded-sidepanel | `/#/pipelines/details/?fromRun={seed.runId}` | Side panel close button visible | Run-backed pipeline graph with side panel open |
 | experiments | `/#/experiments` | Table rows + experiment links | Experiment list |
 | runs | `/#/runs` | Table rows + run links | Run history |
 | run-details-seeded | `/#/runs/details/{seed.runId}` | Root + graph/details content | Seeded run details (default view) |
 | run-details-seeded-sidepanel | `/#/runs/details/{seed.runId}` | Side panel close button visible | Seeded run details with side panel open |
 | recurring-runs | `/#/recurringruns` | Table rows | Scheduled runs |
 | artifacts | `/#/artifacts` | Table rows | ML artifacts |
-| executions | `/#/executions` | Table rows + execution links | Execution history |
 | pipeline-create | `/#/pipeline/create` | Input field | Create pipeline form |
 | experiment-create | `/#/experiments/new` | Input field | Create experiment form |
 
@@ -299,16 +298,14 @@ Results are saved to `.ui-smoke-test/` at the repo root (gitignored):
 ```
 Kind Cluster (K8s)
   ├── ml-pipeline service :8888
-  ├── metadata-envoy-service :9090
   └── minio-service :9000
 
 Port Forwards (kubectl)
   ├── localhost:3002 → ml-pipeline:8888
-  ├── localhost:9090 → metadata-envoy:9090
   └── localhost:9000 → minio:9000
 
 Node.js Frontend Server (localhost:3001)
-  └── Proxies API calls to :3002, :9090, :9000
+  └── Proxies API calls to :3002 and :9000
 
 proxy-server.js × 2
   ├── localhost:4001 → static base build + API → :3001

@@ -301,46 +301,6 @@ exports[`SideNav > display the correct GKE metadata 1`] = `
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -818,46 +778,6 @@ exports[`SideNav > populates the display build information using the default pro
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -1311,46 +1231,6 @@ exports[`SideNav > renders Pipelines as active page 1`] = `
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -1818,46 +1698,6 @@ exports[`SideNav > renders Pipelines as active when on PipelineDetails page 1`] 
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -2311,46 +2151,6 @@ exports[`SideNav > renders collapsed state 1`] = `
               class="collapsedLabel_fnu5k6u label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d collapsedButton_f52z2lz css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="collapsedLabel_fnu5k6u label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -2818,46 +2618,6 @@ exports[`SideNav > renders expanded state 1`] = `
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -3311,46 +3071,6 @@ exports[`SideNav > renders experiments as active page 1`] = `
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -3818,46 +3538,6 @@ exports[`SideNav > renders experiments as active page when on AllRuns page 1`] =
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -4311,46 +3991,6 @@ exports[`SideNav > renders experiments as active page when on Compare page 1`] =
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -4818,46 +4458,6 @@ exports[`SideNav > renders experiments as active page when on NewExperiment page
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -5311,46 +4911,6 @@ exports[`SideNav > renders experiments as active page when on NewRun page 1`] = 
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -5818,46 +5378,6 @@ exports[`SideNav > renders experiments as active page when on RecurringRunDetail
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -6311,46 +5831,6 @@ exports[`SideNav > renders experiments as active page when on RunDetails page 1`
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -6818,46 +6298,6 @@ exports[`SideNav > renders experiments as active when on ExperimentDetails page 
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -7311,46 +6751,6 @@ exports[`SideNav > renders jobs as active page when on JobDetails page 1`] = `
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
@@ -7818,46 +7218,6 @@ exports[`SideNav > renders recurring runs as active page 1`] = `
           />
         </button>
       </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
       <hr
         class="separator_furuwhr"
       />
@@ -8311,46 +7671,6 @@ exports[`SideNav > show jupyterhub link if accessible 1`] = `
               class="label_f15zusur"
             >
               Artifacts
-            </span>
-          </div>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
-        </button>
-      </a>
-      <div
-        class="indicator_f1itm870 indicatorHidden_fnu5k6u"
-      />
-      <a
-        aria-label="Executions List"
-        class="unstyled_f1ikaigl"
-        data-mui-internal-clone-element="true"
-        href="/executions"
-        id="executionsBtn"
-      >
-        <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
-          tabindex="0"
-          type="button"
-        >
-          <div
-            class="flex flex-row flex-shrink-0"
-          >
-            <svg
-              aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
-              data-testid="PlayArrowIcon"
-              focusable="false"
-              viewBox="0 0 24 24"
-            >
-              <path
-                d="M8 5v14l11-7z"
-              />
-            </svg>
-            <span
-              class="label_f15zusur"
-            >
-              Executions
             </span>
           </div>
           <span
