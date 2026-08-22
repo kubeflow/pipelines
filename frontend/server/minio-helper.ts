@@ -571,7 +571,9 @@ function parseProviderEndpoint(
     throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
   }
   // Go parses endpoint escapes into URL.Path before the AWS signer serializes the request. Decode
-  // exactly one byte layer, then emit the same path spelling without WHATWG normalization.
+  // exactly one byte layer, then emit the same path spelling without WHATWG normalization. A proxy
+  // must preserve this signed target; normalizing dot segments or separators also breaks Go
+  // launcher requests using the same endpoint contract.
   const basePath = normalizeGoEndpointPath(rawSuffix).replace(/\/$/, '');
   return {
     basePath: basePath || undefined,
@@ -734,15 +736,10 @@ async function applyS3ProviderInfo(
         `Invalid non-negative integer value for provider option maxRetries: ${configuredMaxRetries}`,
       );
     }
-    if (maxRetries > MAX_S3_ATTEMPTS) {
-      throw new Error(
-        `Provider option maxRetries cannot exceed ${MAX_S3_ATTEMPTS}: ${configuredMaxRetries}`,
-      );
-    }
     // Go's zero value retains the AWS standard retryer's default of three total attempts. One outer
     // controller owns that budget so alternating HTTP, S3-code, and transport failures cannot
     // multiply retries across nested loops.
-    const maxAttempts = maxRetries > 0 ? maxRetries : 3;
+    const maxAttempts = Math.min(maxRetries > 0 ? maxRetries : 3, MAX_S3_ATTEMPTS);
     config.maxAttempts = maxAttempts;
   }
   const pathStyle =

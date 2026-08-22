@@ -232,19 +232,17 @@ describe('minio-helper', () => {
       expect((client as any).retryOptions.maximumRetryCount).toBe(0);
     });
 
-    it('rejects retry budgets above the frontend safety limit', async () => {
-      await expect(
-        createMinioClient(
-          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
-          'minio',
-          JSON.stringify({
-            Provider: 'minio',
-            Params: { fromEnv: 'true', maxRetries: '11' },
-          }),
-        ),
-      ).rejects.toThrow('maxRetries cannot exceed 10');
+    it('accepts retry budgets above the frontend safety limit', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '20' },
+        }),
+      );
 
-      expect(MockedMinioClient).not.toHaveBeenCalled();
+      expect(MockedMinioClient).toHaveBeenCalledTimes(1);
     });
 
     it('rejects malformed native endpoint authorities instead of repairing them', async () => {
@@ -1221,6 +1219,7 @@ describe('minio-helper', () => {
     it.each([
       [0, 3],
       [5, 5],
+      [20, 10],
     ])('applies maxRetries=%i to configured client operations', async (maxRetries, attempts) => {
       vi.useFakeTimers();
       try {
