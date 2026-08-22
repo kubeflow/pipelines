@@ -93,6 +93,91 @@ describe('workflow-helper', () => {
         ),
       ).rejects.toEqual('unknown error for fallback');
     });
+
+    it('records the default handler error as the cause when both fail.', async () => {
+      const defaultError = new Error('pods "podName" not found');
+      const fallbackError = new Error('Unable to find pod log archive information');
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.reject(defaultError),
+      );
+      const fallbackHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.reject(fallbackError),
+      );
+
+      const thrown = await composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
+        'podName',
+        '2024-08-13',
+        'namespace',
+      ).catch((err) => err);
+
+      // The thrown value is unchanged, so callers matching on its message still work.
+      expect(thrown).toBe(fallbackError);
+      expect(thrown.message).toBe('Unable to find pod log archive information');
+      // The reason the pod itself could not be read is no longer discarded.
+      expect(thrown.cause).toBe(defaultError);
+    });
+
+    it('keeps the Kubernetes error reachable when all three log sources fail.', async () => {
+      // getPodLogsHandler nests the handlers when log archiving is on:
+      // compose(fromK8s, compose(fromWorkflow, fromArchive)).
+      const k8sError = new Error('pods "podName" not found');
+      const workflowError = new Error('Unable to find pod log archive information in workflow');
+      const archiveError = new Error('Unable to find pod log archive information');
+      const reject = (err: Error) => vi.fn(() => Promise.reject(err));
+
+      const thrown = await composePodLogsStreamHandler(
+        reject(k8sError),
+        composePodLogsStreamHandler(reject(workflowError), reject(archiveError)),
+      )('podName', '2024-08-13', 'namespace').catch((err) => err);
+
+      const causes = [];
+      for (let err = thrown; err instanceof Error && err.cause; err = err.cause) {
+        causes.push(err.cause);
+      }
+      expect(thrown).toBe(archiveError);
+      expect(causes).toEqual([workflowError, k8sError]);
+    });
+
+    it('does not overwrite a cause the fallback error already carries.', async () => {
+      const existingCause = new Error('original cause');
+      const fallbackError = new Error('fallback failed', { cause: existingCause });
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.reject(new Error('default failed')),
+      );
+      const fallbackHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.reject(fallbackError),
+      );
+
+      const thrown = await composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
+        'podName',
+        '2024-08-13',
+        'namespace',
+      ).catch((err) => err);
+
+      expect(thrown.cause).toBe(existingCause);
+    });
+
+    it('logs why the default handler failed before falling back.', async () => {
+      const debug = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+      const defaultError = new Error('pods "podName" not found');
+      const fallbackStream = new PassThrough();
+      const defaultHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.reject(defaultError),
+      );
+      const fallbackHandler = vi.fn((_podName: string, _createdAt: string, _namespace?: string) =>
+        Promise.resolve(fallbackStream),
+      );
+
+      const stream = await composePodLogsStreamHandler(defaultHandler, fallbackHandler)(
+        'podName',
+        '2024-08-13',
+        'namespace',
+      );
+
+      expect(stream).toBe(fallbackStream);
+      expect(debug).toHaveBeenCalledWith(expect.stringContaining('podName'), defaultError);
+      debug.mockRestore();
+    });
   });
 
   describe('getPodLogsStreamFromK8s', () => {
