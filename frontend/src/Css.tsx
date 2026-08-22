@@ -327,6 +327,11 @@ export const commonCss = stylesheet({
     flexGrow: 1,
     overflow: 'auto',
   },
+  banners: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
   pageOverflowHidden: {
     display: 'flex',
     flexFlow: 'column',

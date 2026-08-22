@@ -45,6 +45,12 @@ export interface V2beta1RunDetails {
    * @memberof V2beta1RunDetails
    */
   task_details?: Array<V2beta1PipelineTaskDetail>;
+  /**
+   * Errors encountered while collecting or reporting run metrics.
+   * @type {string}
+   * @memberof V2beta1RunDetails
+   */
+  metric_errors?: string;
 }
 
 /**
@@ -74,6 +80,7 @@ export function V2beta1RunDetailsFromJSONTyped(
       json['task_details'] == null
         ? undefined
         : (json['task_details'] as Array<any>).map(V2beta1PipelineTaskDetailFromJSON),
+    metric_errors: json['metric_errors'] == null ? undefined : json['metric_errors'],
   };
 }
 
@@ -96,5 +103,6 @@ export function V2beta1RunDetailsToJSONTyped(
       value['task_details'] == null
         ? undefined
         : (value['task_details'] as Array<any>).map(V2beta1PipelineTaskDetailToJSON),
+    metric_errors: value['metric_errors'],
   };
 }

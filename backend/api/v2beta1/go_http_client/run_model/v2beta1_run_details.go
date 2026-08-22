@@ -19,6 +19,9 @@ import (
 // swagger:model v2beta1RunDetails
 type V2beta1RunDetails struct {
 
+	// Errors encountered while collecting or reporting run metrics.
+	MetricErrors string `json:"metric_errors,omitempty"`
+
 	// Pipeline context ID of a run.
 	PipelineContextID string `json:"pipeline_context_id,omitempty"`
 

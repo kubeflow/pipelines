@@ -1675,7 +1675,7 @@ func (r *ResourceManager) CreateOrUpdateTasks(t []*model.Task, runID string) ([]
 
 // Reports a workflow CR.
 // This is called to update runs.
-func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) (util.ExecutionSpec, error) {
+func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec, metricErrors []string) (util.ExecutionSpec, error) {
 	objMeta := execSpec.ExecutionObjectMeta()
 	execStatus := execSpec.ExecutionStatus()
 	if _, ok := objMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
@@ -1790,6 +1790,9 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		run.Conditions = string(state.ToV1())
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
+		if len(metricErrors) > 0 {
+			run.MetricErrors = model.LargeText(strings.Join(metricErrors, "\n"))
+		}
 		if updateError = r.runStore.UpdateRun(run); updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}
@@ -1890,6 +1893,18 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		if scheduledTimeInSec == 0 {
 			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
 		}
+		runDetails := model.RunDetails{
+			WorkflowRuntimeManifest: model.LargeText(execSpec.ToStringForStore()),
+			CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
+			ScheduledAtInSec:        scheduledTimeInSec,
+			FinishedAtInSec:         execStatus.FinishedAt(),
+			Conditions:              string(state.ToV1()),
+			State:                   state,
+		}
+
+		if len(metricErrors) > 0 {
+			runDetails.MetricErrors = model.LargeText(strings.Join(metricErrors, "\n"))
+		}
 		run = &model.Run{
 			UUID:           runId,
 			ExperimentId:   experimentId,
@@ -1899,14 +1914,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			StorageState:   model.StorageStateAvailable,
 			Namespace:      namespace,
 			PipelineSpec:   pipelineSpec,
-			RunDetails: model.RunDetails{
-				WorkflowRuntimeManifest: model.LargeText(execSpec.ToStringForStore()),
-				CreatedAtInSec:          objMeta.CreationTimestamp.Unix(),
-				ScheduledAtInSec:        scheduledTimeInSec,
-				FinishedAtInSec:         execStatus.FinishedAt(),
-				Conditions:              string(state.ToV1()),
-				State:                   state,
-			},
+			RunDetails:     runDetails,
 		}
 		run, err = r.runStore.CreateRun(run)
 		if r.options.CollectMetrics && !execStatus.StartedAtTime().Time.IsZero() {

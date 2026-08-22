@@ -754,6 +754,10 @@
             "$ref": "#/definitions/v2beta1PipelineTaskDetail"
           },
           "description": "Runtime details of the tasks that belong to the run."
+        },
+        "metric_errors": {
+          "type": "string",
+          "description": "Errors encountered while collecting or reporting run metrics."
         }
       },
       "description": "Runtime details of a run."

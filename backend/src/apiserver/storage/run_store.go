@@ -61,6 +61,7 @@ var runColumns = []string{
 	"RetryGeneration",
 	"RetryClaimedAtInSec",
 	"ArchivedAtInSec",
+	"MetricErrors",
 }
 
 var runMetricsColumns = []string{
@@ -397,7 +398,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
-		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
+		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID, metricErrors sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -431,6 +432,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&retryGeneration,
 			&retryClaimedAtInSec,
 			&archivedAtInSec,
+			&metricErrors,
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
@@ -504,6 +506,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				ArchivedAtInSec:         archivedAtInSec.Int64,
 				TaskDetails:             tasks,
 				StateHistory:            stateHistoryNew,
+				MetricErrors:            model.LargeText(metricErrors.String),
 			},
 			Metrics:            metrics,
 			ResourceReferences: resourceReferences,
@@ -628,6 +631,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 			"StateHistory":            stateHistoryString,
 			"PluginsInput":            largeTextToNullableSQL(r.PluginsInputString),
 			"PluginsOutput":           largeTextToNullableSQL(r.PluginsOutputString),
+			"MetricErrors":            largeTextToNullableSQL(&r.MetricErrors),
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
@@ -719,6 +723,7 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		"StateHistory":            stateHistoryString,
 		"FinishedAtInSec":         run.FinishedAtInSec,
 		"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+		"MetricErrors":            run.MetricErrors,
 	}
 	// PluginsOutput is only updated when explicitly set by the caller (e.g.
 	// MLflow terminal sync, retry). A nil pointer means "leave unchanged" so

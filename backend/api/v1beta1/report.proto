@@ -39,6 +39,8 @@ service ReportService {
 message ReportWorkflowRequest{
   // Workflow is a workflow custom resource marshalled into a json string.
   string workflow = 1;
+  // MetricErrors contains permanent errors encountered while collecting or reporting metrics for the workflow.
+  repeated string metric_errors = 2;
 }
 
 message ReportScheduledWorkflowRequest{

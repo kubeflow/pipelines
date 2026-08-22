@@ -176,8 +176,8 @@ func TestWorkflow_Save_RetryableReportSkipsMetrics(t *testing.T) {
 
 	assert.Equal(t, true, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
 	assert.NotNil(t, err)
-	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
-	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
+	assert.NotNil(t, pipelineFake.GetReadArtifactRequest())
+	assert.NotNil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
 func TestWorkflow_Save_SkippedDueToFinalStatue(t *testing.T) {

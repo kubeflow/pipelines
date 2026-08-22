@@ -107,7 +107,8 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                                             task_id = '0', 
                                             pod_name = '0', )
                                         ], )
-                                ], ), 
+                                ], 
+                            metric_errors = '0', ), 
                         recurring_run_id = '0', 
                         state_history = [
                             kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(

@@ -157,8 +157,10 @@ export interface DialogProps {
   title?: string;
 }
 
+export type BannerPropsInput = BannerProps | BannerProps[];
+
 interface RouteComponentState {
-  bannerProps: BannerProps;
+  bannerProps: BannerProps[];
   dialogProps: DialogProps;
   snackbarProps: SnackbarProps;
   toolbarProps: ToolbarProps;
@@ -279,7 +281,7 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     super(props);
 
     this.state = {
-      bannerProps: {},
+      bannerProps: [],
       dialogProps: { open: false },
       snackbarProps: { autoHideDuration: 5000, open: false },
       toolbarProps: { breadcrumbs: [{ displayName: '', href: '' }], actions: [], ...props },
@@ -293,15 +295,18 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     return (
       <div className={classes(commonCss.page)}>
         <Route render={({ ...props }) => <Toolbar {...this.state.toolbarProps} {...props} />} />
-        {this.state.bannerProps.message && (
-          <Banner
-            message={this.state.bannerProps.message}
-            mode={this.state.bannerProps.mode}
-            additionalInfo={this.state.bannerProps.additionalInfo}
-            refresh={this.state.bannerProps.refresh}
-            showTroubleshootingGuideLink={true}
-          />
-        )}
+        <div className={commonCss.banners}>
+                  {this.state.bannerProps.map((bannerProps, index) => (
+                    <Banner
+                      key={index}
+                      message={bannerProps.message}
+                      mode={bannerProps.mode}
+                      additionalInfo={bannerProps.additionalInfo}
+                      refresh={bannerProps.refresh}
+                      showTroubleshootingGuideLink={true}
+                    />
+                  ))}
+                </div>
         <Switch>
           {route &&
             (() => {
@@ -382,8 +387,9 @@ class RoutedPage extends React.Component<{ route?: RouteConfig }, RouteComponent
     this.setState({ toolbarProps });
   }
 
-  private _updateBanner(bannerProps: BannerProps): void {
-    this.setState({ bannerProps });
+  private _updateBanner(bannerProps: BannerPropsInput): void {
+    const banners = Array.isArray(bannerProps) ? bannerProps : [bannerProps];
+    this.setState({ bannerProps: banners.filter((banner) => !!banner.message) });
   }
 
   private _updateSnackbar(snackbarProps: SnackbarProps): void {

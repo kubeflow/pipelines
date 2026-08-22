@@ -85,7 +85,8 @@ class TestV2beta1RunDetails(unittest.TestCase):
                                 task_id = '0', 
                                 pod_name = '0', )
                             ], )
-                    ]
+                    ], 
+                metric_errors = '0'
             )
         else :
             return V2beta1RunDetails(

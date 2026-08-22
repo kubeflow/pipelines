@@ -38,7 +38,7 @@ const (
 )
 
 type PipelineClientInterface interface {
-	ReportWorkflow(workflow util.ExecutionSpec) error
+	ReportWorkflow(workflow util.ExecutionSpec,metricErrors []string) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
 	ArtifactClient() artifactclient.Client
@@ -98,7 +98,7 @@ func NewPipelineClient(
 	}, nil
 }
 
-func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
+func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec, metricErrors []string) error {
 	pctx := context.Background()
 	pctx = metadata.AppendToOutgoingContext(pctx, "Authorization",
 		"Bearer "+p.tokenRefresher.GetToken())
@@ -108,6 +108,7 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 
 	_, err := p.reportServiceClient.ReportWorkflowV1(ctx, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
+		MetricErrors: metricErrors,
 	})
 
 	if err != nil {
