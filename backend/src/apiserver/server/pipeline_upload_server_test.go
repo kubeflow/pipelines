@@ -489,6 +489,93 @@ func TestUploadPipelineVersion_CodeSourceUrl(t *testing.T) {
 	assert.Equal(t, "https://github.com/example/repo", pipelineVersion.CodeSourceUrl)
 }
 
+func TestUploadPipeline_Tags(t *testing.T) {
+	tags := map[string]string{"team": "ml-ops", "env": "prod"}
+	tagsJSON, _ := json.Marshal(tags)
+
+	tt := []struct {
+		name       string
+		apiVersion string
+		uploadFunc func(http.ResponseWriter, *http.Request)
+	}{
+		{
+			name:       "v1beta1 upload preserves tags on initial version",
+			apiVersion: "v1beta1",
+		},
+		{
+			name:       "v2beta1 upload preserves tags on initial version",
+			apiVersion: "v2beta1",
+		},
+	}
+	for _, test := range tt {
+		t.Run(test.name, func(t *testing.T) {
+			clientManager, server := setupClientManagerAndServer()
+			bytesBuffer, writer := setupWriter("")
+			setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+
+			endpoint := fmt.Sprintf("/apis/%s/pipelines/upload?name=%s&tags=%s",
+				test.apiVersion, url.PathEscape("my-pipeline"), url.QueryEscape(string(tagsJSON)))
+
+			var uploadFunc func(http.ResponseWriter, *http.Request)
+			switch test.apiVersion {
+			case "v1beta1":
+				uploadFunc = server.UploadPipelineV1
+			case "v2beta1":
+				uploadFunc = server.UploadPipeline
+			}
+
+			response := uploadPipeline(endpoint, bytes.NewReader(bytesBuffer.Bytes()), writer, uploadFunc)
+			assert.Equal(t, 200, response.Code, "upload response body: %s", response.Body.String())
+
+			// Verify tags are persisted on the initial pipeline version.
+			opts, _ := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+			versions, totalSize, _, err := clientManager.PipelineStore().ListPipelineVersions(DefaultFakeUUID, opts, nil)
+			assert.Nil(t, err)
+			assert.Equal(t, 1, totalSize)
+			assert.Equal(t, tags, versions[0].Tags)
+		})
+	}
+}
+
+func TestUploadPipeline_Tags_InvalidJSON(t *testing.T) {
+	_, server := setupClientManagerAndServer()
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+
+	endpoint := "/apis/v2beta1/pipelines/upload?name=my-pipeline&tags=not-valid-json"
+	response := uploadPipeline(endpoint, bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, http.StatusBadRequest, response.Code)
+	assert.Contains(t, response.Body.String(), "Failed to parse tags query parameter")
+}
+
+func TestUploadPipelineVersion_Tags(t *testing.T) {
+	tags := map[string]string{"version": "v2", "stage": "test"}
+	tagsJSON, _ := json.Marshal(tags)
+
+	clientManager, server := setupClientManagerAndServer()
+
+	// Create the pipeline first (no tags on initial version).
+	bytesBuffer, writer := setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	response := uploadPipeline("/apis/v2beta1/pipelines/upload",
+		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipeline)
+	assert.Equal(t, 200, response.Code)
+
+	// Upload a new version with tags.
+	server = updateClientManager(clientManager, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+	bytesBuffer, writer = setupWriter("")
+	setWriterWithBuffer("uploadfile", "hello-world.yaml", "apiVersion: argoproj.io/v1alpha1\nkind: Workflow", writer)
+	endpoint := fmt.Sprintf("/apis/v2beta1/pipelines/upload_version?name=%s&pipelineid=%s&tags=%s",
+		url.PathEscape(fakeVersionName), DefaultFakeUUID, url.QueryEscape(string(tagsJSON)))
+	response = uploadPipeline(endpoint, bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
+	assert.Equal(t, 200, response.Code, "upload version response body: %s", response.Body.String())
+
+	// Verify tags are persisted on the new version.
+	pipelineVersion, err := clientManager.PipelineStore().GetPipelineVersion(fakeVersionUUID)
+	assert.Nil(t, err)
+	assert.Equal(t, tags, pipelineVersion.Tags)
+}
+
 func TestUploadPipeline_GetFormFileError(t *testing.T) {
 	_, server := setupClientManagerAndServer()
 	bytesBuffer, writer := setupWriter("I am invalid file")
