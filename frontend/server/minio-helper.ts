@@ -45,6 +45,8 @@ export interface Credentials {
   sessionToken?: string;
 }
 
+const MAX_S3_ATTEMPTS = 10;
+
 const UNSUPPORTED_S3_READ_OPTIONS = new Set(['role']);
 const UNSUPPORTED_S3_BOOLEAN_READ_OPTIONS = [
   'accelerate',
@@ -286,8 +288,14 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
       if (endpointAuthority) {
         // Preserve MinIO's addressing decision (not merely the configured preference). In
         // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
+        const bucketPath = options.bucketName ? `/${options.bucketName}` : undefined;
+        const usesPathStyle =
+          bucketPath !== undefined &&
+          (requestOptions.path === bucketPath || requestOptions.path.startsWith(`${bucketPath}/`));
         const usesVirtualHostStyle =
-          !!options.bucketName && requestOptions.host.startsWith(`${options.bucketName}.`);
+          !!options.bucketName &&
+          requestOptions.host.startsWith(`${options.bucketName}.`) &&
+          !usesPathStyle;
         const host = usesVirtualHostStyle
           ? `${options.bucketName}.${endpointAuthority}`
           : endpointAuthority;
@@ -363,14 +371,20 @@ async function retryS3Operation<T>(
 }
 
 function wrapRetryableS3Methods(client: MinioClient, maxAttempts: number): void {
-  const retryableMethods = ['getObject', 'statObject', 'listObjectsV2Query'] as const;
+  const retryableMethods = ['getObject', 'listObjectsV2Query'] as const;
   const mutableClient = client as unknown as Record<string, unknown>;
   retryableMethods.forEach((method) => {
     const candidate = mutableClient[method];
     if (typeof candidate !== 'function') {
-      return;
+      throw new Error(
+        `Minio client does not expose ${method}; the bundled minio version may be incompatible ` +
+          'with configured S3 retries.',
+      );
     }
     const operation = candidate.bind(client) as (...args: unknown[]) => Promise<unknown>;
+    // getObject retries only failures reported before MinIO returns the response stream. Once body
+    // bytes have been consumed, replaying the request here would duplicate or corrupt the caller's
+    // stream; downstream failures therefore remain visible to the caller.
     mutableClient[method] = (...args: unknown[]) =>
       retryS3Operation(() => operation(...args), maxAttempts);
   });
@@ -617,7 +631,7 @@ async function applyS3ProviderInfo(
     // Go's zero value retains the AWS standard retryer's default of three total attempts. MinIO's
     // built-in retry option covers only selected HTTP responses, so perform this total-attempt
     // budget around the actual operation and disable the narrower nested retry loop.
-    config.maxAttempts = maxRetries > 0 ? maxRetries : 3;
+    config.maxAttempts = Math.min(maxRetries > 0 ? maxRetries : 3, MAX_S3_ATTEMPTS);
     config.retryOptions = { ...config.retryOptions, maximumRetryCount: 0 };
   }
   const pathStyle =

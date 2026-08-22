@@ -945,6 +945,42 @@ describe('minio-helper', () => {
       );
     });
 
+    it.each([
+      ['native', 'true'],
+      ['structured', undefined],
+    ])('does not prepend a path-style bucket named s3 for %s endpoints', async (_, nativeQuery) => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 's3.s3.us-west-2.amazonaws.com' },
+        host: 's3.s3.us-west-2.amazonaws.com',
+        path: '/s3/hello.txt',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.us-west-2.amazonaws.com',
+            forcePathStyle: 'true',
+            fromEnv: 'true',
+            ...(nativeQuery ? { nativeQuery } : {}),
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 's3', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 's3.us-west-2.amazonaws.com' },
+          host: 's3.us-west-2.amazonaws.com',
+          path: '/s3/hello.txt',
+        }),
+      );
+    });
+
     it('normalizes structured global AWS endpoints through the standard resolver', async () => {
       await createMinioClient(
         { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
@@ -1101,14 +1137,16 @@ describe('minio-helper', () => {
     it.each([
       [0, 3],
       [5, 5],
+      [100_000, 10],
     ])('applies maxRetries=%i to configured client operations', async (maxRetries, attempts) => {
       vi.useFakeTimers();
       try {
         const getObject = vi
           .fn()
           .mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+        const listObjectsV2Query = vi.fn();
         MockedMinioClient.mockImplementationOnce(function () {
-          return { getObject };
+          return { getObject, listObjectsV2Query };
         });
         const client = await createMinioClient(
           { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
@@ -1128,6 +1166,23 @@ describe('minio-helper', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+
+    it('fails loudly when a required retryable method is unavailable', async () => {
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject: vi.fn() };
+      });
+
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: '5' },
+          }),
+        ),
+      ).rejects.toThrow('does not expose listObjectsV2Query');
     });
 
     it.each([
