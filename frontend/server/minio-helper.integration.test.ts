@@ -63,6 +63,47 @@ describe('MinIO retry integration', () => {
     }
   });
 
+  it.each(['EAI_FAIL', 'ENOBUFS', 'EINTR', 'ESHUTDOWN'])(
+    'does not treat parsed S3 code %s as a transport failure',
+    async (code) => {
+      let requestCount = 0;
+      const server = createServer((_request, response) => {
+        requestCount += 1;
+        response
+          .writeHead(400, { 'content-type': 'application/xml' })
+          .end(`<Error><Code>${code}</Code><Message>not a transport error</Message></Error>`);
+      });
+      await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+
+      try {
+        const { port } = server.address() as AddressInfo;
+        const client = await createMinioClient(
+          {
+            accessKey: 'accesskey',
+            endPoint: '127.0.0.1',
+            pathStyle: true,
+            port,
+            region: 'us-east-1',
+            secretKey: 'secretkey',
+            useSSL: false,
+          },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: '3' },
+          }),
+        );
+
+        await expect(client.getObject('bucket', 'key')).rejects.toMatchObject({ code });
+        expect(requestCount).toBe(1);
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    },
+  );
+
   it('shares one total-attempt budget across HTTP and transport failures', async () => {
     let requestCount = 0;
     const server = createServer((_request, response) => {

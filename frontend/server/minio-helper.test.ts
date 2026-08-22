@@ -1247,9 +1247,13 @@ describe('minio-helper', () => {
     ])('applies maxRetries=%i to configured client operations', async (maxRetries, attempts) => {
       vi.useFakeTimers();
       try {
-        const getObject = vi
-          .fn()
-          .mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+        const getObject = vi.fn().mockRejectedValue(
+          Object.assign(new Error('connection reset'), {
+            code: 'ECONNRESET',
+            errno: -104,
+            syscall: 'read',
+          }),
+        );
         const listObjectsV2Query = vi.fn();
         MockedMinioClient.mockImplementationOnce(function () {
           return { getObject, listObjectsV2Query };
@@ -1283,7 +1287,9 @@ describe('minio-helper', () => {
       'ENETDOWN',
       'ENETUNREACH',
     ])('retries the Go connection error %s', async (code) => {
-      const operation = vi.fn().mockRejectedValue(Object.assign(new Error(code), { code }));
+      const operation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error(code), { code, errno: -1, syscall: 'connect' }));
 
       await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
         code,
@@ -1319,9 +1325,13 @@ describe('minio-helper', () => {
       [0, 3],
       [5, 5],
     ])('matches Go total-attempt semantics for maxRetries=%i', async (maxRetries, attempts) => {
-      const operation = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+      const operation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('connection reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
 
       await expect(
         TEST_ONLY.retryS3Operation(
@@ -1364,6 +1374,9 @@ describe('minio-helper', () => {
           message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
         }),
       ).toBe(false);
+      ['EAI_FAIL', 'ENOBUFS', 'EINTR', 'ESHUTDOWN'].forEach((code) => {
+        expect(TEST_ONLY.isRetryableS3Error({ code })).toBe(false);
+      });
     });
 
     it.each(['EALREADY', 'ENETRESET', 'ESHUTDOWN', 'ENOBUFS'])(
@@ -1423,9 +1436,13 @@ describe('minio-helper', () => {
       const missingObject = vi
         .fn()
         .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
-      const failingSummary = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+      const failingSummary = vi.fn().mockRejectedValue(
+        Object.assign(new Error('reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
 
       await expect(
         TEST_ONLY.retryS3Operation(missingObject, context, async () => undefined),
@@ -1444,9 +1461,13 @@ describe('minio-helper', () => {
         const getObject = vi
           .fn()
           .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
-        const listObjectsV2Query = vi
-          .fn()
-          .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+        const listObjectsV2Query = vi.fn().mockRejectedValue(
+          Object.assign(new Error('reset'), {
+            code: 'ECONNRESET',
+            errno: -104,
+            syscall: 'read',
+          }),
+        );
         MockedMinioClient.mockImplementationOnce(function () {
           return { getObject, listObjectsV2Query };
         });
@@ -1475,15 +1496,27 @@ describe('minio-helper', () => {
 
     it('enforces the request-wide ten-retry ceiling across operations', async () => {
       const context = TEST_ONLY.createS3RetryContext(10);
-      const firstOperation = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('first reset'), { code: 'ECONNRESET' }));
-      const secondOperation = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('second reset'), { code: 'ECONNRESET' }));
-      const thirdOperation = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('third reset'), { code: 'ECONNRESET' }));
+      const firstOperation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('first reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
+      const secondOperation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('second reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
+      const thirdOperation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('third reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
 
       await expect(
         TEST_ONLY.retryS3Operation(firstOperation, context, async () => undefined),
@@ -1513,9 +1546,13 @@ describe('minio-helper', () => {
     it('stops retrying when the artifact HTTP request is aborted', async () => {
       const abortController = new AbortController();
       const context = TEST_ONLY.createS3RetryContext(3, abortController.signal);
-      const operation = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+      const operation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
 
       await expect(
         TEST_ONLY.retryS3Operation(operation, context, async () => abortController.abort()),
@@ -1525,9 +1562,13 @@ describe('minio-helper', () => {
 
     it('passes request cancellation through a configured MinIO client', async () => {
       const abortController = new AbortController();
-      const getObject = vi
-        .fn()
-        .mockRejectedValue(Object.assign(new Error('reset'), { code: 'ECONNRESET' }));
+      const getObject = vi.fn().mockRejectedValue(
+        Object.assign(new Error('reset'), {
+          code: 'ECONNRESET',
+          errno: -104,
+          syscall: 'read',
+        }),
+      );
       MockedMinioClient.mockImplementationOnce(function () {
         return { getObject, listObjectsV2Query: vi.fn() };
       });

@@ -964,7 +964,10 @@ function getMinioArtifactHandler(options: MinioRequestConfig, peek: number = 0) 
           if (!res.headersSent) {
             res.status(500).send(`Failed to get object in bucket: ${tarErr}`);
           } else {
-            res.end();
+            // A status code can no longer change once archive bytes have been sent. Destroy the
+            // response so clients observe a failed transfer instead of accepting a truncated gzip
+            // as a successful HTTP 200 download.
+            res.destroy();
           }
           return;
         }
@@ -1045,8 +1048,13 @@ async function streamDirectoryAsTarGz(
     for await (const item of iterator) {
       await writeEntry(item);
     }
-  } finally {
     pack.finalize();
+  } catch (error) {
+    // Stop every stage before the handler aborts the HTTP response. Finalizing on failure would
+    // append a normal gzip footer and make a partial archive look superficially complete.
+    pack.destroy();
+    gzip.destroy();
+    throw error;
   }
 }
 

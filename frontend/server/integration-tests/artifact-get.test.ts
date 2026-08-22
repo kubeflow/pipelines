@@ -2247,9 +2247,17 @@ s3:
       function captureBinaryResponse(req: requests.Test): requests.Test {
         return req.buffer(true).parse((response: any, callback: any) => {
           const chunks: Uint8Array[] = [];
+          let settled = false;
+          const complete = (error: Error | null, body?: Buffer) => {
+            if (settled) return;
+            settled = true;
+            callback(error, body);
+          };
           response.on('data', (chunk: Uint8Array) => chunks.push(chunk));
-          response.on('end', () => callback(null, Buffer.concat(chunks)));
-          response.on('error', callback);
+          response.on('end', () => complete(null, Buffer.concat(chunks)));
+          response.on('aborted', () => complete(new Error('Artifact response was aborted.')));
+          response.on('close', () => complete(new Error('Artifact response closed early.')));
+          response.on('error', (error: Error) => complete(error));
         });
       }
 
@@ -2295,6 +2303,56 @@ s3:
         Object.entries(fileContents).forEach(([name, contents]) => {
           expect(entries.get(name.slice('directory/'.length))?.toString()).toBe(contents);
         });
+      });
+
+      it('aborts a directory download when a later child exhausts the retry allowance', async () => {
+        const childAttempts = new Map<string, number>();
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return {
+            getObject: async (bucket: string, key: string) => {
+              if (bucket !== 'ml-pipeline') throw new Error(`unexpected bucket ${bucket}`);
+              if (key === 'directory') throw makeNoSuchKeyError();
+              const attempt = (childAttempts.get(key) || 0) + 1;
+              childAttempts.set(key, attempt);
+              if (attempt === 1) {
+                throw Object.assign(new Error('transient read failure'), {
+                  code: 'ECONNRESET',
+                  errno: -104,
+                  syscall: 'read',
+                });
+              }
+              const objStream = new PassThrough();
+              objStream.end(`contents for ${key}`);
+              return objStream;
+            },
+            listObjectsV2Query: async () => ({
+              isTruncated: false,
+              nextContinuationToken: '',
+              objects: Array.from({ length: 11 }, (_, index) => ({
+                name: `directory/file-${index}.txt`,
+                size: `contents for directory/file-${index}.txt`.length,
+              })),
+            }),
+          };
+        });
+
+        app = new UIServer(loadConfigs(argv, minioConfigEnv));
+        const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+        try {
+          await expect(
+            captureBinaryResponse(
+              requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+            ),
+          ).rejects.toThrow();
+        } finally {
+          randomSpy.mockRestore();
+          consoleSpy.mockRestore();
+        }
+
+        expect(childAttempts.get('directory/file-9.txt')).toBe(2);
+        expect(childAttempts.get('directory/file-10.txt')).toBe(1);
       });
 
       it('returns a small text summary for preview requests instead of streaming the archive', async () => {

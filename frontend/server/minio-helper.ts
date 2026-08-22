@@ -345,7 +345,7 @@ function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecre
   return client;
 }
 
-const RETRYABLE_S3_ERROR_CODES = new Set([
+const RETRYABLE_NETWORK_ERROR_CODES = new Set([
   'EAI_AGAIN',
   'EAI_FAIL',
   'ECONNREFUSED',
@@ -357,11 +357,15 @@ const RETRYABLE_S3_ERROR_CODES = new Set([
   'ENOBUFS',
   'ENETUNREACH',
   'ENETDOWN',
+  'ENETRESET',
   'EADDRNOTAVAIL',
   'EADDRINUSE',
   'EPIPE',
   'ESHUTDOWN',
   'ETIMEDOUT',
+]);
+
+const RETRYABLE_S3_ERROR_CODES = new Set([
   'NetworkingError',
   'RequestTimeout',
   'RequestTimeoutException',
@@ -383,7 +387,11 @@ const RETRYABLE_S3_ERROR_CODES = new Set([
 
 const RETRYABLE_S3_HTTP_STATUSES = new Set([500, 502, 503, 504]);
 
-function isRetryableS3Error(error: unknown, transportStatus?: number): boolean {
+function isRetryableS3Error(
+  error: unknown,
+  transportStatus?: number,
+  transportFailure: boolean = false,
+): boolean {
   if (!error || typeof error !== 'object') {
     return false;
   }
@@ -403,12 +411,18 @@ function isRetryableS3Error(error: unknown, transportStatus?: number): boolean {
   if (code !== undefined && RETRYABLE_S3_ERROR_CODES.has(code)) {
     return true;
   }
+  if (
+    code !== undefined &&
+    RETRYABLE_NETWORK_ERROR_CODES.has(code) &&
+    (transportFailure || (candidate.errno !== undefined && candidate.syscall !== undefined))
+  ) {
+    // Node transport failures include errno/syscall evidence. A same-named value parsed from an
+    // object store's XML <Code> is untrusted API data and must not impersonate a network error.
+    return true;
+  }
   if (candidate.errno !== undefined && candidate.syscall === 'connect') {
     // Node system errors preserve the operation that failed. Treat connection establishment as
     // Go's retryable dial class without also retrying permanent DNS failures such as ENOTFOUND.
-    return true;
-  }
-  if (candidate.code === 'ENETRESET' && candidate.syscall === 'read') {
     return true;
   }
   const status = candidate.statusCode ?? candidate.status;
@@ -429,7 +443,7 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
   const statusOnlyResponses = new Set([408, 429, 499, 520]);
   type Destroyable = {
     destroy: (error?: Error) => void;
-    once: (event: string, listener: () => void) => unknown;
+    once: (event: string, listener: (...args: unknown[]) => void) => unknown;
   };
   type RetryResponse = Destroyable & { statusCode?: number };
   type RetryTransport = {
@@ -456,6 +470,9 @@ function exposeParsedS3Errors(client: MinioClient, retryContext: S3RetryContext)
         }
         callback(response);
       });
+      request.once('error', () => {
+        retryContext.transportFailure = true;
+      });
       bindS3Abort(request, retryContext.signal);
       return request;
     },
@@ -466,6 +483,7 @@ interface S3RetryContext {
   maxAttempts: number;
   remainingRetryAttempts: number;
   signal?: AbortSignal;
+  transportFailure?: boolean;
   transportStatus?: number;
 }
 
@@ -549,6 +567,7 @@ async function retryS3Operation<T>(
     // one listing, and one GET per child. Meter only amplification beyond each operation's first
     // attempt so large successful archives are not truncated by the retry safety guard.
     if (operationAttempt > 1) consumeS3RetryAttempt(retryContext);
+    retryContext.transportFailure = false;
     retryContext.transportStatus = undefined;
     try {
       return await operation();
@@ -557,7 +576,7 @@ async function retryS3Operation<T>(
       if (
         operationAttempt >= retryContext.maxAttempts ||
         retryContext.remainingRetryAttempts <= 0 ||
-        !isRetryableS3Error(error, retryContext.transportStatus)
+        !isRetryableS3Error(error, retryContext.transportStatus, retryContext.transportFailure)
       ) {
         throw error;
       }
