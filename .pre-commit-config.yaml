@@ -3,7 +3,7 @@ exclude: ^backend/api/(v1beta1|v2beta1)/python_http_client/
 repos:
   # other fast helpful checks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
         args: [--allow-multiple-documents]
@@ -17,7 +17,7 @@ repos:
       - id: no-commit-to-branch
         args: [--branch, master]
   - repo: https://github.com/PyCQA/flake8
-    rev: 7.1.1
+    rev: 7.3.0
     hooks:
       - id: flake8
         args:
@@ -27,24 +27,24 @@ repos:
   # add comment "noqa" to ignore an import that should not be removed
   # (e.g., for an import with desired side-effects)
   - repo: https://github.com/hadialqattan/pycln
-    rev: v2.5.0
+    rev: v2.6.0
     hooks:
       - id: pycln
         name: pycln
         language: python
         entry: pycln --all
   - repo: https://github.com/pycqa/isort
-    rev: 5.11.5
+    rev: 8.0.1
     hooks:
       - id: isort
         name: isort
         entry: isort --profile google
   - repo: https://github.com/google/yapf
-    rev: "v0.40.2"
+    rev: "v0.43.0"
     hooks:
       - id: yapf
   - repo: https://github.com/pycqa/docformatter
-    rev: v1.7.7
+    rev: v1.7.8
     hooks:
       - id: docformatter
         name: docformatter
@@ -56,7 +56,7 @@ repos:
 
   # Golang pre-submit hooks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.10.1
+    rev: v2.12.2
     hooks:
       - id: golangci-lint
         name: golangci-lint
@@ -75,7 +75,7 @@ repos:
         require_serial: true
         pass_filenames: false
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.9
+    rev: v1.7.12
     hooks:
       - id: actionlint
     types: ["yml", "yaml"]

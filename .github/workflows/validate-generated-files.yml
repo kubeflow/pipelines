@@ -5,10 +5,17 @@ on:
       - master
   pull_request:
     paths:
+      - '.gitattributes'
       - '.github/workflows/validate-generated-files.yml'
+      - '.github/resources/scripts/generated_files_dependency_change.py'
       - '.github/actions/setup-python-pip-cache/**'
+      - 'go.mod'
+      - 'go.sum'
       - 'backend/api/Dockerfile'
       - 'backend/api/Makefile'
+      - 'backend/api/build_kfp_server_api_python_package.sh'
+      - 'backend/api/tools/go.mod'
+      - 'backend/api/tools/go.sum'
       - 'backend/api/**/*.proto'
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
@@ -34,7 +41,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate-generated-files:
+  detect-generator-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.detect.outputs.required }}
+      auto-regeneration: ${{ steps.detect.outputs.auto-regeneration }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant generator changes
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            python3 .github/resources/scripts/generated_files_dependency_change.py \
+              --base "$BASE_SHA" --head "$HEAD_SHA" --mode outputs \
+              >> "$GITHUB_OUTPUT"
+          else
+            echo "required=true" >> "$GITHUB_OUTPUT"
+            echo "auto-regeneration=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  generate-and-check:
+    needs: detect-generator-changes
+    if: needs.detect-generator-changes.outputs.required == 'true'
     runs-on: ubuntu-latest
     env:
       USE_PREBUILT_IMAGE: false
@@ -42,7 +78,14 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
+        with:
+          # Auto-regeneration patches must be based on the branch commit they
+          # will later be applied to, not GitHub's synthetic PR merge commit.
+          ref: >-
+            ${{ github.actor == 'dependabot[bot]' &&
+                needs.detect-generator-changes.outputs.auto-regeneration == 'true'
+                && github.event.pull_request.head.sha || github.sha }}
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -98,13 +141,67 @@ jobs:
           API_VERSION: v1beta1
         run: make generate-kfp-server-api-package
 
+      - name: Capture safe Dependabot generated-file changes
+        id: dependabot-generated-files
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.actor == 'dependabot[bot]' &&
+          needs.detect-generator-changes.outputs.auto-regeneration == 'true'
+        shell: bash
+        env:
+          EVENT_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          PATCH_PATH: ${{ runner.temp }}/generated-files.patch
+          PATHS_PATH: ${{ runner.temp }}/generated-files-paths.txt
+          METADATA_PATH: ${{ runner.temp }}/generated-files-metadata.json
+        run: |
+          echo "has-changes=false" >> "$GITHUB_OUTPUT"
+          python3 .github/resources/scripts/generated_files_dependency_change.py \
+            --write-worktree-paths "$PATHS_PATH"
+          if [[ ! -s "$PATHS_PATH" ]]; then
+            echo "Generator outputs are already current."
+            exit 0
+          fi
+
+          if ! python3 .github/resources/scripts/generated_files_dependency_change.py \
+            --check-generated-paths "$PATHS_PATH"; then
+            echo "Generated changes are outside the auto-commit allowlist."
+            exit 0
+          fi
+
+          git add --all
+          git diff --cached --binary --full-index > "$PATCH_PATH"
+          jq -n \
+            --arg pr_number "$EVENT_PR_NUMBER" \
+            --arg head_sha "$EVENT_HEAD_SHA" \
+            --arg head_ref "$EVENT_HEAD_REF" \
+            '{pr_number: $pr_number, head_sha: $head_sha, head_ref: $head_ref}' \
+            > "$METADATA_PATH"
+          echo "has-changes=true" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Dependabot generated-file changes
+        if: steps.dependabot-generated-files.outputs.has-changes == 'true'
+        uses: ./.github/actions/upload-artifact-with-retry
+        with:
+          name: dependabot-generated-files-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/generated-files.patch
+            ${{ runner.temp }}/generated-files-paths.txt
+            ${{ runner.temp }}/generated-files-metadata.json
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 1
+
       - name: Check for Changes
         run: make check-diff
 
   validate-backwards-compabitiblity:
+    needs: detect-generator-changes
+    if: needs.detect-generator-changes.outputs.required == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -114,3 +211,25 @@ jobs:
         env:
           UPDATE_EXPORTED: false
         run: go test .
+
+  # Preserve the existing required-check name even when an unrelated Go module
+  # update skips the expensive generation job.
+  validate-generated-files:
+    needs:
+      - detect-generator-changes
+      - generate-and-check
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report validation result
+        env:
+          DETECTION_RESULT: ${{ needs.detect-generator-changes.result }}
+          GENERATION_REQUIRED: ${{ needs.detect-generator-changes.outputs.required }}
+          GENERATION_RESULT: ${{ needs.generate-and-check.result }}
+        run: |
+          [[ "$DETECTION_RESULT" == "success" ]]
+          if [[ "$GENERATION_REQUIRED" == "true" ]]; then
+            [[ "$GENERATION_RESULT" == "success" ]]
+          else
+            [[ "$GENERATION_RESULT" == "skipped" ]]
+          fi

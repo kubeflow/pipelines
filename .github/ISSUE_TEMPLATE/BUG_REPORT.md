@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-title: "[bug] <Bug Name>"
+title: "bug(<component>): <Bug Name>"
 about: Report any other issue encountered with Kubeflow Pipelines
 labels: kind/bug
 ---

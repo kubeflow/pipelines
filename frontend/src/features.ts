@@ -81,7 +81,7 @@ export function saveFeatures(f: Feature[]) {
   }
 }
 
-function storageAvailable(type: string) {
+function storageAvailable(type: 'localStorage' | 'sessionStorage') {
   var storage;
   try {
     storage = window[type];
