@@ -37,7 +37,8 @@ def _normalize_domain(domain):
 
 
 def artifact_server_environment(namespace, cluster_domain,
-                                allowed_artifact_endpoints):
+                                allowed_artifact_endpoints,
+                                allowed_gcs_universe_domains="googleapis.com"):
     return [
         {
             "name": "MINIO_ACCESS_KEY",
@@ -77,6 +78,10 @@ def artifact_server_environment(namespace, cluster_domain,
             "name": "ALLOWED_ARTIFACT_ENDPOINTS",
             "value": allowed_artifact_endpoints,
         },
+        {
+            "name": "ALLOWED_GCS_UNIVERSE_DOMAINS",
+            "value": allowed_gcs_universe_domains,
+        },
     ]
 
 
@@ -104,6 +109,7 @@ def get_settings_from_env(controller_port=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
                           allowed_artifact_endpoints=None,
+                          allowed_gcs_universe_domains=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None):
@@ -135,6 +141,9 @@ def get_settings_from_env(controller_port=None,
     settings["allowed_artifact_endpoints"] = \
         allowed_artifact_endpoints if allowed_artifact_endpoints is not None \
             else os.environ.get("ALLOWED_ARTIFACT_ENDPOINTS", "")
+    settings["allowed_gcs_universe_domains"] = \
+        allowed_gcs_universe_domains if allowed_gcs_universe_domains is not None \
+            else os.environ.get("ALLOWED_GCS_UNIVERSE_DOMAINS", "googleapis.com")
 
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
@@ -171,6 +180,7 @@ def server_factory(frontend_image,
                    allowed_artifact_endpoints="",
                    cluster_domain=".svc.cluster.local",
                    object_store_host="seaweedfs",
+                   allowed_gcs_universe_domains="googleapis.com",
                    url="",
                    controller_port=8080):
     """Returns an HTTPServer populated with Handler with customized
@@ -474,6 +484,7 @@ def server_factory(frontend_image,
                                                 namespace,
                                                 cluster_domain,
                                                 allowed_artifact_endpoints,
+                                                allowed_gcs_universe_domains,
                                             ),
                                         "resources": {
                                             "requests": {
