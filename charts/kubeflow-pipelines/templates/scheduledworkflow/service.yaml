@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-pipeline-scheduledworkflow
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: ml-pipeline-scheduledworkflow
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+spec:
+  type: ClusterIP
+  selector:
+    app: ml-pipeline-scheduledworkflow
+  ports:
+    - name: http
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
