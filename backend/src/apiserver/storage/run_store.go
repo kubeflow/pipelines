@@ -58,6 +58,9 @@ var runColumns = []string{
 	"PluginsOutput",
 	"PipelineContextId",
 	"PipelineRunContextId",
+	"RetryGeneration",
+	"RetryClaimedAtInSec",
+	"ArchivedAtInSec",
 }
 
 var runMetricsColumns = []string{
@@ -67,6 +70,65 @@ var runMetricsColumns = []string{
 	"NumberValue",
 	"Format",
 	"Payload",
+}
+
+// terminalRunStateStrings lists every raw value that a terminal run can carry
+// in the State or Conditions column across schema generations. These are raw
+// database values on purpose: RuntimeState.ToString() normalizes to v2, which
+// would collapse the v1 entries into duplicates and never match legacy rows.
+// ClaimRunForRetry and ArchiveExpiredRuns must agree on this list.
+var terminalRunStateStrings = []string{
+	string(model.RuntimeStateSucceeded),
+	string(model.RuntimeStateFailed),
+	string(model.RuntimeStateSkipped),
+	string(model.RuntimeStateCanceled),
+	string(model.RuntimeStateSucceededV1),
+	string(model.RuntimeStateFailedV1),
+	string(model.RuntimeStateSkippedV1),
+	string(model.RuntimeStateErrorV1),
+	model.LegacyStateDone,
+	model.LegacyStateDisabled,
+}
+
+var terminalRunStateValues = func() map[string]bool {
+	values := make(map[string]bool, len(terminalRunStateStrings))
+	for _, state := range terminalRunStateStrings {
+		values[state] = true
+	}
+	return values
+}()
+
+// nonArchivedStorageStateStrings is the closed set of StorageState values that
+// StorageState.ToV2() does not map to ARCHIVED. ArchiveExpiredRuns matches on
+// this positive list (plus NULL) instead of NOT IN so the query can be served
+// by the leading column of idx_run_gc_lifecycle (StorageState, FinishedAtInSec).
+var nonArchivedStorageStateStrings = []string{
+	string(model.StorageStateAvailable),
+	string(model.StorageStateAvailableV1),
+	string(model.StorageStateUnspecified),
+	string(model.StorageStateUnspecifiedV1),
+	model.LegacyStateNoStatus,
+	model.LegacyStateError,
+	model.LegacyStateEnabled,
+	model.LegacyStateReady,
+	model.LegacyStateEmpty,
+}
+
+// RetryClaimGraceSeconds bounds how long a retry claim is trusted without any
+// sign of the retried workflow. Two recovery paths key off it: the reporter
+// accepts a stale-generation terminal report past this age (resource manager),
+// and ClaimRunForRetry allows a new claim to take over an expired one, which
+// covers a crash after the claim committed but before the retried workflow was
+// created (no workflow exists, so no report can ever trigger the reporter
+// path). Variable rather than const so tests can shorten it.
+var RetryClaimGraceSeconds int64 = 600
+
+// archivedStorageStateStrings is the closed set of StorageState values that
+// StorageState.ToV2() maps to ARCHIVED.
+var archivedStorageStateStrings = []string{
+	string(model.StorageStateArchived),
+	string(model.StorageStateArchivedV1),
+	model.LegacyStateDisabled,
 }
 
 type RunStoreInterface interface {
@@ -106,6 +168,26 @@ type RunStoreInterface interface {
 	// Checks if a run already exists for a given recurring run and display name.
 	// Returns the existing run UUID if found, or empty string if not.
 	GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayName string) (string, error)
+
+	// Archives terminal active runs older than the cutoff. Returns count.
+	ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error)
+
+	// Deletes archived runs older than the cutoff, including dependent tables. Returns count.
+	DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error)
+
+	// Atomically claims a terminal run for retry (database-side CAS).
+	// Returns the original State, Conditions, FinishedAtInSec, and the new
+	// RetryGeneration claim token for rollback and reporter fencing.
+	// takeoverExpiredClaim additionally allows claiming a PENDING row whose
+	// previous claim has aged out; the caller must first reconcile against
+	// Kubernetes and prove the previous claim's workflow was never applied,
+	// otherwise a takeover can restart in-flight work.
+	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+
+	// Restores a run's pre-retry state after a failed retry attempt.
+	// The claimGeneration must match the value returned by ClaimRunForRetry
+	// to prevent ABA rollback of a later retry.
+	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
 }
 
 type RunStore struct {
@@ -314,7 +396,7 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, conditions, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
-		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextId, pipelineRunContextId sql.NullInt64
+		var createdAtInSec, scheduledAtInSec, finishedAtInSec, pipelineContextID, pipelineRunContextID, retryGeneration, retryClaimedAtInSec, archivedAtInSec sql.NullInt64
 		var metricsInString, resourceReferencesInString, tasksInString, runtimeParameters, pipelineRoot, jobID, state, stateHistory, pluginsInput, pluginsOutput, pipelineVersionID sql.NullString
 		err := rows.Scan(
 			&uuid,
@@ -344,8 +426,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 			&stateHistory,
 			&pluginsInput,
 			&pluginsOutput,
-			&pipelineContextId,
-			&pipelineRunContextId,
+			&pipelineContextID,
+			&pipelineRunContextID,
+			&retryGeneration,
+			&retryClaimedAtInSec,
+			&archivedAtInSec,
 			&resourceReferencesInString,
 			&tasksInString,
 			&metricsInString,
@@ -412,8 +497,11 @@ func (s *RunStore) scanRowsToRuns(rows *sql.Rows) ([]*model.Run, error) {
 				State:                   model.RuntimeState(state.String),
 				PipelineRuntimeManifest: model.LargeText(pipelineRuntimeManifest),
 				WorkflowRuntimeManifest: model.LargeText(workflowRuntimeManifest),
-				PipelineContextId:       pipelineContextId.Int64,
-				PipelineRunContextId:    pipelineRunContextId.Int64,
+				PipelineContextId:       pipelineContextID.Int64,
+				PipelineRunContextId:    pipelineRunContextID.Int64,
+				RetryGeneration:         retryGeneration.Int64,
+				RetryClaimedAtInSec:     retryClaimedAtInSec.Int64,
+				ArchivedAtInSec:         archivedAtInSec.Int64,
 				TaskDetails:             tasks,
 				StateHistory:            stateHistoryNew,
 			},
@@ -640,10 +728,16 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	if run.PluginsOutputString != nil {
 		updateFields["PluginsOutput"] = largeTextToNullableSQL(run.PluginsOutputString)
 	}
+	// Include RetryGeneration in the WHERE clause so that a stale workflow
+	// reporter that passed workflowStillMatchesReportedVersion before a
+	// ClaimRunForRetry increment cannot overwrite the claimed row.
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.Eq{"UUID": run.UUID}).
+		Where(sq.And{
+			sq.Eq{"UUID": run.UUID},
+			sq.Eq{"RetryGeneration": run.RetryGeneration},
+		}).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
@@ -710,7 +804,8 @@ func (s *RunStore) ArchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateArchived.ToString(),
+			"StorageState":    model.StorageStateArchived.ToString(),
+			"ArchivedAtInSec": s.time.Now().Unix(),
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
@@ -732,7 +827,8 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(sq.Eq{
-			"StorageState": model.StorageStateAvailable.ToString(),
+			"StorageState":    model.StorageStateAvailable.ToString(),
+			"ArchivedAtInSec": 0,
 		}).
 		Where(sq.Eq{"UUID": runId}).
 		ToSql()
@@ -751,32 +847,500 @@ func (s *RunStore) UnarchiveRun(runId string) error {
 }
 
 func (s *RunStore) DeleteRun(id string) error {
-	runSql, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err,
-			"Failed to create query to delete run: %s", id)
-	}
-	// Use a transaction to make sure both run and its resource references are stored.
 	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
-	_, err = tx.Exec(runSql, runArgs...)
+
+	// Lock parent row first to match GC DeleteExpiredArchivedRuns lock ordering
+	// (parent → children). Without this, concurrent GC and manual deletion of
+	// the same run can deadlock: GC holds parent waiting for children, manual
+	// holds children waiting for parent.
+	lockSQL, lockArgs, err := sq.Select("UUID").From("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create lock query for run %s", id)
+	}
+	var lockedID string
+	if err := tx.QueryRow(s.db.SelectForUpdate(lockSQL), lockArgs...).Scan(&lockedID); err != nil && err != sql.ErrNoRows {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to lock run %s for deletion", id)
+	}
+
+	metricsSQL, metricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete run metrics for run %s", id)
+	}
+	_, err = tx.Exec(metricsSQL, metricsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete run metrics for run %s", id)
+	}
+
+	tasksSQL, tasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete tasks for run %s", id)
+	}
+	_, err = tx.Exec(tasksSQL, tasksArgs...)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete tasks for run %s", id)
+	}
+
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to delete resource references for run %s", id)
+	}
+
+	runSQL, runArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": id}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err, "Failed to create query to delete run %s", id)
+	}
+	_, err = tx.Exec(runSQL, runArgs...)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %s from table", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete resource references from table for run %v ", id)
-	}
+
 	err = tx.Commit()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err, "Failed to delete run %v and its resource references from table", id)
+		return util.NewInternalServerError(err, "Failed to commit deletion of run %s", id)
 	}
 	return nil
+}
+
+func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
+	}
+
+	// Lock the row and read current state. Use sql.NullString for State
+	// because legacy runs intentionally have State NULL.
+	selectSQL, selectArgs, err := sq.
+		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec").
+		From("run_details").
+		Where(sq.Eq{"UUID": runID}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim select query for run %s", runID)
+	}
+	row := tx.QueryRow(s.db.SelectForUpdate(selectSQL), selectArgs...)
+	var nullableState sql.NullString
+	var originalConditions string
+	var originalFinishedAtInSec int64
+	var currentGeneration int64
+	var retryClaimedAtInSec int64
+	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec); err != nil {
+		tx.Rollback()
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
+		}
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to read run %s for retry claim", runID)
+	}
+	originalState := ""
+	if nullableState.Valid {
+		originalState = nullableState.String
+	}
+
+	// Verify the locked row is still in a terminal state. Between the
+	// earlier CanRetry check and lock acquisition, another retry may have
+	// claimed the row (PENDING) or the run may have transitioned to an
+	// active state (RUNNING, PAUSED, CANCELING).
+	isTerminal := terminalRunStateValues[originalState]
+	// Legacy v1 rows have State NULL/empty; derive terminal status from Conditions.
+	if !isTerminal && originalState == "" {
+		isTerminal = terminalRunStateValues[originalConditions]
+	}
+	if !isTerminal {
+		// Allow a new claim to take over an expired one, but only when the
+		// caller has explicitly authorized it after reconciling against
+		// Kubernetes (RetryRun proves the previous claim's workflow was
+		// never applied before setting takeoverExpiredClaim). A previous
+		// retry that crashed after committing its claim but before creating
+		// the workflow leaves the row PENDING with no workflow to report it;
+		// without takeover the run would be stuck forever (not terminal, so
+		// not claimable; FinishedAtInSec=0, so invisible to GC). Expiry is
+		// re-checked here under the row lock as defense in depth.
+		isAbandonedClaim := takeoverExpiredClaim &&
+			originalState == string(model.RuntimeStatePending) &&
+			currentGeneration > 0 &&
+			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
+		if !isAbandonedClaim {
+			tx.Rollback()
+			return "", "", 0, 0, util.NewBadRequestError(
+				fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
+				"Cannot claim run %s for retry: not in a terminal state", runID)
+		}
+		glog.Warningf("Run %s has an abandoned retry claim (generation %d, claimed at %d); taking it over", runID, currentGeneration, retryClaimedAtInSec)
+	}
+
+	// Atomically transition to PENDING and increment RetryGeneration.
+	// The new generation acts as a unique claim token that fences stale
+	// workflow reporters and prevents ABA rollback.
+	newGeneration := currentGeneration + 1
+	claimSQL, claimArgs, err := sq.
+		Update("run_details").
+		Set("State", model.RuntimeStatePending.ToString()).
+		Set("Conditions", string(model.RuntimeStatePending.ToV1())).
+		Set("FinishedAtInSec", 0).
+		Set("RetryGeneration", newGeneration).
+		Set("RetryClaimedAtInSec", s.time.Now().Unix()).
+		Where(sq.Eq{"UUID": runID}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to build retry claim query for run %s", runID)
+	}
+	if _, err := tx.Exec(claimSQL, claimArgs...); err != nil {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to execute retry claim for run %s", runID)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to commit retry claim for run %s", runID)
+	}
+	return originalState, originalConditions, originalFinishedAtInSec, newGeneration, nil
+}
+
+func (s *RunStore) RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error {
+	rollbackSQL, rollbackArgs, err := sq.
+		Update("run_details").
+		Set("State", originalState).
+		Set("Conditions", originalConditions).
+		Set("FinishedAtInSec", originalFinishedAtInSec).
+		// Clear the claim timestamp so the reporter's orphaned-claim
+		// recovery does not treat this restored terminal row as claimed.
+		Set("RetryClaimedAtInSec", 0).
+		Where(sq.And{
+			sq.Eq{"UUID": runID},
+			sq.Eq{"RetryGeneration": claimGeneration},
+		}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build rollback query for run %s", runID)
+	}
+	_, err = s.db.Exec(rollbackSQL, rollbackArgs...)
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to rollback retry claim for run %s", runID)
+	}
+	return nil
+}
+
+func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (int64, error) {
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+	selectSQL, selectArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			// Match terminal runs by State column, or by Conditions column
+			// for legacy v1 rows where State is NULL/empty (ToV2() derives
+			// State from Conditions at read time but does not backfill the DB).
+			sq.Or{
+				sq.Eq{"State": terminalRunStateStrings},
+				sq.And{
+					sq.Or{sq.Eq{"State": ""}, sq.Expr("State IS NULL")},
+					sq.Eq{"Conditions": terminalRunStateStrings},
+				},
+			},
+			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+			// Positive match on the closed set of non-archived storage states
+			// (plus NULL for legacy rows) so idx_run_gc_lifecycle's leading
+			// StorageState column can serve this query; NOT IN cannot use it.
+			sq.Or{
+				sq.Eq{"StorageState": nonArchivedStorageStateStrings},
+				sq.Expr("StorageState IS NULL"),
+			},
+		}).
+		OrderBy("FinishedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build query for archiving expired runs")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to start transaction for archiving expired runs")
+	}
+
+	rows, err := tx.Query(selectSQL, selectArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to query expired runs for archiving")
+	}
+
+	var uuids []string
+	for rows.Next() {
+		var uuid string
+		if err := rows.Scan(&uuid); err != nil {
+			rows.Close()
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to scan run UUID during archive")
+		}
+		uuids = append(uuids, uuid)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to iterate expired runs for archiving")
+	}
+
+	if len(uuids) == 0 {
+		if err := tx.Commit(); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to commit transaction for archiving expired runs")
+		}
+		return 0, nil
+	}
+
+	updateSQL, updateArgs, err := sq.
+		Update("run_details").
+		Set("StorageState", model.StorageStateArchived.ToString()).
+		// Start the archived-run observation window at archival time; the
+		// delete pass measures ARCHIVED_RUNS_RETENTION_TIME from this value.
+		Set("ArchivedAtInSec", s.time.Now().Unix()).
+		Where(sq.And{
+			sq.Eq{"UUID": uuids},
+			sq.Lt{"FinishedAtInSec": archiveCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+		}).
+		ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build update query for archiving expired runs")
+	}
+
+	result, err := tx.Exec(updateSQL, updateArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to archive expired runs")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to commit transaction for archiving expired runs")
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to read affected row count after archiving expired runs")
+	}
+	return affected, nil
+}
+
+func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize int) (int64, error) {
+	if batchSize <= 0 {
+		batchSize = 100
+	}
+	// Candidate selection runs as two index-aligned queries. Rows archived
+	// since ArchivedAtInSec existed are driven by idx_run_gc_archived
+	// (StorageState, ArchivedAtInSec); a single combined query would be
+	// driven by the finish-time index and, after a mass archival, would
+	// re-scan the entire old finish-time range every tick only to reject
+	// fresh archival timestamps. Legacy rows (ArchivedAtInSec=0) are driven
+	// by idx_run_gc_lifecycle (StorageState, FinishedAtInSec); that set only
+	// shrinks, so its scan cost drains to zero. Legacy candidates fill the
+	// batch first: they are by definition the oldest rows, and draining that
+	// bounded set first ends the dual-query era instead of starving it
+	// behind a steady stream of current-format rows.
+	currentSQL, currentArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"StorageState": archivedStorageStateStrings},
+			// Observation window measured from archival time.
+			sq.Gt{"ArchivedAtInSec": 0},
+			sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			// Conservative extra bound: never deletable less than the
+			// retention period after the run finished (covers runs archived
+			// while still running). Filter only; ArchivedAtInSec drives.
+			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+		}).
+		OrderBy("ArchivedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build query for deleting expired archived runs")
+	}
+	legacySQL, legacyArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"StorageState": archivedStorageStateStrings},
+			// Rows archived before ArchivedAtInSec existed carry 0 and fall
+			// back to the finish-time bound.
+			sq.Eq{"ArchivedAtInSec": 0},
+			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+		}).
+		OrderBy("FinishedAtInSec ASC").
+		Limit(uint64(batchSize)).
+		ToSql()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to build legacy query for deleting expired archived runs")
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to start transaction for deleting expired archived runs")
+	}
+
+	// Lock the candidate rows for the duration of the transaction so a
+	// concurrent unarchive cannot flip StorageState between this select and the
+	// deletes below, which would otherwise delete a run the user just restored.
+	var uuids []string
+	for _, candidateQuery := range []struct {
+		sql  string
+		args []interface{}
+	}{{legacySQL, legacyArgs}, {currentSQL, currentArgs}} {
+		if len(uuids) >= batchSize {
+			break
+		}
+		lockedCandidateRows, err := tx.Query(s.db.SelectForUpdate(candidateQuery.sql), candidateQuery.args...)
+		if err != nil {
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to query expired archived runs for deletion")
+		}
+		for lockedCandidateRows.Next() && len(uuids) < batchSize {
+			var uuid string
+			if scanError := lockedCandidateRows.Scan(&uuid); scanError != nil {
+				lockedCandidateRows.Close()
+				tx.Rollback()
+				return 0, util.NewInternalServerError(scanError, "Failed to scan run UUID during delete")
+			}
+			uuids = append(uuids, uuid)
+		}
+		iterationError := lockedCandidateRows.Err()
+		lockedCandidateRows.Close()
+		if iterationError != nil {
+			tx.Rollback()
+			return 0, util.NewInternalServerError(iterationError, "Failed to iterate expired archived runs for deletion")
+		}
+	}
+
+	if len(uuids) == 0 {
+		if err := tx.Commit(); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to commit transaction for deleting expired archived runs")
+		}
+		return 0, nil
+	}
+
+	// Re-verify locked rows still match all deletion predicates.
+	// Between the initial SELECT and the lock acquisition, RetryRun may have
+	// reset FinishedAtInSec to 0 (relaunching the workflow), or UnarchiveRun
+	// may have flipped StorageState back to AVAILABLE. Deleting such rows
+	// would orphan an active workflow or destroy a run the user just restored.
+	verifySQL, verifyArgs, err := sq.
+		Select("UUID").
+		From("run_details").
+		Where(sq.And{
+			sq.Eq{"UUID": uuids},
+			sq.Eq{"StorageState": archivedStorageStateStrings},
+			sq.Lt{"FinishedAtInSec": deleteCutoffEpoch},
+			sq.Gt{"FinishedAtInSec": 0},
+			sq.Or{
+				sq.Eq{"ArchivedAtInSec": 0},
+				sq.Lt{"ArchivedAtInSec": deleteCutoffEpoch},
+			},
+		}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build re-verification query for deletion candidates")
+	}
+	verifyRows, err := tx.Query(verifySQL, verifyArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to re-verify deletion candidates")
+	}
+	var verifiedUUIDs []string
+	for verifyRows.Next() {
+		var uuid string
+		if err := verifyRows.Scan(&uuid); err != nil {
+			verifyRows.Close()
+			tx.Rollback()
+			return 0, util.NewInternalServerError(err, "Failed to scan verified UUID during delete")
+		}
+		verifiedUUIDs = append(verifiedUUIDs, uuid)
+	}
+	verifyRows.Close()
+	if err := verifyRows.Err(); err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to iterate re-verified deletion candidates")
+	}
+
+	if len(verifiedUUIDs) == 0 {
+		if err := tx.Commit(); err != nil {
+			return 0, util.NewInternalServerError(err, "Failed to commit transaction after re-verification filtered all candidates")
+		}
+		return 0, nil
+	}
+	uuids = verifiedUUIDs
+
+	// Delete from dependent tables in child-first order.
+	deleteMetricsSQL, deleteMetricsArgs, err := sq.Delete("run_metrics").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_metrics")
+	}
+	if _, execError := tx.Exec(deleteMetricsSQL, deleteMetricsArgs...); execError != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(execError, "Failed to delete run_metrics for expired archived runs")
+	}
+
+	deleteTasksSQL, deleteTasksArgs, err := sq.Delete("tasks").Where(sq.Eq{"RunUUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for tasks")
+	}
+	if _, execError := tx.Exec(deleteTasksSQL, deleteTasksArgs...); execError != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(execError, "Failed to delete tasks for expired archived runs")
+	}
+
+	deleteReferencesSQL, deleteReferencesArgs, err := sq.
+		Delete("resource_references").
+		Where(sq.And{
+			sq.Eq{"ResourceType": model.RunResourceType},
+			sq.Eq{"ResourceUUID": uuids},
+		}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for resource_references")
+	}
+	if _, execError := tx.Exec(deleteReferencesSQL, deleteReferencesArgs...); execError != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(execError, "Failed to delete resource_references for expired archived runs")
+	}
+
+	deleteRunsSQL, deleteRunsArgs, err := sq.Delete("run_details").Where(sq.Eq{"UUID": uuids}).ToSql()
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to build delete query for run_details")
+	}
+	result, err := tx.Exec(deleteRunsSQL, deleteRunsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return 0, util.NewInternalServerError(err, "Failed to delete expired archived runs")
+	}
+
+	if commitError := tx.Commit(); commitError != nil {
+		return 0, util.NewInternalServerError(commitError, "Failed to commit transaction for deleting expired archived runs")
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return 0, util.NewInternalServerError(err, "Failed to read affected row count after deleting expired archived runs")
+	}
+	return affected, nil
 }
 
 // Creates a new metric in run_metrics table if does not exist.
