@@ -602,12 +602,16 @@ function wrapRetryableS3Methods(client: MinioClient, retryContext: S3RetryContex
           'with configured S3 retries.',
       );
     }
-    const operation = candidate.bind(client) as (...args: unknown[]) => Promise<unknown>;
     // getObject retries only failures reported before MinIO returns the response stream. Once body
     // bytes have been consumed, replaying the request here would duplicate or corrupt the caller's
     // stream; downstream failures therefore remain visible to the caller.
-    mutableClient[method] = (...args: unknown[]) =>
-      retryS3Operation(() => operation(...args), retryContext);
+    // Proxy the original callable rather than replacing it with a plain function. Besides keeping
+    // MinIO's method properties intact, this preserves instrumentation attached by tests and other
+    // consumers while the apply trap supplies retry behavior.
+    mutableClient[method] = new Proxy(candidate, {
+      apply: (target, _thisArg, args: unknown[]) =>
+        retryS3Operation(() => Reflect.apply(target, client, args), retryContext),
+    });
   });
 }
 

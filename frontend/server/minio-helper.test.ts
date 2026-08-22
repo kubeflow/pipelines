@@ -1494,6 +1494,23 @@ describe('minio-helper', () => {
       }
     });
 
+    it('preserves method instrumentation when adding retry behavior', async () => {
+      const stream = new PassThrough();
+      stream.end('artifact');
+      const getObject = vi.fn().mockResolvedValue(stream);
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject, listObjectsV2Query: vi.fn() };
+      });
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+      );
+
+      await expect(client.getObject('bucket', 'key')).resolves.toBe(stream);
+      expect(client.getObject).toHaveBeenCalledTimes(1);
+      expect(client.getObject).toHaveBeenCalledWith('bucket', 'key');
+    });
+
     it('enforces the request-wide ten-retry ceiling across operations', async () => {
       const context = TEST_ONLY.createS3RetryContext(10);
       const firstOperation = vi.fn().mockRejectedValue(
