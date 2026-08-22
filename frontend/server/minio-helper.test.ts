@@ -25,6 +25,7 @@ import {
   summarizeDirectoryUnderPrefix,
   MinioClientOptionsWithOptionalSecrets,
   Credentials,
+  TEST_ONLY,
 } from './minio-helper.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { getK8sSecret } from './k8s-helper.js';
@@ -187,12 +188,12 @@ describe('minio-helper', () => {
       expect(MockedMinioClient).toHaveBeenCalledWith({
         accessKey: 'accesskey',
         endPoint: 'store.example',
-        retryOptions: { maximumRetryCount: 4 },
+        retryOptions: { maximumRetryCount: 0 },
         secretKey: 'secretkey',
       });
     });
 
-    it('retains the client retry default when structured maxRetries is zero', async () => {
+    it('uses an operation retry budget when structured maxRetries is zero', async () => {
       await createMinioClient(
         { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
         'minio',
@@ -205,6 +206,7 @@ describe('minio-helper', () => {
       expect(MockedMinioClient).toHaveBeenCalledWith({
         accessKey: 'accesskey',
         endPoint: 'store.example',
+        retryOptions: { maximumRetryCount: 0 },
         secretKey: 'secretkey',
       });
     });
@@ -242,7 +244,7 @@ describe('minio-helper', () => {
             },
           }),
         ),
-      ).rejects.toThrow('must not contain backslashes');
+      ).rejects.toThrow('must contain a valid authority');
 
       expect(MockedMinioClient).not.toHaveBeenCalled();
     });
@@ -911,6 +913,83 @@ describe('minio-helper', () => {
       );
     });
 
+    it('preserves a structured China partition S3 authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.us-east-1.amazonaws.com' },
+        host: 'bucket.s3.us-east-1.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getRequestOptions };
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.cn-north-1.amazonaws.com.cn/base',
+            fromEnv: 'true',
+            region: 'cn-northwest-1',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
+          host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
+          path: '/base/object',
+        }),
+      );
+    });
+
+    it('normalizes structured global AWS endpoints through the standard resolver', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com:9443/base/path',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('preserves escaped dot segments and encodes path backslashes without repairing them', () => {
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/base/%2e%2e/inner', true)).toEqual(
+        expect.objectContaining({ basePath: '/base/%2e%2e/inner', host: 'store' }),
+      );
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/base\\name/object', true)).toEqual(
+        expect.objectContaining({ basePath: '/base%5Cname/object', host: 'store' }),
+      );
+    });
+
+    it('rejects control characters in provider endpoints instead of repairing them', () => {
+      expect(() =>
+        TEST_ONLY.parseProviderEndpoint('https://store.example\t.evil/base', true),
+      ).toThrow('invalid control character');
+      expect(() => TEST_ONLY.parseProviderEndpoint('https://store.example\n/base', true)).toThrow(
+        'invalid control character',
+      );
+    });
+
+    it('rejects malformed endpoint path escapes like Go net/url', () => {
+      expect(() =>
+        TEST_ONLY.parseProviderEndpoint('https://store.example/base/%zz/object', true),
+      ).toThrow('invalid URL escape');
+    });
+
     it('does not mutate shared defaults when applying per-request provider settings', async () => {
       const sharedConfig = {
         accessKey: 'default-access-key',
@@ -1015,6 +1094,70 @@ describe('minio-helper', () => {
         secretKey: 'secretkey',
         useSSL: false,
       });
+    });
+  });
+
+  describe('S3 operation retries', () => {
+    it.each([
+      [0, 3],
+      [5, 5],
+    ])('applies maxRetries=%i to configured client operations', async (maxRetries, attempts) => {
+      vi.useFakeTimers();
+      try {
+        const getObject = vi
+          .fn()
+          .mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+        MockedMinioClient.mockImplementationOnce(function () {
+          return { getObject };
+        });
+        const client = await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: String(maxRetries) },
+          }),
+        );
+
+        const request = expect(client.getObject('bucket', 'key')).rejects.toThrow(
+          'connection reset',
+        );
+        await vi.runAllTimersAsync();
+        await request;
+        expect(getObject).toHaveBeenCalledTimes(attempts);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([
+      [0, 3],
+      [5, 5],
+    ])('matches Go total-attempt semantics for maxRetries=%i', async (maxRetries, attempts) => {
+      const operation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('connection reset'), { code: 'ECONNRESET' }));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(
+          operation,
+          maxRetries > 0 ? maxRetries : 3,
+          async () => undefined,
+        ),
+      ).rejects.toThrow('connection reset');
+
+      expect(operation).toHaveBeenCalledTimes(attempts);
+    });
+
+    it('does not retry non-retryable object-store failures', async () => {
+      const operation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('denied'), { code: 'AccessDenied' }));
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 5, async () => undefined)).rejects.toThrow(
+        'denied',
+      );
+      expect(operation).toHaveBeenCalledTimes(1);
     });
   });
 

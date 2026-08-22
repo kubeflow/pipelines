@@ -36,6 +36,7 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
   endpointBasePath?: string;
   endpointAuthority?: string;
   endpointRewrite?: string;
+  maxAttempts?: number;
 }
 
 export interface Credentials {
@@ -263,46 +264,116 @@ export async function createMinioClient(
 }
 
 function createConfiguredMinioClient(config: MinioClientOptionsWithOptionalSecrets): MinioClient {
-  const { endpointAuthority, endpointBasePath, ...clientOptions } = config;
+  const { endpointAuthority, endpointBasePath, maxAttempts, ...clientOptions } = config;
   const client = new MinioClient(clientOptions as MinioClientOptions);
-  if (!endpointBasePath && !endpointAuthority) {
-    return client;
-  }
-
-  // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path before
-  // MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
-  const requestOptionsClient = client as unknown as {
-    getRequestOptions: (options: { bucketName?: string }) => {
-      headers: Record<string, string>;
-      host: string;
-      path: string;
-      [key: string]: unknown;
+  if (endpointBasePath || endpointAuthority) {
+    // MinIO JS does not expose endpoint base paths as a client option. Prefix the request path
+    // before MinIO signs it so custom Go Cloud endpoints retain the same origin-relative root.
+    const requestOptionsClient = client as unknown as {
+      getRequestOptions: (options: { bucketName?: string }) => {
+        headers: Record<string, string>;
+        host: string;
+        path: string;
+        [key: string]: unknown;
+      };
     };
-  };
-  const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
-  requestOptionsClient.getRequestOptions = (options) => {
-    const requestOptions = getRequestOptions(options);
-    if (endpointBasePath) {
-      requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
-    }
-    if (endpointAuthority) {
-      // Preserve MinIO's addressing decision (not merely the configured preference). In
-      // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
-      const usesVirtualHostStyle =
-        !!options.bucketName && requestOptions.host.startsWith(`${options.bucketName}.`);
-      const host = usesVirtualHostStyle
-        ? `${options.bucketName}.${endpointAuthority}`
-        : endpointAuthority;
-      requestOptions.host = host;
-      const defaultPort = clientOptions.useSSL === false ? 80 : 443;
-      requestOptions.headers.host =
-        clientOptions.port && clientOptions.port !== defaultPort
-          ? `${host}:${clientOptions.port}`
-          : host;
-    }
-    return requestOptions;
-  };
+    const getRequestOptions = requestOptionsClient.getRequestOptions.bind(client);
+    requestOptionsClient.getRequestOptions = (options) => {
+      const requestOptions = getRequestOptions(options);
+      if (endpointBasePath) {
+        requestOptions.path = `${endpointBasePath}${requestOptions.path}`;
+      }
+      if (endpointAuthority) {
+        // Preserve MinIO's addressing decision (not merely the configured preference). In
+        // particular, MinIO deliberately uses path style for dotted buckets over HTTPS.
+        const usesVirtualHostStyle =
+          !!options.bucketName && requestOptions.host.startsWith(`${options.bucketName}.`);
+        const host = usesVirtualHostStyle
+          ? `${options.bucketName}.${endpointAuthority}`
+          : endpointAuthority;
+        requestOptions.host = host;
+        const defaultPort = clientOptions.useSSL === false ? 80 : 443;
+        requestOptions.headers.host =
+          clientOptions.port && clientOptions.port !== defaultPort
+            ? `${host}:${clientOptions.port}`
+            : host;
+      }
+      return requestOptions;
+    };
+  }
+  if (maxAttempts !== undefined) {
+    wrapRetryableS3Methods(client, maxAttempts);
+  }
   return client;
+}
+
+const RETRYABLE_S3_ERROR_CODES = new Set([
+  'EAI_AGAIN',
+  'ECONNREFUSED',
+  'ECONNRESET',
+  'EPIPE',
+  'ETIMEDOUT',
+  'InternalError',
+  'NetworkingError',
+  'RequestTimeout',
+  'SlowDown',
+  'Throttling',
+]);
+
+function isRetryableS3Error(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const candidate = error as {
+    code?: string;
+    Code?: string;
+    retryable?: boolean;
+    status?: number;
+    statusCode?: number;
+  };
+  const code = candidate.code || candidate.Code;
+  const status = candidate.statusCode ?? candidate.status;
+  return (
+    candidate.retryable === true ||
+    (code !== undefined && RETRYABLE_S3_ERROR_CODES.has(code)) ||
+    status === 408 ||
+    status === 429 ||
+    (status !== undefined && status >= 500)
+  );
+}
+
+async function retryS3Operation<T>(
+  operation: () => Promise<T>,
+  maxAttempts: number,
+  delay: (attempt: number) => Promise<void> = (attempt) =>
+    new Promise((resolve) => setTimeout(resolve, Math.min(100 * 2 ** (attempt - 1), 1_000))),
+): Promise<T> {
+  let attempt = 1;
+  while (true) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt >= maxAttempts || !isRetryableS3Error(error)) {
+        throw error;
+      }
+      await delay(attempt);
+      attempt += 1;
+    }
+  }
+}
+
+function wrapRetryableS3Methods(client: MinioClient, maxAttempts: number): void {
+  const retryableMethods = ['getObject', 'statObject', 'listObjectsV2Query'] as const;
+  const mutableClient = client as unknown as Record<string, unknown>;
+  retryableMethods.forEach((method) => {
+    const candidate = mutableClient[method];
+    if (typeof candidate !== 'function') {
+      return;
+    }
+    const operation = candidate.bind(client) as (...args: unknown[]) => Promise<unknown>;
+    mutableClient[method] = (...args: unknown[]) =>
+      retryS3Operation(() => operation(...args), maxAttempts);
+  });
 }
 
 function applyEndpointRewrite(
@@ -379,29 +450,52 @@ function parseProviderEndpoint(
   basePath?: string;
   useSSL?: boolean;
 } {
-  const hasHttpScheme = /^https?:\/\//i.test(endpoint);
-  if (requireScheme && !hasHttpScheme) {
+  if (
+    [...endpoint].some((character) => {
+      const codePoint = character.codePointAt(0) || 0;
+      return codePoint <= 0x1f || codePoint === 0x7f;
+    })
+  ) {
+    throw new Error('Provider info endpoint contains an invalid control character.');
+  }
+  const schemeMatch = /^(https?):\/\//i.exec(endpoint);
+  if (requireScheme && !schemeMatch) {
     throw new Error(`Provider info endpoint must be an absolute HTTP(S) URL: ${endpoint}`);
   }
-  if (hasHttpScheme && !/^https?:\/\/[^/?#]+(?:[/?#]|$)/i.test(endpoint)) {
+  const remainder = schemeMatch ? endpoint.slice(schemeMatch[0].length) : endpoint;
+  const authorityEnd = remainder.search(/[/?#]/);
+  const authority = authorityEnd === -1 ? remainder : remainder.slice(0, authorityEnd);
+  const rawSuffix = authorityEnd === -1 ? '' : remainder.slice(authorityEnd);
+  if (!authority) {
     throw new Error(`Provider info endpoint must contain a valid authority: ${endpoint}`);
   }
-  if (endpoint.includes('\\')) {
-    throw new Error(`Provider info endpoint must not contain backslashes: ${endpoint}`);
+  if (authority.includes('\\') || /\s/.test(authority)) {
+    throw new Error(`Provider info endpoint must contain a valid authority: ${endpoint}`);
   }
-  const parsed = parseEndpoint(endpoint);
-  if (!parsed) {
-    throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
-  }
-  const url = new URL(/^https?:\/\//i.test(endpoint) ? endpoint : `http://${endpoint}`);
-  if (url.search || url.hash) {
+  if (rawSuffix.startsWith('?') || rawSuffix.startsWith('#') || /[?#]/.test(rawSuffix)) {
     throw new Error(
       `Provider endpoint "${endpoint}" contains a query or fragment that the frontend artifact ` +
         'reader cannot preserve. Remove it and retry.',
     );
   }
-  const basePath = url.pathname.replace(/\/$/, '');
-  return { ...parsed, basePath: basePath || undefined };
+  if (/%(?![0-9a-f]{2})/i.test(rawSuffix)) {
+    throw new Error(`Provider info endpoint contains an invalid URL escape: ${endpoint}`);
+  }
+  let authorityUrl: URL;
+  try {
+    authorityUrl = new URL(`${schemeMatch?.[1] || 'http'}://${authority}`);
+  } catch {
+    throw new Error(`Provider info has invalid endpoint: ${endpoint}`);
+  }
+  // Parse the authority independently, but retain the raw escaped path. WHATWG URL parsing would
+  // otherwise repair encoded dot segments and disagree with Go's net/url endpoint contract.
+  const basePath = rawSuffix.replace(/\\/g, '%5C').replace(/\/$/, '');
+  return {
+    basePath: basePath || undefined,
+    host: authorityUrl.hostname.replace(/^\[(.*)\]$/, '$1'),
+    port: authorityUrl.port ? Number(authorityUrl.port) : undefined,
+    useSSL: schemeMatch ? schemeMatch[1].toLowerCase() === 'https' : undefined,
+  };
 }
 
 /**
@@ -465,15 +559,26 @@ async function applyS3ProviderInfo(
     }
   }
 
-  if (providerInfo.Params.endpoint) {
+  const structuredStandardAwsEndpoint =
+    !nativeQuery &&
+    providerInfo.Params.endpoint !== undefined &&
+    /^(https:\/\/)?s3\.amazonaws\.com/i.test(providerInfo.Params.endpoint);
+  if (structuredStandardAwsEndpoint) {
+    // The runtime intentionally discards this structured endpoint and lets the AWS resolver choose
+    // the regional authority. Its path, port, and explicit scheme are therefore not authoritative.
+    config.endPoint = 's3.amazonaws.com';
+    config.endpointBasePath = undefined;
+    config.endpointAuthority = undefined;
+    config.port = undefined;
+    config.useSSL = disableSSLValue === true ? false : true;
+  } else if (providerInfo.Params.endpoint) {
     const endpoint = parseProviderEndpoint(providerInfo.Params.endpoint, nativeQuery);
     const disableTransport = disableHttpsValue ?? disableSSLValue;
     config.endPoint = endpoint.host;
     config.endpointBasePath = endpoint.basePath;
     // MinIO rewrites explicit AWS endpoints according to its own region table. Go Cloud keeps an
     // explicit endpoint authoritative, so pin AWS-partition hosts after MinIO builds the request.
-    config.endpointAuthority =
-      nativeQuery && isAwsS3Endpoint(endpoint.host) ? endpoint.host : undefined;
+    config.endpointAuthority = isAwsS3Endpoint(endpoint.host) ? endpoint.host : undefined;
     config.port = endpoint.port;
     // AWS DisableHTTPS is asymmetric: true downgrades an explicit HTTPS endpoint, while false does
     // not upgrade an explicit HTTP endpoint. The legacy and Go Cloud spellings share this rule.
@@ -509,10 +614,11 @@ async function applyS3ProviderInfo(
         `Invalid non-negative integer value for provider option maxRetries: ${providerInfo.Params.maxRetries}`,
       );
     }
-    if (maxRetries > 0) {
-      // AWS MaxAttempts includes the initial request; MinIO configures only retries.
-      config.retryOptions = { ...config.retryOptions, maximumRetryCount: maxRetries - 1 };
-    }
+    // Go's zero value retains the AWS standard retryer's default of three total attempts. MinIO's
+    // built-in retry option covers only selected HTTP responses, so perform this total-attempt
+    // budget around the actual operation and disable the narrower nested retry loop.
+    config.maxAttempts = maxRetries > 0 ? maxRetries : 3;
+    config.retryOptions = { ...config.retryOptions, maximumRetryCount: 0 };
   }
   const pathStyle =
     providerInfo.Params.forcePathStyle ??
@@ -533,6 +639,12 @@ function isAwsS3Endpoint(host: string): boolean {
     /^s3[.-][a-z0-9-]+\.amazonaws\.com(?:\.cn)?$/.test(normalized)
   );
 }
+
+export const TEST_ONLY = {
+  isRetryableS3Error,
+  parseProviderEndpoint,
+  retryS3Operation,
+};
 
 /**
  * Checks the magic number of a buffer to see if the mime type is a uncompressed

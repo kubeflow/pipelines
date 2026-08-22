@@ -360,7 +360,7 @@ s3:
         pathStyle: true,
         port: 9443,
         region: 'custom-region',
-        retryOptions: { maximumRetryCount: 4 },
+        retryOptions: { maximumRetryCount: 0 },
         secretKey: 'launcher-secret',
         useSSL: true,
       });
