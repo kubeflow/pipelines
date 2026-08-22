@@ -287,6 +287,26 @@ func TestOpenBucketUsesExplicitS3ClientForEnvCredentials(t *testing.T) {
 			expectedDisableHTTPS: false,
 		},
 		{
+			name: "S3 endpoint with standard AWS hostname prefix",
+			config: &Config{
+				Scheme:     "s3://",
+				BucketName: "test-bucket",
+				Prefix:     "artifacts/",
+			},
+			sessionInfo: &SessionInfo{
+				Provider: "s3",
+				Params: map[string]string{
+					"endpoint":       "https://s3.amazonaws.com.tenant.example/base",
+					"fromEnv":        "true",
+					"forcePathStyle": "true",
+				},
+			},
+			expectedRegion:       "us-east-1",
+			expectedBaseEndpoint: aws.String("https://s3.amazonaws.com.tenant.example/base"),
+			expectedPathStyle:    true,
+			expectedDisableHTTPS: false,
+		},
+		{
 			name: "Env-based S3 session info without structured params",
 			config: &Config{
 				Scheme:     "s3://",
