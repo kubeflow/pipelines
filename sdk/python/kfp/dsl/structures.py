@@ -145,11 +145,12 @@ class InputSpec:
             )
 
     def _validate_default_against_literals(self) -> None:
-        """Validates that a default value is one of the input's allowed
-        Literal values, if any.
+        """Validates that a default value is one of the input's allowed Literal
+        values, if any.
 
         A default value is a hard-coded input value, same as one passed
-        explicitly to a task; it must satisfy the same Literal constraint.
+        explicitly to a task; it must satisfy the same Literal
+        constraint.
         """
         if self.literals and self.default is not None and self.default not in self.literals:
             raise ValueError(
