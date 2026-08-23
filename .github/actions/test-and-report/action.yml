@@ -544,7 +544,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Python for reporting
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}
