@@ -71,7 +71,7 @@ jobs:
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
@@ -106,7 +106,7 @@ jobs:
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/master' &&
           steps.cache-runtime-base-images.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
