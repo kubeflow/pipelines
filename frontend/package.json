@@ -31,7 +31,7 @@
     "lodash.isfunction": "^3.0.9",
     "markdown-to-jsx": "^7.0.0",
     "pako": "^2.0.4",
-    "proto3-json-serializer": "^3.0.4",
+    "proto3-json-serializer": "^4.0.2",
     "protobufjs": "~8.6.6",
     "re-resizable": "^6.11.2",
     "react": "^19",
