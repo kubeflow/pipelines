@@ -145,7 +145,7 @@ runs:
     # the first spec runs). The weekly key suffix plus restore-keys keeps
     # compile artifacts fresh as sources drift between dependency changes.
     - name: Restore Go build and module caches
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.go-cache-meta.outputs.gomodcache }}

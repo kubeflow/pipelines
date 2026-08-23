@@ -22,7 +22,7 @@ runs:
 
     - name: Restore Kind node image cache
       id: kind-node-cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: /tmp/kind-node-${{ inputs.k8s_version }}.tar
         key: kind-node-${{ runner.os }}-${{ inputs.k8s_version }}
