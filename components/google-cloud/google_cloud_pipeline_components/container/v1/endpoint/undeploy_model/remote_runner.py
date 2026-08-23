@@ -41,7 +41,7 @@ def undeploy_model(
   endpoint_uri_pattern = re.compile(_ENDPOINT_NAME_TEMPLATE)
   match = endpoint_uri_pattern.match(endpoint_name)
   try:
-    location = match.group('location')
+    location = match.group('location')  # pyrefly: ignore[missing-attribute]
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
     raise ValueError(
@@ -102,7 +102,7 @@ def undeploy_model(
     model_uri_pattern = re.compile(_MODEL_NAME_TEMPLATE)
     match = model_uri_pattern.match(model_name_no_version)
     try:
-      location = match.group('location')
+      location = match.group('location')  # pyrefly: ignore[missing-attribute]
     except AttributeError as err:
       # TODO(ruifang) propagate the error.
       raise ValueError(
