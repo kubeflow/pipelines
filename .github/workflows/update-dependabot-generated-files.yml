@@ -33,7 +33,7 @@ jobs:
 
       - name: Locate the generated artifact and validate its pull request
         id: prepare
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           retries: 3
           script: |
@@ -192,7 +192,7 @@ jobs:
 
       - name: Confirm the pull request head is still current
         if: steps.prepare.outputs.eligible == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           EXPECTED_HEAD_SHA: ${{ steps.prepare.outputs.head_sha }}
           PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
