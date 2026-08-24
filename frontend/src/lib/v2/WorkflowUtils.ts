@@ -45,8 +45,9 @@ export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
 }
 
-export function isArgoWorkflowTemplate(template: Workflow): boolean {
-  if (template?.kind === 'Workflow' && template?.apiVersion?.startsWith('argoproj.io/')) {
+export function isArgoWorkflowTemplate(template: unknown): template is Workflow {
+  const candidate = template as Workflow | undefined;
+  if (candidate?.kind === 'Workflow' && candidate?.apiVersion?.startsWith('argoproj.io/')) {
     return true;
   }
   return false;
@@ -55,7 +56,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 export function isTemplateV2(templateString: string): boolean {
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (isArgoWorkflowTemplate(template as Workflow)) {
+    if (isArgoWorkflowTemplate(template)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
@@ -98,7 +99,7 @@ export function isPipelineSpec(templateString: string) {
   }
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template as Workflow)) {
+    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template as Workflow);
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
