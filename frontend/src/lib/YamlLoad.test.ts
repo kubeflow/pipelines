@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import { dump } from 'js-yaml';
+
 import { loadYaml } from './YamlLoad';
 
 describe('loadYaml', () => {
@@ -47,5 +49,17 @@ step:
 
   it('parses documents without merge keys unchanged', () => {
     expect(loadYaml('a: 1\nb: two\n')).toEqual({ a: 1, b: 'two' });
+  });
+
+  it('returns undefined for input holding no document', () => {
+    // js-yaml 5 throws YAMLException here, where js-yaml 4 returned undefined.
+    // Call sites pass optional templates through `|| ''`.
+    expect(loadYaml('')).toBeUndefined();
+    expect(loadYaml('   ')).toBeUndefined();
+    expect(loadYaml('\n')).toBeUndefined();
+  });
+
+  it('round trips empty input to an empty string through dump', () => {
+    expect(dump(loadYaml(''))).toBe('');
   });
 });

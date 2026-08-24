@@ -24,7 +24,17 @@ import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
  */
 const MANIFEST_SCHEMA = CORE_SCHEMA.withTags(mergeTag);
 
-/** Parses manifest YAML, preserving merge key (`<<`) resolution. */
+/**
+ * Parses manifest YAML, preserving merge key (`<<`) resolution.
+ *
+ * Returns undefined for input that holds no document. js-yaml 5 throws
+ * `YAMLException: expected a document, but the input is empty` in that case,
+ * where js-yaml 4 returned undefined. Call sites funnel optional template
+ * strings through `|| ''`, so throwing would surface during render.
+ */
 export function loadYaml(text: string): unknown {
+  if (!text.trim()) {
+    return undefined;
+  }
   return jsYamlLoad(text, { schema: MANIFEST_SCHEMA });
 }
