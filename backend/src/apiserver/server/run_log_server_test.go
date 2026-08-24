@@ -15,7 +15,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -28,7 +27,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/metadata"
 )
 
 func TestNewRunLogServer(t *testing.T) {
@@ -103,9 +101,8 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
 	server := NewRunLogServer(manager)
 
-	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	req := httptest.NewRequest("GET", "/test", nil).WithContext(ctx)
+	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
 	req = mux.SetURLVars(req, map[string]string{
 		RunKey:  run.UUID,
 		NodeKey: "node-1",
@@ -115,6 +112,20 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	server.ReadRunLogV1(recorder, req)
 
 	assert.Equal(t, http.StatusForbidden, recorder.Code)
-	assert.Equal(t, "application/json", recorder.Header().Get("Content-Type"))
-	assert.Contains(t, recorder.Body.String(), "Failed to authorize")
+	assert.Equal(t, "application/json", recorder.Result().Header.Get("Content-Type"))
+	assert.Contains(t, recorder.Body.String(), "Check if you have access to namespace")
+}
+
+func TestReadRunLogV1_AuthorizedOverPlainHTTP(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	clients, manager, run := initWithOneTimeRun(t) // default SAR fake authorizes
+	defer clients.Close()
+	server := NewRunLogServer(manager)
+
+	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
+
+	assert.NoError(t, server.authorize(req, run.UUID))
 }

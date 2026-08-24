@@ -26,6 +26,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -61,7 +62,7 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 
 	follow := vars[Follow] == "true" // defaults to false
 
-	if err := s.canAccessRun(r.Context(), runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}); err != nil {
+	if err := s.authorize(r, runId); err != nil {
 		s.writeErrorToResponse(w, http.StatusForbidden, util.Wrap(err, "Failed to authorize the request"))
 		return
 	}
@@ -74,6 +75,19 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusInternalServerError, err)
 	}
+}
+
+// This route is registered directly on the mux rather than through grpc-gateway,
+// so the caller identity arrives in the request headers, not in gRPC metadata.
+// Copy the headers into metadata so the authenticators can read them, as
+// canUploadVersionedPipeline does.
+func (s *RunLogServer) authorize(r *http.Request, runId string) error {
+	md := metadata.MD{}
+	for key, values := range r.Header {
+		md.Set(key, values...)
+	}
+	ctx := metadata.NewIncomingContext(r.Context(), md)
+	return s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 }
 
 func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
