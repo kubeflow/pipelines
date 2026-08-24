@@ -20,8 +20,10 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -194,7 +196,7 @@ func TestRootDAG_CreateExecutionAlreadyExistsReturnsExistingID(t *testing.T) {
 		return fake.NewClientset(mockConfigMap), nil
 	}
 
-	execution, err := RootDAG(context.Background(), Options{
+	execution, _, err := RootDAG(util.WithExistingLogger(context.Background(), logrus.New()), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
 		Component:      &pipelinespec.ComponentSpec{},
@@ -241,7 +243,7 @@ func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure(t *testing.T) {
 		return fake.NewClientset(mockConfigMap), nil
 	}
 
-	execution, err := RootDAG(context.Background(), Options{
+	execution, _, err := RootDAG(util.WithExistingLogger(context.Background(), logrus.New()), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
 		Component:      &pipelinespec.ComponentSpec{},
@@ -285,7 +287,7 @@ func TestRootDAG_CreateExecutionAlreadyExistsLookupFailure_NilExistingRecord(t *
 		return fake.NewClientset(mockConfigMap), nil
 	}
 
-	execution, err := RootDAG(context.Background(), Options{
+	execution, _, err := RootDAG(util.WithExistingLogger(context.Background(), logrus.New()), Options{
 		PipelineName:   "pipeline-1",
 		RunID:          "run-1",
 		Component:      &pipelinespec.ComponentSpec{},

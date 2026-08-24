@@ -63,11 +63,6 @@ type Options struct {
 	// in a dedicated Linux user namespace: UID 0 inside the pod maps to an
 	// unprivileged host UID, so root processes in the container are not root on the host.
 	DefaultHostUsers *bool
-	// Optional: administrator-configured labels and annotations for driver pods.
-	// Nil means not set (feature disabled). The API server reads this from its own
-	// configuration and passes it in, so callers that compile outside the API server,
-	// such as the standalone compiler, simply leave it nil and get no extra metadata.
-	DriverPodConfig *common.DriverPodConfig
 }
 
 const (
@@ -173,6 +168,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
+					util.AnnotationKeyIstioSidecarInject:  util.AnnotationValueIstioSidecarInjectDisabled,
 				},
 				Labels: map[string]string{
 					"pipelines.kubeflow.org/v2_component": "true",
@@ -211,8 +207,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		// TODO(chensun): release process and update the images.
 		launcherImage:     GetLauncherImage(),
 		launcherCommand:   GetLauncherCommand(),
-		driverImage:       GetDriverImage(),
-		driverCommand:     GetDriverCommand(),
 		job:               job,
 		spec:              spec,
 		executors:         deploy.GetExecutors(),
@@ -226,7 +220,6 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		c.defaultRunAsGroup = opts.DefaultRunAsGroup
 		c.defaultRunAsNonRoot = opts.DefaultRunAsNonRoot
 		c.defaultHostUsers = opts.DefaultHostUsers
-		c.driverPodConfig = opts.DriverPodConfig
 		if opts.DriverImage != "" {
 			c.driverImage = opts.DriverImage
 		}
