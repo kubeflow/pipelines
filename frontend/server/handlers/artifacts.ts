@@ -1020,38 +1020,38 @@ export function getArtifactsProxyHandler({
   if (!enabled) {
     return (_req, _res, next) => next();
   }
-  const proxy = createProxyMiddleware(
-    (_pathname, req) => {
+  const proxy = createProxyMiddleware({
+    pathFilter: (_pathname, req) => {
       // only proxy requests with namespace query parameter
       return !!getNamespaceFromUrl(req.url || '');
     },
-    {
-      changeOrigin: true,
-      onProxyReq: (proxyReq) => {
+    changeOrigin: true,
+    on: {
+      proxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
-      pathRewrite: (pathStr, _req) => {
-        const url = new URL(pathStr || '', DUMMY_BASE_PATH);
-        url.searchParams.delete(QUERIES.NAMESPACE);
-        return url.pathname + url.search;
-      },
-      router: (req) => {
-        const namespace = getNamespaceFromUrl(req.url || '');
-        if (!namespace) {
-          console.log(`namespace query param expected in ${req.url}.`);
-          throw new Error(`namespace query param expected.`);
-        }
-        const urlStr = namespacedServiceGetter(namespace!);
-        if (!isAllowedDomain(urlStr, allowedDomain)) {
-          console.log(`Domain is not allowed.`);
-          throw new Error(`Domain is not allowed.`);
-        }
-        return namespacedServiceGetter(namespace!);
-      },
-      target: '/artifacts',
-      headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
     },
-  );
+    pathRewrite: (pathStr, _req) => {
+      const url = new URL(pathStr || '', DUMMY_BASE_PATH);
+      url.searchParams.delete(QUERIES.NAMESPACE);
+      return url.pathname + url.search;
+    },
+    router: (req) => {
+      const namespace = getNamespaceFromUrl(req.url || '');
+      if (!namespace) {
+        console.log(`namespace query param expected in ${req.url}.`);
+        throw new Error(`namespace query param expected.`);
+      }
+      const urlStr = namespacedServiceGetter(namespace!);
+      if (!isAllowedDomain(urlStr, allowedDomain)) {
+        console.log(`Domain is not allowed.`);
+        throw new Error(`Domain is not allowed.`);
+      }
+      return namespacedServiceGetter(namespace!);
+    },
+    target: '/artifacts',
+    headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
+  });
   return (req, res, next) => {
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
