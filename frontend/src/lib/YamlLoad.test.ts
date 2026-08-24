@@ -51,15 +51,32 @@ step:
     expect(loadYaml('a: 1\nb: two\n')).toEqual({ a: 1, b: 'two' });
   });
 
-  it('returns undefined for input holding no document', () => {
-    // js-yaml 5 throws YAMLException here, where js-yaml 4 returned undefined.
-    // Call sites pass optional templates through `|| ''`.
+  // js-yaml 4 returned undefined for blank input and null for input that
+  // carried no document. js-yaml 5 throws for both.
+  it('returns undefined for blank input', () => {
     expect(loadYaml('')).toBeUndefined();
     expect(loadYaml('   ')).toBeUndefined();
     expect(loadYaml('\n')).toBeUndefined();
   });
 
-  it('round trips empty input to an empty string through dump', () => {
+  it('returns null for input that carries no document', () => {
+    expect(loadYaml('# comment\n')).toBeNull();
+    expect(loadYaml('# one\n# two\n')).toBeNull();
+    expect(loadYaml('...\n')).toBeNull();
+    expect(loadYaml('---\n')).toBeNull();
+  });
+
+  it('round trips no-document input through dump the way js-yaml 4 did', () => {
     expect(dump(loadYaml(''))).toBe('');
+    expect(dump(loadYaml('# comment\n'))).toBe('null\n');
+  });
+
+  it('still raises genuine syntax errors', () => {
+    expect(() => loadYaml('a: [1,2')).toThrow();
+    expect(() => loadYaml('a:\n  - b\n\tc: d')).toThrow();
+  });
+
+  it('still raises on multiple documents rather than yielding the first', () => {
+    expect(() => loadYaml('a: 1\n---\nb: 2\n')).toThrow();
   });
 });

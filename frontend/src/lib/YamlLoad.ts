@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
+import { CORE_SCHEMA, load as jsYamlLoad, loadAll as jsYamlLoadAll, mergeTag } from 'js-yaml';
 
 /**
  * js-yaml 5 resolves merge keys only when `mergeTag` is present in the schema,
@@ -27,14 +27,31 @@ const MANIFEST_SCHEMA = CORE_SCHEMA.withTags(mergeTag);
 /**
  * Parses manifest YAML, preserving merge key (`<<`) resolution.
  *
- * Returns undefined for input that holds no document. js-yaml 5 throws
- * `YAMLException: expected a document, but the input is empty` in that case,
- * where js-yaml 4 returned undefined. Call sites funnel optional template
- * strings through `|| ''`, so throwing would surface during render.
+ * Restores the js-yaml 4 result for input that carries no document. js-yaml 5
+ * throws `YAMLException: expected a document, but the input is empty` for a
+ * blank string, comment-only text, or a bare `...` marker, where js-yaml 4
+ * returned undefined for blank input and null otherwise. Call sites parse
+ * arbitrary template strings during render, so throwing is reachable.
+ *
+ * loadAll reports zero documents for exactly those inputs while still raising
+ * genuine syntax errors, which is what distinguishes the two cases without
+ * matching on exception messages. Input holding more than one document is
+ * handed back to `load` so it raises its own single-document error rather than
+ * silently yielding the first.
  */
 export function loadYaml(text: string): unknown {
   if (!text.trim()) {
     return undefined;
+  }
+
+  const documents: unknown[] = [];
+  jsYamlLoadAll(text, (document) => documents.push(document), { schema: MANIFEST_SCHEMA });
+
+  if (documents.length === 0) {
+    return null;
+  }
+  if (documents.length === 1) {
+    return documents[0];
   }
   return jsYamlLoad(text, { schema: MANIFEST_SCHEMA });
 }
