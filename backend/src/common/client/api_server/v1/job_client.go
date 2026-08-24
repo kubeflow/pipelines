@@ -81,8 +81,7 @@ func (c *JobClient) Create(parameters *params.JobServiceCreateJobParams) (*model
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.JobService.JobServiceCreateJob(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceCreateJobContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceCreateJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -105,8 +104,7 @@ func (c *JobClient) Get(parameters *params.JobServiceGetJobParams) (*model.APIJo
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.JobService.JobServiceGetJob(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceGetJobContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceGetJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -128,8 +126,7 @@ func (c *JobClient) Delete(parameters *params.JobServiceDeleteJobParams) error {
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.JobService.JobServiceDeleteJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceDeleteJobContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDeleteJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -151,8 +148,7 @@ func (c *JobClient) Enable(parameters *params.JobServiceEnableJobParams) error {
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.JobService.JobServiceEnableJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceEnableJobContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceEnableJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -174,8 +170,7 @@ func (c *JobClient) Disable(parameters *params.JobServiceDisableJobParams) error
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.JobService.JobServiceDisableJob(parameters, c.authInfoWriter)
+	_, err := c.apiClient.JobService.JobServiceDisableJobContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDisableJobDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -198,8 +193,7 @@ func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.JobService.JobServiceListJobs(parameters, c.authInfoWriter)
+	response, err := c.apiClient.JobService.JobServiceListJobsContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceListJobsDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)

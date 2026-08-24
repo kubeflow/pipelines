@@ -102,8 +102,7 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRunContext(ctx, parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to create job. Params: '%+v'. Body: '%+v'", parameters, parameters.RecurringRun),
@@ -120,8 +119,7 @@ func (c *RecurringRunClient) Get(parameters *params.RecurringRunServiceGetRecurr
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.RecurringRunService.RecurringRunServiceGetRecurringRun(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceGetRecurringRunContext(ctx, parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
 			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
@@ -137,8 +135,7 @@ func (c *RecurringRunClient) Delete(parameters *params.RecurringRunServiceDelete
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDeleteRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDeleteRecurringRunContext(ctx, parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to get job. Params: '%+v'", parameters),
@@ -154,8 +151,7 @@ func (c *RecurringRunClient) Enable(parameters *params.RecurringRunServiceEnable
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.RecurringRunService.RecurringRunServiceEnableRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceEnableRecurringRunContext(ctx, parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to enable job. Params: '%+v'", parameters),
@@ -171,8 +167,7 @@ func (c *RecurringRunClient) Disable(parameters *params.RecurringRunServiceDisab
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDisableRecurringRun(parameters)
+	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDisableRecurringRunContext(ctx, parameters)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to disable job. Params: '%+v'", parameters),
@@ -189,8 +184,7 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.RecurringRunService.RecurringRunServiceListRecurringRuns(parameters)
+	response, err := c.apiClient.RecurringRunService.RecurringRunServiceListRecurringRunsContext(ctx, parameters)
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
 			fmt.Sprintf("Failed to list jobs. Params: '%+v'", parameters),

@@ -81,8 +81,7 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperimentV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperimentV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceCreateExperimentV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -105,8 +104,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperimentV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperimentV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceGetExperimentV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -129,8 +127,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -152,8 +149,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperimentV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperimentV1Context(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceDeleteExperimentV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -205,8 +201,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.ExperimentService.ExperimentServiceArchiveExperimentV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.ExperimentService.ExperimentServiceArchiveExperimentV1Context(ctx, parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceArchiveExperimentV1Default); ok {
@@ -229,8 +224,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	_, err := c.apiClient.ExperimentService.ExperimentServiceUnarchiveExperimentV1(parameters, c.authInfoWriter)
+	_, err := c.apiClient.ExperimentService.ExperimentServiceUnarchiveExperimentV1Context(ctx, parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceUnarchiveExperimentV1Default); ok {

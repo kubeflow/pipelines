@@ -117,8 +117,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineUploadService.UploadPipelineContext(ctx, parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
@@ -152,8 +151,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 	defer cancel()
 
 	// Make service call
-	parameters.SetContext(ctx)
-	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersion(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersionContext(ctx, parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
