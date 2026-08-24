@@ -1117,20 +1117,25 @@ func nullifyRunState(t *testing.T, db *DB, runID string) {
 }
 
 func TestUpdateRunFromWorkflow_PersistsLegacyStateRepresentations(t *testing.T) {
-	for name, storedState := range map[string]interface{}{
-		"null_state_with_legacy_conditions": nil,
-		"non_canonical_state_spelling":      "Running",
+	for name, row := range map[string]struct {
+		state      interface{}
+		conditions string
+	}{
+		"null_state_with_legacy_conditions":      {state: nil, conditions: "Running"},
+		"non_canonical_state_spelling":           {state: "Running", conditions: "Running"},
+		"lowercase_state":                        {state: "running", conditions: "Running"},
+		"mixed_case_state":                       {state: "rUnNiNg", conditions: "Running"},
+		"null_state_with_lowercase_conditions":   {state: nil, conditions: "running"},
+		"empty_state_with_mixed_case_conditions": {state: "", conditions: "rUnNiNg"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			db, runStore := initializeRunStore()
 			defer db.Close()
 
-			if storedState == nil {
-				nullifyRunState(t, db, "1")
-			} else {
-				_, err := db.Exec("UPDATE run_details SET State = ? WHERE UUID = ?", storedState, "1")
-				require.NoError(t, err)
-			}
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				row.state, row.conditions, "1")
+			require.NoError(t, err)
 
 			legacyRun, err := runStore.GetRun("1")
 			require.NoError(t, err)
@@ -1192,12 +1197,47 @@ func TestUpdateRunFromWorkflow_RejectsStaleReportForLegacyStateRun(t *testing.T)
 	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
 }
 
+func TestUpdateRunFromWorkflow_RejectsStaleRetryGenerationWithUnchangedState(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateRunning, staleRun.State)
+	require.Equal(t, int64(0), staleRun.RetryGeneration)
+	expectedState := staleRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), staleRun.StateHistory...)
+
+	// A retry claim can advance the generation without changing the effective
+	// state. The stale workflow snapshot must still lose the compare-and-set.
+	_, err = db.Exec(
+		"UPDATE run_details SET RetryGeneration = RetryGeneration + 1 WHERE UUID = ?", "1")
+	require.NoError(t, err)
+
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, staleRun.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
 func TestStoredRuntimeStates(t *testing.T) {
 	assert.Equal(t,
-		[]string{"ENABLED", "RUNNING", "Ready", "Running"},
+		[]string{"ENABLED", "READY", "RUNNING"},
 		storedRuntimeStates(model.RuntimeStateRunning))
 	assert.Equal(t,
-		[]string{"CANCELING", "Terminating"},
+		[]string{"CANCELING", "TERMINATING"},
 		storedRuntimeStates(model.RuntimeStateCancelling))
 	// Callers pass states read back from the store, which may be v1 spellings.
 	assert.Equal(t,
@@ -1213,6 +1253,10 @@ func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
 		"null_state_with_legacy_conditions":  {state: nil, conditions: "Running"},
 		"empty_state_with_legacy_conditions": {state: "", conditions: "Running"},
 		"non_canonical_state_spelling":       {state: "Running", conditions: "Running"},
+		"lowercase_state":                    {state: "running", conditions: "Running"},
+		"mixed_case_state":                   {state: "rUnNiNg", conditions: "Running"},
+		"null_state_lowercase_conditions":    {state: nil, conditions: "running"},
+		"empty_state_mixed_case_conditions":  {state: "", conditions: "rUnNiNg"},
 		"no_state_and_no_conditions":         {state: nil, conditions: ""},
 	} {
 		t.Run(name, func(t *testing.T) {

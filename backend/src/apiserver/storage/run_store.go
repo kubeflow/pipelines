@@ -18,6 +18,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -740,10 +741,11 @@ func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.Run
 	return s.updateRun(run, &expectedState)
 }
 
-// storedRuntimeStates lists every stored representation that normalizes to the
-// given runtime state. Rows predating the State column carry a v1 condition
-// instead, and older writers stored non-canonical spellings, so a compare-and-set
-// that only matched the canonical v2 string would silently match nothing.
+// storedRuntimeStates lists the uppercase forms of every known stored
+// representation that normalizes to the given runtime state. Rows predating
+// the State column carry a v1 condition instead, and older writers stored
+// non-canonical spellings, so a compare-and-set that only matched the canonical
+// v2 string would silently match nothing.
 func storedRuntimeStates(state model.RuntimeState) []string {
 	canonical := state.ToV2()
 	candidates := []model.RuntimeState{
@@ -762,7 +764,7 @@ func storedRuntimeStates(state model.RuntimeState) []string {
 	seen := make(map[string]bool, len(candidates))
 	stored := make([]string, 0, len(candidates))
 	for _, candidate := range candidates {
-		value := string(candidate)
+		value := strings.ToUpper(string(candidate))
 		if value == "" || seen[value] || candidate.ToV2() != canonical {
 			continue
 		}
@@ -773,12 +775,12 @@ func storedRuntimeStates(state model.RuntimeState) []string {
 	return stored
 }
 
-// effectiveStatePredicate matches rows whose runtime state, as model.Run.ToV2
-// reconstructs it on read, is one of the given states. Rows written before the
-// State column existed leave it NULL or empty and keep their state in
-// Conditions, and a row with neither reads back as unspecified. A predicate that
-// only compared the State column would never match those rows, so an update
-// guarded by one would silently affect nothing.
+// effectiveStatePredicate matches known stored representations whose runtime
+// state, as model.Run.ToV2 reconstructs it on read, is one of the given states.
+// Rows written before the State column existed leave it NULL or empty and keep
+// their state in Conditions, and a row with neither reads back as unspecified.
+// A predicate that only compared the State column would never match those rows,
+// so an update guarded by one would silently affect nothing.
 func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
 	stored := make([]string, 0, len(states))
 	matchesUnspecified := false
@@ -792,7 +794,7 @@ func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
 	// storedRuntimeStates never yields an empty string, so an IN comparison
 	// cannot match a row that stores no state at all.
 	stateAbsent := sq.Or{sq.Eq{"State": nil}, sq.Eq{"State": ""}}
-	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"Conditions": stored}}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"UPPER(Conditions)": stored}}}
 	if matchesUnspecified {
 		fromConditions = append(fromConditions, sq.And{
 			stateAbsent,
@@ -800,7 +802,7 @@ func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
 		})
 	}
 
-	return sq.Or{sq.Eq{"State": stored}, fromConditions}
+	return sq.Or{sq.Eq{"UPPER(State)": stored}, fromConditions}
 }
 
 func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
@@ -890,7 +892,8 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 		// the requested values. Only treat it as applied when the compare state
 		// still matches; reaching the incoming state through another update must
 		// retry so this report cannot skip its manifest and history write.
-		if currentRun.State == expectedState.ToV2() {
+		if currentRun.State == expectedState.ToV2() &&
+			currentRun.RetryGeneration == run.RetryGeneration {
 			return true, nil
 		}
 		return false, nil
