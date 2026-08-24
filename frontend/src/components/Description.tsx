@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import Markdown from 'markdown-to-jsx';
+import { Markdown } from 'markdown-to-jsx/react';
 import { ExternalLink } from '../atoms/ExternalLink';
 
 function preventEventBubbling(e: React.MouseEvent): void {
@@ -37,10 +37,8 @@ const optionsForceInline = {
 };
 
 /**
- * In forceInline mode the v7 parser consumes `*`/`-`/`+` list markers as
- * emphasis syntax, stripping the bullet characters from rendered output.
- * Replace markdown list markers with a Unicode bullet before parsing so
- * they survive as visible text.
+ * Normalize list markers to Unicode bullets so inline descriptions display
+ * them as visible text rather than parsing them as emphasis.
  */
 function preserveListMarkers(text: string): string {
   return text.replace(/^(\s*)[*\-+] /gm, '$1\u2022 ');

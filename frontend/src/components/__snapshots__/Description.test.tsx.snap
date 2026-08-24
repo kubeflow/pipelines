@@ -10,11 +10,9 @@ exports[`Description > When in inline mode > renders emphasis text as <em> 1`] =
 
 exports[`Description > When in inline mode > renders list markers as visible bullets while preserving emphasis 1`] = `
 <DocumentFragment>
-  <span>
-    • item one
+  • item one
 • item two
 • item three
-  </span>
 </DocumentFragment>
 `;
 
@@ -31,33 +29,9 @@ exports[`Description > When in inline mode > renders markdown link 1`] = `
 </DocumentFragment>
 `;
 
-exports[`Description > When in inline mode > renders markdown list as pure text with visible bullet markers 1`] = `
-<DocumentFragment>
-  <span>
-    
-• abc
-• def
-  </span>
-</DocumentFragment>
-`;
-
-exports[`Description > When in inline mode > renders paragraphs separated by space 1`] = `
-<DocumentFragment>
-  <span>
-    
-Paragraph 1
-
-Paragraph 2
-
-  </span>
-</DocumentFragment>
-`;
-
 exports[`Description > When in inline mode > renders pure text 1`] = `
 <DocumentFragment>
-  <span>
-    this is a line of pure text
-  </span>
+  this is a line of pure text
 </DocumentFragment>
 `;
 
@@ -82,11 +56,7 @@ exports[`Description > When in inline mode > renders strong text as <strong> 1`]
 </DocumentFragment>
 `;
 
-exports[`Description > When in normal mode > renders empty string 1`] = `
-<DocumentFragment>
-  <span />
-</DocumentFragment>
-`;
+exports[`Description > When in normal mode > renders empty string 1`] = `<DocumentFragment />`;
 
 exports[`Description > When in normal mode > renders markdown link 1`] = `
 <DocumentFragment>
@@ -129,9 +99,7 @@ exports[`Description > When in normal mode > renders paragraphs 1`] = `
 
 exports[`Description > When in normal mode > renders pure text 1`] = `
 <DocumentFragment>
-  <span>
-    this is a line of pure text
-  </span>
+  this is a line of pure text
 </DocumentFragment>
 `;
 

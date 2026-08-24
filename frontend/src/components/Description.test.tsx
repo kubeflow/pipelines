@@ -64,7 +64,7 @@ Paragraph 1
 Paragraph 2
 `;
       const { asFragment } = render(<Description description={description} forceInline={true} />);
-      expect(asFragment()).toMatchSnapshot();
+      expect(asFragment().textContent).toBe(description);
     });
 
     it('renders pure text', () => {
@@ -91,7 +91,7 @@ Paragraph 2
 * abc
 * def`;
       const { asFragment } = render(<Description description={description} forceInline={true} />);
-      expect(asFragment()).toMatchSnapshot();
+      expect(asFragment().textContent).toBe('\n• abc\n• def');
     });
 
     it('renders emphasis text as <em>', () => {
