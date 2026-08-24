@@ -27,11 +27,37 @@ import {
   getRunDurationFromWorkflow,
   logger,
   mergeApiParametersByNames,
+  sanitizeExternalHref,
 } from './Utils';
 import { V2beta1RecurringRunStatus } from 'src/apisv2beta1/recurringrun';
 import { expectErrors } from 'src/TestUtils';
 
 describe('Utils', () => {
+  describe('sanitizeExternalHref', () => {
+    it('returns http and https URLs unchanged', () => {
+      expect(sanitizeExternalHref('http://example.com/x')).toEqual('http://example.com/x');
+      expect(sanitizeExternalHref('https://example.com/x')).toEqual('https://example.com/x');
+      expect(sanitizeExternalHref('HTTPS://example.com/x')).toEqual('HTTPS://example.com/x');
+    });
+
+    it('rejects javascript: and other unsafe schemes', () => {
+      // eslint-disable-next-line no-script-url
+      expect(sanitizeExternalHref('javascript:alert(1)')).toBeUndefined();
+      // eslint-disable-next-line no-script-url
+      expect(sanitizeExternalHref('JAVASCRIPT:alert(1)')).toBeUndefined();
+      expect(sanitizeExternalHref('data:text/html,<script>alert(1)</script>')).toBeUndefined();
+      expect(sanitizeExternalHref('vbscript:msgbox(1)')).toBeUndefined();
+      expect(sanitizeExternalHref('ftp://example.com/x')).toBeUndefined();
+      expect(sanitizeExternalHref('//example.com')).toBeUndefined();
+      expect(sanitizeExternalHref('not a URL')).toBeUndefined();
+    });
+
+    it('returns undefined for empty or missing input', () => {
+      expect(sanitizeExternalHref('')).toBeUndefined();
+      expect(sanitizeExternalHref(undefined)).toBeUndefined();
+    });
+  });
+
   describe('log', () => {
     it('logs to console', () => {
       // tslint:disable-next-line:no-console
