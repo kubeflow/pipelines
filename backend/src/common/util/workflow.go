@@ -998,8 +998,8 @@ func (wfi *WorkflowInformer) Get(namespace string, name string) (ExecutionSpec, 
 	return NewWorkflow(workflow), false, nil
 }
 
-func (wfi *WorkflowInformer) List(labels *labels.Selector) (ExecutionSpecList, error) {
-	workflows, err := wfi.informer.Lister().List(*labels)
+func (wfi *WorkflowInformer) List(namespace string, labels *labels.Selector) (ExecutionSpecList, error) {
+	workflows, err := wfi.informer.Lister().Workflows(namespace).List(*labels)
 	if err != nil {
 		return nil, err
 	}

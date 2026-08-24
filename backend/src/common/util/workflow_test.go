@@ -2769,9 +2769,15 @@ func TestWorkflowInformer_List(t *testing.T) {
 	}
 
 	selector := labels.Everything()
-	result, err := wfi.List(&selector)
+	result, err := wfi.List("default", &selector)
 	assert.Nil(t, err)
 	assert.Len(t, result, 1)
+
+	// A different namespace must not return the workflow, confirming the list
+	// is scoped to the requested namespace.
+	otherNamespaceResult, err := wfi.List("other-namespace", &selector)
+	assert.Nil(t, err)
+	assert.Len(t, otherNamespaceResult, 0)
 	// ---------- UpsertRuntimeEnvVars tests ----------
 }
 
