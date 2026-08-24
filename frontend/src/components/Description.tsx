@@ -15,7 +15,7 @@
  */
 
 import React from 'react';
-import { Markdown } from 'markdown-to-jsx/react';
+import { compiler } from 'markdown-to-jsx/react';
 import { ExternalLink } from '../atoms/ExternalLink';
 
 function preventEventBubbling(e: React.MouseEvent): void {
@@ -49,5 +49,16 @@ export const Description: React.FC<{ description: string; forceInline?: boolean 
   forceInline,
 }) => {
   const text = forceInline ? preserveListMarkers(description) : description;
-  return <Markdown options={forceInline ? optionsForceInline : options}>{text}</Markdown>;
+  const rendered = React.useMemo(
+    () => compiler(text, forceInline ? optionsForceInline : options),
+    [forceInline, text],
+  );
+
+  // v7 wrapped bare text and empty descriptions in a span. Preserve that stable
+  // element root without forcing wrappers around links, formatting, or blocks.
+  return rendered === null || typeof rendered === 'string' ? (
+    <span>{rendered}</span>
+  ) : (
+    <>{rendered}</>
+  );
 };
