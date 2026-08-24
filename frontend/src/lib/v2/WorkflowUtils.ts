@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { load } from 'js-yaml';
+import { loadYaml } from 'src/lib/YamlLoad';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import {
   ComponentSpec,
@@ -33,12 +33,12 @@ function getPipelineDefFromYaml(template: string) {
   // If pipeline_spec exists in the parsed YAML,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  const parsedTemplate = load(template) as Record<string, unknown>;
+  const parsedTemplate = loadYaml(template) as Record<string, unknown>;
   return parsedTemplate[PIPELINE_SPEC_TEMPLATE_KEY] ?? parsedTemplate;
 }
 
 function getPlatformDefFromYaml(template: string) {
-  return (load(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
+  return (loadYaml(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
 }
 
 export function isV2Pipeline(workflow: Workflow): boolean {
@@ -47,7 +47,14 @@ export function isV2Pipeline(workflow: Workflow): boolean {
 
 export function isArgoWorkflowTemplate(template: unknown): template is Workflow {
   const candidate = template as Workflow | undefined;
-  if (candidate?.kind === 'Workflow' && candidate?.apiVersion?.startsWith('argoproj.io/')) {
+  // apiVersion comes from arbitrary parsed YAML, so it is not necessarily a
+  // string. Optional chaining only guards null/undefined, and calling
+  // startsWith on a number would throw rather than return false.
+  if (
+    candidate?.kind === 'Workflow' &&
+    typeof candidate.apiVersion === 'string' &&
+    candidate.apiVersion.startsWith('argoproj.io/')
+  ) {
     return true;
   }
   return false;
