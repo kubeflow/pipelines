@@ -13,6 +13,10 @@
 version: 2
 updates:
   - package-ecosystem: gomod
+    labels:
+      - dependencies
+      - go
+      - project/maintainer-review
     directories:
       - "**/*"
     schedule:
@@ -35,6 +39,10 @@ updates:
           - "minor"
           - "patch"
   - package-ecosystem: docker
+    labels:
+      - dependencies
+      - docker
+      - project/maintainer-review
     # Dependabot's Docker ecosystem also updates image references in Kubernetes
     # manifests. The recursive glob covers the repository root and every nested
     # directory, including custom-named Dockerfiles.
@@ -57,6 +65,10 @@ updates:
       docker-images:
         group-by: dependency-name
   - package-ecosystem: npm
+    labels:
+      - dependencies
+      - javascript
+      - project/maintainer-review
     directories:
       - "**/*"
     schedule:
@@ -77,6 +89,10 @@ updates:
       npm-dependencies:
         group-by: dependency-name
   - package-ecosystem: pip
+    labels:
+      - dependencies
+      - python
+      - project/maintainer-review
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
     directories:
@@ -105,6 +121,10 @@ updates:
       python-dependencies:
         group-by: dependency-name
   - package-ecosystem: github-actions
+    labels:
+      - dependencies
+      - github_actions
+      - project/maintainer-review
     # Root covers .github/workflows; the glob covers reusable actions.
     directories:
       - "/"
@@ -118,6 +138,10 @@ updates:
       github-actions:
         group-by: dependency-name
   - package-ecosystem: pre-commit
+    labels:
+      - dependencies
+      - pre_commit
+      - project/maintainer-review
     directory: "/"
     schedule:
       interval: weekly
