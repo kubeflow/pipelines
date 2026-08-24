@@ -35,7 +35,7 @@
     "protobufjs": "~8.7.2",
     "re-resizable": "^6.11.2",
     "react": "^19",
-    "react-ace": "^14.0.1",
+    "react-ace": "^15.0.0",
     "react-dom": "^19",
     "react-dropzone": "^14.4.1",
     "react-router": "^5.3.4",
