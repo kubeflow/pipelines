@@ -10,7 +10,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - `.github/dependabot.yml` schedules weekly updates for every supported dependency ecosystem present in the repository: Go modules, Docker and Kubernetes image references, npm, pip, GitHub Actions, and pre-commit. npm and pip updates are grouped by dependency name across their monorepo directories; generated Python API-client compatibility constraints remain excluded.
 - `sync-maintainer-project-label.yml` applies `project/maintainer-review` to open PRs authored by a
   root `OWNERS` approver or Dependabot. Trusted PR events update maintainers immediately, Dependabot
-  applies the same label through `.github/dependabot.yml`, and an hourly default-branch reconciliation
+  applies the same label through `.github/dependabot.yml`, and a 15-minute default-branch reconciliation
   repairs missed events and reflects root approver changes. Dependabot PRs also receive the exclusive
   `project/dependabot-review` label so project views do not depend on manually populated custom fields.
   The workflow never executes PR-head code.

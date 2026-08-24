@@ -57,6 +57,7 @@ test("workflow uses a trusted event and least-privilege label permissions", () =
 
   assert.match(workflow, /pull_request_target:\n    types:\n      - opened\n      - reopened\n      - synchronize/);
   assert.match(workflow, /permissions:\n  contents: read\n  issues: write/);
+  assert.match(workflow, /cron: '7,22,37,52 \* \* \* \*'/);
   assert.match(workflow, /uses: actions\/github-script@v9/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.repository\.default_branch \}\}/);
   assert.doesNotMatch(workflow, /pull_request\.head|github\.head_ref/);
