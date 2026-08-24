@@ -848,23 +848,24 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a
 	// ClaimRunForRetry increment cannot overwrite the claimed row.
+	updatePredicate := sq.And{
+		sq.Eq{"UUID": run.UUID},
+		sq.Eq{"RetryGeneration": run.RetryGeneration},
+	}
+	if expectedState != nil {
+		updatePredicate = append(updatePredicate, effectiveStatePredicate(*expectedState))
+	}
 	updateBuilder := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.And{
-			sq.Eq{"UUID": run.UUID},
-			sq.Eq{"RetryGeneration": run.RetryGeneration},
-		})
-	if expectedState != nil {
-		updateBuilder = updateBuilder.Where(effectiveStatePredicate(*expectedState))
-	}
-	sql, args, err := updateBuilder.ToSql()
+		Where(updatePredicate)
+	updateSQL, args, err := updateBuilder.ToSql()
 	if err != nil {
 		tx.Rollback()
 		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
-	result, err := tx.Exec(sql, args...)
+	result, err := tx.Exec(updateSQL, args...)
 	if err != nil {
 		tx.Rollback()
 		return false, util.NewInternalServerError(err,
@@ -880,23 +881,42 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 		tx.Rollback()
 		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
-		tx.Rollback()
 		if expectedState == nil {
+			tx.Rollback()
 			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 		}
-		currentRun, getErr := s.GetRun(run.UUID)
-		if getErr != nil {
-			return false, getErr
+		matchSQL, matchArgs, matchQueryErr := sq.
+			Select("1").
+			From("run_details").
+			Where(updatePredicate).
+			Limit(1).
+			ToSql()
+		if matchQueryErr != nil {
+			tx.Rollback()
+			return false, util.NewInternalServerError(matchQueryErr,
+				"Failed to create query to verify run %s update predicate", run.UUID)
 		}
 		// MySQL may report zero affected rows when the matching row already has
-		// the requested values. Only treat it as applied when the compare state
-		// still matches; reaching the incoming state through another update must
-		// retry so this report cannot skip its manifest and history write.
-		if currentRun.State == expectedState.ToV2() &&
-			currentRun.RetryGeneration == run.RetryGeneration {
-			return true, nil
+		// the requested values. Verify the exact update predicate in the same
+		// transaction before treating the report as applied; a normalized model
+		// read cannot prove that an unknown stored representation matched it.
+		var matched int
+		matchErr := tx.QueryRow(s.db.SelectForUpdate(matchSQL), matchArgs...).Scan(&matched)
+		if matchErr == sql.ErrNoRows {
+			tx.Rollback()
+			return false, nil
 		}
-		return false, nil
+		if matchErr != nil {
+			tx.Rollback()
+			return false, util.NewInternalServerError(matchErr,
+				"Failed to verify run %s update predicate", run.UUID)
+		}
+		if err := tx.Commit(); err != nil {
+			return false, util.NewInternalServerError(err,
+				"failed to commit no-op update transaction for run %s", run.UUID)
+		}
+		run.StateHistory = stateHistory
+		return true, nil
 	}
 
 	if err := tx.Commit(); err != nil {

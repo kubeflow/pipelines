@@ -1232,6 +1232,41 @@ func TestUpdateRunFromWorkflow_RejectsStaleRetryGenerationWithUnchangedState(t *
 	assert.Equal(t, originalHistory, persistedRun.StateHistory)
 }
 
+func TestUpdateRunFromWorkflow_RejectsUnknownStoredState(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET State = ? WHERE UUID = ?", "BROKEN", "1")
+	require.NoError(t, err)
+
+	unknownStateRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateUnspecified, unknownStateRun.State)
+	expectedState := unknownStateRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), unknownStateRun.StateHistory...)
+
+	unknownStateRun.State = model.RuntimeStateSucceeded
+	unknownStateRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	unknownStateRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(unknownStateRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, unknownStateRun.StateHistory)
+
+	var rawState string
+	err = db.QueryRow("SELECT State FROM run_details WHERE UUID = ?", "1").Scan(&rawState)
+	require.NoError(t, err)
+	assert.Equal(t, "BROKEN", rawState)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateUnspecified, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
 func TestStoredRuntimeStates(t *testing.T) {
 	assert.Equal(t,
 		[]string{"ENABLED", "READY", "RUNNING"},
