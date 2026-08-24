@@ -96,7 +96,7 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperiment(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
@@ -114,7 +114,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperiment(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
@@ -132,7 +132,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperiments(parameters)
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
@@ -149,7 +149,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperiment(parameters)
 	if err != nil {
 		return util.NewUserError(err,
@@ -196,7 +196,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceArchiveExperiment(parameters)
 
 	if err != nil {
@@ -214,7 +214,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceUnarchiveExperiment(parameters)
 
 	if err != nil {

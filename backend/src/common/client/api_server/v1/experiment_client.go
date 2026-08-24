@@ -81,7 +81,7 @@ func (c *ExperimentClient) Create(parameters *params.ExperimentServiceCreateExpe
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceCreateExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceCreateExperimentV1Default); ok {
@@ -105,7 +105,7 @@ func (c *ExperimentClient) Get(parameters *params.ExperimentServiceGetExperiment
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceGetExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceGetExperimentV1Default); ok {
@@ -129,7 +129,7 @@ func (c *ExperimentClient) List(parameters *params.ExperimentServiceListExperime
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.ExperimentService.ExperimentServiceListExperimentsV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceListExperimentsV1Default); ok {
@@ -152,7 +152,7 @@ func (c *ExperimentClient) Delete(parameters *params.ExperimentServiceDeleteExpe
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceDeleteExperimentV1(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ExperimentServiceDeleteExperimentV1Default); ok {
@@ -205,7 +205,7 @@ func (c *ExperimentClient) Archive(parameters *params.ExperimentServiceArchiveEx
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceArchiveExperimentV1(parameters, c.authInfoWriter)
 
 	if err != nil {
@@ -229,7 +229,7 @@ func (c *ExperimentClient) Unarchive(parameters *params.ExperimentServiceUnarchi
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.ExperimentService.ExperimentServiceUnarchiveExperimentV1(parameters, c.authInfoWriter)
 
 	if err != nil {

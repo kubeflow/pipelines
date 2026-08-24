@@ -81,7 +81,7 @@ func (c *JobClient) Create(parameters *params.JobServiceCreateJobParams) (*model
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.JobService.JobServiceCreateJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceCreateJobDefault); ok {
@@ -105,7 +105,7 @@ func (c *JobClient) Get(parameters *params.JobServiceGetJobParams) (*model.APIJo
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.JobService.JobServiceGetJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceGetJobDefault); ok {
@@ -128,7 +128,7 @@ func (c *JobClient) Delete(parameters *params.JobServiceDeleteJobParams) error {
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.JobService.JobServiceDeleteJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDeleteJobDefault); ok {
@@ -151,7 +151,7 @@ func (c *JobClient) Enable(parameters *params.JobServiceEnableJobParams) error {
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.JobService.JobServiceEnableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceEnableJobDefault); ok {
@@ -174,7 +174,7 @@ func (c *JobClient) Disable(parameters *params.JobServiceDisableJobParams) error
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.JobService.JobServiceDisableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceDisableJobDefault); ok {
@@ -198,7 +198,7 @@ func (c *JobClient) List(parameters *params.JobServiceListJobsParams) (
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.JobService.JobServiceListJobs(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.JobServiceListJobsDefault); ok {

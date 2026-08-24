@@ -102,7 +102,7 @@ func (c *RecurringRunClient) Create(parameters *params.RecurringRunServiceCreate
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceCreateRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
@@ -120,7 +120,7 @@ func (c *RecurringRunClient) Get(parameters *params.RecurringRunServiceGetRecurr
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceGetRecurringRun(parameters)
 	if err != nil {
 		return nil, util.NewUserError(err,
@@ -137,7 +137,7 @@ func (c *RecurringRunClient) Delete(parameters *params.RecurringRunServiceDelete
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDeleteRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
@@ -154,7 +154,7 @@ func (c *RecurringRunClient) Enable(parameters *params.RecurringRunServiceEnable
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.RecurringRunService.RecurringRunServiceEnableRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
@@ -171,7 +171,7 @@ func (c *RecurringRunClient) Disable(parameters *params.RecurringRunServiceDisab
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	_, err := c.apiClient.RecurringRunService.RecurringRunServiceDisableRecurringRun(parameters)
 	if err != nil {
 		return util.NewUserError(err,
@@ -189,7 +189,7 @@ func (c *RecurringRunClient) List(parameters *params.RecurringRunServiceListRecu
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
+	parameters.SetContext(ctx)
 	response, err := c.apiClient.RecurringRunService.RecurringRunServiceListRecurringRuns(parameters)
 	if err != nil {
 		return nil, 0, "", util.NewUserError(err,
