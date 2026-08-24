@@ -49,6 +49,8 @@ export const Description: React.FC<{ description: string; forceInline?: boolean 
   forceInline,
 }) => {
   const text = forceInline ? preserveListMarkers(description) : description;
+  // compiler() intentionally bypasses MarkdownContext: Description renders only
+  // with its local link and raw-HTML policy instead of merging provider options.
   const rendered = React.useMemo(
     () => compiler(text, forceInline ? optionsForceInline : options),
     [forceInline, text],
