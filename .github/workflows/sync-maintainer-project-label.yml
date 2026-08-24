@@ -15,7 +15,7 @@ on:
       - .github/resources/scripts/maintainer_project_label.js
       - .github/workflows/sync-maintainer-project-label.yml
   schedule:
-    - cron: '17 * * * *'
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
 
 permissions:
