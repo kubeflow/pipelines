@@ -54,33 +54,42 @@ async function reconcilePullRequest({
   repo,
   pullRequest,
   approvers,
+  dependabotLabel,
   trackingLabel,
 }) {
   const labels = new Set(pullRequest.labels.map((label) => label.name));
   const shouldTrack = shouldTrackAuthor(pullRequest.user.login, approvers);
-  const isTracked = labels.has(trackingLabel);
+  const isDependabot = pullRequest.user.login.toLowerCase() === DEPENDABOT_LOGIN;
+  const desiredLabels = new Map([
+    [trackingLabel, shouldTrack],
+    [dependabotLabel, isDependabot],
+  ]);
+  const changes = [];
 
-  if (shouldTrack && !isTracked) {
-    await github.rest.issues.addLabels({
-      owner,
-      repo,
-      issue_number: pullRequest.number,
-      labels: [trackingLabel],
-    });
-    return "added";
+  for (const [label, shouldHaveLabel] of desiredLabels) {
+    const hasLabel = labels.has(label);
+    if (shouldHaveLabel && !hasLabel) {
+      await github.rest.issues.addLabels({
+        owner,
+        repo,
+        issue_number: pullRequest.number,
+        labels: [label],
+      });
+      changes.push(`added ${label}`);
+    }
+
+    if (!shouldHaveLabel && hasLabel) {
+      await github.rest.issues.removeLabel({
+        owner,
+        repo,
+        issue_number: pullRequest.number,
+        name: label,
+      });
+      changes.push(`removed ${label}`);
+    }
   }
 
-  if (!shouldTrack && isTracked) {
-    await github.rest.issues.removeLabel({
-      owner,
-      repo,
-      issue_number: pullRequest.number,
-      name: trackingLabel,
-    });
-    return "removed";
-  }
-
-  return "unchanged";
+  return changes.length > 0 ? changes.join(", ") : "unchanged";
 }
 
 module.exports = {
@@ -89,4 +98,3 @@ module.exports = {
   reconcilePullRequest,
   shouldTrackAuthor,
 };
-

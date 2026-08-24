@@ -59,6 +59,7 @@ jobs:
             ));
 
             const trackingLabel = "project/maintainer-review";
+            const dependabotLabel = "project/dependabot-review";
             const approvers = parseRootApprovers(
               fs.readFileSync(path.join(process.env.GITHUB_WORKSPACE, "OWNERS"), "utf8")
             );
@@ -72,7 +73,7 @@ jobs:
                   per_page: 100,
                 });
 
-            const counts = {added: 0, removed: 0, unchanged: 0};
+            let changed = 0;
             for (const pullRequest of pullRequests) {
               const result = await reconcilePullRequest({
                 github,
@@ -80,11 +81,11 @@ jobs:
                 repo: context.repo.repo,
                 pullRequest,
                 approvers,
+                dependabotLabel,
                 trackingLabel,
               });
-              counts[result] += 1;
+              if (result !== "unchanged") changed += 1;
               core.info(`PR #${pullRequest.number} (${pullRequest.user.login}): ${result}`);
             }
 
-            core.info(`Reconciliation summary: ${JSON.stringify(counts)}`);
-
+            core.info(`Reconciliation summary: ${changed}/${pullRequests.length} PRs changed`);

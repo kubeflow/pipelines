@@ -22,6 +22,7 @@ updates:
       - dependencies
       - go
       - project/maintainer-review
+      - project/dependabot-review
     directories:
       - "**/*"
     schedule:
@@ -52,6 +53,7 @@ updates:
       - dependencies
       - docker
       - project/maintainer-review
+      - project/dependabot-review
     # Dependabot's Docker ecosystem also updates image references in Kubernetes
     # manifests. The recursive glob covers the repository root and every nested
     # directory, including custom-named Dockerfiles.
@@ -82,6 +84,7 @@ updates:
       - dependencies
       - javascript
       - project/maintainer-review
+      - project/dependabot-review
     directories:
       - "**/*"
     schedule:
@@ -110,6 +113,7 @@ updates:
       - dependencies
       - python
       - project/maintainer-review
+      - project/dependabot-review
     # Generated API clients are excluded: their requirements express generated
     # compatibility minimums and must be changed through API regeneration.
     directories:
@@ -152,6 +156,7 @@ updates:
       - dependencies
       - github_actions
       - project/maintainer-review
+      - project/dependabot-review
     # Root covers .github/workflows; the glob covers reusable actions.
     directories:
       - "/"
@@ -173,6 +178,7 @@ updates:
       - dependencies
       - pre_commit
       - project/maintainer-review
+      - project/dependabot-review
     directory: "/"
     schedule:
       interval: weekly

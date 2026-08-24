@@ -62,12 +62,12 @@ test("workflow uses a trusted event and least-privilege label permissions", () =
   assert.doesNotMatch(workflow, /pull_request\.head|github\.head_ref/);
 });
 
-test("reconciles each eligibility and current-label state", async () => {
+test("reconciles maintainer tracking labels", async () => {
   for (const [eligible, labeled, expected] of [
-    [true, false, "added"],
+    [true, false, "added project/maintainer-review"],
     [true, true, "unchanged"],
     [false, false, "unchanged"],
-    [false, true, "removed"],
+    [false, true, "removed project/maintainer-review"],
   ]) {
     const calls = [];
     const github = {
@@ -88,12 +88,57 @@ test("reconciles each eligibility and current-label state", async () => {
         labels: labeled ? [{name: "project/maintainer-review"}] : [],
       },
       approvers: new Set(["chensun"]),
+      dependabotLabel: "project/dependabot-review",
       trackingLabel: "project/maintainer-review",
     });
 
     assert.equal(result, expected);
     assert.equal(calls.length, expected === "unchanged" ? 0 : 1);
-    if (expected === "added") assert.equal(calls[0][0], "add");
-    if (expected === "removed") assert.equal(calls[0][0], "remove");
+    if (expected.startsWith("added")) assert.equal(calls[0][0], "add");
+    if (expected.startsWith("removed")) assert.equal(calls[0][0], "remove");
   }
+});
+
+test("keeps the Dependabot-only label exclusive to Dependabot", async () => {
+  const calls = [];
+  const github = {
+    rest: {
+      issues: {
+        addLabels: async (request) => calls.push(["add", request.labels[0]]),
+        removeLabel: async (request) => calls.push(["remove", request.name]),
+      },
+    },
+  };
+
+  const added = await reconcilePullRequest({
+    github,
+    owner: "kubeflow",
+    repo: "pipelines",
+    pullRequest: {number: 1, user: {login: "dependabot[bot]"}, labels: []},
+    approvers: new Set(),
+    dependabotLabel: "project/dependabot-review",
+    trackingLabel: "project/maintainer-review",
+  });
+  assert.equal(
+    added,
+    "added project/maintainer-review, added project/dependabot-review"
+  );
+
+  const removed = await reconcilePullRequest({
+    github,
+    owner: "kubeflow",
+    repo: "pipelines",
+    pullRequest: {
+      number: 2,
+      user: {login: "chensun"},
+      labels: [
+        {name: "project/maintainer-review"},
+        {name: "project/dependabot-review"},
+      ],
+    },
+    approvers: new Set(["chensun"]),
+    dependabotLabel: "project/dependabot-review",
+    trackingLabel: "project/maintainer-review",
+  });
+  assert.equal(removed, "removed project/dependabot-review");
 });
