@@ -20,6 +20,7 @@ permissions:
   actions: read
   pull-requests: write
   issues: write
+  statuses: write
 
 
 jobs:
@@ -30,6 +31,7 @@ jobs:
       pr_number: ${{ steps.ci_result.outputs.pr_number }}
       eligible: ${{ steps.ci_result.outputs.eligible }}
       should_add_label: ${{ steps.ci_result.outputs.should_add_label }}
+      head_sha: ${{ steps.ci_result.outputs.head_sha }}
     steps:
       - name: Download CI check result
         id: download_result
@@ -147,6 +149,24 @@ jobs:
               "should_add_label",
               eligible && result.should_add_label === true ? "true" : "false"
             );
+            core.setOutput("head_sha", recordedHeadSha);
+
+      - name: Publish 'ci-passed' commit status
+        if: steps.ci_result.outputs.should_add_label == 'true'
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const sha = "${{ steps.ci_result.outputs.head_sha }}";
+            const { data: status } = await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              context: "ci-passed",
+              state: "success",
+              description: "All CI checks passed on this exact commit.",
+            });
+            core.info(`Published ci-passed status on ${sha}: ${status.state}`);
 
   reset_ci_passed_label:
     name: Reset stale 'ci-passed' label
@@ -198,7 +218,15 @@ jobs:
             exit 0
           fi
 
-          echo "Adding 'ci-passed' label to PR #${{ needs.fetch_data.outputs.pr_number }}"
-          gh pr edit ${{ needs.fetch_data.outputs.pr_number }} --add-label "ci-passed" --repo "$GITHUB_REPOSITORY"
+          pr_number=${{ needs.fetch_data.outputs.pr_number }}
+          expected_sha="${{ needs.fetch_data.outputs.head_sha }}"
+          current_sha=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
+          if [[ -z "${expected_sha}" || "${current_sha}" != "${expected_sha}" ]]; then
+            echo "PR #${pr_number} head moved (expected ${expected_sha}, got ${current_sha}); skipping stale ci-passed label."
+            exit 0
+          fi
+
+          echo "Adding 'ci-passed' label to PR #${pr_number}"
+          gh pr edit "${pr_number}" --add-label "ci-passed" --repo "$GITHUB_REPOSITORY"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -42,17 +42,20 @@ jobs:
           should_poll=false
           reason="CI polling is not needed for this pull request event."
 
-          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" != "true" ]]; then
-            reason="PR is not yet labeled ok-to-test."
-          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             reason="PR still has the needs-ok-to-test label."
+          elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
+            should_poll=true
+            reason="PR is eligible; running CI status polling."
+          elif [[ "${{ github.event.pull_request.user.login }}" == "dependabot[bot]" ]]; then
+            should_poll=true
+            reason="Dependabot PR is eligible; running CI status polling."
           elif [[ "${EVENT_ACTION}" == "labeled" && "${LABEL_NAME}" != "ok-to-test" ]]; then
             reason="Added label '${LABEL_NAME}' does not change CI eligibility."
           elif [[ "${EVENT_ACTION}" == "unlabeled" && "${LABEL_NAME}" != "needs-ok-to-test" ]]; then
             reason="Removed label '${LABEL_NAME}' does not change CI eligibility."
           else
-            should_poll=true
-            reason="PR is eligible; running CI status polling."
+            reason="PR is not yet labeled ok-to-test."
           fi
 
           echo "should_poll=${should_poll}" >> "$GITHUB_OUTPUT"
