@@ -3321,6 +3321,32 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
+func TestRetryRun_Failed_RunArchived(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.ArchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Unarchive the run first")
+}
+
+func TestRetryRun_UnarchivedRunStillRetries(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.ArchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+	err = manager.UnarchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
+}
+
 func TestUnarchiveRun_OK(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
