@@ -1064,6 +1064,15 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
 	}
+	if run.StorageState.ToV2() == model.StorageStateArchived {
+		return util.NewBadRequestError(
+			util.NewInvalidInputError(
+				"Cannot retry an archived run. Unarchive the run first.",
+			),
+			"Failed to retry run %s because it is archived",
+			runId,
+		)
+	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.
 	namespace, err := r.getNamespaceFromRunId(runId)
 	if err != nil {
