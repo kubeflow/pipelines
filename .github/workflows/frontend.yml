@@ -9,6 +9,7 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'manifests/kustomize/base/installs/multi-user/pipelines-profile-controller/sync.py'
       - 'api/v2alpha1/*.proto'
       - 'kubernetes_platform/proto/*.proto'
       - 'backend/api/v1beta1/swagger/**'
@@ -35,6 +36,11 @@ jobs:
       uses: actions/setup-node@v7
       with:
         node-version-file: frontend/.nvmrc
+
+    - name: Set up Python for profile-controller regression tests
+      uses: actions/setup-python@v7
+      with:
+        python-version: '3.13'
 
     - name: Set up npm
       working-directory: frontend

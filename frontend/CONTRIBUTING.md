@@ -196,7 +196,9 @@ There are a few types of tests during pre-submit:
   `reactStrictMode`, so direct `render()` calls exercise the same Strict Mode
   behavior as `npm start`.
 * UI node server unit tests (Vitest), you can run locally with
-  `npm run test:server:coverage` or `cd server && npm test -- --coverage`
+  `npm run test:server:coverage` or `cd server && npm test -- --coverage`.
+  Server integration tests also require `python3` (3.9+) on `PATH` to run the
+  profile-controller archived-log regression. It uses only the Python standard library.
 
 There is a special type of unit test called
 [snapshot tests](https://vitest.dev/guide/snapshot.html). When snapshot tests
