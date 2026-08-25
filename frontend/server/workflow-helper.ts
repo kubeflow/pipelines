@@ -88,6 +88,7 @@ export function composePodLogsStreamHandler<T = Stream>(
       return await handler(podName, createdAt, namespace);
     } catch (err) {
       if (fallback) {
+        console.warn(`Primary pod-log source failed; falling back to archive: ${err}`);
         return await fallback(podName, createdAt, namespace);
       }
       console.warn(err);
@@ -124,9 +125,16 @@ export async function getPodLogsStreamFromK8s(
  * @param createdAt YYYY-MM-DD run was created. Not used.
  * @param namespace namespace of the pod (uses the same namespace as the server if not provided).
  */
-export const getPodLogsStreamFromWorkflow = toGetPodLogsStream(
-  getPodLogsMinioRequestConfigfromWorkflow,
-);
+export async function getPodLogsStreamFromWorkflow(
+  podName: string,
+  createdAt: string,
+  namespace: string | undefined,
+  options: WorkflowLogStoreOptions & { authEnabled: boolean },
+) {
+  return toGetPodLogsStream((name, created, ns) =>
+    getPodLogsMinioRequestConfigfromWorkflow(name, created, ns, options),
+  )(podName, createdAt, namespace);
+}
 
 /**
  * Returns a function that retrieves the pod log streams using the provided
@@ -210,6 +218,53 @@ export async function getKeyFormatFromArtifactRepositories(
 }
 
 /**
+ * Derives the deterministic, namespace-scoped object-key prefix implied by a
+ * keyFormat template, or returns null when the template does not place
+ * {{workflow.namespace}} as a complete '/'-delimited path segment ahead of every
+ * caller-influenced field. When null, no safe namespace prefix can be derived and
+ * callers must fail closed.
+ *
+ * In multi-user mode the archived-log object key must be provably confined to the
+ * authorized namespace. Merely containing {{workflow.namespace}} somewhere is not
+ * sufficient: if a caller-controlled field (pod name, workflow name, creation
+ * timestamp) precedes it, the resolved namespace value is not an unambiguous
+ * prefix, and a key belonging to another namespace could coincidentally contain
+ * the authorized namespace as a later segment (e.g. as a workflow-name segment).
+ * Requiring the namespace tag as a bounded segment before all such fields yields
+ * a fixed prefix ("<static>/<namespace>") that scopes every resolved key to the
+ * namespace's own subtree.
+ */
+export function namespaceScopedKeyPrefix(keyFormat: string, namespace: string): string | null {
+  if (!namespace) {
+    return null;
+  }
+  const template = keyFormat.replace(/\s+/g, '');
+  const namespaceTag = '{{workflow.namespace}}';
+  // Multiple namespace tags make the effective boundary ambiguous and can leave
+  // unresolved tags in generated keys.
+  if (template.split(namespaceTag).length !== 2) {
+    return null;
+  }
+  // The namespace tag must be a complete '/'-delimited path segment.
+  const namespaceSegment = /(^|\/)\{\{workflow\.namespace\}\}(\/|$)/;
+  if (!namespaceSegment.test(template)) {
+    return null;
+  }
+  const namespaceIndex = template.indexOf(namespaceTag);
+  const staticPrefix = template.slice(0, namespaceIndex);
+  // No template tag of any kind may precede the namespace boundary. Limiting
+  // this to the tags understood today would let a newly supported or custom tag
+  // silently become caller-controlled input ahead of the authorization prefix.
+  if (/\{\{[^{}]+\}\}/.test(staticPrefix) || staticPrefix.split('/').includes('..')) {
+    return null;
+  }
+  // Everything up to the namespace tag is static (verified above to contain no
+  // caller-controlled field); append the substituted namespace to form the
+  // deterministic prefix.
+  return staticPrefix + namespace;
+}
+
+/**
  * Returns a MinioRequestConfig with the provided minio options (a
  * MinioRequestConfig object contains the artifact bucket and keys, with the
  * corresponding minio client).
@@ -224,12 +279,17 @@ export function createPodLogsMinioRequestConfig(
   bucket: string,
   keyFormatDefault: string,
   artifactRepositoriesLookup: boolean,
+  authEnabled: boolean = false,
 ) {
   return async (
     podName: string,
     createdAt: string,
     namespace: string = '',
   ): Promise<MinioRequestConfig> => {
+    // Standalone callers historically omit podnamespace. The shipped archive
+    // layout is namespace-scoped, so resolve that omission to the frontend's
+    // operator-controlled server namespace rather than generating a `//` key.
+    const archiveNamespace = namespace || getServerNamespace() || '';
     // create a new client each time to ensure session token has not expired
     const client = await createMinioClient(minioOptions, 's3');
     const createdAtArray = createdAt.split('-');
@@ -238,14 +298,37 @@ export function createPodLogsMinioRequestConfig(
     // from the configmap. Otherwise, just used the default keyFormat specified
     // in configs.ts.
     let keyFormatFromConfigMap = undefined;
-    if (artifactRepositoriesLookup) {
-      keyFormatFromConfigMap = await getKeyFormatFromArtifactRepositories(namespace);
+    // A namespace owner can control this ConfigMap. In multi-user mode it must
+    // not define the authorization boundary for a shared-store object read;
+    // use only the operator-controlled default key format instead.
+    if (artifactRepositoriesLookup && !authEnabled) {
+      keyFormatFromConfigMap = await getKeyFormatFromArtifactRepositories(archiveNamespace);
     }
     let key: string;
     if (keyFormatFromConfigMap !== undefined) {
       key = keyFormatFromConfigMap;
     } else {
       key = keyFormatDefault;
+    }
+
+    // Fail closed in multi-user mode: the caller-supplied podname/createdat are
+    // interpolated into the object key, but the namespace access check upstream
+    // only authorizes `namespace`. Require the key template to scope the key to
+    // {{workflow.namespace}} as a deterministic prefix (a complete '/'-delimited
+    // segment ahead of every caller-controlled field), so any resolved key stays
+    // confined to the authorized namespace's subtree. Merely *containing* the tag
+    // is not enough: placing it adjacent to a caller-controlled field, e.g.
+    // "{{workflow.namespace}}{{pod.name}}", or after one, e.g.
+    // "{{pod.name}}/{{workflow.namespace}}", would let a tenant reach keys under
+    // another namespace, so those templates are rejected.
+    if (authEnabled && namespaceScopedKeyPrefix(key, archiveNamespace) === null) {
+      throw new Error(
+        `Refusing to read archived pod logs: the keyFormat, which is defined in config.ts or through the ` +
+          `ARGO_KEYFORMAT env var, does not place {{workflow.namespace}} as a complete '/'-delimited path ` +
+          `segment ahead of every caller-controlled field (pod name, workflow name, creation timestamp). In ` +
+          `multi-user mode the log key must be scoped to the authorized namespace as a deterministic prefix; ` +
+          `otherwise archived logs from other namespaces in the shared bucket would be readable.`,
+      );
     }
 
     key = key
@@ -255,7 +338,7 @@ export function createPodLogsMinioRequestConfig(
       .replace('{{workflow.creationTimestamp.m}}', createdAtArray[1])
       .replace('{{workflow.creationTimestamp.d}}', createdAtArray[2])
       .replace('{{pod.name}}', podName)
-      .replace('{{workflow.namespace}}', namespace);
+      .replace('{{workflow.namespace}}', archiveNamespace);
 
     if (!key.endsWith('/')) {
       key = key + '/';
@@ -279,6 +362,15 @@ export function createPodLogsMinioRequestConfig(
       );
     }
 
+    // The regex above permits '.' and '/', so reject any '..' segment. The
+    // caller-supplied podname is interpolated into the key, and a '..' would
+    // let it climb out of the (namespace-scoped) key prefix.
+    if (key.split('/').includes('..')) {
+      throw new Error(
+        `The log key, ${key}, contains a '..' path segment and is therefore invalid.`,
+      );
+    }
+
     return { bucket, client, key };
   };
 }
@@ -289,11 +381,37 @@ export function createPodLogsMinioRequestConfig(
  *
  * @param podName name of the pod to retrieve the logs.
  */
+export interface WorkflowLogStoreOptions {
+  authEnabled?: boolean;
+  trustedKeyFormat?: string;
+  trustedBucket?: string;
+  // Kubernetes cluster DNS suffix (e.g. '.svc.cluster.local'), used to treat the
+  // short, '.svc', and fully-qualified forms of a Service host as equivalent when
+  // comparing the workflow-recorded endpoint against the trusted store.
+  clusterDomain?: string;
+  trustedStore?: {
+    endPoint: string;
+    port?: number;
+    region?: string;
+    useSSL?: boolean;
+    accessKey?: string;
+    secretKey?: string;
+  };
+}
+
 export async function getPodLogsMinioRequestConfigfromWorkflow(
   podName: string,
   _createdAt?: string,
   namespace?: string,
+  options: WorkflowLogStoreOptions = {},
 ): Promise<MinioRequestConfig> {
+  const {
+    authEnabled = false,
+    trustedKeyFormat = '',
+    trustedBucket = '',
+    clusterDomain = '.svc.cluster.local',
+    trustedStore,
+  } = options;
   let workflow: PartialArgoWorkflow;
   // We should probably parameterize this replace statement. It's brittle to
   // changes in implementation. But brittle is better than completely broken.
@@ -328,12 +446,65 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     throw new Error('No artifact named "main-logs" for node.');
   }
 
+  // Fail closed in multi-user mode: confine the workflow-derived log key to the
+  // authorized namespace. `logKey` comes from the workflow status (shaped by the
+  // per-namespace artifact-repositories keyFormat, which a tenant may be able to
+  // influence) and is read below with the shared object-store credentials, so
+  // without this check a tenant could point the main-logs artifact at another
+  // namespace's log object and read it. Require the key to begin with the
+  // deterministic namespace-scoped prefix derived from the trusted (operator)
+  // keyFormat, and reject any '..' segment. This mirrors the confinement applied
+  // to the configured archive fallback in createPodLogsMinioRequestConfig. If the
+  // trusted keyFormat does not scope by {{workflow.namespace}} ahead of every
+  // caller-controlled field, no safe prefix exists and we fail closed.
+  const serverNamespace = getServerNamespace();
+  const validateWorkflowScope = authEnabled;
+  const usesSharedCredentials = authEnabled && Boolean(namespace && namespace !== serverNamespace);
+  if (validateWorkflowScope) {
+    const prefix = namespaceScopedKeyPrefix(trustedKeyFormat, namespace || '');
+    if (prefix === null || !logKey.startsWith(prefix + '/') || logKey.split('/').includes('..')) {
+      throw new Error(
+        `Refusing to read archived pod logs: the workflow-recorded log key "${logKey}" is not confined to ` +
+          `the authorized namespace under the namespace-scoped prefix derived from the trusted keyFormat. In ` +
+          `multi-user mode the archive key must begin with that deterministic namespace prefix.`,
+      );
+    }
+  }
+
   const s3Artifact = workflow.status.artifactRepositoryRef.artifactRepository.s3 || false;
   if (!s3Artifact) {
     throw new Error('Unable to find artifact repository information from workflow status.');
   }
 
-  const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
+  const workflowEndpoint = parseArtifactStoreEndpoint(s3Artifact.endpoint, s3Artifact.insecure);
+  if (!workflowEndpoint) {
+    throw new Error('Artifact repository endpoint is invalid or conflicts with its TLS setting.');
+  }
+
+  if (validateWorkflowScope) {
+    const trustedEndpoint = trustedStore
+      ? parseArtifactStoreEndpoint(
+          trustedStore.endPoint,
+          trustedStore.useSSL === false,
+          trustedStore.port,
+        )
+      : undefined;
+    if (
+      !trustedEndpoint ||
+      canonicalArtifactOrigin(workflowEndpoint, clusterDomain) !==
+        canonicalArtifactOrigin(trustedEndpoint, clusterDomain)
+    ) {
+      throw new Error(
+        'Refusing to read archived pod logs from a workflow-controlled artifact endpoint.',
+      );
+    }
+    if (!trustedBucket || s3Artifact.bucket !== trustedBucket) {
+      throw new Error(
+        'Refusing to read archived pod logs from a workflow-controlled artifact bucket.',
+      );
+    }
+  }
+
   // Security: Only read the object-store credential Secret from the server's own
   // namespace. In multi-user deployments the run namespace is a customer/user
   // namespace, and the ml-pipeline-ui service account may not read Secrets there;
@@ -350,7 +521,6 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   // therefore treat a missing namespace as the server namespace and read the
   // workflow-referenced Secret so custom object-store credentials are honored,
   // while still refusing to read Secrets from any user namespace.
-  const serverNamespace = getServerNamespace();
   let accessKey: string | undefined;
   let secretKey: string | undefined;
   if (namespace && namespace === serverNamespace) {
@@ -370,8 +540,12 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   } else {
     // Cross-namespace (user-namespace) run, or an unknown server namespace: never
     // read a user-namespace Secret; use the frontend's own configured credentials.
-    accessKey = process.env.MINIO_ACCESS_KEY || 'minio';
-    secretKey = process.env.MINIO_SECRET_KEY || 'minio123';
+    accessKey = usesSharedCredentials
+      ? trustedStore?.accessKey
+      : process.env.MINIO_ACCESS_KEY || 'minio';
+    secretKey = usesSharedCredentials
+      ? trustedStore?.secretKey
+      : process.env.MINIO_SECRET_KEY || 'minio123';
   }
 
   const client = await createMinioClient(
@@ -381,8 +555,9 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
       // start-proxy-and-server.sh sets MINIO_HOST=localhost, but it doesn't
       // seem to be respected when running the server in development mode.
       // Investigate and fix this.
-      endPoint: host,
-      port,
+      endPoint: workflowEndpoint.host,
+      port: workflowEndpoint.port,
+      ...(usesSharedCredentials && trustedStore?.region ? { region: trustedStore.region } : {}),
       secretKey,
       useSSL: !s3Artifact.insecure,
     },
@@ -393,6 +568,69 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     client,
     key: logKey,
   };
+}
+
+/**
+ * Reduces a Kubernetes Service host to its shortest equivalent form so that the
+ * short (`svc.ns`), `.svc` (`svc.ns.svc`), and fully-qualified
+ * (`svc.ns.svc.<clusterDomain>`) spellings of the same in-cluster Service compare
+ * equal. This is used only for the trusted-endpoint equality check; the real,
+ * workflow-recorded host is still what the client connects to. A trailing dot
+ * (absolute DNS name) is also stripped.
+ */
+function canonicalizeServiceHost(host: string, clusterDomain: string): string {
+  let h = host.toLowerCase().replace(/\.+$/, '');
+  const domain = (clusterDomain || '').toLowerCase().replace(/^\.+/, '').replace(/\.+$/, '');
+  if (domain && h.endsWith('.' + domain)) {
+    h = h.slice(0, h.length - domain.length - 1);
+  }
+  if (h.endsWith('.svc')) {
+    h = h.slice(0, h.length - '.svc'.length);
+  }
+  return h;
+}
+
+/**
+ * Builds an origin string (`<scheme>//<canonical-host>:<port>`) for endpoint
+ * equality, canonicalizing the Service host so DNS-equivalent spellings match.
+ */
+function canonicalArtifactOrigin(
+  endpoint: { host: string; port: number; origin: string },
+  clusterDomain: string,
+): string {
+  const scheme = endpoint.origin.slice(0, endpoint.origin.indexOf('//'));
+  return `${scheme}//${canonicalizeServiceHost(endpoint.host, clusterDomain)}:${endpoint.port}`;
+}
+
+function parseArtifactStoreEndpoint(
+  endpoint: string,
+  insecure: boolean,
+  configuredPort?: number,
+): { host: string; port: number; origin: string } | undefined {
+  try {
+    const protocol = insecure ? 'http:' : 'https:';
+    const hasExplicitProtocol = endpoint.includes('://');
+    const parsed = new URL(hasExplicitProtocol ? endpoint : `${protocol}//${endpoint}`);
+    if (
+      !['http:', 'https:'].includes(parsed.protocol) ||
+      (hasExplicitProtocol && parsed.protocol !== protocol) ||
+      parsed.username ||
+      parsed.password ||
+      (parsed.pathname && parsed.pathname !== '/') ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return undefined;
+    }
+    const port = parsed.port ? Number(parsed.port) : configuredPort || (insecure ? 80 : 443);
+    return {
+      host: parsed.hostname,
+      port,
+      origin: `${protocol}//${parsed.hostname.toLowerCase()}:${port}`,
+    };
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -409,18 +647,4 @@ async function getMinioClientSecrets(
   const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key, namespace);
   const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key, namespace);
   return { accessKey, secretKey };
-}
-
-/**
- * Split an uri into host and port.
- * @param uri uri to split
- * @param insecure if port is not provided in uri, return port depending on whether ssl is enabled.
- */
-
-function urlSplit(uri: string, insecure: boolean) {
-  const chunks = uri.split(':');
-  if (chunks.length === 1) {
-    return { host: chunks[0], port: insecure ? 80 : 443 };
-  }
-  return { host: chunks[0], port: parseInt(chunks[1], 10) };
 }

@@ -97,16 +97,21 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     ARGO_ARCHIVE_ARTIFACTORY = 'minio',
     /** Bucket to retrive logs from */
     ARGO_ARCHIVE_BUCKETNAME = 'mlpipeline',
-    /** This should match the keyFormat specified in the Argo workflow-controller-configmap.
-     * It's set here in the manifests:
-     * https://github.com/kubeflow/pipelines/blob/7b7918ebf8c30e6ceec99283ef20dbc02fdf6a42/manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml#L28
+    /** This must match the keyFormat in
+     * manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml.
+     * The namespace-scoped default is required for multi-user isolation. Existing
+     * archives written with a legacy format need an explicit ARGO_KEYFORMAT during
+     * migration and remain unavailable in multi-user mode if the format cannot be
+     * proven namespace-scoped.
      */
-    ARGO_KEYFORMAT = 'artifacts/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
+    ARGO_KEYFORMAT = 'private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
     /** Argo Workflows lets you specify a unique artifact repository for each
      * namespace by adding an appropriately formatted configmap to the namespace
      * as documented here:
      * https://argo-workflows.readthedocs.io/en/latest/artifact-repository-ref/.
-     * Use this field to enable this lookup. It defaults to false.
+     * Use this field to enable this lookup. It defaults to false. In multi-user
+     * mode the operator-owned endpoint, bucket, and key format remain authoritative;
+     * tenant ConfigMaps cannot override shared-store trust or key confinement.
      */
     ARGO_ARTIFACT_REPOSITORIES_LOOKUP = 'false',
     /** Should use server API for log streaming? */

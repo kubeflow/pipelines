@@ -16,7 +16,7 @@ import {
   createPodLogsMinioRequestConfig,
   composePodLogsStreamHandler,
   getPodLogsStreamFromK8s,
-  getPodLogsStreamFromWorkflow,
+  getPodLogsMinioRequestConfigfromWorkflow,
   toGetPodLogsStream,
 } from '../workflow-helper.js';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
@@ -46,6 +46,7 @@ export function getPodLogsHandler(
   podLogContainerName: string,
   authorizeFn: AuthorizeFn,
   authEnabled: boolean,
+  clusterDomain: string = '.svc.cluster.local',
 ): Handler {
   const {
     archiveLogs,
@@ -62,7 +63,23 @@ export function getPodLogsHandler(
       archiveBucketName,
       keyFormat,
       artifactRepositoriesLookup,
+      authEnabled,
     ),
+  );
+
+  // get pod log from the workflow status. Bind authEnabled so that, in
+  // multi-user mode, the workflow-recorded log key is confined to the authorized
+  // namespace (this path is attempted before the configured archive fallback).
+  const getPodLogsStreamFromWorkflow = toGetPodLogsStream(
+    (podName: string, createdAt: string, namespace?: string) =>
+      getPodLogsMinioRequestConfigfromWorkflow(podName, createdAt, namespace, {
+        authEnabled,
+        trustedKeyFormat: keyFormat,
+        trustedBucket: archiveBucketName,
+        clusterDomain,
+        trustedStore:
+          archiveArtifactory === 'minio' ? artifactsOptions.minio : artifactsOptions.aws,
+      }),
   );
 
   // get the pod log stream (with fallbacks).

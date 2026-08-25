@@ -277,6 +277,7 @@ function createUIServer(options: UIConfigs) {
         options.pod.logContainerName,
         authorizeFn,
         options.auth.enabled,
+        options.viewer.tensorboard.clusterDomain,
       ),
     );
   }
@@ -309,6 +310,7 @@ function createUIServer(options: UIConfigs) {
         options.pod.logContainerName,
         authorizeFn,
         options.auth.enabled,
+        options.viewer.tensorboard.clusterDomain,
       ),
     );
   }
