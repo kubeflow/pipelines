@@ -22,6 +22,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -504,7 +505,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := taskStore.patchWithExistingTasks(tt.tasks, defaultFakeRunIdTwo)
+			err := taskStore.patchWithExistingTasks(taskStore.db, tt.tasks, defaultFakeRunIdTwo)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
@@ -621,5 +622,122 @@ func TestTaskStore_UpdateOrCreateTasks(t *testing.T) {
 func TestTaskAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.Task{}).APIToModelFieldMap() {
 		assert.Contains(t, taskColumns, modelField)
+	}
+}
+
+func TestCreateOrUpdateTasksIfRunUnchangedAcceptsMatchingRun(t *testing.T) {
+	db, taskStore := initializeTaskStore()
+	defer db.Close()
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	run, err := runStore.GetRun(defaultFakeRunIdTwo)
+	require.NoError(t, err)
+	task := &model.Task{
+		RunID:     run.UUID,
+		Namespace: run.Namespace,
+		PodName:   "guarded-task",
+		State:     model.RuntimeStateRunning,
+	}
+	updatedTasks, updated, err := taskStore.CreateOrUpdateTasksIfRunUnchanged(
+		[]*model.Task{task},
+		run.UUID,
+		run.Namespace,
+		run.WorkflowRuntimeManifest,
+		run.PipelineRuntimeManifest,
+		run.RetryGeneration,
+	)
+	require.NoError(t, err)
+	require.True(t, updated)
+	require.Len(t, updatedTasks, 1)
+	require.NotEmpty(t, updatedTasks[0].UUID)
+
+	persistedTask, err := taskStore.GetTask(updatedTasks[0].UUID)
+	require.NoError(t, err)
+	assert.Equal(t, updatedTasks[0].UUID, persistedTask.UUID)
+	assert.Equal(t, updatedTasks[0].RunID, persistedTask.RunID)
+	assert.Equal(t, updatedTasks[0].Namespace, persistedTask.Namespace)
+	assert.Equal(t, updatedTasks[0].PodName, persistedTask.PodName)
+	assert.Equal(t, updatedTasks[0].StateHistory, persistedTask.StateHistory)
+}
+
+func TestCreateOrUpdateTasksIfRunUnchangedRejectsRecreatedRun(t *testing.T) {
+	tests := []struct {
+		name                          string
+		replacementNamespace          string
+		replacementWorkflow           model.LargeText
+		preserveStaleWorkflowManifest bool
+	}{
+		{
+			name:                          "cross-namespace with identical manifests",
+			replacementNamespace:          "ns1",
+			preserveStaleWorkflowManifest: true,
+		},
+		{
+			name:                 "same namespace with a new workflow manifest",
+			replacementNamespace: "ns2",
+			replacementWorkflow:  "replacement-workflow-runtime",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, taskStore := initializeTaskStore()
+			defer db.Close()
+			runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+			staleRun, err := runStore.GetRun(defaultFakeRunIdTwo)
+			require.NoError(t, err)
+			require.NoError(t, runStore.DeleteRun(defaultFakeRunIdTwo))
+			replacementWorkflow := tt.replacementWorkflow
+			replacementPipeline := staleRun.PipelineRuntimeManifest
+			if tt.preserveStaleWorkflowManifest {
+				replacementWorkflow = staleRun.WorkflowRuntimeManifest
+			}
+			_, err = runStore.CreateRun(&model.Run{
+				UUID:         defaultFakeRunIdTwo,
+				ExperimentId: defaultFakeExpId,
+				DisplayName:  "replacement-run",
+				K8SName:      "replacement-workflow",
+				Namespace:    tt.replacementNamespace,
+				StorageState: model.StorageStateAvailable,
+				RunDetails: model.RunDetails{
+					CreatedAtInSec:          10,
+					Conditions:              "Pending",
+					State:                   model.RuntimeStatePending,
+					WorkflowRuntimeManifest: replacementWorkflow,
+					PipelineRuntimeManifest: replacementPipeline,
+				},
+			})
+			require.NoError(t, err)
+
+			task := &model.Task{
+				RunID:     defaultFakeRunIdTwo,
+				Namespace: staleRun.Namespace,
+				PodName:   "stale-run-task",
+				State:     model.RuntimeStateRunning,
+			}
+			updatedTasks, updated, err := taskStore.CreateOrUpdateTasksIfRunUnchanged(
+				[]*model.Task{task},
+				defaultFakeRunIdTwo,
+				staleRun.Namespace,
+				staleRun.WorkflowRuntimeManifest,
+				staleRun.PipelineRuntimeManifest,
+				staleRun.RetryGeneration,
+			)
+			require.NoError(t, err)
+			assert.False(t, updated)
+			assert.Nil(t, updatedTasks)
+			assert.Empty(t, task.UUID, "a rejected task report must not mutate task identity")
+
+			var taskCount int
+			require.NoError(t, db.QueryRow(
+				"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?",
+				defaultFakeRunIdTwo,
+			).Scan(&taskCount))
+			assert.Zero(t, taskCount)
+			replacementRun, err := runStore.GetRun(defaultFakeRunIdTwo)
+			require.NoError(t, err)
+			assert.Equal(t, tt.replacementNamespace, replacementRun.Namespace)
+			assert.Equal(t, replacementWorkflow, replacementRun.WorkflowRuntimeManifest)
+		})
 	}
 }
