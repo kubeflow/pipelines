@@ -165,7 +165,7 @@ class AddCiPassedLabelTest(unittest.TestCase):
                       self.workflow)
 
     def test_publishes_sha_bound_commit_status(self):
-        # Jeff's blocker 2: the merge gate must be a required commit status
+        # the merge gate must be a required commit status
         # on the verified head SHA, not the label.
         self.assertIn('createCommitStatus', self.workflow)
         self.assertIn('context: "ci-passed"', self.workflow)
@@ -209,7 +209,7 @@ class AddCiPassedLabelTest(unittest.TestCase):
 class CiScriptsTestsPathFilterTest(unittest.TestCase):
 
     def test_add_ci_passed_label_workflow_covered(self):
-        # Jeff's ask: the path filter must include the changed workflow so
+        # the path filter must include the changed workflow so
         # the truth-table coverage actually runs on this PR.
         workflow = CI_SCRIPTS_PATH.read_text(encoding='utf-8')
         self.assertIn("'.github/workflows/add-ci-passed-label.yml'", workflow)
