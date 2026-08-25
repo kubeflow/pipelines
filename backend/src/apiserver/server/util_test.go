@@ -47,7 +47,7 @@ func TestLoadFile_LargeDoc(t *testing.T) {
 
 func TestDecompressPipelineTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/arguments_tarball/arguments.tar.gz")
-	pipelineFile, err := DecompressPipelineTarball(tarballByte)
+	pipelineFile, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := os.ReadFile("test/arguments-parameters.yaml")
@@ -56,28 +56,28 @@ func TestDecompressPipelineTarball(t *testing.T) {
 
 func TestDecompressPipelineTarball_MalformattedTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/malformatted_tarball.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
 func TestDecompressPipelineTarball_NonYamlTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/non_yaml_tarball/non_yaml_tarball.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the tarball")
 }
 
 func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/empty_tarball/empty.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte)
+	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
 func TestDecompressPipelineZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/arguments_zip/arguments-parameters.zip")
-	pipelineFile, err := DecompressPipelineZip(zipByte)
+	pipelineFile, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := os.ReadFile("test/arguments-parameters.yaml")
@@ -86,28 +86,28 @@ func TestDecompressPipelineZip(t *testing.T) {
 
 func TestDecompressPipelineZip_MalformattedZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/malformatted_zip.zip")
-	_, err := DecompressPipelineZip(zipByte)
+	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
 
 func TestDecompressPipelineZip_MalformedZip2(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/malformed_zip2.zip")
-	_, err := DecompressPipelineZip(zipByte)
+	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
 
 func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
-	_, err := DecompressPipelineZip(zipByte)
+	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the zip")
 }
 
 func TestDecompressPipelineZip_EmptyZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/empty_tarball/empty.zip")
-	_, err := DecompressPipelineZip(zipByte)
+	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }

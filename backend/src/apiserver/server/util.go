@@ -73,7 +73,7 @@ func isCompressedTarballFile(compressedFile []byte) bool {
 	return len(compressedFile) > 2 && compressedFile[0] == '\x1F' && compressedFile[1] == '\x8B'
 }
 
-func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
+func DecompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte, error) {
 	gzipReader, err := gzip.NewReader(bytes.NewReader(compressedFile))
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
@@ -111,14 +111,18 @@ func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 		}
 	}
 
-	decompressedFile, err := io.ReadAll(tarReader)
+	limitedReader := io.LimitReader(tarReader, int64(maxFileLength)+1)
+	decompressedFile, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file")
+	}
+	if len(decompressedFile) > maxFileLength {
+		return nil, util.NewInvalidInputError("Decompressed file size too large. Maximum supported size: %v bytes", maxFileLength)
 	}
 	return decompressedFile, err
 }
 
-func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
+func DecompressPipelineZip(compressedFile []byte, maxFileLength int) ([]byte, error) {
 	reader, err := zip.NewReader(bytes.NewReader(compressedFile), int64(len(compressedFile)))
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Not a valid zip file")
@@ -144,9 +148,13 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content")
 	}
-	decompressedFile, err := io.ReadAll(rc)
+	limitedReader := io.LimitReader(rc, int64(maxFileLength)+1)
+	decompressedFile, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file")
+	}
+	if len(decompressedFile) > maxFileLength {
+		return nil, util.NewInvalidInputError("Decompressed file size too large. Maximum supported size: %v bytes", maxFileLength)
 	}
 	return decompressedFile, err
 }
@@ -165,9 +173,9 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) 
 	case isJSONFile(fileName):
 		processedFile = pipelineFileBytes
 	case isZipFile(pipelineFileBytes):
-		processedFile, err = DecompressPipelineZip(pipelineFileBytes)
+		processedFile, err = DecompressPipelineZip(pipelineFileBytes, MaxFileLength)
 	case isCompressedTarballFile(pipelineFileBytes):
-		processedFile, err = DecompressPipelineTarball(pipelineFileBytes)
+		processedFile, err = DecompressPipelineTarball(pipelineFileBytes, MaxFileLength)
 	default:
 		return nil, util.NewInvalidInputError("Unexpected pipeline file format. Support .zip, .tar.gz, .json or YAML")
 	}
