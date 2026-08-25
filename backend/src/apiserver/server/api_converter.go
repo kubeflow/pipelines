@@ -1340,10 +1340,10 @@ func toModelRun(r interface{}) (*model.Run, error) {
 					experimentId = resources["ExperimentId"]
 				}
 				if pipelineId == "" {
-					pipelineId = resources["PipelineId"]
+					pipelineId = resources[common.PipelineIDResourceNameKey]
 				}
 				if pipelineVersionId == "" {
-					pipelineVersionId = resources["PipelineVersionId"]
+					pipelineVersionId = resources[common.PipelineVersionIDResourceNameKey]
 				}
 				if runId == "" {
 					runId = resources["RunID"]
