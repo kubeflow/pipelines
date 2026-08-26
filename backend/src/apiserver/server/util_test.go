@@ -15,13 +15,49 @@
 package server
 
 import (
+	"archive/tar"
+	"archive/zip"
+	"bytes"
+	"compress/gzip"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func createZipArchive(t *testing.T, content []byte) []byte {
+	t.Helper()
+
+	var buffer bytes.Buffer
+	zipWriter := zip.NewWriter(&buffer)
+	fileWriter, err := zipWriter.Create("pipeline.yaml")
+	require.NoError(t, err)
+	_, err = fileWriter.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, zipWriter.Close())
+	return buffer.Bytes()
+}
+
+func createTarGzArchive(t *testing.T, content []byte) []byte {
+	t.Helper()
+
+	var buffer bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buffer)
+	tarWriter := tar.NewWriter(gzipWriter)
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{
+		Name: "pipeline.yaml",
+		Mode: 0600,
+		Size: int64(len(content)),
+	}))
+	_, err := tarWriter.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, tarWriter.Close())
+	require.NoError(t, gzipWriter.Close())
+	return buffer.Bytes()
+}
 
 func TestLoadFile(t *testing.T) {
 	file := "12345"
@@ -173,6 +209,69 @@ func TestReadPipelineFile_Tarball_AnyExtension(t *testing.T) {
 
 	expectedPipelineFile, _ := os.ReadFile("test/arguments-parameters.yaml")
 	assert.Equal(t, expectedPipelineFile, pipelineFile)
+}
+
+func TestReadPipelineFile_CompressedFileSizeLimit(t *testing.T) {
+	const maxFileLength = 1024
+
+	formats := []struct {
+		name          string
+		fileName      string
+		createArchive func(*testing.T, []byte) []byte
+	}{
+		{
+			name:          "zip",
+			fileName:      "pipeline.zip",
+			createArchive: createZipArchive,
+		},
+		{
+			name:          "tar.gz",
+			fileName:      "pipeline.tar.gz",
+			createArchive: createTarGzArchive,
+		},
+	}
+	testCases := []struct {
+		name        string
+		contentSize int
+		wantError   bool
+	}{
+		{
+			name:        "at limit",
+			contentSize: maxFileLength,
+		},
+		{
+			name:        "over limit",
+			contentSize: maxFileLength + 1,
+			wantError:   true,
+		},
+	}
+
+	for _, format := range formats {
+		t.Run(format.name, func(t *testing.T) {
+			for _, testCase := range testCases {
+				t.Run(testCase.name, func(t *testing.T) {
+					content := bytes.Repeat([]byte("a"), testCase.contentSize)
+					archive := format.createArchive(t, content)
+					require.Less(t, len(archive), maxFileLength)
+
+					pipelineFile, err := ReadPipelineFile(
+						format.fileName,
+						bytes.NewReader(archive),
+						maxFileLength,
+					)
+					if testCase.wantError {
+						require.Error(t, err)
+						assert.Nil(t, pipelineFile)
+						assert.Contains(t, err.Error(), "Decompressed file size too large. Maximum supported size: 1024 bytes")
+						return
+					}
+
+					require.NoError(t, err)
+					assert.Equal(t, content, pipelineFile)
+				})
+			}
+		})
+	}
 }
 
 func TestReadPipelineFile_MultifileTarball(t *testing.T) {
