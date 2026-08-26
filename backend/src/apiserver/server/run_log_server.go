@@ -81,13 +81,13 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 // so the caller identity arrives in the request headers, not in gRPC metadata.
 // Copy the headers into metadata so the authenticators can read them, as
 // canUploadVersionedPipeline does.
-func (s *RunLogServer) authorize(r *http.Request, runId string) error {
+func (s *RunLogServer) authorize(r *http.Request, runID string) error {
 	md := metadata.MD{}
 	for key, values := range r.Header {
 		md.Set(key, values...)
 	}
 	ctx := metadata.NewIncomingContext(r.Context(), md)
-	return s.canAccessRun(ctx, runId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	return s.canAccessRun(ctx, runID, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
 }
 
 func (s *RunLogServer) writeErrorToResponse(w http.ResponseWriter, code int, err error) {
