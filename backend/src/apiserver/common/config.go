@@ -30,6 +30,7 @@ const (
 	PodNamespace                            string = "POD_NAMESPACE"
 	CacheEnabled                            string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
+	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
@@ -328,4 +329,25 @@ func GetRunsGCBatchSize() int {
 		return 1000
 	}
 	return configuredBatchSize
+}
+
+func ValidateServiceAccountAllowList(serviceAccount string) error {
+	if serviceAccount == "" {
+		return nil
+	}
+	defaultServiceAccount := GetStringConfigWithDefault(DefaultPipelineRunnerServiceAccountFlag, DefaultPipelineRunnerServiceAccount)
+	if serviceAccount == defaultServiceAccount {
+		return nil
+	}
+
+	allowedServiceAccounts := GetStringConfigWithDefault(AllowedServiceAccountsFlag, "")
+	if allowedServiceAccounts == "" {
+		return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
+	}
+	for allowed := range strings.SplitSeq(allowedServiceAccounts, ",") {
+		if strings.TrimSpace(allowed) == serviceAccount {
+			return nil
+		}
+	}
+	return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
 }
