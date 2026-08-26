@@ -47,6 +47,12 @@ type PersistedRun struct {
 	Namespace  string
 	State      string     // RuntimeState string, e.g. "SUCCEEDED", "FAILED"
 	FinishedAt *time.Time // nil if not yet finished
+	// RetryGeneration is the run's retry-claim generation (0 if the run was
+	// never retried). Retry hooks are delivered at least once per retry:
+	// a crash between the hook call and the run-row update replays the hook
+	// during recovery, so handlers that are not naturally idempotent must
+	// deduplicate on (RunID, RetryGeneration).
+	RetryGeneration int64
 	// PluginsOutput is the deserialized plugins_output map.
 	PluginsOutput map[string]*apiv2beta1.PluginOutput
 }

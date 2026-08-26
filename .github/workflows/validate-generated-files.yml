@@ -6,18 +6,28 @@ on:
   pull_request:
     paths:
       - '.github/workflows/validate-generated-files.yml'
+      - '.github/resources/scripts/generated_files_dependency_change.py'
+      - '.github/resources/scripts/check_generated_diff.py'
       - '.github/actions/setup-python-pip-cache/**'
+      - 'go.mod'
+      - 'go.sum'
       - 'backend/api/Dockerfile'
       - 'backend/api/Makefile'
+      - 'backend/api/build_kfp_server_api_python_package.sh'
+      - 'backend/api/tools/go.mod'
+      - 'backend/api/tools/go.sum'
       - 'backend/api/**/*.proto'
       - 'backend/api/**/go_http_client/**'
       - 'backend/api/**/go_client/**'
       - 'backend/api/**/python_http_client/**'
       - 'backend/api/**/swagger/**'
+      - 'api/Makefile'
       - 'api/**/*.proto'
       - 'api/**/*.go'
+      - 'kubernetes_platform/Makefile'
       - 'kubernetes_platform/**/*.proto'
       - 'kubernetes_platform/**/*.go'
+      - 'sdk/Makefile'
       - 'backend/src/crd/kubernetes/**/*.go'
       - 'manifests/kustomize/base/crds/*.yaml'
       - 'sdk/**/*.py'
@@ -31,13 +41,42 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate-generated-files:
+  detect-generator-changes:
     runs-on: ubuntu-latest
+    outputs:
+      required: ${{ steps.detect.outputs.required }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect relevant generator changes
+        id: detect
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            required="$(python3 .github/resources/scripts/generated_files_dependency_change.py \
+              --base "$BASE_SHA" --head "$HEAD_SHA")"
+          else
+            required=true
+          fi
+          echo "required=$required" >> "$GITHUB_OUTPUT"
+
+  generate-and-check:
+    needs: detect-generator-changes
+    if: needs.detect-generator-changes.outputs.required == 'true'
+    runs-on: ubuntu-latest
+    env:
+      USE_PREBUILT_IMAGE: false
     strategy:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -48,6 +87,10 @@ jobs:
           python-version: 3.9
           cache-scope: validate-generated-files
           cache-dependency-hash: ${{ hashFiles('sdk/python/requirements*.txt', 'kubernetes_platform/python/requirements*.txt') }}
+
+      - name: Set up Docker Buildx with caching
+        shell: bash
+        run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Install protobuf dependencies & kfp-pipeline-spec
         id: install-protobuf-deps
@@ -69,13 +112,13 @@ jobs:
         working-directory: ./backend/api
         env:
           API_VERSION: v2beta1
-        run: make generate-from-scratch
+        run: make generate
 
       - name: Generate backend proto code v1beta1
         working-directory: ./backend/api
         env:
           API_VERSION: v1beta1
-        run: make generate-from-scratch
+        run: make generate
 
       - name: Generate backend proto code v2beta1
         working-directory: ./backend/api
@@ -93,9 +136,11 @@ jobs:
         run: make check-diff
 
   validate-backwards-compabitiblity:
+    needs: detect-generator-changes
+    if: needs.detect-generator-changes.outputs.required == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Go
         uses: ./.github/actions/setup-go
@@ -105,3 +150,25 @@ jobs:
         env:
           UPDATE_EXPORTED: false
         run: go test .
+
+  # Preserve the existing required-check name even when an unrelated Go module
+  # update skips the expensive generation job.
+  validate-generated-files:
+    needs:
+      - detect-generator-changes
+      - generate-and-check
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report validation result
+        env:
+          DETECTION_RESULT: ${{ needs.detect-generator-changes.result }}
+          GENERATION_REQUIRED: ${{ needs.detect-generator-changes.outputs.required }}
+          GENERATION_RESULT: ${{ needs.generate-and-check.result }}
+        run: |
+          [[ "$DETECTION_RESULT" == "success" ]]
+          if [[ "$GENERATION_REQUIRED" == "true" ]]; then
+            [[ "$GENERATION_RESULT" == "success" ]]
+          else
+            [[ "$GENERATION_RESULT" == "skipped" ]]
+          fi

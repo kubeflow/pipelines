@@ -105,6 +105,18 @@ data:
   ## - A negative integer (e.g., -1) disables automatic deletion, meaning artifacts are retained indefinitely.
   ## Note: The unit of this configuration is always in days.
   ARTIFACT_RETENTION_DAYS: "-1"
+  ## RUNS_RETENTION_TIME: Auto-archive terminal runs after this duration.
+  ## Uses Go duration format (e.g., "720h" for 30 days). Empty disables.
+  RUNS_RETENTION_TIME: ""
+  ## ARCHIVED_RUNS_RETENTION_TIME: Auto-delete archived runs this long after
+  ## they were archived (runs archived before upgrade fall back to their
+  ## completion time). Uses Go duration format (e.g., "2160h" for 90 days).
+  ## Empty disables.
+  ARCHIVED_RUNS_RETENTION_TIME: ""
+  ## RUNS_GC_INTERVAL: Poll interval for the run garbage collector.
+  RUNS_GC_INTERVAL: "6h"
+  ## RUNS_GC_BATCH_SIZE: Maximum rows per GC batch (the collector drains all batches per tick).
+  RUNS_GC_BATCH_SIZE: "100"
   ## Default security context for customer workload containers.
   ## Leave empty to disable (default). When set, SDK-specified values
   ## for the corresponding field are ignored.

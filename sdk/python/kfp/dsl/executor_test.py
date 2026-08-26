@@ -1887,5 +1887,379 @@ def temporary_envvar(key: str, value: str) -> None:
             del os.environ[key]
 
 
+try:
+    import pydantic
+except ImportError:
+    pydantic = None
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
+
+    @classmethod
+    def setUp(cls):
+        cls._test_dir = tempfile.mkdtemp()
+
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
+        executor_input_dict = json.loads(executor_input %
+                                         {'test_dir': self._test_dir})
+        executor.Executor(
+            executor_input=executor_input_dict,
+            function_to_execute=func).execute()
+        with open(executor_input_dict['outputs']['outputFile']) as f:
+            return json.loads(f.read())
+
+    def test_pydantic_basemodel_input_is_validated(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.foo, 'bar')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_optional_pydantic_basemodel_input_is_validated(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: Optional[MyModel] = None) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.foo, 'bar')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_pydantic_basemodel_output_is_serialized(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(foo='bar')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        self.assertEqual({'parameterValues': {
+            'Output': {
+                'foo': 'bar'
+            }
+        }}, output_metadata)
+
+    def test_pydantic_basemodel_output_is_serialized_by_alias(self):
+
+        class MyModel(pydantic.BaseModel):
+            name: str = pydantic.Field(alias='personName')
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(personName='Alice')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        wire_value = output_metadata['parameterValues']['Output']
+        self.assertEqual({'personName': 'Alice'}, wire_value)
+        # the serialized wire value must round trip back through
+        # model_validate() using the same model.
+        self.assertEqual(
+            MyModel(personName='Alice'), MyModel.model_validate(wire_value))
+
+    def test_pydantic_basemodel_input_is_validated_by_alias(self):
+
+        class MyModel(pydantic.BaseModel):
+            name: str = pydantic.Field(alias='personName')
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"personName": "Alice"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            self.assertIsInstance(my_data, MyModel)
+            self.assertEqual(my_data.name, 'Alice')
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_pydantic_basemodel_output_raises_for_unsupported_version(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> MyModel:
+            return MyModel(foo='bar')
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                self.execute_and_load_output_metadata(test_func, executor_input)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_pydantic_basemodel_input_raises_for_unsupported_version(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": {"foo": "bar"}
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(my_data: MyModel) -> None:
+            pass
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                self.execute_and_load_output_metadata(test_func, executor_input)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_optional_pydantic_basemodel_output_is_serialized_when_present(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> Optional[MyModel]:
+            return MyModel(foo='bar')
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        self.assertEqual({'parameterValues': {
+            'Output': {
+                'foo': 'bar'
+            }
+        }}, output_metadata)
+
+    def test_optional_pydantic_basemodel_output_allows_none(self):
+        # A bare (non-NamedTuple) None return short-circuits before
+        # handle_single_return_value is ever called (write_executor_output
+        # only calls it `if func_output is not None`), so the Optional-None
+        # path this test targets is only reachable through a NamedTuple
+        # field, where each field is handled independently regardless of
+        # whether it's None.
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "output_model": {
+                "outputFile": "gs://some-bucket/output_model"
+              },
+              "output_int": {
+                "outputFile": "gs://some-bucket/output_int"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> NamedTuple('Outputs', [
+            ('output_model', Optional[MyModel]),
+            ('output_int', int),
+        ]):
+            from collections import namedtuple
+            output = namedtuple('Outputs', ['output_model', 'output_int'])
+            return output(None, 5)
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        # The Optional field that was None produces no entry at all, matching
+        # how a fully-None (non-NamedTuple) return already omits the key
+        # entirely rather than writing a null.
+        self.assertEqual({'parameterValues': {
+            'output_int': 5
+        }}, output_metadata)
+
+    def test_non_optional_pydantic_basemodel_output_still_rejects_none(self):
+        # Regression guard: only an Optional-typed field may legitimately be
+        # None. A non-Optional MyModel field returning None must still
+        # raise, same as before Optional[BaseModel] support was added.
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "output_model": {
+                "outputFile": "gs://some-bucket/output_model"
+              },
+              "output_int": {
+                "outputFile": "gs://some-bucket/output_int"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func() -> NamedTuple('Outputs', [
+            ('output_model', MyModel),
+            ('output_int', int),
+        ]):
+            from collections import namedtuple
+            output = namedtuple('Outputs', ['output_model', 'output_int'])
+            return output(None, 5)
+
+        with self.assertRaisesRegex(ValueError, 'returned value of type'):
+            self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_rootmodel_scalar_output_and_input_round_trip(self):
+
+        class IntRoot(pydantic.RootModel[int]):
+            pass
+
+        output_executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def produce() -> IntRoot:
+            return IntRoot(5)
+
+        output_metadata = self.execute_and_load_output_metadata(
+            produce, output_executor_input)
+        # A RootModel dumps to its root value directly, not a dict.
+        self.assertEqual({'parameterValues': {'Output': 5}}, output_metadata)
+
+        input_executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "my_data": 5
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def consume(my_data: IntRoot) -> None:
+            self.assertIsInstance(my_data, IntRoot)
+            self.assertEqual(my_data.root, 5)
+
+        self.execute_and_load_output_metadata(consume, input_executor_input)
+
+
 if __name__ == '__main__':
     unittest.main()
