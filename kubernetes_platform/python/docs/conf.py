@@ -140,10 +140,17 @@ html_theme_options = {
     'version_info': [
         {
             'version':
+                'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.17/',
+            'title':
+                '2.17',
+            'aliases': ['stable'],
+        },
+        {
+            'version':
                 'https://kfp-kubernetes.readthedocs.io/en/kfp-kubernetes-2.17.0/',
             'title':
                 '2.17.0',
-            'aliases': ['stable'],
+            'aliases': [],
         },
         {
             'version':

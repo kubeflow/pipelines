@@ -1,51 +1,51 @@
-certifi==2026.6.17
+certifi==2026.7.22
     # via
     #   kfp-server-api
     #   kubernetes
     #   requests
-cffi==2.1.0
+cffi==2.1.1
     # via cryptography
-charset-normalizer==3.4.9
+charset-normalizer==3.5.1
     # via requests
-click==8.4.2
+click==8.5.0
     # via
     #   -r requirements.in
     #   click-option-group
 click-option-group==0.5.7
     # via -r requirements.in
-cryptography==49.0.0
+cryptography==50.0.1
     # via google-auth
 docstring-parser==0.18.0
     # via -r requirements.in
-google-api-core==2.31.0
+google-api-core==2.34.0
     # via
     #   -r requirements.in
     #   google-cloud-core
     #   google-cloud-storage
-google-auth==2.55.2
+google-auth==2.57.0
     # via
     #   -r requirements.in
     #   google-api-core
     #   google-cloud-core
     #   google-cloud-storage
     #   kubernetes
-google-cloud-core==2.6.0
+google-cloud-core==2.7.0
     # via google-cloud-storage
-google-cloud-storage==3.12.1
+google-cloud-storage==3.13.1
     # via -r requirements.in
 google-crc32c==1.8.0
     # via
     #   google-cloud-storage
     #   google-resumable-media
-google-resumable-media==2.10.0
+google-resumable-media==2.10.2
     # via google-cloud-storage
-googleapis-common-protos==1.75.0
+googleapis-common-protos==1.75.2
     # via google-api-core
-idna==3.18
+idna==3.19
     # via requests
-kfp-pipeline-spec==2.17.0
+kfp-pipeline-spec==2.17.1
     # via -r requirements.in
-kfp-server-api==2.17.0
+kfp-server-api==2.17.1
     # via -r requirements.in
 kubernetes==30.1.0
     # via -r requirements.in
@@ -53,7 +53,7 @@ oauthlib==3.3.1
     # via
     #   kubernetes
     #   requests-oauthlib
-proto-plus==1.28.1
+proto-plus==1.28.4
     # via google-api-core
 protobuf==6.33.6
     # via
@@ -62,7 +62,7 @@ protobuf==6.33.6
     #   googleapis-common-protos
     #   kfp-pipeline-spec
     #   proto-plus
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
