@@ -1,5 +1,11 @@
 Changelog
 
+## 2.17.1 (2026-08-26)
+
+### Bug Fixes
+
+- **backend** preserve optional defaults in container args ([#14178](https://github.com/kubeflow/pipelines/pull/14178))
+
 ## 2.17.0 (2026-07-08)
 
 
