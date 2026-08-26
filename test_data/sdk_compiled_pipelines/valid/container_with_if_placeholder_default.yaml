@@ -1,0 +1,49 @@
+# PIPELINE DEFINITION
+# Name: container-with-if-placeholder-default
+components:
+  comp-container-with-if-placeholder:
+    executorLabel: exec-container-with-if-placeholder
+    inputDefinitions:
+      parameters:
+        optional_input:
+          defaultValue: default
+          isOptional: true
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        output_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-with-if-placeholder:
+      container:
+        args:
+        - --output_path
+        - '{{$.outputs.parameters[''output_path''].output_file}}'
+        command:
+        - my_program
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
+          "Else": ["bye"]}}'
+        - --dataset
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
+          "Else": ["bye"]}}'
+        image: registry.access.redhat.com/ubi9/python-311:latest
+pipelineInfo:
+  name: container-with-if-placeholder-default
+root:
+  dag:
+    tasks:
+      container-with-if-placeholder:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-if-placeholder
+        taskInfo:
+          name: container-with-if-placeholder
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2

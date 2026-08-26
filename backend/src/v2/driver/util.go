@@ -208,23 +208,27 @@ func isConditionClause(arg string) bool {
 	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
 }
 
+func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput) bool {
+	if value, ok := executorInput.GetInputs().GetParameterValues()[inputName]; ok {
+		if value == nil {
+			return false
+		}
+		_, isNull := value.GetKind().(*structpb.Value_NullValue)
+		return !isNull
+	}
+
+	artifacts, ok := executorInput.GetInputs().GetArtifacts()[inputName]
+	return ok && len(artifacts.GetArtifacts()) > 0
+}
+
 func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var ifPresent ifPresentCondition
 	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
 		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
 	}
 
-	val, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
-	// Treat null values as absent for IfPresent semantics.
-	// The driver can set optional pipeline inputs to structpb.NewNullValue(),
-	// which should be treated as "not present".
-	if isPresent {
-		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
-			isPresent = false
-		}
-	}
 	var values interface{}
-	if isPresent {
+	if isInputPresent(ifPresent.IfPresent.InputName, executorInput) {
 		values = ifPresent.IfPresent.Then
 	} else {
 		values = ifPresent.IfPresent.Else
@@ -263,6 +267,15 @@ func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var resolvedArgs []string
 	for _, arg := range args {
+		if isConditionClause(arg) {
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+			continue
+		}
+
 		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
 		// Example: {{$.outputs.parameters['sum'].output_file}}
 		if strings.Contains(arg, "$.outputs") {
@@ -270,19 +283,11 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			continue
 		}
 
-		if isConditionClause(arg) {
-			resolved, err := resolveCondition(arg, executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve condition: %w", err)
-			}
-			resolvedArgs = append(resolvedArgs, resolved...)
-		} else {
-			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
-			}
-			resolvedArgs = append(resolvedArgs, resolvedArg)
+		resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
 		}
+		resolvedArgs = append(resolvedArgs, resolvedArg)
 	}
 	return resolvedArgs, nil
 }

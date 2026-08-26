@@ -52,6 +52,8 @@ from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import
     container_with_if_placeholder
 from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder import \
     container_with_if_placeholder as pipeline_with_if_placeholder_pipeline
+from test_data.sdk_compiled_pipelines.valid.container_with_if_placeholder_default import \
+    pipeline as container_with_if_placeholder_default_pipeline
 from test_data.sdk_compiled_pipelines.valid.container_with_placeholder_in_fstring import \
     container_with_placeholder_in_fstring
 from test_data.sdk_compiled_pipelines.valid.containerized_python_component import \
@@ -761,6 +763,13 @@ class TestPipelineCompilation:
                 pipeline_func_args=None,
                 compiled_file_name='container_with_if_placeholder.yaml',
                 expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/container_with_if_placeholder.yaml'
+            ),
+            TestData(
+                pipeline_name='container-with-if-placeholder-default',
+                pipeline_func=container_with_if_placeholder_default_pipeline,
+                pipeline_func_args=None,
+                compiled_file_name='container_with_if_placeholder_default.yaml',
+                expected_compiled_file_path=f'{_VALID_PIPELINE_FILES}/container_with_if_placeholder_default.yaml'
             ),
             TestData(
                 pipeline_name='container-with-placeholder-in-fstring',

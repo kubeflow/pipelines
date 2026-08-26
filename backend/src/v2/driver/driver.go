@@ -304,19 +304,10 @@ func initPodSpecPatch(
 		setOnTaskConfig = map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
 	}
 
-	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
-
-	resolvedCommand, err := resolveContainerArgs(container.Command, executorInput)
+	userCmdArgs, err := resolveContainerCommandAndArgs(container, componentSpec, executorInput)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve container command: %w", err)
+		return nil, err
 	}
-	userCmdArgs = append(userCmdArgs, resolvedCommand...)
-
-	resolvedArgs, err := resolveContainerArgs(container.Args, executorInput)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve container args: %w", err)
-	}
-	userCmdArgs = append(userCmdArgs, resolvedArgs...)
 	launcherCmd := []string{
 		component.KFPLauncherPath,
 		// TODO(Bobgy): no need to pass pipeline_name and run_id, these info can be fetched via pipeline context and pipeline run context which have been created by root DAG driver.
@@ -515,6 +506,30 @@ func initPodSpecPatch(
 	}
 
 	return podSpec, nil
+}
+
+func resolveContainerCommandAndArgs(
+	container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec,
+	componentSpec *pipelinespec.ComponentSpec,
+	executorInput *pipelinespec.ExecutorInput,
+) ([]string, error) {
+	executorInputWithDefaults, err := component.AddDefaultParams(executorInput, componentSpec)
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply component parameter defaults: %w", err)
+	}
+
+	userCmdArgs := make([]string, 0, len(container.Command)+len(container.Args))
+	resolvedCommand, err := resolveContainerArgs(container.Command, executorInputWithDefaults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container command: %w", err)
+	}
+	userCmdArgs = append(userCmdArgs, resolvedCommand...)
+
+	resolvedArgs, err := resolveContainerArgs(container.Args, executorInputWithDefaults)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container args: %w", err)
+	}
+	return append(userCmdArgs, resolvedArgs...), nil
 }
 
 // needsWorkspaceMount checks if the component needs workspace mounting based on input parameters and artifacts.
