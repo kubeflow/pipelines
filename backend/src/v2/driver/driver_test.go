@@ -33,6 +33,58 @@ import (
 	k8sres "k8s.io/apimachinery/pkg/api/resource"
 )
 
+func Test_resolveContainerCommandAndArgs_OptionalParameterDefault(t *testing.T) {
+	componentSpec := &pipelinespec.ComponentSpec{
+		InputDefinitions: &pipelinespec.ComponentInputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentInputsSpec_ParameterSpec{
+				"message": {
+					ParameterType: pipelinespec.ParameterType_STRING,
+					DefaultValue:  structpb.NewStringValue("hello"),
+					IsOptional:    true,
+				},
+			},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{},
+		},
+	}
+	tests := []struct {
+		name      string
+		container *pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec
+		expected  []string
+	}{
+		{
+			name: "direct placeholder",
+			container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+				Command: []string{"echo"},
+				Args:    []string{"{{$.inputs.parameters['message']}}"},
+			},
+			expected: []string{"echo", "hello"},
+		},
+		{
+			name: "IfPresent condition",
+			container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+				Command: []string{"echo"},
+				Args: []string{
+					`{"IfPresent": {"InputName": "message", "Then": ["--message", "{{$.inputs.parameters['message']}}"], "Else": ["--no-message"]}}`,
+				},
+			},
+			expected: []string{"echo", "--message", "hello"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := resolveContainerCommandAndArgs(test.container, componentSpec, executorInput)
+			require.NoError(t, err)
+			assert.Equal(t, test.expected, actual)
+			assert.Empty(t, executorInput.GetInputs().GetParameterValues())
+		})
+	}
+}
+
 func Test_initPodSpecPatch_acceleratorConfig(t *testing.T) {
 	viper.Set("KFP_POD_NAME", "MyWorkflowPod")
 	viper.Set("KFP_POD_UID", "a1b2c3d4-a1b2-a1b2-a1b2-a1b2c3d4e5f6")
