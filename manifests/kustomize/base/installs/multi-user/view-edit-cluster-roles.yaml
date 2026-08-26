@@ -87,6 +87,13 @@ rules:
   resources:
   - scheduledworkflows
 - apiGroups:
+  - kubeflow.org
+  resources:
+  - viewers
+  verbs:
+  - create
+  - delete
+- apiGroups:
   - argoproj.io
   verbs:
   - '*'
@@ -131,9 +138,7 @@ rules:
   resources:
   - viewers
   verbs:
-  - create
   - get
-  - delete
 - apiGroups:
   - pipelines.kubeflow.org
   resources:

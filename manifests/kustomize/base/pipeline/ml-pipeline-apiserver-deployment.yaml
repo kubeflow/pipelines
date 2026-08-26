@@ -272,6 +272,30 @@ spec:
                   name: pipeline-install-config
                   key: DRIVER_POD_ANNOTATIONS
                   optional: true
+            - name: RUNS_RETENTION_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_RETENTION_TIME
+                  optional: true
+            - name: ARCHIVED_RUNS_RETENTION_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: ARCHIVED_RUNS_RETENTION_TIME
+                  optional: true
+            - name: RUNS_GC_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_GC_INTERVAL
+                  optional: true
+            - name: RUNS_GC_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_GC_BATCH_SIZE
+                  optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server

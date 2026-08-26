@@ -253,15 +253,73 @@ function getComparableValue(value: unknown): number | string {
   return String(value || '');
 }
 
-function sortV2Resources<T extends V2FilterableResource>(
+type V1SortableResource = ApiJob | ApiExperiment | ApiRun | ApiPipeline;
+
+/**
+ * The *SortKeys enums advertise the sort keys the real backend accepts, and a
+ * few of those are not stored on the v1 models. Derive those here so sorting by
+ * them behaves like the backend instead of silently comparing undefined.
+ *
+ * `lastRunCreatedAt` is the lookup built by buildLastRunCreatedAtMap, threaded
+ * in so it is built once per request rather than per comparison.
+ */
+function getV1ResourceValue(
+  resource: V1SortableResource,
+  key: string,
+  lastRunCreatedAt: () => Map<string, Date>,
+): unknown {
+  const record = resource as Record<string, unknown>;
+  if (key === 'display_name') {
+    // PipelineSortKeys/PipelineVersionSortKeys advertise display_name, but the
+    // v1 models only carry name.
+    return record.display_name ?? record.name;
+  }
+  if (key === 'last_run_created_at') {
+    // ExperimentSortKeys advertises last_run_created_at; it is a property of the
+    // experiment's runs rather than of the experiment itself.
+    const id = record.id;
+    return typeof id === 'string' ? lastRunCreatedAt().get(id) : undefined;
+  }
+  return record[key];
+}
+
+/** Latest run creation time per experiment, in one pass over fixedData.runs. */
+function buildLastRunCreatedAtMap(): Map<string, Date> {
+  const latest = new Map<string, Date>();
+  for (const runDetail of fixedData.runs) {
+    const run = runDetail.run;
+    if (!run || !run.created_at) {
+      continue;
+    }
+    for (const reference of RunUtils.getAllExperimentReferences(run)) {
+      const experimentId = reference.key?.id;
+      if (!experimentId) {
+        continue;
+      }
+      const current = latest.get(experimentId);
+      if (!current || run.created_at > current) {
+        latest.set(experimentId, run.created_at);
+      }
+    }
+  }
+  return latest;
+}
+
+/**
+ * Sorts a copy of `resources` so repeated requests do not reorder the shared
+ * fixture data in place. The value getter is the only part that varies between
+ * the v1 and v2 models, so the comparison logic lives here only.
+ */
+function sortResources<T>(
   resources: T[],
   defaultSortKey: string,
-  queryParam?: string,
+  queryParam: string | undefined,
+  getValue: (resource: T, key: string) => unknown,
 ): T[] {
   const { desc, key } = getSortKeyAndOrder(defaultSortKey, queryParam);
   return resources.slice().sort((a, b) => {
-    const aValue = getComparableValue(getV2ResourceValue(a, key));
-    const bValue = getComparableValue(getV2ResourceValue(b, key));
+    const aValue = getComparableValue(getValue(a, key));
+    const bValue = getComparableValue(getValue(b, key));
     let result = 0;
     if (aValue < bValue) {
       result = -1;
@@ -271,6 +329,32 @@ function sortV2Resources<T extends V2FilterableResource>(
     }
     return result * (desc ? -1 : 1);
   });
+}
+
+function sortV1Resources<T extends V1SortableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  // Built at most once per call, and only when the sort key actually needs it.
+  let lastRunCreatedAt: Map<string, Date> | undefined;
+  const getLastRunCreatedAt = () => {
+    if (!lastRunCreatedAt) {
+      lastRunCreatedAt = buildLastRunCreatedAtMap();
+    }
+    return lastRunCreatedAt;
+  };
+  return sortResources(resources, defaultSortKey, queryParam, (resource, key) =>
+    getV1ResourceValue(resource, key, getLastRunCreatedAt),
+  );
+}
+
+function sortV2Resources<T extends V2FilterableResource>(
+  resources: T[],
+  defaultSortKey: string,
+  queryParam?: string,
+): T[] {
+  return sortResources(resources, defaultSortKey, queryParam, getV2ResourceValue);
 }
 
 function filterV2Resources<T extends V2FilterableResource>(
@@ -623,21 +707,7 @@ export default (app: express.Application) => {
       jobs = filterResources(fixedData.jobs, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      ExperimentSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    jobs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    jobs = sortV1Resources(jobs, ExperimentSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -664,21 +734,11 @@ export default (app: express.Application) => {
       experiments = filterResources(fixedData.experiments, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    experiments = sortV1Resources(
+      experiments,
       ExperimentSortKeys.NAME,
       getQueryString(req.query.sortBy),
     );
-
-    experiments.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.pageToken) || 0;
     const end = start + (getQueryNumber(req.query.pageSize) || 20);
@@ -794,21 +854,7 @@ export default (app: express.Application) => {
       );
     }
 
-    const { desc, key } = getSortKeyAndOrder(
-      RunSortKeys.CREATED_AT,
-      getQueryString(req.query.sort_by),
-    );
-
-    runs.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
+    runs = sortV1Resources(runs, RunSortKeys.CREATED_AT, getQueryString(req.query.sort_by));
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);
@@ -959,21 +1005,11 @@ export default (app: express.Application) => {
       pipelines = filterResources(fixedData.pipelines, filterQuery);
     }
 
-    const { desc, key } = getSortKeyAndOrder(
+    pipelines = sortV1Resources(
+      pipelines,
       PipelineSortKeys.CREATED_AT,
       getQueryString(req.query.sort_by),
     );
-
-    pipelines.sort((a, b) => {
-      let result = 1;
-      if (a[key]! < b[key]!) {
-        result = -1;
-      }
-      if (a[key]! === b[key]!) {
-        result = 0;
-      }
-      return result * (desc ? -1 : 1);
-    });
 
     const start = getQueryNumber(req.query.page_token) || 0;
     const end = start + (getQueryNumber(req.query.page_size) || 20);

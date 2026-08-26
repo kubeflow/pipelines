@@ -813,7 +813,7 @@ func (w *Workflow) IsV2Compatible() bool {
 }
 
 func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
-	err := validate.ValidateWorkflow(ArgoContext(), nil, nil, w.Workflow, nil, validate.ValidateOpts{
+	err := validate.Workflow(ArgoContext(), nil, nil, w.Workflow, nil, validate.Opts{
 		Lint:                       lint,
 		IgnoreEntrypoint:           ignoreEntrypoint,
 		WorkflowTemplateValidation: false, // not used by kubeflow
@@ -998,8 +998,8 @@ func (wfi *WorkflowInformer) Get(namespace string, name string) (ExecutionSpec, 
 	return NewWorkflow(workflow), false, nil
 }
 
-func (wfi *WorkflowInformer) List(labels *labels.Selector) (ExecutionSpecList, error) {
-	workflows, err := wfi.informer.Lister().List(*labels)
+func (wfi *WorkflowInformer) List(namespace string, labels *labels.Selector) (ExecutionSpecList, error) {
+	workflows, err := wfi.informer.Lister().Workflows(namespace).List(*labels)
 	if err != nil {
 		return nil, err
 	}
