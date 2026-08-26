@@ -96,9 +96,9 @@ The caller provides the claim configuration at pipeline submission time:
 client.create_run_from_pipeline_func(
     training_pipeline,
     arguments={
-        "resource_claim": {
-            "resourceClaimTemplateName": "gpu-claim-template",
-        }
+        "resource_claim": kubernetes.ResourceClaimConfig(
+            resource_claim_template_name="gpu-claim-template",
+        )
     },
 )
 ```
@@ -158,13 +158,29 @@ kubernetes.add_resource_claim(
 ```python
 kubernetes.add_resource_claim_json(
     task: PipelineTask,
-    resource_claim_json: Union[PipelineParameterChannel, dict, list],
+    resource_claim_json: Union[PipelineParameterChannel, ResourceClaimConfig, list[ResourceClaimConfig]],
 ) -> PipelineTask
 ```
 
-- Accepts a pipeline parameter, a static dict, or a static list.
-- Each claim dict uses Kubernetes API field names: one of `resourceClaimTemplateName` or `resourceClaimName`.
+- Accepts a pipeline parameter, a `ResourceClaimConfig` instance, or a list of `ResourceClaimConfig` instances.
+- `ResourceClaimConfig` provides compile-time validation and IDE autocomplete, preventing typos from silently passing through to the backend.
 - When a list is provided, each item is treated as a separate claim.
+
+**`ResourceClaimConfig`** — typed claim configuration:
+
+```python
+class ResourceClaimConfig:
+    def __init__(
+        self,
+        resource_claim_template_name: Optional[str] = None,
+        resource_claim_name: Optional[str] = None,
+    ):
+        ...
+```
+
+- `resource_claim_template_name`: name of a `ResourceClaimTemplate` in the same namespace.
+- `resource_claim_name`: name of a pre-existing `ResourceClaim` in the same namespace.
+- Exactly one of `resource_claim_template_name` or `resource_claim_name` must be provided. Raises `ValueError` otherwise.
 
 **Resulting pod spec:**
 
@@ -232,6 +248,8 @@ message TaskConfigPassthroughType {
 
 New module `kubernetes_platform/python/kfp/kubernetes/pod_resource_claim.py` with `add_resource_claim()` and `add_resource_claim_json()` functions, following the `add_toleration()` / `add_toleration_json()` pattern.
 
+A new `ResourceClaimConfig` class in the same module provides typed claim configuration with compile-time validation. It serializes to the proto `PodResourceClaim` message when the pipeline is compiled.
+
 Both functions use `common.get_existing_kubernetes_config_as_message()` to retrieve the current config and append claims to the `pod_resource_claims` repeated field.
 
 The pod-local claim name (`PodResourceClaim.Name`) is not set by the SDK. The backend driver auto-generates it as `<task-name>-<index>` at runtime, keeping the SDK API simple and avoiding name collision logic at compile time.
@@ -276,18 +294,24 @@ No frontend changes are required. DRA resource claims are part of the platform s
 
 **Static variant (`add_resource_claim`):**
 - Single claim with `resource_claim_template_name`
-- Single claim with `resource_claim_name`
 - Multiple claims on one task
 - Coexistence with other `kfp-kubernetes` features (tolerations, node selectors, etc.)
 - Coexistence with `set_accelerator_limit()` on same task (DRA and device-plugin are alternative GPU approaches — both on same task should not break)
+- Single claim with `resource_claim_name`
 - Validation: error when neither `resource_claim_template_name` nor `resource_claim_name` is provided
 - Validation: error when both are provided
 
+**`ResourceClaimConfig`:**
+- Valid `resource_claim_template_name` creates config successfully
+- Valid `resource_claim_name` creates config successfully
+- Both `resource_claim_template_name` and `resource_claim_name` provided raises `ValueError`
+- Neither provided raises `ValueError`
+
 **JSON variant (`add_resource_claim_json`):**
-- Pipeline input parameter (single dict)
-- Pipeline input parameter (list of dicts)
-- Static dict (single claim)
-- Static list (multiple claims)
+- Pipeline input parameter (single `ResourceClaimConfig`)
+- Pipeline input parameter (list of `ResourceClaimConfig`)
+- Static `ResourceClaimConfig` (single claim)
+- Static list of `ResourceClaimConfig` (multiple claims)
 - Upstream task output parameter
 
 ### Go backend tests
