@@ -26,6 +26,7 @@ import (
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/sqlite"
@@ -477,4 +478,64 @@ func TestAutoMigrateSucceeds(t *testing.T) {
 	assertColumnExists("run_metrics", "RunUUID")
 	assertColumnExists("tasks", "RunUUID")
 	assertColumnExists("resource_references", "ResourceUUID")
+}
+
+func TestLoadAWSConfig_UserAgentHeader(t *testing.T) {
+	tests := []struct {
+		name          string
+		tagNameEnv    string
+		expectedUAKey string
+	}{
+		{
+			name:          "custom TAG_NAME configured",
+			tagNameEnv:    "2.4.0",
+			expectedUAKey: "kubeflow-pipelines/2.4.0",
+		},
+		{
+			name:          "unset TAG_NAME uses default fallback",
+			tagNameEnv:    "",
+			expectedUAKey: "kubeflow-pipelines/unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.tagNameEnv != "" {
+				viper.Set("TAG_NAME", tt.tagNameEnv)
+			} else {
+				viper.Set("TAG_NAME", "")
+			}
+			t.Cleanup(func() {
+				viper.Set("TAG_NAME", "")
+			})
+
+			var capturedUserAgent string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				capturedUserAgent = r.Header.Get("User-Agent")
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+
+			endpoint := strings.TrimPrefix(server.URL, "http://")
+			cfg := &blobStorageConfig{
+				bucketName: "test-bucket",
+				endpoint:   endpoint,
+				region:     "us-east-1",
+				secure:     false,
+				accessKey:  "key",
+				secretKey:  "secret",
+			}
+
+			s3Client, err := newS3BucketClient(context.Background(), cfg)
+			require.NoError(t, err)
+
+			_, _ = s3Client.HeadBucket(context.Background(), &s3.HeadBucketInput{
+				Bucket: awsv2.String("test-bucket"),
+			})
+
+			require.NotEmpty(t, capturedUserAgent, "User-Agent header should be sent in S3 HTTP request")
+			assert.Contains(t, capturedUserAgent, "aws-sdk-go-v2/", "User-Agent should preserve standard AWS SDK user agent")
+			assert.Contains(t, capturedUserAgent, tt.expectedUAKey, "User-Agent should contain appended Kubeflow Pipelines tag")
+		})
+	}
 }
