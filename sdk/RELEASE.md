@@ -8,15 +8,6 @@
 
 ## Bug fixes and other changes
 
-# 2.17.1
-
-## Features
-
-## Breaking changes
-
-## Deprecations
-
-## Bug fixes and other changes
 # 2.17.0
 
 ## Features
