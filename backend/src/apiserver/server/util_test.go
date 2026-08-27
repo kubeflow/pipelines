@@ -83,7 +83,7 @@ func TestLoadFile_LargeDoc(t *testing.T) {
 
 func TestDecompressPipelineTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/arguments_tarball/arguments.tar.gz")
-	pipelineFile, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
+	pipelineFile, err := DecompressPipelineTarball(tarballByte)
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := os.ReadFile("test/arguments-parameters.yaml")
@@ -92,28 +92,28 @@ func TestDecompressPipelineTarball(t *testing.T) {
 
 func TestDecompressPipelineTarball_MalformattedTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/malformatted_tarball.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
 func TestDecompressPipelineTarball_NonYamlTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/non_yaml_tarball/non_yaml_tarball.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the tarball")
 }
 
 func TestDecompressPipelineTarball_EmptyTarball(t *testing.T) {
 	tarballByte, _ := os.ReadFile("test/empty_tarball/empty.tar.gz")
-	_, err := DecompressPipelineTarball(tarballByte, common.MaxFileLength)
+	_, err := DecompressPipelineTarball(tarballByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid tarball file")
 }
 
 func TestDecompressPipelineZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/arguments_zip/arguments-parameters.zip")
-	pipelineFile, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
+	pipelineFile, err := DecompressPipelineZip(zipByte)
 	assert.Nil(t, err)
 
 	expectedPipelineFile, _ := os.ReadFile("test/arguments-parameters.yaml")
@@ -122,28 +122,28 @@ func TestDecompressPipelineZip(t *testing.T) {
 
 func TestDecompressPipelineZip_MalformattedZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/malformatted_zip.zip")
-	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
+	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
 
 func TestDecompressPipelineZip_MalformedZip2(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/malformed_zip2.zip")
-	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
+	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
 
 func TestDecompressPipelineZip_NonYamlZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/non_yaml_zip/non_yaml_file.zip")
-	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
+	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Expecting a pipeline.yaml file inside the zip")
 }
 
 func TestDecompressPipelineZip_EmptyZip(t *testing.T) {
 	zipByte, _ := os.ReadFile("test/empty_tarball/empty.zip")
-	_, err := DecompressPipelineZip(zipByte, common.MaxFileLength)
+	_, err := DecompressPipelineZip(zipByte)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Not a valid zip file")
 }
@@ -296,4 +296,34 @@ func TestReadPipelineFile_SizeTooLarge_RecommendationIncluded(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "File size too large")
 	assert.Contains(t, err.Error(), "Consider moving large embedded artifacts or notebooks")
+}
+
+func TestDecompressPipelineZip_ValidEmptyZip(t *testing.T) {
+	var buffer bytes.Buffer
+	zipWriter := zip.NewWriter(&buffer)
+	require.NoError(t, zipWriter.Close())
+	_, err := DecompressPipelineZip(buffer.Bytes())
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Empty zip file")
+}
+
+func TestReadPipelineFile_DecoyTarball(t *testing.T) {
+	const maxFileLength = 1024
+	var buffer bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buffer)
+	tarWriter := tar.NewWriter(gzipWriter)
+	// Decoy member that exceeds the limit
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(maxFileLength + 1)}))
+	_, err := tarWriter.Write(bytes.Repeat([]byte("a"), maxFileLength + 1))
+	require.NoError(t, err)
+	// Target pipeline member
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "pipeline.yaml", Mode: 0600, Size: 10}))
+	_, err = tarWriter.Write([]byte("foo: bar
+"))
+	require.NoError(t, err)
+	require.NoError(t, tarWriter.Close())
+	require.NoError(t, gzipWriter.Close())
+	_, err = ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(buffer.Bytes()), maxFileLength)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Decompressed file size too large")
 }
