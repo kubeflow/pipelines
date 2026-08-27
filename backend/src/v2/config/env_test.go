@@ -17,6 +17,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
@@ -50,6 +51,28 @@ func Test_getDefaultMinioSessionInfo(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedDefaultSession, actualDefaultSession)
+}
+
+func TestFromConfigMapVolume(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, configKeyDefaultPipelineRoot), []byte("s3://bucket/pipelines"), 0600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, configBucketProviders), []byte("s3:\n  default:\n    fromEnv: true\n"), 0600))
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "ignored-dir"), 0700))
+
+	cfg, err := FromConfigMapVolume(dir)
+
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Equal(t, "s3://bucket/pipelines", cfg.data[configKeyDefaultPipelineRoot])
+	assert.Equal(t, "s3:\n  default:\n    fromEnv: true\n", cfg.data[configBucketProviders])
+	assert.NotContains(t, cfg.data, "ignored-dir")
+}
+
+func TestFromConfigMapVolume_MissingPath(t *testing.T) {
+	cfg, err := FromConfigMapVolume(filepath.Join(t.TempDir(), "missing"))
+
+	require.NoError(t, err)
+	assert.Nil(t, cfg)
 }
 
 func TestGetBucketSessionInfo(t *testing.T) {

@@ -327,8 +327,8 @@ func (l *ImportLauncher) resolveBucketConfigForURI(ctx context.Context, uri stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse bucket config while resolving uri %q: %w", uri, err)
 	}
-	// Resolve and attach session info from kfp-launcher config for the artifact provider
-	if cfg, err := config.FromConfigMap(ctx, l.k8sClient, l.launcherV2Options.Namespace); err != nil {
+	// Resolve and attach session info from kfp-launcher config for the artifact provider.
+	if cfg, err := config.FromConfigMapVolume(config.KFPLauncherConfigMountPath); err != nil {
 		glog.Warningf("failed to load launcher config while resolving bucket config: %v", err)
 	} else if cfg != nil {
 		if sess, err := cfg.GetStoreSessionInfo(uri); err != nil {
