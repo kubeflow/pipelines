@@ -17,13 +17,13 @@ package server
 import (
 	"archive/tar"
 	"archive/zip"
-	"bufio"
 	"bytes"
 	"compress/gzip"
 	"errors"
 	"io"
 	"strings"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -68,7 +68,11 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 	}
-	limitedGzipReader := &io.LimitedReader{R: gzipReader, N: int64(maxFileLength) + 1}
+	
+	// Allow extra budget for tar headers, padding, and small preceding members
+	traversalBudget := int64(maxFileLength) + 1<<20 // 1MB overhead
+	limitedGzipReader := &io.LimitedReader{R: gzipReader, N: traversalBudget}
+	
 	// New behavior: searching for the "pipeline.yaml" file.
 	tarReader := tar.NewReader(limitedGzipReader)
 	for {
@@ -78,7 +82,7 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 			break
 		}
 		if limitedGzipReader.N <= 0 {
-			return nil, util.NewInvalidInputError("Decompressed file size too large. Maximum supported size: %v bytes", maxFileLength)
+			return nil, util.NewInvalidInputError("Archive extraction exceeded traversal budget of %v bytes", traversalBudget)
 		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
@@ -95,11 +99,11 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 		}
-		limitedGzipReader = &io.LimitedReader{R: gzipReader, N: int64(maxFileLength) + 1}
+		limitedGzipReader = &io.LimitedReader{R: gzipReader, N: traversalBudget}
 		tarReader = tar.NewReader(limitedGzipReader)
 		header, err := tarReader.Next()
 		if limitedGzipReader.N <= 0 {
-			return nil, util.NewInvalidInputError("Decompressed file size too large. Maximum supported size: %v bytes", maxFileLength)
+			return nil, util.NewInvalidInputError("Archive extraction exceeded traversal budget of %v bytes", traversalBudget)
 		}
 		if err != nil {
 			return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
@@ -109,9 +113,11 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 		}
 	}
 
-	decompressedFile, err := io.ReadAll(tarReader)
+	limitedReader := io.LimitReader(tarReader, int64(maxFileLength)+1)
+	decompressedFile, err := io.ReadAll(limitedReader)
+	
 	if limitedGzipReader.N <= 0 {
-		return nil, util.NewInvalidInputError("Decompressed file size too large. Maximum supported size: %v bytes", maxFileLength)
+		return nil, util.NewInvalidInputError("Archive extraction exceeded traversal budget of %v bytes", traversalBudget)
 	}
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the tarball file")
@@ -187,10 +193,10 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) 
 
 func DecompressPipelineTarball(compressedFile []byte) ([]byte, error) {
 	// Default to 32MB to maintain backwards compatibility
-	return decompressPipelineTarball(compressedFile, 32<<20)
+	return decompressPipelineTarball(compressedFile, common.MaxFileLength)
 }
 
 func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	// Default to 32MB to maintain backwards compatibility
-	return decompressPipelineZip(compressedFile, 32<<20)
+	return decompressPipelineZip(compressedFile, common.MaxFileLength)
 }

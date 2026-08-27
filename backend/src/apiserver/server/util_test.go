@@ -312,17 +312,21 @@ func TestReadPipelineFile_DecoyTarball(t *testing.T) {
 	var buffer bytes.Buffer
 	gzipWriter := gzip.NewWriter(&buffer)
 	tarWriter := tar.NewWriter(gzipWriter)
+	
 	// Decoy member that exceeds the limit
 	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(maxFileLength + 1)}))
 	_, err := tarWriter.Write(bytes.Repeat([]byte("a"), maxFileLength + 1))
 	require.NoError(t, err)
+	
 	// Target pipeline member
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "pipeline.yaml", Mode: 0600, Size: 10}))
-	_, err = tarWriter.Write([]byte("foo: bar
-"))
+	content := []byte("foo: bar\n")
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "pipeline.yaml", Mode: 0600, Size: int64(len(content))}))
+	_, err = tarWriter.Write(content)
 	require.NoError(t, err)
+	
 	require.NoError(t, tarWriter.Close())
 	require.NoError(t, gzipWriter.Close())
+	
 	_, err = ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(buffer.Bytes()), maxFileLength)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Decompressed file size too large")
