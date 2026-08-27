@@ -1064,11 +1064,10 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if err != nil {
 		return util.Wrapf(err, "Failed to retry run %s due to error fetching the run", runId)
 	}
-	// Archived runs are GC deletion candidates, so a retry would race the collector.
 	if run.StorageState.ToV2() == model.StorageStateArchived {
 		return util.NewFailedPreconditionError(
-			errors.New("Unarchive the run first to allow it to be retried"),
-			"Failed to retry run %s as it is archived", runId,
+			errors.New("Archived runs are garbage collection candidates, so retrying one would race the collector"),
+			"Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runId,
 		)
 	}
 	// TODO(gkcalat): consider using run.Namespace after migration logic will be available.

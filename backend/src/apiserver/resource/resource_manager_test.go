@@ -3327,11 +3327,24 @@ func TestRetryRun_Failed_RunArchived(t *testing.T) {
 
 	err := manager.ArchiveRun(runDetail.UUID)
 	assert.Nil(t, err)
+	before, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
 
 	err = manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
-	assert.Equal(t, codes.FailedPrecondition, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "Unarchive the run first")
+	userError := err.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		fmt.Sprintf("Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runDetail.UUID),
+		userError.ExternalMessage())
+
+	after, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, model.StorageStateArchived, after.StorageState.ToV2())
+	assert.Equal(t, before.State, after.State)
+	assert.Equal(t, before.RetryGeneration, after.RetryGeneration)
+	assert.Equal(t, before.RetryClaimedAtInSec, after.RetryClaimedAtInSec)
+	assert.Equal(t, before.WorkflowRuntimeManifest, after.WorkflowRuntimeManifest)
 }
 
 func TestRetryRun_UnarchivedRunStillRetries(t *testing.T) {
