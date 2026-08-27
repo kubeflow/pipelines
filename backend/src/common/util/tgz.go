@@ -65,9 +65,16 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 		return err
 	}
 	defer gr.Close()
-	tr := tar.NewReader(gr)
+
+	// Add traversal budget to account for tar headers and metadata
+	traversalBudget := maxFileSize + 1<<20
+	limitedGr := &io.LimitedReader{R: gr, N: traversalBudget}
+	tr := tar.NewReader(limitedGr)
 
 	hdr, err := tr.Next()
+	if limitedGr.N <= 0 {
+		return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", traversalBudget)
+	}
 	if err == io.EOF {
 		return fmt.Errorf("metrics archive must contain exactly one regular file")
 	}
@@ -95,6 +102,9 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 	if _, err := tr.Next(); err == nil {
 		return fmt.Errorf("metrics archive must contain exactly one regular file")
 	} else if err != io.EOF {
+		if limitedGr.N <= 0 {
+			return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", traversalBudget)
+		}
 		return err
 	}
 	return nil

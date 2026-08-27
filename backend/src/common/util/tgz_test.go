@@ -213,3 +213,33 @@ func TestReadSingleFileFromTgz_PropagatesConsumerError(t *testing.T) {
 
 	assert.ErrorIs(t, err, expectedError)
 }
+
+func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
+	const maxFileSize int64 = 1024
+	const traversalBudget = maxFileSize + 1<<20
+
+	var buf bytes.Buffer
+	gzipWriter := gzip.NewWriter(&buf)
+	tarWriter := tar.NewWriter(gzipWriter)
+
+	// Write a valid first file
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "metrics.json", Mode: 0600, Size: 10, Typeflag: tar.TypeReg}))
+	_, err := tarWriter.Write([]byte("0123456789"))
+	require.NoError(t, err)
+
+	// Write a decoy second file that exceeds traversal budget
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(traversalBudget + 1), Typeflag: tar.TypeReg}))
+	_, err = tarWriter.Write(bytes.Repeat([]byte("a"), int(traversalBudget+1)))
+	require.NoError(t, err)
+
+	require.NoError(t, tarWriter.Close())
+	require.NoError(t, gzipWriter.Close())
+
+	err = readSingleFileFromTgz(buf.Bytes(), maxFileSize, func(reader io.Reader) error {
+		_, err := io.Copy(io.Discard, reader)
+		return err
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "traversal exceeded budget")
+}
