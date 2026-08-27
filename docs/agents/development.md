@@ -31,6 +31,8 @@ export PATH="$PWD/bin:$PATH"
 
 Standalone mode is single-user and unauthenticated. Multi-user deployments require an identity provider, namespace isolation, and Istio; see [`manifests/kustomize/README.md`](../../manifests/kustomize/README.md).
 
+Both targets wait for cluster components to become ready with configurable timeouts (defaults unchanged; override for slow connections or resource-constrained CI): `MYSQL_WAIT_TIMEOUT` (default `10m`), `CERT_MANAGER_WAIT_TIMEOUT` (default `300s`), `METADATA_GRPC_WAIT_TIMEOUT` (default `3m`), `ML_PIPELINE_WAIT_TIMEOUT` (default `3m`), e.g. `make -C backend kind-cluster-agnostic MYSQL_WAIT_TIMEOUT=20m`.
+
 ## Environment variables
 
 | Variable | Purpose |
