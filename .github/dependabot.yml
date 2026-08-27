@@ -79,6 +79,7 @@ updates:
       - "/backend/src/apiserver/visualization"
       - "/backend/src/v2/test"
       - "/components/google-cloud"
+      - "/docs"
       - "/docs/sdk"
       - "/kubernetes_platform/python"
       - "/kubernetes_platform/python/docs"
