@@ -22,6 +22,12 @@ make ginkgo
 export PATH="$PWD/bin:$PATH"
 ```
 
+## Go toolchain upgrades
+
+Treat the Go compiler as a repository-wide setting. The root `go.mod` is canonical for CI and every module: its `toolchain` directive is authoritative when present, otherwise its exact `go` directive is. Run `make update-go-version GO_VERSION=1.X.Y` to update every module and resolve immutable digests for every Golang builder image under `backend/`. Patch releases preserve each module's existing language floor and set the exact compiler with `toolchain go1.X.Y`; a new minor release initializes the floor at `go 1.X.0`, and `.0` releases omit the redundant toolchain directive. Keep unrelated dependency upgrades out of toolchain changes.
+
+The updater intentionally leaves module maintenance explicit because `backend/api/tools/go.mod` contains a manifest-only dependency that ordinary `go mod tidy` removes. Run `go mod tidy` in every changed runtime module while preserving manifest-only tool dependencies, regenerate affected committed outputs, and rerun `make check-go-version`, the relevant backend tests, and image builds before submitting.
+
 ## Local clusters
 
 | Need | Command |
