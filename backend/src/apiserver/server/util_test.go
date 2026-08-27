@@ -308,26 +308,32 @@ func TestDecompressPipelineZip_ValidEmptyZip(t *testing.T) {
 }
 
 func TestReadPipelineFile_DecoyTarball(t *testing.T) {
-	const maxFileLength = 1024
+	const maxFileLength = 4096
+	// Budget in production is maxFileLength + 1MB
+	const traversalBudget = maxFileLength + 1<<20
+
 	var buffer bytes.Buffer
 	gzipWriter := gzip.NewWriter(&buffer)
 	tarWriter := tar.NewWriter(gzipWriter)
-	
-	// Decoy member that exceeds the limit
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(maxFileLength + 1)}))
-	_, err := tarWriter.Write(bytes.Repeat([]byte("a"), maxFileLength + 1))
+
+	// Decoy member that exceeds the traversal budget
+	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(traversalBudget + 1)}))
+	_, err := tarWriter.Write(bytes.Repeat([]byte("a"), traversalBudget+1))
 	require.NoError(t, err)
-	
+
 	// Target pipeline member
 	content := []byte("foo: bar\n")
 	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "pipeline.yaml", Mode: 0600, Size: int64(len(content))}))
 	_, err = tarWriter.Write(content)
 	require.NoError(t, err)
-	
+
 	require.NoError(t, tarWriter.Close())
 	require.NoError(t, gzipWriter.Close())
-	
+
+	// Ensure the highly compressible zip bomb is small enough to pass the initial maxFileLength check
+	require.Less(t, len(buffer.Bytes()), maxFileLength)
+
 	_, err = ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(buffer.Bytes()), maxFileLength)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Decompressed file size too large")
+	assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
 }

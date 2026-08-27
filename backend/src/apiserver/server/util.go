@@ -68,11 +68,11 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the tarball file. Not a valid tarball file")
 	}
-	
+
 	// Allow extra budget for tar headers, padding, and small preceding members
 	traversalBudget := int64(maxFileLength) + 1<<20 // 1MB overhead
 	limitedGzipReader := &io.LimitedReader{R: gzipReader, N: traversalBudget}
-	
+
 	// New behavior: searching for the "pipeline.yaml" file.
 	tarReader := tar.NewReader(limitedGzipReader)
 	for {
@@ -115,7 +115,7 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 
 	limitedReader := io.LimitReader(tarReader, int64(maxFileLength)+1)
 	decompressedFile, err := io.ReadAll(limitedReader)
-	
+
 	if limitedGzipReader.N <= 0 {
 		return nil, util.NewInvalidInputError("Archive extraction exceeded traversal budget of %v bytes", traversalBudget)
 	}
