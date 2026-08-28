@@ -19,6 +19,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -308,62 +309,165 @@ func TestDecompressPipelineZip_ValidEmptyZip(t *testing.T) {
 	assert.Contains(t, err.Error(), "Empty zip file")
 }
 
-func createPAXBombTgz(t *testing.T, budgetBytes int64) []byte {
+// createPreTargetPaxBomb creates a tar.gz with a large-PAX-metadata decoy entry
+// placed BEFORE targetName. tar.Reader.Next() fully decompresses PAX block data
+// internally; making the PAX payload exceed the traversal budget exhausts the
+// limiter during Next() before the target entry is ever reached.
+func createPreTargetPaxBomb(t *testing.T, targetName string, targetContent string, paxPayloadBytes int64) []byte {
 	t.Helper()
-	var buf bytes.Buffer
-	gw := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gw)
+	require.True(t, paxPayloadBytes > 0, "paxPayloadBytes must be positive")
 
-	// Target pipeline member
-	content := []byte("foo: bar\n")
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	// archive/tar has a 1 MiB limit for PAX special headers.
+	// Split the payload across multiple decoys to safely exceed the cumulative budget.
+	const maxPaxPerDecoy = 700 * 1024 // ~700 KiB
+	numDecoys := int((paxPayloadBytes + maxPaxPerDecoy - 1) / maxPaxPerDecoy)
+	remainingPayload := paxPayloadBytes
+
+	decoyContent := "x"
+
+	for i := 0; i < numDecoys; i++ {
+		payloadForThisDecoy := remainingPayload
+		if payloadForThisDecoy > maxPaxPerDecoy {
+			payloadForThisDecoy = maxPaxPerDecoy
+		}
+		remainingPayload -= payloadForThisDecoy
+
+		// Size the PAX value so the serialized record body is exactly payloadForThisDecoy.
+		var paxValue string
+		for valLen := int(payloadForThisDecoy) - 20; valLen <= int(payloadForThisDecoy); valLen++ {
+			if valLen < 0 {
+				continue
+			}
+			s := fmt.Sprintf("%d comment=%s\n", payloadForThisDecoy, bytes.Repeat([]byte("x"), valLen))
+			if len(s) == int(payloadForThisDecoy) {
+				paxValue = string(bytes.Repeat([]byte("x"), valLen))
+				break
+			}
+		}
+		require.NotEmpty(t, paxValue, "could not size PAX payload to exactly %d bytes", payloadForThisDecoy)
+
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Typeflag:   tar.TypeReg,
+			Name:       fmt.Sprintf("decoy-%d.txt", i),
+			Mode:       0600,
+			Size:       int64(len(decoyContent)),
+			PAXRecords: map[string]string{"comment": paxValue},
+		}))
+		_, err := tw.Write([]byte(decoyContent))
+		require.NoError(t, err)
+	}
+
+	// Write the real target after the decoys.
 	require.NoError(t, tw.WriteHeader(&tar.Header{
 		Typeflag: tar.TypeReg,
-		Name:     "pipeline.yaml",
+		Name:     targetName,
 		Mode:     0600,
-		Size:     int64(len(content)),
+		Size:     int64(len(targetContent)),
 	}))
-	_, err := tw.Write(content)
+	_, err := tw.Write([]byte(targetContent))
 	require.NoError(t, err)
-
-	// A PAX extended-header whose "comment" value exceeds the traversal budget.
-	// tar.Reader.Next() must decompress the entire PAX block to parse it.
-	paxValue := string(bytes.Repeat([]byte("x"), int(budgetBytes+1)))
-	require.NoError(t, tw.WriteHeader(&tar.Header{
-		Typeflag: tar.TypeXHeader,
-		Name:     "pax-bomb",
-		Size:     int64(len(paxValue)),
-		PAXRecords: map[string]string{
-			"comment": paxValue,
-		},
-	}))
-	_, err = tw.Write([]byte(paxValue))
-	require.NoError(t, err)
-
 	require.NoError(t, tw.Close())
+
+	var gzBuf bytes.Buffer
+	gw := gzip.NewWriter(&gzBuf)
+	_, err = gw.Write(buf.Bytes())
+	require.NoError(t, err)
 	require.NoError(t, gw.Close())
-	return buf.Bytes()
+	return gzBuf.Bytes()
 }
 
+// TestReadPipelineFile_TraversalBudgetExhaustion verifies that PAX metadata
+// placed BEFORE pipeline.yaml exhausts the traversal budget inside
+// tar.Reader.Next() before the target entry is ever located.
 func TestReadPipelineFile_TraversalBudgetExhaustion(t *testing.T) {
 	const maxFileLength = 4096
 	budget := util.ArchiveTraversalBudget(int64(maxFileLength))
 
-	tgz := createPAXBombTgz(t, budget)
-
-	// Ensure the highly compressible zip bomb is small enough to pass the initial maxFileLength check
-	require.Less(t, len(tgz), maxFileLength)
+	// Round up to 512-byte boundary; keeps payload below archive/tar 1 MiB limit.
+	paxPayload := ((budget + 511) / 512) * 512
+	tgz := createPreTargetPaxBomb(t, "pipeline.yaml", "foo: bar\n", paxPayload)
 
 	_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
 }
 
+// TestReadPipelineFile_TraversalBudgetBoundary verifies two distinct boundary
+// conditions: a small within-budget archive is accepted, and a pre-target PAX
+// bomb exceeding the budget is rejected.
+// createExactSkippedBytesBomb creates a tar.gz that forces tar.Reader.Next() to consume
+// exactly `skippedBytes` before yielding `targetName`. It achieves this cleanly without
+// PAX overhead by writing a decoy file whose header and padded body sum to `skippedBytes - 512`.
+// When Next() advances to the target file, it consumes the decoy + target header (512 bytes),
+// totaling exactly `skippedBytes` consumed.
+func createExactSkippedBytesBomb(t *testing.T, targetName string, targetContent string, skippedBytes int64) []byte {
+	t.Helper()
+	require.True(t, skippedBytes >= 1024 && skippedBytes%512 == 0, "skippedBytes must be a multiple of 512 and >= 1024")
+
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	// 1. Write the decoy entry.
+	// To consume exactly (skippedBytes - 512) bytes for the decoy, we subtract 512 bytes for
+	// its own header. The remaining (skippedBytes - 1024) is the exact body size.
+	decoyBodySize := skippedBytes - 1024
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "decoy.txt",
+		Mode:     0600,
+		Size:     decoyBodySize,
+	}))
+
+	// Write the decoy body efficiently (chunks of zeros).
+	chunk := make([]byte, 32*1024)
+	var written int64
+	for written < decoyBodySize {
+		w := int64(len(chunk))
+		if decoyBodySize-written < w {
+			w = decoyBodySize - written
+		}
+		n, err := tw.Write(chunk[:w])
+		require.NoError(t, err)
+		written += int64(n)
+	}
+
+	// 2. Write the target entry.
+	// When Next() yields this header, it will have consumed the 512-byte header.
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     targetName,
+		Mode:     0600,
+		Size:     int64(len(targetContent)),
+	}))
+	_, err := tw.Write([]byte(targetContent))
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+
+	var gzBuf bytes.Buffer
+	gw := gzip.NewWriter(&gzBuf)
+	_, err = gw.Write(buf.Bytes())
+	require.NoError(t, err)
+	require.NoError(t, gw.Close())
+	return gzBuf.Bytes()
+}
+
+// TestReadPipelineFile_TraversalBudgetBoundary verifies two distinct boundary
+// conditions using pre-target decoys to achieve exact byte consumption bounds.
 func TestReadPipelineFile_TraversalBudgetBoundary(t *testing.T) {
 	const maxFileLength = 4096
 	budget := util.ArchiveTraversalBudget(int64(maxFileLength))
 
-	t.Run("budget+1 PAX metadata rejected", func(t *testing.T) {
-		tgz := createPAXBombTgz(t, budget)
+	t.Run("exact budget bytes consumed is accepted", func(t *testing.T) {
+		tgz := createExactSkippedBytesBomb(t, "pipeline.yaml", "", budget)
+		_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
+		require.NoError(t, err)
+	})
+
+	t.Run("budget+1 bytes consumed is rejected", func(t *testing.T) {
+		tgz := createExactSkippedBytesBomb(t, "pipeline.yaml", "a", budget)
 		_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")

@@ -28,7 +28,7 @@ import (
 )
 
 func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
-	limitedReader := io.LimitReader(fileReader, int64(MaxFileLength)+1)
+	limitedReader := io.LimitReader(fileReader, util.SaturatingAdd(int64(MaxFileLength), 1))
 	pipelineFile, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file")
@@ -117,7 +117,7 @@ func decompressPipelineTarball(compressedFile []byte, maxFileLength int) ([]byte
 		}
 	}
 
-	limitedReader := io.LimitReader(tarReader, int64(maxFileLength)+1)
+	limitedReader := io.LimitReader(tarReader, util.SaturatingAdd(int64(maxFileLength), 1))
 	decompressedFile, err := io.ReadAll(limitedReader)
 
 	// In the io.ReadAll case, we don't need to check traversal budget immediately because
@@ -161,7 +161,7 @@ func decompressPipelineZip(compressedFile []byte, maxFileLength int) ([]byte, er
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error extracting pipeline from the zip file. Failed to read the content")
 	}
-	limitedReader := io.LimitReader(rc, int64(maxFileLength)+1)
+	limitedReader := io.LimitReader(rc, util.SaturatingAdd(int64(maxFileLength), 1))
 	decompressedFile, err := io.ReadAll(limitedReader)
 	if err != nil {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error reading pipeline YAML from the zip file")

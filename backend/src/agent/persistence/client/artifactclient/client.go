@@ -22,20 +22,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/tokenrefresher"
-	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 // ReadArtifactRequest represents a request to read artifact content
 type ReadArtifactRequest struct {
-	RunID        string
-	NodeID       string
-	ArtifactName string
+	RunID            string
+	NodeID           string
+	ArtifactName     string
+	MaxResponseBytes int64
 }
 
 // String returns a string representation for use as a map key
@@ -149,27 +150,35 @@ func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		// Enforce a cap on the encoded response before buffering it.
-		// A malicious pipeline step can publish an arbitrarily large
-		// mlpipeline-metrics artifact; without this limit the persistence
-		// agent OOMs before the per-entry size check in readSingleFileFromTgz
-		// is ever reached — the same "limit applied too late" failure mode
-		// fixed for pipeline uploads in #14171.
-		//
-		// The artifact is base64-encoded JSON, so the on-wire size is roughly
-		// (4/3) * uncompressed. We use 2x the uncompressed limit as a
-		// conservative upper bound that is still safe.
-		maxResponseBytes := 2 * commonutil.GetMaxMetricsFileBytes()
-		limitedBody := io.LimitReader(resp.Body, maxResponseBytes+1)
-		body, err := io.ReadAll(limitedBody)
-		if err != nil {
-			return nil, NewError(ErrorCodePermanent, err,
-				"Failed to read response body: %v", err.Error())
-		}
-		if int64(len(body)) > maxResponseBytes {
-			return nil, NewError(ErrorCodePermanent,
-				fmt.Errorf("response body exceeds %d bytes", maxResponseBytes),
-				"Metrics artifact response too large: %d bytes", len(body))
+		var body []byte
+		var err error
+
+		if request.MaxResponseBytes > 0 {
+			// Enforce a cap on the encoded response before buffering it.
+			// A malicious pipeline step can publish an arbitrarily large
+			// artifact; without this limit the persistence agent OOMs before
+			// the parser's per-entry size check is ever reached.
+			limit := request.MaxResponseBytes
+			if limit < math.MaxInt64 {
+				limit++
+			}
+			limitedBody := io.LimitReader(resp.Body, limit)
+			body, err = io.ReadAll(limitedBody)
+			if err != nil {
+				return nil, NewError(ErrorCodePermanent, err,
+					"Failed to read response body: %v", err.Error())
+			}
+			if int64(len(body)) > request.MaxResponseBytes {
+				return nil, NewError(ErrorCodePermanent,
+					fmt.Errorf("response body exceeds %d bytes", request.MaxResponseBytes),
+					"Artifact response too large: %d bytes", len(body))
+			}
+		} else {
+			body, err = io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, NewError(ErrorCodePermanent, err,
+					"Failed to read response body: %v", err.Error())
+			}
 		}
 
 		var jsonResponse struct {

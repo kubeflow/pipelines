@@ -54,16 +54,81 @@ func ArchiveTgz(files map[string]string) (string, error) {
 	return buf.String(), nil
 }
 
+// SaturatingAdd adds two int64s and returns math.MaxInt64 on overflow.
+func SaturatingAdd(a, b int64) int64 {
+	if b > 0 && a > math.MaxInt64-b {
+		return math.MaxInt64
+	}
+	return a + b
+}
+
 // ArchiveTraversalBudget returns an overflow-safe decompressed-byte budget for
 // scanning archive headers and metadata (e.g. PAX/GNU) surrounding an entry.
 // The budget is maxFileSize plus a 1 MiB overhead for framing, saturating
-// at math.MaxInt64 to avoid wrapping negative on large inputs.
+// at math.MaxInt64 - 1 to avoid wrapping negative when callers add a sentinel byte.
 func ArchiveTraversalBudget(maxFileSize int64) int64 {
 	const overhead = 1 << 20 // 1 MiB for archive headers and metadata
-	if maxFileSize > math.MaxInt64-overhead {
-		return math.MaxInt64
+	if maxFileSize > math.MaxInt64-overhead-1 {
+		return math.MaxInt64 - 1
 	}
 	return maxFileSize + overhead
+}
+
+// SaturatingMultiply multiplies two int64s and returns math.MaxInt64 on overflow.
+func SaturatingMultiply(a, b int64) int64 {
+	if a == 0 || b == 0 {
+		return 0
+	}
+	if a > math.MaxInt64/b {
+		return math.MaxInt64
+	}
+	return a * b
+}
+
+// ArchiveWireResponseBudget computes a safe upper bound for an encoded artifact
+// HTTP body. The calculation is intentionally conservative:
+//
+//  1. Traversal budget: ArchiveTraversalBudget(maxFileSize) bytes uncompressed.
+//  2. DEFLATE stored-block framing: 5 bytes per 65535-byte block (worst case for
+//     gzip.NoCompression).
+//  3. gzip header/trailer: 18 mandatory bytes plus up to 70000 bytes for optional
+//     fields (RFC 1952 Extra up to 65535 bytes, FNAME, FCOMMENT, CRC16 header).
+//  4. Base64 expansion: ceil(compressed / 3) * 4.
+//  5. JSON framing: {"data":""} is 11 bytes.
+//
+// Policy: This serves as an independent finite wire limit for security. It explicitly
+// bounds canonical gzip.NoCompression outputs with up to 70000 bytes of optional headers.
+// It is not mathematically guaranteed to bound every conceivable valid gzip stream
+// (for example, pathological streams with arbitrary zero-output DEFLATE blocks via
+// excessive Flush calls or massive numbers of concatenated members can legitimately
+// exceed this cap). Callers must enforce this as a hard wire limit.
+func ArchiveWireResponseBudget(maxFileSize int64) int64 {
+	// Maximum decompressed traversal budget.
+	budget := ArchiveTraversalBudget(maxFileSize)
+
+	// DEFLATE stored-block overhead: 5 bytes per 65535-byte block.
+	numBlocks := SaturatingAdd(budget/65535, 1)
+	deflateStoredOverhead := SaturatingMultiply(numBlocks, 5)
+
+	// gzip framing: 18 mandatory bytes + up to 70000 bytes for optional header fields
+	// (Extra field max 65535, plus FNAME/FCOMMENT/CRC16 slack of ~4465 bytes).
+	const gzipFramingAllowance = 70018
+
+	deflateOverhead := SaturatingAdd(deflateStoredOverhead, gzipFramingAllowance)
+
+	// Worst-case compressed size.
+	maxCompressed := SaturatingAdd(budget, deflateOverhead)
+
+	// Base64 encoding size: 4 * ceil(maxCompressed / 3).
+	var maxBase64 int64
+	if maxCompressed > (math.MaxInt64/4)*3 {
+		maxBase64 = math.MaxInt64
+	} else {
+		maxBase64 = ((maxCompressed + 2) / 3) * 4
+	}
+
+	// JSON framing: {"data":""} is 11 bytes.
+	return SaturatingAdd(maxBase64, 11)
 }
 
 // readSingleFileFromTgz streams the only regular file in a tar.gz archive to
@@ -114,7 +179,7 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 		return fmt.Errorf("metrics archive entry %q exceeds maximum size of %d bytes", hdr.Name, maxFileSize)
 	}
 
-	limitedReader := &io.LimitedReader{R: tr, N: maxFileSize + 1}
+	limitedReader := &io.LimitedReader{R: tr, N: SaturatingAdd(maxFileSize, 1)}
 	if err := consume(limitedReader); err != nil {
 		return err
 	}
