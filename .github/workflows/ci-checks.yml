@@ -37,6 +37,8 @@ jobs:
         env:
           EVENT_ACTION: ${{ github.event.action }}
           LABEL_NAME: ${{ github.event.label.name }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
         shell: bash
         run: |
           should_poll=false
@@ -47,9 +49,12 @@ jobs:
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
             should_poll=true
             reason="PR is eligible; running CI status polling."
-          elif [[ "${{ github.event.pull_request.user.login }}" == "dependabot[bot]" ]]; then
+          elif [[ "${PR_AUTHOR}" == "dependabot[bot]" ]]; then
             should_poll=true
             reason="Dependabot PR is eligible; running CI status polling."
+          elif [[ "${AUTHOR_ASSOCIATION}" == "MEMBER" || "${AUTHOR_ASSOCIATION}" == "OWNER" || "${AUTHOR_ASSOCIATION}" == "COLLABORATOR" ]]; then
+            should_poll=true
+            reason="Trusted contributor PR is eligible; running CI status polling."
           elif [[ "${EVENT_ACTION}" == "labeled" && "${LABEL_NAME}" != "ok-to-test" ]]; then
             reason="Added label '${LABEL_NAME}' does not change CI eligibility."
           elif [[ "${EVENT_ACTION}" == "unlabeled" && "${LABEL_NAME}" != "needs-ok-to-test" ]]; then

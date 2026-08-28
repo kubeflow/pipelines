@@ -9,12 +9,17 @@ on:
     types:
       - synchronize
       - reopened
+      - edited
       - labeled
       - unlabeled
   workflow_run:
     workflows: ["CI Check"]
     types:
       - completed
+
+concurrency:
+  group: ci-passed-${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || github.run_id }}
+  cancel-in-progress: false
 
 permissions:
   actions: read
@@ -140,7 +145,8 @@ jobs:
             }
 
             const labels = new Set(pullRequest.labels.map((label) => label.name));
-            const eligible = (labels.has("ok-to-test") || pullRequest.user.login === "dependabot[bot]") && !labels.has("needs-ok-to-test");
+            const authorAssociation = pullRequest.author_association;
+            const eligible = (labels.has("ok-to-test") || pullRequest.user.login === "dependabot[bot]" || authorAssociation === "MEMBER" || authorAssociation === "OWNER" || authorAssociation === "COLLABORATOR") && !labels.has("needs-ok-to-test");
 
             core.info(`PR #${pullRequest.number} labels: ${Array.from(labels).join(", ")}`);
             core.setOutput("pr_number", String(pullRequest.number));
@@ -168,6 +174,23 @@ jobs:
             });
             core.info(`Published ci-passed status on ${sha}: ${status.state}`);
 
+      - name: Publish 'ci-passed' failure status
+        if: steps.ci_result.outputs.eligible == 'true' && steps.ci_result.outputs.should_add_label == 'false'
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const sha = "${{ steps.ci_result.outputs.head_sha }}";
+            const { data: status } = await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: sha,
+              context: "ci-passed",
+              state: "failure",
+              description: "CI checks did not pass on this commit.",
+            });
+            core.info(`Published ci-passed failure status on ${sha}: ${status.state}`);
+
   reset_ci_passed_label:
     name: Reset stale 'ci-passed' label
     runs-on: ubuntu-latest
@@ -184,6 +207,8 @@ jobs:
               should_reset=true
             elif [[ "${{ github.event.action }}" == "unlabeled" && "${{ github.event.label.name }}" == "ok-to-test" ]]; then
               should_reset=true
+            elif [[ "${{ github.event.action }}" == "edited" && "${{ github.event.changes.base.ref }}" != "" ]]; then
+              should_reset=true
             fi
           fi
 
@@ -193,7 +218,11 @@ jobs:
           fi
 
           pr_number=${{ github.event.pull_request.number }}
-          echo "Checking for stale 'ci-passed' label on PR #${pr_number} after ${{ github.event.action }}"
+          echo "Resetting stale 'ci-passed' on PR #${pr_number} after ${{ github.event.action }}"
+
+          current_head=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
+          gh api "repos/$GITHUB_REPOSITORY/statuses/${current_head}" -f state=failure -f context=ci-passed -f description="ci-passed reset: PR state changed after the last successful run" > /dev/null
+
           labels=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
 
           if echo "${labels}" | grep -qx 'ci-passed'; then
@@ -219,14 +248,28 @@ jobs:
           fi
 
           pr_number=${{ needs.fetch_data.outputs.pr_number }}
-          expected_sha="${{ needs.fetch_data.outputs.head_sha }}"
-          current_sha=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
-          if [[ -z "${expected_sha}" || "${current_sha}" != "${expected_sha}" ]]; then
-            echo "PR #${pr_number} head moved (expected ${expected_sha}, got ${current_sha}); skipping stale ci-passed label."
+          recorded_head_sha="${{ needs.fetch_data.outputs.head_sha }}"
+
+          echo "Re-checking PR #${pr_number} head before adding 'ci-passed'."
+          current_head_sha=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
+
+          if [[ -z "${current_head_sha}" ]]; then
+            echo "Could not determine current head for PR #${pr_number}; not adding ci-passed."
+            exit 0
+          fi
+
+          if [[ "${current_head_sha}" != "${recorded_head_sha}" ]]; then
+            echo "PR #${pr_number} head moved from ${recorded_head_sha} to ${current_head_sha}; not adding stale ci-passed."
             exit 0
           fi
 
           echo "Adding 'ci-passed' label to PR #${pr_number}"
           gh pr edit "${pr_number}" --add-label "ci-passed" --repo "$GITHUB_REPOSITORY"
+
+          post_head_sha=$(gh pr view "${pr_number}" --repo "$GITHUB_REPOSITORY" --json headRefOid --jq '.headRefOid')
+          if [[ "${post_head_sha}" != "${recorded_head_sha}" ]]; then
+            echo "PR head moved during label add (${recorded_head_sha} -> ${post_head_sha}); removing stale ci-passed."
+            gh pr edit "${pr_number}" --remove-label "ci-passed" --repo "$GITHUB_REPOSITORY"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
