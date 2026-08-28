@@ -214,32 +214,92 @@ func TestReadSingleFileFromTgz_PropagatesConsumerError(t *testing.T) {
 	assert.ErrorIs(t, err, expectedError)
 }
 
+// createPAXBombTgz returns a tgz whose first entry is a small regular file
+// followed by a PAX extended-header entry with a value field that exceeds
+// budgetBytes. tar.Reader.Next() fully decompresses PAX blocks internally,
+// so the total decompressed work exceeds the traversal budget even though
+// the compressed archive is tiny — proving compression amplification.
+func createPAXBombTgz(t *testing.T, metricsContent string, budgetBytes int64) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
+
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "metrics.json",
+		Mode:     0600,
+		Size:     int64(len(metricsContent)),
+	}))
+	_, err := tw.Write([]byte(metricsContent))
+	require.NoError(t, err)
+
+	// A PAX extended-header whose "comment" value exceeds the traversal budget.
+	// tar.Reader.Next() must decompress the entire PAX block to parse it.
+	paxValue := string(bytes.Repeat([]byte("x"), int(budgetBytes+1)))
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeXHeader,
+		Name:     "pax-bomb",
+		Size:     int64(len(paxValue)),
+		PAXRecords: map[string]string{
+			"comment": paxValue,
+		},
+	}))
+	_, err = tw.Write([]byte(paxValue))
+	require.NoError(t, err)
+
+	require.NoError(t, tw.Close())
+	require.NoError(t, gw.Close())
+	return buf.Bytes()
+}
+
+// TestReadSingleFileFromTgz_TraversalBudgetExhaustion verifies that a
+// tar.gz whose PAX metadata causes attacker-controlled unbounded work inside
+// tar.Reader.Next() is rejected before the persistence agent exhausts memory.
 func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
 	const maxFileSize int64 = 1024
-	const traversalBudget = maxFileSize + 1<<20
+	budget := metricsTraversalBudget(maxFileSize)
 
-	var buf bytes.Buffer
-	gzipWriter := gzip.NewWriter(&buf)
-	tarWriter := tar.NewWriter(gzipWriter)
+	tgz := createPAXBombTgz(t, "content", budget)
 
-	// Write a valid first file
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "metrics.json", Mode: 0600, Size: 10, Typeflag: tar.TypeReg}))
-	_, err := tarWriter.Write([]byte("0123456789"))
-	require.NoError(t, err)
+	// Confirm compression amplification: the archive must be smaller than
+	// maxFileSize even though it decompresses to more than the budget.
+	require.Less(t, int64(len(tgz)), maxFileSize,
+		"bomb fixture must compress below maxFileSize to prove amplification")
 
-	// Write a decoy second file that exceeds traversal budget
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(traversalBudget + 1), Typeflag: tar.TypeReg}))
-	_, err = tarWriter.Write(bytes.Repeat([]byte("a"), int(traversalBudget+1)))
-	require.NoError(t, err)
-
-	require.NoError(t, tarWriter.Close())
-	require.NoError(t, gzipWriter.Close())
-
-	err = readSingleFileFromTgz(buf.Bytes(), maxFileSize, func(reader io.Reader) error {
-		_, err := io.Copy(io.Discard, reader)
+	err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+		_, err := io.Copy(io.Discard, r)
 		return err
 	})
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "traversal exceeded budget")
+}
+
+// TestReadSingleFileFromTgz_TraversalBudgetBoundary verifies exact-budget
+// acceptance and budget+1 rejection so the sentinel byte cannot be silently
+// removed without breaking tests.
+func TestReadSingleFileFromTgz_TraversalBudgetBoundary(t *testing.T) {
+	const maxFileSize int64 = 1024
+	budget := metricsTraversalBudget(maxFileSize)
+
+	t.Run("exact file size accepted", func(t *testing.T) {
+		content := string(bytes.Repeat([]byte("a"), int(maxFileSize)))
+		tgz := createTestTgz(t, []testTgzEntry{{name: "metrics.json", content: content}})
+		err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+			_, err := io.Copy(io.Discard, r)
+			return err
+		})
+		assert.NoError(t, err)
+	})
+
+	t.Run("budget+1 PAX metadata rejected", func(t *testing.T) {
+		tgz := createPAXBombTgz(t, "small", budget)
+		err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+			_, err := io.Copy(io.Discard, r)
+			return err
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "traversal exceeded budget")
+	})
 }

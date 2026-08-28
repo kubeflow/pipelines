@@ -20,6 +20,7 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"math"
 )
 
 // Utils to archive and extract tgz (tar.gz) file.
@@ -53,8 +54,25 @@ func ArchiveTgz(files map[string]string) (string, error) {
 	return buf.String(), nil
 }
 
+// metricsTraversalBudget returns an overflow-safe decompressed-byte budget for
+// scanning tar headers and PAX/GNU metadata before and after the metrics entry.
+// The budget is maxFileSize plus a 1 MiB overhead for tar framing, saturating
+// at math.MaxInt64 to avoid wrapping negative on large inputs.
+func metricsTraversalBudget(maxFileSize int64) int64 {
+	const overhead = 1 << 20 // 1 MiB for tar headers and PAX/GNU metadata
+	if maxFileSize > math.MaxInt64-overhead {
+		return math.MaxInt64
+	}
+	return maxFileSize + overhead
+}
+
 // readSingleFileFromTgz streams the only regular file in a tar.gz archive to
 // consume. The caller provides the maximum uncompressed file size.
+//
+// The function enforces an archive-wide decompression budget to prevent
+// tar-bomb attacks in which hidden PAX or GNU metadata between entries causes
+// attacker-controlled unbounded work in the persistence agent before the
+// per-entry size check is reached.
 func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io.Reader) error) error {
 	if maxFileSize <= 0 {
 		return fmt.Errorf("maximum metrics file size must be positive")
@@ -66,14 +84,19 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 	}
 	defer gr.Close()
 
-	// Add traversal budget to account for tar headers and metadata
-	traversalBudget := maxFileSize + 1<<20
-	limitedGr := &io.LimitedReader{R: gr, N: traversalBudget}
+	// Wrap the gzip stream in a traversal budget that accounts for PAX/GNU
+	// extended headers and tar framing consumed by tar.Reader.Next().
+	// Use budget+1 so that exact-boundary exhaustion is detectable as N==0
+	// rather than being silently accepted as io.EOF.
+	budget := metricsTraversalBudget(maxFileSize)
+	limitedGr := &io.LimitedReader{R: gr, N: budget + 1}
 	tr := tar.NewReader(limitedGr)
 
 	hdr, err := tr.Next()
+	// Check exhaustion before any error branch: if the budget ran out,
+	// tar may return io.EOF or a truncated-data error depending on alignment.
 	if limitedGr.N <= 0 {
-		return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", traversalBudget)
+		return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", budget)
 	}
 	if err == io.EOF {
 		return fmt.Errorf("metrics archive must contain exactly one regular file")
@@ -91,7 +114,7 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 		return fmt.Errorf("metrics archive entry %q exceeds maximum size of %d bytes", hdr.Name, maxFileSize)
 	}
 
-	limitedReader := &io.LimitedReader{R: tr, N: maxFileSize}
+	limitedReader := &io.LimitedReader{R: tr, N: maxFileSize + 1}
 	if err := consume(limitedReader); err != nil {
 		return err
 	}
@@ -99,13 +122,17 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 		return err
 	}
 
-	if _, err := tr.Next(); err == nil {
+	// Confirm no second entry exists. Check exhaustion before accepting EOF
+	// so that budget-aligned archives do not bypass the check silently.
+	_, nextErr := tr.Next()
+	if limitedGr.N <= 0 {
+		return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", budget)
+	}
+	if nextErr == nil {
 		return fmt.Errorf("metrics archive must contain exactly one regular file")
-	} else if err != io.EOF {
-		if limitedGr.N <= 0 {
-			return fmt.Errorf("metrics archive traversal exceeded budget of %d bytes", traversalBudget)
-		}
-		return err
+	}
+	if nextErr != io.EOF {
+		return nextErr
 	}
 	return nil
 }
