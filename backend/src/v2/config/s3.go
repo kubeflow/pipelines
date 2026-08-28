@@ -148,7 +148,7 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 			sessionInfo.Params["forcePathStyle"] = strconv.FormatBool(*override.ForcePathStyle)
 		}
 		if override.MaxRetries != nil {
-			sessionInfo.Params["maxRetries"] = strconv.FormatInt(int64(*p.Default.MaxRetries), 10)
+			sessionInfo.Params["maxRetries"] = strconv.FormatInt(int64(*override.MaxRetries), 10)
 		}
 		if override.Credentials == nil {
 			return objectstore.SessionInfo{}, invalidConfigErr(fmt.Errorf("missing override credentials"))

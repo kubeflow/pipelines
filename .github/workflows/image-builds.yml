@@ -179,7 +179,7 @@ jobs:
         run: bash ./.github/resources/scripts/setup-buildx-with-retry.sh
 
       - name: Build and save Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         id: save-image
         continue-on-error: true
         env:
@@ -199,7 +199,7 @@ jobs:
         run: sleep 10
 
       - name: Rebuild Images in case of failure
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
         env:

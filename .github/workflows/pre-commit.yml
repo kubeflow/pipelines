@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref || github.ref_name }}
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
       - uses: ./.github/actions/setup-go
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9

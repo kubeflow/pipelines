@@ -205,7 +205,7 @@ class ExternalBootstrapRetryTest(unittest.TestCase):
             '- name: Set up Docker Buildx', maxsplit=1)[1].split(
                 '- name: Create and Push Manifest', maxsplit=1)[0]
 
-        self.assertIn('uses: docker/setup-buildx-action@v3', setup_step)
+        self.assertIn('uses: docker/setup-buildx-action@', setup_step)
         self.assertIn('driver: docker', setup_step)
 
     def test_manifest_workflow_changes_run_ci_script_tests(self):

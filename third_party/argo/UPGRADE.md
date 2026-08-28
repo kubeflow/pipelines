@@ -3,6 +3,15 @@
 Kubeflow Pipelines regularly upgrades the version of Argo Workflows provided.  See below for
 documentation on the steps required to perform this upgrade
 
+## Planned KFP 3.0 support boundary
+
+Argo Workflows 3.x remains supported for KFP 2.x, but is deprecated and will not be supported by
+Kubeflow Pipelines 3.0. Before the KFP 3.0 release, replace the 3.x compatibility lane with the
+oldest supported 4.x release, update the public compatibility matrix and operator upgrade
+documentation, and verify the resulting minimum and maximum versions through the API and end-to-end
+CI matrices. Track this work in
+[the KFP 3.0 compatibility issue](https://github.com/kubeflow/pipelines/issues/14139).
+
 ## Upgrade Argo Workflows
 
 Instructions:
@@ -10,7 +19,7 @@ Instructions:
 1. Set version of argo you want to upgrade to, for example:
 
     ```bash
-    ARGO_TAG=v4.0.8
+    ARGO_TAG=v4.1.2
     ```
 
     When updating the retained compatibility release, also update
