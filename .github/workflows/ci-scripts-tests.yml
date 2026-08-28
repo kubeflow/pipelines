@@ -27,7 +27,6 @@ on:
       - '.github/resources/scripts/kfp-readiness/**'
       - '.github/actions/junit-summary/**'
       - '.github/workflows/ci-checks.yml'
-      - '.github/workflows/add-ci-passed-label.yml'
       - '.github/workflows/create-manifest.yml'
       - '.github/actions/upload-artifact-with-retry/**'
       - '.github/actions/test-and-report/**'

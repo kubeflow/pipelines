@@ -1,11 +1,12 @@
-# This workflow checks if all CI checks have passed by polling every 5 minutes.
-# It also records whether the triggering run actually completed that poll,
-# so downstream label automation can distinguish real passes from no-op successes.
+# This workflow checks whether all CI checks passed, publishes the SHA-bound
+# ci-passed commit status, and maintains the informational ci-passed label.
+# Eligibility changes for one PR head share a single writer and finish by
+# reconciling current live PR state.
 name: CI Check
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 
 jobs:
   check_ci_status:
@@ -13,30 +14,30 @@ jobs:
     # Skip unrelated labels before entering concurrency so Dependabot/Prow label
     # bursts cannot leave cancelled checks on the current head SHA.
     if: >-
-      (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-      (github.event.action == 'labeled' && github.event.label.name == 'ok-to-test') ||
-      (github.event.action == 'unlabeled' && github.event.label.name == 'needs-ok-to-test')
+      (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') ||
+      (github.event.action == 'edited' && github.event.changes.base.ref.from != '') ||
+      (github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) ||
+      (github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test'))
     concurrency:
-      # Label and reopen events use a unique group because cancelling a run for
-      # the same head SHA would make that commit's check rollup red.
-      group: >-
-        ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{
-          (github.event.action == 'opened' || github.event.action == 'synchronize')
-          && 'head-update' || github.run_id
-        }}
-      # A synchronize event moves the PR to a new head SHA, so cancelling the
-      # prior run cannot make the current commit's check rollup red.
-      cancel-in-progress: ${{ github.event.action == 'synchronize' }}
+      # Every event that can change eligibility for one PR head shares a
+      # single writer. The newest event cancels and supersedes older work; its
+      # final reconciliation re-reads current PR state before publishing.
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     permissions:
       actions: read
       checks: read
+      issues: write
+      pull-requests: read
+      statuses: write
     steps:
       - name: Determine whether CI polling is needed
         id: eligibility
         env:
           EVENT_ACTION: ${{ github.event.action }}
           LABEL_NAME: ${{ github.event.label.name }}
+          OLD_BASE_REF: ${{ github.event.changes.base.ref.from }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
         shell: bash
@@ -46,6 +47,8 @@ jobs:
 
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             reason="PR still has the needs-ok-to-test label."
+          elif [[ "${EVENT_ACTION}" == "edited" && -n "${OLD_BASE_REF}" ]]; then
+            reason="Base branch changed from '${OLD_BASE_REF}'; push or update the branch to revalidate CI against the new base."
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
             should_poll=true
             reason="PR is eligible; running CI status polling."
@@ -66,6 +69,22 @@ jobs:
           echo "should_poll=${should_poll}" >> "$GITHUB_OUTPUT"
           echo "reason=${reason}" >> "$GITHUB_OUTPUT"
           echo "${reason}"
+
+      - name: Mark ci-passed pending while current head is revalidated
+        if: steps.eligibility.outputs.should_poll == 'true'
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha,
+              context: "ci-passed",
+              state: "pending",
+              description: "CI Check is revalidating this commit.",
+            });
 
       - name: Wait for action_required workflow runs to be approved
         id: approval_gate
@@ -134,46 +153,83 @@ jobs:
         if: steps.eligibility.outputs.should_poll != 'true'
         run: echo "${{ steps.eligibility.outputs.reason }}"
 
-      - name: Record CI check result
+      - name: Reconcile ci-passed status and informational label
         if: always()
-        shell: bash
-        run: |
-          mkdir -p ci-check-result
-
-          should_poll="${{ steps.eligibility.outputs.should_poll }}"
-          poll_outcome="${{ steps.poll.outcome }}"
-          should_add_label=false
-
-          if [[ -z "${should_poll}" ]]; then
-            should_poll=false
-          fi
-
-          if [[ -z "${poll_outcome}" ]]; then
-            poll_outcome=skipped
-          fi
-
-          if [[ "${should_poll}" == "true" && "${poll_outcome}" == "success" ]]; then
-            should_add_label=true
-          fi
-
-          jq -n \
-            --arg pr_number "${{ github.event.pull_request.number }}" \
-            --arg head_sha "${{ github.event.pull_request.head.sha }}" \
-            --arg poll_outcome "${poll_outcome}" \
-            --argjson should_poll "${should_poll}" \
-            --argjson should_add_label "${should_add_label}" \
-            '{
-              pr_number: $pr_number,
-              head_sha: $head_sha,
-              should_poll: $should_poll,
-              poll_outcome: $poll_outcome,
-              should_add_label: $should_add_label
-            }' > ci-check-result/result.json
-
-      - name: Upload CI check result
-        if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/github-script@v9
         with:
-          name: ci-check-result
-          path: ci-check-result/result.json
-          if-no-files-found: error
+          retries: 3
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const eventHeadSha = context.payload.pull_request.head.sha;
+            const eventBaseRef = context.payload.pull_request.base.ref;
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            if (pullRequest.state !== "open" ||
+                pullRequest.head.sha !== eventHeadSha ||
+                pullRequest.base.ref !== eventBaseRef) {
+              core.info(`PR #${prNumber} closed, moved from ${eventHeadSha}, or retargeted from ${eventBaseRef}; this run will not publish.`);
+              return;
+            }
+
+            const labels = new Set(pullRequest.labels.map((label) => label.name));
+            const association = pullRequest.author_association;
+            const eligible = !labels.has("needs-ok-to-test") && (
+              labels.has("ok-to-test") ||
+              pullRequest.user.login === "dependabot[bot]" ||
+              association === "MEMBER" ||
+              association === "OWNER" ||
+              association === "COLLABORATOR"
+            );
+            const passed = eligible &&
+              "${{ steps.eligibility.outputs.should_poll }}" === "true" &&
+              "${{ steps.poll.outcome }}" === "success";
+            const state = passed ? "success" : "failure";
+            const description = passed
+              ? "All CI checks passed on this exact commit."
+              : "CI checks did not pass or the PR requires revalidation.";
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: eventHeadSha,
+              context: "ci-passed",
+              state,
+              description,
+            });
+
+            if (passed) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ["ci-passed"],
+              });
+              const { data: afterLabel } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              });
+              if (afterLabel.head.sha !== eventHeadSha) {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: "ci-passed",
+                });
+              }
+            } else {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: "ci-passed",
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
