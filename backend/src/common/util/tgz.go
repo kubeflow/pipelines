@@ -54,12 +54,12 @@ func ArchiveTgz(files map[string]string) (string, error) {
 	return buf.String(), nil
 }
 
-// metricsTraversalBudget returns an overflow-safe decompressed-byte budget for
-// scanning tar headers and PAX/GNU metadata before and after the metrics entry.
-// The budget is maxFileSize plus a 1 MiB overhead for tar framing, saturating
+// ArchiveTraversalBudget returns an overflow-safe decompressed-byte budget for
+// scanning archive headers and metadata (e.g. PAX/GNU) surrounding an entry.
+// The budget is maxFileSize plus a 1 MiB overhead for framing, saturating
 // at math.MaxInt64 to avoid wrapping negative on large inputs.
-func metricsTraversalBudget(maxFileSize int64) int64 {
-	const overhead = 1 << 20 // 1 MiB for tar headers and PAX/GNU metadata
+func ArchiveTraversalBudget(maxFileSize int64) int64 {
+	const overhead = 1 << 20 // 1 MiB for archive headers and metadata
 	if maxFileSize > math.MaxInt64-overhead {
 		return math.MaxInt64
 	}
@@ -88,7 +88,7 @@ func readSingleFileFromTgz(tgzContent []byte, maxFileSize int64, consume func(io
 	// extended headers and tar framing consumed by tar.Reader.Next().
 	// Use budget+1 so that exact-boundary exhaustion is detectable as N==0
 	// rather than being silently accepted as io.EOF.
-	budget := metricsTraversalBudget(maxFileSize)
+	budget := ArchiveTraversalBudget(maxFileSize)
 	limitedGr := &io.LimitedReader{R: gr, N: budget + 1}
 	tr := tar.NewReader(limitedGr)
 

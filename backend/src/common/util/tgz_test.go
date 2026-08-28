@@ -258,7 +258,7 @@ func createPAXBombTgz(t *testing.T, metricsContent string, budgetBytes int64) []
 // tar.Reader.Next() is rejected before the persistence agent exhausts memory.
 func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
 	const maxFileSize int64 = 1024
-	budget := metricsTraversalBudget(maxFileSize)
+	budget := ArchiveTraversalBudget(maxFileSize)
 
 	tgz := createPAXBombTgz(t, "content", budget)
 
@@ -281,7 +281,7 @@ func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
 // removed without breaking tests.
 func TestReadSingleFileFromTgz_TraversalBudgetBoundary(t *testing.T) {
 	const maxFileSize int64 = 1024
-	budget := metricsTraversalBudget(maxFileSize)
+	budget := ArchiveTraversalBudget(maxFileSize)
 
 	t.Run("exact file size accepted", func(t *testing.T) {
 		content := string(bytes.Repeat([]byte("a"), int(maxFileSize)))

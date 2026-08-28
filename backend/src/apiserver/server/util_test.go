@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -307,33 +308,64 @@ func TestDecompressPipelineZip_ValidEmptyZip(t *testing.T) {
 	assert.Contains(t, err.Error(), "Empty zip file")
 }
 
-func TestReadPipelineFile_DecoyTarball(t *testing.T) {
-	const maxFileLength = 4096
-	// Budget in production is maxFileLength + 1MB
-	const traversalBudget = maxFileLength + 1<<20
-
-	var buffer bytes.Buffer
-	gzipWriter := gzip.NewWriter(&buffer)
-	tarWriter := tar.NewWriter(gzipWriter)
-
-	// Decoy member that exceeds the traversal budget
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "decoy.txt", Mode: 0600, Size: int64(traversalBudget + 1)}))
-	_, err := tarWriter.Write(bytes.Repeat([]byte("a"), traversalBudget+1))
-	require.NoError(t, err)
+func createPAXBombTgz(t *testing.T, budgetBytes int64) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	gw := gzip.NewWriter(&buf)
+	tw := tar.NewWriter(gw)
 
 	// Target pipeline member
 	content := []byte("foo: bar\n")
-	require.NoError(t, tarWriter.WriteHeader(&tar.Header{Name: "pipeline.yaml", Mode: 0600, Size: int64(len(content))}))
-	_, err = tarWriter.Write(content)
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "pipeline.yaml",
+		Mode:     0600,
+		Size:     int64(len(content)),
+	}))
+	_, err := tw.Write(content)
 	require.NoError(t, err)
 
-	require.NoError(t, tarWriter.Close())
-	require.NoError(t, gzipWriter.Close())
+	// A PAX extended-header whose "comment" value exceeds the traversal budget.
+	// tar.Reader.Next() must decompress the entire PAX block to parse it.
+	paxValue := string(bytes.Repeat([]byte("x"), int(budgetBytes+1)))
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeXHeader,
+		Name:     "pax-bomb",
+		Size:     int64(len(paxValue)),
+		PAXRecords: map[string]string{
+			"comment": paxValue,
+		},
+	}))
+	_, err = tw.Write([]byte(paxValue))
+	require.NoError(t, err)
+
+	require.NoError(t, tw.Close())
+	require.NoError(t, gw.Close())
+	return buf.Bytes()
+}
+
+func TestReadPipelineFile_TraversalBudgetExhaustion(t *testing.T) {
+	const maxFileLength = 4096
+	budget := util.ArchiveTraversalBudget(int64(maxFileLength))
+
+	tgz := createPAXBombTgz(t, budget)
 
 	// Ensure the highly compressible zip bomb is small enough to pass the initial maxFileLength check
-	require.Less(t, len(buffer.Bytes()), maxFileLength)
+	require.Less(t, len(tgz), maxFileLength)
 
-	_, err = ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(buffer.Bytes()), maxFileLength)
+	_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
+}
+
+func TestReadPipelineFile_TraversalBudgetBoundary(t *testing.T) {
+	const maxFileLength = 4096
+	budget := util.ArchiveTraversalBudget(int64(maxFileLength))
+
+	t.Run("budget+1 PAX metadata rejected", func(t *testing.T) {
+		tgz := createPAXBombTgz(t, budget)
+		_, err := ReadPipelineFile("pipeline.tar.gz", bytes.NewReader(tgz), maxFileLength)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Archive extraction exceeded traversal budget")
+	})
 }
