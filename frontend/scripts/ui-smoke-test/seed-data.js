@@ -1,511 +1,823 @@
 #!/usr/bin/env node
 /**
- * Test Data Seeder for UI Smoke Tests
- *
- * Creates sample pipelines, experiments, and runs to populate the UI
- * with realistic data for screenshot comparison.
+ * Creates deterministic API resources used by seeded UI screenshot routes.
  */
 
+const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const fs = require('fs');
 const path = require('path');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DEFAULT_MANIFEST_PATH = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
 const SEED_MANIFEST_PATH = process.env.UI_SMOKE_SEED_MANIFEST || DEFAULT_MANIFEST_PATH;
+const MULTIPART_BOUNDARY = '----kfp-ui-smoke-pipeline-boundary';
+const SEED_IMAGE =
+  'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
+const FAILED_RUN_STATES = new Set(['SKIPPED', 'FAILED', 'CANCELED', 'PAUSED']);
+const METRICS_EXECUTOR_OUTPUT = {
+  artifacts: {
+    scalar_metrics: {
+      artifacts: [{ metadata: { accuracy: 0.92, loss: 0.08 } }],
+    },
+    roc_curve: {
+      artifacts: [
+        {
+          metadata: {
+            confidenceMetrics: [
+              { confidenceThreshold: 1, recall: 0, falsePositiveRate: 0 },
+              { confidenceThreshold: 0.8, recall: 0.35, falsePositiveRate: 0.08 },
+              { confidenceThreshold: 0.5, recall: 0.72, falsePositiveRate: 0.22 },
+              { confidenceThreshold: 0.2, recall: 0.9, falsePositiveRate: 0.55 },
+              { confidenceThreshold: 0, recall: 1, falsePositiveRate: 1 },
+            ],
+          },
+        },
+      ],
+    },
+  },
+};
+const METRICS_EXECUTOR_OUTPUT_JSON = JSON.stringify(METRICS_EXECUTOR_OUTPUT);
 
-function log(msg, type = 'info') {
-  const colors = { info: '\x1b[32m', warn: '\x1b[33m', error: '\x1b[31m', debug: '\x1b[36m' };
-  const reset = '\x1b[0m';
-  console.log(`${colors[type] || ''}[SEED]${reset} ${msg}`);
+const MINIMAL_PIPELINE_YAML = `pipelineInfo:
+  name: ui-smoke-pipeline
+root:
+  dag:
+    outputs:
+      artifacts:
+        roc_curve:
+          artifactSelectors:
+            - outputArtifactKey: roc_curve
+              producerSubtask: write-metrics
+        scalar_metrics:
+          artifactSelectors:
+            - outputArtifactKey: scalar_metrics
+              producerSubtask: write-metrics
+    tasks:
+      write-metrics:
+        taskInfo:
+          name: write-metrics
+        cachingOptions:
+          enableCache: false
+        componentRef:
+          name: comp-write-metrics
+  outputDefinitions:
+    artifacts:
+      roc_curve:
+        artifactType:
+          schemaTitle: system.ClassificationMetrics
+          schemaVersion: 0.0.1
+      scalar_metrics:
+        artifactType:
+          schemaTitle: system.Metrics
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.6
+components:
+  comp-write-metrics:
+    executorLabel: exec-write-metrics
+    outputDefinitions:
+      artifacts:
+        roc_curve:
+          artifactType:
+            schemaTitle: system.ClassificationMetrics
+            schemaVersion: 0.0.1
+        scalar_metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-write-metrics:
+      container:
+        image: ${SEED_IMAGE}
+        command:
+          - /bin/sh
+          - -ec
+        args:
+          - |
+            metadata_path="$(dirname "$1")/output_metadata.json"
+            mkdir -p "$(dirname "$1")" "$(dirname "$2")"
+            : > "$1"
+            : > "$2"
+            printf '%s' '${METRICS_EXECUTOR_OUTPUT_JSON}' > "$metadata_path"
+          - ui-smoke-metrics
+          - "{{$.outputs.artifacts['scalar_metrics'].path}}"
+          - "{{$.outputs.artifacts['roc_curve'].path}}"
+`;
+
+const RESOURCE_DEFINITIONS = {
+  experiments: [
+    {
+      displayName: 'UI Smoke - Image Classification',
+      description: 'Deterministic UI smoke-test experiment',
+    },
+    {
+      displayName: 'UI Smoke - Natural Language Processing',
+      description: 'Second deterministic UI smoke-test experiment',
+    },
+  ],
+  pipelines: [
+    {
+      name: 'ui-smoke-training-pipeline',
+      displayName: 'UI Smoke Training Pipeline',
+      description: 'Deterministic training pipeline for UI screenshots',
+    },
+    {
+      name: 'ui-smoke-data-ingestion',
+      displayName: 'UI Smoke Data Ingestion',
+      description: 'Deterministic data-ingestion pipeline for UI screenshots',
+    },
+    {
+      name: 'ui-smoke-model-evaluation',
+      displayName: 'UI Smoke Model Evaluation',
+      description: 'Deterministic evaluation pipeline for UI screenshots',
+    },
+  ],
+  runs: [
+    'UI Smoke Training Run 1',
+    'UI Smoke Training Run 2',
+    'UI Smoke Evaluation Run',
+    'UI Smoke Inference Run',
+    'UI Smoke Data Processing Run',
+  ],
+  recurringRuns: ['UI Smoke Daily Training', 'UI Smoke Hourly Data Sync'],
+};
+
+function log(message, type = 'info') {
+  const colors = {
+    info: '\x1b[32m',
+    warn: '\x1b[33m',
+    error: '\x1b[31m',
+    debug: '\x1b[36m',
+  };
+  console.log(`${colors[type] || ''}[SEED]\x1b[0m ${message}`);
 }
 
 function unique(values) {
-  return Array.from(new Set(values.filter(Boolean).map(v => String(v))));
+  return [...new Set(values.filter(Boolean).map((value) => String(value)))];
 }
 
 function pickList(response, listKeys) {
   for (const key of listKeys) {
-    if (Array.isArray(response[key])) {
-      return response[key];
-    }
+    if (Array.isArray(response?.[key])) return response[key];
   }
   return [];
 }
 
-function extractIds(items, candidateKeys) {
-  return unique(
-    items.map(item => {
-      for (const key of candidateKeys) {
-        if (item && item[key]) {
-          return item[key];
-        }
-      }
-      return null;
-    }),
-  );
+function resourceId(resource, candidateKeys) {
+  for (const key of candidateKeys) {
+    const value = resource?.[key];
+    if (value !== undefined && value !== null && String(value).length > 0) return String(value);
+  }
+  return null;
 }
 
-async function fetchResourceIds() {
-  const [pipelinesResp, experimentsResp, runsResp, recurringResp] = await Promise.all([
-    apiRequest('GET', '/apis/v2beta1/pipelines?page_size=20'),
-    apiRequest('GET', '/apis/v2beta1/experiments?page_size=20'),
-    apiRequest('GET', '/apis/v2beta1/runs?page_size=20'),
-    apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=20'),
-  ]);
+function requireResourceId(resource, candidateKeys, description) {
+  const id = resourceId(resource, candidateKeys);
+  if (!id) throw new Error(`${description} response did not contain a resource ID.`);
+  return id;
+}
 
+function resolveApiUrl(apiBase, endpoint) {
+  const base = new URL(apiBase);
+  base.search = '';
+  base.hash = '';
+  if (!base.pathname.endsWith('/')) base.pathname += '/';
+  return new URL(String(endpoint).replace(/^\/+/, ''), base);
+}
+
+function apiRequest(method, endpoint, body = null, options = {}) {
+  const { apiBase = API_BASE, headers = {}, rawBody = null, timeout = 10000 } = options;
+  return new Promise((resolve, reject) => {
+    const url = resolveApiUrl(apiBase, endpoint);
+    const payload =
+      rawBody === null ? (body === null ? null : Buffer.from(JSON.stringify(body))) : rawBody;
+    const requestHeaders = { ...headers };
+    if (rawBody === null && payload !== null && !requestHeaders['Content-Type']) {
+      requestHeaders['Content-Type'] = 'application/json';
+    }
+    if (payload !== null) requestHeaders['Content-Length'] = String(payload.length);
+
+    const protocol = url.protocol === 'https:' ? https : http;
+    const request = protocol.request(
+      {
+        method,
+        hostname: url.hostname,
+        port: url.port,
+        path: `${url.pathname}${url.search}`,
+        headers: requestHeaders,
+      },
+      (response) => {
+        let data = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+        response.on('end', () => {
+          let parsed = data;
+          if (data) {
+            try {
+              parsed = JSON.parse(data);
+            } catch (error) {
+              // Preserve non-JSON bodies for actionable error messages.
+            }
+          } else {
+            parsed = {};
+          }
+          if (response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`API error ${response.statusCode}: ${JSON.stringify(parsed)}`));
+            return;
+          }
+          resolve(parsed);
+        });
+      },
+    );
+    request.on('error', reject);
+    request.setTimeout(timeout, () => {
+      request.destroy(new Error(`Request timeout: ${method} ${endpoint}`));
+    });
+    if (payload !== null) request.write(payload);
+    request.end();
+  });
+}
+
+function createMultipartUpload(contents, filename = 'ui-smoke-pipeline.yaml') {
+  const body = Buffer.from(
+    `--${MULTIPART_BOUNDARY}\r\n` +
+      `Content-Disposition: form-data; name="uploadfile"; filename="${filename}"\r\n` +
+      'Content-Type: application/yaml\r\n\r\n' +
+      contents +
+      `\r\n--${MULTIPART_BOUNDARY}--\r\n`,
+  );
   return {
-    experimentIds: extractIds(
-      pickList(experimentsResp, ['experiments']),
-      ['experiment_id', 'experimentId', 'id'],
-    ),
-    pipelineIds: extractIds(pickList(pipelinesResp, ['pipelines']), ['pipeline_id', 'pipelineId', 'id']),
-    recurringRunIds: extractIds(
-      pickList(recurringResp, ['recurring_runs', 'recurringRuns', 'jobs']),
-      ['recurring_run_id', 'recurringRunId', 'job_id', 'id'],
-    ),
-    runIds: extractIds(pickList(runsResp, ['runs']), ['run_id', 'runId', 'id']),
+    body,
+    headers: { 'Content-Type': `multipart/form-data; boundary=${MULTIPART_BOUNDARY}` },
   };
 }
 
-function createdIds(created) {
+async function checkHealth(request = apiRequest) {
+  try {
+    await request('GET', '/apis/v2beta1/healthz');
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function listAll(endpoint, listKeys, request = apiRequest) {
+  const items = [];
+  let pageToken = '';
+  for (let page = 0; page < 50; page++) {
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const query = new URLSearchParams({ page_size: '100' });
+    if (pageToken) query.set('page_token', pageToken);
+    const response = await request('GET', `${endpoint}${separator}${query}`);
+    items.push(...pickList(response, listKeys));
+    pageToken = response?.next_page_token || response?.nextPageToken || '';
+    if (!pageToken) return items;
+  }
+  throw new Error(`Pagination did not terminate for ${endpoint}.`);
+}
+
+async function fetchInventory(request = apiRequest) {
+  const [pipelines, experiments, runs, recurringRuns] = await Promise.all([
+    listAll('/apis/v2beta1/pipelines', ['pipelines'], request),
+    listAll('/apis/v2beta1/experiments', ['experiments'], request),
+    listAll('/apis/v2beta1/runs', ['runs'], request),
+    listAll('/apis/v2beta1/recurringruns', ['recurring_runs', 'recurringRuns', 'jobs'], request),
+  ]);
+  return { pipelines, experiments, runs, recurringRuns };
+}
+
+async function fetchResourceIds(request = apiRequest) {
+  const inventory = await fetchInventory(request);
   return {
     experimentIds: unique(
-      (created.experiments || []).map(e => e.experiment_id || e.experimentId || e.id),
+      inventory.experiments.map((resource) =>
+        resourceId(resource, ['experiment_id', 'experimentId', 'id']),
+      ),
     ),
-    pipelineIds: unique((created.pipelines || []).map(p => p.pipeline_id || p.pipelineId || p.id)),
+    pipelineIds: unique(
+      inventory.pipelines.map((resource) =>
+        resourceId(resource, ['pipeline_id', 'pipelineId', 'id']),
+      ),
+    ),
     recurringRunIds: unique(
-      (created.recurringRuns || []).map(r => r.recurring_run_id || r.recurringRunId || r.job_id || r.id),
+      inventory.recurringRuns.map((resource) =>
+        resourceId(resource, ['recurring_run_id', 'recurringRunId', 'job_id', 'id']),
+      ),
     ),
-    runIds: unique((created.runs || []).map(r => r.run_id || r.runId || r.id)),
+    runIds: unique(
+      inventory.runs.map((resource) => resourceId(resource, ['run_id', 'runId', 'id'])),
+    ),
   };
 }
 
-function buildSeedManifest(resourceIds) {
-  const defaults = {
-    compareRunlist: resourceIds.runIds.slice(0, 3).join(','),
-    experimentId: resourceIds.experimentIds[0] || null,
-    pipelineId: resourceIds.pipelineIds[0] || null,
-    recurringRunId: resourceIds.recurringRunIds[0] || null,
-    runId: resourceIds.runIds[0] || null,
-  };
-
+function buildSeedManifest(resourceIds, options = {}) {
+  const { apiBase = API_BASE } = options;
   return {
-    apiBase: API_BASE,
-    defaults,
+    apiBase,
+    defaults: {
+      compareRunlist: resourceIds.runIds.slice(0, 3).join(','),
+      experimentId: resourceIds.experimentIds[0] || null,
+      pipelineId: resourceIds.pipelineIds[0] || null,
+      recurringRunId: resourceIds.recurringRunIds[0] || null,
+      runId: resourceIds.runIds[0] || null,
+    },
     generatedAt: new Date().toISOString(),
     resources: resourceIds,
   };
 }
 
-function writeSeedManifest(manifest) {
-  const dirPath = path.dirname(SEED_MANIFEST_PATH);
-  fs.mkdirSync(dirPath, { recursive: true });
-  fs.writeFileSync(SEED_MANIFEST_PATH, JSON.stringify(manifest, null, 2));
-  log(`Wrote seed manifest: ${SEED_MANIFEST_PATH}`);
+function writeSeedManifest(manifest, manifestPath = SEED_MANIFEST_PATH) {
+  fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+  log(`Wrote seed manifest: ${manifestPath}`);
 }
 
-/**
- * Make an HTTP request to the KFP API
- */
-async function apiRequest(method, endpoint, body = null) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(endpoint, API_BASE);
-    const options = {
-      method,
-      hostname: url.hostname,
-      port: url.port,
-      path: url.pathname + url.search,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    };
+async function createExperiment(name, description, request = apiRequest) {
+  const result = await request('POST', '/apis/v2beta1/experiments', {
+    display_name: name,
+    description,
+  });
+  requireResourceId(result, ['experiment_id', 'experimentId', 'id'], `Experiment ${name}`);
+  return result;
+}
 
-    const protocol = url.protocol === 'https:' ? https : http;
-    const req = protocol.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          if (res.statusCode >= 400) {
-            reject(new Error(`API error ${res.statusCode}: ${JSON.stringify(json)}`));
-          } else {
-            resolve(json);
-          }
-        } catch (e) {
-          if (res.statusCode >= 400) {
-            reject(new Error(`API error ${res.statusCode}: ${data}`));
-          } else {
-            resolve(data);
-          }
-        }
-      });
-    });
+async function uploadPipeline(name, description, request = apiRequest, options = {}) {
+  const { displayName = name } = options;
+  const query = new URLSearchParams({
+    name,
+    display_name: displayName,
+    description,
+  });
+  const multipart = createMultipartUpload(MINIMAL_PIPELINE_YAML);
+  const result = await request('POST', `/apis/v2beta1/pipelines/upload?${query}`, null, {
+    headers: multipart.headers,
+    rawBody: multipart.body,
+  });
+  requireResourceId(result, ['pipeline_id', 'pipelineId', 'id'], `Pipeline ${name}`);
+  return result;
+}
 
-    req.on('error', reject);
-    req.setTimeout(10000, () => {
-      req.destroy();
-      reject(new Error('Request timeout'));
-    });
+async function uploadPipelineVersion(pipelineId, request = apiRequest) {
+  if (!pipelineId) throw new Error('A pipeline ID is required to upload a pipeline version.');
+  const query = new URLSearchParams({
+    name: 'ui-smoke-version',
+    display_name: 'UI Smoke Version',
+    pipelineid: pipelineId,
+    description: 'Deterministic pipeline version for UI screenshots',
+  });
+  const multipart = createMultipartUpload(MINIMAL_PIPELINE_YAML);
+  const result = await request('POST', `/apis/v2beta1/pipelines/upload_version?${query}`, null, {
+    headers: multipart.headers,
+    rawBody: multipart.body,
+  });
+  requireResourceId(
+    result,
+    ['pipeline_version_id', 'pipelineVersionId', 'id'],
+    `Pipeline version for ${pipelineId}`,
+  );
+  return result;
+}
 
-    if (body) {
-      req.write(JSON.stringify(body));
-    }
-    req.end();
+async function createRun(
+  name,
+  pipelineId,
+  experimentId,
+  request = apiRequest,
+  pipelineVersionId = null,
+) {
+  if (!pipelineId || !experimentId) {
+    throw new Error(`Run ${name} requires both a pipeline ID and an experiment ID.`);
+  }
+  const reference = { pipeline_id: pipelineId };
+  if (pipelineVersionId) reference.pipeline_version_id = pipelineVersionId;
+  const result = await request('POST', '/apis/v2beta1/runs', {
+    display_name: name,
+    description: `Deterministic UI smoke-test run: ${name}`,
+    experiment_id: experimentId,
+    pipeline_version_reference: reference,
+    runtime_config: { parameters: {} },
+  });
+  requireResourceId(result, ['run_id', 'runId', 'id'], `Run ${name}`);
+  return result;
+}
+
+async function createRecurringRun(
+  name,
+  pipelineId,
+  experimentId,
+  request = apiRequest,
+  pipelineVersionId = null,
+) {
+  if (!pipelineId || !experimentId) {
+    throw new Error(`Recurring run ${name} requires both a pipeline ID and an experiment ID.`);
+  }
+  const reference = { pipeline_id: pipelineId };
+  if (pipelineVersionId) reference.pipeline_version_id = pipelineVersionId;
+  const result = await request('POST', '/apis/v2beta1/recurringruns', {
+    display_name: name,
+    description: `Deterministic UI smoke-test schedule: ${name}`,
+    experiment_id: experimentId,
+    max_concurrency: '1',
+    mode: 'DISABLE',
+    no_catchup: true,
+    pipeline_version_reference: reference,
+    runtime_config: { parameters: {} },
+    trigger: { periodic_schedule: { interval_second: '3600' } },
+  });
+  requireResourceId(
+    result,
+    ['recurring_run_id', 'recurringRunId', 'job_id', 'id'],
+    `Recurring run ${name}`,
+  );
+  return result;
+}
+
+async function getExistingCounts(request = apiRequest) {
+  const inventory = await fetchInventory(request);
+  return {
+    experiments: inventory.experiments.length,
+    pipelines: inventory.pipelines.length,
+    recurringRuns: inventory.recurringRuns.length,
+    runs: inventory.runs.length,
+  };
+}
+
+function targetCount(value, definitions) {
+  const number = Number.isFinite(Number(value)) ? Math.floor(Number(value)) : definitions.length;
+  return Math.min(definitions.length, Math.max(1, number));
+}
+
+function byDisplayName(resources, displayName) {
+  return resources.find(
+    (resource) => (resource.display_name || resource.displayName || resource.name) === displayName,
+  );
+}
+
+function byPipelineDefinition(resources, definition) {
+  return resources.find((resource) => {
+    const name = resource.name;
+    const displayName = resource.display_name || resource.displayName;
+    return name === definition.name || displayName === definition.displayName;
   });
 }
 
-/**
- * Check API health
- */
-async function checkHealth() {
-  try {
-    await apiRequest('GET', '/apis/v2beta1/healthz');
-    return true;
-  } catch (e) {
-    return false;
-  }
+async function validateDetailRoutes(resources, request = apiRequest) {
+  const checks = [
+    request('GET', `/apis/v2beta1/pipelines/${encodeURIComponent(resources.pipelineIds[0])}`),
+    request('GET', `/apis/v2beta1/experiments/${encodeURIComponent(resources.experimentIds[0])}`),
+    request(
+      'GET',
+      `/apis/v2beta1/recurringruns/${encodeURIComponent(resources.recurringRunIds[0])}`,
+    ),
+    request(
+      'GET',
+      `/apis/v2beta1/pipelines/${encodeURIComponent(resources.pipelineIds[0])}/versions/${encodeURIComponent(resources.pipelineVersionIds[0])}`,
+    ),
+    ...resources.runIds.map((runId) =>
+      request('GET', `/apis/v2beta1/runs/${encodeURIComponent(runId)}`),
+    ),
+  ];
+  await Promise.all(checks);
 }
 
-/**
- * Create a sample experiment
- */
-async function createExperiment(name, description) {
-  log(`Creating experiment: ${name}`);
-  try {
-    const result = await apiRequest('POST', '/apis/v2beta1/experiments', {
-      display_name: name,
-      description: description,
-    });
-    log(`  ✓ Created experiment: ${result.experiment_id || result.name}`);
-    return result;
-  } catch (e) {
-    log(`  ✗ Failed to create experiment: ${e.message}`, 'warn');
-    return null;
-  }
+function runState(run) {
+  return String(run?.state || run?.run?.state || '').toUpperCase();
 }
 
-/**
- * Upload a sample pipeline
- */
-async function uploadPipeline(name, description) {
-  log(`Creating pipeline: ${name}`);
-
-  // Create a minimal pipeline spec
-  const pipelineSpec = {
-    pipelineInfo: {
-      name: name,
-      description: description,
-    },
-    deploymentSpec: {
-      executors: {
-        'exec-print-msg': {
-          container: {
-            image: 'python:3.9-slim',
-            command: ['python', '-c'],
-            args: ['print("Hello from ' + name + '")'],
-          },
-        },
-      },
-    },
-    root: {
-      dag: {
-        tasks: {
-          'print-msg': {
-            taskInfo: { name: 'print-msg' },
-            componentRef: { name: 'comp-print-msg' },
-          },
-        },
-      },
-    },
-    components: {
-      'comp-print-msg': {
-        executorLabel: 'exec-print-msg',
-      },
-    },
-    schemaVersion: '2.1.0',
-    sdkVersion: 'kfp-2.0.0',
-  };
-
-  try {
-    const result = await apiRequest('POST', '/apis/v2beta1/pipelines', {
-      display_name: name,
-      description: description,
-      pipeline_spec: pipelineSpec,
-    });
-    log(`  ✓ Created pipeline: ${result.pipeline_id || result.name}`);
-    return result;
-  } catch (e) {
-    log(`  ✗ Failed to create pipeline: ${e.message}`, 'warn');
-    return null;
-  }
+function runFailureDetail(run) {
+  const detail = run?.error || run?.message || run?.status?.message || run?.run?.error;
+  return detail ? `: ${String(detail).slice(0, 500)}` : '';
 }
 
-/**
- * Create a pipeline run
- */
-async function createRun(name, pipelineId, experimentId) {
-  log(`Creating run: ${name}`);
-  try {
-    const body = {
-      display_name: name,
-      description: `Test run for ${name}`,
-    };
+async function waitForRunsStable(runIds, request = apiRequest, options = {}) {
+  const {
+    interval = 1000,
+    now = Date.now,
+    sleep = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+    timeout = 180000,
+  } = options;
+  const pending = new Map(runIds.map((runId) => [String(runId), 'UNKNOWN']));
+  const deadline = now() + timeout;
 
-    if (pipelineId) {
-      body.pipeline_version_reference = {
-        pipeline_id: pipelineId,
-      };
+  while (pending.size > 0 && now() < deadline) {
+    const snapshots = await Promise.all(
+      [...pending.keys()].map(async (runId) => {
+        const run = await request('GET', `/apis/v2beta1/runs/${encodeURIComponent(runId)}`);
+        return { detail: runFailureDetail(run), runId, state: runState(run) };
+      }),
+    );
+    for (const snapshot of snapshots) {
+      if (snapshot.state === 'SUCCEEDED') {
+        pending.delete(snapshot.runId);
+      } else if (FAILED_RUN_STATES.has(snapshot.state)) {
+        throw new Error(`Seeded run ${snapshot.runId} reached ${snapshot.state}${snapshot.detail}`);
+      } else {
+        pending.set(snapshot.runId, snapshot.state || 'UNKNOWN');
+      }
     }
-
-    if (experimentId) {
-      body.experiment_id = experimentId;
-    }
-
-    const result = await apiRequest('POST', '/apis/v2beta1/runs', body);
-    log(`  ✓ Created run: ${result.run_id || result.name}`);
-    return result;
-  } catch (e) {
-    log(`  ✗ Failed to create run: ${e.message}`, 'warn');
-    return null;
+    if (pending.size > 0) await sleep(interval);
   }
-}
 
-/**
- * Create a recurring run
- */
-async function createRecurringRun(name, pipelineId, experimentId) {
-  log(`Creating recurring run: ${name}`);
-  try {
-    const body = {
-      display_name: name,
-      description: `Scheduled run for ${name}`,
-      mode: 'ENABLE',
-      max_concurrency: '1',
-      trigger: {
-        periodic_schedule: {
-          interval_second: '3600', // Every hour
-        },
-      },
-    };
-
-    if (pipelineId) {
-      body.pipeline_version_reference = {
-        pipeline_id: pipelineId,
-      };
-    }
-
-    if (experimentId) {
-      body.experiment_id = experimentId;
-    }
-
-    const result = await apiRequest('POST', '/apis/v2beta1/recurringruns', body);
-    log(`  ✓ Created recurring run: ${result.recurring_run_id || result.name}`);
-    return result;
-  } catch (e) {
-    log(`  ✗ Failed to create recurring run: ${e.message}`, 'warn');
-    return null;
+  if (pending.size > 0) {
+    const states = [...pending.entries()].map(([runId, state]) => `${runId}=${state}`).join(', ');
+    throw new Error(`Timed out waiting for terminal run state: ${states}`);
   }
+  return true;
 }
 
-/**
- * Get existing data counts
- */
-async function getExistingCounts() {
-  const counts = {
-    pipelines: 0,
-    experiments: 0,
-    runs: 0,
-    recurringRuns: 0,
-  };
-
-  try {
-    const pipelines = await apiRequest('GET', '/apis/v2beta1/pipelines?page_size=1');
-    counts.pipelines = pipelines.total_size || 0;
-  } catch (e) { /* ignore */ }
-
-  try {
-    const experiments = await apiRequest('GET', '/apis/v2beta1/experiments?page_size=1');
-    counts.experiments = experiments.total_size || 0;
-  } catch (e) { /* ignore */ }
-
-  try {
-    const runs = await apiRequest('GET', '/apis/v2beta1/runs?page_size=1');
-    counts.runs = runs.total_size || 0;
-  } catch (e) { /* ignore */ }
-
-  try {
-    const recurringRuns = await apiRequest('GET', '/apis/v2beta1/recurringruns?page_size=1');
-    counts.recurringRuns = recurringRuns.total_size || 0;
-  } catch (e) { /* ignore */ }
-
-  return counts;
+function failureRecord(type, name, error) {
+  return { type, name, error: error.message };
 }
 
-/**
- * Seed test data
- */
 async function seedData(options = {}) {
   const {
-    pipelines: numPipelines = 3,
-    experiments: numExperiments = 2,
-    runs: numRuns = 5,
-    recurringRuns: numRecurringRuns = 2,
-    skipIfExists = true,
+    pipelines = 3,
+    experiments = 2,
+    runs = 5,
+    recurringRuns = 2,
+    manifestPath = SEED_MANIFEST_PATH,
+    apiBase = API_BASE,
   } = options;
-
-  log('Seeding test data for UI smoke tests...');
-  log(`API Base: ${API_BASE}`);
-
-  // Check API health first
-  const healthy = await checkHealth();
-  if (!healthy) {
-    log('API is not healthy. Skipping data seeding.', 'error');
-    return { success: false, error: 'API not healthy' };
-  }
-
-  // Check existing data
-  const existingCounts = await getExistingCounts();
-  log(`Existing data: ${JSON.stringify(existingCounts)}`);
-
-  if (skipIfExists && (existingCounts.pipelines > 0 || existingCounts.experiments > 0)) {
-    log('Data already exists. Skipping seeding (use --force to override).');
-    try {
-      const resourceIds = await fetchResourceIds();
-      writeSeedManifest(buildSeedManifest(resourceIds));
-      return { success: true, skipped: true, counts: existingCounts, seedManifestPath: SEED_MANIFEST_PATH };
-    } catch (error) {
-      log(`Failed to write seed manifest from existing data: ${error.message}`, 'warn');
-      return { success: true, skipped: true, counts: existingCounts };
-    }
-  }
-
+  const waitForRunsFn = options.waitForRunsFn || waitForRunsStable;
+  const request =
+    options.request ||
+    ((method, endpoint, body = null, requestOptions = {}) =>
+      apiRequest(method, endpoint, body, { apiBase, ...requestOptions }));
+  const targets = {
+    pipelines: targetCount(pipelines, RESOURCE_DEFINITIONS.pipelines),
+    experiments: targetCount(experiments, RESOURCE_DEFINITIONS.experiments),
+    runs: targetCount(runs, RESOURCE_DEFINITIONS.runs),
+    recurringRuns: targetCount(recurringRuns, RESOURCE_DEFINITIONS.recurringRuns),
+  };
   const created = {
     experiments: [],
     pipelines: [],
+    pipelineVersions: [],
     runs: [],
     recurringRuns: [],
   };
+  const selected = {
+    experiments: [],
+    pipelines: [],
+    pipelineVersions: [],
+    runs: [],
+    recurringRuns: [],
+  };
+  const failures = [];
 
-  // Create experiments
-  const experimentNames = [
-    { name: 'Image Classification', desc: 'Training and evaluating image classification models' },
-    { name: 'NLP Pipeline', desc: 'Natural language processing experiments' },
-    { name: 'Data Preprocessing', desc: 'Data cleaning and feature engineering' },
-  ];
-
-  for (let i = 0; i < Math.min(numExperiments, experimentNames.length); i++) {
-    const exp = await createExperiment(experimentNames[i].name, experimentNames[i].desc);
-    if (exp) created.experiments.push(exp);
+  if (!(await checkHealth(request))) {
+    return { success: false, error: 'API not healthy', failures, created };
   }
 
-  // Create pipelines
-  const pipelineNames = [
-    { name: 'Training Pipeline', desc: 'End-to-end ML training pipeline' },
-    { name: 'Data Ingestion', desc: 'Extract and load data from various sources' },
-    { name: 'Model Evaluation', desc: 'Evaluate model performance metrics' },
-    { name: 'Feature Engineering', desc: 'Transform raw data into features' },
-    { name: 'Batch Inference', desc: 'Run batch predictions on new data' },
-  ];
-
-  for (let i = 0; i < Math.min(numPipelines, pipelineNames.length); i++) {
-    const pipeline = await uploadPipeline(pipelineNames[i].name, pipelineNames[i].desc);
-    if (pipeline) created.pipelines.push(pipeline);
+  let inventory;
+  try {
+    inventory = await fetchInventory(request);
+  } catch (error) {
+    return {
+      success: false,
+      error: `Failed to inventory API resources: ${error.message}`,
+      failures,
+      created,
+    };
   }
 
-  // Create runs
-  const runNames = [
-    'Training Run - v1.0',
-    'Training Run - v1.1',
-    'Evaluation Run - Test Set',
-    'Inference Run - Batch 1',
-    'Data Processing - Jan 2024',
-  ];
-
-  const defaultExperimentId = created.experiments[0]?.experiment_id;
-  const defaultPipelineId = created.pipelines[0]?.pipeline_id;
-
-  for (let i = 0; i < Math.min(numRuns, runNames.length); i++) {
-    const run = await createRun(runNames[i], defaultPipelineId, defaultExperimentId);
-    if (run) created.runs.push(run);
+  for (const definition of RESOURCE_DEFINITIONS.experiments.slice(0, targets.experiments)) {
+    let resource = byDisplayName(inventory.experiments, definition.displayName);
+    if (!resource) {
+      try {
+        resource = await createExperiment(definition.displayName, definition.description, request);
+        created.experiments.push(resource);
+      } catch (error) {
+        failures.push(failureRecord('experiment', definition.displayName, error));
+      }
+    }
+    if (resource) selected.experiments.push(resource);
   }
 
-  // Create recurring runs
-  const recurringNames = [
-    'Daily Training',
-    'Hourly Data Sync',
-  ];
-
-  for (let i = 0; i < Math.min(numRecurringRuns, recurringNames.length); i++) {
-    const recurring = await createRecurringRun(recurringNames[i], defaultPipelineId, defaultExperimentId);
-    if (recurring) created.recurringRuns.push(recurring);
+  for (const definition of RESOURCE_DEFINITIONS.pipelines.slice(0, targets.pipelines)) {
+    let resource = byPipelineDefinition(inventory.pipelines, definition);
+    if (!resource) {
+      try {
+        resource = await uploadPipeline(definition.name, definition.description, request, {
+          displayName: definition.displayName,
+        });
+        created.pipelines.push(resource);
+      } catch (error) {
+        failures.push(failureRecord('pipeline', definition.name, error));
+      }
+    }
+    if (resource) selected.pipelines.push(resource);
   }
 
-  // Summary
-  log('');
-  log('=== Seeding Complete ===');
-  log(`  Experiments: ${created.experiments.length}`);
-  log(`  Pipelines: ${created.pipelines.length}`);
-  log(`  Runs: ${created.runs.length}`);
-  log(`  Recurring Runs: ${created.recurringRuns.length}`);
+  for (const pipeline of selected.pipelines) {
+    const pipelineId = resourceId(pipeline, ['pipeline_id', 'pipelineId', 'id']);
+    if (!pipelineId) {
+      failures.push(
+        failureRecord('pipeline-version', 'unknown pipeline', new Error('Missing pipeline ID')),
+      );
+      continue;
+    }
+    try {
+      let versions = await listAll(
+        `/apis/v2beta1/pipelines/${encodeURIComponent(pipelineId)}/versions`,
+        ['pipeline_versions', 'pipelineVersions'],
+        request,
+      );
+      if (versions.length === 0) {
+        const version = await uploadPipelineVersion(pipelineId, request);
+        created.pipelineVersions.push(version);
+        versions = [version];
+      }
+      requireResourceId(
+        versions[0],
+        ['pipeline_version_id', 'pipelineVersionId', 'id'],
+        `Pipeline version for ${pipelineId}`,
+      );
+      selected.pipelineVersions.push(versions[0]);
+    } catch (error) {
+      failures.push(failureRecord('pipeline-version', pipelineId, error));
+    }
+  }
+
+  const primaryPipelineId = resourceId(selected.pipelines[0], ['pipeline_id', 'pipelineId', 'id']);
+  const primaryPipelineVersionId = resourceId(selected.pipelineVersions[0], [
+    'pipeline_version_id',
+    'pipelineVersionId',
+    'id',
+  ]);
+  const primaryExperimentId = resourceId(selected.experiments[0], [
+    'experiment_id',
+    'experimentId',
+    'id',
+  ]);
+
+  for (const name of RESOURCE_DEFINITIONS.runs.slice(0, targets.runs)) {
+    let resource = byDisplayName(inventory.runs, name);
+    if (!resource) {
+      try {
+        resource = await createRun(
+          name,
+          primaryPipelineId,
+          primaryExperimentId,
+          request,
+          primaryPipelineVersionId,
+        );
+        created.runs.push(resource);
+      } catch (error) {
+        failures.push(failureRecord('run', name, error));
+      }
+    }
+    if (resource) selected.runs.push(resource);
+  }
+
+  for (const name of RESOURCE_DEFINITIONS.recurringRuns.slice(0, targets.recurringRuns)) {
+    let resource = byDisplayName(inventory.recurringRuns, name);
+    if (!resource) {
+      try {
+        resource = await createRecurringRun(
+          name,
+          primaryPipelineId,
+          primaryExperimentId,
+          request,
+          primaryPipelineVersionId,
+        );
+        created.recurringRuns.push(resource);
+      } catch (error) {
+        failures.push(failureRecord('recurring-run', name, error));
+      }
+    }
+    if (resource) selected.recurringRuns.push(resource);
+  }
+
+  const resources = {
+    experimentIds: unique(
+      selected.experiments.map((resource) =>
+        resourceId(resource, ['experiment_id', 'experimentId', 'id']),
+      ),
+    ),
+    pipelineIds: unique(
+      selected.pipelines.map((resource) =>
+        resourceId(resource, ['pipeline_id', 'pipelineId', 'id']),
+      ),
+    ),
+    pipelineVersionIds: unique(
+      selected.pipelineVersions.map((resource) =>
+        resourceId(resource, ['pipeline_version_id', 'pipelineVersionId', 'id']),
+      ),
+    ),
+    recurringRunIds: unique(
+      selected.recurringRuns.map((resource) =>
+        resourceId(resource, ['recurring_run_id', 'recurringRunId', 'job_id', 'id']),
+      ),
+    ),
+    runIds: unique(
+      selected.runs.map((resource) => resourceId(resource, ['run_id', 'runId', 'id'])),
+    ),
+  };
+
+  const missing = [];
+  if (resources.experimentIds.length < targets.experiments) missing.push('experiments');
+  if (resources.pipelineIds.length < targets.pipelines) missing.push('pipelines');
+  if (resources.pipelineVersionIds.length < targets.pipelines) missing.push('pipeline versions');
+  if (resources.runIds.length < targets.runs) missing.push('runs');
+  if (resources.recurringRunIds.length < targets.recurringRuns) missing.push('recurring runs');
+  if (failures.length > 0 || missing.length > 0) {
+    const error = [
+      failures.length > 0 ? `${failures.length} resource operation(s) failed` : '',
+      missing.length > 0 ? `missing required ${missing.join(', ')}` : '',
+    ]
+      .filter(Boolean)
+      .join('; ');
+    return { success: false, error, failures, created, resources };
+  }
 
   try {
-    const fetchedIds = await fetchResourceIds();
-    const fromCreated = createdIds(created);
-    const resourceIds = {
-      experimentIds: unique([...fromCreated.experimentIds, ...fetchedIds.experimentIds]),
-      pipelineIds: unique([...fromCreated.pipelineIds, ...fetchedIds.pipelineIds]),
-      recurringRunIds: unique([...fromCreated.recurringRunIds, ...fetchedIds.recurringRunIds]),
-      runIds: unique([...fromCreated.runIds, ...fetchedIds.runIds]),
-    };
-    writeSeedManifest(buildSeedManifest(resourceIds));
+    await waitForRunsFn(resources.runIds, request, {
+      interval: options.runPollInterval,
+      timeout: options.runTimeout,
+    });
   } catch (error) {
-    log(`Failed to generate seed manifest: ${error.message}`, 'warn');
+    return {
+      success: false,
+      error: `Seeded runs did not reach a stable state: ${error.message}`,
+      failures,
+      created,
+      resources,
+    };
   }
 
-  return { success: true, created, seedManifestPath: SEED_MANIFEST_PATH };
+  try {
+    await validateDetailRoutes(resources, request);
+  } catch (error) {
+    return {
+      success: false,
+      error: `Required detail route validation failed: ${error.message}`,
+      failures,
+      created,
+      resources,
+    };
+  }
+
+  const manifest = buildSeedManifest(resources, { apiBase });
+  writeSeedManifest(manifest, manifestPath);
+  return {
+    success: true,
+    skipped: Object.values(created).every((items) => items.length === 0),
+    created,
+    resources,
+    seedManifestPath: manifestPath,
+  };
 }
 
-/**
- * Clear all test data
- */
 async function clearData() {
-  log('Clearing test data...');
-
-  // This would delete all pipelines, experiments, runs
-  // For safety, we'll just log a warning
-  log('Data clearing not implemented for safety. Delete cluster to reset.', 'warn');
-
+  log('Data clearing is intentionally disabled. Delete the test cluster to reset it.', 'warn');
   return { success: false, error: 'Not implemented' };
 }
 
-// CLI interface
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  const force = args.includes('--force');
-  const clear = args.includes('--clear');
-
-  if (clear) {
-    clearData().then(result => {
-      process.exit(result.success ? 0 : 1);
+  const clear = process.argv.slice(2).includes('--clear');
+  const operation = clear ? clearData() : seedData();
+  operation
+    .then((result) => {
+      if (!result.success) console.error(result.error);
+      process.exitCode = result.success ? 0 : 1;
+    })
+    .catch((error) => {
+      console.error(error.message);
+      process.exitCode = 1;
     });
-  } else {
-    seedData({ skipIfExists: !force }).then(result => {
-      process.exit(result.success ? 0 : 1);
-    });
-  }
 }
 
 module.exports = {
+  API_BASE,
+  METRICS_EXECUTOR_OUTPUT,
+  MINIMAL_PIPELINE_YAML,
+  RESOURCE_DEFINITIONS,
+  SEED_IMAGE,
+  SEED_MANIFEST_PATH,
+  apiRequest,
+  buildSeedManifest,
   checkHealth,
-  seedData,
   clearData,
-  getExistingCounts,
   createExperiment,
-  uploadPipeline,
-  createRun,
+  createMultipartUpload,
   createRecurringRun,
+  createRun,
+  fetchInventory,
+  fetchResourceIds,
+  getExistingCounts,
+  listAll,
+  resourceId,
+  resolveApiUrl,
+  seedData,
+  uploadPipeline,
+  uploadPipelineVersion,
+  validateDetailRoutes,
+  waitForRunsStable,
+  writeSeedManifest,
 };

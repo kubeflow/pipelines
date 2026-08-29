@@ -1,271 +1,260 @@
 #!/usr/bin/env node
 /**
- * Change Detection for UI Smoke Tests
- *
- * Maps git diff output to backend components, determining which
- * Docker images need to be rebuilt and which K8s deployments
- * need to be restarted.
- *
- * Usage:
- *   node detect-changes.js --base master
- *   node detect-changes.js --base release
- *   node detect-changes.js --base 2.15.0
+ * Maps a PR diff to the backend images needed by the UI smoke test.
  */
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 
-/**
- * Component definitions mapping source paths to build/deploy targets.
- *
- * Each component has:
- *   - paths: file path prefixes that indicate this component changed
- *   - makeTarget: the `make -C backend <target>` to build the Docker image
- *   - imageTag: the Docker image tag (matches IMG_TAG_* in backend/Makefile)
- *   - deployment: the K8s deployment name to restart (null for runtime-only images)
- */
 const COMPONENTS = [
   {
     name: 'apiserver',
-    paths: ['backend/src/apiserver/'],
-    // Exclude visualization subdirectory — it's a separate component
-    excludePaths: ['backend/src/apiserver/visualization/'],
-    makeTarget: 'image_apiserver',
-    imageTag: 'apiserver',
+    dockerfile: 'backend/Dockerfile',
+    imageTag: 'kfp-ui-smoke/apiserver',
     deployment: 'ml-pipeline',
+    container: 'ml-pipeline-api-server',
   },
   {
     name: 'persistence-agent',
-    paths: ['backend/src/agent/persistence/'],
-    makeTarget: 'image_persistence_agent',
-    imageTag: 'persistence-agent',
+    dockerfile: 'backend/Dockerfile.persistenceagent',
+    imageTag: 'kfp-ui-smoke/persistence-agent',
     deployment: 'ml-pipeline-persistenceagent',
+    container: 'ml-pipeline-persistenceagent',
   },
   {
     name: 'cache-server',
-    paths: ['backend/src/cache/'],
-    makeTarget: 'image_cache',
-    imageTag: 'cache-server',
-    deployment: null, // cache deployment name varies
+    dockerfile: 'backend/Dockerfile.cacheserver',
+    imageTag: 'kfp-ui-smoke/cache-server',
+    deployment: 'cache-server',
+    container: 'server',
   },
   {
     name: 'scheduledworkflow',
-    paths: ['backend/src/crd/controller/scheduledworkflow/'],
-    makeTarget: 'image_swf',
-    imageTag: 'scheduledworkflow',
+    dockerfile: 'backend/Dockerfile.scheduledworkflow',
+    imageTag: 'kfp-ui-smoke/scheduledworkflow',
     deployment: 'ml-pipeline-scheduledworkflow',
+    container: 'ml-pipeline-scheduledworkflow',
   },
   {
     name: 'viewercontroller',
-    paths: ['backend/src/crd/controller/viewer/'],
-    makeTarget: 'image_viewer',
-    imageTag: 'viewercontroller',
+    dockerfile: 'backend/Dockerfile.viewercontroller',
+    imageTag: 'kfp-ui-smoke/viewercontroller',
     deployment: 'ml-pipeline-viewer-crd',
+    container: 'ml-pipeline-viewer-crd',
   },
   {
     name: 'visualization',
-    paths: ['backend/src/apiserver/visualization/'],
-    makeTarget: 'image_visualization',
-    imageTag: 'visualization',
+    dockerfile: 'backend/Dockerfile.visualization',
+    imageTag: 'kfp-ui-smoke/visualization',
     deployment: 'ml-pipeline-visualizationserver',
+    container: 'ml-pipeline-visualizationserver',
   },
   {
     name: 'driver',
-    paths: ['backend/src/v2/cmd/driver/'],
-    makeTarget: 'image_driver',
-    imageTag: 'kfp-driver',
-    deployment: null, // runtime image, no standing deployment
+    dockerfile: 'backend/Dockerfile.driver',
+    imageTag: 'kfp-ui-smoke/driver',
+    deployment: null,
+    container: null,
+    runtimeEnv: 'V2_DRIVER_IMAGE',
   },
   {
     name: 'launcher',
-    paths: ['backend/src/v2/cmd/launcher-v2/'],
-    makeTarget: 'image_launcher',
-    imageTag: 'kfp-launcher',
-    deployment: null, // runtime image, no standing deployment
+    dockerfile: 'backend/Dockerfile.launcher',
+    imageTag: 'kfp-ui-smoke/launcher',
+    deployment: null,
+    container: null,
+    runtimeEnv: 'V2_LAUNCHER_IMAGE',
+  },
+  {
+    name: 'metadata-writer',
+    dockerfile: 'backend/metadata_writer/Dockerfile',
+    imageTag: 'kfp-ui-smoke/metadata-writer',
+    deployment: 'metadata-writer',
+    container: 'main',
+  },
+  {
+    name: 'cache-deployer',
+    dockerfile: 'backend/src/cache/deployer/Dockerfile',
+    imageTag: 'kfp-ui-smoke/cache-deployer',
+    deployment: 'cache-deployer-deployment',
+    container: 'main',
+  },
+  {
+    name: 'metadata-envoy',
+    dockerfile: 'third_party/metadata_envoy/Dockerfile',
+    imageTag: 'kfp-ui-smoke/metadata-envoy',
+    deployment: 'metadata-envoy-deployment',
+    container: 'container',
   },
 ];
 
-// Paths that affect ALL Go-based backend components
-const GLOBAL_BACKEND_PATHS = [
-  'backend/src/common/',
-  'go.mod',
-  'go.sum',
-];
+function git(args, cwd = process.cwd(), options = {}) {
+  const output = execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  return options.trim === false ? output : output.trim();
+}
 
-/**
- * Get the latest release tag (semantic versioning).
- * Returns null if no tags found.
- */
-function getLatestRelease() {
+function parseFileList(output) {
+  return output
+    ? output
+        .split('\n')
+        .map((file) => file.trim())
+        .filter(Boolean)
+    : [];
+}
+
+function parseNullDelimitedFileList(output) {
+  return output ? output.split('\0').filter((file) => file.length > 0) : [];
+}
+
+function validateGitRef(ref, options = {}) {
+  const cwd = typeof options === 'string' ? options : options.cwd || process.cwd();
+  if (typeof ref !== 'string' || ref.length === 0 || ref.startsWith('-')) {
+    throw new Error(`Invalid git ref: ${JSON.stringify(ref)}`);
+  }
   try {
-    const output = execSync('git tag --list', { encoding: 'utf8' });
-    const tags = output
-      .split('\n')
-      .filter(t => /^\d+\.\d+\.\d+$/.test(t.trim()))
-      .map(t => t.trim())
-      .filter(Boolean);
+    git(['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`], cwd);
+    return ref;
+  } catch (error) {
+    throw new Error(`Git ref does not resolve to a commit: ${ref}`);
+  }
+}
 
-    if (tags.length === 0) return null;
-
-    // Sort by semver: split into [major, minor, patch] and compare numerically
-    tags.sort((a, b) => {
-      const pa = a.split('.').map(Number);
-      const pb = b.split('.').map(Number);
-      for (let i = 0; i < 3; i++) {
-        if (pa[i] !== pb[i]) return pa[i] - pb[i];
-      }
-      return 0;
-    });
-
-    return tags[tags.length - 1];
-  } catch (e) {
+function getLatestRelease(options = {}) {
+  const { cwd = process.cwd() } = options;
+  try {
+    const tags = parseFileList(git(['tag', '--list'], cwd))
+      .filter((tag) => /^\d+\.\d+\.\d+$/.test(tag))
+      .sort((left, right) => {
+        const leftParts = left.split('.').map(Number);
+        const rightParts = right.split('.').map(Number);
+        for (let index = 0; index < 3; index++) {
+          if (leftParts[index] !== rightParts[index]) {
+            return leftParts[index] - rightParts[index];
+          }
+        }
+        return 0;
+      });
+    return tags.at(-1) || null;
+  } catch (error) {
     return null;
   }
 }
 
-/**
- * Resolve a base ref string to an actual git ref.
- *   "master" → "master"
- *   "release" → latest semver tag (e.g. "2.15.0")
- *   anything else → passed through as-is
- */
-function resolveBaseRef(ref) {
-  if (ref === 'release') {
-    const latest = getLatestRelease();
-    if (!latest) {
-      throw new Error('No release tags found. Use a specific ref instead.');
-    }
-    return latest;
+function resolveBaseRef(ref, options = {}) {
+  if (ref !== 'release') return ref;
+  const latest = getLatestRelease(options);
+  if (!latest) {
+    throw new Error('No release tags found. Use a specific ref instead.');
   }
-  return ref;
+  return latest;
+}
+
+function getWorkingTreeFiles(options = {}) {
+  const { cwd = process.cwd() } = options;
+  const files = [
+    ...parseNullDelimitedFileList(
+      git(['diff', '--no-renames', '--name-only', '-z', '--diff-filter=ACMRTD'], cwd, {
+        trim: false,
+      }),
+    ),
+    ...parseNullDelimitedFileList(
+      git(['diff', '--cached', '--no-renames', '--name-only', '-z', '--diff-filter=ACMRTD'], cwd, {
+        trim: false,
+      }),
+    ),
+    ...parseNullDelimitedFileList(
+      git(['ls-files', '--others', '--exclude-standard', '-z'], cwd, { trim: false }),
+    ),
+  ];
+  return [...new Set(files)].sort();
 }
 
 /**
- * Get list of changed files between a base ref and a head ref.
- *
- * Uses 2-dot diff (baseRef..headRef) which shows only what headRef added —
- * i.e. the actual PR changes. 3-dot diff (baseRef...headRef) would also
- * include files changed on the base branch since divergence, causing
- * unnecessary backend rebuilds for frontend-only PRs.
- *
- * @param {string} baseRef - Base git ref (e.g. "master", "2.15.0")
- * @param {string} [headRef='HEAD'] - Head git ref (e.g. "HEAD", "pr-12756")
+ * Return the files introduced on head since its merge base with base.
+ * Dirty files may only be included when head is the checked-out HEAD.
  */
-function getChangedFiles(baseRef, headRef = 'HEAD') {
+function getChangedFiles(baseRef, headRef = 'HEAD', options = {}) {
+  const { cwd = process.cwd(), includeWorkingTree = false } = options;
+  validateGitRef(baseRef, { cwd });
+  validateGitRef(headRef, { cwd });
+
+  if (includeWorkingTree && headRef !== 'HEAD') {
+    throw new Error('Working-tree changes can only be included when headRef is HEAD.');
+  }
+
   try {
-    const output = execSync(`git diff --name-only ${baseRef}..${headRef}`, {
-      encoding: 'utf8',
-    });
-    return output.split('\n').filter(Boolean);
-  } catch (e) {
-    throw new Error(`Failed to diff ${baseRef}..${headRef}: ${e.message}`);
+    const committed = parseNullDelimitedFileList(
+      git(
+        [
+          'diff',
+          '--no-renames',
+          '--name-only',
+          '-z',
+          '--diff-filter=ACMRTD',
+          `${baseRef}...${headRef}`,
+        ],
+        cwd,
+        { trim: false },
+      ),
+    );
+    const dirty = includeWorkingTree ? getWorkingTreeFiles({ cwd }) : [];
+    return [...new Set([...committed, ...dirty])].sort();
+  } catch (error) {
+    throw new Error(`Failed to diff ${baseRef}...${headRef}: ${error.message}`);
   }
 }
 
-/**
- * Check if a file path matches a component, respecting excludePaths.
- */
-function fileMatchesComponent(file, component) {
-  const matchesInclude = component.paths.some(p => file.startsWith(p));
-  if (!matchesInclude) return false;
-  if (component.excludePaths) {
-    return !component.excludePaths.some(p => file.startsWith(p));
-  }
-  return true;
-}
-
-/**
- * Detect which components changed between baseRef and headRef.
- *
- * @param {string} baseRef - Base ref string ("master", "release", or a tag/SHA)
- * @param {string} [headRef='HEAD'] - Head ref (e.g. "HEAD", "pr-12756")
- *
- * Returns:
- *   {
- *     baseRef: string,           // resolved ref (e.g. "2.15.0" if "release" was passed)
- *     headRef: string,           // head ref used for the diff
- *     changedFiles: string[],    // all changed file paths
- *     components: object[],      // COMPONENTS entries that need rebuilding
- *     frontendChanged: boolean,  // frontend/src/** changed
- *     serverChanged: boolean,    // frontend/server/** changed
- *     backendChanged: boolean,   // any backend component changed
- *     manifestsChanged: boolean, // manifests/** changed
- *   }
- */
-function detectChanges(baseRef, headRef = 'HEAD') {
-  const resolved = resolveBaseRef(baseRef);
-  const changedFiles = getChangedFiles(resolved, headRef);
-
-  // Check for global backend changes (common/, go.mod, go.sum)
-  const globalBackendChanged = changedFiles.some(f =>
-    GLOBAL_BACKEND_PATHS.some(p => f.startsWith(p) || f === p),
+function isBackendBuildInput(file) {
+  return (
+    file.startsWith('backend/') ||
+    file.startsWith('api/') ||
+    file.startsWith('kubernetes_platform/') ||
+    file.startsWith('samples/') ||
+    file.startsWith('third_party/metadata_envoy/') ||
+    file === 'third_party/license.txt' ||
+    file === 'go.mod' ||
+    file === 'go.sum' ||
+    file === '.dockerignore' ||
+    file.split('/').at(-1).startsWith('Dockerfile')
   );
+}
 
-  // Find specifically changed components
-  const changedComponentNames = new Set();
-
-  for (const file of changedFiles) {
-    for (const component of COMPONENTS) {
-      if (fileMatchesComponent(file, component)) {
-        changedComponentNames.add(component.name);
-      }
-    }
-  }
-
-  // If global paths changed, all Go components are affected
-  if (globalBackendChanged) {
-    for (const component of COMPONENTS) {
-      changedComponentNames.add(component.name);
-    }
-  }
-
-  const components = COMPONENTS.filter(c => changedComponentNames.has(c.name));
+function detectChanges(baseRef, headRef = 'HEAD', options = {}) {
+  const { cwd = process.cwd(), includeWorkingTree = false } = options;
+  const resolved = resolveBaseRef(baseRef, { cwd });
+  const changedFiles = getChangedFiles(resolved, headRef, { cwd, includeWorkingTree });
+  const backendChanged = changedFiles.some(isBackendBuildInput);
 
   return {
     baseRef: resolved,
     headRef,
     changedFiles,
-    components,
-    frontendChanged: changedFiles.some(f => f.startsWith('frontend/src/')),
-    serverChanged: changedFiles.some(f => f.startsWith('frontend/server/')),
-    backendChanged: components.length > 0,
-    manifestsChanged: changedFiles.some(f => f.startsWith('manifests/')),
+    components: backendChanged ? [...COMPONENTS] : [],
+    frontendChanged: changedFiles.some((file) => file.startsWith('frontend/')),
+    serverChanged: changedFiles.some((file) => file.startsWith('frontend/server/')),
+    backendChanged,
+    manifestsChanged: changedFiles.some((file) => file.startsWith('manifests/')),
   };
 }
 
-// CLI interface
 if (require.main === module) {
   const args = process.argv.slice(2);
-  const getArg = (name, defaultValue) => {
+  const valueFor = (name, fallback) => {
     const index = args.indexOf(`--${name}`);
-    return index !== -1 && args[index + 1] ? args[index + 1] : defaultValue;
+    return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
   };
 
-  const baseRef = getArg('base', 'master');
-
   try {
-    const result = detectChanges(baseRef);
-
-    console.log(`Base ref: ${result.baseRef}`);
-    console.log(`Changed files: ${result.changedFiles.length}`);
-    console.log(`Frontend changed: ${result.frontendChanged}`);
-    console.log(`Server changed: ${result.serverChanged}`);
-    console.log(`Backend changed: ${result.backendChanged}`);
-    console.log(`Manifests changed: ${result.manifestsChanged}`);
-
-    if (result.components.length > 0) {
-      console.log('\nBackend components to rebuild:');
-      for (const c of result.components) {
-        console.log(`  ${c.name} (make ${c.makeTarget})`);
-        if (c.deployment) {
-          console.log(`    → restart deployment/${c.deployment}`);
-        }
-      }
-    } else {
-      console.log('\nNo backend components to rebuild.');
-    }
-  } catch (e) {
-    console.error(`Error: ${e.message}`);
-    process.exit(1);
+    const result = detectChanges(valueFor('base', 'master'), valueFor('head', 'HEAD'), {
+      includeWorkingTree: args.includes('--include-working-tree'),
+    });
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exitCode = 1;
   }
 }
 
@@ -274,5 +263,8 @@ module.exports = {
   detectChanges,
   getChangedFiles,
   getLatestRelease,
+  getWorkingTreeFiles,
+  isBackendBuildInput,
   resolveBaseRef,
+  validateGitRef,
 };

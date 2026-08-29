@@ -2,7 +2,7 @@
 /**
  * Side-by-Side Comparison Generator
  *
- * Takes screenshots from main and PR branches and creates side-by-side
+ * Takes screenshots from base and head captures and creates side-by-side
  * comparison images with labels.
  *
  * Usage: node generate-comparison.js --main ./screenshots/main --pr ./screenshots/pr --output ./screenshots/comparison
@@ -10,32 +10,28 @@
 
 const looksSame = require('looks-same');
 const sharp = require('sharp');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
-const args = process.argv.slice(2);
-const getArg = (name, defaultValue) => {
-  const index = args.indexOf(`--${name}`);
-  return index !== -1 && args[index + 1] ? args[index + 1] : defaultValue;
-};
-
-const MAIN_DIR = getArg('main', './screenshots/main');
-const PR_DIR = getArg('pr', './screenshots/pr');
-const OUTPUT_DIR = getArg('output', './screenshots/comparison');
-
-// Highlight any non-zero diff by default.
-const DIFF_THRESHOLD = Number(getArg('diff-threshold', process.env.UI_SMOKE_DIFF_THRESHOLD || '0'));
-
-// Fail on any non-zero diff by default.
-const FAIL_THRESHOLD_RAW = getArg('fail-threshold', process.env.UI_SMOKE_FAIL_THRESHOLD || '0');
-const FAIL_THRESHOLD = FAIL_THRESHOLD_RAW === '' ? null : Number(FAIL_THRESHOLD_RAW);
-
-const LOOKSAME_TOLERANCE = Number(
-  getArg('looksame-tolerance', process.env.UI_SMOKE_LOOKSAME_TOLERANCE || '2.3'),
-);
-const LOOKSAME_CLUSTER_SIZE = Number(
-  getArg('looksame-cluster-size', process.env.UI_SMOKE_LOOKSAME_CLUSTER_SIZE || '8'),
-);
+const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
+const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
+const COMPARISON_SUMMARY_FILENAME = 'summary.json';
+const COMPARISON_SUMMARY_SCHEMA_VERSION = 2;
+const MANAGED_OUTPUTS_FILENAME = '.managed-outputs.json';
+const FRESHNESS_TOLERANCE_MS = 1000;
+const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
+const COMPARISON_ARGUMENT_NAMES = new Set([
+  'diff-threshold',
+  'fail-threshold',
+  'looksame-cluster-size',
+  'looksame-tolerance',
+  'main',
+  'main-label',
+  'output',
+  'pr',
+  'pr-label',
+]);
 
 const LABEL_HEIGHT = 40;
 const LABEL_BACKGROUND = '#1a1a2e';
@@ -47,6 +43,138 @@ const DIFF_MARKER_WIDTH = 2;
 const DIFF_MARKER_RADIUS = 4;
 const MIN_REGION_AREA_PX = 12;
 const MAX_HIGHLIGHT_REGIONS = 24;
+
+class ComparisonError extends Error {
+  constructor(message, failureType = 'comparison') {
+    super(message);
+    this.name = 'ComparisonError';
+    this.failureType = failureType;
+  }
+}
+
+function getArg(args, name, defaultValue) {
+  const index = args.indexOf(`--${name}`);
+  if (index === -1) {
+    return defaultValue;
+  }
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith('--')) {
+    throw new Error(`Missing value for --${name}`);
+  }
+  return value;
+}
+
+function validateCliArguments(args, allowedNames) {
+  const seen = new Set();
+  for (let index = 0; index < args.length; index += 2) {
+    const token = args[index];
+    if (typeof token !== 'string' || !token.startsWith('--')) {
+      throw new Error(`Unexpected positional argument: ${token}`);
+    }
+    const name = token.slice(2);
+    if (!allowedNames.has(name)) {
+      throw new Error(`Unknown argument: ${token}`);
+    }
+    if (seen.has(name)) {
+      throw new Error(`Duplicate argument: ${token}`);
+    }
+    const value = args[index + 1];
+    if (value === undefined || value.startsWith('--')) {
+      throw new Error(`Missing value for ${token}`);
+    }
+    seen.add(name);
+  }
+}
+
+function parseComparisonOptions(args = process.argv.slice(2), env = process.env) {
+  validateCliArguments(args, COMPARISON_ARGUMENT_NAMES);
+  const failThresholdRaw = getArg(
+    args,
+    'fail-threshold',
+    env.UI_SMOKE_FAIL_THRESHOLD === undefined ? '0' : env.UI_SMOKE_FAIL_THRESHOLD,
+  );
+
+  return {
+    diffThreshold: Number(getArg(args, 'diff-threshold', env.UI_SMOKE_DIFF_THRESHOLD || '0')),
+    failThreshold: failThresholdRaw === '' ? null : Number(failThresholdRaw),
+    failThresholdRaw,
+    looksSameClusterSize: Number(
+      getArg(args, 'looksame-cluster-size', env.UI_SMOKE_LOOKSAME_CLUSTER_SIZE || '8'),
+    ),
+    looksSameTolerance: Number(
+      getArg(args, 'looksame-tolerance', env.UI_SMOKE_LOOKSAME_TOLERANCE || '2.3'),
+    ),
+    mainDir: getArg(args, 'main', './screenshots/main'),
+    mainLabel: getArg(args, 'main-label', null),
+    outputDir: getArg(args, 'output', './screenshots/comparison'),
+    prDir: getArg(args, 'pr', './screenshots/pr'),
+    prLabel: getArg(args, 'pr-label', null),
+  };
+}
+
+function validateComparisonOptions(options) {
+  const errors = [];
+  if (
+    !Number.isFinite(options.diffThreshold) ||
+    options.diffThreshold < 0 ||
+    options.diffThreshold > 100
+  ) {
+    errors.push(`Invalid diff threshold: ${options.diffThreshold}`);
+  }
+  if (
+    options.failThreshold !== null &&
+    (!Number.isFinite(options.failThreshold) ||
+      options.failThreshold < 0 ||
+      options.failThreshold > 100)
+  ) {
+    errors.push(`Invalid fail threshold: ${options.failThresholdRaw}`);
+  }
+  if (
+    !Number.isFinite(options.looksSameTolerance) ||
+    options.looksSameTolerance < 0 ||
+    options.looksSameTolerance > 100
+  ) {
+    errors.push(`Invalid looks-same tolerance: ${options.looksSameTolerance}`);
+  }
+  if (
+    !Number.isSafeInteger(options.looksSameClusterSize) ||
+    options.looksSameClusterSize <= 0 ||
+    options.looksSameClusterSize > 1000
+  ) {
+    errors.push(`Invalid looks-same cluster size: ${options.looksSameClusterSize}`);
+  }
+  return errors;
+}
+
+function canonicalDirectoryPath(directory) {
+  let existing = path.resolve(directory);
+  const missing = [];
+  while (!fs.existsSync(existing)) {
+    const parent = path.dirname(existing);
+    if (parent === existing) break;
+    missing.unshift(path.basename(existing));
+    existing = parent;
+  }
+  return path.join(fs.realpathSync(existing), ...missing);
+}
+
+function validateDistinctDirectories(options) {
+  const directories = [
+    ['--main', canonicalDirectoryPath(options.mainDir)],
+    ['--pr', canonicalDirectoryPath(options.prDir)],
+    ['--output', canonicalDirectoryPath(options.outputDir)],
+  ];
+  for (let left = 0; left < directories.length; left++) {
+    for (let right = left + 1; right < directories.length; right++) {
+      if (directories[left][1] === directories[right][1]) {
+        throw new Error(
+          `${directories[left][0]} and ${directories[right][0]} must resolve to distinct directories.`,
+        );
+      }
+    }
+  }
+  return true;
+}
 
 function maxRegionsForDiff(diffPercent) {
   if (!Number.isFinite(diffPercent)) {
@@ -61,8 +189,12 @@ function maxRegionsForDiff(diffPercent) {
   return MAX_HIGHLIGHT_REGIONS;
 }
 
-function escapeXml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 async function createLabeledImage(imagePath, label, width, height) {
@@ -78,54 +210,24 @@ async function createLabeledImage(imagePath, label, width, height) {
     </svg>
   `;
 
-  try {
-    const image = sharp(imagePath);
+  const resizedImage = sharp(imagePath).resize(width, height, {
+    fit: 'contain',
+    background: { r: 245, g: 245, b: 245, alpha: 1 },
+  });
 
-    const resizedImage = image.resize(width, height, {
-      fit: 'contain',
-      background: { r: 245, g: 245, b: 245, alpha: 1 },
-    });
-
-    const labelBuffer = Buffer.from(labelSvg);
-
-    return sharp({
-      create: {
-        width,
-        height: height + LABEL_HEIGHT,
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      },
-    })
-      .composite([
-        { input: labelBuffer, top: 0, left: 0 },
-        { input: await resizedImage.toBuffer(), top: LABEL_HEIGHT, left: 0 },
-      ])
-      .png();
-  } catch (error) {
-    const placeholderSvg = `
-      <svg width="${width}" height="${height}">
-        <rect width="100%" height="100%" fill="#f0f0f0"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-              font-family="Arial, sans-serif" font-size="18" fill="#888888">
-          No screenshot available
-        </text>
-      </svg>
-    `;
-
-    return sharp({
-      create: {
-        width,
-        height: height + LABEL_HEIGHT,
-        channels: 4,
-        background: { r: 255, g: 255, b: 255, alpha: 1 },
-      },
-    })
-      .composite([
-        { input: Buffer.from(labelSvg), top: 0, left: 0 },
-        { input: Buffer.from(placeholderSvg), top: LABEL_HEIGHT, left: 0 },
-      ])
-      .png();
-  }
+  return sharp({
+    create: {
+      width,
+      height: height + LABEL_HEIGHT,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    },
+  })
+    .composite([
+      { input: Buffer.from(labelSvg), top: 0, left: 0 },
+      { input: await resizedImage.toBuffer(), top: LABEL_HEIGHT, left: 0 },
+    ])
+    .png();
 }
 
 async function createDivider(height) {
@@ -148,7 +250,6 @@ function normalizeRegion(region, imageWidth, imageHeight) {
   const top = Number(region.top);
   const right = Number(region.right);
   const bottom = Number(region.bottom);
-
   if (![left, top, right, bottom].every(Number.isFinite)) {
     return null;
   }
@@ -157,29 +258,19 @@ function normalizeRegion(region, imageWidth, imageHeight) {
   const clampedTop = Math.max(0, Math.min(imageHeight - 1, Math.floor(top)));
   const clampedRight = Math.max(clampedLeft, Math.min(imageWidth - 1, Math.ceil(right)));
   const clampedBottom = Math.max(clampedTop, Math.min(imageHeight - 1, Math.ceil(bottom)));
-
   const width = clampedRight - clampedLeft + 1;
   const height = clampedBottom - clampedTop + 1;
 
   if (width <= 0 || height <= 0) {
     return null;
   }
-
-  return {
-    x: clampedLeft,
-    y: clampedTop,
-    width,
-    height,
-  };
+  return { x: clampedLeft, y: clampedTop, width, height };
 }
 
 function extractDiffRegions(looksSameResult, imageWidth, imageHeight, diffPercent) {
-  const clusters = Array.isArray(looksSameResult?.diffClusters)
-    ? looksSameResult.diffClusters
-    : [];
-
+  const clusters = Array.isArray(looksSameResult?.diffClusters) ? looksSameResult.diffClusters : [];
   let regions = clusters
-    .map(cluster => normalizeRegion(cluster, imageWidth, imageHeight))
+    .map((cluster) => normalizeRegion(cluster, imageWidth, imageHeight))
     .filter(Boolean);
 
   if (regions.length === 0 && looksSameResult?.diffBounds) {
@@ -189,30 +280,29 @@ function extractDiffRegions(looksSameResult, imageWidth, imageHeight, diffPercen
     }
   }
 
-  const filtered = regions.filter(region => region.width * region.height >= MIN_REGION_AREA_PX);
-  const withArea = (filtered.length > 0 ? filtered : regions).map(region => ({
+  const filtered = regions.filter((region) => region.width * region.height >= MIN_REGION_AREA_PX);
+  const withArea = (filtered.length > 0 ? filtered : regions).map((region) => ({
     ...region,
     area: region.width * region.height,
   }));
 
-  const maxRegions = maxRegionsForDiff(diffPercent);
   return withArea
     .sort((a, b) => b.area - a.area)
-    .slice(0, maxRegions)
+    .slice(0, maxRegionsForDiff(diffPercent))
     .map(({ area, ...region }) => region);
 }
 
 function deriveDiffPercent(looksSameResult, width, height) {
-  if (Number.isFinite(looksSameResult?.differentPixels) && Number.isFinite(looksSameResult?.totalPixels)) {
-    const total = looksSameResult.totalPixels;
-    if (total > 0) {
-      return (looksSameResult.differentPixels / total) * 100;
-    }
+  if (
+    Number.isFinite(looksSameResult?.differentPixels) &&
+    Number.isFinite(looksSameResult?.totalPixels) &&
+    looksSameResult.totalPixels > 0
+  ) {
+    return (looksSameResult.differentPixels / looksSameResult.totalPixels) * 100;
   }
 
   if (Number.isFinite(looksSameResult?.diffPercentage)) {
-    const raw = looksSameResult.diffPercentage;
-    return raw <= 1 ? raw * 100 : raw;
+    return looksSameResult.diffPercentage;
   }
 
   if (looksSameResult?.equal === true) {
@@ -222,53 +312,66 @@ function deriveDiffPercent(looksSameResult, width, height) {
   if (looksSameResult?.diffBounds && width > 0 && height > 0) {
     const bounds = normalizeRegion(looksSameResult.diffBounds, width, height);
     if (bounds) {
-      const area = bounds.width * bounds.height;
-      return (area / (width * height)) * 100;
+      return ((bounds.width * bounds.height) / (width * height)) * 100;
     }
   }
 
   return null;
 }
 
-async function analyzeDiff(mainPath, prPath) {
+async function analyzeDiff(mainPath, prPath, options, compareImages = looksSame) {
+  if (!fs.existsSync(mainPath) || !fs.existsSync(prPath)) {
+    throw new ComparisonError('A required screenshot is missing.', 'missing');
+  }
+
+  let mainMeta;
+  let prMeta;
   try {
-    if (!fs.existsSync(mainPath) || !fs.existsSync(prPath)) {
-      return null;
-    }
+    [mainMeta, prMeta] = await Promise.all([sharp(mainPath).metadata(), sharp(prPath).metadata()]);
+  } catch (error) {
+    throw new ComparisonError(`Unable to read screenshot: ${error.message}`, 'corrupt');
+  }
 
-    const [mainMeta, prMeta] = await Promise.all([
-      sharp(mainPath).metadata(),
-      sharp(prPath).metadata(),
-    ]);
+  const mainWidth = mainMeta.width || 0;
+  const mainHeight = mainMeta.height || 0;
+  const prWidth = prMeta.width || 0;
+  const prHeight = prMeta.height || 0;
+  if (!mainWidth || !mainHeight || !prWidth || !prHeight) {
+    throw new ComparisonError('Screenshot metadata has invalid dimensions.', 'corrupt');
+  }
+  if (mainWidth !== prWidth || mainHeight !== prHeight) {
+    throw new ComparisonError(
+      `Screenshot dimensions differ: base is ${mainWidth}x${mainHeight}, head is ${prWidth}x${prHeight}.`,
+      'dimension-mismatch',
+    );
+  }
 
-    const imageWidth = prMeta.width || mainMeta.width || 0;
-    const imageHeight = prMeta.height || mainMeta.height || 0;
-
-    if (!imageWidth || !imageHeight) {
-      return null;
-    }
-
-    const looksSameResult = await looksSame(mainPath, prPath, {
+  let looksSameResult;
+  try {
+    looksSameResult = await compareImages(mainPath, prPath, {
       shouldCluster: true,
-      clustersSize: Math.max(1, Math.floor(LOOKSAME_CLUSTER_SIZE)),
-      tolerance: LOOKSAME_TOLERANCE,
-      ignoreCaret: true,
+      clustersSize: options.looksSameClusterSize,
+      tolerance: options.looksSameTolerance,
+      // Capture hides carets in CSS, so ignoring caret-shaped regions here could mask real changes.
+      ignoreCaret: false,
       ignoreAntialiasing: true,
       createDiffImage: true,
     });
-
-    const diffPercent = deriveDiffPercent(looksSameResult, imageWidth, imageHeight);
-    const regions = extractDiffRegions(looksSameResult, imageWidth, imageHeight, diffPercent || 0);
-
-    return {
-      diffPercent,
-      regions,
-      width: imageWidth,
-      height: imageHeight,
-    };
   } catch (error) {
-    return null;
+    throw new ComparisonError(`Image analysis failed: ${error.message}`, 'analysis');
   }
+
+  const diffPercent = deriveDiffPercent(looksSameResult, mainWidth, mainHeight);
+  if (!Number.isFinite(diffPercent) || diffPercent < 0 || diffPercent > 100) {
+    throw new ComparisonError('Image analysis did not return a valid diff percentage.', 'analysis');
+  }
+
+  return {
+    diffPercent,
+    regions: extractDiffRegions(looksSameResult, mainWidth, mainHeight, diffPercent),
+    width: mainWidth,
+    height: mainHeight,
+  };
 }
 
 function createDiffOverlay(diffAnalysis, renderWidth, renderHeight, totalHeight) {
@@ -279,62 +382,57 @@ function createDiffOverlay(diffAnalysis, renderWidth, renderHeight, totalHeight)
   const scaleX = renderWidth / diffAnalysis.width;
   const scaleY = renderHeight / diffAnalysis.height;
   const rightOffset = renderWidth + DIVIDER_WIDTH;
-
-  const boxes = diffAnalysis.regions.map(region => {
+  const boxes = diffAnalysis.regions.map((region) => {
     const baseX = region.x * scaleX;
     const baseY = LABEL_HEIGHT + region.y * scaleY;
     const baseWidth = region.width * scaleX;
     const baseHeight = region.height * scaleY;
-
     const x = Math.max(0, baseX - REGION_BOX_PADDING);
     const y = Math.max(LABEL_HEIGHT, baseY - REGION_BOX_PADDING);
-    const w = Math.max(1, Math.min(renderWidth - x, baseWidth + REGION_BOX_PADDING * 2));
-    const h = Math.max(1, Math.min(totalHeight - y, baseHeight + REGION_BOX_PADDING * 2));
+    const width = Math.max(1, Math.min(renderWidth - x, baseWidth + REGION_BOX_PADDING * 2));
+    const height = Math.max(1, Math.min(totalHeight - y, baseHeight + REGION_BOX_PADDING * 2));
 
     return `
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${DIFF_MARKER_RADIUS}" ry="${DIFF_MARKER_RADIUS}" fill="none" stroke="${DIFF_MARKER_COLOR}" stroke-width="${DIFF_MARKER_WIDTH}" />
-      <rect x="${x + rightOffset}" y="${y}" width="${w}" height="${h}" rx="${DIFF_MARKER_RADIUS}" ry="${DIFF_MARKER_RADIUS}" fill="none" stroke="${DIFF_MARKER_COLOR}" stroke-width="${DIFF_MARKER_WIDTH}" />
+      <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${DIFF_MARKER_RADIUS}" ry="${DIFF_MARKER_RADIUS}" fill="none" stroke="${DIFF_MARKER_COLOR}" stroke-width="${DIFF_MARKER_WIDTH}" />
+      <rect x="${x + rightOffset}" y="${y}" width="${width}" height="${height}" rx="${DIFF_MARKER_RADIUS}" ry="${DIFF_MARKER_RADIUS}" fill="none" stroke="${DIFF_MARKER_COLOR}" stroke-width="${DIFF_MARKER_WIDTH}" />
     `;
   });
 
-  const overlaySvg = `
+  return Buffer.from(`
     <svg width="${renderWidth * 2 + DIVIDER_WIDTH}" height="${totalHeight}">
       ${boxes.join('\n')}
     </svg>
-  `;
-
-  return Buffer.from(overlaySvg);
+  `);
 }
 
-async function generateComparison(pageName, mainPath, prPath, outputPath, mainLabel, prLabel, diffAnalysis) {
+async function generateComparison(
+  pageName,
+  mainPath,
+  prPath,
+  outputPath,
+  mainLabel,
+  prLabel,
+  diffAnalysis,
+  highlightDiff,
+) {
   console.log(`Generating comparison for: ${pageName}`);
-
-  let width = 640;
-  let height = 400;
-
-  try {
-    const metadata = await sharp(prPath).metadata();
-    if (metadata.width && metadata.height) {
-      width = Math.floor(metadata.width / 2);
-      height = Math.floor(metadata.height / 2);
-    }
-  } catch (e) {
-    // Keep defaults.
-  }
-
+  const width = Math.max(1, Math.floor(diffAnalysis.width / 2));
+  const height = Math.max(1, Math.floor(diffAnalysis.height / 2));
   const totalHeight = height + LABEL_HEIGHT;
-
-  const mainImage = await createLabeledImage(mainPath, mainLabel, width, height);
-  const prImage = await createLabeledImage(prPath, prLabel, width, height);
-  const divider = await createDivider(totalHeight);
-
+  const [mainImage, prImage, divider] = await Promise.all([
+    createLabeledImage(mainPath, mainLabel, width, height),
+    createLabeledImage(prPath, prLabel, width, height),
+    createDivider(totalHeight),
+  ]);
   const composites = [
     { input: await mainImage.toBuffer(), top: 0, left: 0 },
     { input: await divider.toBuffer(), top: 0, left: width },
     { input: await prImage.toBuffer(), top: 0, left: width + DIVIDER_WIDTH },
   ];
 
-  const diffOverlay = createDiffOverlay(diffAnalysis, width, height, totalHeight);
+  const diffOverlay = highlightDiff
+    ? createDiffOverlay(diffAnalysis, width, height, totalHeight)
+    : null;
   if (diffOverlay) {
     composites.push({ input: diffOverlay, top: 0, left: 0 });
   }
@@ -355,164 +453,631 @@ async function generateComparison(pageName, mainPath, prPath, outputPath, mainLa
   return outputPath;
 }
 
-async function main() {
-  console.log('Generating side-by-side comparisons');
-  console.log(`Main screenshots: ${MAIN_DIR}`);
-  console.log(`PR screenshots: ${PR_DIR}`);
-  console.log(`Output: ${OUTPUT_DIR}`);
+function parseTimestamp(value, description) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) {
+    throw new ComparisonError(`${description} is missing or invalid.`, 'manifest');
+  }
+  return timestamp;
+}
 
-  if (!Number.isFinite(DIFF_THRESHOLD) || DIFF_THRESHOLD < 0) {
-    console.error(`Invalid diff threshold: ${DIFF_THRESHOLD}`);
-    process.exit(1);
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function validateCaptureManifest(manifest, manifestPath) {
+  if (!manifest || typeof manifest !== 'object') {
+    throw new ComparisonError(`Capture manifest ${manifestPath} is not an object.`, 'manifest');
+  }
+  if (manifest.schemaVersion !== CAPTURE_MANIFEST_SCHEMA_VERSION) {
+    throw new ComparisonError(
+      `Capture manifest ${manifestPath} uses unsupported schema version ${manifest.schemaVersion}.`,
+      'manifest',
+    );
+  }
+  if (typeof manifest.captureId !== 'string' || manifest.captureId.length === 0) {
+    throw new ComparisonError(`Capture manifest ${manifestPath} has no captureId.`, 'manifest');
+  }
+  if (!Array.isArray(manifest.results) || manifest.results.length === 0) {
+    throw new ComparisonError(`Capture manifest ${manifestPath} has no results.`, 'manifest');
+  }
+  if (!Array.isArray(manifest.fatalErrors)) {
+    throw new ComparisonError(
+      `Capture manifest ${manifestPath} has an invalid fatalErrors field.`,
+      'manifest',
+    );
+  }
+  if (manifest.fatalErrors.length > 0) {
+    throw new ComparisonError(
+      `Capture manifest ${manifestPath} reports fatal errors: ${manifest.fatalErrors.join('; ')}`,
+      'manifest',
+    );
   }
 
-  if (FAIL_THRESHOLD !== null && (!Number.isFinite(FAIL_THRESHOLD) || FAIL_THRESHOLD < 0)) {
-    console.error(`Invalid fail threshold: ${FAIL_THRESHOLD_RAW}`);
-    process.exit(1);
+  const startedAtMs = parseTimestamp(manifest.startedAt, `${manifestPath} startedAt`);
+  const completedAtMs = parseTimestamp(manifest.completedAt, `${manifestPath} completedAt`);
+  if (completedAtMs < startedAtMs) {
+    throw new ComparisonError(
+      `Capture manifest ${manifestPath} completed before it started.`,
+      'manifest',
+    );
   }
 
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  const records = new Map();
+  for (const result of manifest.results) {
+    if (!result || typeof result !== 'object' || typeof result.page !== 'string') {
+      throw new ComparisonError(
+        `Capture manifest ${manifestPath} has an invalid result.`,
+        'manifest',
+      );
+    }
+    if (typeof result.required !== 'boolean') {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} does not declare required/optional.`,
+        'manifest',
+      );
+    }
+    if (!CAPTURE_STATUSES.has(result.status)) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has invalid status ${result.status}.`,
+        'manifest',
+      );
+    }
+    if (
+      !result.viewport ||
+      !Number.isSafeInteger(result.viewport.width) ||
+      result.viewport.width <= 0 ||
+      !Number.isSafeInteger(result.viewport.height) ||
+      result.viewport.height <= 0
+    ) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has an invalid viewport.`,
+        'manifest',
+      );
+    }
 
-  const mainFiles = fs.existsSync(MAIN_DIR)
-    ? fs.readdirSync(MAIN_DIR).filter(f => f.endsWith('.png'))
-    : [];
-  const prFiles = fs.existsSync(PR_DIR)
-    ? fs.readdirSync(PR_DIR).filter(f => f.endsWith('.png'))
-    : [];
+    const expectedFilename = `${result.page}-${result.viewport.width}x${result.viewport.height}.png`;
+    if (
+      result.filename !== expectedFilename ||
+      path.basename(result.filename) !== result.filename
+    ) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has invalid filename ${result.filename}.`,
+        'manifest',
+      );
+    }
+    if (records.has(result.filename)) {
+      throw new ComparisonError(
+        `Capture manifest ${manifestPath} contains duplicate result ${result.filename}.`,
+        'manifest',
+      );
+    }
 
-  const allPages = new Set([...mainFiles, ...prFiles]);
+    let capturedAtMs = null;
+    if (result.status === 'success' || result.status === 'degraded') {
+      capturedAtMs = parseTimestamp(
+        result.capturedAt,
+        `${manifestPath} result ${result.filename} capturedAt`,
+      );
+      if (
+        capturedAtMs < startedAtMs - FRESHNESS_TOLERANCE_MS ||
+        capturedAtMs > completedAtMs + FRESHNESS_TOLERANCE_MS
+      ) {
+        throw new ComparisonError(
+          `Capture result ${result.filename} in ${manifestPath} is outside its capture window.`,
+          'stale',
+        );
+      }
+      if (typeof result.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(result.sha256)) {
+        throw new ComparisonError(
+          `Capture result ${result.filename} in ${manifestPath} has an invalid sha256.`,
+          'manifest',
+        );
+      }
+    }
 
-  if (allPages.size === 0) {
-    console.error('No screenshots found to compare');
-    process.exit(1);
+    records.set(result.filename, {
+      ...result,
+      capturedAtMs,
+      completedAtMs,
+      startedAtMs,
+    });
   }
 
-  let mainLabel = 'main (base)';
-  let prLabel = 'PR (head)';
+  const requiredIncomplete = [...records.values()].some(
+    (result) => result.required && result.status !== 'success',
+  );
+  const hasCapturedScreenshot = [...records.values()].some(
+    (result) => result.status === 'success' || result.status === 'degraded',
+  );
+  const derivedComplete = !requiredIncomplete && hasCapturedScreenshot;
+  if (
+    typeof manifest.complete !== 'boolean' ||
+    !manifest.summary ||
+    typeof manifest.summary.complete !== 'boolean' ||
+    manifest.complete !== derivedComplete ||
+    manifest.summary.complete !== derivedComplete
+  ) {
+    throw new ComparisonError(
+      `Capture manifest ${manifestPath} has inconsistent completion metadata.`,
+      'manifest',
+    );
+  }
+
+  return {
+    label: typeof manifest.label === 'string' && manifest.label ? manifest.label : null,
+    manifest,
+    records,
+  };
+}
+
+function loadCaptureManifest(directory) {
+  const manifestPath = path.join(directory, CAPTURE_MANIFEST_FILENAME);
+  if (!fs.existsSync(manifestPath)) {
+    return null;
+  }
+
+  let manifest;
   try {
-    const mainManifest = JSON.parse(fs.readFileSync(path.join(MAIN_DIR, 'manifest.json'), 'utf8'));
-    if (mainManifest.label) mainLabel = mainManifest.label;
-  } catch (e) {
-    // Use default.
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to parse capture manifest ${manifestPath}: ${error.message}`,
+      'manifest',
+    );
   }
-  try {
-    const prManifest = JSON.parse(fs.readFileSync(path.join(PR_DIR, 'manifest.json'), 'utf8'));
-    if (prManifest.label) prLabel = prManifest.label;
-  } catch (e) {
-    // Use default.
-  }
+  return validateCaptureManifest(manifest, manifestPath);
+}
 
-  console.log(`Main label: ${mainLabel}`);
-  console.log(`PR label: ${prLabel}`);
+function failedPlanResult(filename, required, message, failureType = 'capture') {
+  return {
+    filename,
+    page: filename.replace(/\.png$/, ''),
+    required,
+    status: 'failed',
+    error: message,
+    failureType,
+  };
+}
 
+function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
+  const filenames = [
+    ...new Set([...mainManifest.records.keys(), ...prManifest.records.keys()]),
+  ].sort();
+  const pairs = [];
   const results = [];
 
-  for (const filename of allPages) {
-    const pageName = filename.replace('.png', '');
-    const mainPath = path.join(MAIN_DIR, filename);
-    const prPath = path.join(PR_DIR, filename);
-    const outputPath = path.join(OUTPUT_DIR, filename);
+  for (const filename of filenames) {
+    const mainRecord = mainManifest.records.get(filename);
+    const prRecord = prManifest.records.get(filename);
+    const required = Boolean(mainRecord?.required || prRecord?.required);
+    const problems = [];
 
+    if (required) {
+      if (!mainRecord) problems.push('missing from base capture manifest');
+      if (!prRecord) problems.push('missing from head capture manifest');
+      if (mainRecord && prRecord && mainRecord.required !== prRecord.required) {
+        problems.push('required/optional classification differs between captures');
+      }
+      if (mainRecord && mainRecord.status !== 'success') {
+        problems.push(`base capture status is ${mainRecord.status}`);
+      }
+      if (prRecord && prRecord.status !== 'success') {
+        problems.push(`head capture status is ${prRecord.status}`);
+      }
+    } else if (
+      !mainRecord ||
+      !prRecord ||
+      mainRecord.status !== 'success' ||
+      prRecord.status !== 'success'
+    ) {
+      results.push({
+        filename,
+        page: filename.replace(/\.png$/, ''),
+        required: false,
+        status: 'skipped',
+        reason: 'Optional capture was not successful in both revisions.',
+      });
+      continue;
+    }
+
+    if (problems.length > 0) {
+      results.push(failedPlanResult(filename, required, problems.join('; '), 'capture'));
+      continue;
+    }
+
+    pairs.push({
+      filename,
+      mainPath: path.join(mainDir, filename),
+      mainRecord,
+      page: (mainRecord || prRecord).page,
+      prPath: path.join(prDir, filename),
+      prRecord,
+      required,
+    });
+  }
+
+  return { filenames, pairs, results };
+}
+
+function buildComparisonPlan(mainDir, prDir) {
+  const mainManifest = loadCaptureManifest(mainDir);
+  const prManifest = loadCaptureManifest(prDir);
+  if (!mainManifest && !prManifest) {
+    throw new ComparisonError(
+      'Both capture manifests are required; refusing to compare untracked PNG directories.',
+      'manifest',
+    );
+  }
+  if (Boolean(mainManifest) !== Boolean(prManifest)) {
+    throw new ComparisonError(
+      'Capture manifest is present for only one revision; refusing to mix manifest and directory discovery.',
+      'manifest',
+    );
+  }
+  if (mainManifest.manifest.captureId === prManifest.manifest.captureId) {
+    throw new ComparisonError(
+      'Base and head manifests have the same captureId; refusing to compare a capture with itself.',
+      'manifest',
+    );
+  }
+
+  return {
+    ...buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir),
+    mainLabel: mainManifest.label || 'main (base)',
+    prLabel: prManifest.label || 'PR (head)',
+    sourceMode: 'manifest',
+  };
+}
+
+function validateFreshCapture(record, filePath, side) {
+  if (!record) {
+    return;
+  }
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch (error) {
+    throw new ComparisonError(`${side} screenshot is missing: ${filePath}`, 'missing');
+  }
+  if (!stat.isFile()) {
+    throw new ComparisonError(`${side} screenshot is not a file: ${filePath}`, 'missing');
+  }
+  if (stat.mtimeMs < record.startedAtMs - FRESHNESS_TOLERANCE_MS) {
+    throw new ComparisonError(
+      `${side} screenshot predates its capture manifest: ${filePath}`,
+      'stale',
+    );
+  }
+  if (Math.abs(stat.mtimeMs - record.capturedAtMs) > FRESHNESS_TOLERANCE_MS) {
+    throw new ComparisonError(
+      `${side} screenshot timestamp does not match its capture manifest: ${filePath}`,
+      'stale',
+    );
+  }
+  let actualSha256;
+  try {
+    actualSha256 = sha256File(filePath);
+  } catch (error) {
+    throw new ComparisonError(
+      `${side} screenshot could not be hashed: ${error.message}`,
+      'integrity',
+    );
+  }
+  if (actualSha256 !== record.sha256) {
+    throw new ComparisonError(
+      `${side} screenshot content does not match its capture manifest: ${filePath}`,
+      'integrity',
+    );
+  }
+}
+
+function validateManagedOutputFilenames(filenames, label) {
+  if (!Array.isArray(filenames) || filenames.length > 1000) {
+    throw new Error(`${label} must contain an array of at most 1000 PNG filenames.`);
+  }
+  const unique = new Set();
+  for (const filename of filenames) {
+    if (
+      typeof filename !== 'string' ||
+      !filename.endsWith('.png') ||
+      path.basename(filename) !== filename ||
+      unique.has(filename)
+    ) {
+      throw new Error(`${label} contains an invalid or duplicate filename: ${filename}`);
+    }
+    unique.add(filename);
+  }
+  return [...unique];
+}
+
+function writeManagedOutputMarker(outputDir, filenames) {
+  fs.writeFileSync(
+    path.join(outputDir, MANAGED_OUTPUTS_FILENAME),
+    `${JSON.stringify({ schemaVersion: 1, filenames }, null, 2)}\n`,
+  );
+}
+
+function cleanComparisonOutputs(outputDir, currentFilenames = []) {
+  fs.mkdirSync(outputDir, { recursive: true });
+  const nextFilenames = validateManagedOutputFilenames(currentFilenames, 'Comparison output list');
+  const markerPath = path.join(outputDir, MANAGED_OUTPUTS_FILENAME);
+  const entries = fs.readdirSync(outputDir, { withFileTypes: true });
+  const removed = [];
+
+  let previousFilenames = [];
+  if (entries.length > 0) {
+    let markerStat;
     try {
-      const diffAnalysis = await analyzeDiff(mainPath, prPath);
-      await generateComparison(pageName, mainPath, prPath, outputPath, mainLabel, prLabel, diffAnalysis);
-
-      const hasVisualDiff =
-        diffAnalysis !== null &&
-        Number.isFinite(diffAnalysis.diffPercent) &&
-        diffAnalysis.diffPercent > DIFF_THRESHOLD;
-      const exceedsFailThreshold =
-        FAIL_THRESHOLD !== null &&
-        diffAnalysis !== null &&
-        Number.isFinite(diffAnalysis.diffPercent) &&
-        diffAnalysis.diffPercent > FAIL_THRESHOLD;
-
-      results.push({
-        page: pageName,
-        outputPath,
-        mainExists: fs.existsSync(mainPath),
-        prExists: fs.existsSync(prPath),
-        diffPercent: diffAnalysis ? diffAnalysis.diffPercent : null,
-        diffRegionCount: diffAnalysis ? diffAnalysis.regions.length : 0,
-        hasVisualDiff,
-        exceedsFailThreshold,
-        status: 'success',
-      });
+      markerStat = fs.lstatSync(markerPath);
     } catch (error) {
-      console.error(`  ✗ Failed: ${error.message}`);
-      results.push({
-        page: pageName,
-        status: 'failed',
-        error: error.message,
-      });
+      if (error.code === 'ENOENT') {
+        throw new Error(`Refusing to clean non-empty unowned comparison directory: ${outputDir}`);
+      }
+      throw error;
+    }
+    if (!markerStat.isFile() || markerStat.isSymbolicLink()) {
+      throw new Error(`Comparison ownership marker must be a regular file: ${markerPath}`);
+    }
+    let marker;
+    try {
+      marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
+    } catch (error) {
+      throw new Error(`Comparison ownership marker is invalid: ${error.message}`);
+    }
+    if (marker?.schemaVersion !== 1) {
+      throw new Error(`Unsupported comparison ownership marker in ${markerPath}.`);
+    }
+    previousFilenames = validateManagedOutputFilenames(
+      marker.filenames,
+      'Comparison ownership marker',
+    );
+  }
+
+  for (const filename of [...previousFilenames, COMPARISON_SUMMARY_FILENAME]) {
+    const target = path.join(outputDir, filename);
+    try {
+      const stat = fs.lstatSync(target);
+      if (!stat.isFile() && !stat.isSymbolicLink()) {
+        throw new Error(`Managed comparison output is not a file: ${target}`);
+      }
+      fs.unlinkSync(target);
+      removed.push(filename);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
     }
   }
 
-  const summaryPath = path.join(OUTPUT_DIR, 'summary.json');
-  fs.writeFileSync(
-    summaryPath,
-    JSON.stringify(
-      {
-        timestamp: new Date().toISOString(),
-        mainLabel,
-        prLabel,
-        thresholds: {
-          diffThreshold: DIFF_THRESHOLD,
-          failThreshold: FAIL_THRESHOLD,
-        },
-        results,
-        stats: {
-          total: results.length,
-          success: results.filter(r => r.status === 'success').length,
-          failed: results.filter(r => r.status === 'failed').length,
-          pagesExceedingFailThreshold:
-            FAIL_THRESHOLD === null ? 0 : results.filter(r => r.exceedsFailThreshold).length,
-          pagesWithDiff: results.filter(r => r.hasVisualDiff).length,
-        },
-      },
-      null,
-      2,
-    ),
-  );
+  for (const filename of nextFilenames) {
+    if (fs.existsSync(path.join(outputDir, filename))) {
+      throw new Error(`Refusing to overwrite an unmanaged comparison output: ${filename}`);
+    }
+  }
+  writeManagedOutputMarker(outputDir, nextFilenames);
+  return removed;
+}
 
+function summarizeComparison({ fatalErrors, mainLabel, options, prLabel, results, sourceMode }) {
+  const failed = results.filter((result) => result.status === 'failed');
+  const success = results.filter((result) => result.status === 'success');
+  const pagesExceedingFailThreshold =
+    options.failThreshold === null ? [] : success.filter((result) => result.exceedsFailThreshold);
+  const valid = fatalErrors.length === 0 && failed.length === 0 && success.length > 0;
+  const passed = valid && pagesExceedingFailThreshold.length === 0;
+
+  return {
+    schemaVersion: COMPARISON_SUMMARY_SCHEMA_VERSION,
+    timestamp: new Date().toISOString(),
+    mainLabel,
+    prLabel,
+    sourceMode,
+    thresholds: {
+      diffThreshold: options.diffThreshold,
+      failThreshold: options.failThreshold,
+    },
+    analysis: {
+      looksSameClusterSize: options.looksSameClusterSize,
+      looksSameTolerance: options.looksSameTolerance,
+    },
+    fatalErrors,
+    results,
+    stats: {
+      total: results.length,
+      success: success.length,
+      skipped: results.filter((result) => result.status === 'skipped').length,
+      failed: failed.length,
+      missing: failed.filter((result) => result.failureType === 'missing').length,
+      stale: failed.filter((result) => result.failureType === 'stale').length,
+      corrupt: failed.filter((result) => result.failureType === 'corrupt').length,
+      integrity: failed.filter((result) => result.failureType === 'integrity').length,
+      dimensionMismatch: failed.filter((result) => result.failureType === 'dimension-mismatch')
+        .length,
+      analysisFailed: failed.filter((result) => result.failureType === 'analysis').length,
+      pagesWithDiff: success.filter((result) => result.hasVisualDiff).length,
+      pagesExceedingFailThreshold: pagesExceedingFailThreshold.length,
+    },
+    valid,
+    passed,
+  };
+}
+
+function logSummary(summary, summaryPath) {
   console.log('\n--- Summary ---');
   console.log(
-    `Visual changes above ${DIFF_THRESHOLD}% are boxed in red (looks-same clusters).`,
+    `Visual changes above ${summary.thresholds.diffThreshold}% are boxed in red (looks-same clusters).`,
   );
-  for (const result of results) {
+  for (const result of summary.results) {
     if (result.status === 'success') {
-      const diffStr = result.diffPercent !== null
-        ? `(${result.diffPercent.toFixed(2)}% diff)`
-        : '(diff not calculated)';
       const visualMarker = result.hasVisualDiff ? ' [diff]' : '';
       const failMarker = result.exceedsFailThreshold ? ' [above fail-threshold]' : '';
-      console.log(`  ${result.page}: ✓ ${diffStr}${visualMarker}${failMarker}`);
+      console.log(
+        `  ${result.page}: ✓ (${result.diffPercent.toFixed(2)}% diff)${visualMarker}${failMarker}`,
+      );
+    } else if (result.status === 'skipped') {
+      console.log(`  ${result.page}: ↷ ${result.reason}`);
     } else {
       console.log(`  ${result.page}: ✗ ${result.error}`);
     }
   }
-
+  for (const error of summary.fatalErrors) {
+    console.error(`  ✗ ${error}`);
+  }
   console.log(`\nSummary saved to: ${summaryPath}`);
+}
 
-  if (FAIL_THRESHOLD !== null) {
-    const exceeded = results.filter(r => r.exceedsFailThreshold);
-    if (exceeded.length > 0) {
-      console.error(
-        `\nVisual diff threshold exceeded: ${exceeded.length} page(s) above ${FAIL_THRESHOLD}%`,
-      );
-      for (const item of exceeded) {
-        if (item.diffPercent !== null) {
-          console.error(`  ${item.page}: ${item.diffPercent.toFixed(2)}%`);
-        } else {
-          console.error(`  ${item.page}: diff not calculated`);
+async function runComparison(options, dependencies = {}) {
+  validateDistinctDirectories(options);
+  const compareImages = dependencies.looksSame || looksSame;
+  const fatalErrors = validateComparisonOptions(options);
+  const results = [];
+  let mainLabel = 'main (base)';
+  let prLabel = 'PR (head)';
+  let sourceMode = 'unknown';
+
+  console.log('Generating side-by-side comparisons');
+  console.log(`Main screenshots: ${options.mainDir}`);
+  console.log(`PR screenshots: ${options.prDir}`);
+  console.log(`Output: ${options.outputDir}`);
+
+  fs.mkdirSync(options.outputDir, { recursive: true });
+  cleanComparisonOutputs(options.outputDir);
+
+  if (fatalErrors.length === 0) {
+    try {
+      const plan = buildComparisonPlan(options.mainDir, options.prDir);
+      mainLabel = options.mainLabel || plan.mainLabel;
+      prLabel = options.prLabel || plan.prLabel;
+      sourceMode = plan.sourceMode;
+      cleanComparisonOutputs(options.outputDir, plan.filenames);
+      results.push(...plan.results);
+
+      if (plan.filenames.length === 0) {
+        fatalErrors.push('No screenshots found to compare.');
+      }
+
+      for (const pair of plan.pairs) {
+        const outputPath = path.join(options.outputDir, pair.filename);
+        try {
+          validateFreshCapture(pair.mainRecord, pair.mainPath, 'Base');
+          validateFreshCapture(pair.prRecord, pair.prPath, 'Head');
+          const diffAnalysis = await analyzeDiff(
+            pair.mainPath,
+            pair.prPath,
+            options,
+            compareImages,
+          );
+          const hasVisualDiff = diffAnalysis.diffPercent > options.diffThreshold;
+          const exceedsFailThreshold =
+            options.failThreshold !== null && diffAnalysis.diffPercent > options.failThreshold;
+          await generateComparison(
+            pair.page,
+            pair.mainPath,
+            pair.prPath,
+            outputPath,
+            mainLabel,
+            prLabel,
+            diffAnalysis,
+            hasVisualDiff,
+          );
+          results.push({
+            filename: pair.filename,
+            page: pair.page,
+            required: pair.required,
+            outputPath,
+            mainExists: true,
+            prExists: true,
+            diffPercent: diffAnalysis.diffPercent,
+            diffRegionCount: hasVisualDiff ? diffAnalysis.regions.length : 0,
+            hasVisualDiff,
+            exceedsFailThreshold,
+            status: 'success',
+          });
+        } catch (error) {
+          console.error(`  ✗ Failed: ${error.message}`);
+          try {
+            if (fs.existsSync(outputPath)) {
+              fs.unlinkSync(outputPath);
+            }
+          } catch (cleanupError) {
+            console.error(`  ✗ Failed to remove incomplete output: ${cleanupError.message}`);
+          }
+          results.push({
+            filename: pair.filename,
+            page: pair.page,
+            required: pair.required,
+            status: 'failed',
+            error: error.message,
+            failureType: error.failureType || 'comparison',
+          });
         }
       }
-      process.exit(1);
+    } catch (error) {
+      fatalErrors.push(error.message);
     }
+  }
+
+  const summary = summarizeComparison({
+    fatalErrors,
+    mainLabel,
+    options,
+    prLabel,
+    results,
+    sourceMode,
+  });
+  const summaryPath = path.join(options.outputDir, COMPARISON_SUMMARY_FILENAME);
+  fs.writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`);
+  logSummary(summary, summaryPath);
+
+  if (summary.stats.pagesExceedingFailThreshold > 0) {
+    console.error(
+      `\nVisual diff threshold exceeded: ${summary.stats.pagesExceedingFailThreshold} page(s) above ${options.failThreshold}%`,
+    );
+  }
+
+  return { exitCode: summary.passed ? 0 : 1, summary, summaryPath };
+}
+
+async function main(args = process.argv.slice(2), env = process.env) {
+  let options;
+  try {
+    options = parseComparisonOptions(args, env);
+  } catch (error) {
+    console.error('Comparison generation failed:', error.message);
+    process.exitCode = 1;
+    return { exitCode: 1, error };
+  }
+
+  try {
+    const result = await runComparison(options);
+    process.exitCode = result.exitCode;
+    return result;
+  } catch (error) {
+    console.error('Comparison generation failed:', error.message);
+    process.exitCode = 1;
+    return { exitCode: 1, error };
   }
 }
 
-main().catch(err => {
-  console.error('Comparison generation failed:', err);
-  process.exit(1);
-});
+module.exports = {
+  CAPTURE_MANIFEST_SCHEMA_VERSION,
+  COMPARISON_SUMMARY_SCHEMA_VERSION,
+  ComparisonError,
+  analyzeDiff,
+  buildComparisonPlan,
+  cleanComparisonOutputs,
+  createDiffOverlay,
+  deriveDiffPercent,
+  extractDiffRegions,
+  normalizeRegion,
+  parseComparisonOptions,
+  runComparison,
+  summarizeComparison,
+  validateCaptureManifest,
+  validateComparisonOptions,
+  validateDistinctDirectories,
+  validateFreshCapture,
+};
+
+if (require.main === module) {
+  void main();
+}
