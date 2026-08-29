@@ -11,6 +11,9 @@ const COMMENT_MARKER_PREFIX = 'kubeflow-pipelines-ui-smoke-test';
 const MAX_SUMMARY_BYTES = 10 * 1024 * 1024;
 const COMMENTS_PER_PAGE = 100;
 const MAX_COMMENT_PAGES = 1000;
+// One API page can contain 100 full comment bodies. Allow worst-case UTF-8 and
+// JSON expansion while keeping child-process output bounded.
+const GH_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 
 function parseArgumentValues(argv, defaults = {}) {
   const values = { ...defaults };
@@ -427,13 +430,14 @@ node smoke-test-runner.js --compare ${baseSha} --pr ${options.prNumber} --repo $
   return markdown;
 }
 
-function runGh(args, options = {}) {
+function runGh(args, options = {}, spawnSyncImpl = spawnSync) {
   if (!Array.isArray(args) || args.some((argument) => typeof argument !== 'string')) {
     throw new Error('gh arguments must be provided as a string array');
   }
-  const result = spawnSync('gh', args, {
+  const result = spawnSyncImpl('gh', args, {
     encoding: 'utf8',
     input: options.input,
+    maxBuffer: GH_MAX_BUFFER_BYTES,
   });
   const stdout = typeof result.stdout === 'string' ? result.stdout.trim() : '';
   const stderr = typeof result.stderr === 'string' ? result.stderr.trim() : '';
@@ -464,8 +468,8 @@ function getAuthenticatedLogin(runGhImpl = runGh) {
   return user.login;
 }
 
-function listIssueComments(repo, prNumber, runGhImpl = runGh) {
-  const comments = [];
+function findExistingComment(repo, prNumber, viewerLogin, marker, runGhImpl = runGh) {
+  let existing = null;
   for (let page = 1; page <= MAX_COMMENT_PAGES; page++) {
     const endpoint = `repos/${repo}/issues/${prNumber}/comments?per_page=${COMMENTS_PER_PAGE}&page=${page}`;
     const result = runGhImpl(['api', endpoint], { silent: true });
@@ -482,29 +486,24 @@ function listIssueComments(repo, prNumber, runGhImpl = runGh) {
     if (!Array.isArray(pageComments)) {
       throw new Error(`GitHub comments response on page ${page} was not an array`);
     }
-    comments.push(...pageComments);
+
+    for (const comment of pageComments) {
+      if (
+        comment &&
+        (typeof comment.id === 'number' || typeof comment.id === 'string') &&
+        comment.user?.login === viewerLogin &&
+        typeof comment.body === 'string' &&
+        comment.body.split(/\r?\n/, 1)[0] === marker
+      ) {
+        existing = comment;
+      }
+    }
+
     if (pageComments.length < COMMENTS_PER_PAGE) {
-      return comments;
+      return existing;
     }
   }
   throw new Error(`PR comment pagination exceeded ${MAX_COMMENT_PAGES} pages`);
-}
-
-function findExistingComment(repo, prNumber, viewerLogin, marker, runGhImpl = runGh) {
-  const comments = listIssueComments(repo, prNumber, runGhImpl);
-  let existing = null;
-  for (const comment of comments) {
-    if (
-      comment &&
-      (typeof comment.id === 'number' || typeof comment.id === 'string') &&
-      comment.user?.login === viewerLogin &&
-      typeof comment.body === 'string' &&
-      comment.body.split(/\r?\n/, 1)[0] === marker
-    ) {
-      existing = comment;
-    }
-  }
-  return existing;
 }
 
 function postCommentToPR(markdown, options, runGhImpl = runGh) {
@@ -584,6 +583,7 @@ if (require.main === module) {
 module.exports = {
   COMMENT_MARKER_PREFIX,
   COMMENTS_PER_PAGE,
+  GH_MAX_BUFFER_BYTES,
   MAX_COMMENT_PAGES,
   MAX_SUMMARY_BYTES,
   commentMarker,
@@ -593,7 +593,6 @@ module.exports = {
   generateMarkdownSummary,
   getAuthenticatedLogin,
   isPathInside,
-  listIssueComments,
   main,
   parseCliArgs,
   postCommentToPR,

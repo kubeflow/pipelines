@@ -8,6 +8,7 @@ const {
   commentMarker,
   findExistingComment,
   generateMarkdownSummary,
+  GH_MAX_BUFFER_BYTES,
   parseCliArgs,
   postCommentToPR,
   runGh,
@@ -367,4 +368,38 @@ test('posting creates a comment when no authenticated marker exists', () => {
 
 test('gh execution helper requires an argument array', () => {
   assert.throws(() => runGh('api user'), /string array/);
+});
+
+test('gh execution helper uses a bounded buffer large enough for comment pages', () => {
+  let invocation;
+  const fakeSpawnSync = (command, args, options) => {
+    invocation = { args, command, options };
+    return { status: 0, stderr: '', stdout: ' response\n' };
+  };
+
+  const result = runGh(['api', 'user'], { input: 'request' }, fakeSpawnSync);
+
+  assert.deepEqual(result, { status: 0, stderr: '', stdout: 'response', success: true });
+  assert.equal(invocation.command, 'gh');
+  assert.deepEqual(invocation.args, ['api', 'user']);
+  assert.equal(invocation.options.encoding, 'utf8');
+  assert.equal(invocation.options.input, 'request');
+  assert.equal(invocation.options.maxBuffer, GH_MAX_BUFFER_BYTES);
+  assert.equal(GH_MAX_BUFFER_BYTES, 64 * 1024 * 1024);
+});
+
+test('gh execution helper reports output buffer overflows', () => {
+  const overflow = Object.assign(new Error('stdout maxBuffer length exceeded'), {
+    code: 'ENOBUFS',
+  });
+  const result = runGh(['api', 'user'], { silent: true }, () => ({
+    error: overflow,
+    status: null,
+    stderr: '',
+    stdout: '',
+  }));
+
+  assert.equal(result.success, false);
+  assert.equal(result.error, overflow);
+  assert.equal(result.status, null);
 });
