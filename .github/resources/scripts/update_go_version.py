@@ -23,18 +23,25 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 VERSION_PATTERN = re.compile(r'^1\.(\d+)(?:\.(\d+))?$')
 EXACT_VERSION_PATTERN = re.compile(r'^1\.(\d+)\.(\d+)$')
 DIGEST_PATTERN = re.compile(r'^sha256:[0-9a-f]{64}$')
 GO_DIRECTIVE_PATTERN = re.compile(
-    r'^go (?P<version>\d+\.\d+(?:\.\d+)?)$', re.MULTILINE)
+    r'^[ \t]*go[ \t]+(?P<version>\d+\.\d+(?:\.\d+)?)[ \t]*$',
+    re.MULTILINE)
+GO_DIRECTIVE_LINE_PATTERN = re.compile(
+    r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
-    r'^toolchain go(?P<version>\d+\.\d+\.\d+)$', re.MULTILINE)
-TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(r'^toolchain\s+(.+)$', re.MULTILINE)
+    r'^[ \t]*toolchain[ \t]+go(?P<version>\d+\.\d+\.\d+)[ \t]*$',
+    re.MULTILINE)
+TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
+    r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_LINE_PATTERN = re.compile(
-    r'^toolchain go\d+\.\d+\.\d+\n?(?:\n)?', re.MULTILINE)
+    r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+[ \t]*\n?(?:\n)?',
+    re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>FROM\s+)golang:'
     r'(?P<version>\d+\.\d+\.\d+)'
@@ -43,9 +50,15 @@ GO_IMAGE_PATTERN = re.compile(
     r'(?P<suffix>\s+AS\s+\w+)',
     re.IGNORECASE | re.MULTILINE,
 )
-GO_RUNTIME_REFERENCE_PATTERN = re.compile(r'golang:|dl\.google\.com/go/go')
+GO_RUNTIME_REFERENCE_PATTERN = re.compile(
+    r'(?:\bgolang(?=[:@])|'
+    r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
 
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
+DIGEST_LOOKUP_ATTEMPTS = 3
+DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
+DIGEST_LOOKUP_TIMEOUT_SECONDS = 60
 
 
 def _parse_version(version: str) -> Tuple[int, int, int]:
@@ -83,11 +96,16 @@ def _module_versions(
     contents: str,
     relative_path: Path,
 ) -> Tuple[Tuple[int, int, int], Optional[Tuple[int, int, int]]]:
+    go_directive_lines = GO_DIRECTIVE_LINE_PATTERN.findall(contents)
     go_versions = GO_DIRECTIVE_PATTERN.findall(contents)
-    if len(go_versions) != 1:
+    if len(go_directive_lines) != 1:
         raise ValueError(
             f'{relative_path} must contain exactly one go directive, found '
-            f'{go_versions}')
+            f'{go_directive_lines}')
+    if len(go_versions) != len(go_directive_lines):
+        raise ValueError(
+            f'{relative_path} contains an invalid go directive: '
+            f'{go_directive_lines}')
     toolchain_directives = TOOLCHAIN_DIRECTIVE_PATTERN.findall(contents)
     toolchains = TOOLCHAIN_PATTERN.findall(contents)
     if len(toolchain_directives) > 1:
@@ -106,14 +124,14 @@ def _module_versions(
 def _updated_module_contents(contents: str, relative_path: Path,
                              target: Tuple[int, int, int]) -> str:
     go_version, _ = _module_versions(contents, relative_path)
-    language_floor = (go_version if go_version[:2] == target[:2] else
-                      (target[0], target[1], 0))
-    if language_floor > target:
-        floor = '.'.join(str(part) for part in language_floor)
+    if go_version > target:
+        floor = '.'.join(str(part) for part in go_version)
         compiler = '.'.join(str(part) for part in target)
         raise ValueError(
             f'{relative_path} requires Go {floor}, which exceeds the target '
             f'compiler {compiler}')
+    language_floor = (go_version if go_version[:2] == target[:2] else
+                      (target[0], target[1], 0))
     language_version = '.'.join(str(part) for part in language_floor)
     updated = GO_DIRECTIVE_PATTERN.sub(
         f'go {language_version}', contents, count=1)
@@ -171,6 +189,7 @@ def _inspect_manifest_digest(image: str) -> str:
         check=True,
         capture_output=True,
         text=True,
+        timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS,
     )
     try:
         digest = json.loads(result.stdout)['digest']
@@ -185,19 +204,66 @@ def _inspect_manifest_digest(image: str) -> str:
 
 def resolve_docker_hub_digest(tag: str) -> str:
     images = (f'golang:{tag}', f'mirror.gcr.io/library/golang:{tag}')
-    failures = []
-    for image in images:
-        try:
-            return _inspect_manifest_digest(image)
-        except FileNotFoundError as error:
-            raise RuntimeError(
-                'docker buildx is required to resolve Go builder image digests'
-            ) from error
-        except subprocess.CalledProcessError as error:
-            detail = error.stderr.strip() or error.stdout.strip() or str(error)
-            failures.append(f'{image}: {detail}')
+    failures = {}
+    for attempt in range(DIGEST_LOOKUP_ATTEMPTS):
+        for image in images:
+            try:
+                return _inspect_manifest_digest(image)
+            except FileNotFoundError as error:
+                raise RuntimeError(
+                    'docker buildx is required to resolve Go builder image '
+                    'digests') from error
+            except subprocess.CalledProcessError as error:
+                detail = (error.stderr.strip() or error.stdout.strip() or
+                          str(error))
+                failures[image] = detail
+            except subprocess.TimeoutExpired as error:
+                failures[image] = f'timed out after {error.timeout} seconds'
+        if attempt < DIGEST_LOOKUP_ATTEMPTS - 1:
+            time.sleep(DIGEST_LOOKUP_BACKOFF_SECONDS[attempt])
     raise RuntimeError('could not resolve the Go builder image from Docker Hub '
-                       f'or its configured mirror: {"; ".join(failures)}')
+                       'or its configured mirror after '
+                       f'{DIGEST_LOOKUP_ATTEMPTS} attempts: ' + '; '.join(
+                           f'{image}: {detail}'
+                           for image, detail in failures.items()))
+
+
+def verify_image_digests(
+    repo_root: Path,
+    digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
+    repository_paths: Optional[Iterable[Path]] = None,
+) -> None:
+    paths = set(repository_paths or _repository_paths(repo_root))
+    dockerfiles = _managed_dockerfiles(repo_root, paths)
+    pins_by_tag: Dict[str, Dict[str, List[Path]]] = {}
+    for relative_path, contents in dockerfiles.items():
+        match = GO_IMAGE_PATTERN.search(contents)
+        tag = match.group('version') + (match.group('flavor') or '')
+        digest = match.group('digest')
+        pins_by_tag.setdefault(tag, {}).setdefault(digest,
+                                                   []).append(relative_path)
+
+    errors = []
+    for tag, pins_by_digest in sorted(pins_by_tag.items()):
+        if len(pins_by_digest) != 1:
+            errors.append(
+                f'golang:{tag} has inconsistent pinned digests: '
+                f'{sorted(pins_by_digest)}')
+            continue
+        pinned_digest = next(iter(pins_by_digest))
+        resolved_digest = digest_resolver(tag)
+        if DIGEST_PATTERN.fullmatch(resolved_digest) is None:
+            raise ValueError(f'invalid digest resolved for golang:{tag}: '
+                             f'{resolved_digest!r}')
+        if pinned_digest != resolved_digest:
+            relative_paths = ', '.join(
+                str(path) for path in sorted(pins_by_digest[pinned_digest]))
+            errors.append(
+                f'golang:{tag} resolves to {resolved_digest}, but '
+                f'{relative_paths} pin {pinned_digest}')
+    if errors:
+        raise ValueError('Go builder image digest verification failed:\n  ' +
+                         '\n  '.join(errors))
 
 
 def synchronized_contents(
@@ -301,11 +367,26 @@ def sync(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description='Update every Go module and pinned builder image.')
-    parser.add_argument('--version', required=True, help='Exact Go version X.Y.Z')
+        description='Update or verify every pinned Go builder image.')
+    operation = parser.add_mutually_exclusive_group(required=True)
+    operation.add_argument('--version', help='Exact Go version X.Y.Z')
+    operation.add_argument(
+        '--check-image-digests',
+        action='store_true',
+        help='Verify that every pinned digest resolves from its declared tag',
+    )
     args = parser.parse_args()
 
     repo_root = Path(__file__).resolve().parents[3]
+    if args.check_image_digests:
+        try:
+            verify_image_digests(repo_root)
+        except (RuntimeError, ValueError) as error:
+            print(f'error: {error}', file=sys.stderr)
+            return 2
+        print('Go builder image digests match their declared tags.')
+        return 0
+
     try:
         changed_paths = sync(repo_root, args.version)
     except (RuntimeError, ValueError) as error:

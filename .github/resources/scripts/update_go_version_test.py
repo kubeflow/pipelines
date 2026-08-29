@@ -126,6 +126,66 @@ class UpdateGoVersionTest(unittest.TestCase):
                 repository_paths=self.files,
             )
 
+    def test_rejects_higher_minor_module_language_floor(self):
+        nested = self.repo_root / 'nested/go.mod'
+        nested.write_text('module example.com/nested\n\ngo 1.30.0\n',
+                          encoding='utf-8')
+
+        with self.assertRaisesRegex(ValueError, 'exceeds the target compiler'):
+            update_go_version.synchronized_contents(
+                self.repo_root,
+                '1.29.3',
+                digest_resolver=lambda _tag: OLD_DIGEST,
+                repository_paths=self.files,
+            )
+
+    def test_indented_module_directives_are_normalized(self):
+        nested = self.repo_root / 'nested/go.mod'
+        nested.write_text(
+            'module example.com/nested\n\n  go 1.28.0\n\n'
+            '\ttoolchain go1.28.2\n',
+            encoding='utf-8',
+        )
+
+        expected = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )[Path('nested/go.mod')]
+
+        self.assertIn('\ngo 1.28.0\n\ntoolchain go1.28.3\n', expected)
+        self.assertEqual(expected.count('toolchain '), 1)
+
+    def test_rejects_bare_toolchain_directive(self):
+        nested = self.repo_root / 'nested/go.mod'
+        nested.write_text('module example.com/nested\n\ngo 1.28.0\n\ntoolchain\n',
+                          encoding='utf-8')
+
+        with self.assertRaisesRegex(ValueError,
+                                    'invalid toolchain directive'):
+            update_go_version.synchronized_contents(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+    def test_rejects_extra_malformed_go_directive(self):
+        nested = self.repo_root / 'nested/go.mod'
+        nested.write_text(
+            'module example.com/nested\n\ngo 1.28.0\n\n  go\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(ValueError, 'go directive'):
+            update_go_version.synchronized_contents(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
     def test_dot_zero_update_removes_toolchain(self):
         expected = update_go_version.synchronized_contents(
             self.repo_root,
@@ -196,16 +256,69 @@ class UpdateGoVersionTest(unittest.TestCase):
         relative_path = Path('bad/Dockerfile')
         path = self.repo_root / relative_path
         path.parent.mkdir(parents=True)
-        path.write_text('FROM golang:1.28.0-alpine AS builder\n',
-                        encoding='utf-8')
         repository_paths = set(self.files) | {relative_path}
+        references = (
+            'FROM golang:1.28.0-alpine AS builder\n',
+            'FROM golang AS builder\n',
+            f'FROM golang@{OLD_DIGEST} AS builder\n',
+            'RUN curl -LO https://go.dev/dl/go1.28.0.linux-amd64.tar.gz\n',
+        )
+        for contents in references:
+            with self.subTest(contents=contents):
+                path.write_text(contents, encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,
+                                            'unsupported Go runtime pins'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda _tag: OLD_DIGEST,
+                        repository_paths=repository_paths,
+                    )
 
-        with self.assertRaisesRegex(ValueError, 'unsupported Go runtime pins'):
-            update_go_version.synchronized_contents(
+    def test_verifies_each_distinct_builder_tag_once(self):
+        calls = []
+
+        def resolver(tag):
+            calls.append(tag)
+            return OLD_DIGEST
+
+        update_go_version.verify_image_digests(
+            self.repo_root,
+            digest_resolver=resolver,
+            repository_paths=self.files,
+        )
+
+        self.assertEqual(calls,
+                         ['1.28.0', '1.28.0-alpine', '1.28.0-bookworm'])
+
+    def test_rejects_builder_digest_that_does_not_match_tag(self):
+        resolved_digest = 'sha256:' + ('9' * 64)
+        with self.assertRaises(ValueError) as context:
+            update_go_version.verify_image_digests(
                 self.repo_root,
-                '1.28.3',
+                digest_resolver=lambda _tag: resolved_digest,
+                repository_paths=self.files,
+            )
+        message = str(context.exception)
+        self.assertIn('golang:1.28.0', message)
+        self.assertIn('Dockerfile', message)
+        self.assertIn(OLD_DIGEST, message)
+        self.assertIn(resolved_digest, message)
+
+    def test_rejects_inconsistent_digests_for_same_tag(self):
+        different_digest = 'sha256:' + ('8' * 64)
+        path = self.repo_root / 'another/Dockerfile.worker'
+        path.write_text(
+            f'FROM golang:1.28.0-alpine@{different_digest} AS builder\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(ValueError,
+                                    'inconsistent pinned digests'):
+            update_go_version.verify_image_digests(
+                self.repo_root,
                 digest_resolver=lambda _tag: OLD_DIGEST,
-                repository_paths=repository_paths,
+                repository_paths=self.files,
             )
 
     def test_discovers_tracked_and_untracked_nonignored_modules(self):
@@ -254,6 +367,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             check=True,
             capture_output=True,
             text=True,
+            timeout=update_go_version.DIGEST_LOOKUP_TIMEOUT_SECONDS,
         )
 
     def test_digest_resolver_rejects_invalid_output(self):
@@ -286,9 +400,27 @@ class UpdateGoVersionTest(unittest.TestCase):
                 update_go_version.subprocess,
                 'run',
                 side_effect=failure,
-        ):
+        ) as run, mock.patch.object(update_go_version.time, 'sleep') as sleep:
             with self.assertRaisesRegex(RuntimeError, 'registry unavailable'):
                 update_go_version.resolve_docker_hub_digest('1.28.3')
+        self.assertEqual(run.call_count, 6)
+        self.assertEqual(sleep.call_args_list, [mock.call(1), mock.call(2)])
+
+    def test_digest_resolver_retries_both_sources(self):
+        digest = 'sha256:' + ('c' * 64)
+        failure = subprocess.CalledProcessError(
+            1, ['docker'], stderr='registry unavailable')
+        resolved = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout=f'{{"digest": "{digest}"}}')
+        with mock.patch.object(
+                update_go_version.subprocess,
+                'run',
+                side_effect=(failure, failure, resolved),
+        ) as run, mock.patch.object(update_go_version.time, 'sleep') as sleep:
+            self.assertEqual(
+                update_go_version.resolve_docker_hub_digest('1.28.3'), digest)
+        self.assertEqual(run.call_count, 3)
+        sleep.assert_called_once_with(1)
 
     def test_digest_resolver_falls_back_to_docker_hub_mirror(self):
         digest = 'sha256:' + ('b' * 64)

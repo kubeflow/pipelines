@@ -38,18 +38,34 @@ GO_SETUP_ACTIONS = (
 )
 
 PRECOMMIT_WORKFLOW = Path('.github/workflows/pre-commit.yml')
+CI_SCRIPTS_WORKFLOW = Path('.github/workflows/ci-scripts-tests.yml')
 
-GO_DIRECTIVE_PATTERN = re.compile(r'^go (\d+\.\d+(?:\.\d+)?)$', re.MULTILINE)
-TOOLCHAIN_PATTERN = re.compile(r'^toolchain go(\d+\.\d+\.\d+)$', re.MULTILINE)
-TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(r'^toolchain\s+(.+)$', re.MULTILINE)
+GO_DIRECTIVE_PATTERN = re.compile(
+    r'^[ \t]*go[ \t]+(\d+\.\d+(?:\.\d+)?)[ \t]*$', re.MULTILINE)
+GO_DIRECTIVE_LINE_PATTERN = re.compile(
+    r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
+TOOLCHAIN_PATTERN = re.compile(
+    r'^[ \t]*toolchain[ \t]+go(\d+\.\d+\.\d+)[ \t]*$', re.MULTILINE)
+TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
+    r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
     r'^FROM\s+(golang:(\d+\.\d+\.\d+)(-[^@\s]+)?'
     r'@sha256:[0-9a-f]{64})\s+AS\s+\w+',
     re.IGNORECASE | re.MULTILINE,
 )
-GO_RUNTIME_REFERENCE_PATTERN = re.compile(r'(?:golang:|dl\.google\.com/go/go)')
+GO_RUNTIME_REFERENCE_PATTERN = re.compile(
+    r'(?:\bgolang(?=[:@])|'
+    r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
 SETUP_GO_USE_PATTERN = re.compile(
-    r'(?m)^\s*uses:\s+actions/setup-go@[^\s]+\s*$')
+    r'(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]+actions/setup-go@[^\s]+[ \t]*$')
+PRECOMMIT_CHECK_PATTERN = re.compile(
+    r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
+    r'check-go-version[ \t]*$')
+DIGEST_CHECK_PATTERN = re.compile(
+    r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+python3[ \t]+'
+    r'\.github/resources/scripts/update_go_version\.py[ \t]+'
+    r'--check-image-digests[ \t]*$')
 
 
 def _parse_version(version):
@@ -82,11 +98,16 @@ def _go_module_paths():
 
 
 def _module_versions_from_contents(contents, relative_path):
+    go_directive_lines = GO_DIRECTIVE_LINE_PATTERN.findall(contents)
     go_directives = GO_DIRECTIVE_PATTERN.findall(contents)
-    if len(go_directives) != 1:
+    if len(go_directive_lines) != 1:
         raise ValueError(
             f'{relative_path} must contain exactly one go directive, found '
-            f'{go_directives}')
+            f'{go_directive_lines}')
+    if len(go_directives) != len(go_directive_lines):
+        raise ValueError(
+            f'{relative_path} contains an invalid go directive: '
+            f'{go_directive_lines}')
     toolchain_directives = TOOLCHAIN_DIRECTIVE_PATTERN.findall(contents)
     toolchains = TOOLCHAIN_PATTERN.findall(contents)
     if len(toolchain_directives) > 1:
@@ -146,7 +167,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     )
 
     def test_malformed_toolchain_directives_are_rejected(self):
-        for directive in ('toolchain go1.27', 'toolchain default',
+        for directive in ('toolchain', 'toolchain go1.27',
+                          '  toolchain default',
                           'toolchain go1.27.1 extra'):
             with self.subTest(directive=directive):
                 contents = f'module example.com/test\n\ngo 1.27.0\n\n{directive}\n'
@@ -154,6 +176,23 @@ class GoVersionConsistencyTest(unittest.TestCase):
                                             'invalid toolchain directive'):
                     _module_versions_from_contents(contents,
                                                    Path('test/go.mod'))
+
+    def test_malformed_go_directives_are_rejected(self):
+        for contents in ('module example.com/test\n\ngo\n',
+                         'module example.com/test\n\ngo 1.27.0 extra\n',
+                         'module example.com/test\n\ngo 1.27.0\n\n  go\n'):
+            with self.subTest(contents=contents):
+                with self.assertRaisesRegex(ValueError, 'go directive'):
+                    _module_versions_from_contents(contents,
+                                                   Path('test/go.mod'))
+
+    def test_indented_module_directives_are_parsed(self):
+        self.assertEqual(
+            _module_versions_from_contents(
+                'module example.com/test\n\n  go 1.27.0\n\n'
+                '\ttoolchain go1.27.1\n', Path('test/go.mod')),
+            ((1, 27, 0), (1, 27, 1)),
+        )
 
     def test_all_go_builder_images_match_root_effective_go_version(self):
         discovered = set()
@@ -220,11 +259,26 @@ class GoVersionConsistencyTest(unittest.TestCase):
         )
 
     def test_go_runtime_reference_detection_is_tag_agnostic(self):
-        for reference in ('FROM golang:latest',
+        for reference in ('FROM golang AS builder',
+                          'FROM golang@sha256:' + ('a' * 64) + ' AS builder',
+                          'FROM golang:latest',
                           'FROM golang:${GO_VERSION}',
-                          'https://dl.google.com/go/go${GO_VERSION}.tar.gz'):
+                          'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
+                          'https://go.dev/dl/go1.27.0.linux-amd64.tar.gz'):
             with self.subTest(reference=reference):
                 self.assertRegex(reference, GO_RUNTIME_REFERENCE_PATTERN)
+        for non_runtime_reference in ('language: golang', 'golangci-lint'):
+            with self.subTest(non_runtime_reference=non_runtime_reference):
+                self.assertNotRegex(non_runtime_reference,
+                                    GO_RUNTIME_REFERENCE_PATTERN)
+
+    def test_setup_go_detection_supports_workflow_list_items(self):
+        for step in ('      uses: actions/setup-go@v7',
+                     '    - uses: actions/setup-go@v7'):
+            with self.subTest(step=step):
+                self.assertRegex(step, SETUP_GO_USE_PATTERN)
+        self.assertNotRegex('    # - uses: actions/setup-go@v7',
+                            SETUP_GO_USE_PATTERN)
 
     def test_setup_go_actions_use_root_module_version(self):
         for relative_path in GO_SETUP_ACTIONS:
@@ -258,8 +312,17 @@ class GoVersionConsistencyTest(unittest.TestCase):
         )
 
     def test_presubmit_runs_go_version_consistency_check(self):
-        self.assertIn('run: make check-go-version',
-                      _read(PRECOMMIT_WORKFLOW))
+        self.assertRegex(_read(PRECOMMIT_WORKFLOW), PRECOMMIT_CHECK_PATTERN)
+        self.assertNotRegex('# run: make check-go-version',
+                            PRECOMMIT_CHECK_PATTERN)
+
+    def test_precommit_wiring_changes_run_ci_script_tests(self):
+        contents = _read(CI_SCRIPTS_WORKFLOW)
+        self.assertRegex(
+            contents,
+            r"(?m)^[ \t]*-[ \t]+'\.github/workflows/pre-commit\.yml'[ \t]*$",
+        )
+        self.assertRegex(contents, DIGEST_CHECK_PATTERN)
 
 
 if __name__ == '__main__':
