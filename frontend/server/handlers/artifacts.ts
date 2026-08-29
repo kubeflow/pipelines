@@ -18,6 +18,7 @@ import {
   findFileOnPodVolume,
   parseJSONString,
   isAllowedResourceName,
+  isAllowedBucketName,
   openFileWithinRoot,
 } from '../utils.js';
 import {
@@ -278,7 +279,7 @@ export function getArtifactsHandler({
       return;
     }
     const { source, bucket, key, peek, providerInfo, namespace } = artifactRequest;
-    if (!isAllowedResourceName(bucket)) {
+    if (!isAllowedBucketName(bucket)) {
       res.status(500).send('Invalid bucket name');
       return;
     }

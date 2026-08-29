@@ -506,3 +506,12 @@ export function isAllowedResourceName(name: unknown): name is string {
     /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/.test(name)
   );
 }
+
+export function isAllowedBucketName(name: unknown): name is string {
+  return (
+    typeof name === 'string' &&
+    name.length > 0 &&
+    name.length <= 63 &&
+    /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(name)
+  );
+}
