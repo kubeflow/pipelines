@@ -122,12 +122,12 @@ func Test_executeV2_Parameters(t *testing.T) {
 
 func Test_executeV2_publishLogs(t *testing.T) {
 	tests := []struct {
-		name          string
-		executorInput *pipelinespec.ExecutorInput
-		executorArgs  []string
-		retryIndex    string
-		wantErr       bool
-		uploadFailure bool
+		name            string
+		executorInput   *pipelinespec.ExecutorInput
+		executorArgs    []string
+		retryIndex      string
+		wantErr         bool
+		metadataFailure bool
 	}{
 		{
 			"happy pass",
@@ -214,7 +214,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			var countingFakeMetadataClient *metadata.RecordArtifactFailureFakeClient
 			// Use a fake client that will fail the executor-logs RecordArtifact call the first time,
 			// and succeed the second time, to test retry behavior without depending on map iteration order.
-			if test.uploadFailure {
+			if test.metadataFailure {
 				countingFakeMetadataClient = metadata.NewRecordArtifactFailureFakeClientForOutput("executor-logs", 1)
 				fakeMetadataClient = countingFakeMetadataClient
 			} else {
@@ -226,7 +226,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			assert.Nil(t, err)
 			bucketRefreshes := 0
 			openBucketConfig := &OpenBucketConfig{ctx: context.Background(), k8sClient: fakeKubernetesClientset, namespace: "namespace", config: bucketConfig}
-			if test.uploadFailure {
+			if test.metadataFailure {
 				openBucketConfig.open = func(ctx context.Context, k8sClient kubernetes.Interface, namespace string, config *objectstore.Config) (*blob.Bucket, error) {
 					bucketRefreshes++
 					return nil, errors.New("bucket refresh should not run for metadata retry")
@@ -286,7 +286,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			if test.wantErr {
 				assert.NotNil(t, err)
 				assert.Len(t, outputArtifacts, 1, "Expected 1 output artifact (executor-logs)")
-				if test.uploadFailure {
+				if test.metadataFailure {
 					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
 					// Only logs uploaded - first call fails, second call succeeds
 					assert.Equal(t, 2, countingFakeMetadataClient.RecordArtifactCalls)
@@ -295,7 +295,7 @@ func Test_executeV2_publishLogs(t *testing.T) {
 			} else {
 				assert.Nil(t, err)
 				assert.Len(t, outputArtifacts, 2, "Expected 2 output artifacts (executor-logs and output-data)")
-				if test.uploadFailure {
+				if test.metadataFailure {
 					assert.Equal(t, 2, countingFakeMetadataClient.OutputNameCalls["executor-logs"])
 					// First call fails and returns early, then both artifacts succeed on retry
 					assert.Equal(t, 3, countingFakeMetadataClient.RecordArtifactCalls)
