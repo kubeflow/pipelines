@@ -1159,7 +1159,7 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	if err != nil {
 		return util.NewBadRequestError(err, "Failed to read logs for run %v due to namespace fetching error", runId)
 	}
-	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
+	err = r.readRunLogFromPod(ctx, runId, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
 		err = r.readRunLogFromArchive(string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
@@ -1173,7 +1173,21 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 }
 
 // Fetches execution logs from a pod.
-func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace string, nodeId string, follow bool, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runId string, namespace string, nodeId string, follow bool, dst io.Writer) error {
+	// The caller controls nodeId, so confirm the pod was created by this run
+	// before streaming, otherwise the run only selects a namespace and any pod
+	// in it could be read with the API server's credentials.
+	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeId, v1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			glog.Errorf("Failed to get pod %v: %v", nodeId, err)
+		}
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeId)
+	}
+	if pod == nil || pod.Labels[util.LabelKeyWorkflowRunId] != runId {
+		return util.NewInvalidInputError("Pod %v does not belong to run %v", nodeId, runId)
+	}
+
 	logOptions := corev1.PodLogOptions{
 		Container:  "main",
 		Timestamps: false,

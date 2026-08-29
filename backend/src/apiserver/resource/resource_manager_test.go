@@ -3023,6 +3023,30 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "error updating and creating a workflow")
 }
 
+// The node id in a log request is caller controlled, so a run must not act as
+// a namespace selector for arbitrary pods: a pod whose run id label does not
+// match the requested run is rejected before any logs are streamed.
+func TestReadRunLogFromPod_PodNotFromRun(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	foreignPod := &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "victim-pod",
+			Namespace: "ns1",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "some-other-run"},
+		},
+	}
+	manager.k8sCoreClient = client.NewFakeKubernetesCoreClientWithPod(foreignPod)
+
+	var buf bytes.Buffer
+	err := manager.readRunLogFromPod(context.Background(), "run-1", "ns1", "victim-pod", false, &buf)
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "does not belong to run")
+	assert.Empty(t, buf.String())
+}
+
 func TestUnarchiveRun_OK(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()

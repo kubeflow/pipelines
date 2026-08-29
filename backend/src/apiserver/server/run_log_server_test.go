@@ -116,6 +116,36 @@ func TestReadRunLogV1_Unauthorized(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "Check if you have access to namespace")
 }
 
+// Shared read mode auto-approves the get and list verbs, so log reads use the
+// dedicated readLog verb to stay behind a SubjectAccessReview. This pins that:
+// an unauthorized caller must still get a 403 with shared read enabled.
+func TestReadRunLogV1_SharedReadModeStillDenied(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.MultiUserModeSharedReadAccess, "true")
+	defer viper.Set(common.MultiUserModeSharedReadAccess, "false")
+
+	clients, _, run := initWithOneTimeRun(t)
+	defer clients.Close()
+
+	clients.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	manager := resource.NewResourceManager(clients, &resource.ResourceManagerOptions{CollectMetrics: false})
+	server := NewRunLogServer(manager)
+
+	req := httptest.NewRequest("GET", "/apis/v1alpha1/runs/"+run.UUID+"/nodes/node-1/log", nil)
+	req.Header.Set(common.GoogleIAPUserIdentityHeader, common.GoogleIAPUserIdentityPrefix+"user@google.com")
+	req = mux.SetURLVars(req, map[string]string{
+		RunKey:  run.UUID,
+		NodeKey: "node-1",
+	})
+
+	recorder := httptest.NewRecorder()
+	server.ReadRunLogV1(recorder, req)
+
+	assert.Equal(t, http.StatusForbidden, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), "Check if you have access to namespace")
+}
+
 func TestReadRunLogV1_AuthorizedOverPlainHTTP(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
