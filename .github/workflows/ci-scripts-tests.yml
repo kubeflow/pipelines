@@ -37,6 +37,7 @@ on:
       - '.github/workflows/validate-generated-files.yml'
       - '.github/workflows/osv-scanner.yml'
       - '.github/workflows/pre-commit.yml'
+      - '.github/workflows/go-image-digests.yml'
       - '.github/workflows/build-tools-images.yml'
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
@@ -71,8 +72,6 @@ jobs:
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
-      - name: Verify pinned Go builder image digests
-        run: python3 .github/resources/scripts/update_go_version.py --check-image-digests
       - name: Run JUnit summary action unit tests
         working-directory: .github/actions/junit-summary
         run: python3 -m unittest discover -v -p '*_test.py'

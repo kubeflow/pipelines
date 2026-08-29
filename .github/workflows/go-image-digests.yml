@@ -1,0 +1,22 @@
+name: Go Builder Image Digests
+
+on:
+  pull_request:
+    paths:
+      - '.github/resources/scripts/go_version_consistency_test.py'
+      - '.github/resources/scripts/update_go_version.py'
+      - '.github/workflows/go-image-digests.yml'
+      - 'backend/Dockerfile*'
+      - 'backend/api/Dockerfile'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify pinned Go builder image digests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/resources/scripts/update_go_version.py --check-image-digests

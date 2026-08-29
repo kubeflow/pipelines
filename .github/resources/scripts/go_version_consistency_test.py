@@ -39,13 +39,16 @@ GO_SETUP_ACTIONS = (
 
 PRECOMMIT_WORKFLOW = Path('.github/workflows/pre-commit.yml')
 CI_SCRIPTS_WORKFLOW = Path('.github/workflows/ci-scripts-tests.yml')
+GO_IMAGE_DIGEST_WORKFLOW = Path('.github/workflows/go-image-digests.yml')
 
 GO_DIRECTIVE_PATTERN = re.compile(
-    r'^[ \t]*go[ \t]+(\d+\.\d+(?:\.\d+)?)[ \t]*$', re.MULTILINE)
+    r'^[ \t]*go[ \t]+(\d+\.\d+(?:\.\d+)?)(?:[ \t]*//[^\r\n]*)?[ \t]*$',
+    re.MULTILINE)
 GO_DIRECTIVE_LINE_PATTERN = re.compile(
     r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
-    r'^[ \t]*toolchain[ \t]+go(\d+\.\d+\.\d+)[ \t]*$', re.MULTILINE)
+    r'^[ \t]*toolchain[ \t]+go(\d+\.\d+\.\d+)'
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
     r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
@@ -56,9 +59,14 @@ GO_IMAGE_PATTERN = re.compile(
 GO_RUNTIME_REFERENCE_PATTERN = re.compile(
     r'(?:\bgolang(?=[:@])|'
     r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r"(?:^[ \t]*(?:-[ \t]+)?|[{,][ \t]*)(?:container|image):[ \t]+"
+    r"(?P<quote>['\"]?)(?:[^\s'\"{},]+/)?golang(?P=quote)"
+    r'(?=[ \t]*(?:[,}#]|$))|'
     r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
 SETUP_GO_USE_PATTERN = re.compile(
-    r'(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]+actions/setup-go@[^\s]+[ \t]*$')
+    r'(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]+(?P<quote>[\'\"]?)'
+    r'actions/setup-go@[^#\s\'\"]+(?P=quote)'
+    r'(?:[ \t]+#[^\r\n]*)?[ \t]*$')
 PRECOMMIT_CHECK_PATTERN = re.compile(
     r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
     r'check-go-version[ \t]*$')
@@ -189,8 +197,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_indented_module_directives_are_parsed(self):
         self.assertEqual(
             _module_versions_from_contents(
-                'module example.com/test\n\n  go 1.27.0\n\n'
-                '\ttoolchain go1.27.1\n', Path('test/go.mod')),
+                'module example.com/test\n\n  go 1.27.0// language floor\n\n'
+                '\ttoolchain go1.27.1// compiler\n', Path('test/go.mod')),
             ((1, 27, 0), (1, 27, 1)),
         )
 
@@ -261,6 +269,10 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_go_runtime_reference_detection_is_tag_agnostic(self):
         for reference in ('FROM golang AS builder',
                           'FROM golang@sha256:' + ('a' * 64) + ' AS builder',
+                          'container: golang',
+                          'image: docker.io/library/golang',
+                          '  - image: "golang" # builder',
+                          'container: { image: golang }',
                           'FROM golang:latest',
                           'FROM golang:${GO_VERSION}',
                           'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
@@ -274,7 +286,10 @@ class GoVersionConsistencyTest(unittest.TestCase):
 
     def test_setup_go_detection_supports_workflow_list_items(self):
         for step in ('      uses: actions/setup-go@v7',
-                     '    - uses: actions/setup-go@v7'):
+                     '    - uses: actions/setup-go@v7',
+                     '    - uses: actions/setup-go@abc123 # v7',
+                     "    - uses: 'actions/setup-go@abc123' # v7",
+                     '    - uses: "actions/setup-go@abc123" # v7'):
             with self.subTest(step=step):
                 self.assertRegex(step, SETUP_GO_USE_PATTERN)
         self.assertNotRegex('    # - uses: actions/setup-go@v7',
@@ -322,7 +337,14 @@ class GoVersionConsistencyTest(unittest.TestCase):
             contents,
             r"(?m)^[ \t]*-[ \t]+'\.github/workflows/pre-commit\.yml'[ \t]*$",
         )
-        self.assertRegex(contents, DIGEST_CHECK_PATTERN)
+        self.assertRegex(
+            contents,
+            r"(?m)^[ \t]*-[ \t]+'\.github/workflows/go-image-digests\.yml'"
+            r'[ \t]*$',
+        )
+        self.assertNotRegex(contents, DIGEST_CHECK_PATTERN)
+        self.assertRegex(_read(GO_IMAGE_DIGEST_WORKFLOW),
+                         DIGEST_CHECK_PATTERN)
 
 
 if __name__ == '__main__':

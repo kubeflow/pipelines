@@ -30,17 +30,20 @@ VERSION_PATTERN = re.compile(r'^1\.(\d+)(?:\.(\d+))?$')
 EXACT_VERSION_PATTERN = re.compile(r'^1\.(\d+)\.(\d+)$')
 DIGEST_PATTERN = re.compile(r'^sha256:[0-9a-f]{64}$')
 GO_DIRECTIVE_PATTERN = re.compile(
-    r'^[ \t]*go[ \t]+(?P<version>\d+\.\d+(?:\.\d+)?)[ \t]*$',
+    r'^[ \t]*go[ \t]+(?P<version>\d+\.\d+(?:\.\d+)?)'
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$',
     re.MULTILINE)
 GO_DIRECTIVE_LINE_PATTERN = re.compile(
     r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
-    r'^[ \t]*toolchain[ \t]+go(?P<version>\d+\.\d+\.\d+)[ \t]*$',
+    r'^[ \t]*toolchain[ \t]+go(?P<version>\d+\.\d+\.\d+)'
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$',
     re.MULTILINE)
 TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
     r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_LINE_PATTERN = re.compile(
-    r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+[ \t]*\n?(?:\n)?',
+    r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+'
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*\n?(?:\n)?',
     re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
     r'^(?P<prefix>FROM\s+)golang:'
@@ -53,12 +56,17 @@ GO_IMAGE_PATTERN = re.compile(
 GO_RUNTIME_REFERENCE_PATTERN = re.compile(
     r'(?:\bgolang(?=[:@])|'
     r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r"(?:^[ \t]*(?:-[ \t]+)?|[{,][ \t]*)(?:container|image):[ \t]+"
+    r"(?P<quote>['\"]?)(?:[^\s'\"{},]+/)?golang(?P=quote)"
+    r'(?=[ \t]*(?:[,}#]|$))|'
     r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
 
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
 DIGEST_LOOKUP_ATTEMPTS = 3
 DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
-DIGEST_LOOKUP_TIMEOUT_SECONDS = 60
+DIGEST_LOOKUP_SOURCE_COUNT = 2
+DIGEST_LOOKUP_TIMEOUT_SECONDS = 20
+DIGEST_VERIFICATION_BUDGET_SECONDS = 540
 
 
 def _parse_version(version: str) -> Tuple[int, int, int]:
@@ -97,7 +105,10 @@ def _module_versions(
     relative_path: Path,
 ) -> Tuple[Tuple[int, int, int], Optional[Tuple[int, int, int]]]:
     go_directive_lines = GO_DIRECTIVE_LINE_PATTERN.findall(contents)
-    go_versions = GO_DIRECTIVE_PATTERN.findall(contents)
+    go_versions = [
+        match.group('version')
+        for match in GO_DIRECTIVE_PATTERN.finditer(contents)
+    ]
     if len(go_directive_lines) != 1:
         raise ValueError(
             f'{relative_path} must contain exactly one go directive, found '
@@ -107,7 +118,10 @@ def _module_versions(
             f'{relative_path} contains an invalid go directive: '
             f'{go_directive_lines}')
     toolchain_directives = TOOLCHAIN_DIRECTIVE_PATTERN.findall(contents)
-    toolchains = TOOLCHAIN_PATTERN.findall(contents)
+    toolchains = [
+        match.group('version')
+        for match in TOOLCHAIN_PATTERN.finditer(contents)
+    ]
     if len(toolchain_directives) > 1:
         raise ValueError(
             f'{relative_path} must contain at most one toolchain directive, '
@@ -124,6 +138,11 @@ def _module_versions(
 def _updated_module_contents(contents: str, relative_path: Path,
                              target: Tuple[int, int, int]) -> str:
     go_version, _ = _module_versions(contents, relative_path)
+    go_match = GO_DIRECTIVE_PATTERN.search(contents)
+    go_comment = go_match.group('comment') or ''
+    toolchain_match = TOOLCHAIN_PATTERN.search(contents)
+    toolchain_comment = (
+        toolchain_match.group('comment') if toolchain_match else '') or ''
     if go_version > target:
         floor = '.'.join(str(part) for part in go_version)
         compiler = '.'.join(str(part) for part in target)
@@ -134,12 +153,13 @@ def _updated_module_contents(contents: str, relative_path: Path,
                       (target[0], target[1], 0))
     language_version = '.'.join(str(part) for part in language_floor)
     updated = GO_DIRECTIVE_PATTERN.sub(
-        f'go {language_version}', contents, count=1)
+        f'go {language_version}{go_comment}', contents, count=1)
     updated = TOOLCHAIN_LINE_PATTERN.sub('', updated)
     if target[2] != 0:
         target_version = '.'.join(str(part) for part in target)
         updated = GO_DIRECTIVE_PATTERN.sub(
-            lambda match: f'{match.group(0)}\n\ntoolchain go{target_version}',
+            lambda match: (f'{match.group(0)}\n\n'
+                           f'toolchain go{target_version}{toolchain_comment}'),
             updated,
             count=1,
         )
@@ -243,6 +263,14 @@ def verify_image_digests(
         pins_by_tag.setdefault(tag, {}).setdefault(digest,
                                                    []).append(relative_path)
 
+    worst_case_seconds = _digest_verification_worst_case_seconds(
+        len(pins_by_tag))
+    if worst_case_seconds > DIGEST_VERIFICATION_BUDGET_SECONDS:
+        raise RuntimeError(
+            'Go builder digest verification is configured for a worst-case '
+            f'{worst_case_seconds} seconds, exceeding its '
+            f'{DIGEST_VERIFICATION_BUDGET_SECONDS}-second budget')
+
     errors = []
     for tag, pins_by_digest in sorted(pins_by_tag.items()):
         if len(pins_by_digest) != 1:
@@ -264,6 +292,13 @@ def verify_image_digests(
     if errors:
         raise ValueError('Go builder image digest verification failed:\n  ' +
                          '\n  '.join(errors))
+
+
+def _digest_verification_worst_case_seconds(tag_count: int) -> int:
+    return tag_count * (
+        DIGEST_LOOKUP_ATTEMPTS * DIGEST_LOOKUP_SOURCE_COUNT *
+        DIGEST_LOOKUP_TIMEOUT_SECONDS +
+        sum(DIGEST_LOOKUP_BACKOFF_SECONDS))
 
 
 def synchronized_contents(
@@ -336,33 +371,70 @@ def sync(
         repository_paths=repository_paths,
     )
     changed_paths = []
+    original_contents = {}
     for relative_path, expected in expected_contents.items():
         path = repo_root / relative_path
-        if path.read_text(encoding='utf-8') == expected:
+        original = path.read_text(encoding='utf-8')
+        if original == expected:
             continue
         changed_paths.append(relative_path)
+        original_contents[relative_path] = original
 
-    temporary_paths = {}
+    update_paths = {}
+    rollback_paths = {}
+    replaced_paths = []
     try:
         for relative_path in changed_paths:
             path = repo_root / relative_path
-            descriptor, temporary_name = tempfile.mkstemp(
-                dir=path.parent,
-                prefix=f'.{path.name}.',
-            )
-            temporary_path = Path(temporary_name)
-            temporary_paths[relative_path] = temporary_path
-            os.fchmod(descriptor, stat.S_IMODE(path.stat().st_mode))
-            with os.fdopen(descriptor, 'w', encoding='utf-8') as temporary_file:
-                temporary_file.write(expected_contents[relative_path])
-                temporary_file.flush()
-                os.fsync(temporary_file.fileno())
+            update_paths[relative_path] = _temporary_replacement(
+                path, expected_contents[relative_path], 'update')
+            rollback_paths[relative_path] = _temporary_replacement(
+                path, original_contents[relative_path], 'rollback')
         for relative_path in sorted(changed_paths):
-            os.replace(temporary_paths[relative_path], repo_root / relative_path)
+            os.replace(update_paths[relative_path], repo_root / relative_path)
+            replaced_paths.append(relative_path)
+    except Exception as update_error:
+        rollback_errors = []
+        for relative_path in reversed(replaced_paths):
+            try:
+                os.replace(rollback_paths[relative_path],
+                           repo_root / relative_path)
+            except Exception as rollback_error:
+                rollback_errors.append(f'{relative_path}: {rollback_error}')
+        if rollback_errors:
+            raise RuntimeError(
+                f'failed to apply Go version update: {update_error}; '
+                'also failed to restore original files: ' +
+                '; '.join(rollback_errors)) from update_error
+        raise RuntimeError(
+            'failed to apply Go version update; restored original files: '
+            f'{update_error}') from update_error
     finally:
-        for temporary_path in temporary_paths.values():
+        for temporary_path in (*update_paths.values(),
+                               *rollback_paths.values()):
             temporary_path.unlink(missing_ok=True)
     return sorted(changed_paths)
+
+
+def _temporary_replacement(path: Path, contents: str, purpose: str) -> Path:
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent,
+        prefix=f'.{path.name}.{purpose}.',
+    )
+    temporary_path = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, stat.S_IMODE(path.stat().st_mode))
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as temporary_file:
+            descriptor = -1
+            temporary_file.write(contents)
+            temporary_file.flush()
+            os.fsync(temporary_file.fileno())
+    except Exception:
+        if descriptor >= 0:
+            os.close(descriptor)
+        temporary_path.unlink(missing_ok=True)
+        raise
+    return temporary_path
 
 
 def main() -> int:

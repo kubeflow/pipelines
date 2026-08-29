@@ -142,8 +142,9 @@ class UpdateGoVersionTest(unittest.TestCase):
     def test_indented_module_directives_are_normalized(self):
         nested = self.repo_root / 'nested/go.mod'
         nested.write_text(
-            'module example.com/nested\n\n  go 1.28.0\n\n'
-            '\ttoolchain go1.28.2\n',
+            'module example.com/nested\n\n'
+            '  go 1.28.0// language floor\n\n'
+            '\ttoolchain go1.28.2// compiler version\n',
             encoding='utf-8',
         )
 
@@ -154,7 +155,9 @@ class UpdateGoVersionTest(unittest.TestCase):
             repository_paths=self.files,
         )[Path('nested/go.mod')]
 
-        self.assertIn('\ngo 1.28.0\n\ntoolchain go1.28.3\n', expected)
+        self.assertIn(
+            '\ngo 1.28.0// language floor\n\n'
+            'toolchain go1.28.3// compiler version\n', expected)
         self.assertEqual(expected.count('toolchain '), 1)
 
     def test_rejects_bare_toolchain_directive(self):
@@ -234,6 +237,37 @@ class UpdateGoVersionTest(unittest.TestCase):
                 contents,
             )
 
+    def test_file_replacement_failure_restores_original_files(self):
+        real_replace = update_go_version.os.replace
+        replacement_count = 0
+
+        def fail_second_replacement(source, destination):
+            nonlocal replacement_count
+            replacement_count += 1
+            if replacement_count == 2:
+                raise OSError('simulated replacement failure')
+            real_replace(source, destination)
+
+        with mock.patch.object(
+                update_go_version.os,
+                'replace',
+                side_effect=fail_second_replacement,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'restored original files'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
     def test_rejects_invalid_versions_and_downgrades(self):
         for version in ('1.29', 'go1.29.0', 'v1.29.0', '1.29.0-rc1'):
             with self.subTest(version=version):
@@ -275,6 +309,27 @@ class UpdateGoVersionTest(unittest.TestCase):
                         repository_paths=repository_paths,
                     )
 
+    def test_rejects_tagless_yaml_runtime(self):
+        relative_path = Path('bad/component.yaml')
+        path = self.repo_root / relative_path
+        path.parent.mkdir(parents=True)
+        repository_paths = set(self.files) | {relative_path}
+
+        for contents in ('container: golang\n',
+                         'image: docker.io/library/golang # latest\n',
+                         '  - image: "golang" # builder\n',
+                         'container: { image: golang }\n'):
+            with self.subTest(contents=contents):
+                path.write_text(contents, encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,
+                                            'unsupported Go runtime pins'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda _tag: OLD_DIGEST,
+                        repository_paths=repository_paths,
+                    )
+
     def test_verifies_each_distinct_builder_tag_once(self):
         calls = []
 
@@ -290,6 +345,18 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(calls,
                          ['1.28.0', '1.28.0-alpine', '1.28.0-bookworm'])
+
+    def test_digest_retry_budget_fits_workflow_timeout(self):
+        worst_case = update_go_version._digest_verification_worst_case_seconds(
+            3)
+
+        self.assertEqual(worst_case, 369)
+        self.assertLessEqual(
+            worst_case,
+            update_go_version.DIGEST_VERIFICATION_BUDGET_SECONDS,
+        )
+        self.assertLess(update_go_version.DIGEST_VERIFICATION_BUDGET_SECONDS,
+                        600)
 
     def test_rejects_builder_digest_that_does_not_match_tag(self):
         resolved_digest = 'sha256:' + ('9' * 64)
