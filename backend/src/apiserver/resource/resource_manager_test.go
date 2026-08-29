@@ -6049,6 +6049,55 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 	assert.Equal(t, int64(0), claimed.FinishedAtInSec)
 }
 
+// A nonterminal report from the pre-retry workflow can still describe a
+// terminating snapshot (Running with activeDeadlineSeconds=0). It must be
+// fenced by RetryGeneration just like a stale terminal report; otherwise it
+// can move the retried run to CANCELING and overwrite the live retry manifest.
+func TestReportWorkflowResource_RejectsStaleNonterminalReportAfterRetry(t *testing.T) {
+	store, manager, run := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	require.NoError(t, manager.RetryRun(ctx, run.UUID))
+	retried, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), retried.RetryGeneration)
+	require.Equal(t, model.RuntimeStateRunning, retried.State)
+	require.Contains(t, string(retried.WorkflowRuntimeManifest), util.AnnotationKeyRetryGeneration)
+
+	zero := int64(0)
+	staleTerminating := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Spec:   v1alpha1.WorkflowSpec{ActiveDeadlineSeconds: &zero},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+
+	reported, err := manager.ReportWorkflowResource(ctx, staleTerminating)
+	require.Error(t, err)
+	assert.Nil(t, reported)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Contains(t, err.Error(), "Skipping stale workflow report")
+
+	persisted, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, retried.State, persisted.State)
+	assert.Equal(t, retried.Conditions, persisted.Conditions)
+	assert.Equal(t, retried.FinishedAtInSec, persisted.FinishedAtInSec)
+	assert.Equal(t, retried.WorkflowRuntimeManifest, persisted.WorkflowRuntimeManifest)
+	assert.Equal(t, retried.StateHistory, persisted.StateHistory)
+
+	liveWorkflow, err := store.ExecClientFake.Execution("ns1").Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "1", liveWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err, "the current retry generation must remain reportable")
+}
+
 // A report from the retried workflow itself carries the claim's generation in
 // its annotation and must pass the fence.
 func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {

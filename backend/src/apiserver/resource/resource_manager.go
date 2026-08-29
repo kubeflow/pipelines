@@ -1719,17 +1719,28 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		// grace-period handling further down).
 		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
 	}
-	// Fence terminal reports from stale pre-retry workflow snapshots.
+	// Fence reports from stale pre-retry workflow snapshots.
 	// A retried workflow carries the claim's RetryGeneration as an
 	// annotation; a snapshot taken before the retry carries an older
-	// generation (or none). Accepting such a report would restore the
-	// old FinishedAtInSec and make the run GC-eligible while the retry
-	// is still running. No timestamps are compared across clocks here.
+	// generation (or none). Accepting one could overwrite the retried run's
+	// state and manifest. No timestamps are compared across clocks here.
 	// This fence runs before the persisted-final-state deletion below so a
 	// stale snapshot can neither overwrite the row nor delete the live
 	// workflow that a retry has since resubmitted under the same name.
-	if updateError == nil && run.RetryGeneration > 0 && execStatus.IsInFinalState() {
+	if updateError == nil && run.RetryGeneration > 0 {
 		if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
+			// Only a terminal snapshot can prove what the pre-retry attempt's
+			// last real state was and recover an orphaned claim. A nonterminal
+			// snapshot is always stale once a newer generation has been claimed.
+			// Return a transient error so task and metric persistence is skipped
+			// too, and the worker refetches the live workflow before retrying.
+			if !execStatus.IsInFinalState() {
+				return nil, util.NewUnavailableServerError(
+					fmt.Errorf("reported retry generation %d is older than current generation %d", reportedGeneration, run.RetryGeneration),
+					"Skipping stale workflow report for run %s - will retry",
+					runId,
+				)
+			}
 			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
 			if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
 				// The retry is (or was moments ago) in flight; the retried

@@ -880,43 +880,17 @@ func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) 
 	if r > 1 {
 		tx.Rollback()
 		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
-	} else if r == 0 {
-		if expectedState == nil {
-			tx.Rollback()
-			return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
-		}
-		matchSQL, matchArgs, matchQueryErr := sq.
-			Select("1").
-			From("run_details").
-			Where(updatePredicate).
-			Limit(1).
-			ToSql()
-		if matchQueryErr != nil {
-			tx.Rollback()
-			return false, util.NewInternalServerError(matchQueryErr,
-				"Failed to create query to verify run %s update predicate", run.UUID)
-		}
-		// MySQL may report zero affected rows when the matching row already has
-		// the requested values. Verify the exact update predicate in the same
-		// transaction before treating the report as applied; a normalized model
-		// read cannot prove that an unknown stored representation matched it.
-		var matched int
-		matchErr := tx.QueryRow(s.db.SelectForUpdate(matchSQL), matchArgs...).Scan(&matched)
-		if matchErr == sql.ErrNoRows {
-			tx.Rollback()
+	}
+	if r == 0 {
+		tx.Rollback()
+		if expectedState != nil {
+			// Every supported database connection reports matched rows for an
+			// UPDATE, including a no-op (MySQL enables ClientFoundRows). A later
+			// SELECT cannot prove this guarded write matched: under READ COMMITTED,
+			// another writer could restore the predicate between statements.
 			return false, nil
 		}
-		if matchErr != nil {
-			tx.Rollback()
-			return false, util.NewInternalServerError(matchErr,
-				"Failed to verify run %s update predicate", run.UUID)
-		}
-		if err := tx.Commit(); err != nil {
-			return false, util.NewInternalServerError(err,
-				"failed to commit no-op update transaction for run %s", run.UUID)
-		}
-		run.StateHistory = stateHistory
-		return true, nil
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {

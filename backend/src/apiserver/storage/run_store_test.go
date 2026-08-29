@@ -1008,6 +1008,66 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
+func TestUpdateRunFromWorkflow_RejectsZeroRowUpdate(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Model a database-side write suppression that makes the guarded UPDATE
+	// affect zero rows even though its predicate still matches afterward. The
+	// zero-row path must fail closed instead of promoting a later read to
+	// evidence that the requested fields were persisted.
+	_, err := db.Exec(`
+		CREATE TRIGGER ignore_workflow_update
+		BEFORE UPDATE ON run_details
+		WHEN NEW.WorkflowRuntimeManifest = 'ignored-workflow'
+		BEGIN
+			SELECT RAISE(IGNORE);
+		END`)
+	require.NoError(t, err)
+
+	reportedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := reportedRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), reportedRun.StateHistory...)
+	reportedRun.State = model.RuntimeStateSucceeded
+	reportedRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	reportedRun.WorkflowRuntimeManifest = "ignored-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(reportedRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, reportedRun.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
+func TestUpdateRunFromWorkflow_AllowsMatchedNoOp(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	run, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := run.State
+	originalHistory := append([]*model.RuntimeStatus(nil), run.StateHistory...)
+
+	updated, err := runStore.UpdateRunFromWorkflow(run, expectedState)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	assert.Equal(t, originalHistory, run.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
 func TestUpdateRunFromWorkflow_RejectsStaleReportAfterTermination(t *testing.T) {
 	for _, incomingState := range []model.RuntimeState{
 		model.RuntimeStateRunning,
