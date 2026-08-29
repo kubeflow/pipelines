@@ -39,13 +39,13 @@ jobs:
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.9
 

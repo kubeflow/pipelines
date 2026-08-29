@@ -6,10 +6,20 @@ name: CI Scripts Tests
 on:
   pull_request:
     paths:
+      - '.github/dependabot.yml'
+      - '**/go.mod'
+      - '**/package.json'
+      - '**/requirements*.txt'
+      - '**/setup.py'
+      - '**/pyproject.toml'
+      - '**/action.yml'
+      - '**/action.yaml'
+      - '.pre-commit-config.yaml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/download-artifact-with-retry/**'
       - '.github/resources/curl-retry/**'
+      - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
       # The observability shell scripts are covered by Python-driven tests.
@@ -24,6 +34,10 @@ on:
       - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
+      - '.github/workflows/validate-generated-files.yml'
+      - '.github/workflows/osv-scanner.yml'
+      - '.github/workflows/build-tools-images.yml'
+      - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
@@ -40,6 +54,7 @@ on:
       - 'third_party/argo/Makefile'
       - 'third_party/argo/UPGRADE.md'
       - 'third_party/argo/VERSION'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 permissions:
   contents: read
@@ -50,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

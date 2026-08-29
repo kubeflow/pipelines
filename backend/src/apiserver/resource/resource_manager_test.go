@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -50,6 +51,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	authzv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -296,11 +299,53 @@ func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	}
 
 	var dst bytes.Buffer
-	err = manager.readRunLogFromArchive(testWorkflow.ToStringForStore(), "node-id", &dst)
+	err = manager.readRunLogFromArchive(context.Background(), testWorkflow.ToStringForStore(), "node-id", &dst)
 
 	require.NoError(t, err)
 	assert.Equal(t, []string{logPath}, objectStore.getFileReaderPaths)
 	assert.Equal(t, "archived log line\n", dst.String())
+}
+
+// cancelAwareObjectStore wraps readerOnlyObjectStore but actually checks the
+// context it's given, the way a real network-backed object store would.
+type cancelAwareObjectStore struct {
+	*readerOnlyObjectStore
+}
+
+func (m *cancelAwareObjectStore) GetFileReader(ctx context.Context, filePath string) (io.ReadCloser, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return m.readerOnlyObjectStore.GetFileReader(ctx, filePath)
+}
+
+func TestReadRunLogFromArchivePropagatesCanceledContext(t *testing.T) {
+	logArchive := archive.NewLogArchive("/logs", "main.log")
+	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
+	require.NoError(t, err)
+	logPath, err := logArchive.GetLogObjectKey(execSpec, "node-id")
+	require.NoError(t, err)
+
+	objectStore := &cancelAwareObjectStore{
+		readerOnlyObjectStore: &readerOnlyObjectStore{
+			files: map[string][]byte{
+				logPath: []byte("archived log line\n"),
+			},
+		},
+	}
+	manager := &ResourceManager{
+		objectStore: objectStore,
+		logArchive:  logArchive,
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	var dst bytes.Buffer
+	err = manager.readRunLogFromArchive(ctx, testWorkflow.ToStringForStore(), "node-id", &dst)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), context.Canceled.Error())
 }
 
 func TestReadPipelineSpecFromObjectStoreUsesReaderAndLimit(t *testing.T) {
@@ -2481,6 +2526,8 @@ func TestCreateRun_ThroughWorkflowSpecSameManifest(t *testing.T) {
 }
 
 func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "sa1")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
 	// Create experiment, pipeline, and pipeline version.
 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
 	defer store.Close()
@@ -2560,6 +2607,8 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 }
 
 func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "sa1")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
 	// Create experiment, pipeline, and pipeline version.
 	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
 	defer store.Close()
@@ -5874,4 +5923,973 @@ func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
 	// name, so concurrent triggers converge on the same primary key.
 	wantUUID := util.NewDeterministicUUID(job.UUID + "/scheduled-run-trigger-1")
 	assert.Equal(t, wantUUID, created.UUID)
+}
+
+// A terminal report carrying no (or an older) retry-generation annotation is a
+// snapshot of the pre-retry workflow. While the claim is fresh it must be
+// skipped as a successful no-op: not an error (the persistence agent would
+// requeue forever) and not a write (it would restore a GC-eligible
+// FinishedAtInSec while the retry is running).
+func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+
+	// Drive the run terminal, then claim it for retry.
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Nil(t, err)
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.Nil(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+
+	// The same terminal snapshot arrives again (requeued by the persistence
+	// agent). It carries no retry-generation annotation.
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err, "stale terminal report during a fresh claim must be a successful no-op")
+
+	claimed, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStatePending, claimed.State, "stale report must not overwrite the claimed row")
+	assert.Equal(t, int64(0), claimed.FinishedAtInSec)
+}
+
+// A report from the retried workflow itself carries the claim's generation in
+// its annotation and must pass the fence.
+func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	terminal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), terminal)
+	require.Nil(t, err)
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.Nil(t, claimErr)
+
+	retried := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Annotations: map[string]string{
+				util.AnnotationKeyRetryGeneration: strconv.FormatInt(claimGeneration, 10),
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
+	})
+	_, err = manager.ReportWorkflowResource(context.Background(), retried)
+	assert.Nil(t, err)
+
+	updated, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, updated.State, "post-retry completion must pass the generation fence")
+}
+
+// A claim with no claim timestamp (cleared by rollback, or orphaned by a crash
+// past the grace period) must not fence terminal reports forever: the reporter
+// accepts the terminal state so the run self-heals instead of staying PENDING.
+func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Nil(t, err)
+	_, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.Nil(t, claimErr)
+
+	// Simulate an orphaned claim: the claim timestamp is gone (rollback) or
+	// far in the past (crash between claim and workflow update).
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.Nil(t, err)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err)
+
+	recovered, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, recovered.State, "orphaned claim must self-heal to the last real terminal state")
+}
+
+// RetryRun must stamp the claim's RetryGeneration on the retried workflow so
+// ReportWorkflowResource can tell its reports apart from stale snapshots of
+// the pre-retry workflow.
+func TestRetryRun_StampsRetryGenerationAnnotation(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	require.Nil(t, err)
+
+	retried, err := manager.GetRun(runDetail.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, int64(1), retried.RetryGeneration)
+	assert.Contains(t, string(retried.WorkflowRuntimeManifest), util.AnnotationKeyRetryGeneration,
+		"retried workflow manifest must carry the retry-generation annotation")
+}
+
+// Regression: when the workflow mutation errors but was actually applied (the
+// live workflow carries this claim's retry-generation annotation), RetryRun
+// must adopt the live workflow — even if it already reached a terminal state —
+// instead of rolling back the claim, which would restore a GC-eligible
+// FinishedAtInSec under a live retried workflow and permit a duplicate retry.
+func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	// Seed the retried workflow as already terminal and carrying the
+	// generation the upcoming claim will produce (1), simulating a timed-out
+	// update that was applied and a retry that finished quickly.
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	appliedWorkflow := retryExecSpec.(*util.Workflow)
+	appliedWorkflow.Status.Phase = v1alpha1.WorkflowSucceeded
+	appliedWorkflow.Status.FinishedAt = v1.Time{Time: time.Unix(500, 0)}
+
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(context.Background(), appliedWorkflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	conflictClient := &persistentConflictWorkflowClient{FakeWorkflowClient: workflowClient}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: conflictClient}
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	require.NoError(t, err, "an applied retry must be adopted, not treated as failed")
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, adopted.State, "run must reflect the adopted live workflow")
+	assert.Equal(t, int64(1), adopted.RetryGeneration, "claim must not be rolled back")
+	assert.Equal(t, int64(500), adopted.FinishedAtInSec, "adopted terminal workflow's finish time must be persisted")
+}
+
+// Regression: an expired retry claim is not necessarily abandoned. When the
+// previous claim's workflow is live (the earlier API server crashed after
+// applying the mutation but before persisting), a new RetryRun must adopt it
+// rather than take over the claim and restart in-flight work.
+func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	// Simulate a retry that crashed after claiming generation 1 and creating
+	// the workflow, but before persisting the run row: claim via the store
+	// (leaves the terminal manifest untouched), seed the live generation-1
+	// workflow, and age out the claim timestamp.
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+
+	adopted, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), adopted.RetryGeneration,
+		"live generation-1 workflow must be adopted; a takeover to generation 2 would restart in-flight work")
+	assert.NotEqual(t, model.RuntimeStatePending, adopted.State, "adoption must persist the live workflow's state")
+}
+
+// Regression: takeover happens only when the previous claim's workflow is
+// definitively absent.
+func TestRetryRun_ExpiredClaimWithoutWorkflowIsTakenOver(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	// Claim generation 1 but never create the workflow (crash before create).
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	require.NoError(t, err)
+
+	// No workflow exists in the fake client: absence is definitive.
+	manager.execClient = &retryWorkflowExecClient{workflowClient: client.NewWorkflowClientFake()}
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+
+	recovered, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), recovered.RetryGeneration, "definitive absence must allow the takeover claim")
+}
+
+type retryHookCountingDispatcher struct {
+	onRunRetryCalls int
+}
+
+func (d *retryHookCountingDispatcher) OnBeforeRunCreation(context.Context, *apiserverPlugins.PendingRun, util.ExecutionSpec) error {
+	return nil
+}
+
+func (d *retryHookCountingDispatcher) OnRunEnd(context.Context, *apiserverPlugins.PersistedRun) bool {
+	return true
+}
+
+func (d *retryHookCountingDispatcher) OnRunRetry(context.Context, *apiserverPlugins.PersistedRun) error {
+	d.onRunRetryCalls++
+	return nil
+}
+
+func (d *retryHookCountingDispatcher) PluginsRegistered() bool {
+	return true
+}
+
+// Regression: the resource-version check passes vacuously for reports without
+// a resourceVersion, so the age-based accept path must never accept a
+// lower-generation terminal report — or delete the workflow via the
+// persisted-final-state path — while the claimed generation is live.
+func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Nil(t, err)
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.Nil(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+
+	// Age out the claim, and make the live workflow carry the claimed
+	// generation (the retried workflow was applied by a crashed retry).
+	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.Nil(t, err)
+	wfClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
+	require.Nil(t, err)
+	liveWorkflow.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	_, err = wfClient.Update(context.Background(), liveWorkflow, v1.UpdateOptions{})
+	require.Nil(t, err)
+
+	// The stale snapshot (no annotation, empty resourceVersion) arrives with
+	// an aged-out claim: it must be skipped, not age-accepted.
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	assert.Nil(t, err)
+	claimed, err := manager.GetRun(run.UUID)
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStatePending, claimed.State,
+		"a lower-generation report must never be age-accepted while the claimed generation is live")
+
+	// A stale snapshot carrying persistedFinalState must not delete the
+	// live retried workflow either: the fence runs before the deletion.
+	staleFinal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err = manager.ReportWorkflowResource(context.Background(), staleFinal)
+	assert.Nil(t, err)
+	_, err = wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
+	assert.Nil(t, err, "the live retried workflow must not be deleted by a stale persisted-final-state snapshot")
+}
+
+// Regression: expired-claim adoption must fire the plugin retry hook; the
+// crashed retry never reached plugin notification, and skipping it leaves
+// plugin-side (e.g. MLflow) runs terminal while the KFP retry runs.
+func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
+	require.NoError(t, claimErr)
+	require.Equal(t, int64(1), claimGeneration)
+	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0, PluginsOutput = ? WHERE UUID = ?`,
+		`{"mlflow":{"runId":"abc"}}`, runDetail.UUID)
+	require.NoError(t, err)
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	workflowClient := client.NewWorkflowClientFake()
+	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+	dispatcher := &retryHookCountingDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	assert.Equal(t, 1, dispatcher.onRunRetryCalls, "adoption must notify plugins exactly like a normal retry")
+}
+
+// Regression: a transient run-store read failure must fail closed — it must
+// not skip the generation fence and fall through into persisted-final-state
+// workflow deletion, which would delete the live retried workflow on the
+// strength of a stale snapshot.
+func TestReportWorkflowResource_RunStoreErrorFailsClosedBeforeDeletion(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	staleFinal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+
+	// Force GetRun to fail with a non-NotFound error.
+	store.Close()
+
+	_, err := manager.ReportWorkflowResource(context.Background(), staleFinal)
+	require.Error(t, err)
+	assert.False(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"a run-store read failure must surface as an error, not be treated as run-not-found")
+	assert.Contains(t, err.Error(), "before applying workflow report",
+		"the error must come from the fail-closed guard, before the deletion path")
+
+	// The decisive assertion: the workflow must still exist. The fake exec
+	// client is independent of the closed database, so a deletion would
+	// have gone through and be visible here.
+	_, err = store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
+	assert.Nil(t, err, "the workflow must not be deleted when the run-store read fails")
+}
+
+// --- ServiceAccount SAR authorization tests ---
+
+func multiUserContext() context.Context {
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	return metadata.NewIncomingContext(context.Background(), md)
+}
+
+func initWithExperimentAndUnauthorizedSAR(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
+	require.Nil(t, err)
+	return store, manager, experiment
+}
+
+func TestCreateRun_ServiceAccountSAR_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+func TestCreateRun_ServiceAccountSAR_MultiUserAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperiment(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	run, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", run.ServiceAccount)
+}
+
+func TestCreateRun_ServiceAccountSAR_SingleUserSkipped(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	run, err := manager.CreateRun(context.Background(), apiRun)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", run.ServiceAccount)
+}
+
+func TestCreateRun_ServiceAccountSAR_DefaultSASkipped(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	}
+	run, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.Nil(t, err)
+	assert.Equal(t, common.DefaultPipelineRunnerServiceAccount, run.ServiceAccount)
+}
+
+func TestCreateJob_ServiceAccountSAR_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err := manager.CreateJob(multiUserContext(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+func TestCreateJob_ServiceAccountSAR_MultiUserAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperiment(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	createdJob, err := manager.CreateJob(multiUserContext(), job)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", createdJob.ServiceAccount)
+}
+
+func TestCreateJob_ServiceAccountSAR_SingleUserSkipped(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	createdJob, err := manager.CreateJob(context.Background(), job)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", createdJob.ServiceAccount)
+}
+
+func TestCreateJob_ServiceAccountSAR_DefaultSASkipped(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId: experiment.UUID,
+	}
+	createdJob, err := manager.CreateJob(multiUserContext(), job)
+	assert.Nil(t, err)
+	assert.NotNil(t, createdJob)
+}
+
+// --- V2 pipeline spec SAR tests ---
+
+func TestCreateRun_ServiceAccountSAR_V2Spec_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+func TestCreateJob_ServiceAccountSAR_V2Spec_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err := manager.CreateJob(multiUserContext(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+// --- Confused deputy: privileged SA name ---
+
+func TestCreateRun_ServiceAccountSAR_ConfusedDeputy_PrivilegedSA(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "ds-pipeline-dspa",
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestCreateJob_ServiceAccountSAR_ConfusedDeputy_PrivilegedSA(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "ds-pipeline-dspa",
+	}
+	_, err := manager.CreateJob(multiUserContext(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+// --- SAR ResourceAttributes verification ---
+
+type capturingSARClient struct {
+	lastReview *authzv1.SubjectAccessReview
+}
+
+func (c *capturingSARClient) Create(_ context.Context, sar *authzv1.SubjectAccessReview, _ v1.CreateOptions) (*authzv1.SubjectAccessReview, error) {
+	c.lastReview = sar
+	return &authzv1.SubjectAccessReview{Status: authzv1.SubjectAccessReviewStatus{Allowed: true}}, nil
+}
+
+func initWithExperimentAndCapturingSAR(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment, *capturingSARClient) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	capturingClient := &capturingSARClient{}
+	store.SubjectAccessReviewClientFake = capturingClient
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	apiExperiment := &model.Experiment{Name: "e1", Namespace: "ns1"}
+	experiment, err := manager.CreateExperiment(apiExperiment)
+	require.Nil(t, err)
+	return store, manager, experiment, capturingClient
+}
+
+func TestCreateRun_ServiceAccountSAR_CorrectResourceAttributes(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "my-special-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment, capturingClient := initWithExperimentAndCapturingSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "my-special-sa",
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.Nil(t, err)
+
+	require.NotNil(t, capturingClient.lastReview)
+	attrs := capturingClient.lastReview.Spec.ResourceAttributes
+	assert.Equal(t, common.RbacResourceVerbUse, attrs.Verb)
+	assert.Equal(t, "serviceaccounts", attrs.Resource)
+	assert.Equal(t, "my-special-sa", attrs.Name)
+	assert.Equal(t, "ns1", attrs.Namespace)
+}
+
+// --- CreateJob allowlist bypass tests ---
+
+func TestCreateJob_PipelineIdOnly_DisallowedSA_Rejected(t *testing.T) {
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.Nil(t, err)
+
+	p, _ := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+	pv := createPipelineVersion(
+		p.UUID, "p1/v1", "v1", "",
+		v2SpecHelloWorld,
+		"", "ns1",
+	)
+	_, err = manager.CreatePipelineVersion(pv)
+	require.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: p.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "disallowed-sa",
+	}
+	_, err = manager.CreateJob(context.Background(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestCreateJob_PipelineIdOnly_AllowedSA_Succeeds(t *testing.T) {
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.Nil(t, err)
+
+	p, _ := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+	pv := createPipelineVersion(p.UUID, "p1/v1", "v1", "", v2SpecHelloWorld, "", "ns1")
+	_, err = manager.CreatePipelineVersion(pv)
+	require.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: p.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	createdJob, err := manager.CreateJob(context.Background(), job)
+	require.Nil(t, err)
+	assert.Equal(t, "custom-sa", createdJob.ServiceAccount)
+}
+
+func TestCreateJob_PipelineIdOnly_SAR_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.Nil(t, err)
+
+	p, _ := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+	pv := createPipelineVersion(p.UUID, "p1/v1", "v1", "", v2SpecHelloWorld, "", "ns1")
+	_, err = manager.CreatePipelineVersion(pv)
+	require.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId: p.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err = manager.CreateJob(multiUserContext(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+func TestCreateJob_ServiceAccountSAR_CorrectResourceAttributes(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "my-special-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	_, manager, experiment, capturingClient := initWithExperimentAndCapturingSAR(t)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "my-special-sa",
+	}
+	_, err := manager.CreateJob(multiUserContext(), job)
+	require.Nil(t, err)
+
+	require.NotNil(t, capturingClient.lastReview)
+	attrs := capturingClient.lastReview.Spec.ResourceAttributes
+	assert.Equal(t, common.RbacResourceVerbUse, attrs.Verb)
+	assert.Equal(t, "serviceaccounts", attrs.Resource)
+	assert.Equal(t, "my-special-sa", attrs.Name)
+	assert.Equal(t, "ns1", attrs.Namespace)
+}
+
+func TestCreateRun_ServiceAccountSAR_DefaultSA_NotCalled(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment, capturingClient := initWithExperimentAndCapturingSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	}
+	run, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.Nil(t, err)
+	assert.Equal(t, common.DefaultPipelineRunnerServiceAccount, run.ServiceAccount)
+	assert.Nil(t, capturingClient.lastReview)
+}
+
+// --- PipelineVersionId path SA authorization ---
+
+func TestCreateJob_PipelineVersionId_SAR_MultiUserUnauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	initEnvVars()
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	store.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+
+	experiment, err := manager.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.Nil(t, err)
+
+	p, _ := manager.CreatePipeline(createPipeline("p1", "", "ns1"))
+	pv := createPipelineVersion(p.UUID, "p1/v1", "v1", "", v2SpecHelloWorld, "", "ns1")
+	version, err := manager.CreatePipelineVersion(pv)
+	require.Nil(t, err)
+
+	job := &model.Job{
+		DisplayName: "j1",
+		Enabled:     true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineVersionId: version.UUID,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"text\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err = manager.CreateJob(multiUserContext(), job)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Unauthorized")
+}
+
+// --- Unauthorized request must not create k8s resources ---
+
+func TestCreateRun_ServiceAccountSAR_Unauthorized_NoWorkflowCreated(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	viper.Set(common.AllowedServiceAccountsFlag, "custom-sa")
+	defer viper.Set(common.AllowedServiceAccountsFlag, "")
+
+	store, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId:   experiment.UUID,
+		ServiceAccount: "custom-sa",
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.NotNil(t, err)
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowCount(), "no Workflow CRD should be created when SA authorization fails")
+}
+
+// --- SA embedded in workflow spec ---
+
+func TestCreateRun_ServiceAccountSAR_EmbeddedSA_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	_, manager, experiment := initWithExperimentAndUnauthorizedSAR(t)
+
+	workflowWithEmbeddedSA := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta:   v1.TypeMeta{APIVersion: "argoproj.io/v1alpha1", Kind: "Workflow"},
+		ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "workflow1", Namespace: "ns1"},
+		Spec: v1alpha1.WorkflowSpec{
+			Entrypoint:         "testy",
+			ServiceAccountName: "evil-sa",
+			Templates: []v1alpha1.Template{{
+				Name: "testy",
+				Container: &corev1.Container{
+					Image:   "docker/whalesay",
+					Command: []string{"cowsay"},
+					Args:    []string{"hello world"},
+				},
+			}},
+			Arguments: v1alpha1.Arguments{Parameters: []v1alpha1.Parameter{{Name: "param1"}}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(workflowWithEmbeddedSA.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: experiment.UUID,
+	}
+	_, err := manager.CreateRun(multiUserContext(), apiRun)
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
 }

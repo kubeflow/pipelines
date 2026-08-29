@@ -704,6 +704,10 @@ func (r *ResourceManager) CreateRun(ctx context.Context, run *model.Run) (*model
 		executionSpec.SetCannonicalLabels(swf.Name, run.CreatedAtInSec, nextIndex)
 	}
 
+	if err := r.authorizeServiceAccount(ctx, executionSpec.ServiceAccount(), k8sNamespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run due to service account authorization error")
+	}
+
 	// Run plugin lifecycle hooks before workflow creation.
 	pendingRun := &apiserverPlugins.PendingRun{
 		RunID:             run.UUID,
@@ -1094,13 +1098,137 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
 	}
+
+	// If a previous retry claim has aged out, reconcile against Kubernetes
+	// before deciding anything: an expired claim is not necessarily an
+	// abandoned one. If the claim's workflow exists (the previous API server
+	// crashed after applying the mutation but before persisting), adopt it
+	// instead of launching a duplicate; only a definitive absence (NotFound,
+	// or a live workflow still carrying an older generation) authorizes the
+	// takeover below.
+	allowClaimTakeover := false
+	if run.State == model.RuntimeStatePending && run.RetryGeneration > 0 {
+		claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
+		if run.RetryClaimedAtInSec == 0 || claimAge > int64(retryClaimGracePeriod()/time.Second) {
+			liveWorkflow, readError := r.getWorkflowClient(namespace).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+			switch {
+			case readError == nil && liveWorkflow != nil &&
+				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == run.RetryGeneration:
+				// The previous retry was applied. Persist its current state
+				// and report success: the retry the user asked for is
+				// already running (or finished).
+				glog.Warningf("Run %s has an expired retry claim (generation %d) but its workflow is live; adopting it instead of retrying again", runId, run.RetryGeneration)
+				condition := string(liveWorkflow.ExecutionStatus().Condition())
+				run.Conditions = condition
+				run.State = model.RuntimeState(condition).ToV2()
+				run.FinishedAtInSec = liveWorkflow.ExecutionStatus().FinishedAt()
+				run.WorkflowRuntimeManifest = model.LargeText(liveWorkflow.ToStringForStore())
+				// The crashed retry may not have reached plugin
+				// notification, so adoption fires it (mirrors the normal
+				// retry path); delivery is documented as at-least-once and
+				// handlers deduplicate on (RunID, RetryGeneration).
+				if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
+					if pr, prErr := apiserverPlugins.ModelToPersistedRun(run, namespace); prErr == nil {
+						r.pluginDispatcher.OnRunRetry(ctx, pr)
+					}
+				}
+				run.PluginsOutputString = nil
+				if updateError := r.runStore.UpdateRun(run); updateError != nil {
+					return util.NewInternalServerError(updateError, "Failed to adopt in-flight retry for run %s", runId)
+				}
+				return nil
+			case readError != nil && !apierrors.IsNotFound(readError):
+				// Transient read: preserve the claim rather than risking a
+				// takeover that duplicates live work.
+				return util.NewUnavailableServerError(readError,
+					"Run %s has an expired retry claim but its workflow state could not be verified - try again later", runId)
+			default:
+				allowClaimTakeover = true
+			}
+		}
+	}
+
+	// Atomically claim via database-side CAS to prevent ReportWorkflowResource
+	// from overwriting with a stale terminal state. The returned claimGeneration
+	// acts as a unique fence token: UpdateRun checks it to reject stale reports,
+	// and RollbackRetryClaim checks it to prevent ABA rollback of a later retry.
+	originalState, originalConditions, originalFinishedAtInSec, claimGeneration, claimError := r.runStore.ClaimRunForRetry(runId, allowClaimTakeover)
+	if claimError != nil {
+		// Wrap (not re-classify) so NotFound / BadRequest from the claim
+		// reach the client as such instead of surfacing as HTTP 500.
+		return util.Wrapf(claimError,
+			"Failed to retry run %s: could not claim database row before workflow operation", runId)
+	}
+	// Update the in-memory run to reflect the claimed state.
+	run.FinishedAtInSec = 0
+	run.State = model.RuntimeStatePending
+	run.Conditions = string(model.RuntimeStatePending.ToV1())
+	run.RetryGeneration = claimGeneration
+	run.RetryClaimedAtInSec = r.time.Now().Unix()
+	// Stamp the claim token on the workflow so ReportWorkflowResource can
+	// distinguish reports about this retried workflow from stale snapshots
+	// of the pre-retry workflow, without comparing timestamps across clocks.
+	newExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+
 	if err = deletePods(ctx, r.k8sCoreClient, podsToDelete, namespace); err != nil {
+		// Pod deletion is a local operation that precedes any workflow mutation.
+		// Safe to rollback unconditionally — no external state was changed.
+		if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
+			glog.Errorf("Failed to rollback retry claim for run %s after pod deletion failure: %v", runId, rollbackError)
+		}
 		return util.NewInternalServerError(err, "Failed to retry run %s due to error cleaning up the failed pods from the previous attempt", runId)
 	}
 
+	// Capture the workflow name the retry operates on before newExecSpec is
+	// reassigned (it is nil on error). This is the name from the stored
+	// runtime manifest, which is the object updateOrCreateRetryWorkflow
+	// mutates; run.K8SName can diverge from it.
+	retryWorkflowName := newExecSpec.ExecutionName()
 	newExecSpec, err = r.updateOrCreateRetryWorkflow(ctx, namespace, runId, newExecSpec)
 	if err != nil {
-		return err
+		// Workflow reconciliation failed. Kubernetes timeouts and 5xx responses
+		// are ambiguous: the API server may have applied the running workflow
+		// even after the client exhausted retries. Re-read the live workflow
+		// to determine whether the mutation was applied.
+		workflowClient := r.getWorkflowClient(namespace)
+		liveWorkflow, readError := workflowClient.Get(ctx, retryWorkflowName, v1.GetOptions{})
+		switch {
+		case readError == nil && liveWorkflow != nil &&
+			reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) == claimGeneration:
+			// The mutation was applied despite the error: the live workflow
+			// carries this claim's generation (it may even be terminal
+			// already if the retry finished quickly). Adopt it and complete
+			// the retry instead of rolling back — a rollback here would
+			// restore a GC-eligible FinishedAtInSec under a live retried
+			// workflow and permit a duplicate retry.
+			glog.Warningf("Retry workflow for run %s returned error but the live workflow carries claim generation %d; adopting it. Original error: %v",
+				runId, claimGeneration, err)
+			newExecSpec = liveWorkflow
+		case readError == nil && liveWorkflow != nil && !liveWorkflow.ExecutionStatus().IsInFinalState():
+			// Workflow exists and is running — mutation was applied.
+			// Preserve the claimed row for reconciliation.
+			glog.Warningf("Retry workflow for run %s returned error but workflow is live (not terminal). "+
+				"Preserving claimed row for reconciliation. Original error: %v", runId, err)
+			return util.NewUnavailableServerError(err,
+				"Retry workflow for run %s returned error but workflow is live; claim preserved for reconciliation", runId)
+		case readError != nil && !apierrors.IsNotFound(readError):
+			// Ambiguous: GET itself failed with a transient error. The
+			// workflow may be running despite the read failure. Preserve
+			// the claimed row for reconciliation rather than risking
+			// rollback to a GC-eligible timestamp.
+			glog.Warningf("Retry workflow for run %s failed and live workflow read also failed; "+
+				"preserving claimed row for reconciliation. Workflow error: %v, read error: %v", runId, err, readError)
+			return util.NewUnavailableServerError(err,
+				"Retry workflow for run %s failed with ambiguous state; claim preserved for reconciliation", runId)
+		default:
+			// Workflow definitively absent (NotFound), or terminal without
+			// this claim's generation — a pre-retry leftover, so the
+			// mutation was provably not applied. Safe to rollback.
+			if rollbackError := r.runStore.RollbackRetryClaim(runId, originalState, originalConditions, originalFinishedAtInSec, claimGeneration); rollbackError != nil {
+				glog.Errorf("Failed to rollback retry claim for run %s after workflow reconciliation failure: %v", runId, rollbackError)
+			}
+			return err
+		}
 	}
 	// Notify plugins of retry
 	if run.PluginsOutputString != nil && *run.PluginsOutputString != "" {
@@ -1111,7 +1239,9 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 
 	condition := string(newExecSpec.ExecutionStatus().Condition())
 	run.Conditions = condition
-	run.FinishedAtInSec = 0
+	// 0 for a freshly resubmitted (running) workflow; the real finish time
+	// when the reconciliation path adopted an already-terminal retry.
+	run.FinishedAtInSec = newExecSpec.ExecutionStatus().FinishedAt()
 	run.WorkflowRuntimeManifest = model.LargeText(newExecSpec.ToStringForStore())
 	run.State = model.RuntimeState(condition).ToV2()
 	// OnRunRetry persists plugin output independently; leave PluginsOutput unchanged here.
@@ -1214,7 +1344,7 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 	}
 	err = r.readRunLogFromPod(ctx, namespace, nodeId, follow, dst)
 	if err != nil && r.logArchive != nil {
-		err = r.readRunLogFromArchive(string(run.WorkflowRuntimeManifest), nodeId, dst)
+		err = r.readRunLogFromArchive(ctx, string(run.WorkflowRuntimeManifest), nodeId, dst)
 		if err != nil {
 			return util.NewBadRequestError(err, "Failed to read logs for run %v", runId)
 		}
@@ -1251,30 +1381,30 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, namespace strin
 }
 
 // Fetches execution logs from a archived pod logs.
-func (r *ResourceManager) readRunLogFromArchive(workflowManifest string, nodeId string, dst io.Writer) error {
+func (r *ResourceManager) readRunLogFromArchive(ctx context.Context, workflowManifest string, nodeID string, dst io.Writer) error {
 	if workflowManifest == "" {
-		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeId)
+		return util.NewInternalServerError(util.NewInvalidInputError("Runtime workflow manifest cannot empty"), "Failed to read logs from archive %v due to empty runtime workflow manifest", nodeID)
 	}
 
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(workflowManifest))
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due error reading execution spec", nodeID)
 	}
 
-	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeId)
+	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeID)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v", nodeID)
 	}
 
-	logReader, err := r.objectStore.GetFileReader(context.TODO(), logPath)
+	logReader, err := r.objectStore.GetFileReader(ctx, logPath)
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error fetching the log file", nodeID)
 	}
 	defer logReader.Close()
 
 	err = r.logArchive.CopyLogFromArchiveReader(logReader, dst, archive.ExtractLogOptions{LogFormat: archive.LogFormatText, Timestamps: false})
 	if err != nil {
-		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from archive %v due to error copying the log file", nodeID)
 	}
 	return nil
 }
@@ -1399,13 +1529,14 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 			return nil, util.Wrap(err, "Failed to fetch a template with an invalid pipeline spec manifest")
 		}
 
-		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
-			err = v2Tmpl.ValidateJobInputs(job)
-		} else {
-			_, err = tmpl.ScheduledWorkflow(job)
-		}
+		validatedScheduledWorkflow, err := tmpl.ScheduledWorkflow(job)
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+		}
+		if v2Tmpl, ok := tmpl.(*template.V2Spec); ok {
+			if err = v2Tmpl.ValidateJobInputs(job); err != nil {
+				return nil, util.Wrap(err, "Failed to validate the input parameters on the latest pipeline version")
+			}
 		}
 
 		scheduledWorkflow, err = template.NewGenericScheduledWorkflow(job)
@@ -1421,10 +1552,19 @@ func (r *ResourceManager) CreateJob(ctx context.Context, job *model.Job) (*model
 		scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
 			Parameters: parameters, PipelineRoot: string(job.PipelineRoot),
 		}
+		scheduledWorkflow.Spec.ServiceAccount = validatedScheduledWorkflow.Spec.ServiceAccount
 	}
 
 	if tmpl != nil && util.IsV1PipelinesBlocked(k8sNamespace) && tmpl.GetTemplateType() == template.V1 {
 		return nil, util.NewInvalidInputError("Namespace %s is not allowed to run v1 pipelines. Please migrate to using KFP V2 pipelines.", k8sNamespace)
+	}
+
+	resolvedJobServiceAccount := scheduledWorkflow.Spec.ServiceAccount
+	if resolvedJobServiceAccount == "" {
+		resolvedJobServiceAccount = job.ServiceAccount
+	}
+	if err := r.authorizeServiceAccount(ctx, resolvedJobServiceAccount, k8sNamespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a recurring run due to service account authorization error")
 	}
 
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(k8sNamespace).Create(ctx, scheduledWorkflow)
@@ -1563,23 +1703,6 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 		return nil, util.NewInvalidInputError("Failed to report a workflow. Namespace is empty")
 	}
 
-	if execSpec.PersistedFinalState() {
-		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
-		if err != nil {
-			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
-			// report workflows that no longer exist. It's important to return a not found error, so that persistence
-			// agent won't retry again.
-			if util.IsNotFound(err) {
-				return nil, util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
-			} else {
-				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
-			}
-		}
-		if r.options.CollectMetrics {
-			workflowGCCounter.Inc()
-		}
-	}
 	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
 	// ignore its condition and mark it as such
 	state := model.RuntimeState(string(execStatus.Condition())).ToV2()
@@ -1601,6 +1724,81 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	}
 	// If run already exists, simply update it
 	run, updateError := r.GetRun(runId)
+	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
+		// Fail closed: a transient run-store read error must not skip the
+		// generation fence below and fall through into the
+		// persisted-final-state deletion - with an empty-resourceVersion
+		// stale snapshot that would delete the live retried workflow.
+		// NotFound keeps its dedicated recovery paths (workflow GC and the
+		// grace-period handling further down).
+		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
+	}
+	// Fence terminal reports from stale pre-retry workflow snapshots.
+	// A retried workflow carries the claim's RetryGeneration as an
+	// annotation; a snapshot taken before the retry carries an older
+	// generation (or none). Accepting such a report would restore the
+	// old FinishedAtInSec and make the run GC-eligible while the retry
+	// is still running. No timestamps are compared across clocks here.
+	// This fence runs before the persisted-final-state deletion below so a
+	// stale snapshot can neither overwrite the row nor delete the live
+	// workflow that a retry has since resubmitted under the same name.
+	if updateError == nil && run.RetryGeneration > 0 && execStatus.IsInFinalState() {
+		if reportedGeneration := reportedRetryGeneration(objMeta); reportedGeneration < run.RetryGeneration {
+			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
+			if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
+				// The retry is (or was moments ago) in flight; the retried
+				// workflow will report with the current generation. Skip
+				// this stale snapshot as a successful no-op so the
+				// persistence agent does not requeue it forever.
+				glog.Infof("Skipping stale terminal report for run %s: reported retry generation %d < claimed generation %d",
+					runId, reportedGeneration, run.RetryGeneration)
+				return execSpec, nil
+			}
+			// The claim has aged out, but age alone is not proof of
+			// abandonment (and the resource-version check above passes
+			// vacuously for reports without a resourceVersion). Never
+			// age-accept a lower generation while the claimed generation
+			// is live: consult the live workflow first.
+			liveWorkflow, readError := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
+			switch {
+			case readError == nil && liveWorkflow != nil &&
+				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) >= run.RetryGeneration:
+				glog.Infof("Skipping stale terminal report for run %s: live workflow carries generation %d",
+					runId, reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()))
+				return execSpec, nil
+			case readError != nil && !util.IsNotFound(readError):
+				return nil, util.NewUnavailableServerError(readError,
+					"Cannot verify live workflow before accepting a stale-generation report for run %s - will retry", runId)
+			}
+			// Definitive: no live workflow, or the live workflow still
+			// carries an older generation, so the claimed generation was
+			// never applied. Accept this report so the run returns to its
+			// last real state instead of staying PENDING forever.
+			glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and provably not applied",
+				reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
+		}
+	}
+	// Delete a fully persisted workflow only after the version check above:
+	// a stale snapshot carrying the persisted-final-state label must not
+	// delete the live workflow object that a retry has since resubmitted
+	// under the same name.
+	if execSpec.PersistedFinalState() {
+		// If workflow's final state has being persisted, the workflow should be garbage collected.
+		err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
+		if err != nil {
+			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
+			// report workflows that no longer exist. It's important to return a not found error, so that persistence
+			// agent won't retry again.
+			if util.IsNotFound(err) {
+				return nil, util.NewNotFoundError(err, "Failed to delete the completed workflow for run %s", runId)
+			} else {
+				return nil, util.NewInternalServerError(err, "Failed to delete the completed workflow for run %s", runId)
+			}
+		}
+		if r.options.CollectMetrics {
+			workflowGCCounter.Inc()
+		}
+	}
 	if updateError == nil {
 		run.State = state
 		run.Conditions = string(state.ToV1())
@@ -1821,6 +2019,32 @@ func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSp
 		execSpec.ExecutionName(),
 		reason,
 	)
+}
+
+// retryClaimGracePeriod bounds how long a retry claim without a matching
+// workflow write is trusted. RetryRun's claim-to-workflow-update window is
+// bounded by a handful of client-side retries (seconds), so a claim this old
+// with no workflow carrying its generation means the retry crashed mid-flight.
+// Shared with ClaimRunForRetry's abandoned-claim takeover so both recovery
+// paths age out together.
+func retryClaimGracePeriod() time.Duration {
+	return time.Duration(storage.RetryClaimGraceSeconds) * time.Second
+}
+
+// reportedRetryGeneration extracts the retry-generation annotation stamped by
+// RetryRun. Workflows created before any retry (or before this annotation
+// existed) return 0.
+func reportedRetryGeneration(objMeta *v1.ObjectMeta) int64 {
+	raw, ok := objMeta.Annotations[util.AnnotationKeyRetryGeneration]
+	if !ok {
+		return 0
+	}
+	generation, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		glog.Warningf("Ignoring malformed %s annotation %q", util.AnnotationKeyRetryGeneration, raw)
+		return 0
+	}
+	return generation
 }
 
 func (r *ResourceManager) workflowStillMatchesReportedVersion(ctx context.Context, execSpec util.ExecutionSpec) (bool, error) {
@@ -2581,4 +2805,23 @@ func (r *ResourceManager) GetTask(taskId string) (*model.Task, error) {
 		return nil, util.Wrapf(err, "Failed to fetch task %v", taskId)
 	}
 	return task, nil
+}
+
+func (r *ResourceManager) authorizeServiceAccount(ctx context.Context, serviceAccount, namespace string) error {
+	if serviceAccount == "" {
+		return nil
+	}
+	if err := common.ValidateServiceAccountAllowList(serviceAccount); err != nil {
+		return util.NewInvalidInputError("%s", err)
+	}
+	defaultServiceAccount := common.GetStringConfigWithDefault(common.DefaultPipelineRunnerServiceAccountFlag, common.DefaultPipelineRunnerServiceAccount)
+	if serviceAccount == defaultServiceAccount {
+		return nil
+	}
+	return r.IsAuthorized(ctx, &authorizationv1.ResourceAttributes{
+		Verb:      common.RbacResourceVerbUse,
+		Namespace: namespace,
+		Resource:  "serviceaccounts",
+		Name:      serviceAccount,
+	})
 }

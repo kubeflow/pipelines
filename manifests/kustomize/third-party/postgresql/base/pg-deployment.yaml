@@ -17,7 +17,7 @@ spec:
     spec:
       serviceAccountName: postgresql
       containers:
-        - image: postgres:14.7-alpine3.17
+        - image: postgres:16.1-alpine3.17
           name: postgres
           env:
             - name: POSTGRES_DB

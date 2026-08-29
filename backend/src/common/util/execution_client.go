@@ -54,8 +54,8 @@ type ExecutionInformer interface {
 	// Use Lister interface to get a specific ExecutionSpec under a namespace
 	// second return value indicates if no ExecutionSpec is found
 	Get(namespace string, name string) (ExecutionSpec, bool, error)
-	// List all ExecutionSpecs that match the label selector
-	List(labels *labels.Selector) (ExecutionSpecList, error)
+	// List all ExecutionSpecs in the given namespace that match the label selector
+	List(namespace string, labels *labels.Selector) (ExecutionSpecList, error)
 	// Start initializes the informer.
 	InformerFactoryStart(stopCh <-chan struct{})
 }

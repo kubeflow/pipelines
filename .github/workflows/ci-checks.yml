@@ -62,7 +62,7 @@ jobs:
       - name: Wait for action_required workflow runs to be approved
         id: approval_gate
         if: steps.eligibility.outputs.should_poll == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           retries: 3
           script: |
@@ -109,7 +109,7 @@ jobs:
       - name: Check if all CI checks passed
         id: poll
         if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success'
-        uses: wechuli/allcheckspassed@204ff63e89eabdc8086f0c50b91f675bcf37c8f6
+        uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
         with:
           delay: '5'
           retries: '10'

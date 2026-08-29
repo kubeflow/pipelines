@@ -1,7 +1,17 @@
-# Ignore backend generated client libraries
-backend/api/go_client/* linguist-generated
-backend/api/go_http_client/* linguist-generated
-backend/api/swagger/* linguist-generated
+# Ignore committed generator outputs.
+api/v2alpha1/go/** linguist-generated
+backend/api/v1beta1/go_client/** linguist-generated
+backend/api/v1beta1/go_http_client/** linguist-generated
+backend/api/v1beta1/python_http_client/** linguist-generated
+backend/api/v1beta1/swagger/** linguist-generated
+backend/api/v1beta1/swagger/pipeline.upload.swagger.json -linguist-generated
+backend/api/v2beta1/go_client/** linguist-generated
+backend/api/v2beta1/go_http_client/** linguist-generated
+backend/api/v2beta1/python_http_client/** linguist-generated
+backend/api/v2beta1/swagger/** linguist-generated
+backend/api/v2beta1/swagger/pipeline.upload.swagger.json -linguist-generated
+kubernetes_platform/go/** linguist-generated
+kubernetes_platform/python/kfp/kubernetes/kubernetes_executor_config_pb2.py linguist-generated
 
 # Ignore go.sum
 go.sum linguist-generated
@@ -13,3 +23,5 @@ frontend/test/package-lock.json linguist-generated
 
 # Ignore generated TS client library
 frontend/src/apis/* linguist-generated
+
+.github/workflows/*.lock.yml linguist-generated=true

@@ -10,7 +10,7 @@
     "express": "^5.1.0",
     "form-data": "^2.5.6",
     "google-auth-library": "^7.14.1",
-    "google-protobuf": "^3.17.3",
+    "google-protobuf": "^4.0.2",
     "gunzip-maybe": "^1.4.1",
     "http-proxy-middleware": "^2.0.10",
     "js-yaml": "^4.3.0",
@@ -30,7 +30,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "prettier": "^3.8.1",
     "supertest": "^4.0.2",
-    "typescript": "^4.9.5",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
   "overrides": {

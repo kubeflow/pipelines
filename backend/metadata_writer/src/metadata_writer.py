@@ -234,14 +234,14 @@ while True:
                     run_id=argo_workflow_name, # We can switch to internal run IDs once backend starts adding them
                 )
 
-                # Saving input paramater arguments
+                # Saving input parameter arguments
                 execution_custom_properties = {}
                 if KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY in obj.metadata.annotations:
                     parameter_arguments_json = obj.metadata.annotations[KFP_PARAMETER_ARGUMENTS_ANNOTATION_KEY]
                     try:
                         parameter_arguments = json.loads(parameter_arguments_json)
-                        for paramater_name, parameter_value in parameter_arguments.items():
-                            execution_custom_properties['input:' + paramater_name] = parameter_value
+                        for parameter_name, parameter_value in parameter_arguments.items():
+                            execution_custom_properties['input:' + parameter_name] = parameter_value
                     except Exception:
                         pass
 

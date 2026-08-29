@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
@@ -121,6 +122,12 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 	err = requestCtx.Client.UpdateRun(ctx, resolvedRunID, resolvedStatus, &runEndTime)
 	if err != nil {
 		return fmt.Errorf("failed to update MLflow run: %v", err)
+	}
+
+	// close still-open direct child runs whose own OnTaskEnd
+	// didn't get to run (e.g. a crashed pod).
+	if childCloseErrs := commonmlflow.CloseOpenChildRuns(ctx, requestCtx.Client, h.runtimeCfg.ExperimentID, resolvedRunID, resolvedStatus, &runEndTime, nil); len(childCloseErrs) > 0 {
+		glog.Warningf("failed to close some MLflow child runs of %s: %s", resolvedRunID, strings.Join(childCloseErrs, "; "))
 	}
 
 	return nil

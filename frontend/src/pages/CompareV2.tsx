@@ -583,15 +583,28 @@ function CompareV2(props: CompareV2Props) {
     [selectedArtifactsMap, metricsArtifactData],
   );
 
-  useEffect(() => {
-    setRocCurveSelection((currentSelection) =>
+  const visibleRocCurveSelection = useMemo(
+    () =>
       reconcileRocCurveSelectionState(
-        currentSelection,
+        rocCurveSelection,
         rocCurveData.rocCurveLinkedArtifacts,
         rocCurveData.validRocCurveIdSet,
       ),
+    [rocCurveData, rocCurveSelection],
+  );
+  const updateRocCurveSelection = (
+    updateSelection: (currentSelection: RocCurveSelectionState) => RocCurveSelectionState,
+  ) => {
+    setRocCurveSelection((currentSelection) =>
+      updateSelection(
+        reconcileRocCurveSelectionState(
+          currentSelection,
+          rocCurveData.rocCurveLinkedArtifacts,
+          rocCurveData.validRocCurveIdSet,
+        ),
+      ),
     );
-  }, [rocCurveData]);
+  };
 
   const scalarMetricsTableData = metricsArtifactData?.scalarMetricsTableData;
   const confusionMatrixRunArtifacts = metricsArtifactData?.confusionMatrixRunArtifacts || [];
@@ -793,24 +806,24 @@ function CompareV2(props: CompareV2Props) {
                   <RocCurveMetrics
                     linkedArtifacts={rocCurveLinkedArtifacts}
                     filter={{
-                      selectedIds: rocCurveSelection.selectedIds,
+                      selectedIds: visibleRocCurveSelection.selectedIds,
                       setSelectedIds: (selectedIds) =>
-                        setRocCurveSelection((currentSelection) => ({
+                        updateRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
                           hasInitialized: true,
                           selectedIds,
                         })),
                       fullArtifactPathMap,
-                      selectedIdColorMap: rocCurveSelection.selectedIdColorMap,
+                      selectedIdColorMap: visibleRocCurveSelection.selectedIdColorMap,
                       setSelectedIdColorMap: (selectedIdColorMap) =>
-                        setRocCurveSelection((currentSelection) => ({
+                        updateRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
                           hasInitialized: true,
                           selectedIdColorMap,
                         })),
-                      lineColorsStack: rocCurveSelection.lineColorsStack,
+                      lineColorsStack: visibleRocCurveSelection.lineColorsStack,
                       setLineColorsStack: (lineColorsStack) =>
-                        setRocCurveSelection((currentSelection) => ({
+                        updateRocCurveSelection((currentSelection) => ({
                           ...currentSelection,
                           hasInitialized: true,
                           lineColorsStack,

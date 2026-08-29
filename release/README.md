@@ -141,3 +141,7 @@ run sync-master
 run confirm-website-and-slack
 run watch-publish-images
 ```
+
+For the KFP 3.0 release, the `confirm-website-and-slack` checkpoint also requires the Kubeflow
+website installation and upgrade documentation to announce that Argo Workflows 3.x is unsupported,
+and requires the GitHub release notes to identify that removal as a breaking change.

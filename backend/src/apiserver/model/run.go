@@ -329,6 +329,22 @@ type RunDetails struct {
 	PipelineContextId int64 `gorm:"column:PipelineContextId; default:0;"`
 	// nolint:staticcheck // [ST1003] Field name matches upstream legacy naming
 	PipelineRunContextId int64 `gorm:"column:PipelineRunContextId; default:0;"`
+	// RetryGeneration is incremented by ClaimRunForRetry to fence stale
+	// workflow reporters. UpdateRun checks this value to reject terminal
+	// state writes from reporters that passed version checks before the claim.
+	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
+	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
+	// claimed this row. It is a liveness signal only, never a correctness
+	// fence: ReportWorkflowResource uses it to detect a claim orphaned by a
+	// crash between claiming the row and updating the workflow. Both the
+	// write and the read happen on the API server's clock.
+	RetryClaimedAtInSec int64 `gorm:"column:RetryClaimedAtInSec; default:0;"`
+	// ArchivedAtInSec records the epoch second when this run entered the
+	// ARCHIVED storage state (via user action or the GC archive pass).
+	// The GC delete pass measures ARCHIVED_RUNS_RETENTION_TIME from this
+	// value; rows archived before this column existed carry 0 and fall back
+	// to FinishedAtInSec.
+	ArchivedAtInSec int64 `gorm:"column:ArchivedAtInSec; default:0;"`
 	// Add gorm:"-" so that GORM ignores TaskDetails when generating schema.
 	// This avoids GORM auto-detecting the circular relationship (RunDetails <--> Tasks) and blocking the FK on tasks.RunUUID → run_details.UUID.
 	TaskDetails []*Task `gorm:"-"`
