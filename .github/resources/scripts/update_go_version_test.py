@@ -160,6 +160,23 @@ class UpdateGoVersionTest(unittest.TestCase):
             'toolchain go1.28.3// compiler version\n', expected)
         self.assertEqual(expected.count('toolchain '), 1)
 
+    def test_preserves_backslashes_in_go_directive_comments(self):
+        root = self.repo_root / 'go.mod'
+        comment = r'// paths C:\qtoolchains and D:\toolchains'
+        root.write_text(
+            f'module example.com/root\n\ngo 1.28.0 {comment}\n',
+            encoding='utf-8',
+        )
+
+        expected = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )[Path('go.mod')]
+
+        self.assertIn(f'go 1.28.0 {comment}\n', expected)
+
     def test_rejects_bare_toolchain_directive(self):
         nested = self.repo_root / 'nested/go.mod'
         nested.write_text('module example.com/nested\n\ngo 1.28.0\n\ntoolchain\n',
@@ -318,7 +335,9 @@ class UpdateGoVersionTest(unittest.TestCase):
         for contents in ('container: golang\n',
                          'image: docker.io/library/golang # latest\n',
                          '  - image: "golang" # builder\n',
-                         'container: { image: golang }\n'):
+                         'container: { image: golang }\n',
+                         'container: {"image":"golang"}\n',
+                         'container: {options: "", "image":"golang"}\n'):
             with self.subTest(contents=contents):
                 path.write_text(contents, encoding='utf-8')
                 with self.assertRaisesRegex(ValueError,
@@ -329,6 +348,18 @@ class UpdateGoVersionTest(unittest.TestCase):
                         digest_resolver=lambda _tag: OLD_DIGEST,
                         repository_paths=repository_paths,
                     )
+
+    def test_runtime_detection_ignores_comments_and_command_strings(self):
+        for contents in (
+                '# golang:latest',
+                '# https://go.dev/dl/go1.28.0.linux-amd64.tar.gz',
+                'run: echo \'{"image":"golang"}\'',
+        ):
+            with self.subTest(contents=contents):
+                self.assertNotRegex(
+                    contents,
+                    update_go_version.GO_RUNTIME_REFERENCE_PATTERN,
+                )
 
     def test_verifies_each_distinct_builder_tag_once(self):
         calls = []

@@ -54,12 +54,18 @@ GO_IMAGE_PATTERN = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 GO_RUNTIME_REFERENCE_PATTERN = re.compile(
-    r'(?:\bgolang(?=[:@])|'
-    r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
-    r"(?:^[ \t]*(?:-[ \t]+)?|[{,][ \t]*)(?:container|image):[ \t]+"
-    r"(?P<quote>['\"]?)(?:[^\s'\"{},]+/)?golang(?P=quote)"
+    r'^(?![ \t]*#)(?:[^\r\n]*\bgolang(?=[:@])|'
+    r'[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r"(?:[ \t]*(?:-[ \t]+)?|[ \t]*(?:-[ \t]*)?\{[ \t]*"
+    r"(?:[^#\r\n}]*,[ \t]*)?|"
+    r"[ \t]*(?:-[ \t]+)?(?:container|'container'|\"container\")"
+    r"[ \t]*:[ \t]*\{[ \t]*(?:[^#\r\n}]*,[ \t]*)?)"
+    r"(?:container|image|'container'|'image'|\"container\"|\"image\")"
+    r"[ \t]*:[ \t]*(?P<value_quote>['\"]?)"
+    r"(?:[^\s'\"{},]+/)?golang(?P=value_quote)"
     r'(?=[ \t]*(?:[,}#]|$))|'
-    r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
+    r'[^\r\n]*(?:dl\.google\.com/go/|go\.dev/dl/)go)',
+    re.IGNORECASE | re.MULTILINE)
 
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
 DIGEST_LOOKUP_ATTEMPTS = 3
@@ -153,7 +159,10 @@ def _updated_module_contents(contents: str, relative_path: Path,
                       (target[0], target[1], 0))
     language_version = '.'.join(str(part) for part in language_floor)
     updated = GO_DIRECTIVE_PATTERN.sub(
-        f'go {language_version}{go_comment}', contents, count=1)
+        lambda _match: f'go {language_version}{go_comment}',
+        contents,
+        count=1,
+    )
     updated = TOOLCHAIN_LINE_PATTERN.sub('', updated)
     if target[2] != 0:
         target_version = '.'.join(str(part) for part in target)

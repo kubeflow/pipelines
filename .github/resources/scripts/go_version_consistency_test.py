@@ -57,16 +57,24 @@ GO_IMAGE_PATTERN = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 GO_RUNTIME_REFERENCE_PATTERN = re.compile(
-    r'(?:\bgolang(?=[:@])|'
-    r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
-    r"(?:^[ \t]*(?:-[ \t]+)?|[{,][ \t]*)(?:container|image):[ \t]+"
-    r"(?P<quote>['\"]?)(?:[^\s'\"{},]+/)?golang(?P=quote)"
+    r'^(?![ \t]*#)(?:[^\r\n]*\bgolang(?=[:@])|'
+    r'[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
+    r"(?:[ \t]*(?:-[ \t]+)?|[ \t]*(?:-[ \t]*)?\{[ \t]*"
+    r"(?:[^#\r\n}]*,[ \t]*)?|"
+    r"[ \t]*(?:-[ \t]+)?(?:container|'container'|\"container\")"
+    r"[ \t]*:[ \t]*\{[ \t]*(?:[^#\r\n}]*,[ \t]*)?)"
+    r"(?:container|image|'container'|'image'|\"container\"|\"image\")"
+    r"[ \t]*:[ \t]*(?P<value_quote>['\"]?)"
+    r"(?:[^\s'\"{},]+/)?golang(?P=value_quote)"
     r'(?=[ \t]*(?:[,}#]|$))|'
-    r'(?:dl\.google\.com/go/|go\.dev/dl/)go)', re.IGNORECASE | re.MULTILINE)
+    r'[^\r\n]*(?:dl\.google\.com/go/|go\.dev/dl/)go)',
+    re.IGNORECASE | re.MULTILINE)
 SETUP_GO_USE_PATTERN = re.compile(
-    r'(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]+(?P<quote>[\'\"]?)'
-    r'actions/setup-go@[^#\s\'\"]+(?P=quote)'
-    r'(?:[ \t]+#[^\r\n]*)?[ \t]*$')
+    r'(?m)^[ \t]*(?!#)(?:(?:-[ \t]+)?|-[ \t]*\{[ \t]*'
+    r'(?:[^#\r\n}]*,[ \t]*)?)'
+    r'(?:uses|\'uses\'|"uses")[ \t]*:[ \t]*'
+    r'(?P<value_quote>[\'\"]?)actions/setup-go@[^,#}\s\'\"]+'
+    r'(?P=value_quote)(?=[ \t]*(?:[,}#]|$))')
 PRECOMMIT_CHECK_PATTERN = re.compile(
     r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
     r'check-go-version[ \t]*$')
@@ -273,6 +281,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
                           'image: docker.io/library/golang',
                           '  - image: "golang" # builder',
                           'container: { image: golang }',
+                          'container: {"image":"golang"}',
                           'FROM golang:latest',
                           'FROM golang:${GO_VERSION}',
                           'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
@@ -283,17 +292,37 @@ class GoVersionConsistencyTest(unittest.TestCase):
             with self.subTest(non_runtime_reference=non_runtime_reference):
                 self.assertNotRegex(non_runtime_reference,
                                     GO_RUNTIME_REFERENCE_PATTERN)
+        for commented_reference in (
+                '# golang:latest',
+                '  # image: golang:latest',
+                '# https://go.dev/dl/go1.27.0.linux-amd64.tar.gz',
+                'run: echo \'{"image":"golang"}\'',
+        ):
+            with self.subTest(commented_reference=commented_reference):
+                self.assertNotRegex(commented_reference,
+                                    GO_RUNTIME_REFERENCE_PATTERN)
 
     def test_setup_go_detection_supports_workflow_list_items(self):
         for step in ('      uses: actions/setup-go@v7',
                      '    - uses: actions/setup-go@v7',
                      '    - uses: actions/setup-go@abc123 # v7',
                      "    - uses: 'actions/setup-go@abc123' # v7",
-                     '    - uses: "actions/setup-go@abc123" # v7'):
+                     '    - uses: "actions/setup-go@abc123" # v7',
+                     '    - {uses: actions/setup-go@abc123, name: Go}',
+                     '    - {"uses":"actions/setup-go@abc123","name":"Go"}',
+                     '    - {name: Go, "uses":"actions/setup-go@abc123"}'):
             with self.subTest(step=step):
                 self.assertRegex(step, SETUP_GO_USE_PATTERN)
         self.assertNotRegex('    # - uses: actions/setup-go@v7',
                             SETUP_GO_USE_PATTERN)
+        self.assertNotRegex(
+            '    # - {"uses":"actions/setup-go@v7"}',
+            SETUP_GO_USE_PATTERN,
+        )
+        self.assertNotRegex(
+            '    run: echo \'{"uses":"actions/setup-go@v7"}\'',
+            SETUP_GO_USE_PATTERN,
+        )
 
     def test_setup_go_actions_use_root_module_version(self):
         for relative_path in GO_SETUP_ACTIONS:
