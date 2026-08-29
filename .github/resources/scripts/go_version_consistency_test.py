@@ -41,13 +41,13 @@ PRECOMMIT_WORKFLOW = Path('.github/workflows/pre-commit.yml')
 
 GO_DIRECTIVE_PATTERN = re.compile(r'^go (\d+\.\d+(?:\.\d+)?)$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(r'^toolchain go(\d+\.\d+\.\d+)$', re.MULTILINE)
+TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(r'^toolchain\s+(.+)$', re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
     r'^FROM\s+(golang:(\d+\.\d+\.\d+)(-[^@\s]+)?'
     r'@sha256:[0-9a-f]{64})\s+AS\s+\w+',
     re.IGNORECASE | re.MULTILINE,
 )
-GO_RUNTIME_PIN_PATTERN = re.compile(
-    r'(?:golang:|dl\.google\.com/go/go)(\d+\.\d+(?:\.\d+)?)')
+GO_RUNTIME_REFERENCE_PATTERN = re.compile(r'(?:golang:|dl\.google\.com/go/go)')
 SETUP_GO_USE_PATTERN = re.compile(
     r'(?m)^\s*uses:\s+actions/setup-go@[^\s]+\s*$')
 
@@ -81,20 +81,28 @@ def _go_module_paths():
         if path.name == 'go.mod' and (REPOSITORY_ROOT / path).exists())
 
 
-def _module_versions(relative_path):
-    contents = _read(relative_path)
+def _module_versions_from_contents(contents, relative_path):
     go_directives = GO_DIRECTIVE_PATTERN.findall(contents)
     if len(go_directives) != 1:
         raise ValueError(
             f'{relative_path} must contain exactly one go directive, found '
             f'{go_directives}')
+    toolchain_directives = TOOLCHAIN_DIRECTIVE_PATTERN.findall(contents)
     toolchains = TOOLCHAIN_PATTERN.findall(contents)
-    if len(toolchains) > 1:
+    if len(toolchain_directives) > 1:
         raise ValueError(
             f'{relative_path} must contain at most one toolchain directive, '
-            f'found {toolchains}')
+            f'found {toolchain_directives}')
+    if len(toolchains) != len(toolchain_directives):
+        raise ValueError(
+            f'{relative_path} contains an invalid toolchain directive: '
+            f'{toolchain_directives}')
     return _parse_version(go_directives[0]), (
         _parse_version(toolchains[0]) if toolchains else None)
+
+
+def _module_versions(relative_path):
+    return _module_versions_from_contents(_read(relative_path), relative_path)
 
 
 class GoVersionConsistencyTest(unittest.TestCase):
@@ -136,6 +144,16 @@ class GoVersionConsistencyTest(unittest.TestCase):
                         f'{relative_path} toolchain directive must match '
                         'go.mod',
                     )
+
+    def test_malformed_toolchain_directives_are_rejected(self):
+        for directive in ('toolchain go1.27', 'toolchain default',
+                          'toolchain go1.27.1 extra'):
+            with self.subTest(directive=directive):
+                contents = f'module example.com/test\n\ngo 1.27.0\n\n{directive}\n'
+                with self.assertRaisesRegex(ValueError,
+                                            'invalid toolchain directive'):
+                    _module_versions_from_contents(contents,
+                                                   Path('test/go.mod'))
 
     def test_all_go_builder_images_match_root_effective_go_version(self):
         discovered = set()
@@ -190,7 +208,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
             path = REPOSITORY_ROOT / relative_path
             if not path.exists():
                 continue
-            if GO_RUNTIME_PIN_PATTERN.search(
+            if GO_RUNTIME_REFERENCE_PATTERN.search(
                     path.read_text(encoding='utf-8', errors='ignore')):
                 discovered.add(relative_path)
 
@@ -200,6 +218,13 @@ class GoVersionConsistencyTest(unittest.TestCase):
             'all Go runtime pins must be managed builder images; remove stale '
             'pins or add an intentional image to GO_DOCKERFILES',
         )
+
+    def test_go_runtime_reference_detection_is_tag_agnostic(self):
+        for reference in ('FROM golang:latest',
+                          'FROM golang:${GO_VERSION}',
+                          'https://dl.google.com/go/go${GO_VERSION}.tar.gz'):
+            with self.subTest(reference=reference):
+                self.assertRegex(reference, GO_RUNTIME_REFERENCE_PATTERN)
 
     def test_setup_go_actions_use_root_module_version(self):
         for relative_path in GO_SETUP_ACTIONS:
