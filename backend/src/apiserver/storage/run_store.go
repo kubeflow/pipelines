@@ -1553,6 +1553,9 @@ func (s *RunStore) TerminateRun(runId string) error {
 			model.RuntimeStatePaused,
 			model.RuntimeStatePending,
 			model.RuntimeStateRunning,
+			// ResourceManager persists CANCELING before patching the workflow,
+			// so retries must remain eligible if that patch did not complete.
+			model.RuntimeStateCancelling,
 			model.RuntimeStateUnspecified,
 		)).
 		ToSql()

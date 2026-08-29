@@ -1316,7 +1316,7 @@ func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
 func TestTerminateRun_RejectsLegacyTerminalRun(t *testing.T) {
 	// A legacy row that already finished must stay unterminable; matching the
 	// Conditions column must not widen which states can be canceled.
-	for _, conditions := range []string{"Succeeded", "Failed", "Skipped"} {
+	for _, conditions := range []string{"Succeeded", "Failed", "Skipped", "Disabled"} {
 		t.Run(conditions, func(t *testing.T) {
 			db, runStore := initializeRunStore()
 			defer db.Close()

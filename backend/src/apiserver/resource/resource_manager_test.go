@@ -4097,6 +4097,16 @@ func TestReportWorkflowResource_RejectsTerminationRacingWithWorkflowUpdate(t *te
 	assert.Equal(t, "Terminating", persistedRun.Conditions)
 	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
 	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+
+	// The hook models a termination attempt that committed CANCELING but exited
+	// before patching the workflow. A retry must still apply that patch.
+	require.NoError(t, manager.TerminateRun(context.Background(), run.UUID))
+	isTerminated, err := store.ExecClientFake.IsTerminated(run.K8SName)
+	require.NoError(t, err)
+	assert.True(t, isTerminated)
+	persistedRun, err = manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 }
 
 func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T) {
