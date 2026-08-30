@@ -28,6 +28,9 @@ IMG_TAG_WEBHOOK_PROXY     ?= domain.local/kfp/webhook-proxy:latest
 
 
 MYSQL_WAIT_TIMEOUT ?= 10m
+CERT_MANAGER_WAIT_TIMEOUT ?= 300s
+METADATA_GRPC_WAIT_TIMEOUT ?= 3m
+ML_PIPELINE_WAIT_TIMEOUT ?= 3m
 
 # Whenever build command for any of the binaries change, we should update them both here and in backend/Dockerfiles.
 
@@ -79,8 +82,8 @@ image_launcher:
 .PHONY: install-cert-manager
 install-cert-manager:
 	kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/$(CERT_MANAGER_VERSION)/cert-manager.yaml
-	kubectl wait deployment -n cert-manager cert-manager --for condition=Available=True --timeout=180s
-	kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=180s
+	kubectl wait deployment -n cert-manager cert-manager --for condition=Available=True --timeout=$(CERT_MANAGER_WAIT_TIMEOUT)
+	kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=$(CERT_MANAGER_WAIT_TIMEOUT)
 
 # Creates a Kind cluster and Deploys a standalone KFP instance
 # In the Kubeflow namespace.
@@ -103,8 +106,8 @@ kind-cluster-agnostic:
     		kubectl apply -k $(CURDIR)/../manifests/kustomize/env/platform-agnostic; \
      fi
 	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/ml-pipeline
+	kubectl -n kubeflow wait --for condition=Available --timeout=$(METADATA_GRPC_WAIT_TIMEOUT) deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=$(ML_PIPELINE_WAIT_TIMEOUT) deployment/ml-pipeline
 	# Switch to Kubeflow namespace context
 	kubectl config set-context --current --namespace=kubeflow
 
@@ -129,8 +132,8 @@ dev-kind-cluster:
 	kubectl wait --for condition=established --timeout=1m crd/applications.app.k8s.io
 	kubectl apply -k $(CURDIR)/../manifests/kustomize/env/dev-kind
 	kubectl apply -f $(CURDIR)/../tools/kind/webhook-proxy.yaml
-	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/mysql
-	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
+	kubectl -n kubeflow wait --for condition=Available --timeout=$(MYSQL_WAIT_TIMEOUT) deployment/mysql
+	kubectl -n kubeflow wait --for condition=Available --timeout=$(METADATA_GRPC_WAIT_TIMEOUT) deployment/metadata-grpc-deployment
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:

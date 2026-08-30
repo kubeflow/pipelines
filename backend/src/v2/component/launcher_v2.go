@@ -422,7 +422,7 @@ func executeV2(
 	// Add parameter default values to executorInput, if there is not already a user input.
 	// This process is done in the launcher because we let the component resolve default values internally.
 	// Variable executorInputWithDefault is a copy so we don't alter the original data.
-	executorInputWithDefault, err := addDefaultParams(executorInput, component)
+	executorInputWithDefault, err := AddDefaultParams(executorInput, component)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1306,11 +1306,15 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	return nil
 }
 
-// Adds default parameter values if there is no user provided value
-func addDefaultParams(
+// AddDefaultParams returns a copy of executorInput with component parameter
+// defaults populated for inputs that have no user-provided value.
+func AddDefaultParams(
 	executorInput *pipelinespec.ExecutorInput,
 	component *pipelinespec.ComponentSpec,
 ) (*pipelinespec.ExecutorInput, error) {
+	if executorInput == nil {
+		executorInput = &pipelinespec.ExecutorInput{}
+	}
 	// Make a deep copy so we don't alter the original data
 	executorInputWithDefaultMsg := proto.Clone(executorInput)
 	executorInputWithDefault, ok := executorInputWithDefaultMsg.(*pipelinespec.ExecutorInput)
@@ -1318,6 +1322,9 @@ func addDefaultParams(
 		return nil, fmt.Errorf("bug: cloned executor input message does not have expected type")
 	}
 
+	if executorInputWithDefault.GetInputs() == nil {
+		executorInputWithDefault.Inputs = &pipelinespec.ExecutorInput_Inputs{}
+	}
 	if executorInputWithDefault.GetInputs().GetParameterValues() == nil {
 		executorInputWithDefault.Inputs.ParameterValues = make(map[string]*structpb.Value)
 	}
