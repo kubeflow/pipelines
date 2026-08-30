@@ -53,7 +53,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             Path('Dockerfile'):
                 f'FROM golang:1.28.0@{OLD_DIGEST} AS builder\n',
             Path('service/Dockerfile'):
-                f'FROM golang:1.28.0-alpine@{OLD_DIGEST} as builder\n',
+                f'FROM golang:1.28.0-alpine@{OLD_DIGEST} AS builder\n',
             Path('another/Dockerfile.worker'):
                 f'FROM golang:1.28.0-alpine@{OLD_DIGEST} AS builder\n',
             Path('bookworm/Dockerfile'):
@@ -912,6 +912,37 @@ updater.sync(
         # Recovery promises Git's executable mode, not preservation of every
         # group/other POSIX permission bit.
         self.assertTrue(dockerfile.stat().st_mode & stat.S_IXUSR)
+
+    def test_filemode_false_uses_index_mode_for_detached_plan(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.chmod(0o755)
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'executable Dockerfile')
+        self._git('config', 'core.fileMode', 'false')
+        dockerfile.chmod(0o645)
+
+        self.assertEqual(
+            self._git('status', '--porcelain=v1', '--',
+                      'Dockerfile').stdout, '')
+        self.assertTrue(
+            self._git('ls-files', '--stage', '--',
+                      'Dockerfile').stdout.startswith('100755 '))
+
+        changed = update_go_version.sync(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )
+
+        self.assertEqual(set(changed), set(self.files))
+        self.assertIn('golang:1.28.3',
+                      dockerfile.read_text(encoding='utf-8'))
+        self.assertTrue(
+            self._git('ls-files', '--stage', '--',
+                      'Dockerfile').stdout.startswith('100755 '))
 
     def test_truncated_path_restore_patch_preserves_then_recovers(self):
         root = self.repo_root / 'go.mod'

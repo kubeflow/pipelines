@@ -31,6 +31,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"golang.org/x/mod/modfile"
 	"gopkg.in/yaml.v3"
 )
@@ -66,16 +67,21 @@ type response struct {
 
 var goDownloadPattern = regexp.MustCompile(`(?i)(?:dl\.google\.com/go/|go\.dev/dl/)go`)
 var exactToolchainVersionPattern = regexp.MustCompile(`^1\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`)
-var canonicalDockerGoImagePattern = regexp.MustCompile(`^(?i:FROM)[ \t]+golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64})[ \t]+(?i:AS)[ \t]+([a-z0-9][a-z0-9_.-]*)[ \t]*$`)
+var canonicalDockerGoImagePattern = regexp.MustCompile(`^FROM golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64}) AS ([a-z0-9][a-z0-9_.-]*)$`)
 
 const (
-	maxInputBytes           = 4 << 20
-	maxRequestEnvelopeBytes = 32 << 20
-	maxYAMLDocuments        = 64
-	maxYAMLNodes            = 100000
-	maxYAMLEdges            = 150000
-	maxYAMLDepth            = 256
-	maxYAMLScalarBytes      = 1 << 20
+	maxInputBytes             = 4 << 20
+	maxRequestEnvelopeBytes   = 32 << 20
+	maxYAMLDocuments          = 64
+	maxYAMLNodes              = 100000
+	maxYAMLEdges              = 150000
+	maxYAMLDepth              = 256
+	maxYAMLScalarBytes        = 1 << 20
+	maxDockerInstructions     = 100000
+	maxDockerCandidates       = 10000
+	maxDockerInstructionDepth = 256
+	maxDockerParameterDepth   = 256
+	maxDockerNormalizedBytes  = maxInputBytes
 )
 
 type resourceLimitError struct {
@@ -313,8 +319,11 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 
 	managed := []dockerCandidate{}
 	unsupported := []dockerCandidate{}
+	discovery := newDockerDiscovery(parsed.EscapeToken)
 	for _, node := range parsed.AST.Children {
-		classifyDockerInstruction(node, true, &managed, &unsupported)
+		if err := classifyDockerInstruction(node, true, 0, discovery, &managed, &unsupported); err != nil {
+			return "invalid", nil, err.Error()
+		}
 	}
 	if len(unsupported) != 0 || len(managed) > 1 {
 		return "unsupported", append(managed, unsupported...), ""
@@ -325,8 +334,45 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	return "irrelevant", nil, ""
 }
 
-func classifyDockerInstruction(node *parser.Node, allowManaged bool, managed *[]dockerCandidate, unsupported *[]dockerCandidate) {
-	original := strings.TrimSpace(node.Original)
+type dockerWordKey struct {
+	value string
+	json  bool
+}
+
+type dockerWordResult struct {
+	value string
+	err   error
+}
+
+type dockerDiscovery struct {
+	wordLexer       *shell.Lex
+	wordMemo        map[dockerWordKey]dockerWordResult
+	runWordMemo     map[dockerWordKey]dockerWordResult
+	escapeToken     byte
+	instructions    int
+	normalizedBytes int
+}
+
+func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
+	wordLexer := shell.NewLex(escapeToken)
+	wordLexer.SkipUnsetEnv = true
+	return &dockerDiscovery{
+		wordLexer:   wordLexer,
+		wordMemo:    map[dockerWordKey]dockerWordResult{},
+		runWordMemo: map[dockerWordKey]dockerWordResult{},
+		escapeToken: byte(escapeToken),
+	}
+}
+
+func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
+	if depth > maxDockerInstructionDepth {
+		return resourceLimitf("Docker metadata exceeds the %d-level instruction depth limit", maxDockerInstructionDepth)
+	}
+	discovery.instructions++
+	if discovery.instructions > maxDockerInstructions {
+		return resourceLimitf("Docker metadata exceeds the %d-instruction limit", maxDockerInstructions)
+	}
+	original := node.Original
 	canonical := canonicalDockerGoImagePattern.FindStringSubmatch(original)
 	if allowManaged && strings.EqualFold(node.Value, "from") && node.StartLine == node.EndLine && canonical != nil {
 		*managed = append(*managed, dockerCandidate{
@@ -339,52 +385,66 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, managed *[]
 			Alias:   canonical[4],
 		})
 	} else {
-		*unsupported = append(*unsupported, dockerInstructionCandidates(node)...)
+		candidates, err := dockerInstructionCandidates(node, discovery)
+		if err != nil {
+			return fmt.Errorf("line %d: %w", node.StartLine, err)
+		}
+		*unsupported = append(*unsupported, candidates...)
+	}
+	if len(*managed)+len(*unsupported) > maxDockerCandidates {
+		return resourceLimitf("Docker metadata exceeds the %d-candidate limit", maxDockerCandidates)
 	}
 	for _, child := range node.Children {
-		classifyDockerInstruction(child, false, managed, unsupported)
+		if err := classifyDockerInstruction(child, false, depth+1, discovery, managed, unsupported); err != nil {
+			return err
+		}
 	}
 	for value := node.Next; value != nil; value = value.Next {
 		for _, child := range value.Children {
-			classifyDockerInstruction(child, false, managed, unsupported)
+			if err := classifyDockerInstruction(child, false, depth+1, discovery, managed, unsupported); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
-func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
+func dockerInstructionCandidates(node *parser.Node, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
-	appendImageCandidate := func(kind, value string) {
-		if isGolangImage(value) || containsDockerGoToken(value) {
+	appendImageCandidate := func(kind, value string) error {
+		normalized, err := discovery.normalizeDockerWord(value, node.Attributes["json"])
+		if err != nil {
+			return err
+		}
+		if isGolangImage(normalized) || containsDockerGoToken(normalized) {
 			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
 		}
+		return nil
 	}
 
-	for value := node.Next; value != nil; value = value.Next {
-		if goDownloadPattern.MatchString(value.Value) {
-			candidates = append(candidates, dockerCandidate{Kind: "download", Value: value.Value, Line: node.StartLine})
-			break
-		}
-	}
-	for _, heredoc := range node.Heredocs {
-		if goDownloadPattern.MatchString(heredoc.Content) {
-			candidates = append(candidates, dockerCandidate{Kind: "download", Value: heredoc.Content, Line: node.StartLine})
-		}
-	}
 	switch strings.ToLower(node.Value) {
 	case "from":
 		if node.Next != nil {
-			appendImageCandidate("from", node.Next.Value)
+			if err := appendImageCandidate("from", node.Next.Value); err != nil {
+				return nil, err
+			}
 		}
 	case "arg":
-		if hasDockerGoLiteral(node) {
+		hasLiteral, err := hasDockerGoLiteral(dockerArgDefaults(node), node.Attributes["json"], discovery)
+		if err != nil {
+			return nil, err
+		}
+		if hasLiteral {
 			candidates = append(candidates, dockerCandidate{
-				Kind: "arg-default", Value: node.Next.Value, Line: node.StartLine,
+				Kind: "arg-default", Value: node.Original, Line: node.StartLine,
 			})
 		}
 	case "copy":
 		for _, flag := range node.Flags {
 			if value, found := strings.CutPrefix(flag, "--from="); found {
-				appendImageCandidate("copy-from", value)
+				if err := appendImageCandidate("copy-from", value); err != nil {
+					return nil, err
+				}
 			}
 		}
 	case "run":
@@ -395,34 +455,183 @@ func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 			}
 			for _, field := range strings.Split(mount, ",") {
 				if value, found := strings.CutPrefix(field, "from="); found {
-					appendImageCandidate("run-mount-from", value)
+					if err := appendImageCandidate("run-mount-from", value); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
+		for _, value := range dockerNodeValues(node) {
+			normalized, err := discovery.normalizeDockerRunWord(value, node.Attributes["json"])
+			if err != nil {
+				return nil, err
+			}
+			if goDownloadPattern.MatchString(normalized) {
+				candidates = append(candidates, dockerCandidate{Kind: "download", Value: value, Line: node.StartLine})
+			}
+			if containsDockerGoToken(normalized) {
+				candidates = append(candidates, dockerCandidate{Kind: "literal", Value: node.Original, Line: node.StartLine})
+			}
+		}
+		for _, heredoc := range node.Heredocs {
+			normalized, err := discovery.normalizeDockerRunWord(heredoc.Content, false)
+			if err != nil {
+				return nil, err
+			}
+			if goDownloadPattern.MatchString(normalized) {
+				candidates = append(candidates, dockerCandidate{Kind: "download", Value: heredoc.Content, Line: node.StartLine})
+			}
+			if containsDockerGoToken(normalized) {
+				candidates = append(candidates, dockerCandidate{Kind: "literal", Value: node.Original, Line: node.StartLine})
+			}
+		}
 	}
-	if strings.EqualFold(node.Value, "from") {
-		return candidates
-	}
-	if len(candidates) == 0 && hasDockerGoLiteral(node) {
-		candidates = append(candidates, dockerCandidate{
-			Kind: "literal", Value: node.Original, Line: node.StartLine,
-		})
-	}
-	return candidates
+	return candidates, nil
 }
 
-func hasDockerGoLiteral(node *parser.Node) bool {
+func dockerArgDefaults(node *parser.Node) []string {
+	values := []string{}
+	for argument := node.Next; argument != nil; argument = argument.Next {
+		_, defaultValue, hasDefault := strings.Cut(argument.Value, "=")
+		if hasDefault {
+			values = append(values, defaultValue)
+		}
+	}
+	return values
+}
+
+func dockerNodeValues(node *parser.Node) []string {
+	values := []string{}
 	for value := node.Next; value != nil; value = value.Next {
-		if containsDockerGoToken(value.Value) {
-			return true
+		values = append(values, value.Value)
+	}
+	return values
+}
+
+func (discovery *dockerDiscovery) normalizeDockerWord(value string, json bool) (string, error) {
+	key := dockerWordKey{value: value, json: json}
+	if result, found := discovery.wordMemo[key]; found {
+		return result.value, result.err
+	}
+	if dockerParameterExpansionDepth(value) > maxDockerParameterDepth {
+		err := resourceLimitf("Docker word exceeds the %d-level parameter expansion depth limit", maxDockerParameterDepth)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return "", err
+	}
+	var normalized string
+	var err error
+	if json {
+		normalized = value
+	} else {
+		normalized, _, err = discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(nil))
+		if err != nil {
+			err = fmt.Errorf("normalize Docker word %q: %w", value, err)
 		}
 	}
-	for _, heredoc := range node.Heredocs {
-		if containsDockerGoToken(heredoc.Content) {
-			return true
+	if err == nil {
+		discovery.normalizedBytes += len(normalized)
+		if discovery.normalizedBytes > maxDockerNormalizedBytes {
+			err = resourceLimitf("Docker metadata exceeds the %d-byte normalized-word limit", maxDockerNormalizedBytes)
+			normalized = ""
 		}
 	}
-	return false
+	discovery.wordMemo[key] = dockerWordResult{value: normalized, err: err}
+	return normalized, err
+}
+
+func (discovery *dockerDiscovery) normalizeDockerRunWord(value string, json bool) (string, error) {
+	if json {
+		return discovery.normalizeDockerWord(value, true)
+	}
+	key := dockerWordKey{value: value}
+	if result, found := discovery.runWordMemo[key]; found {
+		return result.value, result.err
+	}
+	normalized := projectDockerShellWord(value, discovery.escapeToken)
+	discovery.normalizedBytes += len(normalized)
+	var err error
+	if discovery.normalizedBytes > maxDockerNormalizedBytes {
+		err = resourceLimitf("Docker metadata exceeds the %d-byte normalized-word limit", maxDockerNormalizedBytes)
+		normalized = ""
+	}
+	discovery.runWordMemo[key] = dockerWordResult{value: normalized, err: err}
+	return normalized, err
+}
+
+func projectDockerShellWord(value string, escapeToken byte) string {
+	var projected strings.Builder
+	projected.Grow(len(value))
+	quote := byte(0)
+	atWordStart := true
+	for index := 0; index < len(value); index++ {
+		character := value[index]
+		switch quote {
+		case '\'':
+			if character == '\'' {
+				quote = 0
+			} else {
+				projected.WriteByte(character)
+			}
+		case '"':
+			switch {
+			case character == '"':
+				quote = 0
+			case character == escapeToken && index+1 < len(value) &&
+				(value[index+1] == '"' || value[index+1] == '$' || value[index+1] == escapeToken):
+				index++
+				projected.WriteByte(value[index])
+			default:
+				projected.WriteByte(character)
+			}
+		default:
+			switch {
+			case character == '#' && atWordStart:
+				return projected.String()
+			case character == '\'' || character == '"':
+				quote = character
+				atWordStart = false
+			case character == escapeToken && index+1 < len(value):
+				index++
+				projected.WriteByte(value[index])
+				atWordStart = false
+			default:
+				projected.WriteByte(character)
+				atWordStart = character == ' ' || character == '\t' || character == '\r' || character == '\n'
+			}
+		}
+	}
+	return projected.String()
+}
+
+func hasDockerGoLiteral(values []string, json bool, discovery *dockerDiscovery) (bool, error) {
+	for _, value := range values {
+		normalized, err := discovery.normalizeDockerWord(value, json)
+		if err != nil {
+			return false, err
+		}
+		if containsDockerGoToken(normalized) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func dockerParameterExpansionDepth(value string) int {
+	depth := 0
+	maximum := 0
+	for index := 0; index+1 < len(value); index++ {
+		switch {
+		case value[index] == '$' && value[index+1] == '{':
+			depth++
+			if depth > maximum {
+				maximum = depth
+			}
+			index++
+		case value[index] == '}' && depth > 0:
+			depth--
+		}
+	}
+	return maximum
 }
 
 func containsDockerGoToken(value string) bool {
@@ -434,15 +643,24 @@ func scanDockerGoToken(value string) (bool, int) {
 	steps := 0
 	for index := 0; index < len(value); index++ {
 		steps++
-		if value[index] == '$' && index+1 < len(value) && value[index+1] == '{' {
-			wordStart, nameEnd, inspected, ok := parameterExpansionWordStart(value, index+2)
-			steps += inspected
-			if ok && hasDockerGoTokenAt(value, wordStart) && hasDockerGoTokenEnd(value, wordStart) {
-				return true, steps
-			}
-			if nameEnd > index+2 {
-				index = nameEnd - 1
-				continue
+		if value[index] == '$' && index+1 < len(value) {
+			if value[index+1] == '{' {
+				wordStart, nameEnd, inspected, ok := parameterExpansionWordStart(value, index+2)
+				steps += inspected
+				if ok && hasDockerGoTokenAt(value, wordStart) && hasDockerGoTokenEnd(value, wordStart) {
+					return true, steps
+				}
+				if nameEnd > index+2 {
+					index = nameEnd - 1
+					continue
+				}
+			} else {
+				nameEnd, inspected, ok := shellParameterNameEnd(value, index+1)
+				steps += inspected
+				if ok {
+					index = nameEnd - 1
+					continue
+				}
 			}
 		}
 		if !hasDockerGoTokenAt(value, index) {

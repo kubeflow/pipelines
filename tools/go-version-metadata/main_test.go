@@ -81,6 +81,24 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from"},
 		},
 		{
+			name:           "escaped repository word is unsupported",
+			contents:       "FROM g\\olang:latest AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "double-quoted repository word is unsupported",
+			contents:       "FROM go\"lang\":latest AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "single-quoted repository word is unsupported",
+			contents:       "FROM go'lang':latest AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
 			name:           "uppercase repository is unsupported",
 			contents:       "FROM GOLANG:1.27.0@sha256:" + digest + " AS builder\n",
 			classification: "unsupported",
@@ -93,6 +111,30 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from"},
 		},
 		{
+			name:           "lowercase managed keywords are unsupported",
+			contents:       "from golang:1.27.0@sha256:" + digest + " as builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "double-spaced managed syntax is unsupported",
+			contents:       "FROM  golang:1.27.0@sha256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "tab-separated managed syntax is unsupported",
+			contents:       "FROM\tgolang:1.27.0@sha256:" + digest + "\tAS\tbuilder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "leading indentation is preserved outside canonical value",
+			contents:       "  FROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
+			classification: "managed",
+			candidateKinds: []string{"from"},
+		},
+		{
 			name:           "invalid tag flavor is unsupported",
 			contents:       "FROM golang:1.27.0-foo:bar@sha256:" + digest + " AS builder\n",
 			classification: "unsupported",
@@ -102,6 +144,30 @@ func TestDockerClassification(t *testing.T) {
 			name: "arg indirection is not evaluated",
 			contents: "ARG IMAGE=golang:1.27.0\nARG IMAGE\n" +
 				"FROM ${IMAGE} AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"arg-default"},
+		},
+		{
+			name: "arg identifiers are not semantic values",
+			contents: "FROM alpine\n" +
+				"ARG golang\nARG golang=alpine\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "environment and label metadata are not runtime sources",
+			contents: "FROM alpine\n" +
+				"ENV golang=alpine TOOLCHAIN=golang:latest\n" +
+				"LABEL golang=alpine toolchain=golang:latest\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "ordinary copy operands are not runtime sources",
+			contents:       "FROM alpine\nCOPY golang /tmp/golang\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "arg default is lexically normalized",
+			contents:       "FROM alpine\nARG IMAGE=go\"lang\":latest\n",
 			classification: "unsupported",
 			candidateKinds: []string{"arg-default"},
 		},
@@ -138,10 +204,47 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"literal"},
 		},
 		{
-			name:           "unsupported assignment modifier still exposes literal word",
-			contents:       "FROM alpine\nRUN echo ${A:=golang}\n",
+			name: "BuildKit-normalized shell words are unsupported",
+			contents: "FROM alpine\n" +
+				"RUN docker pull g\\olang:latest\n" +
+				"RUN docker pull go\"lang\":latest\n" +
+				"RUN docker pull go'lang':latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal", "literal", "literal"},
+		},
+		{
+			name:           "unbraced parameter identifier is irrelevant",
+			contents:       "FROM alpine\nRUN echo $名golang\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "runtime shell modifiers are not Docker expansion errors",
+			contents: "FROM alpine\n" +
+				"RUN echo ${A=alpine} ${A^^}\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "run comments are not active literals",
+			contents: "FROM alpine\n" +
+				"RUN echo alpine # golang:latest\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "hash inside a run word remains literal",
+			contents:       "FROM alpine\nRUN echo foo#golang:latest\n",
 			classification: "unsupported",
 			candidateKinds: []string{"literal"},
+		},
+		{
+			name:           "assignment modifier normalizes escaped literal",
+			contents:       "FROM alpine\nRUN echo ${A:=g\\olang}\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name:           "word normalization errors are invalid",
+			contents:       "FROM ${A AS builder\n",
+			classification: "invalid",
 		},
 		{
 			name: "image-name substrings are irrelevant",
@@ -190,13 +293,13 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from"},
 		},
 		{
-			name: "decoded JSON environment and heredoc literals are unsupported",
+			name: "decoded JSON and heredoc run literals are unsupported",
 			contents: "FROM alpine\n" +
 				"RUN [\"docker\",\"pull\",\"gol\\u0061ng:latest\"]\n" +
 				"ENV GO_BUILDER=golang:latest\n" +
 				"RUN <<EOF\ndocker pull golang:latest\nEOF\n",
 			classification: "unsupported",
-			candidateKinds: []string{"literal", "literal", "literal"},
+			candidateKinds: []string{"literal", "literal"},
 		},
 		{
 			name: "tagless active literals are unsupported",
@@ -339,6 +442,8 @@ func TestDockerGoTokenIgnoresGolangInsideParameterNames(t *testing.T) {
 	for _, value := range []string{
 		"${名golang}",
 		"${égolang}",
+		"$名golang",
+		"$égolang",
 	} {
 		if containsDockerGoToken(value) {
 			t.Errorf("containsDockerGoToken(%q) = true, want false", value)
@@ -346,6 +451,70 @@ func TestDockerGoTokenIgnoresGolangInsideParameterNames(t *testing.T) {
 	}
 	if value := "${名golang-golang}"; !containsDockerGoToken(value) {
 		t.Errorf("containsDockerGoToken(%q) = false, want true", value)
+	}
+}
+
+func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
+	lexer := shell.NewLex('\\')
+	lexer.SkipUnsetEnv = true
+	discovery := newDockerDiscovery('\\')
+	for input, want := range map[string]string{
+		`g\olang:latest`:  "golang:latest",
+		`go"lang":latest`: "golang:latest",
+		`go'lang':latest`: "golang:latest",
+		`$名golang`:        "$名golang",
+	} {
+		got, err := discovery.normalizeDockerWord(input, false)
+		if err != nil {
+			t.Errorf("normalizeDockerWord(%q): %v", input, err)
+			continue
+		}
+		if got != want {
+			t.Errorf("normalizeDockerWord(%q) = %q, want %q", input, got, want)
+		}
+		buildKit, _, err := lexer.ProcessWord(input, shell.EnvsFromSlice(nil))
+		if err != nil {
+			t.Errorf("BuildKit ProcessWord(%q): %v", input, err)
+		} else if projected := projectDockerShellWord(input, '\\'); projected != buildKit {
+			t.Errorf("projectDockerShellWord(%q) = %q, BuildKit = %q", input, projected, buildKit)
+		}
+	}
+}
+
+func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
+	discovery := newDockerDiscovery('\\')
+	value := strings.Repeat("alpine", 100)
+	if _, err := discovery.normalizeDockerWord(value, false); err != nil {
+		t.Fatal(err)
+	}
+	bytesAfterFirst := discovery.normalizedBytes
+	if _, err := discovery.normalizeDockerWord(value, false); err != nil {
+		t.Fatal(err)
+	}
+	if discovery.normalizedBytes != bytesAfterFirst {
+		t.Fatalf("memoized normalization increased byte budget from %d to %d", bytesAfterFirst, discovery.normalizedBytes)
+	}
+
+	deep := strings.Repeat("${A:-", maxDockerParameterDepth+1) + "alpine" + strings.Repeat("}", maxDockerParameterDepth+1)
+	if _, err := discovery.normalizeDockerWord(deep, false); !isResourceLimit(err, "parameter expansion depth") {
+		t.Fatalf("deep Docker word error = %v", err)
+	}
+
+	byteBudget := newDockerDiscovery('\\')
+	large := strings.Repeat("a", maxDockerNormalizedBytes/2+1)
+	if _, err := byteBudget.normalizeDockerWord(large, false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := byteBudget.normalizeDockerWord(large+"b", false); !isResourceLimit(err, "normalized-word limit") {
+		t.Fatalf("normalized Docker word budget error = %v", err)
+	}
+}
+
+func TestDockerCandidateBudget(t *testing.T) {
+	contents := "FROM alpine\n" + strings.Repeat("RUN echo golang\n", maxDockerCandidates+1)
+	classification, _, dockerError := classifyDockerfile(contents)
+	if classification != "invalid" || !strings.Contains(dockerError, "candidate limit") {
+		t.Fatalf("classification = %q, error = %q, want invalid candidate limit", classification, dockerError)
 	}
 }
 
