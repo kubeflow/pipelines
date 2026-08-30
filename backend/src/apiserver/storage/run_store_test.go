@@ -2388,6 +2388,50 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	assert.Equal(t, claimGeneration, restored.RetryGeneration, "generation must stay monotonic across rollback")
 }
 
+// Regression: ArchiveExpiredRuns can commit ARCHIVED between RetryRun's
+// pre-check and this claim taking its row lock. The locked read must catch it,
+// otherwise the claim leaves the row PENDING and ARCHIVED at the same time.
+func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-archived-claim",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-archived-claim",
+		DisplayName:  "run-archived-claim",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+	require.Nil(t, runStore.ArchiveRun("run-archived-claim"))
+
+	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", false)
+	require.NotNil(t, claimErr)
+	userError := claimErr.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		"Failed to retry run run-archived-claim as it is archived. Unarchive the run first to allow it to be retried",
+		userError.ExternalMessage())
+
+	unchanged, err := runStore.GetRun("run-archived-claim")
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
+	assert.Equal(t, int64(100), unchanged.FinishedAtInSec)
+	assert.Equal(t, int64(0), unchanged.RetryGeneration)
+	assert.Equal(t, int64(0), unchanged.RetryClaimedAtInSec)
+}
+
 func TestClaimRunForRetry_RunNotFound(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
