@@ -42,7 +42,7 @@ class CiImageArtifactsTest(unittest.TestCase):
 
         workflow = IMAGE_BUILDS_WORKFLOW.read_text(encoding='utf-8')
         built_images = set(
-            re.findall(r'^\s+- image:\s+([^\s]+)\s*$', workflow, re.MULTILINE))
+            re.findall(r'^\s+- name:\s+([^\s]+)\s*$', workflow, re.MULTILINE))
         expected_artifacts = built_images | {'runtime-base-images'}
 
         self.assertEqual(configured_artifacts, expected_artifacts)
