@@ -4822,6 +4822,46 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
 
+func TestReportWorkflowResource_UpdateFailurePreservesPersistedFinalWorkflow(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("persisted-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	runStore := manager.runStore.(*storage.RunStore)
+	manager.runStore = &runStoreWithBeforeWorkflowUpdateHook{
+		RunStoreInterface: runStore,
+		beforeUpdate: func() {
+			require.NoError(t, store.Close())
+		},
+	}
+	persistedFinalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "persisted-version",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+
+	_, err = manager.ReportWorkflowResource(ctx, persistedFinalWorkflow)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "database is closed")
+
+	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err, "workflow deletion must wait for the guarded run update to commit")
+}
+
 func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -6811,44 +6851,4 @@ func TestReportWorkflowResource_RunStoreErrorFailsClosedBeforeDeletion(t *testin
 	// have gone through and be visible here.
 	_, err = store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err, "the workflow must not be deleted when the run-store read fails")
-}
-
-func TestReportWorkflowResource_UpdateFailurePreservesPersistedFinalWorkflow(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-	ctx := context.Background()
-	workflowClient := store.ExecClientFake.Execution("ns1")
-	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
-	require.NoError(t, err)
-	liveWorkflow.SetVersion("persisted-version")
-	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
-	require.NoError(t, err)
-
-	runStore := manager.runStore.(*storage.RunStore)
-	manager.runStore = &runStoreWithBeforeWorkflowUpdateHook{
-		RunStoreInterface: runStore,
-		beforeUpdate: func() {
-			require.NoError(t, store.Close())
-		},
-	}
-	persistedFinalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{
-			Name:            run.K8SName,
-			Namespace:       "ns1",
-			UID:             types.UID(run.UUID),
-			ResourceVersion: "persisted-version",
-			Labels: map[string]string{
-				util.LabelKeyWorkflowRunId:               run.UUID,
-				util.LabelKeyWorkflowPersistedFinalState: "true",
-			},
-		},
-		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
-	})
-
-	_, err = manager.ReportWorkflowResource(ctx, persistedFinalWorkflow)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "database is closed")
-
-	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
-	require.NoError(t, err, "workflow deletion must wait for the guarded run update to commit")
 }
