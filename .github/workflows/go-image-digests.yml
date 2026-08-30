@@ -6,9 +6,10 @@ on:
       - '.github/resources/scripts/go_version_consistency_test.py'
       - '.github/resources/scripts/go_version_metadata.py'
       - '.github/resources/scripts/update_go_version.py'
+      - 'tools/go-version-metadata/**'
       - '.github/workflows/go-image-digests.yml'
-      - 'backend/Dockerfile*'
-      - 'backend/api/Dockerfile'
+      - '**/Dockerfile*'
+      - '**/Containerfile*'
 
 permissions:
   contents: read
@@ -20,4 +21,5 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
       - run: python3 .github/resources/scripts/update_go_version.py --check-image-digests

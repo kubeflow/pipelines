@@ -22,6 +22,7 @@ on:
       - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
+      - 'tools/go-version-metadata/**'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
@@ -49,6 +50,7 @@ on:
       - 'manifests/kustomize/third-party/mysql/base/mysql-deployment.yaml'
       - 'backend/Dockerfile*'
       - 'backend/api/Dockerfile'
+      - '**/Containerfile*'
       - 'backend/src/common/types.go'
       - 'go.mod'
       - 'go.sum'
@@ -69,6 +71,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-go
+      - name: Run Go metadata helper unit tests
+        run: go test ./tools/go-version-metadata
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'

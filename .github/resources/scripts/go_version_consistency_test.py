@@ -20,7 +20,7 @@ import unittest
 
 from go_version_metadata import (docker_go_runtime_sources,
                                  has_go_runtime_reference, has_setup_go_use,
-                                 top_level_module_matches)
+                                 is_container_recipe, module_versions)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -46,19 +46,16 @@ CI_SCRIPTS_WORKFLOW = Path('.github/workflows/ci-scripts-tests.yml')
 GO_IMAGE_DIGEST_WORKFLOW = Path('.github/workflows/go-image-digests.yml')
 GO_VERSION_METADATA = Path(
     '.github/resources/scripts/go_version_metadata.py')
+GO_VERSION_HELPER = Path('tools/go-version-metadata/main.go')
 
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
 
 GO_DIRECTIVE_PATTERN = re.compile(
     rf'^[ \t]*go[ \t]+(1\.{DECIMAL_PATTERN}(?:\.{DECIMAL_PATTERN})?)'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
-GO_DIRECTIVE_LINE_PATTERN = re.compile(
-    r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
     rf'^[ \t]*toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
-TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
-    r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 GO_IMAGE_PATTERN = re.compile(
     r'^FROM\s+(golang:(\d+\.\d+\.\d+)(-[^@\s]+)?'
     r'@sha256:[0-9a-f]{64})\s+AS\s+\w+',
@@ -103,40 +100,9 @@ def _go_module_paths():
 
 
 def _module_versions_from_contents(contents, relative_path):
-    go_directive_matches = top_level_module_matches(
-        contents, GO_DIRECTIVE_LINE_PATTERN)
-    go_directive_lines = [match.group(1) for match in go_directive_matches]
-    go_directives = [
-        match.group(1)
-        for match in top_level_module_matches(contents, GO_DIRECTIVE_PATTERN)
-    ]
-    if len(go_directive_lines) != 1:
-        raise ValueError(
-            f'{relative_path} must contain exactly one go directive, found '
-            f'{go_directive_lines}')
-    if len(go_directives) != len(go_directive_lines):
-        raise ValueError(
-            f'{relative_path} contains an invalid go directive: '
-            f'{go_directive_lines}')
-    toolchain_directive_matches = top_level_module_matches(
-        contents, TOOLCHAIN_DIRECTIVE_PATTERN)
-    toolchain_directives = [
-        match.group(1) for match in toolchain_directive_matches
-    ]
-    toolchains = [
-        match.group(1)
-        for match in top_level_module_matches(contents, TOOLCHAIN_PATTERN)
-    ]
-    if len(toolchain_directives) > 1:
-        raise ValueError(
-            f'{relative_path} must contain at most one toolchain directive, '
-            f'found {toolchain_directives}')
-    if len(toolchains) != len(toolchain_directives):
-        raise ValueError(
-            f'{relative_path} contains an invalid toolchain directive: '
-            f'{toolchain_directives}')
-    return _parse_version(go_directives[0]), (
-        _parse_version(toolchains[0]) if toolchains else None)
+    go_version, toolchain_version = module_versions(contents, relative_path)
+    return _parse_version(go_version), (
+        _parse_version(toolchain_version) if toolchain_version else None)
 
 
 def _module_versions(relative_path):
@@ -229,11 +195,22 @@ class GoVersionConsistencyTest(unittest.TestCase):
             ((1, 27, 0), (1, 27, 1)),
         )
 
+    def test_malformed_go_and_toolchain_blocks_are_rejected(self):
+        for contents in (
+                'module example.com/test\n\ngo (\n  1.27.0\n)\n',
+                'module example.com/test\n\ngo 1.27.0\n\n'
+                'toolchain (\n  go1.27.1\n)\n'):
+            with self.subTest(contents=contents):
+                with self.assertRaisesRegex(ValueError,
+                                            'invalid .* directive'):
+                    _module_versions_from_contents(contents,
+                                                   Path('test/go.mod'))
+
     def test_all_go_builder_images_match_root_effective_go_version(self):
         discovered = set()
         image_references_by_flavor = {}
         for relative_path in _repository_paths():
-            if not relative_path.name.startswith('Dockerfile'):
+            if not is_container_recipe(relative_path):
                 continue
             dockerfile = REPOSITORY_ROOT / relative_path
             if not dockerfile.exists():
@@ -288,7 +265,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_no_unmanaged_go_runtime_pins(self):
         discovered = set()
         for relative_path in _repository_paths():
-            if not (relative_path.name.startswith('Dockerfile') or
+            if not (is_container_recipe(relative_path) or
                     relative_path.suffix in {'.sh', '.yaml', '.yml'}):
                 continue
             path = REPOSITORY_ROOT / relative_path
@@ -418,6 +395,9 @@ class GoVersionConsistencyTest(unittest.TestCase):
                          DIGEST_CHECK_PATTERN)
         self.assertIn(str(GO_VERSION_METADATA),
                       _read(GO_IMAGE_DIGEST_WORKFLOW))
+        self.assertIn('tools/go-version-metadata/**',
+                      _read(GO_IMAGE_DIGEST_WORKFLOW))
+        self.assertTrue((REPOSITORY_ROOT / GO_VERSION_HELPER).exists())
 
 
 if __name__ == '__main__':
