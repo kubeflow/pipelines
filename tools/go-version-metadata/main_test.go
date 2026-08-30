@@ -281,6 +281,46 @@ func TestDockerGoTokenBoundaries(t *testing.T) {
 	}
 }
 
+func TestDockerGoTokenShellParameterNames(t *testing.T) {
+	parameters := []string{
+		"1",
+		"10",
+		"@",
+		"*",
+		"#",
+		"?",
+		"-",
+		"$",
+		"!",
+		"0",
+	}
+	operators := []string{"-", ":-", "+", ":+", "?", ":?", "=", ":="}
+	for _, parameter := range parameters {
+		for _, operator := range operators {
+			contents := "FROM ${" + parameter + operator + "golang}:1.26 AS builder\n"
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" {
+				t.Errorf("parameter %q with operator %q classification = %q, want unsupported", parameter, operator, metadata.DockerClassification)
+			}
+		}
+	}
+}
+
+func TestDockerGoTokenScanHasLinearBudget(t *testing.T) {
+	const inputBytes = 3 << 20
+	value := strings.Repeat("notgolangci ", inputBytes/len("notgolangci "))
+	found, steps := scanDockerGoToken(value)
+	if found {
+		t.Fatal("substring-only input was classified as a Go image token")
+	}
+	if steps > 2*len(value) {
+		t.Fatalf("scanner used %d steps for %d bytes", steps, len(value))
+	}
+}
+
 func TestYAMLAliasTraversalIsLinear(t *testing.T) {
 	contents := `a: &a [{image: golang}]
 b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]

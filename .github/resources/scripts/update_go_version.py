@@ -19,6 +19,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import stat
 import subprocess
 import sys
@@ -411,6 +412,12 @@ def sync(
     if not changed_paths:
         return []
 
+    expected_executable_modes = {
+        relative_path: _is_executable(repo_root / relative_path,
+                                      relative_path)
+        for relative_path in changed_paths
+    }
+
     start_head = _require_clean_managed_paths(repo_root,
                                               original_contents.keys())
     if start_head != initial_head:
@@ -420,9 +427,11 @@ def sync(
     worktree_parent = tempfile.TemporaryDirectory(
         prefix='kfp-go-version-worktree-')
     worktree = Path(worktree_parent.name) / 'repository'
+    recovery_bundle = None
     recovery_path = None
     path_patches = {}
     original_restore_patches = {}
+    original_restore_paths = {}
     application_attempted = False
     try:
         _git(repo_root, 'worktree', 'add', '--detach', str(worktree),
@@ -431,7 +440,8 @@ def sync(
             path = worktree / relative_path
             _ensure_regular_destination(path, relative_path)
             path.write_text(expected_contents[relative_path], encoding='utf-8')
-        _verify_worktree_plan(worktree, expected_contents, changed_paths)
+        _verify_worktree_plan(worktree, expected_contents,
+                              expected_executable_modes, changed_paths)
         patch = _git(
             worktree,
             '--literal-pathspecs',
@@ -489,8 +499,14 @@ def sync(
                     f'Git produced an empty original restore patch for '
                     f'{relative_path}')
             original_restore_patches[relative_path] = restore_patch
-        recovery_path = _write_recovery_patch(repo_root, start_head,
-                                              target_version, patch)
+        (recovery_bundle, recovery_path,
+         original_restore_paths) = _write_recovery_bundle(
+             repo_root,
+             start_head,
+             target_version,
+             patch,
+             original_restore_patches,
+         )
 
         current_head = _require_clean_managed_paths(
             repo_root, original_contents.keys())
@@ -502,22 +518,23 @@ def sync(
              str(recovery_path))
         application_attempted = True
         _git(repo_root, 'apply', '--whitespace=nowarn', str(recovery_path))
-        _ensure_expected_contents(repo_root, expected_contents, changed_paths)
+        _ensure_expected_contents(repo_root, expected_contents, changed_paths,
+                                  expected_executable_modes)
         _verify_repository_consistency(repo_root)
     except BaseException as update_error:
         rollback_errors = []
         unresolved_paths = []
         recovery_interrupt = None
         if application_attempted:
-            rollback_errors, unresolved_paths, recovery_interrupt = _recover_applied_paths(
+            (rollback_errors, unresolved_paths,
+             recovery_interrupt) = _recover_applied_paths(
                 repo_root,
-                start_head,
-                target_version,
                 changed_paths,
                 original_contents,
                 expected_contents,
+                expected_executable_modes,
                 path_patches,
-                original_restore_patches,
+                original_restore_paths,
             )
         rollback_detail = ''
         if rollback_errors:
@@ -529,23 +546,23 @@ def sync(
                 'matched either the original or planned contents: ' +
                 ', '.join(unresolved_paths))
         if recovery_interrupt is not None:
-            recovery = (f'; recovery patch retained at {recovery_path}'
-                        if recovery_path else '')
+            recovery = (f'; recovery bundle retained at {recovery_bundle}'
+                        if recovery_bundle else '')
             warnings.warn(
                 f'Go update recovery interrupted after {update_error}'
                 f'{rollback_detail}{recovery}', RuntimeWarning)
             raise recovery_interrupt from update_error
         if not isinstance(update_error, Exception):
-            if recovery_path:
-                message = ('Go update interrupted; recovery patch retained at '
-                           f'{recovery_path}{rollback_detail}')
+            if recovery_bundle:
+                message = ('Go update interrupted; recovery bundle retained '
+                           f'at {recovery_bundle}{rollback_detail}')
             else:
                 message = ('Go update interrupted before application; '
                            f'managed files were not changed{rollback_detail}')
             warnings.warn(message, RuntimeWarning)
             raise
-        recovery = (f'; recovery patch retained at {recovery_path}'
-                    if recovery_path else '')
+        recovery = (f'; recovery bundle retained at {recovery_bundle}'
+                    if recovery_bundle else '')
         raise RuntimeError(f'failed to apply Go version update: '
                            f'{update_error}{rollback_detail}{recovery}') \
             from update_error
@@ -565,11 +582,12 @@ def sync(
                 f'{worktree_parent.name}: {error}', RuntimeWarning)
 
     try:
-        recovery_path.unlink()
+        shutil.rmtree(recovery_bundle)
+        _fsync_directory(recovery_bundle.parent)
     except OSError as error:
         warnings.warn(
-            f'Go update committed and verified, but recovery patch '
-            f'{recovery_path} could not be removed: {error}', RuntimeWarning)
+            f'Go update committed and verified, but recovery bundle '
+            f'{recovery_bundle} could not be removed: {error}', RuntimeWarning)
     return sorted(changed_paths)
 
 
@@ -621,9 +639,11 @@ def _require_clean_managed_paths(repo_root: Path,
 
 def _verify_worktree_plan(worktree: Path,
                           expected_contents: Dict[Path, str],
+                          expected_executable_modes: Dict[Path, bool],
                           changed_paths: Iterable[Path]) -> None:
     changed_paths = tuple(changed_paths)
-    _ensure_expected_contents(worktree, expected_contents, changed_paths)
+    _ensure_expected_contents(worktree, expected_contents, changed_paths,
+                              expected_executable_modes)
     _verify_repository_consistency(worktree)
     actual = set(
         path for path in _git(
@@ -662,49 +682,109 @@ def _verify_repository_consistency(repo_root: Path) -> None:
             f'{detail.strip()}') from error
 
 
-def _write_recovery_patch(repo_root: Path, start_head: str,
-                          target_version: str, patch: str,
-                          label: Optional[str] = None) -> Path:
+def _write_recovery_bundle(
+    repo_root: Path,
+    start_head: str,
+    target_version: str,
+    combined_patch: str,
+    original_restore_patches: Dict[Path, str],
+) -> Tuple[Path, Path, Dict[Path, Path]]:
     common_dir_text = _git(repo_root, 'rev-parse',
                            '--git-common-dir').stdout.strip()
     common_dir = Path(common_dir_text)
     if not common_dir.is_absolute():
         common_dir = repo_root / common_dir
-    recovery_dir = common_dir / 'go-version-update-recovery'
-    recovery_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    recovery_dir.chmod(0o700)
-    label_suffix = f'-for-{label}' if label else ''
-    descriptor, name = tempfile.mkstemp(
-        dir=recovery_dir,
-        prefix=(f'{start_head[:12]}-to-go{target_version}'
-                f'{label_suffix}-'),
-        suffix='.patch',
-        text=True,
-    )
+    recovery_root = common_dir / 'go-version-update-recovery'
+    recovery_root_existed = recovery_root.exists()
+    recovery_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    recovery_root.chmod(0o700)
+    pending = Path(
+        tempfile.mkdtemp(
+            dir=recovery_root,
+            prefix=f'.pending-{start_head[:12]}-to-go{target_version}-',
+        ))
+    pending.chmod(0o700)
+    bundle = pending.with_name(pending.name.removeprefix('.pending-') +
+                               '.bundle')
     try:
-        os.fchmod(descriptor, 0o600)
+        combined_name = 'combined-forward.patch'
+        _write_durable_recovery_file(pending / combined_name, combined_patch)
+        restore_names = {}
+        manifest_paths = {}
+        for index, relative_path in enumerate(sorted(original_restore_patches)):
+            restore_name = f'{index:04d}-restore-original.patch'
+            _write_durable_recovery_file(
+                pending / restore_name,
+                original_restore_patches[relative_path],
+            )
+            restore_names[relative_path] = restore_name
+            manifest_paths[str(relative_path)] = restore_name
+        manifest = {
+            'startHead': start_head,
+            'targetVersion': target_version,
+            'combinedForwardPatch': combined_name,
+            'originalRestorePatches': manifest_paths,
+        }
+        _write_durable_recovery_file(
+            pending / 'manifest.json',
+            json.dumps(manifest, indent=2, sort_keys=True) + '\n',
+        )
+        _fsync_directory(pending)
+        os.rename(pending, bundle)
+        _fsync_directory(recovery_root)
+        if not recovery_root_existed:
+            _fsync_directory(common_dir)
+    except BaseException:
+        incomplete = pending
+        try:
+            if not pending.exists():
+                incomplete = bundle
+            if incomplete.exists():
+                shutil.rmtree(incomplete)
+                _fsync_directory(recovery_root)
+        except OSError as cleanup_error:
+            warnings.warn(
+                f'incomplete recovery bundle retained at {incomplete}: '
+                f'{cleanup_error}', RuntimeWarning)
+        raise
+    return (
+        bundle,
+        bundle / combined_name,
+        {
+            relative_path: bundle / restore_name
+            for relative_path, restore_name in restore_names.items()
+        },
+    )
+
+
+def _write_durable_recovery_file(path: Path, contents: str) -> None:
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
         with os.fdopen(descriptor, 'w', encoding='utf-8') as recovery_file:
             descriptor = -1
-            recovery_file.write(patch)
+            recovery_file.write(contents)
             recovery_file.flush()
             os.fsync(recovery_file.fileno())
     except BaseException:
         if descriptor >= 0:
             os.close(descriptor)
-        try:
-            Path(name).unlink(missing_ok=True)
-        except OSError as cleanup_error:
-            warnings.warn(
-                f'incomplete recovery patch retained at {name}: '
-                f'{cleanup_error}', RuntimeWarning)
         raise
-    return Path(name)
+
+
+def _fsync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
 
 
 def _contents_match(repo_root: Path, expected_contents: Dict[Path, str],
-                    relative_paths: Iterable[Path]) -> bool:
+                    relative_paths: Iterable[Path],
+                    expected_executable_modes: Dict[Path, bool]) -> bool:
     try:
-        _ensure_expected_contents(repo_root, expected_contents, relative_paths)
+        _ensure_expected_contents(repo_root, expected_contents, relative_paths,
+                                  expected_executable_modes)
         return True
     except Exception:
         return False
@@ -712,78 +792,40 @@ def _contents_match(repo_root: Path, expected_contents: Dict[Path, str],
 
 def _recover_applied_paths(
     repo_root: Path,
-    start_head: str,
-    target_version: str,
     relative_paths: Iterable[Path],
     original_contents: Dict[Path, str],
     expected_contents: Dict[Path, str],
+    expected_executable_modes: Dict[Path, bool],
     path_patches: Dict[Path, str],
-    original_restore_patches: Dict[Path, str],
+    original_restore_paths: Dict[Path, Path],
 ) -> Tuple[List[str], List[str], Optional[BaseException]]:
     errors = []
     unresolved = []
     interrupt = None
     for relative_path in relative_paths:
-        if _contents_match(repo_root, original_contents, (relative_path,)):
+        if _contents_match(repo_root, original_contents, (relative_path,),
+                           expected_executable_modes):
             continue
-        if not _contents_match(repo_root, expected_contents, (relative_path,)):
-            try:
-                artifact = _write_path_recovery_patch(
-                    repo_root,
-                    start_head,
-                    target_version,
-                    relative_path,
-                    original_restore_patches[relative_path],
-                )
-                recovery = f'original restore patch: {artifact}'
-            except BaseException as artifact_error:
-                if (not isinstance(artifact_error, Exception) and
-                        interrupt is None):
-                    interrupt = artifact_error
-                recovery = ('could not persist one-path recovery patch: '
-                            f'{artifact_error}')
-            unresolved.append(f'{relative_path} ({recovery})')
+        if not _contents_match(repo_root, expected_contents, (relative_path,),
+                               expected_executable_modes):
+            unresolved.append(
+                f'{relative_path} (original restore patch: '
+                f'{original_restore_paths[relative_path]})')
             continue
         try:
             patch = path_patches[relative_path]
             _git_apply_contents(repo_root, patch, reverse=True, check=True)
             _git_apply_contents(repo_root, patch, reverse=True)
             _ensure_expected_contents(repo_root, original_contents,
-                                      (relative_path,))
+                                      (relative_path,),
+                                      expected_executable_modes)
         except BaseException as error:
             if not isinstance(error, Exception) and interrupt is None:
                 interrupt = error
-            try:
-                artifact = _write_path_recovery_patch(
-                    repo_root,
-                    start_head,
-                    target_version,
-                    relative_path,
-                    original_restore_patches[relative_path],
-                )
-                recovery = f'; original restore patch retained at {artifact}'
-            except BaseException as artifact_error:
-                if (not isinstance(artifact_error, Exception) and
-                        interrupt is None):
-                    interrupt = artifact_error
-                recovery = (f'; could not persist one-path recovery patch: '
-                            f'{artifact_error}')
-            errors.append(f'{relative_path}: {error}{recovery}')
+            errors.append(
+                f'{relative_path}: {error}; original restore patch retained '
+                f'at {original_restore_paths[relative_path]}')
     return errors, unresolved, interrupt
-
-
-def _write_path_recovery_patch(repo_root: Path, start_head: str,
-                               target_version: str, relative_path: Path,
-                               patch: str) -> Path:
-    label = re.sub(r'[^A-Za-z0-9_.-]+', '-', str(relative_path)).strip('-')
-    label = (label or 'managed-path')[-80:]
-    return _write_recovery_patch(
-        repo_root,
-        start_head,
-        target_version,
-        patch,
-        label=f'restore-original-{label}',
-    )
 
 
 def _git_apply_contents(repo_root: Path, patch: str, *, reverse: bool,
@@ -811,7 +853,9 @@ def _git_apply_contents(repo_root: Path, patch: str, *, reverse: bool,
 
 def _ensure_expected_contents(repo_root: Path,
                               expected_contents: Dict[Path, str],
-                              relative_paths: Iterable[Path]) -> None:
+                              relative_paths: Iterable[Path],
+                              expected_executable_modes: Optional[Dict[
+                                  Path, bool]] = None) -> None:
     changed = []
     for relative_path in relative_paths:
         try:
@@ -822,6 +866,11 @@ def _ensure_expected_contents(repo_root: Path,
             continue
         if current != expected_contents[relative_path]:
             changed.append(str(relative_path))
+            continue
+        if (expected_executable_modes is not None and
+                _is_executable(repo_root / relative_path, relative_path) !=
+                expected_executable_modes[relative_path]):
+            changed.append(f'{relative_path} (executable mode changed)')
     if changed:
         raise RuntimeError(
             'files changed while committing Go version update: ' +
@@ -843,6 +892,11 @@ def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
 def _read_regular_contents(path: Path, relative_path: Path) -> str:
     _ensure_regular_destination(path, relative_path)
     return path.read_text(encoding='utf-8')
+
+
+def _is_executable(path: Path, relative_path: Path) -> bool:
+    _ensure_regular_destination(path, relative_path)
+    return bool(path.stat().st_mode & 0o111)
 
 
 def main() -> int:

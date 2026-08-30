@@ -14,9 +14,11 @@
 """Unit tests for the repository-wide Go version updater."""
 
 import importlib.util
+import json
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -89,7 +91,20 @@ class UpdateGoVersionTest(unittest.TestCase):
     def _recovery_patches(self):
         recovery_dir = (self.repo_root / '.git' /
                         'go-version-update-recovery')
-        return list(recovery_dir.glob('*.patch'))
+        return list(recovery_dir.rglob('*.patch'))
+
+    def _recovery_bundles(self):
+        recovery_dir = (self.repo_root / '.git' /
+                        'go-version-update-recovery')
+        return list(recovery_dir.glob('*.bundle'))
+
+    def _restore_patch(self, relative_path):
+        bundles = self._recovery_bundles()
+        self.assertEqual(len(bundles), 1)
+        manifest = json.loads(
+            (bundles[0] / 'manifest.json').read_text(encoding='utf-8'))
+        return bundles[0] / manifest['originalRestorePatches'][str(
+            relative_path)]
 
     def test_patch_update_aligns_modules_and_builder_images(self):
         calls = []
@@ -519,7 +534,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         with mock.patch.object(update_go_version,
                                '_git', side_effect=fail_apply):
             with self.assertRaisesRegex(RuntimeError,
-                                        'recovery patch retained at'):
+                                        'recovery bundle retained at'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -527,7 +542,152 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
+    def test_complete_original_artifacts_exist_before_live_apply(self):
+        real_git = update_go_version._git
+
+        def inspect_journal_then_fail(repo_root, *arguments):
+            if arguments[:2] == ('apply', '--whitespace=nowarn'):
+                artifacts = self._recovery_patches()
+                self.assertEqual(len(artifacts), len(self.files) + 1)
+                bundle = self._recovery_bundles()[0]
+                manifest = json.loads(
+                    (bundle / 'manifest.json').read_text(encoding='utf-8'))
+                self.assertEqual(set(manifest['originalRestorePatches']),
+                                 {str(path) for path in self.files})
+                raise RuntimeError('simulated crash window')
+            return real_git(repo_root, *arguments)
+
+        with mock.patch.object(
+                update_go_version,
+                '_git',
+                side_effect=inspect_journal_then_fail,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'simulated crash window'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
+    def test_hard_crash_after_apply_leaves_complete_recovery_bundle(self):
+        child = r'''
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sys
+
+script, repo, paths_json, digests_json = sys.argv[1:]
+sys.path.insert(0, str(Path(script).parent))
+spec = importlib.util.spec_from_file_location('crash_update_go_version', script)
+updater = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(updater)
+real_git = updater._git
+
+def apply_then_crash(repo_root, *arguments):
+    result = real_git(repo_root, *arguments)
+    if arguments[:2] == ('apply', '--whitespace=nowarn'):
+        os._exit(97)
+    return result
+
+updater._git = apply_then_crash
+digests = json.loads(digests_json)
+updater.sync(
+    Path(repo),
+    '1.28.3',
+    digest_resolver=lambda tag: digests[tag],
+    repository_paths=[Path(path) for path in json.loads(paths_json)],
+)
+'''
+        result = subprocess.run(
+            (
+                sys.executable,
+                '-c',
+                child,
+                str(SCRIPT_PATH),
+                str(self.repo_root),
+                json.dumps([str(path) for path in self.files]),
+                json.dumps(DIGESTS),
+            ),
+            cwd=self.repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 97, result.stderr)
+        bundles = self._recovery_bundles()
+        self.assertEqual(len(bundles), 1)
+        manifest = json.loads(
+            (bundles[0] / 'manifest.json').read_text(encoding='utf-8'))
+        self.assertEqual(set(manifest['originalRestorePatches']),
+                         {str(path) for path in self.files})
+        for relative_path, restore_name in manifest[
+                'originalRestorePatches'].items():
+            path = self.repo_root / relative_path
+            path.unlink()
+            self._git('apply', str(bundles[0] / restore_name))
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
+    def test_artifact_write_failure_prevents_live_apply(self):
+        real_write = update_go_version._write_durable_recovery_file
+        write_count = 0
+        live_apply_called = False
+        real_git = update_go_version._git
+
+        def fail_during_bundle_write(*args, **kwargs):
+            nonlocal write_count
+            write_count += 1
+            if write_count == 3:
+                raise OSError('simulated recovery storage full')
+            return real_write(*args, **kwargs)
+
+        def record_live_apply(repo_root, *arguments):
+            nonlocal live_apply_called
+            if arguments[:2] == ('apply', '--whitespace=nowarn'):
+                live_apply_called = True
+            return real_git(repo_root, *arguments)
+
+        with mock.patch.object(
+                update_go_version,
+                '_write_durable_recovery_file',
+                side_effect=fail_during_bundle_write,
+        ), mock.patch.object(
+                update_go_version,
+                '_git',
+                side_effect=record_live_apply,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'simulated recovery storage full'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertFalse(live_apply_called)
+        self.assertEqual(self._recovery_patches(), [])
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -553,7 +713,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                                '_git', side_effect=partially_apply_then_fail):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'simulated partial apply failure.*recovery patch retained'):
+                    'simulated partial apply failure.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -561,7 +721,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -593,7 +753,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'managed paths left unchanged.*go.mod.*recovery patch retained'):
+                    'managed paths left unchanged.*go.mod.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -609,9 +769,8 @@ class UpdateGoVersionTest(unittest.TestCase):
             (self.repo_root / 'go.mod').read_text(encoding='utf-8'),
             concurrent,
         )
-        self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-restore-original-go.mod' in path.name
-                            for path in self._recovery_patches()))
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_missing_path_gets_self_contained_original_restore_patch(self):
         root = self.repo_root / 'go.mod'
@@ -628,8 +787,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    r'go.mod \(original restore patch: '
-                    r'.*for-restore-original-go.mod'):
+                    r'go.mod \(original restore patch: .*\.bundle/'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -638,8 +796,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertFalse(root.exists())
-        restore_patch = next(path for path in self._recovery_patches()
-                             if 'for-restore-original-go.mod' in path.name)
+        restore_patch = self._restore_patch(Path('go.mod'))
         self._git('apply', str(restore_patch))
         self.assertEqual(root.read_text(encoding='utf-8'),
                          self.files[Path('go.mod')])
@@ -671,13 +828,52 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        restore_patch = next(
-            path for path in self._recovery_patches()
-            if 'for-restore-original-Dockerfile' in path.name)
+        restore_patch = self._restore_patch(Path('Dockerfile'))
         self._git('apply', str(restore_patch))
         self.assertEqual(dockerfile.read_text(encoding='utf-8'),
                          self.files[Path('Dockerfile')])
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
+
+    def test_mode_only_change_is_unresolved_and_restore_patch_fixes_mode(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.chmod(0o755)
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'executable Dockerfile')
+
+        def change_mode_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.chmod(0o644)
+                raise RuntimeError('simulated mode-only interference')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=change_mode_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'managed paths left unchanged.*Dockerfile.*original '
+                    'restore patch'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertIn('golang:1.28.3',
+                      dockerfile.read_text(encoding='utf-8'))
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o644)
+        restore_patch = self._restore_patch(Path('Dockerfile'))
+        concurrent = self.repo_root / 'Dockerfile.concurrent'
+        dockerfile.rename(concurrent)
+        self._git('apply', str(restore_patch))
+        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
+        self.assertEqual(stat.S_IMODE(concurrent.stat().st_mode), 0o644)
 
     def test_truncated_path_restore_patch_preserves_then_recovers(self):
         root = self.repo_root / 'go.mod'
@@ -702,8 +898,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        restore_patch = next(path for path in self._recovery_patches()
-                             if 'for-restore-original-go.mod' in path.name)
+        restore_patch = self._restore_patch(Path('go.mod'))
         with self.assertRaises(subprocess.CalledProcessError):
             self._git('apply', str(restore_patch))
         self.assertEqual(root.read_bytes(), truncated)
@@ -737,8 +932,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        restore_patch = next(path for path in self._recovery_patches()
-                             if 'for-restore-original-go.mod' in path.name)
+        restore_patch = self._restore_patch(Path('go.mod'))
         with self.assertRaises(subprocess.CalledProcessError):
             self._git('apply', str(restore_patch))
         self.assertTrue(root.is_symlink())
@@ -777,7 +971,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             with self.assertRaisesRegex(
                     RuntimeError,
                     'automatic rollback failed: go.mod: simulated path '
-                    'recovery failure.*recovery patch retained'):
+                    'recovery failure.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -794,9 +988,8 @@ class UpdateGoVersionTest(unittest.TestCase):
                 self.assertEqual(
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
-        self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-restore-original-go.mod' in path.name
-                            for path in self._recovery_patches()))
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_path_recovery_finishes_before_reraising_interrupt(self):
         real_apply = update_go_version._git_apply_contents
@@ -825,7 +1018,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertWarnsRegex(
                     RuntimeWarning,
-                    'Go update recovery interrupted.*recovery patch retained'):
+                    'Go update recovery interrupted.*recovery bundle retained'):
                 with self.assertRaises(KeyboardInterrupt):
                     update_go_version.sync(
                         self.repo_root,
@@ -843,9 +1036,8 @@ class UpdateGoVersionTest(unittest.TestCase):
                 self.assertEqual(
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
-        self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-restore-original-go.mod' in path.name
-                            for path in self._recovery_patches()))
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_failed_post_apply_verification_rolls_back_and_keeps_patch(self):
 
@@ -859,7 +1051,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                 side_effect=fail_current_repository,
         ):
             with self.assertRaisesRegex(RuntimeError,
-                                        'recovery patch retained at'):
+                                        'recovery bundle retained at'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -867,7 +1059,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -889,7 +1081,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                 side_effect=edit_then_fail,
         ):
             with self.assertRaisesRegex(RuntimeError,
-                                        'recovery patch retained at'):
+                                        'recovery bundle retained at'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -898,9 +1090,8 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertEqual(root.read_text(encoding='utf-8'), concurrent)
-        self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-restore-original-go.mod' in path.name
-                            for path in self._recovery_patches()))
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_keyboard_interrupt_rolls_back_and_keeps_recovery_patch(self):
 
@@ -914,7 +1105,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                 side_effect=interrupt_current_repository,
         ):
             with self.assertWarnsRegex(RuntimeWarning,
-                                       'recovery patch retained at'):
+                                       'recovery bundle retained at'):
                 with self.assertRaises(KeyboardInterrupt):
                     update_go_version.sync(
                         self.repo_root,
@@ -923,7 +1114,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                         repository_paths=self.files,
                     )
 
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -942,7 +1133,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         with mock.patch.object(update_go_version,
                                '_git', side_effect=apply_then_interrupt):
             with self.assertWarnsRegex(RuntimeWarning,
-                                       'recovery patch retained at'):
+                                       'recovery bundle retained at'):
                 with self.assertRaises(KeyboardInterrupt):
                     update_go_version.sync(
                         self.repo_root,
@@ -951,7 +1142,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                         repository_paths=self.files,
                     )
 
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -973,7 +1164,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'simulated verification failure.*recovery patch retained'):
+                    'simulated verification failure.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -982,13 +1173,12 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertEqual(root.read_bytes(), b'\xff')
-        self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-restore-original-go.mod' in path.name
-                            for path in self._recovery_patches()))
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_interrupt_before_recovery_patch_does_not_report_none(self):
         with mock.patch.object(update_go_version,
-                               '_write_recovery_patch',
+                               '_write_recovery_bundle',
                                side_effect=KeyboardInterrupt):
             with self.assertWarnsRegex(
                     RuntimeWarning,
@@ -1002,16 +1192,6 @@ class UpdateGoVersionTest(unittest.TestCase):
                     )
 
         self.assertNotIn('None', str(warning.warning))
-        self.assertEqual(self._recovery_patches(), [])
-
-    def test_interrupted_recovery_patch_write_removes_partial_file(self):
-        head = self._git('rev-parse', 'HEAD').stdout.strip()
-        with mock.patch.object(update_go_version.os,
-                               'fdopen', side_effect=KeyboardInterrupt):
-            with self.assertRaises(KeyboardInterrupt):
-                update_go_version._write_recovery_patch(
-                    self.repo_root, head, '1.28.3', 'patch contents')
-
         self.assertEqual(self._recovery_patches(), [])
 
     def test_success_leaves_index_and_recovery_directory_clean(self):
@@ -1028,18 +1208,10 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertEqual(self._recovery_patches(), [])
 
     def test_recovery_patch_cleanup_failure_is_only_a_warning(self):
-        real_unlink = Path.unlink
-
-        def fail_recovery_cleanup(path, *args, **kwargs):
-            if path.parent.name == 'go-version-update-recovery':
-                raise OSError('simulated cleanup failure')
-            return real_unlink(path, *args, **kwargs)
-
         with mock.patch.object(
-                Path,
-                'unlink',
-                autospec=True,
-                side_effect=fail_recovery_cleanup,
+                update_go_version.shutil,
+                'rmtree',
+                side_effect=OSError('simulated cleanup failure'),
         ):
             with self.assertWarnsRegex(RuntimeWarning,
                                        'committed and verified'):
@@ -1053,7 +1225,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertEqual(set(changed), set(self.files))
         self.assertIn('toolchain go1.28.3',
                       (self.repo_root / 'go.mod').read_text(encoding='utf-8'))
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
 
     def test_rejects_invalid_versions_and_downgrades(self):
         for version in ('1.29', 'go1.29.0', 'v1.29.0', '1.29.0-rc1',

@@ -64,8 +64,6 @@ type response struct {
 
 var goDownloadPattern = regexp.MustCompile(`(?i)(?:dl\.google\.com/go/|go\.dev/dl/)go`)
 var exactToolchainVersionPattern = regexp.MustCompile(`^1\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`)
-var dockerGoTokenPattern = regexp.MustCompile(`(?i)golang`)
-var dockerParameterExpansionPrefixPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(?::?[-+?=])$`)
 var canonicalDockerGoImagePattern = regexp.MustCompile(`^(?i:FROM)[ \t]+golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64})[ \t]+(?i:AS)[ \t]+([a-z0-9][a-z0-9_.-]*)[ \t]*$`)
 
 const (
@@ -426,26 +424,104 @@ func hasDockerGoLiteral(node *parser.Node) bool {
 }
 
 func containsDockerGoToken(value string) bool {
-	for _, match := range dockerGoTokenPattern.FindAllStringIndex(value, -1) {
-		start, end := match[0], match[1]
-		startsAfterExpansionOperator := startsParameterExpansionWord(value, start)
-		if start > 0 && isDockerNameByte(value[start-1]) && !startsAfterExpansionOperator {
-			continue
-		}
-		if end < len(value) && (isDockerNameByte(value[end]) || value[end] == '/') {
-			continue
-		}
-		return true
-	}
-	return false
+	found, _ := scanDockerGoToken(value)
+	return found
 }
 
-func startsParameterExpansionWord(value string, start int) bool {
-	opening := strings.LastIndex(value[:start], "${")
-	if opening < 0 || strings.Contains(value[opening+2:start], "}") {
+func scanDockerGoToken(value string) (bool, int) {
+	steps := 0
+	for index := 0; index < len(value); index++ {
+		steps++
+		if value[index] == '$' && index+1 < len(value) && value[index+1] == '{' {
+			wordStart, inspected, ok := parameterExpansionWordStart(value, index+2)
+			steps += inspected
+			if ok && hasDockerGoTokenAt(value, wordStart) && hasDockerGoTokenEnd(value, wordStart) {
+				return true, steps
+			}
+		}
+		if !hasDockerGoTokenAt(value, index) {
+			continue
+		}
+		if (index == 0 || !isDockerNameByte(value[index-1])) && hasDockerGoTokenEnd(value, index) {
+			return true, steps
+		}
+		index += len("golang") - 1
+	}
+	return false, steps
+}
+
+func parameterExpansionWordStart(value string, start int) (int, int, bool) {
+	cursor := start
+	inspected := 0
+	if cursor >= len(value) {
+		return 0, inspected, false
+	}
+	if isShellNameStart(value[cursor]) {
+		for cursor < len(value) && isShellNameByte(value[cursor]) {
+			cursor++
+			inspected++
+		}
+	} else if isASCIIDigit(value[cursor]) {
+		for cursor < len(value) && isASCIIDigit(value[cursor]) {
+			cursor++
+			inspected++
+		}
+	} else if isShellSpecialParameter(value[cursor]) {
+		cursor++
+		inspected++
+	} else {
+		return 0, inspected + 1, false
+	}
+	if cursor < len(value) && value[cursor] == ':' {
+		cursor++
+		inspected++
+	}
+	if cursor >= len(value) || !isShellParameterOperator(value[cursor]) {
+		return 0, inspected + 1, false
+	}
+	return cursor + 1, inspected + 1, true
+}
+
+func hasDockerGoTokenAt(value string, start int) bool {
+	const token = "golang"
+	if start < 0 || start+len(token) > len(value) {
 		return false
 	}
-	return dockerParameterExpansionPrefixPattern.MatchString(value[opening+2 : start])
+	for offset := range len(token) {
+		character := value[start+offset]
+		if character >= 'A' && character <= 'Z' {
+			character += 'a' - 'A'
+		}
+		if character != token[offset] {
+			return false
+		}
+	}
+	return true
+}
+
+func hasDockerGoTokenEnd(value string, start int) bool {
+	end := start + len("golang")
+	return end == len(value) || !isDockerNameByte(value[end]) && value[end] != '/'
+}
+
+func isShellNameStart(value byte) bool {
+	return value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' || value == '_'
+}
+
+func isShellNameByte(value byte) bool {
+	return isShellNameStart(value) || isASCIIDigit(value)
+}
+
+func isASCIIDigit(value byte) bool {
+	return value >= '0' && value <= '9'
+}
+
+func isShellSpecialParameter(value byte) bool {
+	return strings.ContainsRune("*@#?-$!", rune(value))
+}
+
+func isShellParameterOperator(value byte) bool {
+	return value == '-' || value == '+' || value == '?' || value == '='
 }
 
 func isDockerNameByte(value byte) bool {
