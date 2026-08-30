@@ -15,8 +15,13 @@
 package main
 
 import (
+	"errors"
+	"io"
 	"reflect"
+	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestYAMLSemantics(t *testing.T) {
@@ -43,22 +48,128 @@ literal: image:golang
 	}
 }
 
-func TestDockerfileSemantics(t *testing.T) {
-	contents := "# escape=`\n" +
-		"ARG REPOSITORY=docker.io/library/golang\n" +
-		"ARG BASE=${REPOSITORY}:1.27.0\n" +
-		"FROM alpine AS golang\n" +
-		"FROM golang AS stage-alias\n" +
-		"FROM `\n  ${BASE} AS builder\n"
-	metadata, err := inspect(request{Path: "Containerfile.worker", Contents: contents})
-	if err != nil {
-		t.Fatal(err)
+func TestDockerClassification(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	tests := []struct {
+		name           string
+		contents       string
+		classification string
+		candidateKinds []string
+	}{
+		{
+			name:           "canonical managed form",
+			contents:       "FROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
+			classification: "managed",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name: "unrelated modern syntax",
+			contents: "# syntax=docker/dockerfile:1.19\n" +
+				"FROM alpine\nCOPY --exclude=ignored source /source\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "comments heredocs and command text",
+			contents: "FROM alpine\n# FROM golang:latest\n" +
+				"RUN <<EOF\necho golang\nEOF\nRUN echo golang\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "literal unsupported from",
+			contents:       "FROM golang:latest AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "uppercase repository is unsupported",
+			contents:       "FROM GOLANG:1.27.0@sha256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "uppercase digest is unsupported",
+			contents:       "FROM golang:1.27.0@SHA256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "invalid tag flavor is unsupported",
+			contents:       "FROM golang:1.27.0-foo:bar@sha256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name: "arg indirection is not evaluated",
+			contents: "ARG IMAGE=golang:1.27.0\nARG IMAGE\n" +
+				"FROM ${IMAGE} AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"arg-default"},
+		},
+		{
+			name:           "literal interpolation fallback is unsupported",
+			contents:       "FROM ${IMAGE:-golang} AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "literal interpolated suffix is unsupported",
+			contents:       "FROM golang${TAG} AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name: "external copy and run mount",
+			contents: "FROM alpine\n" +
+				"COPY --from=golang:1.27.0 /go /go\n" +
+				"RUN --mount=type=bind,from=golang:1.26.0,target=/go true\n",
+			classification: "unsupported",
+			candidateKinds: []string{"copy-from", "run-mount-from"},
+		},
+		{
+			name: "interpolated external sources are unsupported",
+			contents: "FROM golang:1.27.0@sha256:" + digest + " AS builder\n" +
+				"COPY --from=${IMAGE:-golang} /go /go\n" +
+				"RUN --mount=type=bind,from=golang${TAG},target=/go true\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "copy-from", "run-mount-from"},
+		},
+		{
+			name: "download in heredoc is unsupported",
+			contents: "FROM alpine\nRUN <<EOF\n" +
+				"curl https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"download"},
+		},
+		{
+			name:           "malformed candidate-bearing file",
+			contents:       "FROM golang:latest AS builder\nRUN <<EOF\n",
+			classification: "invalid",
+		},
 	}
-	if got, want := metadata.DockerGoStages, []string{"${BASE}"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Go stages = %q, want %q", got, want)
-	}
-	if got, want := metadata.DockerRepositoryArgs, []string{"BASE"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("repository args = %q, want %q", got, want)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Containerfile.worker", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; error=%q", metadata.DockerClassification, test.classification, metadata.DockerError)
+			}
+			var kinds []string
+			for _, candidate := range metadata.DockerCandidates {
+				kinds = append(kinds, candidate.Kind)
+			}
+			if !reflect.DeepEqual(kinds, test.candidateKinds) {
+				t.Fatalf("candidate kinds = %q, want %q", kinds, test.candidateKinds)
+			}
+			if test.classification == "managed" {
+				candidate := metadata.DockerCandidates[0]
+				if candidate.Version != "1.27.0" || candidate.Flavor != "-alpine" ||
+					candidate.Digest != "sha256:"+digest || candidate.Alias != "builder" {
+					t.Fatalf("managed candidate metadata = %#v", candidate)
+				}
+			}
+		})
 	}
 }
 
@@ -84,49 +195,79 @@ root: *j
 	}
 }
 
-func TestDockerfileDiscoversAllExternalImageSources(t *testing.T) {
-	contents := "FROM alpine AS final\n" +
-		"COPY --exclude=ignored --from=golang:1.27.0 /go/bin/go /usr/bin/go\n" +
-		"RUN --mount=type=bind,from=golang:1.26.0,target=/go true\n"
-	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
-	if err != nil {
-		t.Fatal(err)
+func TestMetadataResourceLimits(t *testing.T) {
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: strings.Repeat("x", maxInputBytes+1)}); !isResourceLimit(err, "input limit") {
+		t.Fatalf("oversized input error = %v", err)
 	}
-	if got, want := metadata.DockerGoStages, []string{}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Go stages = %q, want %q", got, want)
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: strings.Repeat("---\na: 1\n", maxYAMLDocuments+1)}); !isResourceLimit(err, "document limit") {
+		t.Fatalf("document limit error = %v", err)
 	}
-	if got, want := metadata.DockerGoSources, []string{"golang:1.27.0", "golang:1.26.0"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Go sources = %q, want %q", got, want)
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: "value: " + strings.Repeat("x", maxYAMLScalarBytes+1)}); !isResourceLimit(err, "scalar limit") {
+		t.Fatalf("scalar limit error = %v", err)
+	}
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: "values:\n" + strings.Repeat("  - x\n", maxYAMLNodes)}); !isResourceLimit(err, "node traversal limit") {
+		t.Fatalf("node limit error = %v", err)
+	}
+	aliasEdges := "anchor: &anchor x\nvalues:\n" + strings.Repeat("  - *anchor\n", 80000)
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: aliasEdges}); !isResourceLimit(err, "edge traversal limit") {
+		t.Fatalf("edge limit error = %v", err)
+	}
+	aggregateNodes := strings.Repeat("---\nvalues:\n"+strings.Repeat("  - x\n", maxYAMLNodes/2), 2)
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: aggregateNodes}); !isResourceLimit(err, "node traversal limit") {
+		t.Fatalf("aggregate node limit error = %v", err)
+	}
+	parserDepth := "deep: " + strings.Repeat("[", 10001) + "0" + strings.Repeat("]", 10001)
+	if _, err := inspect(request{Path: "workflow.yaml", Contents: parserDepth}); !isResourceLimit(err, "exceeded max depth") {
+		t.Fatalf("YAML parser depth error = %v", err)
+	}
+
+	deep := &yaml.Node{Kind: yaml.SequenceNode}
+	cursor := deep
+	for range maxYAMLDepth + 1 {
+		child := &yaml.Node{Kind: yaml.SequenceNode}
+		cursor.Content = []*yaml.Node{child}
+		cursor = child
+	}
+	state := yamlTraversalState{
+		visited:    map[*yaml.Node]bool{},
+		scalarMemo: map[*yaml.Node]string{},
+	}
+	if err := walkYAML(deep, map[string][]string{}, new(bool), &state, 0); err == nil || !strings.Contains(err.Error(), "depth limit") {
+		t.Fatalf("deep YAML error = %v", err)
 	}
 }
 
-func TestDockerfileArgExpandedStageAliasesAreNotExternal(t *testing.T) {
-	contents := "ARG SOURCE=golang\n" +
-		"ARG SOURCE\n" +
-		"FROM alpine AS golang\n" +
-		"FROM ${SOURCE} AS final\n"
-	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(metadata.DockerGoStages) != 0 || len(metadata.DockerGoSources) != 0 {
-		t.Fatalf("stage alias classified as external: stages=%q sources=%q", metadata.DockerGoStages, metadata.DockerGoSources)
-	}
+func isResourceLimit(err error, text string) bool {
+	var limitError *resourceLimitError
+	return errors.As(err, &limitError) && strings.Contains(err.Error(), text)
 }
 
-func TestDockerfileValuelessArgRedeclarationPreservesDefault(t *testing.T) {
-	contents := "ARG IMAGE=golang:1.27.0\n" +
-		"ARG IMAGE\n" +
-		"FROM ${IMAGE} AS builder\n"
-	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
-	if err != nil {
-		t.Fatal(err)
+type repeatedByteReader struct {
+	remaining int
+}
+
+func (reader *repeatedByteReader) Read(buffer []byte) (int, error) {
+	if reader.remaining == 0 {
+		return 0, io.EOF
 	}
-	if got, want := metadata.DockerGoStages, []string{"${IMAGE}"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Go stages = %q, want %q", got, want)
+	count := len(buffer)
+	if count > reader.remaining {
+		count = reader.remaining
 	}
-	if got, want := metadata.DockerRepositoryArgs, []string{"IMAGE"}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("repository args = %q, want %q", got, want)
+	for index := range count {
+		buffer[index] = ' '
+	}
+	reader.remaining -= count
+	return count, nil
+}
+
+func TestRequestEnvelopeIsBoundedBeforeJSONDecoding(t *testing.T) {
+	_, err := decodeRequest(&repeatedByteReader{remaining: maxRequestEnvelopeBytes + 1})
+	if !isResourceLimit(err, "envelope limit") {
+		t.Fatalf("request envelope error = %v", err)
+	}
+	if _, err := decodeRequest(strings.NewReader(`{"path":"x"} {"path":"y"}`)); err == nil || !strings.Contains(err.Error(), "multiple JSON values") {
+		t.Fatalf("trailing request error = %v", err)
 	}
 }
 
@@ -139,4 +280,26 @@ func TestMalformedModuleBlocksAreRejected(t *testing.T) {
 			t.Fatalf("inspect accepted malformed module:\n%s", contents)
 		}
 	}
+}
+
+func FuzzInspectNeverPanics(f *testing.F) {
+	f.Add(byte(0), []byte("image: golang\n"))
+	f.Add(byte(1), []byte("FROM golang:1.27.0 AS builder\n"))
+	f.Add(byte(2), []byte("module example.com/test\n\ngo 1.27.0\n"))
+	f.Add(byte(0), []byte("a: &a [{image: golang}]\nb: [*a,*a,*a]\n"))
+	f.Add(byte(0), []byte("---\nimage: golang\n---\nuses: actions/setup-go@v7\n"))
+	f.Fuzz(func(t *testing.T, kind byte, data []byte) {
+		if len(data) > maxInputBytes+1 {
+			t.Skip()
+		}
+		paths := []string{"workflow.yaml", "Dockerfile", "go.mod"}
+		metadata, err := inspect(request{Path: paths[int(kind)%len(paths)], Contents: string(data)})
+		if err == nil && metadata.DockerClassification != "" {
+			switch metadata.DockerClassification {
+			case "managed", "unsupported", "irrelevant", "invalid":
+			default:
+				t.Fatalf("invalid classification %q", metadata.DockerClassification)
+			}
+		}
+	})
 }

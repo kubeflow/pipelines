@@ -31,6 +31,8 @@ GO_TEXT_REFERENCE_PATTERN = re.compile(
 )
 METADATA_BUILD_TIMEOUT_SECONDS = 120
 METADATA_INSPECTION_TIMEOUT_SECONDS = 10
+MAX_METADATA_INPUT_BYTES = 4 * 1024 * 1024
+DOCKER_CLASSIFICATIONS = {'managed', 'unsupported', 'irrelevant', 'invalid'}
 
 
 def is_container_recipe(relative_path: Path) -> bool:
@@ -67,6 +69,10 @@ def _helper_binary() -> Path:
 
 @lru_cache(maxsize=512)
 def inspect_metadata(relative_path: Path, contents: str) -> Dict:
+    if len(contents.encode('utf-8')) > MAX_METADATA_INPUT_BYTES:
+        raise RuntimeError(
+            f'{relative_path} exceeds the {MAX_METADATA_INPUT_BYTES}-byte '
+            'metadata input limit')
     try:
         result = subprocess.run(
             (str(_helper_binary()),),
@@ -84,8 +90,13 @@ def inspect_metadata(relative_path: Path, contents: str) -> Dict:
             f'Go metadata inspection for {relative_path} timed out after '
             f'{METADATA_INSPECTION_TIMEOUT_SECONDS} seconds') from error
     except subprocess.CalledProcessError as error:
-        raise ValueError(error.stderr.strip() or
-                         f'could not parse {relative_path}') from error
+        detail = error.stderr.strip()
+        if detail.startswith('resource limit:'):
+            raise RuntimeError(
+                f'Go metadata inspection for {relative_path} exceeded a '
+                f'{detail}') from error
+        raise ValueError(detail or f'could not parse {relative_path}') \
+            from error
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
@@ -116,12 +127,21 @@ def yaml_mapping_values(contents: str,
     return {key: list(values.get(key, [])) for key in target_keys}
 
 
-def docker_go_runtime_sources(
-        contents: str) -> Tuple[List[str], List[str], List[str]]:
+def docker_runtime_classification(contents: str) -> Dict:
     metadata = inspect_metadata(Path('Dockerfile'), contents)
-    return (metadata.get('dockerGoStages', []),
-            metadata.get('dockerGoSources', []),
-            metadata.get('dockerRepositoryArgs', []))
+    classification = metadata.get('dockerClassification')
+    if classification not in DOCKER_CLASSIFICATIONS:
+        raise RuntimeError(
+            f'Go metadata helper returned invalid Docker classification '
+            f'{classification!r}')
+    candidates = list(metadata.get('dockerCandidates', []))
+    for candidate in candidates:
+        candidate.setdefault('flavor', '')
+    return {
+        'classification': classification,
+        'candidates': candidates,
+        'error': metadata.get('dockerError', ''),
+    }
 
 
 def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
@@ -140,16 +160,8 @@ def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
         return bool(metadata.get('hasGoDownload'))
 
     if is_container_recipe(relative_path):
-        active_text = '\n'.join(
-            line for line in contents.splitlines()
-            if not line.lstrip().startswith('#'))
-        if re.search(r'(?:dl\.google\.com/go/|go\.dev/dl/)go',
-                     active_text, re.IGNORECASE):
-            return True
-        metadata = inspect_metadata(relative_path, contents)
-        return bool(metadata.get('dockerGoStages') or
-                    metadata.get('dockerGoSources') or
-                    metadata.get('dockerRepositoryArgs'))
+        return docker_runtime_classification(
+            contents)['classification'] != 'irrelevant'
 
     active_text = '\n'.join(
         line for line in contents.splitlines()

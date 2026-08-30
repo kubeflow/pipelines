@@ -18,18 +18,17 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
-	"github.com/moby/buildkit/frontend/dockerfile/instructions"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
-	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"golang.org/x/mod/modfile"
 	"gopkg.in/yaml.v3"
 )
@@ -44,23 +43,55 @@ type moduleMetadata struct {
 	Toolchain string `json:"toolchain,omitempty"`
 }
 
+type dockerCandidate struct {
+	Kind    string `json:"kind"`
+	Value   string `json:"value"`
+	Line    int    `json:"line"`
+	Version string `json:"version,omitempty"`
+	Flavor  string `json:"flavor,omitempty"`
+	Digest  string `json:"digest,omitempty"`
+	Alias   string `json:"alias,omitempty"`
+}
+
 type response struct {
 	YAMLValues           map[string][]string `json:"yamlValues,omitempty"`
 	HasGoDownload        bool                `json:"hasGoDownload,omitempty"`
-	DockerGoStages       []string            `json:"dockerGoStages,omitempty"`
-	DockerGoSources      []string            `json:"dockerGoSources,omitempty"`
-	DockerRepositoryArgs []string            `json:"dockerRepositoryArgs,omitempty"`
+	DockerClassification string              `json:"dockerClassification,omitempty"`
+	DockerCandidates     []dockerCandidate   `json:"dockerCandidates,omitempty"`
+	DockerError          string              `json:"dockerError,omitempty"`
 	Module               *moduleMetadata     `json:"module,omitempty"`
 }
 
 var goDownloadPattern = regexp.MustCompile(`(?i)(?:dl\.google\.com/go/|go\.dev/dl/)go`)
 var exactToolchainVersionPattern = regexp.MustCompile(`^1\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`)
+var dockerGoCandidatePattern = regexp.MustCompile(`(?i)(?:^|[/\s=,"'${}]|:-)golang(?:[:@\s,"'${}]|$)`)
+var canonicalDockerGoImagePattern = regexp.MustCompile(`^(?i:FROM)[ \t]+golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64})[ \t]+(?i:AS)[ \t]+([a-z0-9][a-z0-9_.-]*)[ \t]*$`)
 
-const maxYAMLNodes = 100000
+const (
+	maxInputBytes           = 4 << 20
+	maxRequestEnvelopeBytes = 32 << 20
+	maxYAMLDocuments        = 64
+	maxYAMLNodes            = 100000
+	maxYAMLEdges            = 150000
+	maxYAMLDepth            = 256
+	maxYAMLScalarBytes      = 1 << 20
+)
+
+type resourceLimitError struct {
+	message string
+}
+
+func (err *resourceLimitError) Error() string {
+	return err.message
+}
+
+func resourceLimitf(format string, arguments ...any) error {
+	return &resourceLimitError{message: fmt.Sprintf(format, arguments...)}
+}
 
 func main() {
-	var input request
-	if err := json.NewDecoder(os.Stdin).Decode(&input); err != nil {
+	input, err := decodeRequest(os.Stdin)
+	if err != nil {
 		fail(fmt.Errorf("decode request: %w", err))
 	}
 	metadata, err := inspect(input)
@@ -73,11 +104,43 @@ func main() {
 }
 
 func fail(err error) {
+	var limitError *resourceLimitError
+	if errors.As(err, &limitError) {
+		fmt.Fprintf(os.Stderr, "resource limit: %s\n", limitError)
+		os.Exit(2)
+	}
 	fmt.Fprintln(os.Stderr, err)
 	os.Exit(2)
 }
 
+func decodeRequest(reader io.Reader) (request, error) {
+	encoded, err := io.ReadAll(io.LimitReader(reader, maxRequestEnvelopeBytes+1))
+	if err != nil {
+		return request{}, err
+	}
+	if len(encoded) > maxRequestEnvelopeBytes {
+		return request{}, resourceLimitf("request exceeds the %d-byte envelope limit", maxRequestEnvelopeBytes)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(encoded))
+	decoder.DisallowUnknownFields()
+	var input request
+	if err := decoder.Decode(&input); err != nil {
+		return request{}, err
+	}
+	var trailing json.RawMessage
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return request{}, fmt.Errorf("request contains multiple JSON values")
+		}
+		return request{}, fmt.Errorf("request contains trailing data: %w", err)
+	}
+	return input, nil
+}
+
 func inspect(input request) (response, error) {
+	if len(input.Contents) > maxInputBytes {
+		return response{}, resourceLimitf("%s exceeds the %d-byte metadata input limit", input.Path, maxInputBytes)
+	}
 	name := filepath.Base(input.Path)
 	ext := strings.ToLower(filepath.Ext(name))
 	metadata := response{}
@@ -112,13 +175,10 @@ func inspect(input request) (response, error) {
 	}
 
 	if isContainerRecipe(name) {
-		stages, sources, arguments, err := inspectDockerfile(input.Contents)
-		if err != nil {
-			return response{}, fmt.Errorf("%s: %w", input.Path, err)
-		}
-		metadata.DockerGoStages = stages
-		metadata.DockerGoSources = sources
-		metadata.DockerRepositoryArgs = arguments
+		classification, candidates, parseError := classifyDockerfile(input.Contents)
+		metadata.DockerClassification = classification
+		metadata.DockerCandidates = candidates
+		metadata.DockerError = parseError
 	}
 	return metadata, nil
 }
@@ -135,6 +195,11 @@ func inspectYAML(contents string) (map[string][]string, bool, error) {
 	}
 	decoder := yaml.NewDecoder(strings.NewReader(contents))
 	hasDownload := false
+	state := yamlTraversalState{
+		visited:    map[*yaml.Node]bool{},
+		scalarMemo: map[*yaml.Node]string{},
+	}
+	documents := 0
 	for {
 		var document yaml.Node
 		err := decoder.Decode(&document)
@@ -142,55 +207,86 @@ func inspectYAML(contents string) (map[string][]string, bool, error) {
 			break
 		}
 		if err != nil {
+			if strings.Contains(err.Error(), "exceeded max depth") {
+				return nil, false, resourceLimitf("YAML parser %s", err)
+			}
 			return nil, false, err
 		}
-		visited := map[*yaml.Node]bool{}
-		if err := walkYAML(&document, values, &hasDownload, visited); err != nil {
+		documents++
+		if documents > maxYAMLDocuments {
+			return nil, false, resourceLimitf("YAML metadata exceeds the %d-document limit", maxYAMLDocuments)
+		}
+		if err := walkYAML(&document, values, &hasDownload, &state, 0); err != nil {
 			return nil, false, err
 		}
 	}
 	return values, hasDownload, nil
 }
 
-func walkYAML(node *yaml.Node, values map[string][]string, hasDownload *bool, visited map[*yaml.Node]bool) error {
-	if node == nil || visited[node] {
+type yamlTraversalState struct {
+	visited    map[*yaml.Node]bool
+	scalarMemo map[*yaml.Node]string
+	nodes      int
+	edges      int
+}
+
+func walkYAML(node *yaml.Node, values map[string][]string, hasDownload *bool, state *yamlTraversalState, depth int) error {
+	if node == nil || state.visited[node] {
 		return nil
 	}
-	visited[node] = true
-	if len(visited) > maxYAMLNodes {
-		return fmt.Errorf("YAML metadata exceeds the %d-node traversal limit", maxYAMLNodes)
+	if depth > maxYAMLDepth {
+		return resourceLimitf("YAML metadata exceeds the %d-level depth limit", maxYAMLDepth)
+	}
+	state.visited[node] = true
+	state.nodes++
+	if state.nodes > maxYAMLNodes {
+		return resourceLimitf("YAML metadata exceeds the %d-node traversal limit", maxYAMLNodes)
+	}
+	state.edges += len(node.Content)
+	if node.Kind == yaml.AliasNode && node.Alias != nil {
+		state.edges++
+	}
+	if state.edges > maxYAMLEdges {
+		return resourceLimitf("YAML metadata exceeds the %d-edge traversal limit", maxYAMLEdges)
+	}
+	if node.Kind == yaml.ScalarNode && len(node.Value) > maxYAMLScalarBytes {
+		return resourceLimitf("YAML metadata exceeds the %d-byte scalar limit", maxYAMLScalarBytes)
 	}
 
 	if node.Kind == yaml.AliasNode {
-		return walkYAML(node.Alias, values, hasDownload, visited)
+		return walkYAML(node.Alias, values, hasDownload, state, depth+1)
 	}
 	if node.Kind == yaml.ScalarNode && goDownloadPattern.MatchString(node.Value) {
 		*hasDownload = true
 	}
 	if node.Kind == yaml.MappingNode {
 		for index := 0; index+1 < len(node.Content); index += 2 {
-			key := resolvedScalar(node.Content[index])
+			key := resolvedScalar(node.Content[index], state)
 			valueNode := node.Content[index+1]
 			if _, ok := values[key]; ok {
-				if value := resolvedScalar(valueNode); value != "" {
-					values[key] = append(values[key], value)
+				if value := resolvedScalar(valueNode, state); value != "" {
+					values[key] = appendUnique(values[key], value)
 				}
 			}
-			if err := walkYAML(valueNode, values, hasDownload, visited); err != nil {
+			if err := walkYAML(valueNode, values, hasDownload, state, depth+1); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
 	for _, child := range node.Content {
-		if err := walkYAML(child, values, hasDownload, visited); err != nil {
+		if err := walkYAML(child, values, hasDownload, state, depth+1); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func resolvedScalar(node *yaml.Node) string {
+func resolvedScalar(node *yaml.Node, state *yamlTraversalState) string {
+	original := node
+	if value, ok := state.scalarMemo[original]; ok {
+		return value
+	}
 	seen := map[*yaml.Node]bool{}
 	for node != nil && node.Kind == yaml.AliasNode {
 		if seen[node] {
@@ -200,129 +296,117 @@ func resolvedScalar(node *yaml.Node) string {
 		node = node.Alias
 	}
 	if node != nil && node.Kind == yaml.ScalarNode {
-		return strings.TrimSpace(node.Value)
+		value := strings.TrimSpace(node.Value)
+		state.scalarMemo[original] = value
+		return value
 	}
+	state.scalarMemo[original] = ""
 	return ""
 }
 
-func inspectDockerfile(contents string) ([]string, []string, []string, error) {
+func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
+	if !hasRawDockerCandidate(contents) {
+		return "irrelevant", nil, ""
+	}
 	parsed, err := parser.Parse(strings.NewReader(contents))
 	if err != nil {
-		return nil, nil, nil, err
-	}
-	stages, metaArgs, err := instructions.Parse(parsed.AST, nil)
-	if err != nil {
-		return nil, nil, nil, err
+		if hasRawDockerCandidate(contents) {
+			return "invalid", nil, err.Error()
+		}
+		return "irrelevant", nil, ""
 	}
 
-	environment := map[string]string{}
-	lexer := shell.NewLex(parsed.EscapeToken)
-	for _, command := range metaArgs {
-		for _, argument := range command.Args {
-			if argument.Value == nil {
+	managed := []dockerCandidate{}
+	unsupported := []dockerCandidate{}
+	for _, node := range parsed.AST.Children {
+		classifyDockerInstruction(node, &managed, &unsupported)
+	}
+	if len(unsupported) != 0 || len(managed) > 1 {
+		return "unsupported", append(managed, unsupported...), ""
+	}
+	if len(managed) == 1 {
+		return "managed", managed, ""
+	}
+	return "irrelevant", nil, ""
+}
+
+func classifyDockerInstruction(node *parser.Node, managed *[]dockerCandidate, unsupported *[]dockerCandidate) {
+	original := strings.TrimSpace(node.Original)
+	canonical := canonicalDockerGoImagePattern.FindStringSubmatch(original)
+	if strings.EqualFold(node.Value, "from") && node.StartLine == node.EndLine && canonical != nil {
+		*managed = append(*managed, dockerCandidate{
+			Kind:    "from",
+			Value:   original,
+			Line:    node.StartLine,
+			Version: canonical[1],
+			Flavor:  canonical[2],
+			Digest:  "sha256:" + canonical[3],
+			Alias:   canonical[4],
+		})
+	} else {
+		*unsupported = append(*unsupported, dockerInstructionCandidates(node)...)
+	}
+	for _, child := range node.Children {
+		classifyDockerInstruction(child, managed, unsupported)
+	}
+}
+
+func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
+	candidates := []dockerCandidate{}
+	appendImageCandidate := func(kind, value string) {
+		if isGolangImage(value) || dockerGoCandidatePattern.MatchString(value) {
+			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
+		}
+	}
+
+	if goDownloadPattern.MatchString(node.Original) {
+		candidates = append(candidates, dockerCandidate{Kind: "download", Value: node.Original, Line: node.StartLine})
+	}
+	for _, heredoc := range node.Heredocs {
+		if goDownloadPattern.MatchString(heredoc.Content) {
+			candidates = append(candidates, dockerCandidate{Kind: "download", Value: heredoc.Content, Line: node.StartLine})
+		}
+	}
+	switch strings.ToLower(node.Value) {
+	case "from":
+		if node.Next != nil {
+			appendImageCandidate("from", node.Next.Value)
+		}
+		if len(candidates) == 0 && dockerGoCandidatePattern.MatchString(node.Original) {
+			candidates = append(candidates, dockerCandidate{
+				Kind: "from", Value: node.Original, Line: node.StartLine,
+			})
+		}
+	case "arg":
+		if dockerGoCandidatePattern.MatchString(node.Original) {
+			candidates = append(candidates, dockerCandidate{
+				Kind: "arg-default", Value: node.Original, Line: node.StartLine,
+			})
+		}
+	case "copy":
+		for _, flag := range node.Flags {
+			if value, found := strings.CutPrefix(flag, "--from="); found {
+				appendImageCandidate("copy-from", value)
+			}
+		}
+	case "run":
+		for _, flag := range node.Flags {
+			mount, found := strings.CutPrefix(flag, "--mount=")
+			if !found {
 				continue
 			}
-			result, err := lexer.ProcessWordWithMatches(*argument.Value, environmentGetter(environment))
-			if err != nil {
-				return nil, nil, nil, parser.WithLocation(err, command.Location())
-			}
-			environment[argument.Key] = result.Result
-		}
-	}
-
-	repositoryArgs := []string{}
-	goStages := []string{}
-	goSources := []string{}
-	for index, stage := range stages {
-		result, err := lexer.ProcessWordWithMatches(stage.BaseName, environmentGetter(environment))
-		if err != nil {
-			return nil, nil, nil, parser.WithLocation(err, stage.Location)
-		}
-		_, isPriorStage := instructions.HasStage(stages[:index], result.Result)
-		if !isPriorStage && (isGolangImage(result.Result) || isGolangImage(stage.BaseName)) {
-			goStages = append(goStages, stage.BaseName)
-			for argument := range result.Matched {
-				repositoryArgs = appendUnique(repositoryArgs, argument)
-			}
-		}
-
-		stageEnvironment := cloneEnvironment(environment)
-		for _, command := range stage.Commands {
-			switch command := command.(type) {
-			case *instructions.ArgCommand:
-				for _, argument := range command.Args {
-					if argument.Value == nil {
-						continue
-					}
-					expanded, err := lexer.ProcessWordWithMatches(*argument.Value, environmentGetter(stageEnvironment))
-					if err != nil {
-						return nil, nil, nil, parser.WithLocation(err, command.Location())
-					}
-					stageEnvironment[argument.Key] = expanded.Result
-				}
-			case *instructions.CopyCommand:
-				if command.From != "" {
-					source, err := resolveDockerSource(command.From, stageEnvironment, lexer, command.Location())
-					if err != nil {
-						return nil, nil, nil, err
-					}
-					if isExternalGolangSource(source, stages, command.From, true) {
-						goSources = append(goSources, command.From)
-					}
-				}
-			case *instructions.RunCommand:
-				for _, mount := range instructions.GetMounts(command) {
-					if mount.From == "" {
-						continue
-					}
-					source, err := resolveDockerSource(mount.From, stageEnvironment, lexer, command.Location())
-					if err != nil {
-						return nil, nil, nil, err
-					}
-					if isExternalGolangSource(source, stages, mount.From, false) {
-						goSources = append(goSources, mount.From)
-					}
+			for _, field := range strings.Split(mount, ",") {
+				if value, found := strings.CutPrefix(field, "from="); found {
+					appendImageCandidate("run-mount-from", value)
 				}
 			}
 		}
 	}
-	return goStages, goSources, repositoryArgs, nil
+	return candidates
 }
 
-func cloneEnvironment(environment map[string]string) map[string]string {
-	cloned := make(map[string]string, len(environment))
-	for key, value := range environment {
-		cloned[key] = value
-	}
-	return cloned
-}
-
-func environmentGetter(environment map[string]string) shell.EnvGetter {
-	values := make([]string, 0, len(environment))
-	for key, value := range environment {
-		values = append(values, key+"="+value)
-	}
-	return shell.EnvsFromSlice(values)
-}
-
-func resolveDockerSource(source string, environment map[string]string, lexer *shell.Lex, location []parser.Range) (string, error) {
-	result, err := lexer.ProcessWordWithMatches(source, environmentGetter(environment))
-	if err != nil {
-		return "", parser.WithLocation(err, location)
-	}
-	return result.Result, nil
-}
-
-func isExternalGolangSource(resolved string, stages []instructions.Stage, original string, numericStageAllowed bool) bool {
-	if _, isStage := instructions.HasStage(stages, resolved); isStage {
-		return false
-	}
-	if numericStageAllowed {
-		if index, err := strconv.Atoi(resolved); err == nil && index >= 0 && index < len(stages) {
-			return false
-		}
-	}
-	return isGolangImage(resolved) || isGolangImage(original)
+func hasRawDockerCandidate(contents string) bool {
+	return dockerGoCandidatePattern.MatchString(contents) || goDownloadPattern.MatchString(contents)
 }
 
 func appendUnique(values []string, value string) []string {

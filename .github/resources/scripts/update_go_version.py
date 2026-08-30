@@ -24,10 +24,10 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 import warnings
 
-from go_version_metadata import (docker_go_runtime_sources,
+from go_version_metadata import (docker_runtime_classification,
                                  has_go_runtime_reference,
                                  is_container_recipe, module_versions)
 
@@ -49,14 +49,6 @@ TOOLCHAIN_LINE_PATTERN = re.compile(
     r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*\n?(?:\n)?',
     re.MULTILINE)
-GO_IMAGE_PATTERN = re.compile(
-    r'^(?P<prefix>FROM\s+)golang:'
-    r'(?P<version>\d+\.\d+\.\d+)'
-    r'(?P<flavor>-[^@\s]+)?@'
-    r'(?P<digest>sha256:[0-9a-f]{64})'
-    r'(?P<suffix>\s+AS\s+\w+)',
-    re.IGNORECASE | re.MULTILINE,
-)
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
 DIGEST_LOOKUP_ATTEMPTS = 3
 DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
@@ -144,7 +136,8 @@ def _updated_module_contents(contents: str, relative_path: Path,
 
 
 def _managed_dockerfiles(repo_root: Path,
-                         repository_paths: Iterable[Path]) -> Dict[Path, str]:
+                         repository_paths: Iterable[Path]) \
+        -> Dict[Path, Tuple[str, Dict]]:
     managed = {}
     unmanaged = []
     for relative_path in repository_paths:
@@ -159,23 +152,26 @@ def _managed_dockerfiles(repo_root: Path,
             continue
         _ensure_regular_destination(path, relative_path)
         contents = path.read_text(encoding='utf-8', errors='ignore')
-        matches = list(GO_IMAGE_PATTERN.finditer(contents))
         if is_container_recipe(relative_path):
-            try:
-                (go_stages, go_sources,
-                 repository_arguments) = docker_go_runtime_sources(contents)
-            except ValueError:
-                unmanaged.append(relative_path)
-                continue
+            docker = docker_runtime_classification(contents)
         else:
-            go_stages, go_sources, repository_arguments = [], [], []
-        if (not is_container_recipe(relative_path) or len(matches) != 1 or
-                len(go_stages) != 1 or go_sources or repository_arguments):
-            unmanaged.append(relative_path)
+            docker = {'classification': 'unsupported', 'candidates': []}
+        candidates = docker['candidates']
+        if (not is_container_recipe(relative_path) or
+                docker['classification'] != 'managed' or
+                len(candidates) != 1):
+            unmanaged.append(
+                f'{relative_path} ({docker["classification"]})')
             continue
-        managed[relative_path] = contents
+        candidate = candidates[0]
+        required = {'version', 'flavor', 'digest', 'alias', 'line', 'value'}
+        if not required.issubset(candidate):
+            raise RuntimeError(
+                f'Go metadata helper returned incomplete managed Docker '
+                f'metadata for {relative_path}')
+        managed[relative_path] = (contents, candidate)
     if unmanaged:
-        paths = ', '.join(str(path) for path in sorted(unmanaged))
+        paths = ', '.join(sorted(unmanaged))
         raise ValueError(
             'unsupported Go runtime pins found; use exactly one digest-pinned '
             f'Golang builder image per container recipe: {paths}')
@@ -245,10 +241,9 @@ def verify_image_digests(
     paths = set(repository_paths or _repository_paths(repo_root))
     dockerfiles = _managed_dockerfiles(repo_root, paths)
     pins_by_tag: Dict[str, Dict[str, List[Path]]] = {}
-    for relative_path, contents in dockerfiles.items():
-        match = GO_IMAGE_PATTERN.search(contents)
-        tag = match.group('version') + (match.group('flavor') or '')
-        digest = match.group('digest')
+    for relative_path, (_contents, candidate) in dockerfiles.items():
+        tag = candidate['version'] + candidate['flavor']
+        digest = candidate['digest']
         pins_by_tag.setdefault(tag, {}).setdefault(digest,
                                                    []).append(relative_path)
 
@@ -341,11 +336,13 @@ def _synchronized_contents_and_originals(
             contents, relative_path, target)
 
     dockerfiles = _managed_dockerfiles(repo_root, paths)
-    original_contents.update(dockerfiles)
+    original_contents.update({
+        relative_path: contents
+        for relative_path, (contents, _candidate) in dockerfiles.items()
+    })
     flavors = {
-        match.group('flavor') or ''
-        for contents in dockerfiles.values()
-        for match in GO_IMAGE_PATTERN.finditer(contents)
+        candidate['flavor']
+        for _contents, candidate in dockerfiles.values()
     }
     digests = {}
     for flavor in sorted(flavors):
@@ -356,16 +353,38 @@ def _synchronized_contents_and_originals(
                              f'{digest!r}')
         digests[flavor] = digest
 
-    for relative_path, contents in dockerfiles.items():
-
-        def replace_image(match: re.Match) -> str:
-            flavor = match.group('flavor') or ''
-            return (f"{match.group('prefix')}golang:{target_version}{flavor}@"
-                    f"{digests[flavor]}{match.group('suffix')}")
-
-        expected_contents[relative_path] = GO_IMAGE_PATTERN.sub(
-            replace_image, contents)
+    for relative_path, (contents, candidate) in dockerfiles.items():
+        flavor = candidate['flavor']
+        expected_contents[relative_path] = _updated_dockerfile_contents(
+            contents,
+            candidate,
+            target_version,
+            digests[flavor],
+        )
     return expected_contents, original_contents
+
+
+def _updated_dockerfile_contents(contents: str, candidate: Dict,
+                                 target_version: str, digest: str) -> str:
+    lines = contents.splitlines(keepends=True)
+    line_index = candidate['line'] - 1
+    if line_index < 0 or line_index >= len(lines):
+        raise RuntimeError('managed Docker candidate has an invalid line')
+    line = lines[line_index]
+    if line.endswith('\r\n'):
+        body, ending = line[:-2], '\r\n'
+    elif line.endswith('\n') or line.endswith('\r'):
+        body, ending = line[:-1], line[-1]
+    else:
+        body, ending = line, ''
+    indentation = body[:len(body) - len(body.lstrip())]
+    if body.strip() != candidate['value']:
+        raise RuntimeError(
+            'managed Docker candidate no longer matches its source line')
+    lines[line_index] = (
+        f'{indentation}FROM golang:{target_version}{candidate["flavor"]}@'
+        f'{digest} AS {candidate["alias"]}{ending}')
+    return ''.join(lines)
 
 
 def sync(
@@ -374,6 +393,8 @@ def sync(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> List[Path]:
+    initial_head = _git(repo_root, 'rev-parse', '--verify',
+                        'HEAD').stdout.strip()
     expected_contents, original_contents = _synchronized_contents_and_originals(
         repo_root,
         target_version,
@@ -387,154 +408,230 @@ def sync(
             continue
         changed_paths.append(relative_path)
 
-    update_paths = {}
-    backup_paths = {}
-    probe_paths = []
-    moved_paths = []
-    retained_paths = set()
-    committed = False
-    try:
-        for relative_path in changed_paths:
-            path = repo_root / relative_path
-            update_paths[relative_path] = _temporary_replacement(
-                path, expected_contents[relative_path], 'update')
-            backup_paths[relative_path] = _unused_temporary_path(
-                path, 'rollback')
-        probe_paths = _preflight_hard_links(repo_root, changed_paths,
-                                            update_paths)
-        _ensure_originals_unchanged(repo_root, original_contents)
-        for relative_path in sorted(changed_paths):
-            path = repo_root / relative_path
-            backup_path = backup_paths[relative_path]
-            moved_paths.append(relative_path)
-            os.rename(path, backup_path)
-            captured = _read_regular_contents(backup_path, relative_path)
-            if captured != original_contents[relative_path]:
-                raise RuntimeError(
-                    f'{relative_path} changed during Go version update')
-            os.link(update_paths[relative_path], path)
-            installed = _read_regular_contents(path, relative_path)
-            if installed != expected_contents[relative_path]:
-                raise RuntimeError(
-                    f'{relative_path} changed while installing Go update')
-        _ensure_expected_contents(repo_root, expected_contents, changed_paths)
-        _ensure_captured_originals_unchanged(original_contents, backup_paths,
-                                             moved_paths)
-        committed = True
-    except BaseException as update_error:
-        rollback_errors = _rollback_update(
-            repo_root,
-            reversed(moved_paths),
-            original_contents,
-            expected_contents,
-            backup_paths,
-            retained_paths,
-        )
-        if rollback_errors:
-            if not isinstance(update_error, Exception):
-                warnings.warn(
-                    'Go update rollback was incomplete after interruption: ' +
-                    '; '.join(rollback_errors), RuntimeWarning)
-                raise
-            raise RuntimeError(
-                f'failed to apply Go version update: {update_error}; '
-                'also failed to restore original files: ' +
-                '; '.join(rollback_errors)) from update_error
-        if not isinstance(update_error, Exception):
-            raise
+    if not changed_paths:
+        return []
+
+    start_head = _require_clean_managed_paths(repo_root,
+                                              original_contents.keys())
+    if start_head != initial_head:
         raise RuntimeError(
-            'failed to apply Go version update; restored original files: '
-            f'{update_error}') from update_error
+            f'HEAD changed during Go version update from {initial_head} '
+            f'to {start_head}')
+    worktree_parent = tempfile.TemporaryDirectory(
+        prefix='kfp-go-version-worktree-')
+    worktree = Path(worktree_parent.name) / 'repository'
+    recovery_path = None
+    application_attempted = False
+    try:
+        _git(repo_root, 'worktree', 'add', '--detach', str(worktree),
+             start_head)
+        for relative_path in changed_paths:
+            path = worktree / relative_path
+            _ensure_regular_destination(path, relative_path)
+            path.write_text(expected_contents[relative_path], encoding='utf-8')
+        _verify_worktree_plan(worktree, expected_contents, changed_paths)
+        patch = _git(
+            worktree,
+            '--literal-pathspecs',
+            'diff',
+            '--binary',
+            '--full-index',
+            '--no-ext-diff',
+            '--no-textconv',
+            '--src-prefix=a/',
+            '--dst-prefix=b/',
+            'HEAD',
+            '--',
+            *(str(path) for path in changed_paths),
+        ).stdout
+        if not patch:
+            raise RuntimeError('Git produced an empty Go version update patch')
+        recovery_path = _write_recovery_patch(repo_root, start_head,
+                                              target_version, patch)
+
+        current_head = _require_clean_managed_paths(
+            repo_root, original_contents.keys())
+        if current_head != start_head:
+            raise RuntimeError(
+                f'HEAD changed during Go version update from {start_head} '
+                f'to {current_head}')
+        _git(repo_root, 'apply', '--check', '--whitespace=nowarn',
+             str(recovery_path))
+        application_attempted = True
+        _git(repo_root, 'apply', '--whitespace=nowarn', str(recovery_path))
+        _ensure_expected_contents(repo_root, expected_contents, changed_paths)
+        _verify_repository_consistency(repo_root)
+    except BaseException as update_error:
+        rollback_error = None
+        if application_attempted and _contents_match(
+                repo_root, expected_contents, changed_paths):
+            try:
+                _git(repo_root, 'apply', '--reverse', '--check',
+                     '--whitespace=nowarn', str(recovery_path))
+                _git(repo_root, 'apply', '--reverse', '--whitespace=nowarn',
+                     str(recovery_path))
+                _ensure_expected_contents(repo_root, original_contents,
+                                          changed_paths)
+            except BaseException as error:
+                rollback_error = error
+        if not isinstance(update_error, Exception):
+            detail = (f'; rollback failed: {rollback_error}'
+                      if rollback_error else '')
+            if recovery_path:
+                message = ('Go update interrupted; recovery patch retained at '
+                           f'{recovery_path}{detail}')
+            else:
+                message = ('Go update interrupted before application; '
+                           f'managed files were not changed{detail}')
+            warnings.warn(message, RuntimeWarning)
+            raise
+        recovery = (f'; recovery patch retained at {recovery_path}'
+                    if recovery_path else '')
+        rollback = (f'; automatic rollback failed: {rollback_error}'
+                    if rollback_error else '')
+        raise RuntimeError(f'failed to apply Go version update: '
+                           f'{update_error}{rollback}{recovery}') \
+            from update_error
     finally:
-        cleanup_errors = _cleanup_temporary_paths(
-            (*probe_paths, *update_paths.values(), *backup_paths.values()),
-            retained_paths,
-            protected_contents={
-                backup_paths[relative_path]: original_contents[relative_path]
-                for relative_path in moved_paths
-            })
-        if cleanup_errors:
-            outcome = ('after committing the update' if committed else
-                       'while recovering from a failed update')
+        try:
+            if worktree.exists():
+                _git(repo_root, 'worktree', 'remove', '--force', str(worktree))
+        except (OSError, RuntimeError, subprocess.CalledProcessError) as error:
             warnings.warn(
-                f'could not remove temporary files {outcome}: ' +
-                '; '.join(cleanup_errors), RuntimeWarning)
+                f'could not remove temporary Go update worktree {worktree}: '
+                f'{error}', RuntimeWarning)
+        try:
+            worktree_parent.cleanup()
+        except OSError as error:
+            warnings.warn(
+                f'could not remove temporary Go update directory '
+                f'{worktree_parent.name}: {error}', RuntimeWarning)
+
+    try:
+        recovery_path.unlink()
+    except OSError as error:
+        warnings.warn(
+            f'Go update committed and verified, but recovery patch '
+            f'{recovery_path} could not be removed: {error}', RuntimeWarning)
     return sorted(changed_paths)
 
 
-def _rollback_update(
-    repo_root: Path,
-    relative_paths: Iterable[Path],
-    original_contents: Dict[Path, str],
-    expected_contents: Dict[Path, str],
-    backup_paths: Dict[Path, Path],
-    retained_paths: Set[Path],
-) -> List[str]:
-    errors = []
-    for relative_path in relative_paths:
-        path = repo_root / relative_path
-        backup_path = backup_paths[relative_path]
-        quarantine_path = None
-        discard_quarantine = False
-        try:
-            if not _path_entry_exists(backup_path):
-                current = _read_regular_contents(path, relative_path)
-                if current != original_contents[relative_path]:
-                    errors.append(
-                        f'{relative_path}: destination changed before it '
-                        'could be captured for rollback')
-                continue
-            if _path_entry_exists(path):
-                quarantine_path = _unused_temporary_path(path, 'quarantine')
-                os.rename(path, quarantine_path)
-                try:
-                    current = _read_regular_contents(quarantine_path,
-                                                     relative_path)
-                except BaseException as inspect_error:
-                    retained_paths.update((backup_path, quarantine_path))
-                    errors.append(
-                        f'{relative_path}: could not inspect concurrent '
-                        f'destination ({inspect_error}); concurrent entry '
-                        f'retained at {quarantine_path}; original retained '
-                        f'at {backup_path}')
-                    continue
-                if current != expected_contents[relative_path]:
-                    os.link(quarantine_path, path)
-                    discard_quarantine = True
-                    retained_paths.add(backup_path)
-                    errors.append(
-                        f'{relative_path}: destination changed after '
-                        'installation; original retained at '
-                        f'{backup_path}')
-                    continue
+def _git(repo_root: Path, *arguments: str) -> subprocess.CompletedProcess:
+    try:
+        return subprocess.run(
+            ('git', *arguments),
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, 'stderr', '') or str(error)
+        raise RuntimeError(
+            f'git {" ".join(arguments)} failed: {detail.strip()}') from error
 
-            os.link(backup_path, path)
-            discard_quarantine = True
-            restored = _read_regular_contents(path, relative_path)
-            if restored != original_contents[relative_path]:
-                retained_paths.add(backup_path)
-                errors.append(
-                    f'{relative_path}: restored content did not match; '
-                    f'original retained at {backup_path}')
-        except BaseException as rollback_error:
-            retained_paths.add(backup_path)
-            if (quarantine_path is not None and
-                    _path_entry_exists(quarantine_path) and
-                    not discard_quarantine):
-                retained_paths.add(quarantine_path)
-            errors.append(
-                f'{relative_path}: {rollback_error}; original retained at '
-                f'{backup_path}')
-        finally:
-            if quarantine_path is not None and discard_quarantine:
-                try:
-                    quarantine_path.unlink(missing_ok=True)
-                except OSError as cleanup_error:
-                    retained_paths.add(quarantine_path)
-                    errors.append(
-                        f'{relative_path}: could not remove recovery file '
-                        f'{quarantine_path}: {cleanup_error}')
-    return errors
+
+def _require_clean_managed_paths(repo_root: Path,
+                                 relative_paths: Iterable[Path]) -> str:
+    paths = tuple(str(path) for path in sorted(relative_paths))
+    head = _git(repo_root, 'rev-parse', '--verify', 'HEAD').stdout.strip()
+    _git(repo_root, '--literal-pathspecs', 'ls-files', '--error-unmatch', '--',
+         *paths)
+    status = _git(repo_root, '--literal-pathspecs', 'status', '--porcelain=v1',
+                  '-z', '--untracked-files=all', '--', *paths).stdout
+    if status:
+        raise RuntimeError(
+            'managed Go version files must be tracked and clean before '
+            'updating')
+    return head
+
+
+def _verify_worktree_plan(worktree: Path,
+                          expected_contents: Dict[Path, str],
+                          changed_paths: Iterable[Path]) -> None:
+    changed_paths = tuple(changed_paths)
+    _ensure_expected_contents(worktree, expected_contents, changed_paths)
+    _verify_repository_consistency(worktree)
+    actual = set(
+        path for path in _git(
+            worktree,
+            '--literal-pathspecs',
+            'diff',
+            '--name-only',
+            '-z',
+            'HEAD',
+        ).stdout.split('\0') if path)
+    expected = {str(path) for path in changed_paths}
+    if actual != expected:
+        raise RuntimeError(
+            f'temporary worktree changed {sorted(actual)}, expected '
+            f'{sorted(expected)}')
+    _git(worktree, 'diff', '--check')
+
+
+def _verify_repository_consistency(repo_root: Path) -> None:
+    checker = repo_root / '.github/resources/scripts/go_version_consistency_test.py'
+    if not checker.exists():
+        return
+    try:
+        subprocess.run(
+            ('python3', str(checker)),
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (FileNotFoundError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, 'stderr', '') or getattr(error, 'stdout', '') or str(
+            error)
+        raise RuntimeError(
+            f'Go version consistency verification failed: '
+            f'{detail.strip()}') from error
+
+
+def _write_recovery_patch(repo_root: Path, start_head: str,
+                          target_version: str, patch: str) -> Path:
+    common_dir_text = _git(repo_root, 'rev-parse',
+                           '--git-common-dir').stdout.strip()
+    common_dir = Path(common_dir_text)
+    if not common_dir.is_absolute():
+        common_dir = repo_root / common_dir
+    recovery_dir = common_dir / 'go-version-update-recovery'
+    recovery_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    recovery_dir.chmod(0o700)
+    descriptor, name = tempfile.mkstemp(
+        dir=recovery_dir,
+        prefix=f'{start_head[:12]}-to-go{target_version}-',
+        suffix='.patch',
+        text=True,
+    )
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as recovery_file:
+            descriptor = -1
+            recovery_file.write(patch)
+            recovery_file.flush()
+            os.fsync(recovery_file.fileno())
+    except BaseException:
+        if descriptor >= 0:
+            os.close(descriptor)
+        try:
+            Path(name).unlink(missing_ok=True)
+        except OSError as cleanup_error:
+            warnings.warn(
+                f'incomplete recovery patch retained at {name}: '
+                f'{cleanup_error}', RuntimeWarning)
+        raise
+    return Path(name)
+
+
+def _contents_match(repo_root: Path, expected_contents: Dict[Path, str],
+                    relative_paths: Iterable[Path]) -> bool:
+    try:
+        _ensure_expected_contents(repo_root, expected_contents, relative_paths)
+        return True
+    except Exception:
+        return False
 
 
 def _ensure_expected_contents(repo_root: Path,
@@ -556,126 +653,6 @@ def _ensure_expected_contents(repo_root: Path,
             ', '.join(sorted(changed)))
 
 
-def _cleanup_temporary_paths(paths: Iterable[Path],
-                             retained_paths: Set[Path],
-                             protected_contents: Optional[Dict[Path, str]] =
-                             None) -> List[str]:
-    errors = []
-    protected_contents = protected_contents or {}
-    for temporary_path in paths:
-        if temporary_path in retained_paths:
-            continue
-        if temporary_path in protected_contents and _path_entry_exists(
-                temporary_path):
-            try:
-                current = _read_regular_contents(temporary_path,
-                                                 temporary_path)
-            except BaseException as error:
-                retained_paths.add(temporary_path)
-                errors.append(
-                    f'{temporary_path}: could not inspect captured original; '
-                    f'retained for recovery: {error}')
-                continue
-            if current != protected_contents[temporary_path]:
-                retained_paths.add(temporary_path)
-                errors.append(
-                    f'{temporary_path}: captured original changed; retained '
-                    'for recovery')
-                continue
-        try:
-            temporary_path.unlink(missing_ok=True)
-        except OSError as error:
-            errors.append(f'{temporary_path}: {error}')
-    return errors
-
-
-def _preflight_hard_links(repo_root: Path, relative_paths: Iterable[Path],
-                          update_paths: Dict[Path, Path]) -> List[Path]:
-    probe_paths = []
-    try:
-        for relative_path in sorted(relative_paths):
-            path = repo_root / relative_path
-            for source, purpose in ((path, 'probe-original'),
-                                    (update_paths[relative_path],
-                                     'probe-update')):
-                probe_path = _unused_temporary_path(path, purpose)
-                probe_paths.append(probe_path)
-                os.link(source, probe_path)
-                source_stat = source.stat()
-                probe_stat = probe_path.stat()
-                if ((source_stat.st_dev, source_stat.st_ino) !=
-                        (probe_stat.st_dev, probe_stat.st_ino)):
-                    raise RuntimeError(
-                        f'{relative_path}: hard-link preflight did not '
-                        'reference the source inode')
-                probe_path.unlink()
-        return probe_paths
-    except BaseException:
-        _cleanup_temporary_paths(probe_paths, set())
-        raise
-
-
-def _ensure_captured_originals_unchanged(
-    original_contents: Dict[Path, str],
-    backup_paths: Dict[Path, Path],
-    relative_paths: Iterable[Path],
-) -> None:
-    changed = []
-    for relative_path in relative_paths:
-        try:
-            captured = _read_regular_contents(backup_paths[relative_path],
-                                              relative_path)
-        except (RuntimeError, ValueError, UnicodeDecodeError) as error:
-            changed.append(f'{relative_path} ({error})')
-            continue
-        if captured != original_contents[relative_path]:
-            changed.append(str(relative_path))
-    if changed:
-        raise RuntimeError(
-            'captured originals changed while committing Go version update: '
-            + ', '.join(sorted(changed)))
-
-
-def _path_entry_exists(path: Path) -> bool:
-    try:
-        path.lstat()
-        return True
-    except FileNotFoundError:
-        return False
-
-
-def _temporary_replacement(path: Path, contents: str, purpose: str) -> Path:
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f'.{path.name}.{purpose}.',
-    )
-    temporary_path = Path(temporary_name)
-    try:
-        os.fchmod(descriptor, stat.S_IMODE(path.stat().st_mode))
-        with os.fdopen(descriptor, 'w', encoding='utf-8') as temporary_file:
-            descriptor = -1
-            temporary_file.write(contents)
-            temporary_file.flush()
-            os.fsync(temporary_file.fileno())
-    except BaseException:
-        if descriptor >= 0:
-            os.close(descriptor)
-        temporary_path.unlink(missing_ok=True)
-        raise
-    return temporary_path
-
-
-def _unused_temporary_path(path: Path, purpose: str) -> Path:
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent,
-        prefix=f'.{path.name}.{purpose}.',
-    )
-    os.close(descriptor)
-    temporary_path = Path(temporary_name)
-    temporary_path.unlink()
-    return temporary_path
-
-
 def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
     try:
         mode = path.lstat().st_mode
@@ -691,24 +668,6 @@ def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
 def _read_regular_contents(path: Path, relative_path: Path) -> str:
     _ensure_regular_destination(path, relative_path)
     return path.read_text(encoding='utf-8')
-
-
-def _ensure_originals_unchanged(repo_root: Path,
-                                original_contents: Dict[Path, str]) -> None:
-    changed = []
-    for relative_path, original in original_contents.items():
-        path = repo_root / relative_path
-        try:
-            current = _read_regular_contents(path, relative_path)
-        except (RuntimeError, ValueError) as error:
-            changed.append(f'{relative_path} ({error})')
-            continue
-        if current != original:
-            changed.append(str(relative_path))
-    if changed:
-        raise RuntimeError(
-            'refusing to overwrite files changed during Go version update: ' +
-            ', '.join(sorted(changed)))
 
 
 def main() -> int:

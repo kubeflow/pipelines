@@ -18,7 +18,7 @@ import re
 import subprocess
 import unittest
 
-from go_version_metadata import (docker_go_runtime_sources,
+from go_version_metadata import (docker_runtime_classification,
                                  has_go_runtime_reference, has_setup_go_use,
                                  is_container_recipe, module_versions)
 
@@ -56,11 +56,6 @@ GO_DIRECTIVE_PATTERN = re.compile(
 TOOLCHAIN_PATTERN = re.compile(
     rf'^[ \t]*toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
-GO_IMAGE_PATTERN = re.compile(
-    r'^FROM\s+(golang:(\d+\.\d+\.\d+)(-[^@\s]+)?'
-    r'@sha256:[0-9a-f]{64})\s+AS\s+\w+',
-    re.IGNORECASE | re.MULTILINE,
-)
 PRECOMMIT_CHECK_PATTERN = re.compile(
     r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
     r'check-go-version[ \t]*$')
@@ -215,37 +210,28 @@ class GoVersionConsistencyTest(unittest.TestCase):
             dockerfile = REPOSITORY_ROOT / relative_path
             if not dockerfile.exists():
                 continue
-            matches = GO_IMAGE_PATTERN.findall(
+            docker = docker_runtime_classification(
                 dockerfile.read_text(encoding='utf-8'))
-            if not matches:
+            if docker['classification'] == 'irrelevant':
                 continue
             discovered.add(relative_path)
             with self.subTest(path=relative_path):
-                (go_stages, go_sources,
-                 repository_arguments) = docker_go_runtime_sources(
-                     dockerfile.read_text(encoding='utf-8'))
                 self.assertEqual(
-                    len(go_stages),
-                    1,
-                    f'{relative_path} must contain exactly one Golang stage',
+                    docker['classification'],
+                    'managed',
+                    f'{relative_path} must use the canonical literal '
+                    'digest-pinned Golang FROM form',
                 )
                 self.assertEqual(
-                    repository_arguments,
-                    [],
-                    f'{relative_path} must not hide Golang behind global ARG',
-                )
-                self.assertEqual(
-                    go_sources,
-                    [],
-                    f'{relative_path} must not use external Golang images '
-                    'outside FROM',
-                )
-                self.assertEqual(
-                    len(matches),
+                    len(docker['candidates']),
                     1,
                     f'{relative_path} must contain exactly one Go builder image',
                 )
-                image_reference, version, flavor = matches[0]
+                candidate = docker['candidates'][0]
+                version = candidate['version']
+                flavor = candidate['flavor']
+                image_reference = (
+                    f'golang:{version}{flavor}@{candidate["digest"]}')
                 self.assertEqual(
                     _parse_version(version),
                     self.effective_version,

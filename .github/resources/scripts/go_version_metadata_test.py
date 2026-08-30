@@ -19,7 +19,7 @@ from pathlib import Path
 import subprocess
 
 import go_version_metadata
-from go_version_metadata import (docker_go_runtime_sources,
+from go_version_metadata import (docker_runtime_classification,
                                  has_go_runtime_reference, has_setup_go_use,
                                  is_container_recipe, yaml_mapping_values)
 
@@ -33,24 +33,20 @@ class GoVersionMetadataTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             yaml_mapping_values('steps: [}\n', ('uses',))
 
-    def test_discovers_every_golang_stage(self):
-        stages, sources, arguments = docker_go_runtime_sources(
-            'FROM golang:1.27.0 AS builder\n'
-            'FROM golang:1.26.0 AS stale\n')
-
-        self.assertEqual(stages,
-                         ['golang:1.27.0', 'golang:1.26.0'])
-        self.assertEqual(sources, [])
-        self.assertEqual(arguments, [])
-
-    def test_resolves_global_arg_defaults_used_by_from(self):
-        stages, sources, arguments = docker_go_runtime_sources(
-            'ARG GO_REPOSITORY=docker.io/library/golang\n'
-            'FROM ${GO_REPOSITORY}:1.26.0 AS stale\n')
-
-        self.assertEqual(stages, ['${GO_REPOSITORY}:1.26.0'])
-        self.assertEqual(sources, [])
-        self.assertEqual(arguments, ['GO_REPOSITORY'])
+    def test_docker_classification_is_explicit(self):
+        digest = 'a' * 64
+        for contents, expected in (
+                (f'FROM golang:1.27.0@sha256:{digest} AS builder\n',
+                 'managed'),
+                ('FROM golang:latest AS builder\n', 'unsupported'),
+                ('FROM alpine\nCOPY --exclude=ignored . /app\n',
+                 'irrelevant'),
+                ('FROM golang:latest\nRUN <<EOF\n', 'invalid')):
+            with self.subTest(expected=expected):
+                self.assertEqual(
+                    docker_runtime_classification(contents)['classification'],
+                    expected,
+                )
 
     def test_yaml_block_scalars_are_structural(self):
         contents = (
@@ -93,36 +89,13 @@ class GoVersionMetadataTest(unittest.TestCase):
         self.assertFalse(
             has_go_runtime_reference(Path('test.yaml'), contents))
 
-    def test_docker_parser_handles_arg_chains_escape_and_aliases(self):
-        contents = (
-            '# escape=`\n'
-            'ARG GO=go\n'
-            'ARG LANG=lang\n'
-            'ARG IMAGE=${GO}${LANG}:1.27.0\n'
-            'FROM alpine AS golang\n'
-            'FROM golang AS alias\n'
-            'FROM `\n'
-            '  ${IMAGE} AS builder\n')
-
-        stages, sources, arguments = docker_go_runtime_sources(contents)
-
-        self.assertEqual(stages, ['${IMAGE}'])
-        self.assertEqual(sources, [])
-        self.assertEqual(arguments, ['IMAGE'])
-
-    def test_docker_arg_fallback_is_resolved(self):
-        stages, _, _ = docker_go_runtime_sources(
-            'ARG IMAGE\n'
-            'FROM ${IMAGE:-golang:1.27.0} AS builder\n')
-        self.assertEqual(stages, ['${IMAGE:-golang:1.27.0}'])
-
-    def test_prior_golang_stage_alias_is_not_an_external_image(self):
-        stages, sources, arguments = docker_go_runtime_sources(
-            'FROM alpine AS golang\n'
-            'FROM GoLaNg AS final\n')
-        self.assertEqual(stages, [])
-        self.assertEqual(sources, [])
-        self.assertEqual(arguments, [])
+    def test_docker_arg_and_stage_constructs_are_not_evaluated(self):
+        for contents in (
+                'ARG IMAGE=golang:1.27.0\nFROM ${IMAGE} AS builder\n',
+                'FROM alpine AS golang\nFROM golang AS final\n'):
+            with self.subTest(contents=contents):
+                result = docker_runtime_classification(contents)
+                self.assertEqual(result['classification'], 'unsupported')
 
     def test_container_recipe_names_are_discovered(self):
         for name in ('Dockerfile', 'Dockerfile.dev', 'Containerfile',
@@ -132,17 +105,28 @@ class GoVersionMetadataTest(unittest.TestCase):
         self.assertFalse(is_container_recipe(Path('NotAContainerfile')))
 
     def test_discovers_external_copy_and_run_mount_images(self):
-        stages, sources, arguments = docker_go_runtime_sources(
+        result = docker_runtime_classification(
             'FROM alpine\n'
             'COPY --exclude=ignored --from=golang:1.27.0 /go /go\n'
             'RUN --mount=from=golang@sha256:' + ('a' * 64) +
             ',target=/go true\n')
-        self.assertEqual(stages, [])
         self.assertEqual(
-            sources,
-            ['golang:1.27.0', 'golang@sha256:' + ('a' * 64)],
+            result['classification'],
+            'unsupported',
         )
-        self.assertEqual(arguments, [])
+        self.assertEqual(
+            [candidate['kind'] for candidate in result['candidates']],
+            ['copy-from', 'run-mount-from'],
+        )
+
+    def test_metadata_input_size_is_bounded_before_subprocess(self):
+        with mock.patch.object(go_version_metadata.subprocess, 'run') as run:
+            with self.assertRaisesRegex(RuntimeError, 'input limit'):
+                go_version_metadata.inspect_metadata(
+                    Path('workflow.yaml'),
+                    'x' * (go_version_metadata.MAX_METADATA_INPUT_BYTES + 1),
+                )
+        run.assert_not_called()
 
     def test_metadata_helper_invocation_is_bounded(self):
         completed = subprocess.CompletedProcess(
@@ -181,6 +165,22 @@ class GoVersionMetadataTest(unittest.TestCase):
                     go_version_metadata.inspect_metadata(
                         Path('workflow.yaml'), 'steps: []\n'), {})
         self.assertEqual(run.call_count, 2)
+
+    def test_resource_limits_cannot_fail_open_escaped_candidates(self):
+        image = ('---\nimage: "gol\\u0061ng"\n' +
+                 ('---\na: 1\n' * 64))
+        with self.assertRaisesRegex(RuntimeError, 'resource limit'):
+            has_go_runtime_reference(Path('workflow.yaml'), image)
+
+        setup = ('---\nuses: "actions/setup\\u002dgo@v7"\n' +
+                 ('---\na: 1\n' * 64))
+        with self.assertRaisesRegex(RuntimeError, 'resource limit'):
+            has_setup_go_use(setup)
+
+        parser_depth = ('image: "gol\\u0061ng"\ndeep: ' +
+                        ('[' * 10001) + '0' + (']' * 10001))
+        with self.assertRaisesRegex(RuntimeError, 'exceeded max depth'):
+            has_go_runtime_reference(Path('workflow.yaml'), parser_depth)
 
 
 if __name__ == '__main__':
