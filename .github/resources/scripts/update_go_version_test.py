@@ -160,6 +160,29 @@ class UpdateGoVersionTest(unittest.TestCase):
             'toolchain go1.28.3// compiler version\n', expected)
         self.assertEqual(expected.count('toolchain '), 1)
 
+    def test_module_block_entries_are_not_directives(self):
+        nested = self.repo_root / 'nested/go.mod'
+        nested.write_text(
+            'module example.com/nested\n\n'
+            'require (\n'
+            '  go v1.0.0\n'
+            '  toolchain v1.0.0\n'
+            ')\n\n'
+            'go 1.28.0\n',
+            encoding='utf-8',
+        )
+
+        expected = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )[Path('nested/go.mod')]
+
+        self.assertIn('  go v1.0.0\n', expected)
+        self.assertIn('  toolchain v1.0.0\n', expected)
+        self.assertIn('go 1.28.0\n\ntoolchain go1.28.3\n', expected)
+
     def test_preserves_backslashes_in_go_directive_comments(self):
         root = self.repo_root / 'go.mod'
         comment = r'// paths C:\qtoolchains and D:\toolchains'
@@ -286,7 +309,8 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
     def test_rejects_invalid_versions_and_downgrades(self):
-        for version in ('1.29', 'go1.29.0', 'v1.29.0', '1.29.0-rc1'):
+        for version in ('1.29', 'go1.29.0', 'v1.29.0', '1.29.0-rc1',
+                        '1.029.000', '1.٢٩.٠', '１.２９.０'):
             with self.subTest(version=version):
                 with self.assertRaisesRegex(ValueError, 'exact stable form'):
                     update_go_version.synchronized_contents(
@@ -302,6 +326,23 @@ class UpdateGoVersionTest(unittest.TestCase):
                 digest_resolver=lambda _tag: OLD_DIGEST,
                 repository_paths=self.files,
             )
+
+    def test_rejects_noncanonical_module_versions(self):
+        nested = self.repo_root / 'nested/go.mod'
+        for version in ('1.028.000', '1.٢٨.٠', '１.２８.０'):
+            with self.subTest(version=version):
+                nested.write_text(
+                    f'module example.com/nested\n\ngo {version}\n',
+                    encoding='utf-8',
+                )
+                with self.assertRaisesRegex(ValueError,
+                                            'invalid go directive'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda tag: DIGESTS[tag],
+                        repository_paths=self.files,
+                    )
 
     def test_rejects_unmanaged_runtime_pin(self):
         relative_path = Path('bad/Dockerfile')
@@ -337,7 +378,8 @@ class UpdateGoVersionTest(unittest.TestCase):
                          '  - image: "golang" # builder\n',
                          'container: { image: golang }\n',
                          'container: {"image":"golang"}\n',
-                         'container: {options: "", "image":"golang"}\n'):
+                         'container: {options: "", "image":"golang"}\n',
+                         'container: {credentials: {user: test}, image: golang}\n'):
             with self.subTest(contents=contents):
                 path.write_text(contents, encoding='utf-8')
                 with self.assertRaisesRegex(ValueError,
@@ -354,12 +396,12 @@ class UpdateGoVersionTest(unittest.TestCase):
                 '# golang:latest',
                 '# https://go.dev/dl/go1.28.0.linux-amd64.tar.gz',
                 'run: echo \'{"image":"golang"}\'',
+                'container: alpine:3.22 # not golang:latest',
         ):
             with self.subTest(contents=contents):
-                self.assertNotRegex(
-                    contents,
-                    update_go_version.GO_RUNTIME_REFERENCE_PATTERN,
-                )
+                self.assertFalse(
+                    update_go_version.has_go_runtime_reference(
+                        Path('test.yaml'), contents))
 
     def test_verifies_each_distinct_builder_tag_once(self):
         calls = []

@@ -26,19 +26,25 @@ import tempfile
 import time
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
-VERSION_PATTERN = re.compile(r'^1\.(\d+)(?:\.(\d+))?$')
-EXACT_VERSION_PATTERN = re.compile(r'^1\.(\d+)\.(\d+)$')
+from go_version_metadata import (has_go_runtime_reference,
+                                 top_level_module_matches)
+
+DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
+VERSION_PATTERN = re.compile(
+    rf'^1\.({DECIMAL_PATTERN})(?:\.({DECIMAL_PATTERN}))?$')
+EXACT_VERSION_PATTERN = re.compile(
+    rf'^1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN}$')
 DIGEST_PATTERN = re.compile(r'^sha256:[0-9a-f]{64}$')
 GO_DIRECTIVE_PATTERN = re.compile(
-    r'^[ \t]*go[ \t]+(?P<version>\d+\.\d+(?:\.\d+)?)'
-    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$',
-    re.MULTILINE)
+    rf'^[ \t]*go[ \t]+(?P<version>1\.{DECIMAL_PATTERN}'
+    rf'(?:\.{DECIMAL_PATTERN})?)'
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 GO_DIRECTIVE_LINE_PATTERN = re.compile(
     r'^[ \t]*go(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
-    r'^[ \t]*toolchain[ \t]+go(?P<version>\d+\.\d+\.\d+)'
-    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$',
-    re.MULTILINE)
+    rf'^[ \t]*toolchain[ \t]+go(?P<version>1\.{DECIMAL_PATTERN}'
+    rf'\.{DECIMAL_PATTERN})'
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_DIRECTIVE_PATTERN = re.compile(
     r'^[ \t]*toolchain(?:[ \t]+(.*?))?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_LINE_PATTERN = re.compile(
@@ -53,20 +59,6 @@ GO_IMAGE_PATTERN = re.compile(
     r'(?P<suffix>\s+AS\s+\w+)',
     re.IGNORECASE | re.MULTILINE,
 )
-GO_RUNTIME_REFERENCE_PATTERN = re.compile(
-    r'^(?![ \t]*#)(?:[^\r\n]*\bgolang(?=[:@])|'
-    r'[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+(?:\S+/)?golang(?=[ \t]|$)|'
-    r"(?:[ \t]*(?:-[ \t]+)?|[ \t]*(?:-[ \t]*)?\{[ \t]*"
-    r"(?:[^#\r\n}]*,[ \t]*)?|"
-    r"[ \t]*(?:-[ \t]+)?(?:container|'container'|\"container\")"
-    r"[ \t]*:[ \t]*\{[ \t]*(?:[^#\r\n}]*,[ \t]*)?)"
-    r"(?:container|image|'container'|'image'|\"container\"|\"image\")"
-    r"[ \t]*:[ \t]*(?P<value_quote>['\"]?)"
-    r"(?:[^\s'\"{},]+/)?golang(?P=value_quote)"
-    r'(?=[ \t]*(?:[,}#]|$))|'
-    r'[^\r\n]*(?:dl\.google\.com/go/|go\.dev/dl/)go)',
-    re.IGNORECASE | re.MULTILINE)
-
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
 DIGEST_LOOKUP_ATTEMPTS = 3
 DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
@@ -110,10 +102,12 @@ def _module_versions(
     contents: str,
     relative_path: Path,
 ) -> Tuple[Tuple[int, int, int], Optional[Tuple[int, int, int]]]:
-    go_directive_lines = GO_DIRECTIVE_LINE_PATTERN.findall(contents)
+    go_directive_matches = top_level_module_matches(
+        contents, GO_DIRECTIVE_LINE_PATTERN)
+    go_directive_lines = [match.group(1) for match in go_directive_matches]
     go_versions = [
         match.group('version')
-        for match in GO_DIRECTIVE_PATTERN.finditer(contents)
+        for match in top_level_module_matches(contents, GO_DIRECTIVE_PATTERN)
     ]
     if len(go_directive_lines) != 1:
         raise ValueError(
@@ -123,10 +117,14 @@ def _module_versions(
         raise ValueError(
             f'{relative_path} contains an invalid go directive: '
             f'{go_directive_lines}')
-    toolchain_directives = TOOLCHAIN_DIRECTIVE_PATTERN.findall(contents)
+    toolchain_directive_matches = top_level_module_matches(
+        contents, TOOLCHAIN_DIRECTIVE_PATTERN)
+    toolchain_directives = [
+        match.group(1) for match in toolchain_directive_matches
+    ]
     toolchains = [
         match.group('version')
-        for match in TOOLCHAIN_PATTERN.finditer(contents)
+        for match in top_level_module_matches(contents, TOOLCHAIN_PATTERN)
     ]
     if len(toolchain_directives) > 1:
         raise ValueError(
@@ -144,9 +142,10 @@ def _module_versions(
 def _updated_module_contents(contents: str, relative_path: Path,
                              target: Tuple[int, int, int]) -> str:
     go_version, _ = _module_versions(contents, relative_path)
-    go_match = GO_DIRECTIVE_PATTERN.search(contents)
+    go_match = top_level_module_matches(contents, GO_DIRECTIVE_PATTERN)[0]
     go_comment = go_match.group('comment') or ''
-    toolchain_match = TOOLCHAIN_PATTERN.search(contents)
+    toolchain_matches = top_level_module_matches(contents, TOOLCHAIN_PATTERN)
+    toolchain_match = toolchain_matches[0] if toolchain_matches else None
     toolchain_comment = (
         toolchain_match.group('comment') if toolchain_match else '') or ''
     if go_version > target:
@@ -187,7 +186,7 @@ def _managed_dockerfiles(repo_root: Path,
         if not path.exists():
             continue
         contents = path.read_text(encoding='utf-8', errors='ignore')
-        if GO_RUNTIME_REFERENCE_PATTERN.search(contents) is None:
+        if not has_go_runtime_reference(relative_path, contents):
             continue
         matches = list(GO_IMAGE_PATTERN.finditer(contents))
         if not relative_path.name.startswith('Dockerfile') or len(matches) != 1:

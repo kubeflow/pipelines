@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - '.github/resources/scripts/go_version_consistency_test.py'
+      - '.github/resources/scripts/go_version_metadata.py'
       - '.github/resources/scripts/update_go_version.py'
       - '.github/workflows/go-image-digests.yml'
       - 'backend/Dockerfile*'
