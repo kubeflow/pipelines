@@ -15,6 +15,7 @@
 
 import importlib.util
 from pathlib import Path
+import stat
 import subprocess
 import tempfile
 import unittest
@@ -609,8 +610,145 @@ class UpdateGoVersionTest(unittest.TestCase):
             concurrent,
         )
         self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-go.mod' in path.name
+        self.assertTrue(any('for-restore-original-go.mod' in path.name
                             for path in self._recovery_patches()))
+
+    def test_missing_path_gets_self_contained_original_restore_patch(self):
+        root = self.repo_root / 'go.mod'
+
+        def remove_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                root.unlink()
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=remove_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    r'go.mod \(original restore patch: '
+                    r'.*for-restore-original-go.mod'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertFalse(root.exists())
+        restore_patch = next(path for path in self._recovery_patches()
+                             if 'for-restore-original-go.mod' in path.name)
+        self._git('apply', str(restore_patch))
+        self.assertEqual(root.read_text(encoding='utf-8'),
+                         self.files[Path('go.mod')])
+
+    def test_original_restore_patch_preserves_executable_mode(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.chmod(0o755)
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'executable Dockerfile')
+
+        def remove_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.unlink()
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=remove_then_fail,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'original restore patch'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        restore_patch = next(
+            path for path in self._recovery_patches()
+            if 'for-restore-original-Dockerfile' in path.name)
+        self._git('apply', str(restore_patch))
+        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
+
+    def test_truncated_path_restore_patch_preserves_then_recovers(self):
+        root = self.repo_root / 'go.mod'
+        truncated = b'module truncated\n'
+
+        def truncate_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                root.write_bytes(truncated)
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=truncate_then_fail,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'original restore patch'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        restore_patch = next(path for path in self._recovery_patches()
+                             if 'for-restore-original-go.mod' in path.name)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._git('apply', str(restore_patch))
+        self.assertEqual(root.read_bytes(), truncated)
+        concurrent = self.repo_root / 'go.mod.concurrent'
+        root.rename(concurrent)
+        self._git('apply', str(restore_patch))
+        self.assertEqual(root.read_text(encoding='utf-8'),
+                         self.files[Path('go.mod')])
+        self.assertEqual(concurrent.read_bytes(), truncated)
+
+    def test_symlink_path_restore_patch_preserves_then_recovers(self):
+        root = self.repo_root / 'go.mod'
+
+        def replace_with_symlink_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                root.unlink()
+                root.symlink_to('concurrent-go.mod')
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=replace_with_symlink_then_fail,
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'original restore patch'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        restore_patch = next(path for path in self._recovery_patches()
+                             if 'for-restore-original-go.mod' in path.name)
+        with self.assertRaises(subprocess.CalledProcessError):
+            self._git('apply', str(restore_patch))
+        self.assertTrue(root.is_symlink())
+        self.assertEqual(root.readlink(), Path('concurrent-go.mod'))
+        concurrent = self.repo_root / 'go.mod.concurrent-link'
+        root.rename(concurrent)
+        self._git('apply', str(restore_patch))
+        self.assertEqual(root.read_text(encoding='utf-8'),
+                         self.files[Path('go.mod')])
+        self.assertTrue(concurrent.is_symlink())
 
     def test_path_recovery_continues_after_one_path_fails(self):
         real_apply = update_go_version._git_apply_contents
@@ -657,7 +795,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
         self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-go.mod' in path.name
+        self.assertTrue(any('for-restore-original-go.mod' in path.name
                             for path in self._recovery_patches()))
 
     def test_path_recovery_finishes_before_reraising_interrupt(self):
@@ -706,7 +844,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
         self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-go.mod' in path.name
+        self.assertTrue(any('for-restore-original-go.mod' in path.name
                             for path in self._recovery_patches()))
 
     def test_failed_post_apply_verification_rolls_back_and_keeps_patch(self):
@@ -761,7 +899,7 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(root.read_text(encoding='utf-8'), concurrent)
         self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-go.mod' in path.name
+        self.assertTrue(any('for-restore-original-go.mod' in path.name
                             for path in self._recovery_patches()))
 
     def test_keyboard_interrupt_rolls_back_and_keeps_recovery_patch(self):
@@ -845,7 +983,7 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(root.read_bytes(), b'\xff')
         self.assertEqual(len(self._recovery_patches()), 2)
-        self.assertTrue(any('for-go.mod' in path.name
+        self.assertTrue(any('for-restore-original-go.mod' in path.name
                             for path in self._recovery_patches()))
 
     def test_interrupt_before_recovery_patch_does_not_report_none(self):

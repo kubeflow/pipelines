@@ -117,6 +117,32 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from"},
 		},
 		{
+			name: "alternate interpolation operator cannot hide a second source",
+			contents: "FROM golang:1.27.0@sha256:" + digest + " AS builder\n" +
+				"ARG IMAGE=alpine\n" +
+				"FROM ${IMAGE:+golang}:1.26 AS hidden\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "from"},
+		},
+		{
+			name:           "non-colon interpolation default is unsupported",
+			contents:       "FROM ${IMAGE-golang}:1.26 AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "shell-delimited executable pull is unsupported",
+			contents:       "FROM alpine\nRUN docker pull golang; echo done\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "image-name substrings are irrelevant",
+			contents: "FROM alpine\n" +
+				"RUN echo notgolang:latest golangci:latest my-golang:latest golang/tools:latest\n",
+			classification: "irrelevant",
+		},
+		{
 			name: "external copy and run mount",
 			contents: "FROM alpine\n" +
 				"COPY --from=golang:1.27.0 /go /go\n" +
@@ -140,7 +166,21 @@ func TestDockerClassification(t *testing.T) {
 				"RUN docker pull golang:latest\n" +
 				"RUN crane export golang:latest image.tar\n",
 			classification: "unsupported",
-			candidateKinds: []string{"from", "literal", "literal", "literal", "literal"},
+			candidateKinds: []string{"from", "copy-from", "run-mount-from", "literal", "literal"},
+		},
+		{
+			name: "onbuild JSON payload is decoded recursively",
+			contents: "FROM golang:1.27.0@sha256:" + digest + " AS builder\n" +
+				"ONBUILD RUN [\"docker\",\"pull\",\"gol\\u0061ng:latest\"]\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "literal"},
+		},
+		{
+			name: "nested canonical form is never managed",
+			contents: "FROM alpine\nONBUILD FROM golang:1.27.0@sha256:" + digest +
+				" AS hidden\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
 		},
 		{
 			name: "decoded JSON environment and heredoc literals are unsupported",
@@ -210,6 +250,34 @@ func TestDockerClassification(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestDockerGoTokenBoundaries(t *testing.T) {
+	for _, value := range []string{
+		"golang;",
+		"golang|",
+		"(golang)",
+		`["golang"]`,
+		"registry.example/library/golang",
+		"${IMAGE:+golang}:1.26",
+		"${IMAGE-golang}:1.26",
+	} {
+		if !containsDockerGoToken(value) {
+			t.Errorf("containsDockerGoToken(%q) = false, want true", value)
+		}
+	}
+	for _, value := range []string{
+		"notgolang",
+		"golangci",
+		"my-golang",
+		"golang.foo",
+		"golang_foo",
+		"golang/tools",
+	} {
+		if containsDockerGoToken(value) {
+			t.Errorf("containsDockerGoToken(%q) = true, want false", value)
+		}
 	}
 }
 

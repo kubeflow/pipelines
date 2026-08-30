@@ -422,6 +422,7 @@ def sync(
     worktree = Path(worktree_parent.name) / 'repository'
     recovery_path = None
     path_patches = {}
+    original_restore_patches = {}
     application_attempted = False
     try:
         _git(repo_root, 'worktree', 'add', '--detach', str(worktree),
@@ -447,6 +448,7 @@ def sync(
         ).stdout
         if not patch:
             raise RuntimeError('Git produced an empty Go version update patch')
+        empty_tree = _empty_tree_oid(worktree)
         for relative_path in changed_paths:
             path_patch = _git(
                 worktree,
@@ -467,6 +469,26 @@ def sync(
                     f'Git produced an empty recovery patch for '
                     f'{relative_path}')
             path_patches[relative_path] = path_patch
+            restore_patch = _git(
+                worktree,
+                '--literal-pathspecs',
+                'diff',
+                '--binary',
+                '--full-index',
+                '--no-ext-diff',
+                '--no-textconv',
+                '--src-prefix=a/',
+                '--dst-prefix=b/',
+                empty_tree,
+                start_head,
+                '--',
+                str(relative_path),
+            ).stdout
+            if not restore_patch:
+                raise RuntimeError(
+                    f'Git produced an empty original restore patch for '
+                    f'{relative_path}')
+            original_restore_patches[relative_path] = restore_patch
         recovery_path = _write_recovery_patch(repo_root, start_head,
                                               target_version, patch)
 
@@ -495,6 +517,7 @@ def sync(
                 original_contents,
                 expected_contents,
                 path_patches,
+                original_restore_patches,
             )
         rollback_detail = ''
         if rollback_errors:
@@ -563,6 +586,22 @@ def _git(repo_root: Path, *arguments: str) -> subprocess.CompletedProcess:
         detail = getattr(error, 'stderr', '') or str(error)
         raise RuntimeError(
             f'git {" ".join(arguments)} failed: {detail.strip()}') from error
+
+
+def _empty_tree_oid(repo_root: Path) -> str:
+    try:
+        return subprocess.run(
+            ('git', 'mktree'),
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+            input='',
+        ).stdout.strip()
+    except (FileNotFoundError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, 'stderr', '') or str(error)
+        raise RuntimeError(
+            f'could not create Git empty tree: {detail.strip()}') from error
 
 
 def _require_clean_managed_paths(repo_root: Path,
@@ -679,6 +718,7 @@ def _recover_applied_paths(
     original_contents: Dict[Path, str],
     expected_contents: Dict[Path, str],
     path_patches: Dict[Path, str],
+    original_restore_patches: Dict[Path, str],
 ) -> Tuple[List[str], List[str], Optional[BaseException]]:
     errors = []
     unresolved = []
@@ -693,9 +733,9 @@ def _recover_applied_paths(
                     start_head,
                     target_version,
                     relative_path,
-                    path_patches[relative_path],
+                    original_restore_patches[relative_path],
                 )
-                recovery = f'one-path recovery patch: {artifact}'
+                recovery = f'original restore patch: {artifact}'
             except BaseException as artifact_error:
                 if (not isinstance(artifact_error, Exception) and
                         interrupt is None):
@@ -719,9 +759,9 @@ def _recover_applied_paths(
                     start_head,
                     target_version,
                     relative_path,
-                    path_patches[relative_path],
+                    original_restore_patches[relative_path],
                 )
-                recovery = f'; one-path recovery patch retained at {artifact}'
+                recovery = f'; original restore patch retained at {artifact}'
             except BaseException as artifact_error:
                 if (not isinstance(artifact_error, Exception) and
                         interrupt is None):
@@ -742,7 +782,7 @@ def _write_path_recovery_patch(repo_root: Path, start_head: str,
         start_head,
         target_version,
         patch,
-        label=label,
+        label=f'restore-original-{label}',
     )
 
 

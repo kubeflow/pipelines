@@ -64,7 +64,8 @@ type response struct {
 
 var goDownloadPattern = regexp.MustCompile(`(?i)(?:dl\.google\.com/go/|go\.dev/dl/)go`)
 var exactToolchainVersionPattern = regexp.MustCompile(`^1\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)$`)
-var dockerGoCandidatePattern = regexp.MustCompile(`(?i)(?:^|[/\s=,"'${}]|:-)golang(?:[:@\s,"'${}]|$)`)
+var dockerGoTokenPattern = regexp.MustCompile(`(?i)golang`)
+var dockerParameterExpansionPrefixPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*(?::?[-+?=])$`)
 var canonicalDockerGoImagePattern = regexp.MustCompile(`^(?i:FROM)[ \t]+golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64})[ \t]+(?i:AS)[ \t]+([a-z0-9][a-z0-9_.-]*)[ \t]*$`)
 
 const (
@@ -313,7 +314,7 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	managed := []dockerCandidate{}
 	unsupported := []dockerCandidate{}
 	for _, node := range parsed.AST.Children {
-		classifyDockerInstruction(node, &managed, &unsupported)
+		classifyDockerInstruction(node, true, &managed, &unsupported)
 	}
 	if len(unsupported) != 0 || len(managed) > 1 {
 		return "unsupported", append(managed, unsupported...), ""
@@ -324,10 +325,10 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	return "irrelevant", nil, ""
 }
 
-func classifyDockerInstruction(node *parser.Node, managed *[]dockerCandidate, unsupported *[]dockerCandidate) {
+func classifyDockerInstruction(node *parser.Node, allowManaged bool, managed *[]dockerCandidate, unsupported *[]dockerCandidate) {
 	original := strings.TrimSpace(node.Original)
 	canonical := canonicalDockerGoImagePattern.FindStringSubmatch(original)
-	if strings.EqualFold(node.Value, "from") && node.StartLine == node.EndLine && canonical != nil {
+	if allowManaged && strings.EqualFold(node.Value, "from") && node.StartLine == node.EndLine && canonical != nil {
 		*managed = append(*managed, dockerCandidate{
 			Kind:    "from",
 			Value:   original,
@@ -341,14 +342,19 @@ func classifyDockerInstruction(node *parser.Node, managed *[]dockerCandidate, un
 		*unsupported = append(*unsupported, dockerInstructionCandidates(node)...)
 	}
 	for _, child := range node.Children {
-		classifyDockerInstruction(child, managed, unsupported)
+		classifyDockerInstruction(child, false, managed, unsupported)
+	}
+	for value := node.Next; value != nil; value = value.Next {
+		for _, child := range value.Children {
+			classifyDockerInstruction(child, false, managed, unsupported)
+		}
 	}
 }
 
 func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 	candidates := []dockerCandidate{}
 	appendImageCandidate := func(kind, value string) {
-		if isGolangImage(value) || dockerGoCandidatePattern.MatchString(value) {
+		if isGolangImage(value) || containsDockerGoToken(value) {
 			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
 		}
 	}
@@ -363,9 +369,6 @@ func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 		if goDownloadPattern.MatchString(heredoc.Content) {
 			candidates = append(candidates, dockerCandidate{Kind: "download", Value: heredoc.Content, Line: node.StartLine})
 		}
-	}
-	if strings.EqualFold(node.Value, "onbuild") && goDownloadPattern.MatchString(node.Original) {
-		candidates = append(candidates, dockerCandidate{Kind: "download", Value: node.Original, Line: node.StartLine})
 	}
 	switch strings.ToLower(node.Value) {
 	case "from":
@@ -409,20 +412,47 @@ func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 }
 
 func hasDockerGoLiteral(node *parser.Node) bool {
-	if strings.EqualFold(node.Value, "onbuild") && dockerGoCandidatePattern.MatchString(node.Original) {
-		return true
-	}
 	for value := node.Next; value != nil; value = value.Next {
-		if dockerGoCandidatePattern.MatchString(value.Value) {
+		if containsDockerGoToken(value.Value) {
 			return true
 		}
 	}
 	for _, heredoc := range node.Heredocs {
-		if dockerGoCandidatePattern.MatchString(heredoc.Content) {
+		if containsDockerGoToken(heredoc.Content) {
 			return true
 		}
 	}
 	return false
+}
+
+func containsDockerGoToken(value string) bool {
+	for _, match := range dockerGoTokenPattern.FindAllStringIndex(value, -1) {
+		start, end := match[0], match[1]
+		startsAfterExpansionOperator := startsParameterExpansionWord(value, start)
+		if start > 0 && isDockerNameByte(value[start-1]) && !startsAfterExpansionOperator {
+			continue
+		}
+		if end < len(value) && (isDockerNameByte(value[end]) || value[end] == '/') {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func startsParameterExpansionWord(value string, start int) bool {
+	opening := strings.LastIndex(value[:start], "${")
+	if opening < 0 || strings.Contains(value[opening+2:start], "}") {
+		return false
+	}
+	return dockerParameterExpansionPrefixPattern.MatchString(value[opening+2 : start])
+}
+
+func isDockerNameByte(value byte) bool {
+	return value >= 'a' && value <= 'z' ||
+		value >= 'A' && value <= 'Z' ||
+		value >= '0' && value <= '9' ||
+		value == '.' || value == '_' || value == '-'
 }
 
 func appendUnique(values []string, value string) []string {
