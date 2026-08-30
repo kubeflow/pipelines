@@ -305,15 +305,9 @@ func resolvedScalar(node *yaml.Node, state *yamlTraversalState) string {
 }
 
 func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
-	if !hasRawDockerCandidate(contents) {
-		return "irrelevant", nil, ""
-	}
 	parsed, err := parser.Parse(strings.NewReader(contents))
 	if err != nil {
-		if hasRawDockerCandidate(contents) {
-			return "invalid", nil, err.Error()
-		}
-		return "irrelevant", nil, ""
+		return "invalid", nil, err.Error()
 	}
 
 	managed := []dockerCandidate{}
@@ -359,28 +353,29 @@ func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 		}
 	}
 
-	if goDownloadPattern.MatchString(node.Original) {
-		candidates = append(candidates, dockerCandidate{Kind: "download", Value: node.Original, Line: node.StartLine})
+	for value := node.Next; value != nil; value = value.Next {
+		if goDownloadPattern.MatchString(value.Value) {
+			candidates = append(candidates, dockerCandidate{Kind: "download", Value: value.Value, Line: node.StartLine})
+			break
+		}
 	}
 	for _, heredoc := range node.Heredocs {
 		if goDownloadPattern.MatchString(heredoc.Content) {
 			candidates = append(candidates, dockerCandidate{Kind: "download", Value: heredoc.Content, Line: node.StartLine})
 		}
 	}
+	if strings.EqualFold(node.Value, "onbuild") && goDownloadPattern.MatchString(node.Original) {
+		candidates = append(candidates, dockerCandidate{Kind: "download", Value: node.Original, Line: node.StartLine})
+	}
 	switch strings.ToLower(node.Value) {
 	case "from":
 		if node.Next != nil {
 			appendImageCandidate("from", node.Next.Value)
 		}
-		if len(candidates) == 0 && dockerGoCandidatePattern.MatchString(node.Original) {
-			candidates = append(candidates, dockerCandidate{
-				Kind: "from", Value: node.Original, Line: node.StartLine,
-			})
-		}
 	case "arg":
-		if dockerGoCandidatePattern.MatchString(node.Original) {
+		if hasDockerGoLiteral(node) {
 			candidates = append(candidates, dockerCandidate{
-				Kind: "arg-default", Value: node.Original, Line: node.StartLine,
+				Kind: "arg-default", Value: node.Next.Value, Line: node.StartLine,
 			})
 		}
 	case "copy":
@@ -402,11 +397,32 @@ func dockerInstructionCandidates(node *parser.Node) []dockerCandidate {
 			}
 		}
 	}
+	if strings.EqualFold(node.Value, "from") {
+		return candidates
+	}
+	if len(candidates) == 0 && hasDockerGoLiteral(node) {
+		candidates = append(candidates, dockerCandidate{
+			Kind: "literal", Value: node.Original, Line: node.StartLine,
+		})
+	}
 	return candidates
 }
 
-func hasRawDockerCandidate(contents string) bool {
-	return dockerGoCandidatePattern.MatchString(contents) || goDownloadPattern.MatchString(contents)
+func hasDockerGoLiteral(node *parser.Node) bool {
+	if strings.EqualFold(node.Value, "onbuild") && dockerGoCandidatePattern.MatchString(node.Original) {
+		return true
+	}
+	for value := node.Next; value != nil; value = value.Next {
+		if dockerGoCandidatePattern.MatchString(value.Value) {
+			return true
+		}
+	}
+	for _, heredoc := range node.Heredocs {
+		if dockerGoCandidatePattern.MatchString(heredoc.Content) {
+			return true
+		}
+	}
+	return false
 }
 
 func appendUnique(values []string, value string) []string {

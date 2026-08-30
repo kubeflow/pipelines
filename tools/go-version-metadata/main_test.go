@@ -69,9 +69,8 @@ func TestDockerClassification(t *testing.T) {
 			classification: "irrelevant",
 		},
 		{
-			name: "comments heredocs and command text",
-			contents: "FROM alpine\n# FROM golang:latest\n" +
-				"RUN <<EOF\necho golang\nEOF\nRUN echo golang\n",
+			name:           "full-line comments are irrelevant",
+			contents:       "FROM alpine:3.22\n# FROM golang:latest\nRUN echo unrelated\n",
 			classification: "irrelevant",
 		},
 		{
@@ -132,6 +131,47 @@ func TestDockerClassification(t *testing.T) {
 				"RUN --mount=type=bind,from=golang${TAG},target=/go true\n",
 			classification: "unsupported",
 			candidateKinds: []string{"from", "copy-from", "run-mount-from"},
+		},
+		{
+			name: "nested and executable literal image sources are unsupported",
+			contents: "FROM golang:1.27.0@sha256:" + digest + " AS builder\n" +
+				"ONBUILD COPY --from=golang:latest /go /go\n" +
+				"ONBUILD RUN --mount=from=golang:latest,target=/go true\n" +
+				"RUN docker pull golang:latest\n" +
+				"RUN crane export golang:latest image.tar\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "literal", "literal", "literal", "literal"},
+		},
+		{
+			name: "decoded JSON environment and heredoc literals are unsupported",
+			contents: "FROM alpine\n" +
+				"RUN [\"docker\",\"pull\",\"gol\\u0061ng:latest\"]\n" +
+				"ENV GO_BUILDER=golang:latest\n" +
+				"RUN <<EOF\ndocker pull golang:latest\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal", "literal", "literal"},
+		},
+		{
+			name: "tagless active literals are unsupported",
+			contents: "FROM alpine\n" +
+				"RUN docker pull golang\n" +
+				"RUN [\"docker\",\"pull\",\"gol\\u0061ng\"]\n" +
+				"RUN <<EOF\ndocker pull golang\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal", "literal", "literal"},
+		},
+		{
+			name:           "default escape continuation is normalized before discovery",
+			contents:       "FROM go\\\nlang:1.26-alpine AS stale\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name: "alternate escape continuation is normalized before discovery",
+			contents: "# escape=`\nFROM alpine\n" +
+				"RUN curl https://go.`\ndev/dl/go1.26.0.linux-amd64.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"download"},
 		},
 		{
 			name: "download in heredoc is unsupported",

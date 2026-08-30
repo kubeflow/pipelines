@@ -533,6 +533,182 @@ class UpdateGoVersionTest(unittest.TestCase):
                 contents,
             )
 
+    def test_partial_apply_failure_restores_only_applied_paths(self):
+        real_git = update_go_version._git
+
+        def partially_apply_then_fail(repo_root, *arguments):
+            if arguments[:2] == ('apply', '--whitespace=nowarn'):
+                patch_path = arguments[-1]
+                real_git(repo_root, 'apply', '--include=Dockerfile',
+                         '--whitespace=nowarn', patch_path)
+                self.assertIn(
+                    'golang:1.28.3',
+                    (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
+                )
+                raise RuntimeError('simulated partial apply failure')
+            return real_git(repo_root, *arguments)
+
+        with mock.patch.object(update_go_version,
+                               '_git', side_effect=partially_apply_then_fail):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'simulated partial apply failure.*recovery patch retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(len(self._recovery_patches()), 1)
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
+    def test_partial_apply_recovery_preserves_unresolved_paths(self):
+        real_git = update_go_version._git
+        concurrent = '// concurrent managed edit\n'
+
+        def partially_apply_edit_then_fail(repo_root, *arguments):
+            if arguments[:2] == ('apply', '--whitespace=nowarn'):
+                patch_path = arguments[-1]
+                real_git(repo_root, 'apply', '--include=Dockerfile',
+                         '--whitespace=nowarn', patch_path)
+                self.assertIn(
+                    'golang:1.28.3',
+                    (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
+                )
+                (self.repo_root / 'go.mod').write_text(concurrent,
+                                                       encoding='utf-8')
+                raise RuntimeError('simulated partial apply failure')
+            return real_git(repo_root, *arguments)
+
+        with mock.patch.object(
+                update_go_version,
+                '_git',
+                side_effect=partially_apply_edit_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'managed paths left unchanged.*go.mod.*recovery patch retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(
+            (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
+            self.files[Path('Dockerfile')],
+        )
+        self.assertEqual(
+            (self.repo_root / 'go.mod').read_text(encoding='utf-8'),
+            concurrent,
+        )
+        self.assertEqual(len(self._recovery_patches()), 2)
+        self.assertTrue(any('for-go.mod' in path.name
+                            for path in self._recovery_patches()))
+
+    def test_path_recovery_continues_after_one_path_fails(self):
+        real_apply = update_go_version._git_apply_contents
+        failed = False
+
+        def fail_first_recovery(repo_root, patch, *, reverse, check=False):
+            nonlocal failed
+            if not failed:
+                failed = True
+                raise RuntimeError('simulated path recovery failure')
+            return real_apply(repo_root, patch, reverse=reverse, check=check)
+
+        def fail_current_repository(repo_root):
+            if Path(repo_root) == self.repo_root:
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_git_apply_contents',
+                side_effect=fail_first_recovery,
+        ), mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=fail_current_repository,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'automatic rollback failed: go.mod: simulated path '
+                    'recovery failure.*recovery patch retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertIn(
+            'toolchain go1.28.3',
+            (self.repo_root / 'go.mod').read_text(encoding='utf-8'),
+        )
+        for relative_path, contents in self.files.items():
+            if relative_path != Path('go.mod'):
+                self.assertEqual(
+                    (self.repo_root /
+                     relative_path).read_text(encoding='utf-8'), contents)
+        self.assertEqual(len(self._recovery_patches()), 2)
+        self.assertTrue(any('for-go.mod' in path.name
+                            for path in self._recovery_patches()))
+
+    def test_path_recovery_finishes_before_reraising_interrupt(self):
+        real_apply = update_go_version._git_apply_contents
+        interrupted = False
+
+        def interrupt_first_recovery(repo_root, patch, *, reverse,
+                                     check=False):
+            nonlocal interrupted
+            if not interrupted:
+                interrupted = True
+                raise KeyboardInterrupt
+            return real_apply(repo_root, patch, reverse=reverse, check=check)
+
+        def fail_current_repository(repo_root):
+            if Path(repo_root) == self.repo_root:
+                raise RuntimeError('simulated verification failure')
+
+        with mock.patch.object(
+                update_go_version,
+                '_git_apply_contents',
+                side_effect=interrupt_first_recovery,
+        ), mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=fail_current_repository,
+        ):
+            with self.assertWarnsRegex(
+                    RuntimeWarning,
+                    'Go update recovery interrupted.*recovery patch retained'):
+                with self.assertRaises(KeyboardInterrupt):
+                    update_go_version.sync(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda tag: DIGESTS[tag],
+                        repository_paths=self.files,
+                    )
+
+        self.assertIn(
+            'toolchain go1.28.3',
+            (self.repo_root / 'go.mod').read_text(encoding='utf-8'),
+        )
+        for relative_path, contents in self.files.items():
+            if relative_path != Path('go.mod'):
+                self.assertEqual(
+                    (self.repo_root /
+                     relative_path).read_text(encoding='utf-8'), contents)
+        self.assertEqual(len(self._recovery_patches()), 2)
+        self.assertTrue(any('for-go.mod' in path.name
+                            for path in self._recovery_patches()))
+
     def test_failed_post_apply_verification_rolls_back_and_keeps_patch(self):
 
         def fail_current_repository(repo_root):
@@ -584,7 +760,9 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertEqual(root.read_text(encoding='utf-8'), concurrent)
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), 2)
+        self.assertTrue(any('for-go.mod' in path.name
+                            for path in self._recovery_patches()))
 
     def test_keyboard_interrupt_rolls_back_and_keeps_recovery_patch(self):
 
@@ -666,7 +844,9 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertEqual(root.read_bytes(), b'\xff')
-        self.assertEqual(len(self._recovery_patches()), 1)
+        self.assertEqual(len(self._recovery_patches()), 2)
+        self.assertTrue(any('for-go.mod' in path.name
+                            for path in self._recovery_patches()))
 
     def test_interrupt_before_recovery_patch_does_not_report_none(self):
         with mock.patch.object(update_go_version,
