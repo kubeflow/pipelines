@@ -1068,6 +1068,52 @@ func TestUpdateRunFromWorkflow_AllowsMatchedNoOp(t *testing.T) {
 	assert.Equal(t, originalHistory, persistedRun.StateHistory)
 }
 
+func TestUpdateRunFromWorkflow_RejectsRegressiveActiveReport(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		expectedState model.RuntimeState
+		incomingState model.RuntimeState
+	}{
+		{name: "pending to unspecified", expectedState: model.RuntimeStatePending, incomingState: model.RuntimeStateUnspecified},
+		{name: "running to pending", expectedState: model.RuntimeStateRunning, incomingState: model.RuntimeStatePending},
+		{name: "running to unspecified", expectedState: model.RuntimeStateRunning, incomingState: model.RuntimeStateUnspecified},
+		{name: "paused to pending", expectedState: model.RuntimeStatePaused, incomingState: model.RuntimeStatePending},
+		{name: "paused to unspecified", expectedState: model.RuntimeStatePaused, incomingState: model.RuntimeStateUnspecified},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			currentRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			currentRun.State = test.expectedState
+			currentRun.Conditions = string(test.expectedState.ToV1())
+			currentRun.WorkflowRuntimeManifest = "current-workflow"
+			err = runStore.UpdateRun(currentRun)
+			require.NoError(t, err)
+
+			reportedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			require.Equal(t, test.expectedState, reportedRun.State)
+			originalHistory := append([]*model.RuntimeStatus(nil), reportedRun.StateHistory...)
+
+			reportedRun.State = test.incomingState
+			reportedRun.Conditions = string(test.incomingState.ToV1())
+			reportedRun.WorkflowRuntimeManifest = "stale-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(reportedRun, test.expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedState, persistedRun.State)
+			assert.Equal(t, string(test.expectedState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("current-workflow"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, originalHistory, persistedRun.StateHistory)
+		})
+	}
+}
+
 func TestUpdateRunFromWorkflow_RejectsStaleReportAfterTermination(t *testing.T) {
 	for _, incomingState := range []model.RuntimeState{
 		model.RuntimeStateRunning,
@@ -2775,6 +2821,30 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	assert.Equal(t, int64(100), restored.FinishedAtInSec)
 	assert.Equal(t, int64(0), restored.RetryClaimedAtInSec, "rollback must clear the claim timestamp")
 	assert.Equal(t, claimGeneration, restored.RetryGeneration, "generation must stay monotonic across rollback")
+}
+
+func TestRollbackRetryClaim_DoesNotOverwriteCancellation(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	originalState, originalConditions, originalFinishedAt, claimGeneration, err := runStore.ClaimRunForRetry("2", false)
+	require.NoError(t, err)
+	require.NoError(t, runStore.TerminateRun("2"))
+
+	require.NoError(t, runStore.RollbackRetryClaim(
+		"2",
+		originalState,
+		originalConditions,
+		originalFinishedAt,
+		claimGeneration,
+	))
+
+	persistedRun, err := runStore.GetRun("2")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, string(model.RuntimeStateCancelling.ToV1()), persistedRun.Conditions)
+	assert.Equal(t, int64(0), persistedRun.FinishedAtInSec)
+	assert.Equal(t, claimGeneration, persistedRun.RetryGeneration)
 }
 
 func TestClaimRunForRetry_RunNotFound(t *testing.T) {

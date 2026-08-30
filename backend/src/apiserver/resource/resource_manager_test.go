@@ -614,6 +614,69 @@ func (c *retryWorkflowExecClient) Compare(old, new interface{}) bool {
 	return false
 }
 
+type workflowClientWithBeforeUpdateHook struct {
+	util.ExecutionInterface
+	beforeUpdate func()
+}
+
+func (c *workflowClientWithBeforeUpdateHook) Update(
+	ctx context.Context,
+	execSpec util.ExecutionSpec,
+	opts v1.UpdateOptions,
+) (util.ExecutionSpec, error) {
+	if c.beforeUpdate != nil {
+		beforeUpdate := c.beforeUpdate
+		c.beforeUpdate = nil
+		beforeUpdate()
+	}
+	return c.ExecutionInterface.Update(ctx, execSpec, opts)
+}
+
+type workflowClientWithBeforeDeleteHook struct {
+	util.ExecutionInterface
+	beforeDelete func()
+	deleteErr    error
+}
+
+func (c *workflowClientWithBeforeDeleteHook) Delete(
+	ctx context.Context,
+	name string,
+	opts v1.DeleteOptions,
+) error {
+	if c.beforeDelete != nil {
+		beforeDelete := c.beforeDelete
+		c.beforeDelete = nil
+		beforeDelete()
+	}
+	if c.deleteErr != nil {
+		return c.deleteErr
+	}
+	return c.ExecutionInterface.Delete(ctx, name, opts)
+}
+
+type workflowClientWithPatchErrors struct {
+	util.ExecutionInterface
+	patchErrors []error
+	patchCalls  int
+}
+
+func (c *workflowClientWithPatchErrors) Patch(
+	ctx context.Context,
+	name string,
+	patchType types.PatchType,
+	data []byte,
+	opts v1.PatchOptions,
+	subresources ...string,
+) (util.ExecutionSpec, error) {
+	c.patchCalls++
+	if len(c.patchErrors) > 0 {
+		patchErr := c.patchErrors[0]
+		c.patchErrors = c.patchErrors[1:]
+		return nil, patchErr
+	}
+	return c.ExecutionInterface.Patch(ctx, name, patchType, data, opts, subresources...)
+}
+
 type updateConflictWorkflowClient struct {
 	*client.FakeWorkflowClient
 	updateConflictsRemaining int
@@ -3035,6 +3098,82 @@ func TestTerminateRun_DbFailure(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestTerminateRetryWorkflowForGeneration_DoesNotTerminateNewerGeneration(t *testing.T) {
+	workflowClient := client.NewWorkflowClientFake()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:        "retry-workflow",
+			Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "2"},
+		},
+	})
+	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	require.NoError(t, terminateRetryWorkflowForGeneration(ctx, workflowClient, "retry-workflow", 1))
+
+	liveWorkflow, err := workflowClient.Get(ctx, "retry-workflow", v1.GetOptions{})
+	require.NoError(t, err)
+	assert.False(t, liveWorkflow.IsTerminating(), "generation 1 must not terminate generation 2")
+}
+
+func TestTerminateRetryWorkflowForGeneration_RechecksPatchErrors(t *testing.T) {
+	t.Run("same-generation conflict is retried", func(t *testing.T) {
+		workflowClient := client.NewWorkflowClientFake()
+		ctx := context.Background()
+		workflow := util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{
+				Name:        "retry-workflow",
+				Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "1"},
+			},
+		})
+		_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+		require.NoError(t, err)
+		conflictClient := &workflowClientWithPatchErrors{
+			ExecutionInterface: workflowClient,
+			patchErrors: []error{apierrors.NewConflict(
+				schema.GroupResource{Group: "argoproj.io", Resource: "workflows"},
+				"retry-workflow",
+				errors.New("transient conflict"),
+			)},
+		}
+
+		require.NoError(t, terminateRetryWorkflowForGeneration(ctx, conflictClient, "retry-workflow", 1))
+		assert.Equal(t, 2, conflictClient.patchCalls)
+		liveWorkflow, err := workflowClient.Get(ctx, "retry-workflow", v1.GetOptions{})
+		require.NoError(t, err)
+		assert.True(t, liveWorkflow.IsTerminating())
+	})
+
+	t.Run("same-generation invalid error is surfaced", func(t *testing.T) {
+		workflowClient := client.NewWorkflowClientFake()
+		ctx := context.Background()
+		workflow := util.NewWorkflow(&v1alpha1.Workflow{
+			ObjectMeta: v1.ObjectMeta{
+				Name:        "retry-workflow",
+				Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "1"},
+			},
+		})
+		_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+		require.NoError(t, err)
+		invalidClient := &workflowClientWithPatchErrors{
+			ExecutionInterface: workflowClient,
+			patchErrors: []error{apierrors.NewInvalid(
+				schema.GroupKind{Group: "argoproj.io", Kind: "Workflow"},
+				"retry-workflow",
+				nil,
+			)},
+		}
+
+		err = terminateRetryWorkflowForGeneration(ctx, invalidClient, "retry-workflow", 1)
+		require.Error(t, err)
+		assert.Equal(t, 1, invalidClient.patchCalls)
+		liveWorkflow, getErr := workflowClient.Get(ctx, "retry-workflow", v1.GetOptions{})
+		require.NoError(t, getErr)
+		assert.False(t, liveWorkflow.IsTerminating())
+	})
+}
+
 func TestRetryRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
@@ -4016,6 +4155,60 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
+func TestReportWorkflowResource_RejectsRegressiveActiveReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	runningWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := manager.ReportWorkflowResource(ctx, runningWorkflow)
+	require.NoError(t, err)
+
+	runningRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateRunning, runningRun.State)
+
+	for _, test := range []struct {
+		name  string
+		phase v1alpha1.WorkflowPhase
+	}{
+		{name: "pending", phase: v1alpha1.WorkflowPending},
+		{name: "unspecified", phase: v1alpha1.WorkflowPhase("")},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      run.K8SName,
+					Namespace: "ns1",
+					UID:       types.UID(run.UUID),
+					Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+				},
+				Status: v1alpha1.WorkflowStatus{Phase: test.phase},
+			})
+
+			_, err := manager.ReportWorkflowResource(ctx, staleWorkflow)
+			require.Error(t, err)
+			assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+			assert.Contains(t, err.Error(), "Skipping stale workflow report")
+
+			persistedRun, err := manager.GetRun(run.UUID)
+			require.NoError(t, err)
+			assert.Equal(t, runningRun.State, persistedRun.State)
+			assert.Equal(t, runningRun.Conditions, persistedRun.Conditions)
+			assert.Equal(t, runningRun.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, runningRun.StateHistory, persistedRun.StateHistory)
+		})
+	}
+}
+
 func TestReportWorkflowResource_RejectsStaleRunningReportAfterTermination(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
@@ -4517,7 +4710,46 @@ func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T)
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("persisted-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
 	// report workflow
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "persisted-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, persistedRun.State,
+		"a persisted-final report must still update the run row before returning")
+	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err), "a successfully garbage-collected workflow must no longer exist")
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_MissingVersionFailsClosed(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.K8SName,
@@ -4527,8 +4759,15 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStatePending, persistedRun.State,
+		"a versionless report must not mutate the run before it can prove workflow identity")
+	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err, "a versionless report must not delete a versioned workflow")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNotFound(t *testing.T) {
@@ -4536,10 +4775,11 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 	defer store.Close()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "non-existent-workflow",
-			Namespace: "kubeflow",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+			Name:            "non-existent-workflow",
+			Namespace:       "kubeflow",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "deleted-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -4551,19 +4791,33 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("persisted-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{
+		workflowClient: &workflowClientWithBeforeDeleteHook{
+			ExecutionInterface: workflowClient,
+			deleteErr:          errors.New("failed to delete workflow"),
+		},
+	}
+
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "persisted-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
@@ -6189,6 +6443,65 @@ func TestRetryRun_StampsRetryGenerationAnnotation(t *testing.T) {
 		"retried workflow manifest must carry the retry-generation annotation")
 }
 
+func TestRetryRun_PreservesConcurrentTermination(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	workflowClient := &workflowClientWithBeforeUpdateHook{
+		ExecutionInterface: store.ExecClientFake.Execution("ns1"),
+	}
+	workflowClient.beforeUpdate = func() {
+		require.NoError(t, manager.TerminateRun(ctx, runDetail.UUID))
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	require.NoError(t, manager.RetryRun(ctx, runDetail.UUID))
+
+	persistedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
+
+	liveWorkflow, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "1", liveWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	assert.True(t, liveWorkflow.IsTerminating(),
+		"retry finalization must reapply the termination patch cleared by GenerateRetryExecution")
+}
+
+func TestRetryRun_DoesNotOverwriteConcurrentWorkflowReport(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	runStore := manager.runStore.(*storage.RunStore)
+	hookedRunStore := &runStoreWithBeforeWorkflowUpdateHook{
+		RunStoreInterface: runStore,
+		beforeUpdate: func() {
+			reportedRun, err := runStore.GetRun(runDetail.UUID)
+			require.NoError(t, err)
+			require.Equal(t, model.RuntimeStatePending, reportedRun.State)
+			reportedRun.State = model.RuntimeStateSucceeded
+			reportedRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+			reportedRun.FinishedAtInSec = 321
+			reportedRun.WorkflowRuntimeManifest = "terminal-retry-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(reportedRun, model.RuntimeStatePending)
+			require.NoError(t, err)
+			require.True(t, updated)
+		},
+	}
+	manager.runStore = hookedRunStore
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+
+	persistedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+	assert.Equal(t, int64(321), persistedRun.FinishedAtInSec)
+	assert.Equal(t, model.LargeText("terminal-retry-workflow"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
+}
+
 // Regression: when the workflow mutation errors but was actually applied (the
 // live workflow carries this claim's retry-generation annotation), RetryRun
 // must adopt the live workflow — even if it already reached a terminal state —
@@ -6375,6 +6688,60 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	assert.Nil(t, err, "the live retried workflow must not be deleted by a stale persisted-final-state snapshot")
 }
 
+func TestReportWorkflowResource_PersistedFinalDeleteCannotRemoveConcurrentRetry(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+
+	// Persist a terminal state and its workflow label at a known resource
+	// version, then retain the labeled object as the stale report.
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("terminal-version")
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowFailed
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy()))
+	require.NoError(t, err)
+
+	persistedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.True(t, persistedWorkflow.PersistedFinalState())
+	staleWorkflow := util.NewWorkflow(persistedWorkflow.(*util.Workflow).DeepCopy())
+
+	hookedWorkflowClient := &workflowClientWithBeforeDeleteHook{ExecutionInterface: workflowClient}
+	hookedWorkflowClient.beforeDelete = func() {
+		// Retry after the stale reporter's version check but before its delete.
+		require.NoError(t, manager.RetryRun(ctx, run.UUID))
+		retriedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		require.NoError(t, err)
+		// The fake does not allocate API-server resource versions, so model the
+		// version bump that the retry workflow update receives in Kubernetes.
+		retriedWorkflow.SetVersion("retry-version")
+		_, err = workflowClient.Update(ctx, retriedWorkflow, v1.UpdateOptions{})
+		require.NoError(t, err)
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: hookedWorkflowClient}
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleWorkflow)
+	require.Error(t, err)
+	assert.Nil(t, reportedWorkflow)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Contains(t, err.Error(), "resource version changed before persisted-final-state deletion")
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(1), retriedRun.RetryGeneration)
+
+	retriedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err, "the stale delete must preserve the live retry workflow")
+	assert.Equal(t, "retry-version", retriedWorkflow.Version())
+	assert.Equal(t, "1", retriedWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	assert.False(t, retriedWorkflow.PersistedFinalState())
+}
+
 // Regression: expired-claim adoption must fire the plugin retry hook; the
 // crashed retry never reached plugin notification, and skipping it leaves
 // plugin-side (e.g. MLflow) runs terminal while the KFP retry runs.
@@ -6444,4 +6811,44 @@ func TestReportWorkflowResource_RunStoreErrorFailsClosedBeforeDeletion(t *testin
 	// have gone through and be visible here.
 	_, err = store.ExecClientFake.Execution("ns1").Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err, "the workflow must not be deleted when the run-store read fails")
+}
+
+func TestReportWorkflowResource_UpdateFailurePreservesPersistedFinalWorkflow(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("persisted-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	runStore := manager.runStore.(*storage.RunStore)
+	manager.runStore = &runStoreWithBeforeWorkflowUpdateHook{
+		RunStoreInterface: runStore,
+		beforeUpdate: func() {
+			require.NoError(t, store.Close())
+		},
+	}
+	persistedFinalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "persisted-version",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+
+	_, err = manager.ReportWorkflowResource(ctx, persistedFinalWorkflow)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "database is closed")
+
+	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err, "workflow deletion must wait for the guarded run update to commit")
 }

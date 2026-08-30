@@ -147,9 +147,9 @@ type RunStoreInterface interface {
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
 
-	// Updates a run from a workflow report if its state has not changed since it
-	// was read and the report does not regress a canceling or terminal run.
-	// Returns false without modifying the run when the report is stale.
+	// Updates a run from workflow-derived state if its state has not changed
+	// since it was read and the update does not regress run state. Returns false
+	// without modifying the run when the update is stale.
 	UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
@@ -192,8 +192,9 @@ type RunStoreInterface interface {
 	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
-	// The claimGeneration must match the value returned by ClaimRunForRetry
-	// to prevent ABA rollback of a later retry.
+	// The claimGeneration must match the value returned by ClaimRunForRetry,
+	// and the row must still be PENDING, to avoid overwriting a later retry,
+	// cancellation, or workflow report.
 	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
 }
 
@@ -710,14 +711,22 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	return err
 }
 
-// UpdateRunFromWorkflow applies workflow-reported state atomically against the
-// state observed by the reporter. Explicit lifecycle operations such as retry
-// continue to use UpdateRun and are not constrained by this transition policy.
+// UpdateRunFromWorkflow applies workflow-derived state atomically against the
+// state observed before the workflow operation or report.
 func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error) {
 	expectedState = expectedState.ToV2()
 	incomingState := run.State.ToV2()
 
 	switch expectedState {
+	case model.RuntimeStatePending:
+		if incomingState == model.RuntimeStateUnspecified {
+			return false, nil
+		}
+	case model.RuntimeStateRunning,
+		model.RuntimeStatePaused:
+		if incomingState == model.RuntimeStateUnspecified || incomingState == model.RuntimeStatePending {
+			return false, nil
+		}
 	case model.RuntimeStateSucceeded,
 		model.RuntimeStateSkipped,
 		model.RuntimeStateFailed,
@@ -1151,6 +1160,9 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 		Where(sq.And{
 			sq.Eq{"UUID": runID},
 			sq.Eq{"RetryGeneration": claimGeneration},
+			// Cancellation or a workflow report may win after the claim.
+			// Roll back only while this exact claim is still pending.
+			effectiveStatePredicate(model.RuntimeStatePending),
 		}).
 		ToSql()
 	if err != nil {
