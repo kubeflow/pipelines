@@ -15,7 +15,6 @@
 package server
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -87,7 +86,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		if isNotFoundError(err) {
-			s.writeErrorToResponse(response, http.StatusNotFound, fmt.Errorf("artifact file not found at path %q: %w", artifactPath, err))
+			s.writeErrorToResponse(response, http.StatusNotFound, util.Wrap(err, "Failed to read artifact"))
 		} else {
 			s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
 		}
