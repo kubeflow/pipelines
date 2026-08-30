@@ -20,7 +20,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       && python3 -m pip wheel /tmp/ml-metadata --no-deps --wheel-dir /tmp/mlmd-wheel \
       && python3 -m pip install --no-cache-dir /tmp/mlmd-wheel/ml_metadata-1.21.0-*.whl \
       && rm -rf /tmp/ml-metadata /tmp/mlmd-wheel \
-      && apt-get purge -y --auto-remove build-essential ca-certificates curl git \
+      && apt-get purge -y --auto-remove build-essential curl git \
       && rm -rf /var/lib/apt/lists/*; \
     else \
       python3 -m pip install --no-cache-dir -r /kfp/metadata_writer/requirements.txt; \
