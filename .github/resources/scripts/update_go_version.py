@@ -896,7 +896,9 @@ def _read_regular_contents(path: Path, relative_path: Path) -> str:
 
 def _is_executable(path: Path, relative_path: Path) -> bool:
     _ensure_regular_destination(path, relative_path)
-    return bool(path.stat().st_mode & 0o111)
+    # Git records only 100755 versus 100644 and uses the owner-execute bit
+    # when converting a filesystem mode to that binary distinction.
+    return bool(path.stat().st_mode & stat.S_IXUSR)
 
 
 def main() -> int:

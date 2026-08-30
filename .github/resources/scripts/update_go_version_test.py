@@ -834,7 +834,7 @@ updater.sync(
                          self.files[Path('Dockerfile')])
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
 
-    def test_mode_only_change_is_unresolved_and_restore_patch_fixes_mode(self):
+    def test_non_owner_execute_mode_is_unresolved_and_preserved(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.chmod(0o755)
         self._git('add', 'Dockerfile')
@@ -844,7 +844,7 @@ updater.sync(
 
         def change_mode_then_fail(repo_root):
             if Path(repo_root) == self.repo_root:
-                dockerfile.chmod(0o644)
+                dockerfile.chmod(0o645)
                 raise RuntimeError('simulated mode-only interference')
 
         with mock.patch.object(
@@ -865,7 +865,7 @@ updater.sync(
 
         self.assertIn('golang:1.28.3',
                       dockerfile.read_text(encoding='utf-8'))
-        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o644)
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o645)
         restore_patch = self._restore_patch(Path('Dockerfile'))
         concurrent = self.repo_root / 'Dockerfile.concurrent'
         dockerfile.rename(concurrent)
@@ -873,7 +873,45 @@ updater.sync(
         self.assertEqual(dockerfile.read_text(encoding='utf-8'),
                          self.files[Path('Dockerfile')])
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
-        self.assertEqual(stat.S_IMODE(concurrent.stat().st_mode), 0o644)
+        self.assertEqual(stat.S_IMODE(concurrent.stat().st_mode), 0o645)
+
+    def test_git_compatible_permission_change_does_not_block_rollback(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.chmod(0o755)
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'executable Dockerfile')
+
+        def change_compatible_permissions_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.chmod(0o754)
+                raise RuntimeError('simulated compatible mode change')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=change_compatible_permissions_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'simulated compatible mode change.*recovery bundle '
+                    'retained') as context:
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertNotIn('managed paths left unchanged',
+                         str(context.exception))
+        self.assertNotIn('automatic rollback failed', str(context.exception))
+        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
+        # Recovery promises Git's executable mode, not preservation of every
+        # group/other POSIX permission bit.
+        self.assertTrue(dockerfile.stat().st_mode & stat.S_IXUSR)
 
     def test_truncated_path_restore_patch_preserves_then_recovers(self):
         root = self.repo_root / 'go.mod'

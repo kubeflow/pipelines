@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
 	"golang.org/x/mod/modfile"
@@ -433,10 +435,14 @@ func scanDockerGoToken(value string) (bool, int) {
 	for index := 0; index < len(value); index++ {
 		steps++
 		if value[index] == '$' && index+1 < len(value) && value[index+1] == '{' {
-			wordStart, inspected, ok := parameterExpansionWordStart(value, index+2)
+			wordStart, nameEnd, inspected, ok := parameterExpansionWordStart(value, index+2)
 			steps += inspected
 			if ok && hasDockerGoTokenAt(value, wordStart) && hasDockerGoTokenEnd(value, wordStart) {
 				return true, steps
+			}
+			if nameEnd > index+2 {
+				index = nameEnd - 1
+				continue
 			}
 		}
 		if !hasDockerGoTokenAt(value, index) {
@@ -450,36 +456,58 @@ func scanDockerGoToken(value string) (bool, int) {
 	return false, steps
 }
 
-func parameterExpansionWordStart(value string, start int) (int, int, bool) {
-	cursor := start
-	inspected := 0
-	if cursor >= len(value) {
-		return 0, inspected, false
+func parameterExpansionWordStart(value string, start int) (int, int, int, bool) {
+	cursor, inspected, ok := shellParameterNameEnd(value, start)
+	if !ok {
+		return 0, cursor, inspected, false
 	}
-	if isShellNameStart(value[cursor]) {
-		for cursor < len(value) && isShellNameByte(value[cursor]) {
-			cursor++
-			inspected++
-		}
-	} else if isASCIIDigit(value[cursor]) {
-		for cursor < len(value) && isASCIIDigit(value[cursor]) {
-			cursor++
-			inspected++
-		}
-	} else if isShellSpecialParameter(value[cursor]) {
-		cursor++
-		inspected++
-	} else {
-		return 0, inspected + 1, false
-	}
+	nameEnd := cursor
+	nullIsUnset := false
 	if cursor < len(value) && value[cursor] == ':' {
 		cursor++
 		inspected++
+		nullIsUnset = true
 	}
-	if cursor >= len(value) || !isShellParameterOperator(value[cursor]) {
-		return 0, inspected + 1, false
+	if cursor >= len(value) || !isShellParameterOperator(value[cursor], nullIsUnset) {
+		return 0, nameEnd, inspected + 1, false
 	}
-	return cursor + 1, inspected + 1, true
+	return cursor + 1, nameEnd, inspected + 1, true
+}
+
+// shellParameterNameEnd mirrors BuildKit shellWord.processName. In particular,
+// it uses Unicode letters and digits, while an initial digit consumes only a
+// positional-parameter digit run and a special parameter consumes one rune.
+func shellParameterNameEnd(value string, start int) (int, int, bool) {
+	if start >= len(value) {
+		return start, 0, false
+	}
+	cursor := start
+	inspected := 0
+	first, firstSize := utf8.DecodeRuneInString(value[cursor:])
+	switch {
+	case unicode.IsDigit(first):
+		for cursor < len(value) {
+			character, size := utf8.DecodeRuneInString(value[cursor:])
+			if !unicode.IsDigit(character) {
+				break
+			}
+			cursor += size
+			inspected += size
+		}
+	case isShellSpecialParameter(first):
+		cursor += firstSize
+		inspected += firstSize
+	default:
+		for cursor < len(value) {
+			character, size := utf8.DecodeRuneInString(value[cursor:])
+			if !unicode.IsLetter(character) && !unicode.IsDigit(character) && character != '_' {
+				break
+			}
+			cursor += size
+			inspected += size
+		}
+	}
+	return cursor, inspected, cursor > start
 }
 
 func hasDockerGoTokenAt(value string, start int) bool {
@@ -504,24 +532,24 @@ func hasDockerGoTokenEnd(value string, start int) bool {
 	return end == len(value) || !isDockerNameByte(value[end]) && value[end] != '/'
 }
 
-func isShellNameStart(value byte) bool {
-	return value >= 'a' && value <= 'z' || value >= 'A' && value <= 'Z' || value == '_'
+func isShellSpecialParameter(value rune) bool {
+	switch value {
+	case '@', '*', '#', '?', '-', '$', '!', '0':
+		return true
+	default:
+		return false
+	}
 }
 
-func isShellNameByte(value byte) bool {
-	return isShellNameStart(value) || isASCIIDigit(value)
-}
-
-func isASCIIDigit(value byte) bool {
-	return value >= '0' && value <= '9'
-}
-
-func isShellSpecialParameter(value byte) bool {
-	return strings.ContainsRune("*@#?-$!", rune(value))
-}
-
-func isShellParameterOperator(value byte) bool {
-	return value == '-' || value == '+' || value == '?' || value == '='
+func isShellParameterOperator(value byte, nullIsUnset bool) bool {
+	switch value {
+	case '-', '+', '?':
+		return true
+	case '#', '%':
+		return !nullIsUnset
+	default:
+		return false
+	}
 }
 
 func isDockerNameByte(value byte) bool {

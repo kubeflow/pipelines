@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"gopkg.in/yaml.v3"
 )
 
@@ -133,6 +134,12 @@ func TestDockerClassification(t *testing.T) {
 		{
 			name:           "shell-delimited executable pull is unsupported",
 			contents:       "FROM alpine\nRUN docker pull golang; echo done\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name:           "unsupported assignment modifier still exposes literal word",
+			contents:       "FROM alpine\nRUN echo ${A:=golang}\n",
 			classification: "unsupported",
 			candidateKinds: []string{"literal"},
 		},
@@ -283,8 +290,13 @@ func TestDockerGoTokenBoundaries(t *testing.T) {
 
 func TestDockerGoTokenShellParameterNames(t *testing.T) {
 	parameters := []string{
+		"NAME",
+		"_name2",
+		"名",
+		"é٢",
 		"1",
 		"10",
+		"１２",
 		"@",
 		"*",
 		"#",
@@ -294,7 +306,7 @@ func TestDockerGoTokenShellParameterNames(t *testing.T) {
 		"!",
 		"0",
 	}
-	operators := []string{"-", ":-", "+", ":+", "?", ":?", "=", ":="}
+	operators := []string{"-", ":-", "+", ":+", "?", ":?", "#", "%"}
 	for _, parameter := range parameters {
 		for _, operator := range operators {
 			contents := "FROM ${" + parameter + operator + "golang}:1.26 AS builder\n"
@@ -306,6 +318,66 @@ func TestDockerGoTokenShellParameterNames(t *testing.T) {
 				t.Errorf("parameter %q with operator %q classification = %q, want unsupported", parameter, operator, metadata.DockerClassification)
 			}
 		}
+	}
+}
+
+func TestDockerGoTokenRejectsInvalidShellParameterNames(t *testing.T) {
+	for _, parameter := range []string{
+		"²",
+		"🙂",
+		"\u0301",
+		"1名",
+	} {
+		value := "${" + parameter + "-golang}:1.26"
+		if containsDockerGoToken(value) {
+			t.Errorf("containsDockerGoToken(%q) = true, want false", value)
+		}
+	}
+}
+
+func TestDockerGoTokenIgnoresGolangInsideParameterNames(t *testing.T) {
+	for _, value := range []string{
+		"${名golang}",
+		"${égolang}",
+	} {
+		if containsDockerGoToken(value) {
+			t.Errorf("containsDockerGoToken(%q) = true, want false", value)
+		}
+	}
+	if value := "${名golang-golang}"; !containsDockerGoToken(value) {
+		t.Errorf("containsDockerGoToken(%q) = false, want true", value)
+	}
+}
+
+func TestDockerParameterGrammarMatchesBuildKitUnicodeNames(t *testing.T) {
+	lexer := shell.NewLex('\\')
+	for _, value := range []string{
+		"${名-golang}",
+		"${٢:-golang}",
+	} {
+		result, _, err := lexer.ProcessWord(value, shell.EnvsFromSlice(nil))
+		if err != nil {
+			t.Fatalf("BuildKit rejected %q: %v", value, err)
+		}
+		if result != "golang" {
+			t.Fatalf("BuildKit expanded %q to %q, want golang", value, result)
+		}
+		if !containsDockerGoToken(value) {
+			t.Errorf("containsDockerGoToken(%q) = false, want true", value)
+		}
+	}
+}
+
+func TestDockerUnicodeParameterNameIsUnsupported(t *testing.T) {
+	metadata, err := inspect(request{
+		Path:     "Dockerfile",
+		Contents: "FROM ${名-golang}:1.26 AS builder\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "unsupported" {
+		t.Fatalf("classification = %q, want unsupported", metadata.DockerClassification)
 	}
 }
 
