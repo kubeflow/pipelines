@@ -517,6 +517,15 @@ func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *
 	return store, manager, runDetail
 }
 
+func setLiveWorkflowVersion(t *testing.T, workflowClient util.ExecutionInterface, name string, version string) {
+	t.Helper()
+	workflow, err := workflowClient.Get(context.Background(), name, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow.SetVersion(version)
+	_, err = workflowClient.Update(context.Background(), workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+}
+
 func initWithPatchedRun(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &model.Run{
@@ -548,8 +557,10 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.SetVersion("failed-version")
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), runDetail.K8SName, updatedWorkflow.Version())
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -570,11 +581,13 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.SetVersion("failed-version")
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	nodes := map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
 	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), runDetail.K8SName, updatedWorkflow.Version())
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -595,8 +608,10 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	assert.Nil(t, err)
 	updatedWorkflow := util.NewWorkflow(testWorkflow.DeepCopy())
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
+	updatedWorkflow.SetVersion("failed-version")
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), runDetail.K8SName, updatedWorkflow.Version())
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -630,6 +645,41 @@ func (c *workflowClientWithBeforeUpdateHook) Update(
 		beforeUpdate()
 	}
 	return c.ExecutionInterface.Update(ctx, execSpec, opts)
+}
+
+type workflowClientWithBeforePatchHook struct {
+	util.ExecutionInterface
+	beforePatch func()
+}
+
+func (c *workflowClientWithBeforePatchHook) Patch(
+	ctx context.Context,
+	name string,
+	patchType types.PatchType,
+	data []byte,
+	opts v1.PatchOptions,
+	subresources ...string,
+) (util.ExecutionSpec, error) {
+	if c.beforePatch != nil {
+		beforePatch := c.beforePatch
+		c.beforePatch = nil
+		beforePatch()
+	}
+	return c.ExecutionInterface.Patch(ctx, name, patchType, data, opts, subresources...)
+}
+
+type runStoreWithBeforeTerminateHook struct {
+	storage.RunStoreInterface
+	beforeTerminate func()
+}
+
+func (s *runStoreWithBeforeTerminateHook) TerminateRun(runID string) error {
+	if s.beforeTerminate != nil {
+		beforeTerminate := s.beforeTerminate
+		s.beforeTerminate = nil
+		beforeTerminate()
+	}
+	return s.RunStoreInterface.TerminateRun(runID)
 }
 
 type workflowClientWithBeforeDeleteHook struct {
@@ -3066,8 +3116,15 @@ func TestDeleteExperiment_DbFailure(t *testing.T) {
 func TestTerminateRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, runDetail.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
 
-	err := manager.TerminateRun(context.Background(), runDetail.UUID)
+	err = manager.TerminateRun(ctx, runDetail.UUID)
 	assert.Nil(t, err)
 
 	actualRunDetail, err := manager.GetRun(runDetail.UUID)
@@ -3077,6 +3134,119 @@ func TestTerminateRun(t *testing.T) {
 	isTerminated, err := store.ExecClientFake.IsTerminated(runDetail.K8SName)
 	assert.Nil(t, err)
 	assert.True(t, isTerminated)
+}
+
+// Regression: TerminateRun commits CANCELING before patching the workflow. If
+// that workflow finishes and is retried while the patch is delayed, the old
+// cancellation must not set activeDeadlineSeconds=0 on the new generation,
+// which reuses the same workflow name.
+func TestTerminateRun_DoesNotTerminateConcurrentRetry(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("terminal-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	hookedWorkflowClient := &workflowClientWithBeforePatchHook{
+		ExecutionInterface: workflowClient,
+	}
+	hookedWorkflowClient.beforePatch = func() {
+		// The termination DB write has committed, but its workflow patch has
+		// not. Model the original workflow reaching a terminal state in that
+		// window, then persist it and retry the run.
+		currentWorkflow, getErr := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		require.NoError(t, getErr)
+		terminalWorkflow := util.NewWorkflow(currentWorkflow.(*util.Workflow).DeepCopy())
+		terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+		terminalWorkflow.Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+		_, updateErr := workflowClient.Update(ctx, terminalWorkflow, v1.UpdateOptions{})
+		require.NoError(t, updateErr)
+
+		_, reportErr := manager.ReportWorkflowResource(ctx, util.NewWorkflow(terminalWorkflow.DeepCopy()))
+		require.NoError(t, reportErr)
+		require.NoError(t, manager.RetryRun(ctx, run.UUID))
+
+		// The fake client does not allocate API-server resource versions, so
+		// model the version assigned to RetryRun's workflow update.
+		retriedWorkflow, retryGetErr := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		require.NoError(t, retryGetErr)
+		retriedWorkflow.SetVersion("retry-version")
+		_, updateErr = workflowClient.Update(ctx, retriedWorkflow, v1.UpdateOptions{})
+		require.NoError(t, updateErr)
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: hookedWorkflowClient}
+
+	require.NoError(t, manager.TerminateRun(ctx, run.UUID))
+
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+	assert.Equal(t, int64(1), retriedRun.RetryGeneration)
+
+	retriedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "retry-version", retriedWorkflow.Version())
+	assert.Equal(t, "1", retriedWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	assert.False(t, retriedWorkflow.IsTerminating(),
+		"the delayed generation-0 cancellation must not terminate generation 1")
+}
+
+// Regression: the run can finish and complete a retry after TerminateRun's
+// initial read but before its database update. Because that update cancels the
+// new generation, the workflow patch must target the new generation too.
+func TestTerminateRun_TerminatesRetryCompletedBeforeCancellationCommit(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+	setLiveWorkflowVersion(t, workflowClient, run.K8SName, "terminal-version")
+
+	runStore := manager.runStore.(*storage.RunStore)
+	hookedRunStore := &runStoreWithBeforeTerminateHook{RunStoreInterface: runStore}
+	hookedRunStore.beforeTerminate = func() {
+		// TerminateRun already read generation 0. Let that attempt finish and
+		// let RetryRun fully persist generation 1 before the outer database
+		// cancellation resumes.
+		currentWorkflow, getErr := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		require.NoError(t, getErr)
+		terminalWorkflow := util.NewWorkflow(currentWorkflow.(*util.Workflow).DeepCopy())
+		terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+		terminalWorkflow.Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+		_, updateErr := workflowClient.Update(ctx, terminalWorkflow, v1.UpdateOptions{})
+		require.NoError(t, updateErr)
+
+		_, reportErr := manager.ReportWorkflowResource(ctx, util.NewWorkflow(terminalWorkflow.DeepCopy()))
+		require.NoError(t, reportErr)
+		require.NoError(t, manager.RetryRun(ctx, run.UUID))
+
+		// The fake client does not allocate API-server resource versions, so
+		// model the version assigned to RetryRun's workflow update.
+		retriedWorkflow, retryGetErr := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+		require.NoError(t, retryGetErr)
+		retriedWorkflow.SetVersion("retry-version")
+		_, updateErr = workflowClient.Update(ctx, retriedWorkflow, v1.UpdateOptions{})
+		require.NoError(t, updateErr)
+	}
+	manager.runStore = hookedRunStore
+
+	require.NoError(t, manager.TerminateRun(ctx, run.UUID))
+
+	canceledRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, canceledRun.State)
+	assert.Equal(t, int64(1), canceledRun.RetryGeneration)
+
+	canceledWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "retry-version", canceledWorkflow.Version())
+	assert.Equal(t, "1", canceledWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+	assert.True(t, canceledWorkflow.IsTerminating(),
+		"the database cancellation of generation 1 must terminate generation 1")
 }
 
 func TestTerminateRun_RunNotExist(t *testing.T) {
@@ -3103,8 +3273,9 @@ func TestTerminateRetryWorkflowForGeneration_DoesNotTerminateNewerGeneration(t *
 	ctx := context.Background()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:        "retry-workflow",
-			Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "2"},
+			Name:            "retry-workflow",
+			ResourceVersion: "current-version",
+			Annotations:     map[string]string{util.AnnotationKeyRetryGeneration: "2"},
 		},
 	})
 	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
@@ -3123,8 +3294,9 @@ func TestTerminateRetryWorkflowForGeneration_RechecksPatchErrors(t *testing.T) {
 		ctx := context.Background()
 		workflow := util.NewWorkflow(&v1alpha1.Workflow{
 			ObjectMeta: v1.ObjectMeta{
-				Name:        "retry-workflow",
-				Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "1"},
+				Name:            "retry-workflow",
+				ResourceVersion: "current-version",
+				Annotations:     map[string]string{util.AnnotationKeyRetryGeneration: "1"},
 			},
 		})
 		_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
@@ -3150,8 +3322,9 @@ func TestTerminateRetryWorkflowForGeneration_RechecksPatchErrors(t *testing.T) {
 		ctx := context.Background()
 		workflow := util.NewWorkflow(&v1alpha1.Workflow{
 			ObjectMeta: v1.ObjectMeta{
-				Name:        "retry-workflow",
-				Annotations: map[string]string{util.AnnotationKeyRetryGeneration: "1"},
+				Name:            "retry-workflow",
+				ResourceVersion: "current-version",
+				Annotations:     map[string]string{util.AnnotationKeyRetryGeneration: "1"},
 			},
 		})
 		_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
@@ -4213,6 +4386,7 @@ func TestReportWorkflowResource_RejectsStaleRunningReportAfterTermination(t *tes
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
 	ctx := context.Background()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "current-version")
 
 	beforeTermination, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
@@ -4257,6 +4431,7 @@ func (s *runStoreWithBeforeWorkflowUpdateHook) UpdateRunFromWorkflow(run *model.
 func TestReportWorkflowResource_RejectsTerminationRacingWithWorkflowUpdate(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "current-version")
 
 	beforeTermination, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
@@ -4433,13 +4608,15 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "kubeflow"
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution(namespace), run.K8SName, "terminal-version")
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: namespace,
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -4536,6 +4713,55 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 	assert.Equal(t, int64(0), currentRun.FinishedAtInSec)
 }
 
+func TestReportWorkflowResource_RejectsInitialTerminalReportWithoutResourceVersionBeforeMutation(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClientFake.Execution("ns1")
+
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	beforeReport, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	terminalWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "ns1",
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, terminalWorkflow)
+	require.Error(t, err)
+	assert.Nil(t, reportedWorkflow)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	afterReport, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, beforeReport.State, afterReport.State)
+	assert.Equal(t, beforeReport.Conditions, afterReport.Conditions)
+	assert.Equal(t, beforeReport.FinishedAtInSec, afterReport.FinishedAtInSec)
+	assert.Equal(t, beforeReport.WorkflowRuntimeManifest, afterReport.WorkflowRuntimeManifest)
+	assert.Equal(t, beforeReport.StateHistory, afterReport.StateHistory)
+
+	currentWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "current-version", currentWorkflow.Version())
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(currentWorkflow.ExecutionStatus().Condition()))
+	_, hasFinalStateLabel := currentWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState]
+	assert.False(t, hasFinalStateLabel,
+		"a versionless terminal report must be rejected before labeling the live workflow")
+}
+
 func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalReport(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "ns1"
@@ -4576,6 +4802,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 	store, manager, run := initWithOneTimeRun(t)
 	namespace := "ns1"
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution(namespace), run.K8SName, "terminal-version")
 
 	runWithPluginOutput, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
@@ -4593,10 +4820,11 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: namespace,
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{
 			Phase:      v1alpha1.WorkflowFailed,
@@ -4657,6 +4885,7 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 	}
 	run, err := manager.CreateRun(context.Background(), apiRun)
 	require.NoError(t, err)
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "terminal-version")
 
 	// Verify PluginsOutputString was persisted at creation time.
 	createdRun, err := manager.GetRun(run.UUID)
@@ -4667,10 +4896,11 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 	// Report a terminal (failed) workflow.
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -4694,10 +4924,11 @@ func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T)
 	defer store.Close()
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "non-existent-workflow",
-			Namespace: "kubeflow",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            "non-existent-workflow",
+			Namespace:       "kubeflow",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "deleted-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -6307,20 +6538,21 @@ func TestCreateRun_DeterministicUUIDFromRecurringRun(t *testing.T) {
 }
 
 // A terminal report carrying no (or an older) retry-generation annotation is a
-// snapshot of the pre-retry workflow. While the claim is fresh it must be
-// skipped as a successful no-op: not an error (the persistence agent would
-// requeue forever) and not a write (it would restore a GC-eligible
-// FinishedAtInSec while the retry is running).
+// snapshot of the pre-retry workflow. While the claim is fresh it must return
+// a transient error before any write so downstream task and metric persistence
+// cannot use that stale snapshot.
 func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "terminal-version")
 
 	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -6334,8 +6566,10 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 
 	// The same terminal snapshot arrives again (requeued by the persistence
 	// agent). It carries no retry-generation annotation.
-	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
-	assert.Nil(t, err, "stale terminal report during a fresh claim must be a successful no-op")
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Error(t, err)
+	assert.Nil(t, reportedWorkflow)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 
 	claimed, err := manager.GetRun(run.UUID)
 	require.Nil(t, err)
@@ -6397,13 +6631,15 @@ func TestReportWorkflowResource_RejectsStaleNonterminalReportAfterRetry(t *testi
 func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "terminal-version")
 
 	terminal := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -6414,10 +6650,11 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 
 	retried := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Annotations: map[string]string{
 				util.AnnotationKeyRetryGeneration: strconv.FormatInt(claimGeneration, 10),
 			},
@@ -6438,13 +6675,15 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "terminal-version")
 
 	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -6665,20 +6904,21 @@ func (d *retryHookCountingDispatcher) PluginsRegistered() bool {
 	return true
 }
 
-// Regression: the resource-version check passes vacuously for reports without
-// a resourceVersion, so the age-based accept path must never accept a
-// lower-generation terminal report — or delete the workflow via the
-// persisted-final-state path — while the claimed generation is live.
+// Regression: the age-based recovery path must never accept a lower-generation
+// terminal report — or delete the workflow via the persisted-final-state path
+// — while the claimed generation is live.
 func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "terminal-version")
 
 	staleWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
@@ -6696,13 +6936,16 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	liveWorkflow, err := wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
 	require.Nil(t, err)
 	liveWorkflow.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	liveWorkflow.SetVersion("retry-version")
 	_, err = wfClient.Update(context.Background(), liveWorkflow, v1.UpdateOptions{})
 	require.Nil(t, err)
 
-	// The stale snapshot (no annotation, empty resourceVersion) arrives with
-	// an aged-out claim: it must be skipped, not age-accepted.
-	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
-	assert.Nil(t, err)
+	// The stale versioned snapshot arrives with an aged-out claim: it must be
+	// rejected, not age-accepted.
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	require.Error(t, err)
+	assert.Nil(t, reportedWorkflow)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 	claimed, err := manager.GetRun(run.UUID)
 	require.Nil(t, err)
 	assert.Equal(t, model.RuntimeStatePending, claimed.State,
@@ -6712,9 +6955,10 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	// live retried workflow either: the fence runs before the deletion.
 	staleFinal := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "terminal-version",
 			Labels: map[string]string{
 				util.LabelKeyWorkflowRunId:               run.UUID,
 				util.LabelKeyWorkflowPersistedFinalState: "true",
@@ -6722,8 +6966,10 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err = manager.ReportWorkflowResource(context.Background(), staleFinal)
-	assert.Nil(t, err)
+	reportedWorkflow, err = manager.ReportWorkflowResource(context.Background(), staleFinal)
+	require.Error(t, err)
+	assert.Nil(t, reportedWorkflow)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 	_, err = wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err, "the live retried workflow must not be deleted by a stale persisted-final-state snapshot")
 }
@@ -6822,12 +7068,14 @@ func TestRetryRun_AdoptionFiresPluginRetryHook(t *testing.T) {
 func TestReportWorkflowResource_RunStoreErrorFailsClosedBeforeDeletion(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	setLiveWorkflowVersion(t, store.ExecClientFake.Execution("ns1"), run.K8SName, "current-version")
 
 	staleFinal := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      run.K8SName,
-			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
+			Name:            run.K8SName,
+			Namespace:       "ns1",
+			UID:             types.UID(run.UUID),
+			ResourceVersion: "current-version",
 			Labels: map[string]string{
 				util.LabelKeyWorkflowRunId:               run.UUID,
 				util.LabelKeyWorkflowPersistedFinalState: "true",

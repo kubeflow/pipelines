@@ -1031,88 +1031,131 @@ func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, na
 	return nil
 }
 
+// terminateWorkflowForGeneration patches only the workflow version that was
+// observed for the expected retry generation. RetryRun reuses the workflow
+// name, so checking only the name (or only the generation before patching)
+// could terminate a newer retry created between the read and the patch.
+func terminateWorkflowForGeneration(
+	ctx context.Context,
+	wfClient util.ExecutionInterface,
+	name string,
+	retryGeneration int64,
+	workflowNotFoundIsSuccess bool,
+) error {
+	generationChangedErr := errors.New("retry workflow generation changed")
+	operation := func() error {
+		currentWorkflow, getErr := wfClient.Get(ctx, name, v1.GetOptions{})
+		if apierrors.IsNotFound(getErr) {
+			if workflowNotFoundIsSuccess {
+				return backoff.Permanent(generationChangedErr)
+			}
+			return backoff.Permanent(util.Wrapf(getErr, "Failed to read workflow %s before conditional termination", name))
+		}
+		if getErr != nil {
+			return util.Wrapf(getErr, "Failed to read workflow %s before conditional termination", name)
+		}
+		if currentWorkflow == nil {
+			return backoff.Permanent(util.NewInternalServerError(
+				errors.New("workflow client returned an empty workflow"),
+				"Failed to read workflow %s before conditional termination",
+				name,
+			))
+		}
+		if !workflowMatchesRetryGeneration(currentWorkflow.ExecutionObjectMeta(), retryGeneration) {
+			return backoff.Permanent(generationChangedErr)
+		}
+
+		expectedVersion := currentWorkflow.Version()
+		if expectedVersion == "" {
+			return backoff.Permanent(util.NewInternalServerError(
+				errors.New("workflow resource version is missing"),
+				"Failed to terminate workflow %s without a resource version",
+				name,
+			))
+		}
+		patchObj := []jsonPatchOperation{
+			{
+				Op:    "test",
+				Path:  "/metadata/resourceVersion",
+				Value: expectedVersion,
+			},
+			{
+				Op:    "add",
+				Path:  "/spec/activeDeadlineSeconds",
+				Value: int64(0),
+			},
+		}
+		patch, marshalErr := json.Marshal(patchObj)
+		if marshalErr != nil {
+			return backoff.Permanent(util.NewInternalServerError(
+				marshalErr,
+				"Failed to terminate workflow %s due to error parsing the patch",
+				name,
+			))
+		}
+		_, patchErr := wfClient.Patch(ctx, name, types.JSONPatchType, patch, v1.PatchOptions{})
+		if patchErr == nil {
+			return nil
+		}
+		if apierrors.IsNotFound(patchErr) {
+			if workflowNotFoundIsSuccess {
+				return backoff.Permanent(generationChangedErr)
+			}
+			return backoff.Permanent(patchErr)
+		}
+		if apierrors.IsConflict(patchErr) || apierrors.IsInvalid(patchErr) {
+			latestWorkflow, latestErr := wfClient.Get(ctx, name, v1.GetOptions{})
+			if apierrors.IsNotFound(latestErr) {
+				if workflowNotFoundIsSuccess {
+					return backoff.Permanent(generationChangedErr)
+				}
+				return backoff.Permanent(latestErr)
+			}
+			if latestErr != nil {
+				return util.Wrapf(latestErr, "Failed to verify workflow %s after conditional termination failed", name)
+			}
+			if latestWorkflow == nil || !workflowMatchesRetryGeneration(latestWorkflow.ExecutionObjectMeta(), retryGeneration) {
+				return backoff.Permanent(generationChangedErr)
+			}
+			if latestWorkflow.Version() != expectedVersion {
+				// The same generation changed after it was read. Retry from a
+				// fresh version so the conditional patch remains safe.
+				return patchErr
+			}
+			if apierrors.IsInvalid(patchErr) {
+				// A failed JSON Patch test commonly surfaces as Invalid. The
+				// GET above proved both generation and version still match, so
+				// this is a real schema/admission error.
+				return backoff.Permanent(patchErr)
+			}
+			return patchErr
+		}
+		return util.Wrapf(patchErr, "Failed to terminate workflow %s due to patching error", name)
+	}
+	err := backoff.Retry(operation, newStandardBackoffPolicy())
+	if permanentErr, ok := err.(*backoff.PermanentError); ok {
+		err = permanentErr.Err
+	}
+	if errors.Is(err, generationChangedErr) {
+		glog.Infof("Skip terminating workflow %q for generation %d because that workflow generation is no longer current", name, retryGeneration)
+		return nil
+	}
+	if err != nil {
+		return util.Wrapf(err, "Failed to terminate workflow %s due to conditional patching error", name)
+	}
+	return nil
+}
+
 // terminateRetryWorkflowForGeneration reapplies cancellation only while the
 // workflow still belongs to the retry generation whose database row is
-// CANCELING. A newer retry may reuse the same workflow name, so a plain merge
-// patch after a database read could terminate the newer generation.
+// CANCELING. A missing workflow is already a successful stale-operation no-op.
 func terminateRetryWorkflowForGeneration(
 	ctx context.Context,
 	wfClient util.ExecutionInterface,
 	name string,
 	retryGeneration int64,
 ) error {
-	patchObj := []jsonPatchOperation{
-		{
-			Op:    "test",
-			Path:  "/metadata/annotations/" + escapeJSONPointerPathPart(util.AnnotationKeyRetryGeneration),
-			Value: strconv.FormatInt(retryGeneration, 10),
-		},
-		{
-			Op:    "add",
-			Path:  "/spec/activeDeadlineSeconds",
-			Value: int64(0),
-		},
-	}
-	patch, err := json.Marshal(patchObj)
-	if err != nil {
-		return util.NewInternalServerError(err, "Failed to terminate retry workflow %s due to error parsing the patch", name)
-	}
-
-	expectedGeneration := strconv.FormatInt(retryGeneration, 10)
-	generationChangedErr := errors.New("retry workflow generation changed")
-	verifyGenerationChanged := func() error {
-		currentWorkflow, getErr := wfClient.Get(ctx, name, v1.GetOptions{})
-		if apierrors.IsNotFound(getErr) {
-			return generationChangedErr
-		}
-		if getErr != nil {
-			return util.Wrapf(getErr, "Failed to verify retry workflow %s after conditional termination failed", name)
-		}
-		if currentWorkflow.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration] != expectedGeneration {
-			return generationChangedErr
-		}
-		return nil
-	}
-	operation := func() error {
-		_, patchErr := wfClient.Patch(ctx, name, types.JSONPatchType, patch, v1.PatchOptions{})
-		if patchErr == nil {
-			return nil
-		}
-		if apierrors.IsNotFound(patchErr) {
-			return backoff.Permanent(generationChangedErr)
-		}
-		if apierrors.IsConflict(patchErr) || apierrors.IsInvalid(patchErr) {
-			generationErr := verifyGenerationChanged()
-			if errors.Is(generationErr, generationChangedErr) {
-				return backoff.Permanent(generationChangedErr)
-			}
-			if generationErr != nil {
-				return generationErr
-			}
-			if apierrors.IsInvalid(patchErr) {
-				// A failed JSON Patch test commonly surfaces as Invalid, but
-				// the GET above proved the workflow still has this generation.
-				// Treat it as a real schema/admission error, not a stale no-op.
-				return backoff.Permanent(patchErr)
-			}
-			// A same-generation conflict may be transient; retry the
-			// conditional patch.
-			return patchErr
-		}
-		return util.Wrapf(patchErr, "Failed to terminate retry workflow %s due to patching error", name)
-	}
-	err = backoff.Retry(operation, newStandardBackoffPolicy())
-	if permanentErr, ok := err.(*backoff.PermanentError); ok {
-		err = permanentErr.Err
-	}
-	if errors.Is(err, generationChangedErr) {
-		glog.Infof("Skip terminating retry workflow %q for generation %d because that workflow generation is no longer current", name, retryGeneration)
-		return nil
-	}
-	if err != nil {
-		return util.Wrapf(err, "Failed to terminate retry workflow %s due to patching error after multiple retries", name)
-	}
-	return nil
+	return terminateWorkflowForGeneration(ctx, wfClient, name, retryGeneration, true)
 }
 
 // Terminates a running run and the corresponding workflow.
@@ -1131,11 +1174,35 @@ func (r *ResourceManager) TerminateRun(ctx context.Context, runId string) error 
 	if err != nil {
 		return util.Wrapf(err, "Failed to terminate run %s", runId)
 	}
+	// The run can finish and be retried after the initial read but before the
+	// database cancellation commits. Re-read the row so the workflow patch
+	// targets the generation that was actually moved to CANCELING. If a
+	// terminal report (and possibly a newer retry) already superseded that
+	// cancellation, the old request must not patch the current workflow.
+	run, err = r.GetRun(runId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to terminate run %s due to error refetching the canceled generation", runId)
+	}
+	if run.State.ToV2() != model.RuntimeStateCancelling {
+		glog.Infof(
+			"Skip terminating workflow %q for run %s because the canceled generation was already superseded by state %s",
+			run.K8SName,
+			runId,
+			run.State,
+		)
+		return nil
+	}
 
 	if namespace == "" {
 		namespace = common.GetPodNamespace()
 	}
-	err = TerminateWorkflow(ctx, r.getWorkflowClient(namespace), run.K8SName)
+	err = terminateWorkflowForGeneration(
+		ctx,
+		r.getWorkflowClient(namespace),
+		run.K8SName,
+		run.RetryGeneration,
+		false,
+	)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to terminate run %s due to error terminating its workflow", runId)
 	}
@@ -1838,6 +1905,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	if execSpec.IsTerminating() {
 		state = model.RuntimeState(string(exec.ExecutionPhase(model.RunTerminatingConditionsV1))).ToV2()
 	}
+	if (execStatus.IsInFinalState() || execSpec.PersistedFinalState()) && execSpec.Version() == "" {
+		return nil, terminalWorkflowReportDeferredError(
+			runId,
+			execSpec,
+			"workflow resource version is missing before final-state processing",
+		)
+	}
 	if execStatus.IsInFinalState() {
 		workflowStillMatchesReport, err := r.workflowStillMatchesReportedVersion(ctx, execSpec)
 		if err != nil {
@@ -1855,9 +1929,8 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	run, updateError := r.GetRun(runId)
 	if updateError != nil && !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
 		// Fail closed: a transient run-store read error must not skip the
-		// generation fence below and fall through into the
-		// persisted-final-state deletion - with an empty-resourceVersion
-		// stale snapshot that would delete the live retried workflow.
+		// generation fence below and fall through into run mutation or
+		// persisted-final-state deletion from a stale snapshot.
 		// NotFound keeps its dedicated recovery paths (workflow GC and the
 		// grace-period handling further down).
 		return nil, util.Wrapf(updateError, "Failed to read run %s before applying workflow report", runId)
@@ -1878,25 +1951,20 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			// Return a transient error so task and metric persistence is skipped
 			// too, and the worker refetches the live workflow before retrying.
 			if !execStatus.IsInFinalState() {
-				return nil, util.NewUnavailableServerError(
-					fmt.Errorf("reported retry generation %d is older than current generation %d", reportedGeneration, run.RetryGeneration),
-					"Skipping stale workflow report for run %s - will retry",
-					runId,
-				)
+				return nil, staleWorkflowReportDeferredError(runId, reportedGeneration, run.RetryGeneration)
 			}
 			claimAge := r.time.Now().Unix() - run.RetryClaimedAtInSec
 			if run.RetryClaimedAtInSec > 0 && claimAge <= int64(retryClaimGracePeriod()/time.Second) {
 				// The retry is (or was moments ago) in flight; the retried
-				// workflow will report with the current generation. Skip
-				// this stale snapshot as a successful no-op so the
-				// persistence agent does not requeue it forever.
+				// workflow will report with the current generation. Return a
+				// transient error so callers cannot persist tasks or metrics
+				// from this stale snapshot.
 				glog.Infof("Skipping stale terminal report for run %s: reported retry generation %d < claimed generation %d",
 					runId, reportedGeneration, run.RetryGeneration)
-				return execSpec, nil
+				return nil, staleWorkflowReportDeferredError(runId, reportedGeneration, run.RetryGeneration)
 			}
 			// The claim has aged out, but age alone is not proof of
-			// abandonment (and the resource-version check above passes
-			// vacuously for reports without a resourceVersion). Never
+			// abandonment. Never
 			// age-accept a lower generation while the claimed generation
 			// is live: consult the live workflow first.
 			liveWorkflow, readError := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
@@ -1905,7 +1973,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()) >= run.RetryGeneration:
 				glog.Infof("Skipping stale terminal report for run %s: live workflow carries generation %d",
 					runId, reportedRetryGeneration(liveWorkflow.ExecutionObjectMeta()))
-				return execSpec, nil
+				return nil, staleWorkflowReportDeferredError(runId, reportedGeneration, run.RetryGeneration)
 			case readError != nil && !util.IsNotFound(readError):
 				return nil, util.NewUnavailableServerError(readError,
 					"Cannot verify live workflow before accepting a stale-generation report for run %s - will retry", runId)
@@ -1917,13 +1985,6 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 			glog.Warningf("Accepting terminal report with stale retry generation %d for run %s: claim (generation %d) is older than %v and provably not applied",
 				reportedGeneration, runId, run.RetryGeneration, retryClaimGracePeriod())
 		}
-	}
-	if execSpec.PersistedFinalState() && execSpec.Version() == "" {
-		return nil, terminalWorkflowReportDeferredError(
-			runId,
-			execSpec,
-			"workflow resource version is missing before persisted-final-state deletion",
-		)
 	}
 	if updateError == nil {
 		expectedState := run.State
@@ -2191,6 +2252,14 @@ func terminalWorkflowReportDeferredError(runID string, execSpec util.ExecutionSp
 	)
 }
 
+func staleWorkflowReportDeferredError(runID string, reportedGeneration int64, currentGeneration int64) error {
+	return util.NewUnavailableServerError(
+		fmt.Errorf("reported retry generation %d is older than current generation %d", reportedGeneration, currentGeneration),
+		"Skipping stale workflow report for run %s - will retry",
+		runID,
+	)
+}
+
 // retryClaimGracePeriod bounds how long a retry claim without a matching
 // workflow write is trusted. RetryRun's claim-to-workflow-update window is
 // bounded by a handful of client-side retries (seconds), so a claim this old
@@ -2217,10 +2286,18 @@ func reportedRetryGeneration(objMeta *v1.ObjectMeta) int64 {
 	return generation
 }
 
+func workflowMatchesRetryGeneration(objMeta *v1.ObjectMeta, expectedGeneration int64) bool {
+	raw, annotated := objMeta.Annotations[util.AnnotationKeyRetryGeneration]
+	if !annotated {
+		return expectedGeneration == 0
+	}
+	return raw == strconv.FormatInt(expectedGeneration, 10)
+}
+
 func (r *ResourceManager) workflowStillMatchesReportedVersion(ctx context.Context, execSpec util.ExecutionSpec) (bool, error) {
 	reportedVersion := execSpec.Version()
 	if reportedVersion == "" {
-		return true, nil
+		return false, nil
 	}
 
 	currentWorkflow, err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Get(ctx, execSpec.ExecutionName(), v1.GetOptions{})
@@ -2289,19 +2366,21 @@ func addWorkflowLabelIfWorkflowUnchanged(
 	labelKey string,
 	labelValue string,
 ) (bool, error) {
-	patchObj := []jsonPatchOperation{}
-	if expectedResourceVersion != "" {
-		patchObj = append(patchObj, jsonPatchOperation{
+	if expectedResourceVersion == "" {
+		return false, nil
+	}
+	patchObj := []jsonPatchOperation{
+		{
 			Op:    "test",
 			Path:  "/metadata/resourceVersion",
 			Value: expectedResourceVersion,
-		})
+		},
+		{
+			Op:    "add",
+			Path:  "/metadata/labels/" + escapeJSONPointerPathPart(labelKey),
+			Value: labelValue,
+		},
 	}
-	patchObj = append(patchObj, jsonPatchOperation{
-		Op:    "add",
-		Path:  "/metadata/labels/" + escapeJSONPointerPathPart(labelKey),
-		Value: labelValue,
-	})
 
 	patch, err := json.Marshal(patchObj)
 	if err != nil {

@@ -34,11 +34,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -1621,8 +1623,16 @@ func TestDeleteRun(t *testing.T) {
 func TestTerminateRunV1(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
+	ctx := context.Background()
+	workflowClient := clients.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
 	server := createRunServerV1(manager)
-	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
+	_, err = server.TerminateRunV1(ctx, &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 
@@ -1638,8 +1648,16 @@ func TestTerminateRunV1_NotFound(t *testing.T) {
 func TestTerminateRun(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
+	ctx := context.Background()
+	workflowClient := clients.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
 	server := createRunServer(manager)
-	_, err := server.TerminateRun(context.Background(), &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
+	_, err = server.TerminateRun(ctx, &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 
