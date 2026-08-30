@@ -26,7 +26,8 @@ import tempfile
 import time
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 
-from go_version_metadata import (has_go_runtime_reference,
+from go_version_metadata import (docker_go_runtime_sources,
+                                 has_go_runtime_reference,
                                  top_level_module_matches)
 
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
@@ -188,8 +189,13 @@ def _managed_dockerfiles(repo_root: Path,
         contents = path.read_text(encoding='utf-8', errors='ignore')
         if not has_go_runtime_reference(relative_path, contents):
             continue
+        _ensure_regular_destination(path, relative_path)
+        contents = path.read_text(encoding='utf-8', errors='ignore')
         matches = list(GO_IMAGE_PATTERN.finditer(contents))
-        if not relative_path.name.startswith('Dockerfile') or len(matches) != 1:
+        go_stages, repository_arguments = docker_go_runtime_sources(contents)
+        if (not relative_path.name.startswith('Dockerfile') or
+                len(matches) != 1 or len(go_stages) != 1 or
+                repository_arguments):
             unmanaged.append(relative_path)
             continue
         managed[relative_path] = contents
@@ -315,6 +321,21 @@ def synchronized_contents(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> Dict[Path, str]:
+    expected_contents, _ = _synchronized_contents_and_originals(
+        repo_root,
+        target_version,
+        digest_resolver=digest_resolver,
+        repository_paths=repository_paths,
+    )
+    return expected_contents
+
+
+def _synchronized_contents_and_originals(
+    repo_root: Path,
+    target_version: str,
+    digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
+    repository_paths: Optional[Iterable[Path]] = None,
+) -> Tuple[Dict[Path, str], Dict[Path, str]]:
     target = _parse_target_version(target_version)
     paths = set(repository_paths or _repository_paths(repo_root))
     module_paths = sorted(
@@ -323,7 +344,12 @@ def synchronized_contents(
     if Path('go.mod') not in module_paths:
         raise ValueError('the repository root go.mod was not found')
 
-    root_contents = (repo_root / 'go.mod').read_text(encoding='utf-8')
+    original_contents = {
+        relative_path: _read_regular_contents(repo_root / relative_path,
+                                              relative_path)
+        for relative_path in module_paths
+    }
+    root_contents = original_contents[Path('go.mod')]
     root_go_version, root_toolchain_version = _module_versions(
         root_contents, Path('go.mod'))
     current = root_toolchain_version or root_go_version
@@ -335,11 +361,12 @@ def synchronized_contents(
 
     expected_contents = {}
     for relative_path in module_paths:
-        contents = (repo_root / relative_path).read_text(encoding='utf-8')
+        contents = original_contents[relative_path]
         expected_contents[relative_path] = _updated_module_contents(
             contents, relative_path, target)
 
     dockerfiles = _managed_dockerfiles(repo_root, paths)
+    original_contents.update(dockerfiles)
     flavors = {
         match.group('flavor') or ''
         for contents in dockerfiles.values()
@@ -363,7 +390,7 @@ def synchronized_contents(
 
         expected_contents[relative_path] = GO_IMAGE_PATTERN.sub(
             replace_image, contents)
-    return expected_contents
+    return expected_contents, original_contents
 
 
 def sync(
@@ -372,25 +399,23 @@ def sync(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> List[Path]:
-    expected_contents = synchronized_contents(
+    expected_contents, original_contents = _synchronized_contents_and_originals(
         repo_root,
         target_version,
         digest_resolver=digest_resolver,
         repository_paths=repository_paths,
     )
     changed_paths = []
-    original_contents = {}
     for relative_path, expected in expected_contents.items():
-        path = repo_root / relative_path
-        original = path.read_text(encoding='utf-8')
+        original = original_contents[relative_path]
         if original == expected:
             continue
         changed_paths.append(relative_path)
-        original_contents[relative_path] = original
 
     update_paths = {}
     rollback_paths = {}
-    replaced_paths = []
+    attempted_paths = []
+    retained_rollback_paths = set()
     try:
         for relative_path in changed_paths:
             path = repo_root / relative_path
@@ -398,29 +423,49 @@ def sync(
                 path, expected_contents[relative_path], 'update')
             rollback_paths[relative_path] = _temporary_replacement(
                 path, original_contents[relative_path], 'rollback')
+        _ensure_originals_unchanged(repo_root, original_contents)
         for relative_path in sorted(changed_paths):
+            _ensure_originals_unchanged(
+                repo_root, {relative_path: original_contents[relative_path]})
+            attempted_paths.append(relative_path)
             os.replace(update_paths[relative_path], repo_root / relative_path)
-            replaced_paths.append(relative_path)
-    except Exception as update_error:
+    except BaseException as update_error:
         rollback_errors = []
-        for relative_path in reversed(replaced_paths):
+        for relative_path in reversed(attempted_paths):
+            rollback_path = rollback_paths[relative_path]
             try:
-                os.replace(rollback_paths[relative_path],
-                           repo_root / relative_path)
-            except Exception as rollback_error:
-                rollback_errors.append(f'{relative_path}: {rollback_error}')
+                current = _read_regular_contents(repo_root / relative_path,
+                                                 relative_path)
+                if current == original_contents[relative_path]:
+                    continue
+                if current != expected_contents[relative_path]:
+                    retained_rollback_paths.add(rollback_path)
+                    rollback_errors.append(
+                        f'{relative_path}: destination changed after '
+                        'replacement; original retained at '
+                        f'{rollback_path}')
+                    continue
+                os.replace(rollback_path, repo_root / relative_path)
+            except BaseException as rollback_error:
+                retained_rollback_paths.add(rollback_path)
+                rollback_errors.append(
+                    f'{relative_path}: {rollback_error}; original retained at '
+                    f'{rollback_path}')
         if rollback_errors:
             raise RuntimeError(
                 f'failed to apply Go version update: {update_error}; '
                 'also failed to restore original files: ' +
                 '; '.join(rollback_errors)) from update_error
+        if not isinstance(update_error, Exception):
+            raise
         raise RuntimeError(
             'failed to apply Go version update; restored original files: '
             f'{update_error}') from update_error
     finally:
         for temporary_path in (*update_paths.values(),
                                *rollback_paths.values()):
-            temporary_path.unlink(missing_ok=True)
+            if temporary_path not in retained_rollback_paths:
+                temporary_path.unlink(missing_ok=True)
     return sorted(changed_paths)
 
 
@@ -437,12 +482,47 @@ def _temporary_replacement(path: Path, contents: str, purpose: str) -> Path:
             temporary_file.write(contents)
             temporary_file.flush()
             os.fsync(temporary_file.fileno())
-    except Exception:
+    except BaseException:
         if descriptor >= 0:
             os.close(descriptor)
         temporary_path.unlink(missing_ok=True)
         raise
     return temporary_path
+
+
+def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
+    try:
+        mode = path.lstat().st_mode
+    except FileNotFoundError as error:
+        raise RuntimeError(f'{relative_path} disappeared during Go update') \
+            from error
+    if not stat.S_ISREG(mode):
+        raise ValueError(
+            f'{relative_path} must be a regular file; symlinks and other '
+            'special files are not supported')
+
+
+def _read_regular_contents(path: Path, relative_path: Path) -> str:
+    _ensure_regular_destination(path, relative_path)
+    return path.read_text(encoding='utf-8')
+
+
+def _ensure_originals_unchanged(repo_root: Path,
+                                original_contents: Dict[Path, str]) -> None:
+    changed = []
+    for relative_path, original in original_contents.items():
+        path = repo_root / relative_path
+        try:
+            current = _read_regular_contents(path, relative_path)
+        except (RuntimeError, ValueError) as error:
+            changed.append(f'{relative_path} ({error})')
+            continue
+        if current != original:
+            changed.append(str(relative_path))
+    if changed:
+        raise RuntimeError(
+            'refusing to overwrite files changed during Go version update: ' +
+            ', '.join(sorted(changed)))
 
 
 def main() -> int:

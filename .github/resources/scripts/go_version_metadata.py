@@ -28,6 +28,15 @@ GO_TEXT_REFERENCE_PATTERN = re.compile(
 MODULE_BLOCK_START_PATTERN = re.compile(
     r'^[ \t]*[A-Za-z][A-Za-z0-9]*[ \t]*\([ \t]*(?://.*)?$')
 MODULE_BLOCK_END_PATTERN = re.compile(r'^[ \t]*\)[ \t]*(?://.*)?$')
+DOCKER_ARG_PATTERN = re.compile(
+    r'^[ \t]*ARG[ \t]+(?P<name>[A-Za-z_][A-Za-z0-9_]*)'
+    r'(?:=(?P<value>.*))?$', re.IGNORECASE)
+DOCKER_FROM_PATTERN = re.compile(
+    r'^[ \t]*FROM(?:[ \t]+--platform=\S+)?[ \t]+'
+    r'(?P<source>\S+)', re.IGNORECASE)
+DOCKER_VARIABLE_PATTERN = re.compile(
+    r'\$\{(?P<braced>[A-Za-z_][A-Za-z0-9_]*)\}|'
+    r'\$(?P<plain>[A-Za-z_][A-Za-z0-9_]*)')
 
 
 def top_level_module_matches(contents: str,
@@ -106,10 +115,51 @@ def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
             _strip_yaml_comment(line) for line in contents.splitlines())
         return GO_DOWNLOAD_PATTERN.search(active_text) is not None
 
+    if relative_path.name.startswith('Dockerfile'):
+        stages, repository_arguments = docker_go_runtime_sources(contents)
+        if stages or repository_arguments:
+            return True
+
     active_text = '\n'.join(
         line for line in contents.splitlines()
         if not line.lstrip().startswith('#'))
     return GO_TEXT_REFERENCE_PATTERN.search(active_text) is not None
+
+
+def docker_go_runtime_sources(contents: str) -> Tuple[List[str], List[str]]:
+    """Return Golang FROM sources and literal global ARG defaults."""
+    global_arguments = {}
+    go_repository_arguments = []
+    go_stages = []
+    seen_from = False
+
+    for line in _docker_logical_lines(contents):
+        stripped = line.strip()
+        if not stripped or stripped.startswith('#'):
+            continue
+        argument = DOCKER_ARG_PATTERN.fullmatch(line)
+        if argument is not None and not seen_from:
+            value = argument.group('value')
+            if value is not None:
+                value = value.strip().strip('"\'')
+                global_arguments[argument.group('name')] = value
+                if _is_golang_image(value):
+                    go_repository_arguments.append(argument.group('name'))
+            continue
+
+        from_instruction = DOCKER_FROM_PATTERN.match(line)
+        if from_instruction is None:
+            continue
+        seen_from = True
+        source = from_instruction.group('source')
+        resolved = DOCKER_VARIABLE_PATTERN.sub(
+            lambda match: global_arguments.get(
+                match.group('braced') or match.group('plain'), match.group(0)),
+            source,
+        )
+        if _is_golang_image(resolved):
+            go_stages.append(source)
+    return go_stages, go_repository_arguments
 
 
 def has_setup_go_use(contents: str) -> bool:
@@ -124,6 +174,21 @@ def _is_golang_image(value: str) -> bool:
         image = image[len('docker://'):]
     name = image.rsplit('/', 1)[-1]
     return re.match(r'^golang(?=[:@]|$)', name, re.IGNORECASE) is not None
+
+
+def _docker_logical_lines(contents: str) -> List[str]:
+    logical_lines = []
+    pending = ''
+    for line in contents.splitlines():
+        current = pending + line.lstrip() if pending else line
+        if current.rstrip().endswith('\\'):
+            pending = current.rstrip()[:-1] + ' '
+            continue
+        logical_lines.append(current)
+        pending = ''
+    if pending:
+        logical_lines.append(pending)
+    return logical_lines
 
 
 def _strip_yaml_comment(line: str) -> str:

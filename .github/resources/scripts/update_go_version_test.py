@@ -277,6 +277,38 @@ class UpdateGoVersionTest(unittest.TestCase):
                 contents,
             )
 
+    def test_concurrent_edit_during_digest_resolution_is_not_overwritten(self):
+        root = self.repo_root / 'go.mod'
+        concurrent_contents = (
+            'module example.com/root\n\n'
+            'go 1.28.0\n\n'
+            '// concurrent edit\n')
+        edited = False
+
+        def edit_then_resolve(tag):
+            nonlocal edited
+            if not edited:
+                root.write_text(concurrent_contents, encoding='utf-8')
+                edited = True
+            return DIGESTS[tag]
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'changed during Go version update'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=edit_then_resolve,
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(root.read_text(encoding='utf-8'),
+                         concurrent_contents)
+        for relative_path, contents in self.files.items():
+            if relative_path != Path('go.mod'):
+                self.assertEqual(
+                    (self.repo_root /
+                     relative_path).read_text(encoding='utf-8'), contents)
+
     def test_file_replacement_failure_restores_original_files(self):
         real_replace = update_go_version.os.replace
         replacement_count = 0
@@ -307,6 +339,110 @@ class UpdateGoVersionTest(unittest.TestCase):
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
                 contents,
             )
+
+    def test_keyboard_interrupt_restores_original_files_and_is_reraised(self):
+        real_replace = update_go_version.os.replace
+        replacement_count = 0
+
+        def interrupt_after_second_replacement(source, destination):
+            nonlocal replacement_count
+            replacement_count += 1
+            if replacement_count == 2:
+                real_replace(source, destination)
+                raise KeyboardInterrupt
+            real_replace(source, destination)
+
+        with mock.patch.object(
+                update_go_version.os,
+                'replace',
+                side_effect=interrupt_after_second_replacement,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+
+    def test_failed_rollback_backup_is_retained(self):
+        real_replace = update_go_version.os.replace
+        replacement_count = 0
+
+        def fail_update_and_rollback(source, destination):
+            nonlocal replacement_count
+            replacement_count += 1
+            if replacement_count in (2, 3):
+                raise OSError(f'simulated failure {replacement_count}')
+            real_replace(source, destination)
+
+        with mock.patch.object(
+                update_go_version.os,
+                'replace',
+                side_effect=fail_update_and_rollback,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError, 'original retained at') as context:
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        retained_path = Path(
+            str(context.exception).split('original retained at ', 1)[1])
+        self.assertTrue(retained_path.exists())
+        self.assertEqual(retained_path.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
+
+    def test_rollback_does_not_overwrite_concurrent_edit(self):
+        real_replace = update_go_version.os.replace
+        replacement_count = 0
+        concurrent_contents = '# concurrent Dockerfile edit\n'
+
+        def edit_first_then_fail_second(source, destination):
+            nonlocal replacement_count
+            replacement_count += 1
+            if replacement_count == 1:
+                real_replace(source, destination)
+                Path(destination).write_text(concurrent_contents,
+                                             encoding='utf-8')
+                return
+            if replacement_count == 2:
+                raise OSError('simulated replacement failure')
+            real_replace(source, destination)
+
+        with mock.patch.object(
+                update_go_version.os,
+                'replace',
+                side_effect=edit_first_then_fail_second,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'destination changed after replacement') as context:
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        retained_path = Path(
+            str(context.exception).split('original retained at ', 1)[1])
+        self.assertEqual(
+            (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
+            concurrent_contents,
+        )
+        self.assertTrue(retained_path.exists())
+        self.assertEqual(retained_path.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
 
     def test_rejects_invalid_versions_and_downgrades(self):
         for version in ('1.29', 'go1.29.0', 'v1.29.0', '1.29.0-rc1',
@@ -366,6 +502,61 @@ class UpdateGoVersionTest(unittest.TestCase):
                         digest_resolver=lambda _tag: OLD_DIGEST,
                         repository_paths=repository_paths,
                     )
+
+    def test_rejects_additional_unmanaged_golang_stage(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.write_text(
+            self.files[Path('Dockerfile')] +
+            'FROM golang:1.26.0 AS stale\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(ValueError,
+                                    'unsupported Go runtime pins'):
+            update_go_version.synchronized_contents(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+    def test_rejects_global_golang_repository_arg(self):
+        relative_path = Path('bad/Dockerfile')
+        path = self.repo_root / relative_path
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            'ARG GO_REPOSITORY=docker.io/library/golang\n'
+            'FROM ${GO_REPOSITORY}:1.26.0 AS stale\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(ValueError,
+                                    'unsupported Go runtime pins'):
+            update_go_version.synchronized_contents(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=set(self.files) | {relative_path},
+            )
+
+    def test_rejects_symlink_destination(self):
+        root = self.repo_root / 'go.mod'
+        target = self.repo_root / 'real-go.mod'
+        target.write_text(self.files[Path('go.mod')], encoding='utf-8')
+        root.unlink()
+        root.symlink_to(target.name)
+
+        with self.assertRaisesRegex(ValueError, 'must be a regular file'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+        self.assertTrue(root.is_symlink())
+        self.assertEqual(target.read_text(encoding='utf-8'),
+                         self.files[Path('go.mod')])
 
     def test_rejects_tagless_yaml_runtime(self):
         relative_path = Path('bad/component.yaml')

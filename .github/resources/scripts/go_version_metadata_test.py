@@ -15,7 +15,8 @@
 
 import unittest
 
-from go_version_metadata import yaml_mapping_values
+from go_version_metadata import (docker_go_runtime_sources,
+                                 yaml_mapping_values)
 
 
 class GoVersionMetadataTest(unittest.TestCase):
@@ -25,6 +26,23 @@ class GoVersionMetadataTest(unittest.TestCase):
             yaml_mapping_values('steps: [}\n', ('uses',)),
             {'uses': []},
         )
+
+    def test_discovers_every_golang_stage(self):
+        stages, arguments = docker_go_runtime_sources(
+            'FROM golang:1.27.0 AS builder\n'
+            'FROM golang:1.26.0 AS stale\n')
+
+        self.assertEqual(stages,
+                         ['golang:1.27.0', 'golang:1.26.0'])
+        self.assertEqual(arguments, [])
+
+    def test_resolves_global_arg_defaults_used_by_from(self):
+        stages, arguments = docker_go_runtime_sources(
+            'ARG GO_REPOSITORY=docker.io/library/golang\n'
+            'FROM ${GO_REPOSITORY}:1.26.0 AS stale\n')
+
+        self.assertEqual(stages, ['${GO_REPOSITORY}:1.26.0'])
+        self.assertEqual(arguments, ['GO_REPOSITORY'])
 
 
 if __name__ == '__main__':

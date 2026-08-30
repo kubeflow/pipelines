@@ -18,7 +18,8 @@ import re
 import subprocess
 import unittest
 
-from go_version_metadata import (has_go_runtime_reference, has_setup_go_use,
+from go_version_metadata import (docker_go_runtime_sources,
+                                 has_go_runtime_reference, has_setup_go_use,
                                  top_level_module_matches)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -243,6 +244,18 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 continue
             discovered.add(relative_path)
             with self.subTest(path=relative_path):
+                go_stages, repository_arguments = docker_go_runtime_sources(
+                    dockerfile.read_text(encoding='utf-8'))
+                self.assertEqual(
+                    len(go_stages),
+                    1,
+                    f'{relative_path} must contain exactly one Golang stage',
+                )
+                self.assertEqual(
+                    repository_arguments,
+                    [],
+                    f'{relative_path} must not hide Golang behind global ARG',
+                )
                 self.assertEqual(
                     len(matches),
                     1,
