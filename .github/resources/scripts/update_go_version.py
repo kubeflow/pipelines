@@ -24,7 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 import warnings
 
 from go_version_metadata import (docker_runtime_classification,
