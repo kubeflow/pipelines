@@ -69,10 +69,8 @@ runs:
     - name: Load Control Plane Images Into Kind
       shell: bash
       run: |
-        # These images are deployed directly by the CI manifests and use
-        # IfNotPresent in the CI install path, so loading the image archive
-        # into the Kind node is sufficient. Import two at a time: this overlaps
-        # decompression without flooding the single Kind node's containerd.
+        set -euo pipefail
+
         source .github/resources/scripts/ci-image-artifacts.sh
 
         case "$(uname -m)" in
@@ -90,13 +88,24 @@ runs:
 
         echo "Loading ${ARCH_NAME} control-plane images into Kind"
 
-        ARCHIVES=()
+        # The image archives contain tags ending in -${ARCH_NAME}, while the
+        # CI manifests intentionally reference the local :latest tag. Load
+        # each archive into Docker, retag it to the manifest tag, and then
+        # import that exact tag into Kind. Loading the archive directly into
+        # Kind leaves the architecture suffix on the image and causes every
+        # KFP deployment to fail with ImagePullBackOff.
         for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
-          ARCHIVES+=("${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar")
-        done
+          ARCHIVE="${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar"
+          SOURCE_IMAGE="${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"
+          TARGET_IMAGE="${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}"
 
-        ./.github/resources/scripts/load-kind-image-archives.sh \
-          "${{ inputs.cluster_name }}" 2 "${ARCHIVES[@]}"
+          docker image load -i "${ARCHIVE}"
+          docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+          kind --name "${{ inputs.cluster_name }}" load docker-image "${TARGET_IMAGE}"
+
+          rm "${ARCHIVE}"
+          docker image rm "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+        done
 
     - name: Load Driver and Launcher Images Into Kind
       shell: bash
@@ -116,20 +125,21 @@ runs:
             ;;
         esac
 
-        echo "Loading ${ARCH_NAME} runtime images into Kind"
+        echo "Loading ${ARCH_NAME} runtime images"
 
         source .github/resources/scripts/ci-image-artifacts.sh
 
         for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
           ARCHIVE="${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar"
+          SOURCE_IMAGE="${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"
+          TARGET_IMAGE="${{ inputs.image_registry }}/${app}:ci"
 
           docker image load -i "${ARCHIVE}"
-          docker tag             "${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"             "${{ inputs.image_registry }}/${app}:ci"
-          kind --name "${{ inputs.cluster_name }}" load docker-image             "${{ inputs.image_registry }}/${app}:ci"
+          docker tag "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
+          kind --name "${{ inputs.cluster_name }}" load docker-image "${TARGET_IMAGE}"
 
           rm "${ARCHIVE}"
-          docker image rm             "${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"
-          docker image rm             "${{ inputs.image_registry }}/${app}:ci"
+          docker image rm "${SOURCE_IMAGE}" "${TARGET_IMAGE}"
         done
 
     - name: Load Runtime Base Images Into Kind
