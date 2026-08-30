@@ -679,7 +679,8 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 			"passing workflow (new way for v2)",
 			workflowapi.Workflow{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "SCHEDULE1",
+					Name:        "SCHEDULE1",
+					Annotations: map[string]string{commonutil.AnnotationKeyRetryGeneration: "7"},
 				},
 				Spec: workflowapi.WorkflowSpec{
 					ServiceAccountName: "SERVICE_ACCOUNT",
@@ -737,7 +738,8 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 					APIVersion: "argoproj.io/v1alpha1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "SCHEDULE1-1-3321103997",
+					Name:        "SCHEDULE1-1-3321103997",
+					Annotations: map[string]string{commonutil.AnnotationKeyRetryGeneration: "0"},
 					Labels: map[string]string{
 						"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001",
 						"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",
@@ -850,7 +852,8 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 					APIVersion: "argoproj.io/v1alpha1",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "SCHEDULE1-1-3321103997",
+					Name:        "SCHEDULE1-1-3321103997",
+					Annotations: map[string]string{commonutil.AnnotationKeyRetryGeneration: "0"},
 					Labels: map[string]string{
 						"pipeline/runid": "123e4567-e89b-12d3-a456-426655440001",
 						"scheduledworkflows.kubeflow.org/isOwnedByScheduledWorkflow": "true",

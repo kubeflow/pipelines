@@ -281,6 +281,28 @@ func TestFakeWorkflowClient_PatchMetadata(t *testing.T) {
 	}
 }
 
+func TestFakeWorkflowClient_JSONPatchAnnotation(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "annotation-patch",
+			ResourceVersion: "current-version",
+			Annotations:     map[string]string{util.AnnotationKeyRetryGeneration: "7"},
+		},
+	})
+	_, err := client.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	patchData := []byte(`[
+		{"op":"test","path":"/metadata/resourceVersion","value":"current-version"},
+		{"op":"add","path":"/metadata/annotations/pipelines.kubeflow.org~1retry-generation","value":"0"}
+	]`)
+	result, err := client.Patch(ctx, "annotation-patch", types.JSONPatchType, patchData, v1.PatchOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "0", result.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
+}
+
 func TestFakeWorkflowClient_Stubs(t *testing.T) {
 	client := NewWorkflowClientFake()
 	ctx := context.Background()

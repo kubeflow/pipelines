@@ -87,7 +87,7 @@ func (f *fakeRunStore) TerminateRun(_ string) error                             
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
 }
-func (f *fakeRunStore) ClaimRunForRetry(_ string, _ bool) (string, string, int64, int64, error) {
+func (f *fakeRunStore) ClaimRunForRetry(_ string, _ int64, _ bool) (string, string, int64, int64, error) {
 	return "", "", 0, 0, nil
 }
 func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64, _ int64) error {

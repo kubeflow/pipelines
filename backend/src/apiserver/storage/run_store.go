@@ -117,12 +117,9 @@ var nonArchivedStorageStateStrings = []string{
 }
 
 // RetryClaimGraceSeconds bounds how long a retry claim is trusted without any
-// sign of the retried workflow. Two recovery paths key off it: the reporter
-// accepts a stale-generation terminal report past this age (resource manager),
-// and ClaimRunForRetry allows a new claim to take over an expired one, which
-// covers a crash after the claim committed but before the retried workflow was
-// created (no workflow exists, so no report can ever trigger the reporter
-// path). Variable rather than const so tests can shorten it.
+// sign of the retried workflow. RetryRun reconciles Kubernetes first, then
+// ClaimRunForRetry may atomically take over an expired claim. Variable rather
+// than const so tests can shorten it.
 var RetryClaimGraceSeconds int64 = 600
 
 // archivedStorageStateStrings is the closed set of StorageState values that
@@ -185,11 +182,13 @@ type RunStoreInterface interface {
 	// Atomically claims a terminal run for retry (database-side CAS).
 	// Returns the original State, Conditions, FinishedAtInSec, and the new
 	// RetryGeneration claim token for rollback and reporter fencing.
-	// takeoverExpiredClaim additionally allows claiming a PENDING row whose
-	// previous claim has aged out; the caller must first reconcile against
-	// Kubernetes and prove the previous claim's workflow was never applied,
-	// otherwise a takeover can restart in-flight work.
-	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+	// expectedGeneration binds the claim to the run snapshot from which the
+	// retry workflow was generated. takeoverExpiredClaim additionally requires
+	// that exact generation to remain PENDING and expired after the row is
+	// locked; the caller must first reconcile against Kubernetes and prove its
+	// workflow was never applied. These checks prevent a stale caller from
+	// retrying a newer terminal manifest or taking over a different claim.
+	ClaimRunForRetry(runID string, expectedGeneration int64, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
 	// The claimGeneration must match the value returned by ClaimRunForRetry,
@@ -1053,7 +1052,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	return nil
 }
 
-func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+func (s *RunStore) ClaimRunForRetry(runID string, expectedGeneration int64, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
@@ -1087,6 +1086,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if nullableState.Valid {
 		originalState = nullableState.String
 	}
+	if currentGeneration != expectedGeneration {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewUnavailableServerError(
+			fmt.Errorf("retry generation changed from %d to %d", expectedGeneration, currentGeneration),
+			"Cannot claim run %s for retry because its retry generation changed - try again",
+			runID,
+		)
+	}
 
 	// Verify the locked row is still in a terminal state. Between the
 	// earlier CanRetry check and lock acquisition, another retry may have
@@ -1097,27 +1104,30 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if !isTerminal && originalState == "" {
 		isTerminal = terminalRunStateValues[originalConditions]
 	}
-	if !isTerminal {
-		// Allow a new claim to take over an expired one, but only when the
-		// caller has explicitly authorized it after reconciling against
-		// Kubernetes (RetryRun proves the previous claim's workflow was
-		// never applied before setting takeoverExpiredClaim). A previous
-		// retry that crashed after committing its claim but before creating
-		// the workflow leaves the row PENDING with no workflow to report it;
-		// without takeover the run would be stuck forever (not terminal, so
-		// not claimable; FinishedAtInSec=0, so invisible to GC). Expiry is
-		// re-checked here under the row lock as defense in depth.
+	if takeoverExpiredClaim {
+		// Takeover authorization was derived from an observed PENDING row and
+		// is not interchangeable with a normal terminal retry. Require that
+		// exact state to remain true under the lock: if the prior claimant
+		// finished meanwhile, the caller's stored manifest is stale and a new
+		// request must rebuild the retry from the terminal result.
 		isAbandonedClaim := takeoverExpiredClaim &&
 			originalState == string(model.RuntimeStatePending) &&
 			currentGeneration > 0 &&
 			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
 		if !isAbandonedClaim {
 			tx.Rollback()
-			return "", "", 0, 0, util.NewBadRequestError(
-				fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
-				"Cannot claim run %s for retry: not in a terminal state", runID)
+			return "", "", 0, 0, util.NewUnavailableServerError(
+				fmt.Errorf("retry takeover snapshot changed: State=%q Conditions=%q Generation=%d", originalState, originalConditions, currentGeneration),
+				"Cannot take over retry claim for run %s because its state changed - try again",
+				runID,
+			)
 		}
 		glog.Warningf("Run %s has an abandoned retry claim (generation %d, claimed at %d); taking it over", runID, currentGeneration, retryClaimedAtInSec)
+	} else if !isTerminal {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewBadRequestError(
+			fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
+			"Cannot claim run %s for retry: not in a terminal state", runID)
 	}
 
 	// Atomically transition to PENDING and increment RetryGeneration.
@@ -1154,8 +1164,8 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 		Set("State", originalState).
 		Set("Conditions", originalConditions).
 		Set("FinishedAtInSec", originalFinishedAtInSec).
-		// Clear the claim timestamp so the reporter's orphaned-claim
-		// recovery does not treat this restored terminal row as claimed.
+		// Clear the timestamp because this exact pending claim is no longer
+		// active after the terminal row is restored.
 		Set("RetryClaimedAtInSec", 0).
 		Where(sq.And{
 			sq.Eq{"UUID": runID},

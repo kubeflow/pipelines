@@ -15,12 +15,85 @@
 package resource
 
 import (
+	"context"
 	"testing"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/yaml"
 )
+
+type uidPreconditionPodClient struct {
+	client.FakePodClient
+	pods map[string]*corev1.Pod
+}
+
+func (c *uidPreconditionPodClient) Get(_ context.Context, name string, _ metav1.GetOptions) (*corev1.Pod, error) {
+	pod, ok := c.pods[name]
+	if !ok {
+		return nil, apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+	}
+	return pod.DeepCopy(), nil
+}
+
+func (c *uidPreconditionPodClient) Delete(_ context.Context, name string, options metav1.DeleteOptions) error {
+	pod, ok := c.pods[name]
+	if !ok {
+		return apierrors.NewNotFound(schema.GroupResource{Resource: "pods"}, name)
+	}
+	if options.Preconditions == nil || options.Preconditions.UID == nil || *options.Preconditions.UID != pod.UID {
+		return apierrors.NewConflict(
+			schema.GroupResource{Resource: "pods"},
+			name,
+			assert.AnError,
+		)
+	}
+	delete(c.pods, name)
+	return nil
+}
+
+type podTestKubernetesCore struct {
+	podClient corev1client.PodInterface
+}
+
+func (c *podTestKubernetesCore) PodClient(string) corev1client.PodInterface {
+	return c.podClient
+}
+
+func (c *podTestKubernetesCore) GetClientSet() kubernetes.Interface {
+	return k8sfake.NewSimpleClientset()
+}
+
+func TestDeletePods_DoesNotDeleteReplacementWithSameName(t *testing.T) {
+	ctx := context.Background()
+	podClient := &uidPreconditionPodClient{pods: map[string]*corev1.Pod{
+		"retry-pod": {ObjectMeta: metav1.ObjectMeta{Name: "retry-pod", UID: types.UID("old-uid")}},
+	}}
+	coreClient := &podTestKubernetesCore{podClient: podClient}
+
+	targets, err := snapshotPodsForDeletion(ctx, coreClient, []string{"retry-pod"}, "ns1")
+	require.NoError(t, err)
+	require.Equal(t, []podDeletionTarget{{name: "retry-pod", uid: types.UID("old-uid")}}, targets)
+
+	// A newer retry recreated the deterministic pod name before the delayed
+	// caller reached deletion. Its old UID precondition must turn the delete
+	// into a benign conflict, preserving the replacement.
+	podClient.pods["retry-pod"] = &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "retry-pod", UID: types.UID("new-uid")},
+	}
+	require.NoError(t, deletePods(ctx, coreClient, targets, "ns1"))
+	require.Equal(t, types.UID("new-uid"), podClient.pods["retry-pod"].UID)
+}
 
 func TestRetryWorkflowWith(t *testing.T) {
 	wf := `

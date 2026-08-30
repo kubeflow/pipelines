@@ -177,6 +177,10 @@ func (s *ScheduledWorkflow) NewWorkflow(
 
 	execSpec.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
 	execSpec.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
+	// Retry generation is an internal fence. V1 recurring runs are created
+	// directly by this controller rather than through ResourceManager.CreateRun,
+	// so normalize the initial generation at the final workflow boundary too.
+	execSpec.SetAnnotations(commonutil.AnnotationKeyRetryGeneration, "0")
 	// Pod pipeline/runid label is used by v2 compatible mode.
 	execSpec.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId

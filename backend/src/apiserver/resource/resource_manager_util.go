@@ -16,17 +16,61 @@ package resource
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
-func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
-	for _, podId := range podsToDelete {
-		err := k8sCoreClient.PodClient(namespace).Delete(ctx, podId, metav1.DeleteOptions{})
-		if err != nil && !apierr.IsNotFound(err) {
+type podDeletionTarget struct {
+	name string
+	uid  types.UID
+}
+
+// snapshotPodsForDeletion resolves the object identity before RetryRun claims
+// the database row. Pod names are deterministic across retry generations, so
+// deleting by name after the claim could remove a replacement created by a
+// concurrent retry.
+func snapshotPodsForDeletion(
+	ctx context.Context,
+	k8sCoreClient client.KubernetesCoreInterface,
+	podNames []string,
+	namespace string,
+) ([]podDeletionTarget, error) {
+	targets := make([]podDeletionTarget, 0, len(podNames))
+	podClient := k8sCoreClient.PodClient(namespace)
+	for _, podName := range podNames {
+		pod, err := podClient.Get(ctx, podName, metav1.GetOptions{})
+		if apierr.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to read pods before retry cleanup")
+		}
+		if pod == nil || pod.UID == "" {
+			return nil, util.NewInternalServerError(
+				fmt.Errorf("pod %q has no UID", podName),
+				"Failed to identify pods before retry cleanup",
+			)
+		}
+		targets = append(targets, podDeletionTarget{name: podName, uid: pod.UID})
+	}
+	return targets, nil
+}
+
+func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, targets []podDeletionTarget, namespace string) error {
+	podClient := k8sCoreClient.PodClient(namespace)
+	for _, target := range targets {
+		uid := target.uid
+		err := podClient.Delete(ctx, target.name, metav1.DeleteOptions{
+			Preconditions: &metav1.Preconditions{UID: &uid},
+		})
+		// A UID conflict proves that this name now belongs to a replacement;
+		// the stale retry must leave it alone. A missing pod is already clean.
+		if err != nil && !apierr.IsNotFound(err) && !apierr.IsConflict(err) {
 			return util.NewInternalServerError(err, "Failed to delete pods")
 		}
 	}

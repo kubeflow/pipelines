@@ -2716,7 +2716,7 @@ func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
 	require.Nil(t, err)
 
 	// Claim the run for retry. This bumps RetryGeneration to 1 in the DB.
-	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen", false)
+	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen", 0, false)
 	require.Nil(t, claimErr)
 	assert.Equal(t, int64(1), claimGeneration)
 
@@ -2771,7 +2771,7 @@ func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
 	_, err = db.Exec(`UPDATE run_details SET State = NULL WHERE UUID = ?`, "run-legacy-conditions")
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", 0, false)
 	require.Nil(t, claimErr, "legacy v1 terminal rows must be claimable for retry")
 	assert.Equal(t, "", originalState)
 	assert.Equal(t, string(model.RuntimeStateFailedV1), originalConditions)
@@ -2806,7 +2806,7 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", 0, false)
 	require.Nil(t, claimErr)
 
 	claimed, err := runStore.GetRun("run-rollback-claim")
@@ -2827,7 +2827,7 @@ func TestRollbackRetryClaim_DoesNotOverwriteCancellation(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, err := runStore.ClaimRunForRetry("2", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, err := runStore.ClaimRunForRetry("2", 0, false)
 	require.NoError(t, err)
 	require.NoError(t, runStore.TerminateRun("2"))
 
@@ -2852,7 +2852,7 @@ func TestClaimRunForRetry_RunNotFound(t *testing.T) {
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 
-	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", false)
+	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", 0, false)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -2964,27 +2964,79 @@ func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", 0, false)
 	require.Nil(t, claimErr)
 	require.Equal(t, int64(1), firstGeneration)
 
 	// A fresh claim is protected: the row is PENDING with a recent timestamp.
 	// Even with takeover authorized, a fresh claim is protected.
-	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, true)
 	require.NotNil(t, secondErr, "a fresh claim must not be taken over")
-	assert.Contains(t, secondErr.Error(), "not in a terminal state")
+	assert.Contains(t, secondErr.Error(), "state changed")
 
 	// Simulate the crash aftermath: claim timestamp gone (or aged out).
 	_, err = db.Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, "run-abandoned-claim")
 	require.Nil(t, err)
 
 	// Without caller authorization the expired claim still cannot be taken.
-	_, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, false)
 	require.NotNil(t, unauthorizedErr, "takeover must require explicit caller authorization")
 
-	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, true)
 	require.Nil(t, takeoverErr, "an abandoned claim must be recoverable by a new retry")
 	assert.Equal(t, int64(2), takeoverGeneration, "takeover must advance the generation")
+}
+
+func TestClaimRunForRetry_TakeoverSnapshotCannotBecomeTerminalRetry(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-takeover-terminal-race",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-takeover-terminal-race",
+		DisplayName:  "run-takeover-terminal-race",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf0",
+		},
+	})
+	require.NoError(t, err)
+
+	_, _, _, firstGeneration, err := runStore.ClaimRunForRetry("run-takeover-terminal-race", 0, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), firstGeneration)
+	_, err = db.Exec(`UPDATE run_details SET State = ?, Conditions = ?, FinishedAtInSec = ?, RetryClaimedAtInSec = 0 WHERE UUID = ?`,
+		model.RuntimeStateFailed, model.RuntimeStateFailedV1, 200, "run-takeover-terminal-race")
+	require.NoError(t, err)
+
+	// The caller authorized takeover while observing PENDING generation 1,
+	// but the locked row is now terminal. It must refetch that terminal
+	// manifest instead of silently turning the stale request into generation 2.
+	_, _, _, _, err = runStore.ClaimRunForRetry("run-takeover-terminal-race", firstGeneration, true)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	unchanged, err := runStore.GetRun("run-takeover-terminal-race")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
+	assert.Equal(t, int64(1), unchanged.RetryGeneration)
+
+	// A stale generation is rejected even in normal terminal-claim mode.
+	_, _, _, _, err = runStore.ClaimRunForRetry("run-takeover-terminal-race", 0, false)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	_, _, _, secondGeneration, err := runStore.ClaimRunForRetry("run-takeover-terminal-race", firstGeneration, false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), secondGeneration)
 }
 
 // Regression: the delete pass selects candidates with two index-aligned

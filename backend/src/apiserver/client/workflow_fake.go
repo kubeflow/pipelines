@@ -188,12 +188,27 @@ func applyJSONPatchToFakeWorkflow(workflow *v1alpha1.Workflow, name string, data
 			}
 		case "add":
 			switch {
+			case patchOperation.Path == "/metadata/annotations":
+				annotations, ok := patchOperation.Value.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("invalid annotations patch value %T", patchOperation.Value)
+				}
+				workflow.Annotations = make(map[string]string, len(annotations))
+				for key, value := range annotations {
+					workflow.Annotations[key] = fmt.Sprint(value)
+				}
 			case strings.HasPrefix(patchOperation.Path, "/metadata/labels/"):
 				labelKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/labels/"))
 				if workflow.Labels == nil {
 					workflow.Labels = map[string]string{}
 				}
 				workflow.Labels[labelKey] = fmt.Sprint(patchOperation.Value)
+			case strings.HasPrefix(patchOperation.Path, "/metadata/annotations/"):
+				annotationKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/annotations/"))
+				if workflow.Annotations == nil {
+					workflow.Annotations = map[string]string{}
+				}
+				workflow.Annotations[annotationKey] = fmt.Sprint(patchOperation.Value)
 			case patchOperation.Path == "/spec/activeDeadlineSeconds":
 				activeDeadlineSeconds, err := strconv.ParseInt(fmt.Sprint(patchOperation.Value), 10, 64)
 				if err != nil {

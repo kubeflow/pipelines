@@ -162,7 +162,7 @@ func TestReportWorkflow_RejectsStaleTerminalReportWithoutPersistingTasks(t *test
 
 	_, err = resourceManager.ReportWorkflowResource(ctx, staleWorkflow)
 	require.NoError(t, err)
-	_, _, _, claimGeneration, err := clientManager.RunStore().ClaimRunForRetry(run.UUID, false)
+	_, _, _, claimGeneration, err := clientManager.RunStore().ClaimRunForRetry(run.UUID, 0, false)
 	require.NoError(t, err)
 	require.Equal(t, int64(1), claimGeneration)
 

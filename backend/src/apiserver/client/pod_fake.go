@@ -56,8 +56,12 @@ func (FakePodClient) DeleteCollection(ctx context.Context, options v1.DeleteOpti
 }
 
 func (FakePodClient) Get(ctx context.Context, name string, options v1.GetOptions) (*corev1.Pod, error) {
-	glog.Error("This fake method is not yet implemented")
-	return nil, nil
+	return &corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name: name,
+			UID:  types.UID(name + "-uid"),
+		},
+	}, nil
 }
 
 func (FakePodClient) List(ctx context.Context, opts v1.ListOptions) (*corev1.PodList, error) {
