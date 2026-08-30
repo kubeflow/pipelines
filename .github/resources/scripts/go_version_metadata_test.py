@@ -14,8 +14,11 @@
 """Unit tests for structure-aware Go metadata discovery."""
 
 import unittest
+from unittest import mock
 from pathlib import Path
+import subprocess
 
+import go_version_metadata
 from go_version_metadata import (docker_go_runtime_sources,
                                  has_go_runtime_reference, has_setup_go_use,
                                  is_container_recipe, yaml_mapping_values)
@@ -23,25 +26,30 @@ from go_version_metadata import (docker_go_runtime_sources,
 
 class GoVersionMetadataTest(unittest.TestCase):
 
+    def tearDown(self):
+        go_version_metadata.inspect_metadata.cache_clear()
+
     def test_malformed_flow_collection_is_rejected(self):
         with self.assertRaises(ValueError):
             yaml_mapping_values('steps: [}\n', ('uses',))
 
     def test_discovers_every_golang_stage(self):
-        stages, arguments = docker_go_runtime_sources(
+        stages, sources, arguments = docker_go_runtime_sources(
             'FROM golang:1.27.0 AS builder\n'
             'FROM golang:1.26.0 AS stale\n')
 
         self.assertEqual(stages,
                          ['golang:1.27.0', 'golang:1.26.0'])
+        self.assertEqual(sources, [])
         self.assertEqual(arguments, [])
 
     def test_resolves_global_arg_defaults_used_by_from(self):
-        stages, arguments = docker_go_runtime_sources(
+        stages, sources, arguments = docker_go_runtime_sources(
             'ARG GO_REPOSITORY=docker.io/library/golang\n'
             'FROM ${GO_REPOSITORY}:1.26.0 AS stale\n')
 
         self.assertEqual(stages, ['${GO_REPOSITORY}:1.26.0'])
+        self.assertEqual(sources, [])
         self.assertEqual(arguments, ['GO_REPOSITORY'])
 
     def test_yaml_block_scalars_are_structural(self):
@@ -96,22 +104,24 @@ class GoVersionMetadataTest(unittest.TestCase):
             'FROM `\n'
             '  ${IMAGE} AS builder\n')
 
-        stages, arguments = docker_go_runtime_sources(contents)
+        stages, sources, arguments = docker_go_runtime_sources(contents)
 
         self.assertEqual(stages, ['${IMAGE}'])
+        self.assertEqual(sources, [])
         self.assertEqual(arguments, ['IMAGE'])
 
     def test_docker_arg_fallback_is_resolved(self):
-        stages, _ = docker_go_runtime_sources(
+        stages, _, _ = docker_go_runtime_sources(
             'ARG IMAGE\n'
             'FROM ${IMAGE:-golang:1.27.0} AS builder\n')
         self.assertEqual(stages, ['${IMAGE:-golang:1.27.0}'])
 
     def test_prior_golang_stage_alias_is_not_an_external_image(self):
-        stages, arguments = docker_go_runtime_sources(
+        stages, sources, arguments = docker_go_runtime_sources(
             'FROM alpine AS golang\n'
             'FROM GoLaNg AS final\n')
         self.assertEqual(stages, [])
+        self.assertEqual(sources, [])
         self.assertEqual(arguments, [])
 
     def test_container_recipe_names_are_discovered(self):
@@ -120,6 +130,57 @@ class GoVersionMetadataTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertTrue(is_container_recipe(Path('nested') / name))
         self.assertFalse(is_container_recipe(Path('NotAContainerfile')))
+
+    def test_discovers_external_copy_and_run_mount_images(self):
+        stages, sources, arguments = docker_go_runtime_sources(
+            'FROM alpine\n'
+            'COPY --exclude=ignored --from=golang:1.27.0 /go /go\n'
+            'RUN --mount=from=golang@sha256:' + ('a' * 64) +
+            ',target=/go true\n')
+        self.assertEqual(stages, [])
+        self.assertEqual(
+            sources,
+            ['golang:1.27.0', 'golang@sha256:' + ('a' * 64)],
+        )
+        self.assertEqual(arguments, [])
+
+    def test_metadata_helper_invocation_is_bounded(self):
+        completed = subprocess.CompletedProcess(
+            args=('helper',), returncode=0, stdout='{}\n', stderr='')
+        with mock.patch.object(go_version_metadata,
+                               '_helper_binary',
+                               return_value=Path('/helper')):
+            with mock.patch.object(go_version_metadata.subprocess,
+                                   'run',
+                                   return_value=completed) as run:
+                go_version_metadata.inspect_metadata(
+                    Path('workflow.yaml'), 'steps: []\n')
+        self.assertEqual(
+            run.call_args.kwargs['timeout'],
+            go_version_metadata.METADATA_INSPECTION_TIMEOUT_SECONDS,
+        )
+
+    def test_metadata_helper_timeout_is_actionable_and_retried(self):
+        completed = subprocess.CompletedProcess(
+            args=('helper',), returncode=0, stdout='{}\n', stderr='')
+        timeout = subprocess.TimeoutExpired(
+            cmd=('helper',),
+            timeout=go_version_metadata.METADATA_INSPECTION_TIMEOUT_SECONDS,
+        )
+        with mock.patch.object(go_version_metadata,
+                               '_helper_binary',
+                               return_value=Path('/helper')):
+            with mock.patch.object(go_version_metadata.subprocess,
+                                   'run',
+                                   side_effect=(timeout, completed)) as run:
+                with self.assertRaisesRegex(RuntimeError,
+                                            'workflow.yaml.*timed out'):
+                    go_version_metadata.inspect_metadata(
+                        Path('workflow.yaml'), 'steps: []\n')
+                self.assertEqual(
+                    go_version_metadata.inspect_metadata(
+                        Path('workflow.yaml'), 'steps: []\n'), {})
+        self.assertEqual(run.call_count, 2)
 
 
 if __name__ == '__main__':

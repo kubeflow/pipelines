@@ -162,15 +162,15 @@ def _managed_dockerfiles(repo_root: Path,
         matches = list(GO_IMAGE_PATTERN.finditer(contents))
         if is_container_recipe(relative_path):
             try:
-                go_stages, repository_arguments = docker_go_runtime_sources(
-                    contents)
+                (go_stages, go_sources,
+                 repository_arguments) = docker_go_runtime_sources(contents)
             except ValueError:
                 unmanaged.append(relative_path)
                 continue
         else:
-            go_stages, repository_arguments = [], []
+            go_stages, go_sources, repository_arguments = [], [], []
         if (not is_container_recipe(relative_path) or len(matches) != 1 or
-                len(go_stages) != 1 or repository_arguments):
+                len(go_stages) != 1 or go_sources or repository_arguments):
             unmanaged.append(relative_path)
             continue
         managed[relative_path] = contents
@@ -389,6 +389,7 @@ def sync(
 
     update_paths = {}
     backup_paths = {}
+    probe_paths = []
     moved_paths = []
     retained_paths = set()
     committed = False
@@ -399,6 +400,8 @@ def sync(
                 path, expected_contents[relative_path], 'update')
             backup_paths[relative_path] = _unused_temporary_path(
                 path, 'rollback')
+        probe_paths = _preflight_hard_links(repo_root, changed_paths,
+                                            update_paths)
         _ensure_originals_unchanged(repo_root, original_contents)
         for relative_path in sorted(changed_paths):
             path = repo_root / relative_path
@@ -415,6 +418,8 @@ def sync(
                 raise RuntimeError(
                     f'{relative_path} changed while installing Go update')
         _ensure_expected_contents(repo_root, expected_contents, changed_paths)
+        _ensure_captured_originals_unchanged(original_contents, backup_paths,
+                                             moved_paths)
         committed = True
     except BaseException as update_error:
         rollback_errors = _rollback_update(
@@ -442,7 +447,12 @@ def sync(
             f'{update_error}') from update_error
     finally:
         cleanup_errors = _cleanup_temporary_paths(
-            (*update_paths.values(), *backup_paths.values()), retained_paths)
+            (*probe_paths, *update_paths.values(), *backup_paths.values()),
+            retained_paths,
+            protected_contents={
+                backup_paths[relative_path]: original_contents[relative_path]
+                for relative_path in moved_paths
+            })
         if cleanup_errors:
             outcome = ('after committing the update' if committed else
                        'while recovering from a failed update')
@@ -465,21 +475,32 @@ def _rollback_update(
         path = repo_root / relative_path
         backup_path = backup_paths[relative_path]
         quarantine_path = None
+        discard_quarantine = False
         try:
-            if not backup_path.exists():
+            if not _path_entry_exists(backup_path):
                 current = _read_regular_contents(path, relative_path)
                 if current != original_contents[relative_path]:
                     errors.append(
                         f'{relative_path}: destination changed before it '
                         'could be captured for rollback')
                 continue
-            if path.exists():
+            if _path_entry_exists(path):
                 quarantine_path = _unused_temporary_path(path, 'quarantine')
                 os.rename(path, quarantine_path)
-                current = _read_regular_contents(quarantine_path,
-                                                 relative_path)
+                try:
+                    current = _read_regular_contents(quarantine_path,
+                                                     relative_path)
+                except BaseException as inspect_error:
+                    retained_paths.update((backup_path, quarantine_path))
+                    errors.append(
+                        f'{relative_path}: could not inspect concurrent '
+                        f'destination ({inspect_error}); concurrent entry '
+                        f'retained at {quarantine_path}; original retained '
+                        f'at {backup_path}')
+                    continue
                 if current != expected_contents[relative_path]:
                     os.link(quarantine_path, path)
+                    discard_quarantine = True
                     retained_paths.add(backup_path)
                     errors.append(
                         f'{relative_path}: destination changed after '
@@ -488,6 +509,7 @@ def _rollback_update(
                     continue
 
             os.link(backup_path, path)
+            discard_quarantine = True
             restored = _read_regular_contents(path, relative_path)
             if restored != original_contents[relative_path]:
                 retained_paths.add(backup_path)
@@ -496,11 +518,15 @@ def _rollback_update(
                     f'original retained at {backup_path}')
         except BaseException as rollback_error:
             retained_paths.add(backup_path)
+            if (quarantine_path is not None and
+                    _path_entry_exists(quarantine_path) and
+                    not discard_quarantine):
+                retained_paths.add(quarantine_path)
             errors.append(
                 f'{relative_path}: {rollback_error}; original retained at '
                 f'{backup_path}')
         finally:
-            if quarantine_path is not None:
+            if quarantine_path is not None and discard_quarantine:
                 try:
                     quarantine_path.unlink(missing_ok=True)
                 except OSError as cleanup_error:
@@ -531,16 +557,91 @@ def _ensure_expected_contents(repo_root: Path,
 
 
 def _cleanup_temporary_paths(paths: Iterable[Path],
-                             retained_paths: Set[Path]) -> List[str]:
+                             retained_paths: Set[Path],
+                             protected_contents: Optional[Dict[Path, str]] =
+                             None) -> List[str]:
     errors = []
+    protected_contents = protected_contents or {}
     for temporary_path in paths:
         if temporary_path in retained_paths:
             continue
+        if temporary_path in protected_contents and _path_entry_exists(
+                temporary_path):
+            try:
+                current = _read_regular_contents(temporary_path,
+                                                 temporary_path)
+            except BaseException as error:
+                retained_paths.add(temporary_path)
+                errors.append(
+                    f'{temporary_path}: could not inspect captured original; '
+                    f'retained for recovery: {error}')
+                continue
+            if current != protected_contents[temporary_path]:
+                retained_paths.add(temporary_path)
+                errors.append(
+                    f'{temporary_path}: captured original changed; retained '
+                    'for recovery')
+                continue
         try:
             temporary_path.unlink(missing_ok=True)
         except OSError as error:
             errors.append(f'{temporary_path}: {error}')
     return errors
+
+
+def _preflight_hard_links(repo_root: Path, relative_paths: Iterable[Path],
+                          update_paths: Dict[Path, Path]) -> List[Path]:
+    probe_paths = []
+    try:
+        for relative_path in sorted(relative_paths):
+            path = repo_root / relative_path
+            for source, purpose in ((path, 'probe-original'),
+                                    (update_paths[relative_path],
+                                     'probe-update')):
+                probe_path = _unused_temporary_path(path, purpose)
+                probe_paths.append(probe_path)
+                os.link(source, probe_path)
+                source_stat = source.stat()
+                probe_stat = probe_path.stat()
+                if ((source_stat.st_dev, source_stat.st_ino) !=
+                        (probe_stat.st_dev, probe_stat.st_ino)):
+                    raise RuntimeError(
+                        f'{relative_path}: hard-link preflight did not '
+                        'reference the source inode')
+                probe_path.unlink()
+        return probe_paths
+    except BaseException:
+        _cleanup_temporary_paths(probe_paths, set())
+        raise
+
+
+def _ensure_captured_originals_unchanged(
+    original_contents: Dict[Path, str],
+    backup_paths: Dict[Path, Path],
+    relative_paths: Iterable[Path],
+) -> None:
+    changed = []
+    for relative_path in relative_paths:
+        try:
+            captured = _read_regular_contents(backup_paths[relative_path],
+                                              relative_path)
+        except (RuntimeError, ValueError, UnicodeDecodeError) as error:
+            changed.append(f'{relative_path} ({error})')
+            continue
+        if captured != original_contents[relative_path]:
+            changed.append(str(relative_path))
+    if changed:
+        raise RuntimeError(
+            'captured originals changed while committing Go version update: '
+            + ', '.join(sorted(changed)))
+
+
+def _path_entry_exists(path: Path) -> bool:
+    try:
+        path.lstat()
+        return True
+    except FileNotFoundError:
+        return False
 
 
 def _temporary_replacement(path: Path, contents: str, purpose: str) -> Path:

@@ -221,8 +221,9 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 continue
             discovered.add(relative_path)
             with self.subTest(path=relative_path):
-                go_stages, repository_arguments = docker_go_runtime_sources(
-                    dockerfile.read_text(encoding='utf-8'))
+                (go_stages, go_sources,
+                 repository_arguments) = docker_go_runtime_sources(
+                     dockerfile.read_text(encoding='utf-8'))
                 self.assertEqual(
                     len(go_stages),
                     1,
@@ -232,6 +233,12 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     repository_arguments,
                     [],
                     f'{relative_path} must not hide Golang behind global ARG',
+                )
+                self.assertEqual(
+                    go_sources,
+                    [],
+                    f'{relative_path} must not use external Golang images '
+                    'outside FROM',
                 )
                 self.assertEqual(
                     len(matches),

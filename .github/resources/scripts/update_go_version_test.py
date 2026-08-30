@@ -380,13 +380,159 @@ class UpdateGoVersionTest(unittest.TestCase):
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
 
+    def test_hard_link_support_is_preflighted_before_any_rename(self):
+        real_link = update_go_version.os.link
+
+        for purpose in ('probe-original', 'probe-update'):
+            with self.subTest(purpose=purpose):
+
+                def fail_selected_probe(source, destination):
+                    if f'.{purpose}.' in Path(destination).name:
+                        raise OSError('hard links unsupported')
+                    real_link(source, destination)
+
+                with mock.patch.object(
+                        update_go_version.os,
+                        'link',
+                        side_effect=fail_selected_probe,
+                ):
+                    with mock.patch.object(
+                            update_go_version.os,
+                            'rename',
+                            wraps=update_go_version.os.rename,
+                    ) as rename:
+                        with self.assertRaisesRegex(
+                                RuntimeError, 'hard links unsupported'):
+                            update_go_version.sync(
+                                self.repo_root,
+                                '1.28.3',
+                                digest_resolver=lambda tag: DIGESTS[tag],
+                                repository_paths=self.files,
+                            )
+                        rename.assert_not_called()
+
+                for relative_path, contents in self.files.items():
+                    self.assertEqual(
+                        (self.repo_root / relative_path).read_text(
+                            encoding='utf-8'), contents)
+                self.assertEqual(list(self.repo_root.rglob('.*.probe-*.*')),
+                                 [])
+
+    def test_open_descriptor_edit_to_captured_original_is_preserved(self):
+        root = self.repo_root / 'go.mod'
+        descriptor = update_go_version.os.open(root, update_go_version.os.O_RDWR)
+        concurrent_contents = b'// edit through an already-open descriptor\n'
+        real_ensure = update_go_version._ensure_expected_contents
+
+        def edit_captured_original(*args, **kwargs):
+            real_ensure(*args, **kwargs)
+            update_go_version.os.ftruncate(descriptor, 0)
+            update_go_version.os.lseek(descriptor, 0, update_go_version.os.SEEK_SET)
+            update_go_version.os.write(descriptor, concurrent_contents)
+
+        try:
+            with mock.patch.object(
+                    update_go_version,
+                    '_ensure_expected_contents',
+                    side_effect=edit_captured_original,
+            ):
+                with self.assertRaisesRegex(
+                        RuntimeError, 'captured originals changed'):
+                    update_go_version.sync(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda tag: DIGESTS[tag],
+                        repository_paths=self.files,
+                    )
+        finally:
+            update_go_version.os.close(descriptor)
+
+        self.assertEqual(root.read_bytes(), concurrent_contents)
+        retained = list(self.repo_root.glob('.go.mod.rollback.*'))
+        self.assertTrue(retained)
+        self.assertEqual(retained[0].read_bytes(), concurrent_contents)
+
+    def test_late_open_descriptor_edit_is_retained_during_cleanup(self):
+        root = self.repo_root / 'go.mod'
+        descriptor = update_go_version.os.open(root, update_go_version.os.O_RDWR)
+        concurrent_contents = b'// late descriptor edit\n'
+        real_cleanup = update_go_version._cleanup_temporary_paths
+
+        def edit_before_cleanup(*args, **kwargs):
+            update_go_version.os.ftruncate(descriptor, 0)
+            update_go_version.os.lseek(descriptor, 0,
+                                       update_go_version.os.SEEK_SET)
+            update_go_version.os.write(descriptor, concurrent_contents)
+            return real_cleanup(*args, **kwargs)
+
+        try:
+            with mock.patch.object(
+                    update_go_version,
+                    '_cleanup_temporary_paths',
+                    side_effect=edit_before_cleanup,
+            ):
+                with self.assertWarnsRegex(RuntimeWarning,
+                                           'captured original changed'):
+                    changed = update_go_version.sync(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda tag: DIGESTS[tag],
+                        repository_paths=self.files,
+                    )
+        finally:
+            update_go_version.os.close(descriptor)
+
+        self.assertEqual(set(changed), set(self.files))
+        self.assertIn(b'toolchain go1.28.3', root.read_bytes())
+        retained = list(self.repo_root.glob('.go.mod.rollback.*'))
+        self.assertTrue(retained)
+        self.assertEqual(retained[0].read_bytes(), concurrent_contents)
+
+    def test_uninspectable_concurrent_rollback_entry_is_retained(self):
+        real_link = update_go_version.os.link
+        installed = []
+
+        def replace_then_fail(source, destination):
+            source = Path(source)
+            destination = Path(destination)
+            if ('.update.' in source.name and
+                    '.probe-' not in destination.name):
+                if installed:
+                    first = installed[0]
+                    first.unlink()
+                    first.symlink_to('missing-concurrent-target')
+                    raise OSError('simulated later installation failure')
+                installed.append(destination)
+            real_link(source, destination)
+
+        with mock.patch.object(
+                update_go_version.os,
+                'link',
+                side_effect=replace_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError, 'concurrent entry retained at') as context:
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        quarantines = list(self.repo_root.glob('.*.quarantine.*'))
+        self.assertTrue(quarantines, str(context.exception))
+        self.assertTrue(quarantines[0].is_symlink())
+        self.assertEqual(update_go_version.os.readlink(quarantines[0]),
+                         'missing-concurrent-target')
+
     def test_file_replacement_failure_restores_original_files(self):
         real_link = update_go_version.os.link
         installation_count = 0
 
         def fail_second_installation(source, destination):
             nonlocal installation_count
-            if '.update.' in Path(source).name:
+            if ('.update.' in Path(source).name and
+                    '.probe-' not in Path(destination).name):
                 installation_count += 1
                 if installation_count == 2:
                     raise OSError('simulated installation failure')
@@ -418,10 +564,12 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         def interrupt_after_second_installation(source, destination):
             nonlocal installation_count
-            if '.update.' in Path(source).name:
+            if ('.update.' in Path(source).name and
+                    '.probe-' not in Path(destination).name):
                 installation_count += 1
             real_link(source, destination)
             if ('.update.' in Path(source).name and
+                    '.probe-' not in Path(destination).name and
                     installation_count == 2):
                 raise KeyboardInterrupt
 
@@ -451,7 +599,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         def fail_update_and_rollback(source, destination):
             nonlocal installation_count
             source_name = Path(source).name
-            if '.update.' in source_name:
+            if ('.update.' in source_name and
+                    '.probe-' not in Path(destination).name):
                 installation_count += 1
                 if installation_count == 2:
                     raise OSError('simulated installation failure')
@@ -618,6 +767,26 @@ class UpdateGoVersionTest(unittest.TestCase):
                 digest_resolver=lambda tag: DIGESTS[tag],
                 repository_paths=self.files,
             )
+
+    def test_rejects_external_golang_copy_and_run_mount_sources(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        for instruction in (
+                'COPY --from=golang:1.27.0 /go/bin/go /usr/bin/go\n',
+                'RUN --mount=from=golang:1.27.0,target=/go true\n'):
+            with self.subTest(instruction=instruction):
+                dockerfile.write_text(
+                    f'FROM golang:1.28.0@{OLD_DIGEST} AS builder\n' +
+                    instruction,
+                    encoding='utf-8',
+                )
+                with self.assertRaisesRegex(ValueError,
+                                            'unsupported Go runtime pins'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=lambda tag: DIGESTS[tag],
+                        repository_paths=self.files,
+                    )
 
     def test_rejects_global_golang_repository_arg(self):
         relative_path = Path('bad/Dockerfile')

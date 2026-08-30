@@ -57,7 +57,75 @@ func TestDockerfileSemantics(t *testing.T) {
 	if got, want := metadata.DockerGoStages, []string{"${BASE}"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("Go stages = %q, want %q", got, want)
 	}
-	if got, want := metadata.DockerRepositoryArgs, []string{"REPOSITORY", "BASE"}; !reflect.DeepEqual(got, want) {
+	if got, want := metadata.DockerRepositoryArgs, []string{"BASE"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("repository args = %q, want %q", got, want)
+	}
+}
+
+func TestYAMLAliasTraversalIsLinear(t *testing.T) {
+	contents := `a: &a [{image: golang}]
+b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]
+c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]
+d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]
+e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]
+f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]
+g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]
+h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]
+i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]
+j: &j [*i,*i,*i,*i,*i,*i,*i,*i,*i]
+root: *j
+`
+	metadata, err := inspect(request{Path: "workflow.yaml", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := metadata.YAMLValues["image"], []string{"golang"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("image values = %q, want %q", got, want)
+	}
+}
+
+func TestDockerfileDiscoversAllExternalImageSources(t *testing.T) {
+	contents := "FROM alpine AS final\n" +
+		"COPY --exclude=ignored --from=golang:1.27.0 /go/bin/go /usr/bin/go\n" +
+		"RUN --mount=type=bind,from=golang:1.26.0,target=/go true\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := metadata.DockerGoStages, []string{}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("Go stages = %q, want %q", got, want)
+	}
+	if got, want := metadata.DockerGoSources, []string{"golang:1.27.0", "golang:1.26.0"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("Go sources = %q, want %q", got, want)
+	}
+}
+
+func TestDockerfileArgExpandedStageAliasesAreNotExternal(t *testing.T) {
+	contents := "ARG SOURCE=golang\n" +
+		"ARG SOURCE\n" +
+		"FROM alpine AS golang\n" +
+		"FROM ${SOURCE} AS final\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metadata.DockerGoStages) != 0 || len(metadata.DockerGoSources) != 0 {
+		t.Fatalf("stage alias classified as external: stages=%q sources=%q", metadata.DockerGoStages, metadata.DockerGoSources)
+	}
+}
+
+func TestDockerfileValuelessArgRedeclarationPreservesDefault(t *testing.T) {
+	contents := "ARG IMAGE=golang:1.27.0\n" +
+		"ARG IMAGE\n" +
+		"FROM ${IMAGE} AS builder\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := metadata.DockerGoStages, []string{"${IMAGE}"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("Go stages = %q, want %q", got, want)
+	}
+	if got, want := metadata.DockerRepositoryArgs, []string{"IMAGE"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("repository args = %q, want %q", got, want)
 	}
 }

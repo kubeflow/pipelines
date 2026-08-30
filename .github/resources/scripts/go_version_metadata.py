@@ -29,6 +29,8 @@ GO_TEXT_REFERENCE_PATTERN = re.compile(
     r'(?:\bgolang(?=[:@])|(?:dl\.google\.com/go/|go\.dev/dl/)go)',
     re.IGNORECASE,
 )
+METADATA_BUILD_TIMEOUT_SECONDS = 120
+METADATA_INSPECTION_TIMEOUT_SECONDS = 10
 
 
 def is_container_recipe(relative_path: Path) -> bool:
@@ -50,7 +52,12 @@ def _helper_binary() -> Path:
             check=True,
             capture_output=True,
             text=True,
+            timeout=METADATA_BUILD_TIMEOUT_SECONDS,
         )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            'timed out building the Go metadata helper after '
+            f'{METADATA_BUILD_TIMEOUT_SECONDS} seconds') from error
     except (FileNotFoundError, subprocess.CalledProcessError) as error:
         detail = getattr(error, 'stderr', '') or str(error)
         raise RuntimeError(
@@ -70,7 +77,12 @@ def inspect_metadata(relative_path: Path, contents: str) -> Dict:
             check=True,
             capture_output=True,
             text=True,
+            timeout=METADATA_INSPECTION_TIMEOUT_SECONDS,
         )
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError(
+            f'Go metadata inspection for {relative_path} timed out after '
+            f'{METADATA_INSPECTION_TIMEOUT_SECONDS} seconds') from error
     except subprocess.CalledProcessError as error:
         raise ValueError(error.stderr.strip() or
                          f'could not parse {relative_path}') from error
@@ -104,9 +116,11 @@ def yaml_mapping_values(contents: str,
     return {key: list(values.get(key, [])) for key in target_keys}
 
 
-def docker_go_runtime_sources(contents: str) -> Tuple[List[str], List[str]]:
+def docker_go_runtime_sources(
+        contents: str) -> Tuple[List[str], List[str], List[str]]:
     metadata = inspect_metadata(Path('Dockerfile'), contents)
     return (metadata.get('dockerGoStages', []),
+            metadata.get('dockerGoSources', []),
             metadata.get('dockerRepositoryArgs', []))
 
 
@@ -134,6 +148,7 @@ def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
             return True
         metadata = inspect_metadata(relative_path, contents)
         return bool(metadata.get('dockerGoStages') or
+                    metadata.get('dockerGoSources') or
                     metadata.get('dockerRepositoryArgs'))
 
     active_text = '\n'.join(
