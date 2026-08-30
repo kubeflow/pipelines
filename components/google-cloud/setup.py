@@ -42,6 +42,7 @@ json_data = glob.glob(
 setuptools.setup(
     name="google-cloud-pipeline-components",
     version=version.__version__,
+    setup_requires=["setuptools<82.0.0"],
     description=(
         "This SDK enables a set of First Party (Google owned) pipeline"
         " components that allow users to take their experience from Vertex AI"
