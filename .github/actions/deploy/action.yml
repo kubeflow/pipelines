@@ -16,8 +16,8 @@ inputs:
     default: 'false'
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
-    required: false
     default: 'true'
+    required: false
   image_tag:
     required: true
     description: "Provide the image tag your image was tagged with"
@@ -180,9 +180,9 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        # The runtime-base-images producer uploads modelcar.tar at the root of
-        # its artifact. The download action preserves that layout under
-        # image_path, so do not add a nonexistent runtime-base-images/ prefix.
+        # The producer used to nest this archive as
+        # runtime-base-images/modelcar.tar. It is now uploaded at the artifact
+        # root so the downloaded path is images_<run>/modelcar.tar.
         MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/modelcar.tar"
         if [[ ! -f "${MODELCAR_IMAGE_ARCHIVE}" ]]; then
           echo "::error::Modelcar fixture archive not found at ${MODELCAR_IMAGE_ARCHIVE}"
