@@ -19,7 +19,7 @@ import * as Utils from 'src/lib/Utils';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
-import produce from 'immer';
+import { produce } from 'immer';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
