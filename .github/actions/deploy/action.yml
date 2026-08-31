@@ -16,8 +16,8 @@ inputs:
     default: 'false'
   cache_enabled:
     description: "If KFP should be deployed with cache enabled globally"
-    default: 'true'
     required: false
+    default: 'true'
   image_tag:
     required: true
     description: "Provide the image tag your image was tagged with"
@@ -74,26 +74,13 @@ runs:
         source .github/resources/scripts/ci-image-artifacts.sh
 
         case "$(uname -m)" in
-          x86_64)
-            ARCH_NAME="amd64"
-            ;;
-          aarch64|arm64)
-            ARCH_NAME="arm64"
-            ;;
-          *)
-            echo "::error::Unsupported runner architecture: $(uname -m)"
-            exit 1
-            ;;
+          x86_64) ARCH_NAME="amd64" ;;
+          aarch64|arm64) ARCH_NAME="arm64" ;;
+          *) echo "::error::Unsupported runner architecture: $(uname -m)"; exit 1 ;;
         esac
 
         echo "Loading ${ARCH_NAME} control-plane images into Kind"
 
-        # The image archives contain tags ending in -${ARCH_NAME}, while the
-        # CI manifests intentionally reference the local :latest tag. Load
-        # each archive into Docker, retag it to the manifest tag, and then
-        # import that exact tag into Kind. Loading the archive directly into
-        # Kind leaves the architecture suffix on the image and causes every
-        # KFP deployment to fail with ImagePullBackOff.
         for app in "${CONTROL_PLANE_IMAGE_ARTIFACTS[@]}"; do
           ARCHIVE="${{ inputs.image_path }}/${app}-${ARCH_NAME}/${app}-${ARCH_NAME}.tar"
           SOURCE_IMAGE="${{ inputs.image_registry }}/${app}:${{ inputs.image_tag }}-${ARCH_NAME}"
@@ -113,20 +100,12 @@ runs:
         set -euo pipefail
 
         case "$(uname -m)" in
-          x86_64)
-            ARCH_NAME="amd64"
-            ;;
-          aarch64|arm64)
-            ARCH_NAME="arm64"
-            ;;
-          *)
-            echo "::error::Unsupported runner architecture: $(uname -m)"
-            exit 1
-            ;;
+          x86_64) ARCH_NAME="amd64" ;;
+          aarch64|arm64) ARCH_NAME="arm64" ;;
+          *) echo "::error::Unsupported runner architecture: $(uname -m)"; exit 1 ;;
         esac
 
         echo "Loading ${ARCH_NAME} runtime images"
-
         source .github/resources/scripts/ci-image-artifacts.sh
 
         for app in "${RUNTIME_IMAGE_ARTIFACTS[@]}"; do
@@ -148,16 +127,9 @@ runs:
         set -euo pipefail
 
         case "$(uname -m)" in
-          x86_64)
-            ARCH_NAME="amd64"
-            ;;
-          aarch64|arm64)
-            ARCH_NAME="arm64"
-            ;;
-          *)
-            echo "::error::Unsupported runner architecture: $(uname -m)"
-            exit 1
-            ;;
+          x86_64) ARCH_NAME="amd64" ;;
+          aarch64|arm64) ARCH_NAME="arm64" ;;
+          *) echo "::error::Unsupported runner architecture: $(uname -m)"; exit 1 ;;
         esac
 
         RUNTIME_BASE_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images-${ARCH_NAME}/runtime-base-images-${ARCH_NAME}.tar"
@@ -167,7 +139,6 @@ runs:
             rm "${RUNTIME_BASE_IMAGE_ARCHIVE}"
             exit 0
           fi
-
           echo "::warning::Failed to load runtime base image archive at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
         else
           echo "::warning::Runtime base image archive not found at ${RUNTIME_BASE_IMAGE_ARCHIVE}; pulling images directly."
@@ -180,10 +151,17 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        # The producer used to nest this archive as
-        # runtime-base-images/modelcar.tar. It is now uploaded at the artifact
-        # root so the downloaded path is images_<run>/modelcar.tar.
-        MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/modelcar.tar"
+
+        case "$(uname -m)" in
+          x86_64) ARCH_NAME="amd64" ;;
+          aarch64|arm64) ARCH_NAME="arm64" ;;
+          *) echo "::error::Unsupported runner architecture: $(uname -m)"; exit 1 ;;
+        esac
+
+        # Legacy producer layout was runtime-base-images/modelcar.tar. The
+        # architecture-specific producer now downloads into the corresponding
+        # runtime-base-images-${ARCH_NAME} artifact directory.
+        MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images-${ARCH_NAME}/modelcar.tar"
         if [[ ! -f "${MODELCAR_IMAGE_ARCHIVE}" ]]; then
           echo "::error::Modelcar fixture archive not found at ${MODELCAR_IMAGE_ARCHIVE}"
           exit 1
