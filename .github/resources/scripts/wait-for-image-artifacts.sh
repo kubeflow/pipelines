@@ -109,7 +109,7 @@ while :; do
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#EXPECTED_CI_IMAGE_ARTIFACTS[@]} ${ARCH_NAME} branch image artifacts are available."
+    echo "All ${#EXPECTED_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
     exit 0
   fi
 
@@ -120,12 +120,13 @@ while :; do
   fi
 
   producer_state_ok=true
-  PRODUCER_JOBS=""
-  if ! PRODUCER_JOBS=$(gh api --paginate \
+  producer_jobs=""
+  if ! producer_jobs=$(gh api --paginate \
       "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
       --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv'); then
     producer_state_ok=false
   fi
+  PRODUCER_JOBS="$producer_jobs"
 
   if [[ "$producer_state_ok" != true ]]; then
     if (( producer_state_unavailable_used < PRODUCER_STATE_UNAVAILABLE_EXTENSIONS )); then
@@ -151,9 +152,9 @@ while :; do
         active_producers+=("${artifact%-${ARCH_NAME}}") ;;
       completed)
         case "$job_conclusion" in
-          success) successful_producers+=("${artifact%-${ARCH_NAME}}") ;;
+          success) successful_producers+=("${artifact%-${ARCH_NAME}}");;
           failure|cancelled|timed_out|action_required|stale|startup_failure)
-            failed_producers+=("${artifact%-${ARCH_NAME}}:${job_conclusion}") ;;
+            failed_producers+=("${artifact%-${ARCH_NAME}}:${job_conclusion}");;
         esac ;;
     esac
   done
