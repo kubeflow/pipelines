@@ -17,6 +17,7 @@ package main
 import (
 	"errors"
 	"io"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
@@ -154,11 +155,17 @@ func TestDockerClassification(t *testing.T) {
 			classification: "irrelevant",
 		},
 		{
-			name: "environment and label metadata are not runtime sources",
+			name: "environment names and label metadata are not runtime sources",
 			contents: "FROM alpine\n" +
-				"ENV golang=alpine TOOLCHAIN=golang:latest\n" +
+				"ENV golang=alpine\n" +
 				"LABEL golang=alpine toolchain=golang:latest\n",
 			classification: "irrelevant",
+		},
+		{
+			name:           "environment values are reserved source metadata",
+			contents:       "FROM alpine\nENV TOOLCHAIN=golang:latest DOWNLOAD=https://go.dev/dl/go1.27.0.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"env-value", "env-value"},
 		},
 		{
 			name:           "ordinary copy operands are not runtime sources",
@@ -218,10 +225,11 @@ func TestDockerClassification(t *testing.T) {
 			classification: "irrelevant",
 		},
 		{
-			name: "runtime shell modifiers are not Docker expansion errors",
+			name: "non-POSIX runtime shell modifiers are unsupported",
 			contents: "FROM alpine\n" +
 				"RUN echo ${A=alpine} ${A^^}\n",
-			classification: "irrelevant",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name: "run comments are not active literals",
@@ -289,8 +297,7 @@ func TestDockerClassification(t *testing.T) {
 			name: "nested canonical form is never managed",
 			contents: "FROM alpine\nONBUILD FROM golang:1.27.0@sha256:" + digest +
 				" AS hidden\n",
-			classification: "unsupported",
-			candidateKinds: []string{"from"},
+			classification: "invalid",
 		},
 		{
 			name: "decoded JSON and heredoc run literals are unsupported",
@@ -299,7 +306,7 @@ func TestDockerClassification(t *testing.T) {
 				"ENV GO_BUILDER=golang:latest\n" +
 				"RUN <<EOF\ndocker pull golang:latest\nEOF\n",
 			classification: "unsupported",
-			candidateKinds: []string{"literal", "literal"},
+			candidateKinds: []string{"literal", "env-value", "literal"},
 		},
 		{
 			name: "typed active instructions are inspected",
@@ -364,62 +371,61 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"literal"},
 		},
 		{
-			name: "configured PowerShell escape is honored",
+			name: "configured PowerShell is explicitly unsupported",
 			contents: "FROM alpine\nSHELL [\"pwsh\",\"-Command\"]\n" +
 				"RUN docker pull go`lang:latest\n",
 			classification: "unsupported",
-			candidateKinds: []string{"literal"},
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
-			name: "Windows PowerShell path is recognized",
+			name: "Windows PowerShell path is explicitly unsupported",
 			contents: "FROM alpine\n" +
 				"SHELL [\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"-Command\"]\n" +
 				"RUN docker pull go`lang:latest\n",
 			classification: "unsupported",
-			candidateKinds: []string{"literal"},
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name: "unknown shell fails closed only for candidate data",
 			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
 				"RUN docker pull golang:latest\n",
 			classification: "unsupported",
-			candidateKinds: []string{"unknown-shell"},
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
-			name:           "unknown shell unrelated data remains irrelevant",
+			name:           "unknown shell use is explicitly unsupported",
 			contents:       "FROM alpine\nSHELL [\"fish\",\"-c\"]\nRUN echo alpine\n",
-			classification: "irrelevant",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name: "unknown shell heredoc fails closed",
 			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
 				"RUN <<EOF\necho golang:latest\nEOF\n",
 			classification: "unsupported",
-			candidateKinds: []string{"unknown-shell"},
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name: "unknown shell escaped download fails closed",
 			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
 				"RUN curl https://go\\.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
 			classification: "unsupported",
-			candidateKinds: []string{"unknown-shell"},
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name:           "unknown candidate instruction fails closed",
 			contents:       "FROM alpine\nFUTURE docker pull go\"lang\":latest\n",
-			classification: "unsupported",
-			candidateKinds: []string{"unknown-instruction"},
+			classification: "invalid",
 		},
 		{
-			name:           "unknown unrelated instruction is irrelevant",
+			name:           "unknown unrelated instruction is invalid",
 			contents:       "FROM alpine\nFUTURE echo alpine\n",
-			classification: "irrelevant",
+			classification: "invalid",
 		},
 		{
 			name:           "unknown escaped download instruction fails closed",
 			contents:       "FROM alpine\nFUTURE curl https://go\\.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
-			classification: "unsupported",
-			candidateKinds: []string{"unknown-instruction"},
+			classification: "invalid",
 		},
 		{
 			name: "parameter identifiers and assignment names are not sources",
@@ -617,11 +623,49 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 		buildKit, _, err := lexer.ProcessWord(input, shell.EnvsFromSlice(nil))
 		if err != nil {
 			t.Errorf("BuildKit ProcessWord(%q): %v", input, err)
-		} else if words, runtimeErr := discovery.runtimeWords(input, defaultRuntimeShell()); runtimeErr != nil {
+		} else if words, runtimeErr := discovery.runtimeWords(input); runtimeErr != nil {
 			t.Errorf("runtimeWords(%q): %v", input, runtimeErr)
 		} else if len(words) != 1 || words[0] != buildKit {
 			t.Errorf("runtimeWords(%q) = %q, BuildKit = %q", input, words, buildKit)
 		}
+	}
+}
+
+func TestPOSIXRuntimeDiscoveryMatchesBinSh(t *testing.T) {
+	tests := []struct {
+		name       string
+		script     string
+		wantOutput string
+		wantGo     bool
+	}{
+		{name: "escaped word", script: `printf '%s' g\olang`, wantOutput: "golang", wantGo: true},
+		{name: "joined quotes", script: `printf '%s' go"la"'ng'`, wantOutput: "golang", wantGo: true},
+		{name: "continued word", script: "printf '%s' go\\\nlang", wantOutput: "golang", wantGo: true},
+		{name: "comment ends at newline", script: "printf '%s' alpine # golang\nprintf '%s' golang", wantOutput: "alpinegolang", wantGo: true},
+		{name: "default expansion value", script: `printf '%s' "${A:-golang}"`, wantOutput: "golang", wantGo: true},
+		{name: "parameter name", script: `printf '%s' "${#golang}"`, wantOutput: "0", wantGo: false},
+		{name: "assignment name", script: `golang=alpine; printf '%s' "$golang"`, wantOutput: "alpine", wantGo: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			command := exec.Command("/bin/sh", "-c", test.script)
+			command.Env = []string{}
+			output, err := command.Output()
+			if err != nil {
+				t.Fatalf("/bin/sh rejected conformance case: %v", err)
+			}
+			if got := string(output); got != test.wantOutput {
+				t.Fatalf("/bin/sh output = %q, want %q", got, test.wantOutput)
+			}
+			words, err := parseRuntimeShellWords(test.script)
+			if err != nil {
+				t.Fatalf("POSIX parser rejected /bin/sh input: %v", err)
+			}
+			literal, _ := scanRuntimeWords(words)
+			if literal != test.wantGo {
+				t.Fatalf("Go discovery = %t, want %t; words=%q", literal, test.wantGo, words)
+			}
+		})
 	}
 }
 
@@ -639,22 +683,15 @@ func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 		t.Fatalf("memoized normalization increased byte budget from %d to %d", bytesAfterFirst, discovery.normalizedBytes)
 	}
 
-	deep := strings.Repeat("${A:-", maxDockerParameterDepth+1) + "alpine" + strings.Repeat("}", maxDockerParameterDepth+1)
-	if _, err := discovery.normalizeDockerWord(deep); !isResourceLimit(err, "parameter expansion depth") {
-		t.Fatalf("deep Docker word error = %v", err)
-	}
+	deep := strings.Repeat("${A:-", maxShellASTDepth+1) + "alpine" + strings.Repeat("}", maxShellASTDepth+1)
 	quoted := "'" + deep + "'"
 	if _, err := discovery.normalizeDockerWord(quoted); err != nil {
 		t.Fatalf("quoted parameter-like text error = %v", err)
 	}
-	escaped := strings.Repeat(`\${A:-`, maxDockerParameterDepth+1) + "alpine" + strings.Repeat("}", maxDockerParameterDepth+1)
-	if _, err := discovery.normalizeDockerWord(escaped); err != nil {
-		t.Fatalf("escaped parameter-like text error = %v", err)
-	}
-	if _, err := discovery.runtimeWords(deep, defaultRuntimeShell()); !isResourceLimit(err, "parameter expansion depth") {
+	if _, err := discovery.runtimeWords(deep); !isResourceLimit(err, "shell AST depth") {
 		t.Fatalf("deep runtime shell word error = %v", err)
 	}
-	if _, err := discovery.runtimeWords(quoted, defaultRuntimeShell()); err != nil {
+	if _, err := discovery.runtimeWords(quoted); err != nil {
 		t.Fatalf("quoted runtime parameter-like text error = %v", err)
 	}
 

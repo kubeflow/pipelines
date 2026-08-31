@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "schema": {
+    "polarity": "detect means a source or unsupported construct must not pass; allow means the input must remain managed or irrelevant",
+    "classification": "managed, unsupported, irrelevant, or invalid",
+    "candidateKinds": "ordered semantic source kinds; omitted when no candidate is required",
+    "oracles": "optional differential oracle names: buildkit or sh"
+  },
+  "buildkitWordOracles": [
+    {"id": "docker-backslash-concat", "escape": "\\", "word": "g\\olang:latest", "env": {}, "want": "golang:latest"},
+    {"id": "docker-double-quote-concat", "escape": "\\", "word": "go\"lang\":latest", "env": {}, "want": "golang:latest"},
+    {"id": "docker-single-quote-concat", "escape": "\\", "word": "go'lang':latest", "env": {}, "want": "golang:latest"},
+    {"id": "docker-unicode-parameter-default", "escape": "\\", "word": "${名-golang}:latest", "env": {}, "want": "${名-golang}:latest"},
+    {"id": "docker-parameter-value", "escape": "\\", "word": "${IMAGE}:latest", "env": {"IMAGE": "golang"}, "want": "golang:latest"},
+    {"id": "alternate-docker-escape-does-not-make-backslash-a-shell-escape", "escape": "`", "word": "g\\olang:latest", "env": {}, "want": "g\\olang:latest"}
+  ],
+  "shellOracles": [
+    {"id": "sh-backslash-concat", "script": "capture g\\olang:latest", "env": {}, "wantArgv": ["golang:latest"]},
+    {"id": "sh-double-quote-concat", "script": "capture go\"lang\":latest", "env": {}, "wantArgv": ["golang:latest"]},
+    {"id": "sh-single-quote-concat", "script": "capture go'lang':latest", "env": {}, "wantArgv": ["golang:latest"]},
+    {"id": "sh-backslash-newline", "script": "capture go\\\nlang:latest", "env": {}, "wantArgv": ["golang:latest"]},
+    {"id": "sh-comment-to-newline", "script": "# golang:latest\ncapture alpine # golang:latest", "env": {}, "wantArgv": ["alpine"]},
+    {"id": "sh-parameter-name", "script": "golang=alpine; capture \"${#golang}\"", "env": {}, "wantArgv": ["6"]},
+    {"id": "sh-parameter-operand", "script": "capture \"${IMAGE:-golang:latest}\"", "env": {}, "wantArgv": ["golang:latest"]},
+    {"id": "sh-parameter-set", "script": "capture \"${IMAGE:-golang:latest}\"", "env": {"IMAGE": "alpine"}, "wantArgv": ["alpine"]}
+  ],
+  "cases": [
+    {
+      "id": "managed-canonical-from",
+      "polarity": "allow",
+      "dockerfile": "FROM golang:1.27.0-alpine@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS builder\n",
+      "want": {"classification": "managed", "candidateKinds": ["from"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "from-unpinned-external",
+      "polarity": "detect",
+      "dockerfile": "FROM golang:latest AS builder\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["from"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "second-go-source",
+      "polarity": "detect",
+      "dockerfile": "FROM golang:1.27.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS builder\nFROM golang:latest AS stale\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["from", "from"]}
+    },
+    {
+      "id": "prior-local-stage-named-golang",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine AS golang\nFROM golang AS final\nCOPY --from=golang /bin/x /bin/x\nRUN --mount=type=bind,from=0,target=/src true\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "external-base-before-alias-recorded",
+      "polarity": "detect",
+      "dockerfile": "FROM golang:latest AS golang\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["from"]}
+    },
+    {
+      "id": "copy-from-external",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nCOPY --from=docker.io/library/golang:latest /go/bin/go /usr/bin/go\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["copy-from"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "run-mount-from-external",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN --mount=type=bind,from=golang:latest,target=/go true\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["run-mount-from"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "ordinary-copy-operands-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nCOPY golang /tmp/golang\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "add-go-download",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nADD https://go.dev/dl/go1.27.0.linux-amd64.tar.gz /tmp/go.tgz\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["add-download"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "add-local-and-unrelated-url-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nADD golang /tmp/golang\nADD https://example.test/golang /tmp/example\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "arg-identifier-allowed",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nARG golang\nARG golang=alpine\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "arg-default-reserved",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG IMAGE=golang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "env-name-allowed",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nENV golang=alpine\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "env-value-reserved",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nENV IMAGE=golang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
+      "id": "metadata-fields-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nLABEL toolchain=golang:latest\nMAINTAINER golang@example.test\nWORKDIR /golang\nUSER golang\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "run-shell-literal",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN docker pull golang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "run-shell-literal-concatenation",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN docker pull go\"lang\":latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "run-shell-backslash-concatenation",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN docker pull g\\olang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "docker-escape-not-runtime-escape",
+      "polarity": "detect",
+      "dockerfile": "# escape=`\nFROM alpine\nRUN docker pull g\\olang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["buildkit", "sh"]
+    },
+    {
+      "id": "shell-continuation",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN docker pull go\\\nlang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["buildkit", "sh"]
+    },
+    {
+      "id": "shell-comment-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nRUN echo alpine # golang:latest\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "heredoc-comment-is-line-local",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN <<EOF\n# golang:latest\ndocker pull golang:latest # active\nEOF\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "heredoc-comments-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nRUN <<EOF\necho alpine # golang:latest\n# golang:latest\nEOF\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "shell-identifiers-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nRUN golang=alpine echo ${#golang} $golang\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "shell-assignment-value-included",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN IMAGE=golang:latest echo ready\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "parameter-operand-included",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN echo ${IMAGE:-golang:latest}\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "cmd-shell-form",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nCMD docker pull golang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "entrypoint-exec-static-value",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nENTRYPOINT [\"docker\",\"pull\",\"golang:latest\"]\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "healthcheck-shell-form",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nHEALTHCHECK CMD curl https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["download"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "exec-sh-c-recursive",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN [\"/bin/sh\",\"-c\",\"docker pull go\\\"lang\\\":latest\"]\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["buildkit", "sh"]
+    },
+    {
+      "id": "exec-unknown-interpreter-not-recursive",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nRUN [\"python\",\"-c\",\"print('go' + 'lang')\"]\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "explicit-supported-shell",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nSHELL [\"/bin/sh\",\"-c\"]\nRUN echo alpine\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "unsupported-shell-use",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nSHELL [\"fish\",\"-c\"]\nRUN echo alpine\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-shell"]}
+    },
+    {
+      "id": "unsupported-shell-does-not-affect-exec-form",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nSHELL [\"fish\",\"-c\"]\nRUN [\"echo\",\"alpine\"]\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "onbuild-recursive-add",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nONBUILD ADD https://go.dev/dl/go1.27.0.linux-amd64.tar.gz /tmp/go.tgz\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["add-download"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "onbuild-recursive-exec",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nONBUILD RUN [\"docker\",\"pull\",\"golang:latest\"]\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "onbuild-canonical-never-managed",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nONBUILD FROM golang:1.27.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS hidden\n",
+      "want": {"classification": "invalid"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "unknown-instruction-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nFUTURE echo alpine\n",
+      "want": {"classification": "invalid"}
+    },
+    {
+      "id": "malformed-dockerfile-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN <<EOF\n",
+      "want": {"classification": "invalid"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "quoted-parameter-pattern-does-not-spend-depth",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nRUN echo '${A:-${A:-${A:-alpine}}}'\n",
+      "want": {"classification": "irrelevant"},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "visible-expansion-depth-limit",
+      "polarity": "detect",
+      "generator": {"kind": "nested-posix-default", "depth": 257, "leaf": "alpine"},
+      "want": {"classification": "invalid", "errorContains": "shell AST depth"}
+    },
+    {
+      "id": "instruction-limit",
+      "polarity": "detect",
+      "generator": {"kind": "repeat-instruction", "instruction": "RUN true", "count": 100001, "prefix": "FROM alpine"},
+      "want": {"classification": "invalid", "errorContains": "instruction limit"}
+    },
+    {
+      "id": "candidate-limit",
+      "polarity": "detect",
+      "generator": {"kind": "repeat-instruction", "instruction": "RUN echo golang", "count": 10001, "prefix": "FROM alpine"},
+      "want": {"classification": "invalid", "errorContains": "candidate limit"}
+    }
+  ]
+}

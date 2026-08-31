@@ -36,6 +36,8 @@ import (
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"golang.org/x/mod/modfile"
 	"gopkg.in/yaml.v3"
+	"mvdan.cc/sh/v3/expand"
+	shsyntax "mvdan.cc/sh/v3/syntax"
 )
 
 type request struct {
@@ -88,7 +90,8 @@ const (
 	maxDockerInstructions     = 100000
 	maxDockerCandidates       = 10000
 	maxDockerInstructionDepth = 256
-	maxDockerParameterDepth   = 256
+	maxShellASTNodes          = 100000
+	maxShellASTDepth          = 256
 	maxDockerNormalizedBytes  = maxInputBytes
 )
 
@@ -352,8 +355,7 @@ type dockerWordResult struct {
 }
 
 type runtimeWordsKey struct {
-	value   string
-	dialect runtimeShellDialect
+	value string
 }
 
 type runtimeWordsResult struct {
@@ -361,28 +363,16 @@ type runtimeWordsResult struct {
 	err    error
 }
 
-type runtimeShellDialect uint8
-
-const (
-	runtimeShellPOSIX runtimeShellDialect = iota
-	runtimeShellPowerShell
-	runtimeShellCmd
-)
-
 type runtimeShell struct {
-	dialect runtimeShellDialect
-	escape  byte
-	known   bool
+	known bool
 }
 
 type ignoredDockerInstruction struct{}
-type unknownDockerInstruction struct{}
 
 type dockerDiscovery struct {
 	wordLexer        *shell.Lex
 	wordMemo         map[dockerWordKey]dockerWordResult
 	runtimeWordsMemo map[runtimeWordsKey]runtimeWordsResult
-	escapeToken      byte
 	instructions     int
 	normalizedBytes  int
 	stageReferences  map[string]runtimeShell
@@ -398,7 +388,6 @@ func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 		wordLexer:        wordLexer,
 		wordMemo:         map[dockerWordKey]dockerWordResult{},
 		runtimeWordsMemo: map[runtimeWordsKey]runtimeWordsResult{},
-		escapeToken:      byte(escapeToken),
 		stageReferences:  map[string]runtimeShell{},
 		currentShell:     defaultRuntimeShell(),
 	}
@@ -423,6 +412,11 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 		}
 		*unsupported = append(*unsupported, fallback...)
 		typed = nil
+	}
+	if !allowManaged {
+		if _, ok := typed.(*instructions.Stage); ok {
+			return fmt.Errorf("line %d: FROM is not permitted in ONBUILD", node.StartLine)
+		}
 	}
 	if allowManaged {
 		if stage, ok := typed.(*instructions.Stage); ok {
@@ -514,12 +508,12 @@ func fallbackDockerInstructionCandidates(node *parser.Node, discovery *dockerDis
 
 func parseDockerInstruction(node *parser.Node) (any, error) {
 	switch strings.ToLower(node.Value) {
-	case "from", "arg", "add", "copy", "run", "cmd", "entrypoint", "healthcheck", "shell":
+	case "from", "arg", "env", "add", "copy", "run", "cmd", "entrypoint", "healthcheck", "shell":
 		return instructions.ParseInstruction(node)
-	case "env", "label", "maintainer", "onbuild", "workdir", "expose", "user", "volume", "stopsignal":
+	case "label", "maintainer", "onbuild", "workdir", "expose", "user", "volume", "stopsignal":
 		return ignoredDockerInstruction{}, nil
 	default:
-		return unknownDockerInstruction{}, nil
+		return nil, fmt.Errorf("unsupported Docker instruction %q", node.Value)
 	}
 }
 
@@ -560,6 +554,16 @@ func dockerInstructionCandidates(node *parser.Node, typed any, discovery *docker
 			}
 			if containsDockerGoToken(normalized) {
 				candidates = append(candidates, dockerCandidate{Kind: "arg-default", Value: *argument.Value, Line: node.StartLine})
+			}
+		}
+	case *instructions.EnvCommand:
+		for _, environment := range command.Env {
+			normalized, err := discovery.normalizeDockerWord(environment.Value)
+			if err != nil {
+				return nil, err
+			}
+			if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
+				candidates = append(candidates, dockerCandidate{Kind: "env-value", Value: environment.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.AddCommand:
@@ -616,37 +620,26 @@ func dockerInstructionCandidates(node *parser.Node, typed any, discovery *docker
 			}
 			candidates = append(candidates, commandCandidates...)
 		}
-	case unknownDockerInstruction:
-		if containsPotentialDockerGoReference(node.Original) {
-			candidates = append(candidates, dockerCandidate{Kind: "unknown-instruction", Value: node.Original, Line: node.StartLine})
-		}
 	}
 	return candidates, nil
 }
 
 func defaultRuntimeShell() runtimeShell {
-	return runtimeShell{dialect: runtimeShellPOSIX, escape: '\\', known: true}
+	return runtimeShell{known: true}
 }
 
 func runtimeShellFor(command []string) runtimeShell {
-	if len(command) == 0 {
-		return defaultRuntimeShell()
-	}
-	executable := command[0]
-	if separator := strings.LastIndexAny(executable, `/\\`); separator >= 0 {
-		executable = executable[separator+1:]
-	}
-	executable = strings.ToLower(executable)
-	switch executable {
-	case "sh", "bash", "dash", "ash", "zsh", "ksh":
-		return defaultRuntimeShell()
-	case "powershell", "powershell.exe", "pwsh", "pwsh.exe":
-		return runtimeShell{dialect: runtimeShellPowerShell, escape: '`', known: true}
-	case "cmd", "cmd.exe":
-		return runtimeShell{dialect: runtimeShellCmd, escape: '^', known: true}
-	default:
+	if len(command) != 2 || command[1] != "-c" {
 		return runtimeShell{}
 	}
+	if isPOSIXShellExecutable(command[0]) {
+		return defaultRuntimeShell()
+	}
+	return runtimeShell{}
+}
+
+func isPOSIXShellExecutable(command string) bool {
+	return command == "sh" || command == "/bin/sh"
 }
 
 func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage) {
@@ -686,11 +679,6 @@ func (discovery *dockerDiscovery) normalizeDockerWord(value string) (string, err
 	if result, found := discovery.wordMemo[key]; found {
 		return result.value, result.err
 	}
-	if dockerParameterExpansionDepth(value, discovery.escapeToken, runtimeShellPOSIX, false) > maxDockerParameterDepth {
-		err := resourceLimitf("Docker word exceeds the %d-level parameter expansion depth limit", maxDockerParameterDepth)
-		discovery.wordMemo[key] = dockerWordResult{err: err}
-		return "", err
-	}
 	normalized, _, err := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(nil))
 	if err != nil {
 		if isParameterIdentifierExpression(value) {
@@ -727,21 +715,23 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 	words := command.CmdLine
 	if command.PrependShell {
 		if !discovery.currentShell.known {
-			values := []string{strings.Join(command.CmdLine, " ")}
-			for _, file := range command.Files {
-				values = append(values, file.Data)
-			}
-			for _, value := range values {
-				if containsPotentialDockerGoReference(value) {
-					return []dockerCandidate{{Kind: "unknown-shell", Value: node.Original, Line: node.StartLine}}, nil
-				}
-			}
-			return nil, nil
+			return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
 		}
 		var err error
-		words, err = discovery.runtimeWords(strings.Join(command.CmdLine, " "), discovery.currentShell)
+		script := strings.Join(command.CmdLine, " ")
+		words, err = discovery.runtimeWords(script)
 		if err != nil {
-			return nil, err
+			var limitError *resourceLimitError
+			if errors.As(err, &limitError) {
+				return nil, err
+			}
+			// BuildKit removes heredoc bodies from CmdLine but retains their
+			// redirection markers. That fragment is not a standalone shell
+			// program; the typed Files below are the executable values.
+			if len(command.Files) == 0 || containsPotentialDockerGoReference(script) {
+				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
+			}
+			words = nil
 		}
 	} else {
 		length := 0
@@ -750,6 +740,17 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 		}
 		if err := discovery.accountNormalizedBytes(length); err != nil {
 			return nil, err
+		}
+		if len(words) >= 3 && isPOSIXShellExecutable(words[0]) && words[1] == "-c" {
+			scriptWords, err := discovery.runtimeWords(words[2])
+			if err != nil {
+				var limitError *resourceLimitError
+				if errors.As(err, &limitError) {
+					return nil, err
+				}
+				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
+			}
+			words = append(words, scriptWords...)
 		}
 	}
 	literal, download := scanRuntimeWords(words)
@@ -761,9 +762,16 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 		candidates = append(candidates, dockerCandidate{Kind: "literal", Value: node.Original, Line: node.StartLine})
 	}
 	for _, file := range command.Files {
-		fileWords, err := discovery.runtimeWords(file.Data, discovery.currentShell)
+		fileWords, err := discovery.runtimeWords(file.Data)
 		if err != nil {
-			return nil, err
+			var limitError *resourceLimitError
+			if errors.As(err, &limitError) {
+				return nil, err
+			}
+			if containsPotentialDockerGoReference(file.Data) {
+				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
+			}
+			continue
 		}
 		fileLiteral, fileDownload := scanRuntimeWords(fileWords)
 		if fileDownload {
@@ -776,17 +784,12 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 	return candidates, nil
 }
 
-func (discovery *dockerDiscovery) runtimeWords(value string, runtime runtimeShell) ([]string, error) {
-	key := runtimeWordsKey{value: value, dialect: runtime.dialect}
+func (discovery *dockerDiscovery) runtimeWords(value string) ([]string, error) {
+	key := runtimeWordsKey{value: value}
 	if result, found := discovery.runtimeWordsMemo[key]; found {
 		return result.values, result.err
 	}
-	if dockerParameterExpansionDepth(value, runtime.escape, runtime.dialect, true) > maxDockerParameterDepth {
-		err := resourceLimitf("runtime shell word exceeds the %d-level parameter expansion depth limit", maxDockerParameterDepth)
-		discovery.runtimeWordsMemo[key] = runtimeWordsResult{err: err}
-		return nil, err
-	}
-	words, err := lexRuntimeWords(value, runtime)
+	words, err := parseRuntimeShellWords(value)
 	if err == nil {
 		length := 0
 		for _, word := range words {
@@ -802,187 +805,101 @@ func scanRuntimeWords(words []string) (bool, bool) {
 	literal := false
 	download := false
 	for _, word := range words {
-		if value, assignment := shellAssignmentValue(word); assignment {
-			word = value
-		}
 		literal = literal || containsDockerGoToken(word)
 		download = download || goDownloadPattern.MatchString(word)
 	}
 	return literal, download
 }
 
-func shellAssignmentValue(word string) (string, bool) {
-	name, value, found := strings.Cut(word, "=")
-	if !found || name == "" {
-		return "", false
+func parseRuntimeShellWords(value string) ([]string, error) {
+	parsed, err := shsyntax.NewParser(shsyntax.Variant(shsyntax.LangPOSIX)).Parse(strings.NewReader(value), "runtime-shell")
+	if err != nil {
+		return nil, fmt.Errorf("parse POSIX runtime shell: %w", err)
 	}
-	for index, character := range name {
-		if index == 0 && character != '_' && !unicode.IsLetter(character) {
-			return "", false
-		}
-		if index != 0 && character != '_' && !unicode.IsLetter(character) && !unicode.IsDigit(character) {
-			return "", false
-		}
-	}
-	return value, true
-}
-
-func dockerParameterExpansionDepth(value string, escape byte, dialect runtimeShellDialect, comments bool) int {
+	words := []*shsyntax.Word{}
+	nodes := 0
 	depth := 0
-	maximum := 0
-	quote := byte(0)
-	comment := false
-	for index := 0; index < len(value); index++ {
-		character := value[index]
-		if comment {
-			if character == '\n' {
-				comment = false
-			}
-			continue
-		}
-		if quote == '\'' {
-			if character == '\'' {
-				quote = 0
-			}
-			continue
-		}
-		if quote == 0 && dialect != runtimeShellCmd && character == '\'' {
-			quote = '\''
-			continue
-		}
-		if character == escape && index+1 < len(value) {
-			if shellEscapeApplies(dialect, quote, value[index+1], escape) {
-				index++
-				continue
-			}
-		}
-		if character == '"' {
-			if quote == '"' {
-				quote = 0
-			} else {
-				quote = '"'
-			}
-			continue
-		}
-		if comments && quote == 0 && dialect != runtimeShellCmd && character == '#' && (index == 0 || isShellSeparator(value[index-1])) {
-			comment = true
-			continue
-		}
-		switch {
-		case character == '$' && index+1 < len(value) && value[index+1] == '{':
-			depth++
-			if depth > maximum {
-				maximum = depth
-			}
-			index++
-		case character == '}' && depth > 0:
+	var walkErr error
+	shsyntax.Walk(parsed, func(node shsyntax.Node) bool {
+		if node == nil {
 			depth--
+			return true
 		}
+		if walkErr != nil {
+			return false
+		}
+		nodes++
+		depth++
+		if nodes > maxShellASTNodes {
+			depth--
+			walkErr = resourceLimitf("runtime shell exceeds the %d-node parsed-work limit", maxShellASTNodes)
+			return false
+		}
+		if depth > maxShellASTDepth {
+			depth--
+			walkErr = resourceLimitf("runtime shell exceeds the %d-level shell AST depth limit", maxShellASTDepth)
+			return false
+		}
+		if word, ok := node.(*shsyntax.Word); ok {
+			words = append(words, word)
+		}
+		return true
+	})
+	if walkErr != nil {
+		return nil, walkErr
 	}
-	return maximum
-}
 
-func lexRuntimeWords(value string, runtime runtimeShell) ([]string, error) {
-	words := []string{}
-	var word strings.Builder
-	wordStarted := false
-	quote := byte(0)
-	parameterDepth := 0
-	comment := false
-	flush := func() {
-		if wordStarted {
-			words = append(words, word.String())
-			word.Reset()
-			wordStarted = false
+	result := []string{}
+	seen := map[string]bool{}
+	for _, environmentValue := range []string{"", "x"} {
+		config := &expand.Config{
+			Env: &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{}},
+			CmdSubst: func(io.Writer, *shsyntax.CmdSubst) error {
+				return nil
+			},
 		}
-	}
-	for index := 0; index < len(value); index++ {
-		character := value[index]
-		if comment {
-			if character == '\n' {
-				comment = false
+		for _, word := range words {
+			fields, expandErr := expand.Fields(config, word)
+			if expandErr != nil {
+				return nil, fmt.Errorf("expand POSIX runtime shell word: %w", expandErr)
 			}
-			continue
-		}
-		if quote == '\'' {
-			if character == '\'' {
-				quote = 0
-			} else {
-				word.WriteByte(character)
-				wordStarted = true
-			}
-			continue
-		}
-		if quote == 0 && runtime.dialect != runtimeShellCmd && character == '\'' {
-			quote = '\''
-			wordStarted = true
-			continue
-		}
-		if character == runtime.escape && index+1 < len(value) {
-			next := value[index+1]
-			if shellEscapeApplies(runtime.dialect, quote, next, runtime.escape) {
-				index++
-				if next != '\n' {
-					word.WriteByte(next)
-					wordStarted = true
+			for _, field := range fields {
+				if !seen[field] {
+					seen[field] = true
+					result = append(result, field)
 				}
-				continue
 			}
 		}
-		if character == '"' {
-			if quote == '"' {
-				quote = 0
-			} else {
-				quote = '"'
-				wordStarted = true
-			}
-			continue
-		}
-		if quote == 0 && runtime.dialect != runtimeShellCmd && character == '#' && !wordStarted {
-			comment = true
-			continue
-		}
-		if character == '$' && index+1 < len(value) && value[index+1] == '{' {
-			parameterDepth++
-			word.WriteString("${")
-			wordStarted = true
-			index++
-			continue
-		}
-		if character == '}' && parameterDepth > 0 {
-			parameterDepth--
-			word.WriteByte(character)
-			wordStarted = true
-			continue
-		}
-		if quote == 0 && parameterDepth == 0 && isShellSeparator(character) {
-			flush()
-			continue
-		}
-		word.WriteByte(character)
-		wordStarted = true
 	}
-	if quote != 0 {
-		return nil, fmt.Errorf("unterminated runtime shell quote")
-	}
-	flush()
-	return words, nil
+	return result, nil
 }
 
-func shellEscapeApplies(dialect runtimeShellDialect, quote byte, next byte, escape byte) bool {
-	if quote != '"' || dialect == runtimeShellPowerShell {
-		return true
-	}
-	return next == '"' || next == '$' || next == escape || next == '\n'
+type runtimeShellEnvironment struct {
+	fallback string
+	values   map[string]expand.Variable
 }
 
-func isShellSeparator(value byte) bool {
-	switch value {
-	case ' ', '\t', '\r', '\n', ';', '|', '&', '(', ')', '<', '>':
-		return true
-	default:
-		return false
+func (environment *runtimeShellEnvironment) Get(name string) expand.Variable {
+	if value, found := environment.values[name]; found {
+		return value
 	}
+	if environment.fallback == "" {
+		return expand.Variable{}
+	}
+	return expand.Variable{Set: true, Exported: true, Kind: expand.String, Str: environment.fallback}
+}
+
+func (environment *runtimeShellEnvironment) Each(yield func(string, expand.Variable) bool) {
+	for name, value := range environment.values {
+		if !yield(name, value) {
+			return
+		}
+	}
+}
+
+func (environment *runtimeShellEnvironment) Set(name string, value expand.Variable) error {
+	environment.values[name] = value
+	return nil
 }
 
 func containsDockerGoToken(value string) bool {

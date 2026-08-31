@@ -402,7 +402,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             return DIGESTS[tag]
 
         with self.assertRaisesRegex(RuntimeError,
-                                    'must be tracked and clean'):
+                                    'files changed while committing'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
@@ -417,6 +417,60 @@ class UpdateGoVersionTest(unittest.TestCase):
                 self.assertEqual(
                     (self.repo_root /
                      relative_path).read_text(encoding='utf-8'), contents)
+
+    def test_mode_change_during_digest_resolution_invalidates_snapshot(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        original_mode = stat.S_IMODE(dockerfile.stat().st_mode)
+        changed_mode = original_mode ^ stat.S_IXUSR
+        edited = False
+
+        def change_mode_then_resolve(tag):
+            nonlocal edited
+            if not edited:
+                dockerfile.chmod(changed_mode)
+                edited = True
+            return DIGESTS[tag]
+
+        with self.assertRaisesRegex(RuntimeError, 'worktree mode changed'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=change_mode_then_resolve,
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), changed_mode)
+        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
+                         self.files[Path('Dockerfile')])
+        self.assertEqual(self._recovery_patches(), [])
+
+    def test_unrelated_index_change_during_resolution_invalidates_snapshot(self):
+        notes = self.repo_root / 'notes.txt'
+        notes.write_text('original\n', encoding='utf-8')
+        self._git('add', 'notes.txt')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        changed = False
+
+        def stage_unrelated_then_resolve(tag):
+            nonlocal changed
+            if not changed:
+                notes.write_text('concurrent\n', encoding='utf-8')
+                self._git('add', 'notes.txt')
+                changed = True
+            return DIGESTS[tag]
+
+        with self.assertRaisesRegex(RuntimeError, 'Git index changed'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=stage_unrelated_then_resolve,
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(self._git('show', ':notes.txt').stdout,
+                         'concurrent\n')
+        self.assertEqual(self._recovery_patches(), [])
 
     def test_head_change_during_resolution_rejects_stale_plan(self):
         initial_head = self._git('rev-parse', 'HEAD').stdout.strip()
@@ -503,6 +557,35 @@ class UpdateGoVersionTest(unittest.TestCase):
                     update_go_version._indexed_stage_zero_entries(
                         self.repo_root, (Path('go.mod'),))
 
+    def test_complete_index_reader_preserves_object_ids_and_rejects_stages(self):
+        first_object = '1' * 40
+        second_object = '2' * 40
+        complete = (
+            f'100644 {first_object} 0\tgo.mod\0'
+            f'100755 {second_object} 0\ttools/helper\0')
+        with mock.patch.object(
+                update_go_version,
+                '_git',
+                return_value=subprocess.CompletedProcess(
+                    ('git',), 0, complete, ''),
+        ):
+            self.assertEqual(
+                update_go_version._complete_stage_zero_index(self.repo_root),
+                ((Path('go.mod'), '100644', first_object),
+                 (Path('tools/helper'), '100755', second_object)),
+            )
+
+        conflicted = f'100644 {first_object} 2\tunrelated.txt\0'
+        with mock.patch.object(
+                update_go_version,
+                '_git',
+                return_value=subprocess.CompletedProcess(
+                    ('git',), 0, conflicted, ''),
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'unsupported Git index stage 2'):
+                update_go_version._complete_stage_zero_index(self.repo_root)
+
     def test_unrelated_dirty_files_are_preserved(self):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
@@ -577,7 +660,7 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'Git index entry changed.*managed paths left unchanged.*'
+                    'Git index changed.*managed paths left unchanged.*'
                     'go.mod.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
@@ -592,6 +675,38 @@ class UpdateGoVersionTest(unittest.TestCase):
             self._git('ls-files', '--stage', '--',
                       'go.mod').stdout.startswith('100644 '))
         self.assertTrue(self._restore_patch(Path('go.mod')).exists())
+
+    def test_verification_preserves_unrelated_concurrent_staged_edit(self):
+        notes = self.repo_root / 'notes.txt'
+        notes.write_text('original\n', encoding='utf-8')
+        self._git('add', 'notes.txt')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        concurrent = 'concurrent staged edit\n'
+
+        def stage_unrelated_edit(repo_root):
+            if Path(repo_root) == self.repo_root:
+                notes.write_text(concurrent, encoding='utf-8')
+                self._git('add', 'notes.txt')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=stage_unrelated_edit,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'Git index changed.*managed paths left unchanged.*'
+                    'recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(notes.read_text(encoding='utf-8'), concurrent)
+        self.assertEqual(self._git('show', ':notes.txt').stdout, concurrent)
 
     def test_apply_failure_keeps_recovery_patch_and_originals(self):
         real_git = update_go_version._git
