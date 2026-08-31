@@ -76,7 +76,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		if isNotFoundError(err) {
-			s.writeErrorToResponse(response, http.StatusNotFound, util.Wrap(err, "Failed to read artifact"))
+			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact: %v", err))
 		} else {
 			s.writeErrorToResponse(response, http.StatusInternalServerError, err)
 		}
@@ -86,7 +86,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		if isNotFoundError(err) {
-			s.writeErrorToResponse(response, http.StatusNotFound, util.Wrap(err, "Failed to read artifact"))
+			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact: artifact file not found at path %q", artifactPath))
 		} else {
 			s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
 		}

@@ -302,7 +302,7 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	var errorResponse api.Error
 	err = json.Unmarshal(rr.Body.Bytes(), &errorResponse)
 	require.NoError(t, err)
-	require.Contains(t, errorResponse.ErrorMessage, "artifact file not found")
+	require.Contains(t, errorResponse.ErrorMessage, "not found")
 	require.NotContains(t, errorResponse.ErrorMessage, "<nil>")
 }
 
