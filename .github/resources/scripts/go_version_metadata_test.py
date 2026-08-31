@@ -86,6 +86,12 @@ class GoVersionMetadataTest(unittest.TestCase):
                 ))
         self.assertTrue(has_setup_go_use(
             'steps: [{uses: Actions/Setup-Go@v7}]\n'))
+        for value in ('./.github/actions/golang', 'owner/golang@v1'):
+            with self.subTest(value=value):
+                self.assertFalse(has_go_runtime_reference(
+                    Path('workflow.yaml'),
+                    f'steps: [{{uses: {value}}}]\n',
+                ))
 
     def test_malformed_escaped_yaml_candidates_fail_closed(self):
         for escape in (r'\x61', r'\u0061', r'\U00000061'):
@@ -98,6 +104,26 @@ class GoVersionMetadataTest(unittest.TestCase):
             with self.subTest(kind='setup-go', escape=escape):
                 with self.assertRaises(ValueError):
                     has_setup_go_use(contents)
+
+    def test_all_malformed_yaml_fails_closed_without_a_fallback_lexer(self):
+        for contents in (
+                'steps: [}\n',
+                'steps: [{uses: "go\\\nlang:1.20"}\n',
+                'run: alpine\ninvalid: [}\n'):
+            with self.subTest(contents=contents):
+                with self.assertRaises(ValueError):
+                    has_go_runtime_reference(Path('workflow.yaml'), contents)
+                with self.assertRaises(ValueError):
+                    has_setup_go_use(contents)
+
+    def test_only_the_named_invalid_repository_fixture_is_excluded(self):
+        contents = 'steps: [}\n'
+        self.assertFalse(has_go_runtime_reference(
+            Path('backend/src/crd/samples/scheduledworkflow/invalid.yaml'),
+            contents,
+        ))
+        with self.assertRaises(ValueError):
+            has_go_runtime_reference(Path('another/invalid.yaml'), contents)
 
     def test_yaml_colon_requires_mapping_separation(self):
         contents = (

@@ -768,6 +768,210 @@ func TestExecShellArgumentSemantics(t *testing.T) {
 	}
 }
 
+func TestDockerWordAlternativesAcrossExpansionBoundaries(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		instruction   string
+		candidateKind string
+	}{
+		{
+			name:          "mixed set and unset image branches",
+			instruction:   "ARG VALUE=${A:+go}${B:-lang}:latest",
+			candidateKind: "arg-default",
+		},
+		{
+			name:          "quoted image fragments",
+			instruction:   `ENV VALUE=go"${A:-la}"ng:latest`,
+			candidateKind: "env-value",
+		},
+		{
+			name:          "download split across three variables",
+			instruction:   "ADD https://${A:+go}${B:-.dev}/dl/${C:+go}1.27.0.tar.gz /tmp/go.tgz",
+			candidateKind: "add-download",
+		},
+		{
+			name:          "FROM repository split across branches",
+			instruction:   "FROM ${A:+go}${B:-lang}:latest AS builder",
+			candidateKind: "from",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			contents := "FROM alpine\n" + test.instruction + "\n"
+			if strings.HasPrefix(test.instruction, "FROM ") {
+				contents = test.instruction + "\n"
+			}
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported; error=%q", metadata.DockerClassification, metadata.DockerError)
+			}
+			if got := metadata.DockerCandidates[0].Kind; got != test.candidateKind {
+				t.Fatalf("candidate kind = %q, want %q", got, test.candidateKind)
+			}
+		})
+	}
+}
+
+func TestSymbolicImageRepositoryComponent(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		image          string
+		classification string
+	}{
+		{
+			name:           "registry port before symbolic golang component",
+			image:          "registry.example:5000/ns/go${VALUE}ang:latest",
+			classification: "unsupported",
+		},
+		{
+			name:           "non-golang component with matching suffix",
+			image:          "registry.example:5000/ns/xx${VALUE}ang:latest",
+			classification: "irrelevant",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM " + test.image + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
+			}
+		})
+	}
+}
+
+func TestDockerWordAlternativeBounds(t *testing.T) {
+	contents := "FROM alpine\nARG VALUE=${A:-x}${B:-x}${C:-x}${D:-x}${E:-x}${F:-x}${G:-x}\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "invalid" || !strings.Contains(metadata.DockerError, "more than 6 variables") {
+		t.Fatalf("classification = %q, error=%q, want bounded invalid", metadata.DockerClassification, metadata.DockerError)
+	}
+}
+
+func TestDockerWordValidationAndClassificationShareAccounting(t *testing.T) {
+	first := `g\olang:latest-` + strings.Repeat("a", 15000)
+	second := `go"lang":latest-` + strings.Repeat("b", 15000)
+	contents := "FROM alpine\nARG FIRST=" + first + "\nENV SECOND=" + second + "\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "unsupported" {
+		t.Fatalf("classification = %q, want unsupported; error=%q", metadata.DockerClassification, metadata.DockerError)
+	}
+	var kinds []string
+	for _, candidate := range metadata.DockerCandidates {
+		kinds = append(kinds, candidate.Kind)
+	}
+	if want := []string{"arg-default", "env-value"}; !reflect.DeepEqual(kinds, want) {
+		t.Fatalf("candidate kinds = %q, want %q", kinds, want)
+	}
+}
+
+func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		contents       string
+		classification string
+		candidateKinds []string
+	}{
+		{
+			name:           "duplicate alias",
+			contents:       "FROM alpine AS base\nFROM alpine AS base\n",
+			classification: "invalid",
+		},
+		{
+			name:           "self COPY by alias",
+			contents:       "FROM alpine AS base\nCOPY --from=base /x /x\n",
+			classification: "invalid",
+		},
+		{
+			name:           "self RUN mount by numeric index",
+			contents:       "FROM alpine AS base\nRUN --mount=type=bind,from=0,target=/src true\n",
+			classification: "invalid",
+		},
+		{
+			name: "prior namespace and inherited config",
+			contents: "FROM alpine AS base\n" +
+				`SHELL ["fish","-c"]` + "\n" +
+				"FROM base AS final\nRUN echo alpine\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell"},
+		},
+		{
+			name: "consumed ONBUILD resolves in child namespace",
+			contents: "FROM alpine AS golang\n" +
+				"FROM alpine AS parent\n" +
+				"ONBUILD COPY --from=golang /x /x\n" +
+				"FROM parent AS child\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "ordered ONBUILD shell persists in child",
+			contents: "FROM alpine AS parent\n" +
+				`ONBUILD SHELL ["fish","-c"]` + "\n" +
+				"ONBUILD RUN echo alpine\n" +
+				"FROM parent AS child\n" +
+				"RUN echo alpine\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell", "unsupported-shell"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; error=%q", metadata.DockerClassification, test.classification, metadata.DockerError)
+			}
+			var kinds []string
+			for _, candidate := range metadata.DockerCandidates {
+				kinds = append(kinds, candidate.Kind)
+			}
+			if !reflect.DeepEqual(kinds, test.candidateKinds) {
+				t.Fatalf("candidate kinds = %q, want %q", kinds, test.candidateKinds)
+			}
+		})
+	}
+}
+
+func TestRuntimeShellContextDomains(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		script         string
+		classification string
+	}{
+		{name: "arithmetic identifier", script: `echo $((golang + 1))`, classification: "irrelevant"},
+		{name: "command substitution body", script: `echo $(printf golang:latest)`, classification: "unsupported"},
+		{name: "command substitution nested in arithmetic", script: `echo $(( $(printf 0 golang:latest) + 1 ))`, classification: "unsupported"},
+		{name: "status is numeric", script: `echo ${?}golang:latest`, classification: "irrelevant"},
+		{name: "pid is numeric", script: `echo ${$}golang:latest`, classification: "irrelevant"},
+		{name: "parameter count is numeric", script: `echo ${#}golang:latest`, classification: "irrelevant"},
+		{name: "unbraced status is numeric", script: `echo go$?lang`, classification: "irrelevant"},
+		{name: "unbraced count is numeric", script: `echo go$#lang`, classification: "irrelevant"},
+		{name: "unbraced pid is numeric", script: `echo go$$lang`, classification: "irrelevant"},
+		{name: "shell name is not empty", script: `echo go$0lang`, classification: "irrelevant"},
+		{name: "last background pid may be unset", script: `echo go$!lang`, classification: "unsupported"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nRUN " + test.script + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
+			}
+		})
+	}
+}
+
 func TestDockerGoTokenBoundaries(t *testing.T) {
 	for _, value := range []string{
 		"golang;",

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -22,6 +23,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	buildkitshell "github.com/moby/buildkit/frontend/dockerfile/shell"
 )
@@ -31,7 +33,37 @@ type dockerContract struct {
 	BuildKitWordOracles     []buildKitWordOracle           `json:"buildkitWordOracles"`
 	ShellOracles            []shellOracle                  `json:"shellOracles"`
 	ExecutableCrossProducts []dockerExecutableCrossProduct `json:"executableCrossProducts"`
+	WordExpansionProducts   []dockerWordExpansionProduct   `json:"wordExpansionCrossProducts"`
+	DockerConformance       []dockerConformanceCase        `json:"dockerConformance"`
 	Cases                   []dockerClassificationCase     `json:"cases"`
+}
+
+type dockerWordExpansionProduct struct {
+	ID        string                        `json:"id"`
+	Variable  string                        `json:"variable"`
+	Sources   []dockerExecutableSource      `json:"sources"`
+	Fields    []dockerWordExpansionField    `json:"fields"`
+	Operators []dockerWordExpansionOperator `json:"operators"`
+}
+
+type dockerWordExpansionField struct {
+	ID            string `json:"id"`
+	Template      string `json:"template"`
+	CandidateKind string `json:"candidateKind"`
+}
+
+type dockerWordExpansionOperator struct {
+	Token string          `json:"token"`
+	Want  map[string]bool `json:"wantSourceByState"`
+}
+
+type dockerConformanceCase struct {
+	ID            string                   `json:"id"`
+	Finding       int                      `json:"finding"`
+	Dockerfile    string                   `json:"dockerfile"`
+	Generator     *dockerContractGenerator `json:"generator"`
+	Accepted      bool                     `json:"accepted"`
+	ErrorContains string                   `json:"errorContains"`
 }
 
 type dockerExecutableCrossProduct struct {
@@ -175,6 +207,129 @@ func TestDockerContractExecutableCrossProducts(t *testing.T) {
 	}
 }
 
+func TestDockerContractWordExpansionCrossProducts(t *testing.T) {
+	for _, product := range readDockerContract(t).WordExpansionProducts {
+		product := product
+		if product.ID == "" || product.Variable == "" {
+			t.Fatalf("matrix ID and variable must not be empty: %#v", product)
+		}
+		states := map[string][]string{
+			"unset":    nil,
+			"empty":    {product.Variable + "="},
+			"nonempty": {product.Variable + "=x"},
+		}
+		for _, source := range product.Sources {
+			for _, operator := range product.Operators {
+				word := "${" + product.Variable + operator.Token + source.Value + "}"
+				for state, environment := range states {
+					state, environment := state, environment
+					t.Run(strings.Join([]string{product.ID, source.ID, operator.Token, state}, "/"), func(t *testing.T) {
+						want, found := operator.Want[state]
+						if !found {
+							t.Fatalf("operator %q has no expectation for state %q", operator.Token, state)
+						}
+						lexer := buildkitshell.NewLex('\\')
+						normalized, _, err := lexer.ProcessWord(word, buildkitshell.EnvsFromSlice(environment))
+						if err != nil {
+							t.Fatal(err)
+						}
+						if got := normalized == source.Value; got != want {
+							t.Fatalf("source branch selected = %t, want %t; normalized value %q", got, want, normalized)
+						}
+					})
+				}
+				for _, field := range product.Fields {
+					field := field
+					t.Run(strings.Join([]string{product.ID, source.ID, operator.Token, field.ID}, "/"), func(t *testing.T) {
+						instruction := strings.ReplaceAll(field.Template, "{{WORD}}", word)
+						classification, candidates, parseError := classifyDockerfile("FROM alpine\n" + instruction + "\n")
+						if classification != "unsupported" {
+							t.Fatalf("classification = %q, want unsupported (error %q)", classification, parseError)
+						}
+						kinds := make([]string, 0, len(candidates))
+						for _, candidate := range candidates {
+							kinds = append(kinds, candidate.Kind)
+						}
+						if want := []string{field.CandidateKind}; !slices.Equal(kinds, want) {
+							t.Fatalf("candidate kinds = %q, want %q", kinds, want)
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
+func TestDockerContractAgainstDocker(t *testing.T) {
+	if os.Getenv("KFP_RUN_DOCKER_CONFORMANCE") != "1" {
+		t.Skip("set KFP_RUN_DOCKER_CONFORMANCE=1 to validate the contract with Docker")
+	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker is not available")
+	}
+	contract := readDockerContract(t)
+	contextDirectory := t.TempDir()
+	for _, testCase := range contract.DockerConformance {
+		testCase := testCase
+		t.Run(testCase.ID, func(t *testing.T) {
+			contents := testCase.Dockerfile
+			if testCase.Generator != nil {
+				contents = generateDockerContractInput(t, *testCase.Generator)
+			}
+			commandContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			command := exec.CommandContext(commandContext, "docker", "build", "--check", "-f", "-", contextDirectory)
+			// Conformance is about Dockerfile acceptance, not optional lint
+			// warnings such as UndefinedVar on deliberately adversarial inputs.
+			command.Stdin = strings.NewReader("# check=skip=all\n" + contents)
+			output, err := command.CombinedOutput()
+			if commandContext.Err() != nil {
+				t.Fatalf("Docker conformance check timed out: %v", commandContext.Err())
+			}
+			if testCase.Accepted && err != nil {
+				t.Fatalf("Docker rejected accepted input: %v\n%s", err, boundedDockerOutput(output))
+			}
+			if !testCase.Accepted && err == nil {
+				t.Fatalf("Docker accepted rejected input:\n%s", boundedDockerOutput(output))
+			}
+			if testCase.ErrorContains != "" && !strings.Contains(string(output), testCase.ErrorContains) {
+				t.Fatalf("Docker output does not contain %q:\n%s", testCase.ErrorContains, boundedDockerOutput(output))
+			}
+		})
+	}
+}
+
+func TestDockerContractDockerConformanceCoverage(t *testing.T) {
+	findings := map[int]bool{}
+	seen := map[string]bool{}
+	for _, testCase := range readDockerContract(t).DockerConformance {
+		if testCase.ID == "" || seen[testCase.ID] {
+			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
+		}
+		seen[testCase.ID] = true
+		if testCase.Finding < 1 || testCase.Finding > 6 {
+			t.Errorf("%s: finding = %d, want 1 through 6", testCase.ID, testCase.Finding)
+		}
+		findings[testCase.Finding] = true
+		if (testCase.Dockerfile == "") == (testCase.Generator == nil) {
+			t.Errorf("%s: exactly one of dockerfile or generator must be set", testCase.ID)
+		}
+	}
+	for finding := 1; finding <= 6; finding++ {
+		if !findings[finding] {
+			t.Errorf("Docker conformance corpus does not cover finding %d", finding)
+		}
+	}
+}
+
+func boundedDockerOutput(output []byte) string {
+	const limit = 8 << 10
+	if len(output) <= limit {
+		return string(output)
+	}
+	return string(output[:limit]) + fmt.Sprintf("\n... %d bytes omitted ...", len(output)-limit)
+}
+
 func renderDockerExecutableCase(t *testing.T, source, instruction, form, context string) (string, bool) {
 	t.Helper()
 	prefix := instruction
@@ -236,6 +391,15 @@ func generateDockerContractInput(t *testing.T, generator dockerContractGenerator
 			t.Fatalf("generated Docker contract input is %d bytes, want %d", len(result), generator.Bytes)
 		}
 		return result
+	case "near-limit-docker-word":
+		if generator.Bytes < len(generator.Prefix) {
+			t.Fatalf("Docker word size %d is shorter than prefix %q", generator.Bytes, generator.Prefix)
+		}
+		word := generator.Prefix + strings.Repeat("a", generator.Bytes-len(generator.Prefix))
+		if len(word) != generator.Bytes {
+			t.Fatalf("generated Docker word is %d bytes, want %d", len(word), generator.Bytes)
+		}
+		return "FROM alpine\nARG IMAGE=" + word + "\n"
 	default:
 		t.Fatalf("unknown Docker contract generator %q", generator.Kind)
 		return ""

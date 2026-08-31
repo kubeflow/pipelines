@@ -408,6 +408,60 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(set(first), set(self.files))
 
+    def test_no_change_rejects_staged_deletion_of_nested_module(self):
+        resolver = lambda tag: DIGESTS[tag]
+        update_go_version.sync(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=resolver,
+            repository_paths=self.files,
+        )
+        self._git('add', '--', *(str(path) for path in self.files))
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'update')
+        self._git('rm', 'nested/go.mod')
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'nested/go.mod disappeared'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'missing identities must fail before digest resolution'),
+                repository_paths=self.files,
+            )
+
+    def test_startup_rejects_staged_deletion_of_managed_dockerfile(self):
+        self._git('rm', 'Dockerfile')
+
+        with self.assertRaisesRegex(RuntimeError, 'Dockerfile disappeared'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'missing identities must fail before digest resolution'),
+                repository_paths=self.files,
+            )
+
+    def test_startup_rejects_staged_deletion_of_relevant_yaml(self):
+        relative_path = Path('runtime.yaml')
+        runtime = self.repo_root / relative_path
+        runtime.write_text('image: golang:1.28.0\n', encoding='utf-8')
+        self._git('add', str(relative_path))
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'runtime')
+        self._git('rm', str(relative_path))
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'runtime.yaml disappeared'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'missing identities must fail before digest resolution'),
+                repository_paths=set(self.files) | {relative_path},
+            )
+
     def test_sync_preserves_crlf_bytes(self):
         self._checkout_crlf_worktree()
 

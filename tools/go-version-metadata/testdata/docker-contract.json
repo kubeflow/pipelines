@@ -5,7 +5,9 @@
     "classification": "managed, unsupported, irrelevant, or invalid",
     "candidateKinds": "ordered semantic source kinds; omitted when no candidate is required",
     "oracles": "optional differential oracle names: buildkit or sh",
-    "executableCrossProducts": "generated source kind x instruction field x form x deferred-context acceptance cases"
+    "executableCrossProducts": "generated source kind x instruction field x form x deferred-context acceptance cases",
+    "wordExpansionCrossProducts": "generated conditional-operator branches across variable states, source kinds, and typed fields",
+    "dockerConformance": "opt-in Docker --check acceptance corpus annotated with the review finding it guards"
   },
   "buildkitWordOracles": [
     {"id": "docker-backslash-concat", "escape": "\\", "word": "g\\olang:latest", "env": {}, "want": "golang:latest"},
@@ -35,6 +37,88 @@
       "instructions": ["RUN", "CMD", "ENTRYPOINT", "HEALTHCHECK"],
       "forms": ["shell", "exec", "heredoc"],
       "contexts": ["top-level", "onbuild"]
+    }
+  ],
+  "wordExpansionCrossProducts": [
+    {
+      "id": "conditional-source-branch",
+      "variable": "VALUE",
+      "sources": [
+        {"id": "image", "value": "golang:latest", "candidateKind": "literal"},
+        {"id": "download", "value": "https://go.dev/dl/go1.27.0.linux-amd64.tar.gz", "candidateKind": "download"}
+      ],
+      "fields": [
+        {"id": "arg", "template": "ARG TARGET={{WORD}}", "candidateKind": "arg-default"},
+        {"id": "env", "template": "ENV TARGET={{WORD}}", "candidateKind": "env-value"}
+      ],
+      "operators": [
+        {"token": ":-", "wantSourceByState": {"unset": true, "empty": true, "nonempty": false}},
+        {"token": "-", "wantSourceByState": {"unset": true, "empty": false, "nonempty": false}},
+        {"token": ":+", "wantSourceByState": {"unset": false, "empty": false, "nonempty": true}},
+        {"token": "+", "wantSourceByState": {"unset": false, "empty": true, "nonempty": true}}
+      ]
+    }
+  ],
+  "dockerConformance": [
+    {
+      "id": "finding-1-arg-download-source",
+      "finding": 1,
+      "dockerfile": "FROM scratch\nARG URL=https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-2-exec-sh-positional-argument",
+      "finding": 2,
+      "dockerfile": "FROM scratch\nRUN [\"sh\",\"-c\",\"echo ${0}lang:latest\",\"go\"]\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-3-onbuild-heredoc",
+      "finding": 3,
+      "dockerfile": "FROM scratch\nONBUILD RUN <<SCRIPT\necho golang:latest\nSCRIPT\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-4-heredoc-delimiter-name",
+      "finding": 4,
+      "dockerfile": "FROM scratch\nRUN <<golang\necho alpine\ngolang\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-4-unterminated-heredoc",
+      "finding": 4,
+      "dockerfile": "FROM scratch\nRUN <<EOF\n",
+      "accepted": false
+    },
+    {
+      "id": "finding-5-source-bearing-public-deadline",
+      "finding": 5,
+      "generator": {"kind": "distinct-nested-docker-defaults", "depth": 9331, "leaf": "golang:latestx", "count": 8, "bytes": 448084},
+      "accepted": true
+    },
+    {
+      "id": "finding-6-empty-workdir",
+      "finding": 6,
+      "dockerfile": "FROM scratch\nWORKDIR\n",
+      "accepted": false
+    },
+    {
+      "id": "finding-6-run-before-from",
+      "finding": 6,
+      "dockerfile": "RUN true\nFROM scratch\n",
+      "accepted": false
+    },
+    {
+      "id": "finding-6-forbidden-onbuild-from",
+      "finding": 6,
+      "dockerfile": "FROM scratch\nONBUILD FROM scratch\n",
+      "accepted": false
+    },
+    {
+      "id": "finding-6-invalid-arg-word",
+      "finding": 6,
+      "dockerfile": "FROM scratch\nARG LENGTH=${#golang}\n",
+      "accepted": false
     }
   ],
   "cases": [
@@ -116,6 +200,55 @@
       "dockerfile": "FROM alpine\nARG IMAGE=golang:latest\n",
       "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]},
       "oracles": ["buildkit"]
+    },
+    {
+      "id": "arg-download-default-reserved",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG URL=https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\nRUN wget \"$URL\"\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]},
+      "oracles": ["buildkit", "sh"]
+    },
+    {
+      "id": "arg-download-spoof-hosts-excluded",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nARG HTTP_URL=http://go.dev/dl/go1.27.0.linux-amd64.tar.gz\nARG EMBEDDED_URL=https://example.test/go.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "arg-direct-unknown-can-complete-image",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG IMAGE=go${VALUE}ang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]}
+    },
+    {
+      "id": "arg-direct-unknown-can-complete-download",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG URL=https://go.${TLD}/dl/go1.27.0.linux-amd64.tar.gz\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]}
+    },
+    {
+      "id": "arg-unknown-only-in-alpine-tag",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nARG IMAGE=alpine:${ARCH}\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "env-ordinary-unknown-interpolation",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nENV PATH=${PATH}:/usr/local/bin\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "from-unknown-only-in-alpine-tag",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine:${TAG}\n",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "arg-unrelated-unknown-download-path",
+      "polarity": "allow",
+      "dockerfile": "FROM alpine\nARG URL=https://example.test/${FILE}\n",
+      "want": {"classification": "irrelevant"}
     },
     {
       "id": "env-name-allowed",
@@ -294,6 +427,24 @@
       "want": {"classification": "invalid"}
     },
     {
+      "id": "empty-workdir-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM scratch\nWORKDIR\n",
+      "want": {"classification": "invalid"}
+    },
+    {
+      "id": "run-before-from-invalid",
+      "polarity": "detect",
+      "dockerfile": "RUN true\nFROM scratch\n",
+      "want": {"classification": "invalid"}
+    },
+    {
+      "id": "docker-word-error-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM scratch\nARG LENGTH=${#golang}\n",
+      "want": {"classification": "invalid"}
+    },
+    {
       "id": "malformed-dockerfile-invalid",
       "polarity": "detect",
       "dockerfile": "FROM alpine\nRUN <<EOF\n",
@@ -318,6 +469,13 @@
       "polarity": "detect",
       "generator": {"kind": "distinct-nested-docker-defaults", "depth": 9331, "leaf": "golang:latestx", "count": 8, "bytes": 448084},
       "want": {"classification": "invalid", "errorContains": "normalization input limit"}
+    },
+    {
+      "id": "typed-validation-candidate-cache-boundary",
+      "polarity": "detect",
+      "generator": {"kind": "near-limit-docker-word", "prefix": "g\\olang:", "bytes": 16384},
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]},
+      "oracles": ["buildkit"]
     },
     {
       "id": "instruction-limit",

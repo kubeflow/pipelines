@@ -112,6 +112,61 @@ def _repository_paths(repo_root: Path) -> Set[Path]:
     return {Path(path) for path in output.split('\0') if path}
 
 
+def _head_blob_entries(repo_root: Path,
+                       head: str) -> Dict[Path, Tuple[str, str]]:
+    output = _git(repo_root, 'ls-tree', '-r', '-z', head).stdout
+    entries = {}
+    for entry in output.split('\0'):
+        if not entry:
+            continue
+        metadata, path_text = entry.split('\t', 1)
+        mode, object_type, object_id = metadata.split(' ')
+        if object_type == 'blob':
+            entries[Path(path_text)] = (mode, object_id)
+    return entries
+
+
+def _managed_identity_inventory(
+    repo_root: Path,
+    head: str,
+    index_entries: Tuple[Tuple[Path, str, str], ...],
+    repository_paths: Optional[Set[Path]],
+) -> Tuple[Path, ...]:
+    """Identify managed tracked paths without consulting the worktree."""
+    sources: Dict[Path, Set[str]] = {}
+    for relative_path, (_mode, object_id) in _head_blob_entries(
+            repo_root, head).items():
+        if repository_paths is None or relative_path in repository_paths:
+            sources.setdefault(relative_path, set()).add(object_id)
+    for relative_path, _mode, object_id in index_entries:
+        if repository_paths is None or relative_path in repository_paths:
+            sources.setdefault(relative_path, set()).add(object_id)
+
+    managed = {
+        relative_path for relative_path in sources
+        if relative_path.name == 'go.mod'
+    }
+    for relative_path in sorted(managed):
+        _ensure_regular_destination(repo_root / relative_path, relative_path)
+    blob_contents = {}
+    for relative_path, object_ids in sources.items():
+        if relative_path.name == 'go.mod':
+            continue
+        if not (is_container_recipe(relative_path) or
+                relative_path.suffix in SCANNED_RUNTIME_SUFFIXES):
+            continue
+        for object_id in object_ids:
+            contents = blob_contents.get(object_id)
+            if contents is None:
+                contents = _git(repo_root, 'cat-file', 'blob',
+                                object_id).stdout
+                blob_contents[object_id] = contents
+            if has_go_runtime_reference(relative_path, contents):
+                managed.add(relative_path)
+                break
+    return tuple(sorted(managed))
+
+
 def _module_versions(
     contents: str,
     relative_path: Path,
@@ -475,10 +530,29 @@ def sync(
     initial_head = _git(repo_root, 'rev-parse', '--verify',
                         'HEAD').stdout.strip()
     initial_index = _complete_stage_zero_index(repo_root)
+    scoped_repository_paths = (set(repository_paths)
+                               if repository_paths is not None else None)
+    managed_identity = _managed_identity_inventory(
+        repo_root,
+        initial_head,
+        initial_index,
+        scoped_repository_paths,
+    )
+    for relative_path in managed_identity:
+        _ensure_regular_destination(repo_root / relative_path, relative_path)
+    identity_head = _require_clean_managed_paths(repo_root, managed_identity)
+    if identity_head != initial_head:
+        raise RuntimeError(
+            f'HEAD changed during Go version update from {initial_head} '
+            f'to {identity_head}')
     snapshot = None
 
     def capture_snapshot(originals: Dict[Path, str]) -> None:
         nonlocal snapshot
+        if set(originals) != set(managed_identity):
+            raise RuntimeError(
+                'managed Go version identity changed while planning the '
+                'update')
         snapshot = _capture_repository_snapshot(repo_root, originals,
                                                 initial_head, initial_index)
 
@@ -486,7 +560,7 @@ def sync(
         repo_root,
         target_version,
         digest_resolver=digest_resolver,
-        repository_paths=repository_paths,
+        repository_paths=scoped_repository_paths,
         originals_callback=capture_snapshot,
     )
     if snapshot is None:

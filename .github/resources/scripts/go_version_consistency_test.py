@@ -338,6 +338,10 @@ class GoVersionConsistencyTest(unittest.TestCase):
             '      cat <<EOF\n'
             '      uses: actions/setup-go@v7\n'
             '      EOF\n'))
+        for action in ('./.github/actions/golang', 'owner/golang@v1'):
+            with self.subTest(action=action):
+                self.assertFalse(has_go_runtime_reference(
+                    Path('workflow.yaml'), f'- uses: {action}\n'))
 
     def test_setup_go_actions_use_root_module_version(self):
         for relative_path in GO_SETUP_ACTIONS:
@@ -358,6 +362,11 @@ class GoVersionConsistencyTest(unittest.TestCase):
         discovered = set()
         for relative_path in _repository_paths():
             if relative_path.suffix not in {'.yaml', '.yml'}:
+                continue
+            is_workflow = relative_path.is_relative_to(
+                Path('.github/workflows'))
+            is_action = relative_path.name in {'action.yaml', 'action.yml'}
+            if not (is_workflow or is_action):
                 continue
             path = REPOSITORY_ROOT / relative_path
             if path.exists() and has_setup_go_use(

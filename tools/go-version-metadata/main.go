@@ -91,6 +91,9 @@ const (
 	maxDockerNormalizedBytes  = maxInputBytes
 	maxDockerWordInputBytes   = 16 << 10
 	maxDockerWordWorkBytes    = 32 << 10
+	maxDockerWordVariables    = 6
+	maxDockerWordAlternatives = 729
+	maxDockerAlternativeWork  = 1 << 20
 )
 
 type resourceLimitError struct {
@@ -333,17 +336,18 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	}
 	for _, node := range parsed.AST.Children {
 		if strings.EqualFold(node.Value, "from") {
-			if err := discovery.flushDeferred(&managed, &unsupported); err != nil {
+			if err := discovery.completeCurrentStage(); err != nil {
 				return "invalid", nil, err.Error()
 			}
 		}
-		if err := classifyDockerInstruction(node, true, false, 0, discovery, &managed, &unsupported); err != nil {
+		if err := classifyDockerInstruction(node, true, 0, discovery, &managed, &unsupported); err != nil {
 			return "invalid", nil, err.Error()
 		}
 	}
-	if err := discovery.flushDeferred(&managed, &unsupported); err != nil {
+	if err := discovery.completeCurrentStage(); err != nil {
 		return "invalid", nil, err.Error()
 	}
+	unsupported = append(unsupported, discovery.unconsumedDeferredCandidates()...)
 	sort.SliceStable(unsupported, func(left, right int) bool {
 		return unsupported[left].Line < unsupported[right].Line
 	})
@@ -385,8 +389,11 @@ type dockerWordKey struct {
 }
 
 type dockerWordResult struct {
-	value string
-	err   error
+	validation string
+	values     []string
+	symbolic   string
+	unknown    bool
+	err        error
 }
 
 type runtimeWordsKey struct {
@@ -406,6 +413,20 @@ type runtimeShell struct {
 type deferredDockerInstruction struct {
 	expression string
 	line       int
+	consumed   bool
+}
+
+type dockerStageState struct {
+	references  []string
+	shell       runtimeShell
+	triggers    []*deferredDockerInstruction
+	provisional []dockerCandidate
+}
+
+type dockerInstructionContext struct {
+	shell             runtimeShell
+	conservative      bool
+	currentReferences []string
 }
 
 type dockerDiscovery struct {
@@ -416,10 +437,10 @@ type dockerDiscovery struct {
 	instructions     int
 	normalizedBytes  int
 	wordWorkBytes    int
-	stageReferences  map[string]runtimeShell
-	deferred         []deferredDockerInstruction
-	currentStage     []string
-	currentShell     runtimeShell
+	alternativeWork  int
+	stageReferences  map[string]*dockerStageState
+	allStages        []*dockerStageState
+	currentStage     *dockerStageState
 	stageCount       int
 }
 
@@ -431,12 +452,11 @@ func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 		wordLexer:        wordLexer,
 		wordMemo:         map[dockerWordKey]dockerWordResult{},
 		runtimeWordsMemo: map[runtimeWordsKey]runtimeWordsResult{},
-		stageReferences:  map[string]runtimeShell{},
-		currentShell:     defaultRuntimeShell(),
+		stageReferences:  map[string]*dockerStageState{},
 	}
 }
 
-func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
+func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
 	if depth > maxDockerInstructionDepth {
 		return resourceLimitf("Docker metadata exceeds the %d-level instruction depth limit", maxDockerInstructionDepth)
 	}
@@ -455,7 +475,9 @@ func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, d
 	}
 	if allowManaged {
 		if stage, ok := typed.(*instructions.Stage); ok {
-			discovery.beginStage(stage)
+			if err := discovery.beginStage(stage, unsupported); err != nil {
+				return err
+			}
 		}
 	}
 	original := node.Original
@@ -471,7 +493,7 @@ func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, d
 			Alias:   canonical[4],
 		})
 	} else {
-		candidates, err := dockerInstructionCandidates(node, typed, deferred, discovery)
+		candidates, err := dockerInstructionCandidates(node, typed, discovery.currentContext(), discovery)
 		if err != nil {
 			return fmt.Errorf("line %d: %w", node.StartLine, err)
 		}
@@ -479,14 +501,8 @@ func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, d
 	}
 	if allowManaged {
 		switch command := typed.(type) {
-		case *instructions.Stage:
-			discovery.recordCurrentStage()
 		case *instructions.ShellCommand:
 			discovery.setRuntimeShell(command.Shell)
-		}
-	} else if deferred {
-		if command, ok := typed.(*instructions.ShellCommand); ok {
-			discovery.currentShell = runtimeShellFor(command.Shell)
 		}
 	}
 	if len(*managed)+len(*unsupported) > maxDockerCandidates {
@@ -494,7 +510,7 @@ func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, d
 	}
 	if onbuild, ok := typed.(*instructions.OnbuildCommand); ok {
 		if allowManaged {
-			discovery.deferred = append(discovery.deferred, deferredDockerInstruction{expression: onbuild.Expression, line: node.StartLine})
+			discovery.currentStage.triggers = append(discovery.currentStage.triggers, &deferredDockerInstruction{expression: onbuild.Expression, line: node.StartLine})
 		} else {
 			return fmt.Errorf("line %d: ONBUILD is not permitted in ONBUILD", node.StartLine)
 		}
@@ -515,7 +531,10 @@ func parseDockerInstruction(node *parser.Node, discovery *dockerDiscovery) (any,
 
 func validateDockerInstructionWords(typed any, discovery *dockerDiscovery) error {
 	validate := func(word string) (string, error) {
-		return discovery.normalizeDockerWord(word)
+		if _, err := discovery.dockerWordAlternatives(word); err != nil {
+			return "", err
+		}
+		return word, nil
 	}
 	if stage, ok := typed.(*instructions.Stage); ok {
 		for _, word := range []string{stage.BaseName, stage.Platform} {
@@ -537,51 +556,67 @@ func validateDockerInstructionWords(typed any, discovery *dockerDiscovery) error
 	return nil
 }
 
-func (discovery *dockerDiscovery) flushDeferred(managed, unsupported *[]dockerCandidate) error {
-	if len(discovery.deferred) == 0 {
-		return nil
-	}
-	triggers := discovery.deferred
-	discovery.deferred = nil
-	savedShell := discovery.currentShell
-	savedStages := discovery.stageReferences
-	savedCurrentStage := discovery.currentStage
-	discovery.stageReferences = map[string]runtimeShell{}
-	discovery.currentStage = nil
-	discovery.currentShell = savedShell
-	defer func() {
-		discovery.currentShell = savedShell
-		discovery.stageReferences = savedStages
-		discovery.currentStage = savedCurrentStage
-	}()
+func (discovery *dockerDiscovery) evaluateDeferred(triggers []*deferredDockerInstruction, context dockerInstructionContext) ([]dockerCandidate, runtimeShell, error) {
+	candidates := []dockerCandidate{}
 	for _, trigger := range triggers {
 		contents := fmt.Sprintf("# escape=%c\n%s", discovery.escapeToken, trigger.expression)
 		parsed, err := parser.Parse(strings.NewReader(contents))
 		if err != nil {
-			return fmt.Errorf("line %d: parse ONBUILD trigger: %w", trigger.line, err)
+			return nil, context.shell, fmt.Errorf("line %d: parse ONBUILD trigger: %w", trigger.line, err)
 		}
 		if len(parsed.AST.Children) != 1 {
-			return fmt.Errorf("line %d: ONBUILD must contain exactly one instruction", trigger.line)
+			return nil, context.shell, fmt.Errorf("line %d: ONBUILD must contain exactly one instruction", trigger.line)
 		}
-		parsed.AST.Children[0].StartLine = trigger.line
-		if err := classifyDockerInstruction(parsed.AST.Children[0], false, true, 1, discovery, managed, unsupported); err != nil {
-			return fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
+		node := parsed.AST.Children[0]
+		node.StartLine = trigger.line
+		typed, err := parseDockerInstruction(node, discovery)
+		if err != nil {
+			return nil, context.shell, fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
+		}
+		if _, forbidden := typed.(*instructions.Stage); forbidden {
+			return nil, context.shell, fmt.Errorf("line %d: FROM is not permitted in ONBUILD", trigger.line)
+		}
+		if _, forbidden := typed.(*instructions.OnbuildCommand); forbidden {
+			return nil, context.shell, fmt.Errorf("line %d: ONBUILD is not permitted in ONBUILD", trigger.line)
+		}
+		found, err := dockerInstructionCandidates(node, typed, context, discovery)
+		if err != nil {
+			return nil, context.shell, fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
+		}
+		candidates = append(candidates, found...)
+		if command, ok := typed.(*instructions.ShellCommand); ok {
+			context.shell = runtimeShellFor(command.Shell)
 		}
 	}
-	return nil
+	return candidates, context.shell, nil
 }
 
-func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, discovery *dockerDiscovery) ([]dockerCandidate, error) {
+func dockerInstructionCandidates(node *parser.Node, typed any, context dockerInstructionContext, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
-	appendImageCandidate := func(kind, value string) error {
-		normalized, err := discovery.normalizeDockerWord(value)
+	appendImageCandidate := func(kind, value string, rejectCurrent bool) error {
+		alternatives, err := discovery.dockerWordAlternatives(value)
 		if err != nil {
 			return err
 		}
-		if !deferred && discovery.isStageReference(normalized) {
+		matched := false
+		allLocal := len(alternatives) > 0
+		for _, normalized := range alternatives {
+			if rejectCurrent && context.isCurrentStageReference(normalized) {
+				return fmt.Errorf("%s cannot reference the current stage %q", kind, normalized)
+			}
+			if !context.conservative && discovery.isStageReference(normalized) {
+				continue
+			}
+			allLocal = false
+			if isGolangImage(normalized) || containsDockerGoToken(normalized) {
+				matched = true
+				break
+			}
+		}
+		if allLocal && !discovery.dockerWordHasUnknown(value) {
 			return nil
 		}
-		if isGolangImage(normalized) || containsDockerGoToken(normalized) {
+		if matched || discovery.dockerWordUnknownMayContainSource(value, false) || containsDockerGoToken(value) {
 			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
 		}
 		return nil
@@ -589,7 +624,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, di
 
 	switch command := typed.(type) {
 	case *instructions.Stage:
-		if err := appendImageCandidate("from", command.BaseName); err != nil {
+		if err := appendImageCandidate("from", command.BaseName, false); err != nil {
 			return nil, err
 		}
 	case *instructions.ArgCommand:
@@ -597,37 +632,58 @@ func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, di
 			if argument.Value == nil {
 				continue
 			}
-			normalized, err := discovery.normalizeDockerWord(*argument.Value)
+			alternatives, err := discovery.dockerWordAlternatives(*argument.Value)
 			if err != nil {
 				return nil, err
 			}
-			if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
+			matched := false
+			for _, normalized := range alternatives {
+				if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
+					matched = true
+					break
+				}
+			}
+			if matched || discovery.dockerWordUnknownMayContainSource(*argument.Value, false) || containsDockerGoToken(*argument.Value) || goDownloadTextPattern.MatchString(*argument.Value) {
 				candidates = append(candidates, dockerCandidate{Kind: "arg-default", Value: *argument.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.EnvCommand:
 		for _, environment := range command.Env {
-			normalized, err := discovery.normalizeDockerWord(environment.Value)
+			alternatives, err := discovery.dockerWordAlternatives(environment.Value)
 			if err != nil {
 				return nil, err
 			}
-			if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
+			matched := false
+			for _, normalized := range alternatives {
+				if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
+					matched = true
+					break
+				}
+			}
+			if matched || discovery.dockerWordUnknownMayContainSource(environment.Value, false) || containsDockerGoToken(environment.Value) || goDownloadTextPattern.MatchString(environment.Value) {
 				candidates = append(candidates, dockerCandidate{Kind: "env-value", Value: environment.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.AddCommand:
 		for _, source := range command.SourcePaths {
-			normalized, err := discovery.normalizeDockerWord(source)
+			alternatives, err := discovery.dockerWordAlternatives(source)
 			if err != nil {
 				return nil, err
 			}
-			if goDownloadPattern.MatchString(normalized) {
+			matched := false
+			for _, normalized := range alternatives {
+				if goDownloadPattern.MatchString(normalized) {
+					matched = true
+					break
+				}
+			}
+			if matched || discovery.dockerWordUnknownMayContainSource(source, true) || goDownloadTextPattern.MatchString(source) {
 				candidates = append(candidates, dockerCandidate{Kind: "add-download", Value: source, Line: node.StartLine})
 			}
 		}
 	case *instructions.CopyCommand:
 		if command.From != "" {
-			if err := appendImageCandidate("copy-from", command.From); err != nil {
+			if err := appendImageCandidate("copy-from", command.From, true); err != nil {
 				return nil, err
 			}
 		}
@@ -636,23 +692,23 @@ func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, di
 			if mount.From == "" {
 				continue
 			}
-			if err := appendImageCandidate("run-mount-from", mount.From); err != nil {
+			if err := appendImageCandidate("run-mount-from", mount.From, true); err != nil {
 				return nil, err
 			}
 		}
-		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine)
+		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine, context.shell)
 		if err != nil {
 			return nil, err
 		}
 		candidates = append(candidates, commandCandidates...)
 	case *instructions.CmdCommand:
-		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine)
+		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine, context.shell)
 		if err != nil {
 			return nil, err
 		}
 		candidates = append(candidates, commandCandidates...)
 	case *instructions.EntrypointCommand:
-		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine)
+		commandCandidates, err := discovery.commandCandidates(node, command.ShellDependantCmdLine, context.shell)
 		if err != nil {
 			return nil, err
 		}
@@ -663,7 +719,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, di
 				CmdLine:      command.Health.Test[1:],
 				PrependShell: command.Health.Test[0] == "CMD-SHELL",
 			}
-			commandCandidates, err := discovery.commandCandidates(node, commandLine)
+			commandCandidates, err := discovery.commandCandidates(node, commandLine, context.shell)
 			if err != nil {
 				return nil, err
 			}
@@ -691,31 +747,60 @@ func isPOSIXShellExecutable(command string) bool {
 	return command == "sh" || command == "/bin/sh"
 }
 
-func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage) {
-	inheritedShell, local := discovery.stageReferences[strings.ToLower(stage.BaseName)]
-	if !local {
-		inheritedShell = defaultRuntimeShell()
+func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsupported *[]dockerCandidate) error {
+	if stage.Name != "" {
+		if _, duplicate := discovery.stageReferences[strings.ToLower(stage.Name)]; duplicate {
+			return fmt.Errorf("duplicate stage name %q", stage.Name)
+		}
 	}
-	discovery.currentShell = inheritedShell
+	base, local := discovery.stageReferences[strings.ToLower(stage.BaseName)]
+	shellState := defaultRuntimeShell()
+	if local {
+		shellState = base.shell
+	}
 	index := strconv.Itoa(discovery.stageCount)
 	discovery.stageCount++
-	discovery.currentStage = []string{index}
+	current := &dockerStageState{references: []string{index}, shell: shellState}
 	if stage.Name != "" {
-		discovery.currentStage = append(discovery.currentStage, strings.ToLower(stage.Name))
+		current.references = append(current.references, strings.ToLower(stage.Name))
 	}
+	discovery.currentStage = current
+	discovery.allStages = append(discovery.allStages, current)
+	if local && len(base.triggers) > 0 {
+		found, resultingShell, err := discovery.evaluateDeferred(base.triggers, discovery.currentContext())
+		if err != nil {
+			return err
+		}
+		current.shell = resultingShell
+		*unsupported = append(*unsupported, found...)
+		for _, trigger := range base.triggers {
+			trigger.consumed = true
+		}
+	}
+	return nil
 }
 
-func (discovery *dockerDiscovery) recordCurrentStage() {
-	for _, reference := range discovery.currentStage {
-		discovery.stageReferences[reference] = discovery.currentShell
+func (discovery *dockerDiscovery) completeCurrentStage() error {
+	if discovery.currentStage == nil {
+		return nil
 	}
+	if len(discovery.currentStage.triggers) > 0 {
+		context := dockerInstructionContext{shell: discovery.currentStage.shell, conservative: true}
+		candidates, _, err := discovery.evaluateDeferred(discovery.currentStage.triggers, context)
+		if err != nil {
+			return err
+		}
+		discovery.currentStage.provisional = candidates
+	}
+	for _, reference := range discovery.currentStage.references {
+		discovery.stageReferences[reference] = discovery.currentStage
+	}
+	discovery.currentStage = nil
+	return nil
 }
 
 func (discovery *dockerDiscovery) setRuntimeShell(command []string) {
-	discovery.currentShell = runtimeShellFor(command)
-	for _, reference := range discovery.currentStage {
-		discovery.stageReferences[reference] = discovery.currentShell
-	}
+	discovery.currentStage.shell = runtimeShellFor(command)
 }
 
 func (discovery *dockerDiscovery) isStageReference(value string) bool {
@@ -723,31 +808,264 @@ func (discovery *dockerDiscovery) isStageReference(value string) bool {
 	return found
 }
 
+func (context dockerInstructionContext) isCurrentStageReference(value string) bool {
+	value = strings.ToLower(value)
+	for _, reference := range context.currentReferences {
+		if value == reference {
+			return true
+		}
+	}
+	return false
+}
+
+func (discovery *dockerDiscovery) currentContext() dockerInstructionContext {
+	if discovery.currentStage == nil {
+		return dockerInstructionContext{shell: defaultRuntimeShell()}
+	}
+	return dockerInstructionContext{
+		shell:             discovery.currentStage.shell,
+		currentReferences: discovery.currentStage.references,
+	}
+}
+
+func (discovery *dockerDiscovery) unconsumedDeferredCandidates() []dockerCandidate {
+	var candidates []dockerCandidate
+	for _, stage := range discovery.allStages {
+		unconsumed := false
+		for _, trigger := range stage.triggers {
+			unconsumed = unconsumed || !trigger.consumed
+		}
+		if unconsumed {
+			candidates = append(candidates, stage.provisional...)
+		}
+	}
+	return candidates
+}
+
 func (discovery *dockerDiscovery) normalizeDockerWord(value string) (string, error) {
+	_, err := discovery.dockerWordAlternatives(value)
+	if err != nil {
+		return "", err
+	}
+	return discovery.wordMemo[dockerWordKey{value: value}].validation, nil
+}
+
+func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string, error) {
 	key := dockerWordKey{value: value}
 	if result, found := discovery.wordMemo[key]; found {
-		return result.value, result.err
+		return result.values, result.err
 	}
 	if len(value) > maxDockerWordInputBytes {
 		err := resourceLimitf("Docker word exceeds the %d-byte normalization input limit", maxDockerWordInputBytes)
 		discovery.wordMemo[key] = dockerWordResult{err: err}
-		return "", err
+		return nil, err
 	}
 	discovery.wordWorkBytes += len(value)
 	if discovery.wordWorkBytes > maxDockerWordWorkBytes {
 		err := resourceLimitf("Docker metadata exceeds the %d-byte word-normalization work limit", maxDockerWordWorkBytes)
 		discovery.wordMemo[key] = dockerWordResult{err: err}
-		return "", err
+		return nil, err
 	}
-	normalized, _, err := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(nil))
+	discovery.wordLexer.SkipUnsetEnv = true
+	probe, err := discovery.wordLexer.ProcessWordWithMatches(value, shell.EnvsFromSlice(nil))
 	if err != nil {
 		err = fmt.Errorf("normalize Docker word %q: %w", value, err)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return nil, err
 	}
-	if err == nil {
-		err = discovery.accountNormalizedBytes(len(normalized))
+	variables := make([]string, 0, len(probe.Unmatched))
+	for name := range probe.Unmatched {
+		variables = append(variables, name)
 	}
-	discovery.wordMemo[key] = dockerWordResult{value: normalized, err: err}
-	return normalized, err
+	sort.Strings(variables)
+	if len(variables) > maxDockerWordVariables {
+		err := resourceLimitf("Docker word references more than %d variables", maxDockerWordVariables)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return nil, err
+	}
+	combinations := 1
+	for range variables {
+		combinations *= 3
+	}
+	if combinations > maxDockerWordAlternatives {
+		err := resourceLimitf("Docker word exceeds the %d-alternative expansion limit", maxDockerWordAlternatives)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return nil, err
+	}
+	discovery.wordLexer.SkipUnsetEnv = false
+	unknownSentinel := "__KFP_DOCKER_UNKNOWN_7F3A__"
+	for strings.Contains(value, unknownSentinel) {
+		unknownSentinel += "_"
+	}
+	symbolicEnvironment := make([]string, 0, len(variables))
+	for _, name := range variables {
+		symbolicEnvironment = append(symbolicEnvironment, name+"="+unknownSentinel)
+	}
+	symbolic := probe.Result
+	if len(variables) > 0 {
+		discovery.alternativeWork += len(value)
+		if discovery.alternativeWork > maxDockerAlternativeWork {
+			err := resourceLimitf("Docker metadata exceeds the %d-byte alternative-expansion work limit", maxDockerAlternativeWork)
+			discovery.wordMemo[key] = dockerWordResult{err: err}
+			return nil, err
+		}
+		if normalized, _, symbolicErr := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(symbolicEnvironment)); symbolicErr == nil {
+			symbolic = strings.ReplaceAll(normalized, unknownSentinel, string(dockerUnknownMarker))
+		}
+	}
+	alternatives := make([]string, 0, combinations)
+	seen := map[string]bool{}
+	var firstExpansionError error
+	for combination := 0; combination < combinations; combination++ {
+		discovery.alternativeWork += len(value)
+		if discovery.alternativeWork > maxDockerAlternativeWork {
+			err := resourceLimitf("Docker metadata exceeds the %d-byte alternative-expansion work limit", maxDockerAlternativeWork)
+			discovery.wordMemo[key] = dockerWordResult{err: err}
+			return nil, err
+		}
+		state := combination
+		environment := make([]string, 0, len(variables))
+		for _, name := range variables {
+			switch state % 3 {
+			case 1:
+				environment = append(environment, name+"=")
+			case 2:
+				environment = append(environment, name+"=x")
+			}
+			state /= 3
+		}
+		normalized, _, normalizeErr := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(environment))
+		if normalizeErr != nil {
+			if firstExpansionError == nil {
+				firstExpansionError = normalizeErr
+			}
+			continue
+		}
+		if seen[normalized] {
+			continue
+		}
+		seen[normalized] = true
+		alternatives = append(alternatives, normalized)
+		if err := discovery.accountNormalizedBytes(len(normalized)); err != nil {
+			discovery.wordMemo[key] = dockerWordResult{err: err}
+			return nil, err
+		}
+	}
+	if len(alternatives) == 0 {
+		err := fmt.Errorf("normalize Docker word %q: %w", value, firstExpansionError)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return nil, err
+	}
+	discovery.wordMemo[key] = dockerWordResult{validation: probe.Result, values: alternatives, symbolic: symbolic, unknown: len(probe.Unmatched) > 0}
+	return alternatives, nil
+}
+
+func (discovery *dockerDiscovery) dockerWordHasUnknown(value string) bool {
+	return discovery.wordMemo[dockerWordKey{value: value}].unknown
+}
+
+const dockerUnknownMarker = byte(0)
+
+func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string, downloadOnly bool) bool {
+	if !discovery.dockerWordHasUnknown(value) {
+		return false
+	}
+	symbolic := discovery.wordMemo[dockerWordKey{value: value}].symbolic
+	if symbolicDownloadPrefixPossible(symbolic) {
+		return true
+	}
+	return !downloadOnly && symbolicGolangImagePossible(symbolic)
+}
+
+func symbolicDownloadPrefixPossible(symbolic string) bool {
+	if strings.Trim(symbolic, string(dockerUnknownMarker)) == "" {
+		return false
+	}
+	for _, prefix := range []string{"https://go.dev/dl/go", "https://dl.google.com/go/go"} {
+		if symbolicGlobCanStartWith(symbolic, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func symbolicGlobCanStartWith(pattern, prefix string) bool {
+	type state struct {
+		pattern, prefix int
+		matchedFixed    bool
+	}
+	seen := map[state]bool{}
+	var visit func(int, int, bool) bool
+	visit = func(patternIndex, prefixIndex int, matchedFixed bool) bool {
+		if prefixIndex == len(prefix) {
+			return matchedFixed
+		}
+		if patternIndex == len(pattern) {
+			return false
+		}
+		current := state{patternIndex, prefixIndex, matchedFixed}
+		if seen[current] {
+			return false
+		}
+		seen[current] = true
+		if pattern[patternIndex] == dockerUnknownMarker {
+			return visit(patternIndex+1, prefixIndex, matchedFixed) || visit(patternIndex, prefixIndex+1, matchedFixed)
+		}
+		return strings.EqualFold(pattern[patternIndex:patternIndex+1], prefix[prefixIndex:prefixIndex+1]) && visit(patternIndex+1, prefixIndex+1, true)
+	}
+	return visit(0, 0, false)
+}
+
+func symbolicGolangImagePossible(symbolic string) bool {
+	transportOffset := 0
+	if strings.HasPrefix(strings.ToLower(symbolic), "docker://") {
+		transportOffset = len("docker://")
+	}
+	repository := symbolic[transportOffset:]
+	if strings.Trim(repository, string(dockerUnknownMarker)) == "" {
+		return false
+	}
+	if digest := strings.IndexByte(repository, '@'); digest >= 0 {
+		if strings.ContainsAny(repository[digest+1:], "/@") {
+			return false
+		}
+		repository = repository[:digest]
+	}
+	lastSlash := strings.LastIndexByte(repository, '/')
+	if tag := strings.LastIndexByte(repository, ':'); tag > lastSlash {
+		if strings.ContainsAny(repository[tag+1:], "/:@") {
+			return false
+		}
+		repository = repository[:tag]
+	}
+	if slash := strings.LastIndexByte(repository, '/'); slash >= 0 {
+		repository = repository[slash+1:]
+	}
+	if strings.Trim(repository, string(dockerUnknownMarker)) == "" {
+		return false
+	}
+	return symbolicGlobCanEqual(repository, "golang")
+}
+
+func symbolicGlobCanEqual(pattern, target string) bool {
+	type state struct{ pattern, target int }
+	seen := map[state]bool{}
+	var visit func(int, int) bool
+	visit = func(patternIndex, targetIndex int) bool {
+		if patternIndex == len(pattern) {
+			return targetIndex == len(target)
+		}
+		current := state{patternIndex, targetIndex}
+		if seen[current] {
+			return false
+		}
+		seen[current] = true
+		if pattern[patternIndex] == dockerUnknownMarker {
+			return visit(patternIndex+1, targetIndex) || targetIndex < len(target) && visit(patternIndex, targetIndex+1)
+		}
+		return targetIndex < len(target) && strings.EqualFold(pattern[patternIndex:patternIndex+1], target[targetIndex:targetIndex+1]) && visit(patternIndex+1, targetIndex+1)
+	}
+	return visit(0, 0)
 }
 
 func (discovery *dockerDiscovery) accountNormalizedBytes(count int) error {
@@ -758,10 +1076,10 @@ func (discovery *dockerDiscovery) accountNormalizedBytes(count int) error {
 	return nil
 }
 
-func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command instructions.ShellDependantCmdLine) ([]dockerCandidate, error) {
+func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command instructions.ShellDependantCmdLine, runtime runtimeShell) ([]dockerCandidate, error) {
 	words := command.CmdLine
 	if command.PrependShell {
-		if !discovery.currentShell.known {
+		if !runtime.known {
 			return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
 		}
 		var err error
@@ -860,15 +1178,9 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 	excludedWords := map[*shsyntax.Word]bool{}
 	nodes := 0
 	depth := 0
-	arithmeticDepth := 0
-	arithmeticEnds := map[int]int{}
 	var walkErr error
 	shsyntax.Walk(parsed, func(node shsyntax.Node) bool {
 		if node == nil {
-			if endings := arithmeticEnds[depth]; endings > 0 {
-				arithmeticDepth -= endings
-				delete(arithmeticEnds, depth)
-			}
 			depth--
 			return true
 		}
@@ -887,15 +1199,11 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 			walkErr = resourceLimitf("runtime shell exceeds the %d-level shell AST depth limit", maxShellASTDepth)
 			return false
 		}
-		if _, ok := node.(*shsyntax.ArithmExp); ok {
-			arithmeticDepth++
-			arithmeticEnds[depth]++
+		if arithmetic, ok := node.(*shsyntax.ArithmExp); ok {
+			markArithmeticIdentifierWords(arithmetic.X, excludedWords)
 		}
 		if word, ok := node.(*shsyntax.Word); ok {
 			words = append(words, word)
-			if arithmeticDepth > 0 {
-				excludedWords[word] = true
-			}
 		}
 		if redirect, ok := node.(*shsyntax.Redirect); ok && (redirect.Op == shsyntax.Hdoc || redirect.Op == shsyntax.DashHdoc) {
 			excludedWords[redirect.Word] = true
@@ -909,15 +1217,30 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 	result := []string{}
 	seen := map[string]bool{}
 	for _, environmentValue := range []string{"", "x"} {
-		environment := &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{}}
+		positionals := []string{}
+		zero := "sh"
+		lastBackgroundPID := ""
+		if environmentValue != "" {
+			lastBackgroundPID = "1"
+		}
 		if len(parameters) > 0 {
-			positionals := append([]string(nil), parameters[1:]...)
-			environment.values["@"] = expand.Variable{Set: true, Kind: expand.Indexed, List: positionals}
-			environment.values["*"] = environment.values["@"]
-			environment.values["#"] = expand.Variable{Set: true, Kind: expand.String, Str: strconv.Itoa(len(positionals))}
-			for index, parameter := range parameters {
-				environment.values[strconv.Itoa(index)] = expand.Variable{Set: true, Kind: expand.String, Str: parameter}
-			}
+			zero = parameters[0]
+			positionals = append(positionals, parameters[1:]...)
+		}
+		indexed := expand.Variable{Set: true, Kind: expand.Indexed, List: positionals}
+		environment := &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{
+			"0":    {Set: true, Kind: expand.String, Str: zero},
+			"@":    indexed,
+			"*":    indexed,
+			"#":    {Set: true, Kind: expand.String, Str: strconv.Itoa(len(positionals))},
+			"?":    {Set: true, Kind: expand.String, Str: "0"},
+			"$":    {Set: true, Kind: expand.String, Str: "1"},
+			"!":    {Set: true, Kind: expand.String, Str: lastBackgroundPID},
+			"-":    {Set: true, Kind: expand.String, Str: ""},
+			"PPID": {Set: true, Kind: expand.String, Str: "1"},
+		}}
+		for index, parameter := range positionals {
+			environment.values[strconv.Itoa(index+1)] = expand.Variable{Set: true, Kind: expand.String, Str: parameter}
 		}
 		config := &expand.Config{
 			Env: environment,
@@ -942,6 +1265,21 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 		}
 	}
 	return result, nil
+}
+
+func markArithmeticIdentifierWords(expression shsyntax.ArithmExpr, excluded map[*shsyntax.Word]bool) {
+	shsyntax.Walk(expression, func(node shsyntax.Node) bool {
+		if node == nil {
+			return true
+		}
+		if _, commandSubstitution := node.(*shsyntax.CmdSubst); commandSubstitution {
+			return false
+		}
+		if word, ok := node.(*shsyntax.Word); ok {
+			excluded[word] = true
+		}
+		return true
+	})
 }
 
 type runtimeShellEnvironment struct {

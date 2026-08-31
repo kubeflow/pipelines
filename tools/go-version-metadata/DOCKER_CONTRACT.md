@@ -160,6 +160,12 @@ therefore complete within the public deadline or fail with a deterministic
 resource error. Escaped, quoted, or expanded values within the normalization
 budget use the pinned BuildKit implementation.
 
+Typed instruction validation and later candidate inspection share one
+Docker-word alternatives cache. Validation preserves the original typed field
+instead of replacing it with one normalized result, so the original span,
+every feasible result, and all later inspections consume input/work and
+normalized-output budgets exactly once.
+
 ## Differential acceptance
 
 `testdata/docker-contract.json` is the acceptance matrix. Its
@@ -174,8 +180,32 @@ kind × instruction field × shell/exec/heredoc form × top-level/`ONBUILD`
 context. Heredoc forms outside `RUN` remain explicit negative grammar cases,
 so adding an axis value cannot silently omit unsupported intersections.
 
+`wordExpansionCrossProducts` freezes the branch semantics of `:-`, `-`, `:+`,
+and `+` across ARG/ENV fields and image/download operands. For these four
+conditional operators, unset, empty, and a representative nonempty value are
+complete branch states: only setness and emptiness select the operand, not the
+nonempty value's contents. Direct unknown substitutions are different. They
+are not approximated by the arbitrary nonempty sentinel `x`. Their positions
+are preserved symbolically so they can bridge statically anchored candidate
+fragments (for example, `go${VALUE}ang` with `VALUE=l`) without assuming that
+an otherwise unanchored unknown such as `ENV PATH=${PATH}:/usr/local/bin`
+injects an arbitrary Go source. For images, intersection is limited to the
+repository component; an unknown Alpine tag cannot change `alpine` into the
+`golang` repository. Downloads likewise require static text anchoring the
+supported HTTPS host/path prefix around the unknown span.
+
+`dockerConformance` is the Docker-backed grammar corpus for review findings
+1–6. Run it on a host with Docker using
+`KFP_RUN_DOCKER_CONFORMANCE=1 go test ./tools/go-version-metadata -run
+TestDockerContractAgainstDocker`. The runner prepends `# check=skip=all` so the
+result represents Dockerfile acceptance rather than optional build-check lint
+warnings, bounds captured diagnostic output, and requires every finding number
+from 1 through 6 to remain represented. The ordinary test suite skips this
+lane when Docker was not explicitly requested.
+
 Contract acceptance requires every matrix case, both differential suites, the
-resource-boundary tests, and the repository consistency tests to pass.
+resource-boundary tests, the opt-in Docker-backed corpus when Docker is
+available, and the repository consistency tests to pass.
 
 ## Updater snapshot invariant
 
