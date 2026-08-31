@@ -375,7 +375,7 @@ func validateDockerStructure(ast *parser.Node, discovery *dockerDiscovery) error
 		}
 	}
 	if !hasStage {
-		return fmt.Errorf("Dockerfile must contain at least one FROM instruction")
+		return fmt.Errorf("dockerfile must contain at least one FROM instruction")
 	}
 	return nil
 }
