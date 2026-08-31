@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -37,7 +36,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -506,6 +504,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	// Get active workflows for this ScheduledWorkflow.
 	startTime = time.Time{}
 	active, err := c.workflowClient.List(
+		swf.Namespace,
 		swf.Name,
 		// active workflow
 		false,
@@ -522,7 +521,8 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 
 	startTime = time.Now()
 	// Get completed workflows for this ScheduledWorkflow.
-	completed, err := c.workflowClient.List(swf.Name,
+	completed, err := c.workflowClient.List(swf.Namespace,
+		swf.Name,
 		true, /* completed workflows */
 		swf.MinIndex())
 	if err != nil {
@@ -761,37 +761,10 @@ func (c *Controller) updateStatus(
 	return nil
 }
 
-// isV1PipelineBlocked checks if the given namespace is blocked from running V1 pipelines
-// based on the BLOCK_V1_PIPELINES and V1_ALLOWED_NAMESPACES environment variables.
-func isV1PipelineBlocked(namespace string) bool {
-	blockV1Value := viper.GetString(util.BlockV1Pipelines)
-	blockV1, err := strconv.ParseBool(blockV1Value)
-	if err != nil {
-		log.WithError(err).Warnf("Invalid BLOCK_V1_PIPELINES value %q; V1 pipelines are not blocked", blockV1Value)
-		blockV1 = false
-	}
-	if !blockV1 {
-		return false
-	}
-
-	allowedNamespaces := viper.GetString(util.AllowedNamespaces)
-	if allowedNamespaces == "" {
-		return true
-	}
-
-	targetNamespace := strings.ToLower(strings.TrimSpace(namespace))
-	for _, n := range strings.Split(allowedNamespaces, ",") {
-		if strings.ToLower(strings.TrimSpace(n)) == targetNamespace {
-			return false
-		}
-	}
-	return true
-}
-
 // shouldEnforceV1Block Returns true allowing V2 workflows when key V2 component or pipeline labels
 // are present on the pod metadata. Returns false if the workflow is v1.
 func shouldEnforceV1Block(swf *util.ScheduledWorkflow) bool {
-	if swf == nil || !isV1PipelineBlocked(swf.Namespace) {
+	if swf == nil || !commonutil.IsV1PipelinesBlocked(swf.Namespace) {
 		return false
 	}
 

@@ -191,6 +191,31 @@ describe('/artifacts/get namespaced proxy', () => {
     expect(res.text).not.toContain('stack');
   });
 
+  it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+    'rejects ambiguous %s query parameters before proxying',
+    async (parameterName) => {
+      const { receivedUrls } = await setUpNamespacedArtifactService({ namespace: 'ns-a' });
+      const configs = loadConfigs(argv, {
+        ARTIFACTS_SERVICE_PROXY_ENABLED: 'true',
+      });
+      app = new UIServer(configs);
+      const query = new URLSearchParams({
+        source: 'minio',
+        bucket: 'ml-pipeline',
+        key: 'hello.txt',
+        providerInfo: '{}',
+        namespace: 'ns-a',
+        peek: '10',
+      });
+      query.append(parameterName, 'duplicate');
+
+      await requests(app.app)
+        .get(`/artifacts/get?${query.toString()}`)
+        .expect(400, `${parameterName} must be a single string value`);
+      expect(receivedUrls).toEqual([]);
+    },
+  );
+
   it('proxies a request with basePath too', async () => {
     const { receivedUrls, response } = await setUpNamespacedArtifactService({});
     const configs = loadConfigs(argv, {

@@ -122,7 +122,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Go
-      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
         go-version-file: go.mod
         # Caching is handled by the dedicated test-lane cache below; the
@@ -145,7 +145,7 @@ runs:
     # the first spec runs). The weekly key suffix plus restore-keys keeps
     # compile artifacts fresh as sources drift between dependency changes.
     - name: Restore Go build and module caches
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.go-cache-meta.outputs.gomodcache }}
@@ -522,7 +522,7 @@ runs:
       continue-on-error: true
 
     - name: Upload Kind cluster logs
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' && steps.kind-logs.outputs.exported == 'true' }}
       with:
         name: kind-logs - ${{ steps.kind-logs.outputs.suffix }}
@@ -534,7 +534,7 @@ runs:
     - name: Upload JUnit XML on failure
       # Raw per-test results from failed runs feed the scheduled CI health
       # report (per-test flake rates); the HTML report alone is not parseable.
-      uses: actions/upload-artifact@v7
+      uses: ./.github/actions/upload-artifact-with-retry
       if: ${{ steps.run-tests.outcome != 'success' }}
       with:
         name: junit-xml - ${{ steps.kind-logs.outputs.suffix || github.run_id }}
@@ -544,7 +544,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Python for reporting
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}
@@ -578,13 +578,24 @@ runs:
 
     - name: Upload HTML Report
       id: upload
-      uses: actions/upload-artifact@v7
-      if: (!cancelled()) && steps.generate-html-report.outcome == 'success'
+      uses: ./.github/actions/upload-artifact-with-retry
+      if: steps.run-tests.outcome != 'success' && (!cancelled()) && steps.generate-html-report.outcome == 'success'
       with:
         name: ${{ steps.name_gen.outputs.REPORT_NAME }}
         path: ${{ inputs.test_directory }}/reports/test-report.html
         retention-days: 7
       continue-on-error: true
+
+    - name: Prepare custom data
+      id: custom-data-prep
+      if: always() && !cancelled()
+      shell: bash
+      run: |
+        CUSTOM_DATA=""
+        if [ -n "${{ steps.upload.outputs.artifact-url }}" ]; then
+          CUSTOM_DATA="{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}"
+        fi
+        echo "CUSTOM_DATA=$CUSTOM_DATA" >> "$GITHUB_OUTPUT"
 
     - name: Publish Test Summary With HTML Report
       id: publish
@@ -592,14 +603,15 @@ runs:
       if: always() && !cancelled()
       with:
         xml_files: '${{ inputs.test_directory }}/reports'
-        custom_data: '{\"HTML Report\": \"${{ steps.upload.outputs.artifact-url }}\"}'
+        custom_data: ${{ steps.custom-data-prep.outputs.CUSTOM_DATA }}
+        fail_on_test_failures: 'false'
       continue-on-error: true
 
     - name: Mark Workflow failure if test reporting failed
       if: always() && !cancelled() && (
         steps.install-junit2html.outcome == 'failure' ||
         steps.generate-html-report.outcome == 'failure' ||
-        steps.upload.outcome != 'success' ||
+        (steps.upload.outcome != 'success' && steps.upload.outcome != 'skipped') ||
         steps.publish.outcome == 'failure'
         )
       shell: bash

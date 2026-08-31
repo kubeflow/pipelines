@@ -1,25 +1,20 @@
 # Dependabot configuration for scheduled version updates.
 #
-# Scope: Go modules (`gomod`) only. This makes Go dependency bumps explicit and
-# deterministic across every Go module in the repo, rather than relying on the
-# implicit/security-only behavior that previously left some advisories (e.g.
-# golang.org/x/net) unactioned.
+# Scope: every supported dependency ecosystem present in the repository: Go,
+# container images, npm, pip, GitHub Actions, and pre-commit. This makes bumps
+# explicit and deterministic rather than relying on implicit/security-only
+# behavior.
 #
 # Note: Dependabot security updates are enabled separately (in repo settings),
 # not by this file. This file does not turn them on or off, though they still
 # honor configuration here such as `ignore` rules and directory/ecosystem scope.
-# npm/pip ecosystems are intentionally left out of scope for version updates.
 #
 # Tracks: https://github.com/kubeflow/pipelines/issues/13490
 version: 2
 updates:
   - package-ecosystem: gomod
     directories:
-      - "/"
-      - "/api"
-      - "/kubernetes_platform"
-      - "/third_party/ml-metadata"
-      - "/test/tools/project-cleaner"
+      - "**/*"
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
@@ -39,3 +34,98 @@ updates:
         update-types:
           - "minor"
           - "patch"
+  - package-ecosystem: docker
+    # Dependabot's Docker ecosystem also updates image references in Kubernetes
+    # manifests. The recursive glob covers the repository root and every nested
+    # directory, including custom-named Dockerfiles.
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # The controller injects argoexec into workflow pods, so update the two
+      # runtime images together when Dependabot finds a new release.
+      argo-images:
+        patterns:
+          - "argoproj/workflow-controller"
+          - "argoproj/argoexec"
+      # Update the same image in one PR when it is referenced from multiple
+      # Dockerfiles or Kubernetes manifests.
+      docker-images:
+        group-by: dependency-name
+  - package-ecosystem: npm
+    directories:
+      - "**/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # @mui/icons-material declares a peer dependency on the matching
+      # @mui/material version, so bumping either one alone leaves the other
+      # outside its peer range and `npm install` fails to resolve. They have to
+      # land together. Listed before npm-dependencies because a dependency
+      # joins the first group whose patterns match.
+      mui:
+        patterns:
+          - "@mui/*"
+      # Update a shared package in one PR across all npm projects.
+      npm-dependencies:
+        group-by: dependency-name
+  - package-ecosystem: pip
+    # Generated API clients are excluded: their requirements express generated
+    # compatibility minimums and must be changed through API regeneration.
+    directories:
+      - "/.github/resources/scripts/kfp-readiness"
+      - "/api/v2alpha1/python"
+      - "/backend"
+      - "/backend/metadata_writer"
+      - "/backend/src/apiserver/visualization"
+      - "/backend/src/v2/test"
+      - "/components/google-cloud"
+      - "/docs"
+      - "/docs/sdk"
+      - "/kubernetes_platform/python"
+      - "/kubernetes_platform/python/docs"
+      - "/manifests/kustomize/base/installs/multi-user/pipelines-profile-controller"
+      - "/proxy"
+      - "/release"
+      - "/sdk/python"
+      - "/test/kfp-kubernetes-native-migration-tests"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Keep shared Python constraints aligned across the monorepo.
+      python-dependencies:
+        group-by: dependency-name
+  - package-ecosystem: github-actions
+    # Root covers .github/workflows; the glob covers reusable actions.
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      github-actions:
+        group-by: dependency-name
+  - package-ecosystem: pre-commit
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"

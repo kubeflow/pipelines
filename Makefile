@@ -1,16 +1,11 @@
 
-# Check diff for generated files
+# Check diff for generated files. Changes confined to the generator version
+# comment that protoc-gen-go and protoc-gen-go-grpc stamp into their output are
+# reported and allowed, because those versions come from the Go module manifests
+# and so change on any module bump without the generated code differing.
 .PHONY: check-diff
 check-diff:
-	/bin/bash -c 'if [[ -n "$$(git status --porcelain)" ]]; then \
-		echo "ERROR: Generated files are out of date"; \
-		echo "Please regenerate using make clean all for api and kubernetes_platform"; \
-		echo "Changes found in the following files:"; \
-		git status; \
-		echo "Diff of changes:"; \
-		git diff; \
-		exit 1; \
-	fi'
+	python3 .github/resources/scripts/check_generated_diff.py
 
 # Tools
 BIN_DIR ?= $(CURDIR)/bin

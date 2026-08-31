@@ -65,6 +65,44 @@ spec:
               name: pipeline-install-config
               key: V1_ALLOWED_NAMESPACES
               optional: true
+        # Driver pod labels and annotations. This patch replaces the container env list,
+        # so these must be repeated here to reach the API server on PostgreSQL installs.
+        - name: DRIVER_POD_LABELS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: DRIVER_POD_LABELS
+              optional: true
+        - name: DRIVER_POD_ANNOTATIONS
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: DRIVER_POD_ANNOTATIONS
+              optional: true
+        - name: RUNS_RETENTION_TIME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: RUNS_RETENTION_TIME
+              optional: true
+        - name: ARCHIVED_RUNS_RETENTION_TIME
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: ARCHIVED_RUNS_RETENTION_TIME
+              optional: true
+        - name: RUNS_GC_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: RUNS_GC_INTERVAL
+              optional: true
+        - name: RUNS_GC_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: pipeline-install-config
+              key: RUNS_GC_BATCH_SIZE
+              optional: true
         # PostgreSQL Config
         - name: DBCONFIG_POSTGRESQLCONFIG_USER
           valueFrom:

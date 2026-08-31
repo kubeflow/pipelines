@@ -5,8 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
+	commonplugins "github.com/kubeflow/pipelines/backend/src/common/plugins"
 	commonmlflow "github.com/kubeflow/pipelines/backend/src/common/plugins/mlflow"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
 	corev1 "k8s.io/api/core/v1"
@@ -26,9 +28,9 @@ type MLflowHandler struct {
 	nestedRunID string
 }
 
-// Name returns the name of the MLflowHandler plugin, which is "MLflow".
+// Name returns the name of the MLflowHandler plugin, which is "mlflow".
 func (h *MLflowHandler) Name() string {
-	return "MLflow"
+	return "mlflow"
 }
 
 // NewMLflowTaskHandler creates a new MLflow plugin handler with the given dependencies
@@ -122,6 +124,12 @@ func (h *MLflowHandler) OnTaskEnd(ctx context.Context, info *plugins.TaskInfo) e
 		return fmt.Errorf("failed to update MLflow run: %v", err)
 	}
 
+	// close still-open direct child runs whose own OnTaskEnd
+	// didn't get to run (e.g. a crashed pod).
+	if childCloseErrs := commonmlflow.CloseOpenChildRuns(ctx, requestCtx.Client, h.runtimeCfg.ExperimentID, resolvedRunID, resolvedStatus, &runEndTime, nil); len(childCloseErrs) > 0 {
+		glog.Warningf("failed to close some MLflow child runs of %s: %s", resolvedRunID, strings.Join(childCloseErrs, "; "))
+	}
+
 	return nil
 }
 
@@ -147,20 +155,20 @@ func (h *MLflowHandler) RetrieveUserContainerEnvVars() (injectVars []corev1.EnvV
 		injectVars = append(injectVars, corev1.EnvVar{Name: "MLFLOW_WORKSPACE", Value: h.runtimeCfg.Workspace})
 	}
 	switch h.runtimeCfg.AuthType {
-	case commonmlflow.AuthTypeKubernetes:
+	case commonplugins.AuthTypeKubernetes:
 		auth := "kubernetes"
 		if h.runtimeCfg.WorkspacesEnabled {
 			auth = "kubernetes-namespaced"
 		}
 		injectVars = append(injectVars, corev1.EnvVar{Name: commonmlflow.EnvMLflowTrackingAuth, Value: auth})
-	case commonmlflow.AuthTypeBearer:
-		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonmlflow.AuthTypeBearer)
+	case commonplugins.AuthTypeBearer:
+		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonplugins.AuthTypeBearer)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build MLflow credential env vars: %v", err)
 		}
 		injectVars = append(injectVars, credentialEnvVars...)
-	case commonmlflow.AuthTypeBasicAuth:
-		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonmlflow.AuthTypeBasicAuth)
+	case commonplugins.AuthTypeBasicAuth:
+		credentialEnvVars, err := commonmlflow.BuildCredentialEnvVars(h.runtimeCfg.CredentialSecretRef, commonplugins.AuthTypeBasicAuth)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build MLflow credential env vars: %v", err)
 		}

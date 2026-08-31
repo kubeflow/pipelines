@@ -23,12 +23,16 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
+      - '.github/actions/install-fgo-fake/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
       - 'go.mod'
       - 'go.sum'
       - 'backend/**'
+      # Artifact authorization changes must exercise the multi-user artifact
+      # proxy and SeaweedFS namespace-isolation checks below.
+      - 'frontend/server/handlers/artifacts.ts'
       - 'proxy/**'
       - 'manifests/kustomize/**'
       # The artifact-proxy E2E script is exercised only by this workflow, so
@@ -74,7 +78,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.14", "v4.0.5" ]
+        argo_version: [ "v3.7.18", "v4.1.2" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
@@ -83,7 +87,7 @@ jobs:
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "false"
-            argo_version: "v3.7.14"
+            argo_version: "v3.7.18"
             test_label: "E2ECritical"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
@@ -96,11 +100,18 @@ jobs:
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
             test_label: "E2ECritical"
+          # Schedule-only NVIDIA GPU lane (Kind + Fake GPU Operator fake backend).
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "gpu-scheduling-check"
+            pod_to_pod_tls_enabled: "false"
       fail-fast: false
     name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -121,6 +132,12 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
+
+      - name: Install Fake GPU Operator (fake backend)
+        uses: ./.github/actions/install-fgo-fake
+        id: install-fgo-fake
+        if: ${{ matrix.test_label == 'gpu-scheduling-check' && steps.deploy.outcome == 'success' }}
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
@@ -131,7 +148,7 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' }}
         env:
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}
@@ -167,14 +184,6 @@ jobs:
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
-
       - name: Run Tests
         uses: ./.github/actions/test-and-report
         id: test-run
@@ -206,7 +215,7 @@ jobs:
     name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -228,6 +237,7 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
 
       - name: Configure Input Variables
         shell: bash
@@ -254,14 +264,6 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
@@ -307,7 +309,7 @@ jobs:
       matrix:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
-        argo_version: [ "v3.7.3" ]
+        argo_version: [ "v3.7.18" ]
         proxy: [ "false" ]
         test_label: [ "MLflow" ]
         pod_to_pod_tls_enabled: [ "false" ]
@@ -326,7 +328,7 @@ jobs:
     name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Create cluster
         uses: ./.github/actions/create-cluster
@@ -348,10 +350,11 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          load_modelcar_fixture: 'true'
 
       - name: Deploy MLflow with Kubernetes auth
-        id: deploy-mlflow        
-        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@b55bcb6aa528ccecf8904745bb0218350b1ff453
+        id: deploy-mlflow
+        uses: opendatahub-io/mlflow-operator/.github/actions/deploy@1cfeeacf5e021aad300d54d0fd906cb269e12200
         if: ${{ steps.create-cluster.outcome == 'success' && matrix.mlflow_auth_type == 'kubernetes' }}
         with:
           namespace: 'opendatahub'
@@ -423,14 +426,6 @@ jobs:
             echo "TEST_LABEL=$TEST_LABEL"
             echo "NAMESPACE=$NAMESPACE"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Build and upload the sample Modelcar image to Kind
-        id: build-sample-modelcar-image
-        if: ${{ steps.deploy.outcome == 'success' }}
-        run: |
-          docker build -f ./test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile -t registry.domain.local/modelcar:test .
-          kind --name kfp load docker-image registry.domain.local/modelcar:test
-        continue-on-error: true
 
       - name: Run Tests
         uses: ./.github/actions/test-and-report

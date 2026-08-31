@@ -179,6 +179,46 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('Authentication required');
     });
 
+    it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+      'rejects duplicate %s parameters before authorization',
+      async (parameterName) => {
+        const configurations = loadConfigs(argv, {
+          MINIO_ACCESS_KEY: 'minio',
+          MINIO_HOST: 'minio-service',
+          MINIO_NAMESPACE: 'kubeflow',
+          MINIO_PORT: '9000',
+          MINIO_SECRET_KEY: 'minio123',
+          MINIO_SSL: 'false',
+          ML_PIPELINE_SERVICE_HOST: 'localhost',
+          ML_PIPELINE_SERVICE_PORT: '8888',
+          KUBEFLOW_USERID_HEADER: 'kubeflow-userid',
+          KUBEFLOW_USERID_PREFIX: '',
+        });
+
+        configurations.auth.enabled = true;
+
+        app = new UIServer(configurations);
+
+        const request = requests(app.app);
+        const query = new URLSearchParams({
+          source: 'minio',
+          bucket: 'ml-pipeline',
+          key: 'hello/world.txt',
+          providerInfo: '{}',
+          namespace: 'my-namespace',
+          peek: '10',
+        });
+        query.append(parameterName, 'duplicate');
+        const response = await request
+          .get(`/artifacts/get?${query.toString()}`)
+          .set('kubeflow-userid', 'user@example.com')
+          .expect(400);
+        expect(response.text).toContain(`${parameterName} must be a single string value`);
+        expect(mockedFetch).not.toHaveBeenCalled();
+        expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
+      },
+    );
+
     it('rejects requests with invalid namespace format', async () => {
       mockedFetch.mockResolvedValue({
         ok: true,

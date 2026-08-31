@@ -30,6 +30,7 @@ const (
 	PodNamespace                            string = "POD_NAMESPACE"
 	CacheEnabled                            string = "CacheEnabled"
 	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
+	AllowedServiceAccountsFlag              string = "ALLOWEDSERVICEACCOUNTS"
 	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
@@ -47,8 +48,6 @@ const (
 	DefaultSecurityContextRunAsGroup        string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_GROUP"
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
-	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
-	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
@@ -58,6 +57,13 @@ const (
 	PluginMaxTotalPayloadBytes              string = "PLUGIN_MAX_TOTAL_PAYLOAD_BYTES"
 	PluginMaxNestingDepth                   string = "PLUGIN_MAX_NESTING_DEPTH"
 	WorkflowGCGracePeriodSeconds            string = "WORKFLOW_GC_GRACE_PERIOD_SECONDS"
+
+	// Run garbage collection configuration keys.
+	// Disabled by default (zero values).
+	RunsRetentionTime         string = "RUNS_RETENTION_TIME"
+	ArchivedRunsRetentionTime string = "ARCHIVED_RUNS_RETENTION_TIME"
+	RunsGCInterval            string = "RUNS_GC_INTERVAL"
+	RunsGCBatchSize           string = "RUNS_GC_BATCH_SIZE"
 )
 
 type PluginLimitsConfig struct {
@@ -156,6 +162,22 @@ func GetDurationConfig(configName string) time.Duration {
 		glog.Fatalf("Please specify flag %s", configName)
 	}
 	return viper.GetDuration(configName)
+}
+
+func GetDurationConfigWithDefault(configName string, value time.Duration) time.Duration {
+	if !viper.IsSet(configName) {
+		return value
+	}
+	raw := strings.TrimSpace(viper.GetString(configName))
+	if raw == "" {
+		return value
+	}
+	duration, parseError := time.ParseDuration(raw)
+	if parseError != nil {
+		glog.Errorf("Failed to parse duration for %s: %v. Using default %v", configName, parseError, value)
+		return value
+	}
+	return duration
 }
 
 func IsMultiUserMode() bool {
@@ -276,4 +298,56 @@ func GetPluginLimitsConfig() (PluginLimitsConfig, error) {
 		MaxTotalPayloadBytes: maxTotalPayloadBytes,
 		MaxNestingDepth:      maxNestingDepth,
 	}, nil
+}
+
+func GetRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(RunsRetentionTime, 0)
+}
+
+func GetArchivedRunsRetentionTime() time.Duration {
+	return GetDurationConfigWithDefault(ArchivedRunsRetentionTime, 0)
+}
+
+func GetRunsGCInterval() time.Duration {
+	garbageCollectionInterval := GetDurationConfigWithDefault(RunsGCInterval, 6*time.Hour)
+	if garbageCollectionInterval <= 0 {
+		return 6 * time.Hour
+	}
+	return garbageCollectionInterval
+}
+
+func GetRunsGCBatchSize() int {
+	configuredBatchSize := GetIntConfigWithDefault(RunsGCBatchSize, 100)
+	if configuredBatchSize <= 0 {
+		return 100
+	}
+	// Upper bound: DeleteExpiredArchivedRuns uses batch UUIDs in IN-clauses
+	// across 4 tables (run_metrics, tasks, resource_references, run_details).
+	// MySQL/PostgreSQL bind parameter limit is 65535; 1000 per batch stays
+	// well within that ceiling while remaining efficient.
+	if configuredBatchSize > 1000 {
+		return 1000
+	}
+	return configuredBatchSize
+}
+
+func ValidateServiceAccountAllowList(serviceAccount string) error {
+	if serviceAccount == "" {
+		return nil
+	}
+	defaultServiceAccount := GetStringConfigWithDefault(DefaultPipelineRunnerServiceAccountFlag, DefaultPipelineRunnerServiceAccount)
+	if serviceAccount == defaultServiceAccount {
+		return nil
+	}
+
+	allowedServiceAccounts := GetStringConfigWithDefault(AllowedServiceAccountsFlag, "")
+	if allowedServiceAccounts == "" {
+		return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
+	}
+	for allowed := range strings.SplitSeq(allowedServiceAccounts, ",") {
+		if strings.TrimSpace(allowed) == serviceAccount {
+			return nil
+		}
+	}
+	return fmt.Errorf("service account %q is not allowed; contact your administrator to configure the allowed service accounts", serviceAccount)
 }

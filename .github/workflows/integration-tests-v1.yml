@@ -39,13 +39,13 @@ jobs:
     name: Initialization & Integration tests v1 - K8s ${{ matrix.k8s_version }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Go
         uses: ./.github/actions/setup-go
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.9
 
@@ -64,10 +64,31 @@ jobs:
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
+          forward_port: 'false'
+
+      - name: Deploy pipeline URL test fixtures
+        id: deploy-pipeline-test-fixtures
+        if: ${{ steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl kustomize --load-restrictor LoadRestrictionsNone \
+            .github/resources/manifests/pipeline-test-fixtures | kubectl apply -f -
+          kubectl set env deployment/ml-pipeline --namespace kubeflow \
+            PIPELINE_URL_VALIDATION_ENABLED=false
+          kubectl rollout status deployment/pipeline-test-fixtures \
+            --namespace kubeflow --timeout 90s
+          kubectl rollout status deployment/ml-pipeline \
+            --namespace kubeflow --timeout 90s
+        continue-on-error: true
+
+      - name: Forward API port
+        id: forward-api-port
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome == 'success' }}
+        run: ./.github/resources/scripts/forward-port.sh "kubeflow" "ml-pipeline" 8888 8888
+        continue-on-error: true
 
       - name: Forward MySQL port
         id: forward-mysql-port
-        if: ${{ steps.deploy.outcome == 'success' }}
+        if: ${{ steps.forward-api-port.outcome == 'success' }}
         run: ./.github/resources/scripts/forward-port.sh "kubeflow" "mysql" 3306 3306
         continue-on-error: true
 
@@ -86,20 +107,17 @@ jobs:
         working-directory: ./backend/test/integration
         run: go test -v ./... -args -runIntegrationTests=true -namespace=kubeflow -repoName=${{ github.repository }} -branchName=${{ github.ref_name }}
         env:
-          PULL_NUMBER: ${{ github.event.pull_request.number }}
-          # Authenticates the raw.githubusercontent.com HEAD in
-          # GetRepoBranchURLRAW to avoid anonymous per-IP 429 rate limits.
-          GITHUB_TOKEN: ${{ github.token }}
+          KFP_TEST_FIXTURE_BASE_URL: http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080
         continue-on-error: true
 
       - name: Collect failed logs
-        if: ${{ steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
+        if: ${{ steps.deploy-pipeline-test-fixtures.outcome != 'success' || steps.forward-api-port.outcome != 'success' || steps.forward-mysql-port.outcome != 'success' || steps.integration-tests.outcome != 'success' || steps.initialization-tests.outcome != 'success' }}
         run: |
           ./.github/resources/scripts/collect-logs.sh --ns kubeflow --output /tmp/tmp_pod_log.txt
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: kfp-initialization-tests-v1-artifacts-k8s-${{ matrix.k8s_version }}

@@ -61,8 +61,7 @@ func (c *VisualizationClient) Create(parameters *params.VisualizationServiceCrea
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.VisualizationService.VisualizationServiceCreateVisualizationV1(parameters, api_server.PassThroughAuth)
+	response, err := c.apiClient.VisualizationService.VisualizationServiceCreateVisualizationV1Context(ctx, parameters, api_server.PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.VisualizationServiceCreateVisualizationV1Default); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)

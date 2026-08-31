@@ -124,7 +124,7 @@ export class LineageCard extends React.Component<LineageCardProps> {
 
     const cardContainerClasses = classes(
       css.cardContainer,
-      css[type], // css.execution
+      type === 'execution' ? css.execution : '',
       addSpacer ? css.addSpacer : '',
       isTarget ? css.target : '',
     );
