@@ -281,6 +281,41 @@ func (d *countingTerminalReportDispatcher) PluginsRegistered() bool {
 	return true
 }
 
+type failingRunCreationDispatcher struct {
+	onRunEndCalls int
+	onRunEndRun   *apiserverPlugins.PersistedRun
+}
+
+func (d *failingRunCreationDispatcher) OnBeforeRunCreation(
+	_ context.Context,
+	run *apiserverPlugins.PendingRun,
+	_ util.ExecutionSpec,
+) error {
+	output := `{"test-plugin":{}}`
+	run.PluginsOutput = &output
+	return fmt.Errorf("failed to inject plugin runtime env")
+}
+
+func (d *failingRunCreationDispatcher) OnRunEnd(
+	_ context.Context,
+	run *apiserverPlugins.PersistedRun,
+) bool {
+	d.onRunEndCalls++
+	d.onRunEndRun = run
+	return true
+}
+
+func (d *failingRunCreationDispatcher) OnRunRetry(
+	context.Context,
+	*apiserverPlugins.PersistedRun,
+) error {
+	return nil
+}
+
+func (d *failingRunCreationDispatcher) PluginsRegistered() bool {
+	return true
+}
+
 func TestReadRunLogFromArchiveStreamsObjectStoreFile(t *testing.T) {
 	logArchive := archive.NewLogArchive("/logs", "main.log")
 	execSpec, err := util.NewExecutionSpecJSON(util.CurrentExecutionType(), []byte(testWorkflow.ToStringForStore()))
@@ -2797,6 +2832,42 @@ func TestCreateRun_StoreRunMetadataError(t *testing.T) {
 	assert.Contains(t, err.Error(), "database is closed")
 }
 
+func TestCreateRun_PluginFailureStillCallsOnRunEnd(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer store.Close()
+
+	manager := NewResourceManager(
+		store,
+		&ResourceManagerOptions{CollectMetrics: false},
+	)
+
+	experimentID, err := manager.CreateDefaultExperiment("")
+	require.NoError(t, err)
+
+	dispatcher := &failingRunCreationDispatcher{}
+	manager.pluginDispatcher = dispatcher
+
+	apiRun := &model.Run{
+		DisplayName:  "plugin-failure-run",
+		ExperimentId: experimentID,
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+	}
+
+	_, err = manager.CreateRun(context.Background(), apiRun)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inject plugin runtime env")
+
+	assert.Equal(t, 1, dispatcher.onRunEndCalls,
+		"OnRunEnd should be called when run creation fails after plugin output is produced")
+
+	require.NotNil(t, dispatcher.onRunEndRun)
+	require.Equal(t, apiRun.UUID, dispatcher.onRunEndRun.RunID)
+	require.Contains(t, dispatcher.onRunEndRun.PluginsOutput, "test-plugin")
+}
 func TestCreateRun_WithMLflowPlugin(t *testing.T) {
 	// Set up a fake MLflow server that handles experiment lookup and run creation.
 	// Tags are passed inline in the CreateRun body (atomic tagging).
