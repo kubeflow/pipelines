@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Documentation
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-python-pip-cache
         with:
@@ -55,7 +55,7 @@ jobs:
     name: Check Links
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: ./.github/actions/setup-python-pip-cache
         with:
