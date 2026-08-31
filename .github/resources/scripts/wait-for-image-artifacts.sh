@@ -44,16 +44,9 @@ fi
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 
 case "$(uname -m)" in
-  x86_64)
-    ARCH_NAME="amd64"
-    ;;
-  aarch64|arm64)
-    ARCH_NAME="arm64"
-    ;;
-  *)
-    echo "::error::Unsupported runner architecture: $(uname -m)" >&2
-    exit 1
-    ;;
+  x86_64) ARCH_NAME="amd64" ;;
+  aarch64|arm64) ARCH_NAME="arm64" ;;
+  *) echo "::error::Unsupported runner architecture: $(uname -m)" >&2; exit 1 ;;
 esac
 
 EXPECTED_CI_IMAGE_ARTIFACTS=()
@@ -62,8 +55,7 @@ for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
 done
 
 artifact_producer_pattern() {
-  local artifact="$1"
-  artifact="${artifact%-${ARCH_NAME}}"
+  local artifact="${1%-${ARCH_NAME}}"
   if [[ "$artifact" == "runtime-base-images" ]]; then
     printf '%s\n' 'build / runtime-base-images'
   else
@@ -85,6 +77,15 @@ producer_for_artifact() {
   return 1
 }
 
+artifact_is_available() {
+  local artifact="$1"
+  if grep -Fqx -- "$artifact" <<< "$artifact_names"; then
+    return 0
+  fi
+  local legacy_name="${artifact%-${ARCH_NAME}}"
+  grep -Fqx -- "$legacy_name" <<< "$artifact_names"
+}
+
 attempt=0
 publication_grace_used=0
 producer_state_unavailable_used=0
@@ -102,7 +103,7 @@ while :; do
 
   missing_artifacts=()
   for artifact in "${EXPECTED_CI_IMAGE_ARTIFACTS[@]}"; do
-    if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
+    if ! artifact_is_available "$artifact"; then
       missing_artifacts+=("$artifact")
     fi
   done
@@ -112,9 +113,6 @@ while :; do
     exit 0
   fi
 
-  # Honor the normal wait budget before consulting producer state. This keeps
-  # transient artifact propagation delays on the normal polling path while
-  # still allowing producer-aware extensions once that budget is exhausted.
   if (( attempt < WAIT_ATTEMPTS )); then
     echo "Waiting for branch image artifacts (${attempt}/${WAIT_ATTEMPTS}); missing: ${missing_artifacts[*]}"
     sleep "$WAIT_INTERVAL_SECONDS"
@@ -150,18 +148,13 @@ while :; do
     IFS=$'\t' read -r job_name job_status job_conclusion <<< "$producer_info"
     case "$job_status" in
       queued|in_progress|waiting|requested|pending)
-        active_producers+=("${artifact%-${ARCH_NAME}}")
-        ;;
+        active_producers+=("${artifact%-${ARCH_NAME}}") ;;
       completed)
         case "$job_conclusion" in
-          success)
-            successful_producers+=("${artifact%-${ARCH_NAME}}")
-            ;;
+          success) successful_producers+=("${artifact%-${ARCH_NAME}}") ;;
           failure|cancelled|timed_out|action_required|stale|startup_failure)
-            failed_producers+=("${artifact%-${ARCH_NAME}}:${job_conclusion}")
-            ;;
-        esac
-        ;;
+            failed_producers+=("${artifact%-${ARCH_NAME}}:${job_conclusion}") ;;
+        esac ;;
     esac
   done
 
@@ -177,9 +170,6 @@ while :; do
     continue
   fi
 
-  # Once the producer is successful (or there is no producer-state reason to
-  # keep waiting), allow a bounded publication grace period for GitHub's
-  # artifact listing to converge across workflow jobs.
   if (( publication_grace_used < PUBLICATION_GRACE_ATTEMPTS )); then
     publication_grace_used=$((publication_grace_used + 1))
     if (( ${#successful_producers[@]} > 0 )); then
