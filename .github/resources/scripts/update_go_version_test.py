@@ -298,7 +298,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             expected[relative_path],
         )
 
-    def test_stage_alias_named_golang_is_conservatively_unsupported(self):
+    def test_stage_alias_named_golang_is_preserved_as_local(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.write_text(
             f'FROM golang:1.28.0@{OLD_DIGEST} AS golang\n'
@@ -306,14 +306,18 @@ class UpdateGoVersionTest(unittest.TestCase):
             encoding='utf-8',
         )
 
-        with self.assertRaisesRegex(ValueError,
-                                    'unsupported Go runtime pins'):
-            update_go_version.synchronized_contents(
-                self.repo_root,
-                '1.28.3',
-                digest_resolver=lambda tag: DIGESTS[tag],
-                repository_paths=self.files,
-            )
+        expected = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )
+
+        self.assertEqual(
+            expected[Path('Dockerfile')],
+            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS golang\n'
+            'FROM golang AS final\n',
+        )
 
     def test_chained_arg_values_are_not_evaluated(self):
         dockerfile = self.repo_root / 'Dockerfile'
@@ -475,6 +479,30 @@ class UpdateGoVersionTest(unittest.TestCase):
                 repository_paths=self.files,
             )
 
+    def test_index_entry_reader_rejects_conflicted_paths(self):
+        object_id = '1' * 40
+        cases = (
+            (
+                f'100644 {object_id} 0\tgo.mod\0'
+                f'100644 {object_id} 2\tgo.mod\0',
+                'multiple Git index entries',
+            ),
+            (
+                f'100644 {object_id} 2\tgo.mod\0',
+                'unsupported Git index mode 100644 at stage 2',
+            ),
+        )
+        for output, message in cases:
+            with self.subTest(message=message), mock.patch.object(
+                    update_go_version,
+                    '_git',
+                    return_value=subprocess.CompletedProcess(
+                        ('git',), 0, output, ''),
+            ):
+                with self.assertRaisesRegex(RuntimeError, message):
+                    update_go_version._indexed_stage_zero_entries(
+                        self.repo_root, (Path('go.mod'),))
+
     def test_unrelated_dirty_files_are_preserved(self):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
@@ -522,6 +550,48 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(notes.read_text(encoding='utf-8'), 'original\n')
         self.assertEqual(self._recovery_patches(), [])
+
+    def test_verification_preserves_concurrent_same_mode_staged_edit(self):
+        root = self.repo_root / 'go.mod'
+        planned = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )[Path('go.mod')]
+        concurrent = (
+            'module example.com/root\n\n'
+            'go 1.28.0\n\n'
+            '// concurrent staged edit\n')
+
+        def stage_edit_but_restore_planned_worktree(repo_root):
+            if Path(repo_root) == self.repo_root:
+                root.write_text(concurrent, encoding='utf-8')
+                self._git('add', 'go.mod')
+                root.write_text(planned, encoding='utf-8')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=stage_edit_but_restore_planned_worktree,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'Git index entry changed.*managed paths left unchanged.*'
+                    'go.mod.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(root.read_text(encoding='utf-8'), planned)
+        self.assertEqual(self._git('show', ':go.mod').stdout, concurrent)
+        self.assertTrue(
+            self._git('ls-files', '--stage', '--',
+                      'go.mod').stdout.startswith('100644 '))
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_apply_failure_keeps_recovery_patch_and_originals(self):
         real_git = update_go_version._git

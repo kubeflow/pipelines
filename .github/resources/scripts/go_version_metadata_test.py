@@ -89,13 +89,15 @@ class GoVersionMetadataTest(unittest.TestCase):
         self.assertFalse(
             has_go_runtime_reference(Path('test.yaml'), contents))
 
-    def test_docker_arg_and_stage_constructs_are_not_evaluated(self):
-        for contents in (
-                'ARG IMAGE=golang:1.27.0\nFROM ${IMAGE} AS builder\n',
-                'FROM alpine AS golang\nFROM golang AS final\n'):
-            with self.subTest(contents=contents):
-                result = docker_runtime_classification(contents)
-                self.assertEqual(result['classification'], 'unsupported')
+    def test_docker_arg_values_are_not_evaluated(self):
+        result = docker_runtime_classification(
+            'ARG IMAGE=golang:1.27.0\nFROM ${IMAGE} AS builder\n')
+        self.assertEqual(result['classification'], 'unsupported')
+
+    def test_local_stage_named_golang_is_not_an_external_image(self):
+        result = docker_runtime_classification(
+            'FROM alpine AS golang\nFROM golang AS final\n')
+        self.assertEqual(result['classification'], 'irrelevant')
 
     def test_container_recipe_names_are_discovered(self):
         for name in ('Dockerfile', 'Dockerfile.dev', 'Containerfile',

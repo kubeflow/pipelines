@@ -418,7 +418,7 @@ def sync(
         raise RuntimeError(
             f'HEAD changed during Go version update from {initial_head} '
             f'to {start_head}')
-    expected_executable_modes = _indexed_executable_modes(
+    expected_index_entries = _indexed_stage_zero_entries(
         repo_root, changed_paths)
     worktree_parent = tempfile.TemporaryDirectory(
         prefix='kfp-go-version-worktree-')
@@ -437,7 +437,7 @@ def sync(
             _ensure_regular_destination(path, relative_path)
             path.write_text(expected_contents[relative_path], encoding='utf-8')
         _verify_worktree_plan(worktree, expected_contents,
-                              expected_executable_modes, changed_paths)
+                              expected_index_entries, changed_paths)
         patch = _git(
             worktree,
             '--literal-pathspecs',
@@ -515,8 +515,10 @@ def sync(
         application_attempted = True
         _git(repo_root, 'apply', '--whitespace=nowarn', str(recovery_path))
         _ensure_expected_contents(repo_root, expected_contents, changed_paths,
-                                  expected_executable_modes)
+                                  expected_index_entries)
         _verify_repository_consistency(repo_root)
+        _ensure_expected_contents(repo_root, expected_contents, changed_paths,
+                                  expected_index_entries)
     except BaseException as update_error:
         rollback_errors = []
         unresolved_paths = []
@@ -528,7 +530,7 @@ def sync(
                 changed_paths,
                 original_contents,
                 expected_contents,
-                expected_executable_modes,
+                expected_index_entries,
                 path_patches,
                 original_restore_paths,
             )
@@ -633,8 +635,9 @@ def _require_clean_managed_paths(repo_root: Path,
     return head
 
 
-def _indexed_executable_modes(repo_root: Path,
-                              relative_paths: Iterable[Path]) -> Dict[Path, bool]:
+def _indexed_stage_zero_entries(
+        repo_root: Path,
+        relative_paths: Iterable[Path]) -> Dict[Path, Tuple[str, str]]:
     relative_paths = tuple(sorted(relative_paths))
     output = _git(
         repo_root,
@@ -645,24 +648,36 @@ def _indexed_executable_modes(repo_root: Path,
         '--',
         *(str(path) for path in relative_paths),
     ).stdout
-    modes = {}
+    parsed_entries = []
+    path_counts = {}
     for entry in output.split('\0'):
         if not entry:
             continue
         metadata, path_text = entry.split('\t', 1)
-        mode, _object_id, stage = metadata.split(' ')
+        mode, object_id, stage = metadata.split(' ')
         relative_path = Path(path_text)
+        parsed_entries.append((relative_path, mode, object_id, stage))
+        path_counts[relative_path] = path_counts.get(relative_path, 0) + 1
+    duplicates = sorted(path for path, count in path_counts.items()
+                        if count > 1)
+    if duplicates:
+        raise RuntimeError(
+            'managed Go version files have multiple Git index entries: ' +
+            ', '.join(str(path) for path in duplicates))
+
+    index_entries = {}
+    for relative_path, mode, object_id, stage in parsed_entries:
         if stage != '0' or mode not in ('100644', '100755'):
             raise RuntimeError(
                 f'{relative_path} has unsupported Git index mode {mode} '
                 f'at stage {stage}')
-        modes[relative_path] = mode == '100755'
-    missing = set(relative_paths) - set(modes)
+        index_entries[relative_path] = (mode, object_id)
+    missing = set(relative_paths) - set(index_entries)
     if missing:
         raise RuntimeError(
             'managed Go version files are missing from the Git index: ' +
             ', '.join(str(path) for path in sorted(missing)))
-    return modes
+    return index_entries
 
 
 def _core_file_mode_enabled(repo_root: Path) -> bool:
@@ -686,15 +701,17 @@ def _core_file_mode_enabled(repo_root: Path) -> bool:
 
 def _verify_worktree_plan(worktree: Path,
                           expected_contents: Dict[Path, str],
-                          expected_executable_modes: Dict[Path, bool],
+                          expected_index_entries: Dict[Path, Tuple[str, str]],
                           changed_paths: Iterable[Path]) -> None:
     changed_paths = tuple(changed_paths)
-    worktree_modes = _indexed_executable_modes(worktree, changed_paths)
-    if worktree_modes != expected_executable_modes:
+    worktree_index_entries = _indexed_stage_zero_entries(
+        worktree, changed_paths)
+    if worktree_index_entries != expected_index_entries:
         raise RuntimeError(
-            'temporary worktree Git modes do not match the update plan')
+            'temporary worktree Git index entries do not match the update '
+            'plan')
     _ensure_expected_contents(worktree, expected_contents, changed_paths,
-                              expected_executable_modes)
+                              expected_index_entries)
     _verify_repository_consistency(worktree)
     actual = set(
         path for path in _git(
@@ -832,10 +849,10 @@ def _fsync_directory(path: Path) -> None:
 
 def _contents_match(repo_root: Path, expected_contents: Dict[Path, str],
                     relative_paths: Iterable[Path],
-                    expected_executable_modes: Dict[Path, bool]) -> bool:
+                    expected_index_entries: Dict[Path, Tuple[str, str]]) -> bool:
     try:
         _ensure_expected_contents(repo_root, expected_contents, relative_paths,
-                                  expected_executable_modes)
+                                  expected_index_entries)
         return True
     except Exception:
         return False
@@ -846,7 +863,7 @@ def _recover_applied_paths(
     relative_paths: Iterable[Path],
     original_contents: Dict[Path, str],
     expected_contents: Dict[Path, str],
-    expected_executable_modes: Dict[Path, bool],
+    expected_index_entries: Dict[Path, Tuple[str, str]],
     path_patches: Dict[Path, str],
     original_restore_paths: Dict[Path, Path],
 ) -> Tuple[List[str], List[str], Optional[BaseException]]:
@@ -855,10 +872,10 @@ def _recover_applied_paths(
     interrupt = None
     for relative_path in relative_paths:
         if _contents_match(repo_root, original_contents, (relative_path,),
-                           expected_executable_modes):
+                           expected_index_entries):
             continue
         if not _contents_match(repo_root, expected_contents, (relative_path,),
-                               expected_executable_modes):
+                               expected_index_entries):
             unresolved.append(
                 f'{relative_path} (original restore patch: '
                 f'{original_restore_paths[relative_path]})')
@@ -869,7 +886,7 @@ def _recover_applied_paths(
             _git_apply_contents(repo_root, patch, reverse=True)
             _ensure_expected_contents(repo_root, original_contents,
                                       (relative_path,),
-                                      expected_executable_modes)
+                                      expected_index_entries)
         except BaseException as error:
             if not isinstance(error, Exception) and interrupt is None:
                 interrupt = error
@@ -905,13 +922,13 @@ def _git_apply_contents(repo_root: Path, patch: str, *, reverse: bool,
 def _ensure_expected_contents(repo_root: Path,
                               expected_contents: Dict[Path, str],
                               relative_paths: Iterable[Path],
-                              expected_executable_modes: Optional[Dict[
-                                  Path, bool]] = None) -> None:
+                              expected_index_entries: Optional[Dict[
+                                  Path, Tuple[str, str]]] = None) -> None:
     relative_paths = tuple(relative_paths)
-    indexed_modes = (_indexed_executable_modes(repo_root, relative_paths)
-                     if expected_executable_modes is not None else {})
+    indexed_entries = (_indexed_stage_zero_entries(repo_root, relative_paths)
+                       if expected_index_entries is not None else {})
     file_mode_enabled = (_core_file_mode_enabled(repo_root)
-                         if expected_executable_modes is not None else False)
+                         if expected_index_entries is not None else False)
     changed = []
     for relative_path in relative_paths:
         try:
@@ -923,14 +940,16 @@ def _ensure_expected_contents(repo_root: Path,
         if current != expected_contents[relative_path]:
             changed.append(str(relative_path))
             continue
-        if expected_executable_modes is not None:
-            expected_mode = expected_executable_modes[relative_path]
-            if indexed_modes[relative_path] != expected_mode:
-                changed.append(f'{relative_path} (Git index mode changed)')
+        if expected_index_entries is not None:
+            expected_entry = expected_index_entries[relative_path]
+            current_entry = indexed_entries[relative_path]
+            if current_entry != expected_entry:
+                changed.append(f'{relative_path} (Git index entry changed)')
                 continue
+            expected_mode = expected_entry[0] == '100755'
             effective_mode = (
                 _is_executable(repo_root / relative_path, relative_path)
-                if file_mode_enabled else indexed_modes[relative_path])
+                if file_mode_enabled else current_entry[0] == '100755')
             if effective_mode != expected_mode:
                 changed.append(f'{relative_path} (executable mode changed)')
     if changed:

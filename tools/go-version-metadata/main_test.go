@@ -302,6 +302,146 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"literal", "literal"},
 		},
 		{
+			name: "typed active instructions are inspected",
+			contents: "FROM alpine\n" +
+				"ADD https://go.dev/dl/go1.27.0.linux-amd64.tar.gz /tmp/go.tgz\n" +
+				"CMD docker pull golang:latest\n" +
+				"ENTRYPOINT [\"docker\",\"pull\",\"golang:latest\"]\n" +
+				"HEALTHCHECK CMD curl https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"add-download", "literal", "literal", "download"},
+		},
+		{
+			name: "onbuild typed payload is inspected",
+			contents: "FROM alpine\n" +
+				"ONBUILD ADD https://go.dev/dl/go1.27.0.linux-amd64.tar.gz /tmp/go.tgz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"add-download"},
+		},
+		{
+			name: "local stage aliases and numeric stages are not external images",
+			contents: "FROM alpine AS golang\n" +
+				"FROM alpine\n" +
+				"COPY --from=golang /bin/x /bin/x\n" +
+				"COPY --from=0 /bin/x /bin/y\n" +
+				"RUN --mount=type=bind,from=golang,target=/src true\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "current stage alias cannot hide its external base",
+			contents:       "FROM golang:latest AS golang\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from"},
+		},
+		{
+			name: "heredoc comments end per line",
+			contents: "FROM alpine\nRUN <<EOF\n" +
+				"# golang:latest\n" +
+				"docker pull golang:latest # still active\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "heredoc comments are not active",
+			contents: "FROM alpine\nRUN <<EOF\n" +
+				"echo alpine # golang:latest\n" +
+				"# golang:latest\nEOF\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "runtime escaping is independent of Dockerfile escape",
+			contents: "# escape=`\nFROM alpine\n" +
+				"RUN docker pull g\\olang:latest\n" +
+				"RUN echo not\\golang:latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "runtime backslash newline is removed",
+			contents: "FROM alpine\nRUN <<EOF\n" +
+				"docker pull go\\\nlang:latest\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "configured PowerShell escape is honored",
+			contents: "FROM alpine\nSHELL [\"pwsh\",\"-Command\"]\n" +
+				"RUN docker pull go`lang:latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "Windows PowerShell path is recognized",
+			contents: "FROM alpine\n" +
+				"SHELL [\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"-Command\"]\n" +
+				"RUN docker pull go`lang:latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "unknown shell fails closed only for candidate data",
+			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
+				"RUN docker pull golang:latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unknown-shell"},
+		},
+		{
+			name:           "unknown shell unrelated data remains irrelevant",
+			contents:       "FROM alpine\nSHELL [\"fish\",\"-c\"]\nRUN echo alpine\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "unknown shell heredoc fails closed",
+			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
+				"RUN <<EOF\necho golang:latest\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unknown-shell"},
+		},
+		{
+			name: "unknown shell escaped download fails closed",
+			contents: "FROM alpine\nSHELL [\"fish\",\"-c\"]\n" +
+				"RUN curl https://go\\.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unknown-shell"},
+		},
+		{
+			name:           "unknown candidate instruction fails closed",
+			contents:       "FROM alpine\nFUTURE docker pull go\"lang\":latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unknown-instruction"},
+		},
+		{
+			name:           "unknown unrelated instruction is irrelevant",
+			contents:       "FROM alpine\nFUTURE echo alpine\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "unknown escaped download instruction fails closed",
+			contents:       "FROM alpine\nFUTURE curl https://go\\.dev/dl/go1.27.0.linux-amd64.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unknown-instruction"},
+		},
+		{
+			name: "parameter identifiers and assignment names are not sources",
+			contents: "FROM alpine\n" +
+				"ARG LENGTH=${#golang}\n" +
+				"RUN golang=alpine echo ${#golang}\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "assignment name does not hide literal operand",
+			contents: "FROM alpine\n" +
+				"RUN golang=alpine docker pull golang:latest\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name:           "assignment value remains visible",
+			contents:       "FROM alpine\nRUN IMAGE=golang:latest echo ready\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
 			name: "tagless active literals are unsupported",
 			contents: "FROM alpine\n" +
 				"RUN docker pull golang\n" +
@@ -442,6 +582,8 @@ func TestDockerGoTokenIgnoresGolangInsideParameterNames(t *testing.T) {
 	for _, value := range []string{
 		"${名golang}",
 		"${égolang}",
+		"${#golang}",
+		"${!golang}",
 		"$名golang",
 		"$égolang",
 	} {
@@ -464,7 +606,7 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 		`go'lang':latest`: "golang:latest",
 		`$名golang`:        "$名golang",
 	} {
-		got, err := discovery.normalizeDockerWord(input, false)
+		got, err := discovery.normalizeDockerWord(input)
 		if err != nil {
 			t.Errorf("normalizeDockerWord(%q): %v", input, err)
 			continue
@@ -475,8 +617,10 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 		buildKit, _, err := lexer.ProcessWord(input, shell.EnvsFromSlice(nil))
 		if err != nil {
 			t.Errorf("BuildKit ProcessWord(%q): %v", input, err)
-		} else if projected := projectDockerShellWord(input, '\\'); projected != buildKit {
-			t.Errorf("projectDockerShellWord(%q) = %q, BuildKit = %q", input, projected, buildKit)
+		} else if words, runtimeErr := discovery.runtimeWords(input, defaultRuntimeShell()); runtimeErr != nil {
+			t.Errorf("runtimeWords(%q): %v", input, runtimeErr)
+		} else if len(words) != 1 || words[0] != buildKit {
+			t.Errorf("runtimeWords(%q) = %q, BuildKit = %q", input, words, buildKit)
 		}
 	}
 }
@@ -484,11 +628,11 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 	discovery := newDockerDiscovery('\\')
 	value := strings.Repeat("alpine", 100)
-	if _, err := discovery.normalizeDockerWord(value, false); err != nil {
+	if _, err := discovery.normalizeDockerWord(value); err != nil {
 		t.Fatal(err)
 	}
 	bytesAfterFirst := discovery.normalizedBytes
-	if _, err := discovery.normalizeDockerWord(value, false); err != nil {
+	if _, err := discovery.normalizeDockerWord(value); err != nil {
 		t.Fatal(err)
 	}
 	if discovery.normalizedBytes != bytesAfterFirst {
@@ -496,16 +640,30 @@ func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 	}
 
 	deep := strings.Repeat("${A:-", maxDockerParameterDepth+1) + "alpine" + strings.Repeat("}", maxDockerParameterDepth+1)
-	if _, err := discovery.normalizeDockerWord(deep, false); !isResourceLimit(err, "parameter expansion depth") {
+	if _, err := discovery.normalizeDockerWord(deep); !isResourceLimit(err, "parameter expansion depth") {
 		t.Fatalf("deep Docker word error = %v", err)
+	}
+	quoted := "'" + deep + "'"
+	if _, err := discovery.normalizeDockerWord(quoted); err != nil {
+		t.Fatalf("quoted parameter-like text error = %v", err)
+	}
+	escaped := strings.Repeat(`\${A:-`, maxDockerParameterDepth+1) + "alpine" + strings.Repeat("}", maxDockerParameterDepth+1)
+	if _, err := discovery.normalizeDockerWord(escaped); err != nil {
+		t.Fatalf("escaped parameter-like text error = %v", err)
+	}
+	if _, err := discovery.runtimeWords(deep, defaultRuntimeShell()); !isResourceLimit(err, "parameter expansion depth") {
+		t.Fatalf("deep runtime shell word error = %v", err)
+	}
+	if _, err := discovery.runtimeWords(quoted, defaultRuntimeShell()); err != nil {
+		t.Fatalf("quoted runtime parameter-like text error = %v", err)
 	}
 
 	byteBudget := newDockerDiscovery('\\')
 	large := strings.Repeat("a", maxDockerNormalizedBytes/2+1)
-	if _, err := byteBudget.normalizeDockerWord(large, false); err != nil {
+	if _, err := byteBudget.normalizeDockerWord(large); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := byteBudget.normalizeDockerWord(large+"b", false); !isResourceLimit(err, "normalized-word limit") {
+	if _, err := byteBudget.normalizeDockerWord(large + "b"); !isResourceLimit(err, "normalized-word limit") {
 		t.Fatalf("normalized Docker word budget error = %v", err)
 	}
 }
@@ -515,6 +673,14 @@ func TestDockerCandidateBudget(t *testing.T) {
 	classification, _, dockerError := classifyDockerfile(contents)
 	if classification != "invalid" || !strings.Contains(dockerError, "candidate limit") {
 		t.Fatalf("classification = %q, error = %q, want invalid candidate limit", classification, dockerError)
+	}
+}
+
+func TestDockerInstructionBudget(t *testing.T) {
+	contents := "FROM alpine\n" + strings.Repeat("RUN true\n", maxDockerInstructions+1)
+	classification, _, dockerError := classifyDockerfile(contents)
+	if classification != "invalid" || !strings.Contains(dockerError, "instruction limit") {
+		t.Fatalf("classification = %q, error = %q, want invalid instruction limit", classification, dockerError)
 	}
 }
 
