@@ -99,6 +99,17 @@ func newFakeExecutionSpec() util.ExecutionSpec {
 	})
 }
 
+type failingRuntimeEnvExecutionSpec struct {
+	util.ExecutionSpec
+}
+
+func (f *failingRuntimeEnvExecutionSpec) UpsertRuntimeEnvVars(
+	envVars []corev1.EnvVar,
+	roles ...util.ExecutionRuntimeRole,
+) error {
+	return fmt.Errorf("failed to inject plugin runtime env")
+}
+
 func newFakeDispatcher(handlers []RunPluginHandler) (*RunPluginDispatcherImpl, error) {
 	return NewRunPluginDispatcherImpl(handlers, &fakeKubeClientProvider{}, &fakeRunPluginOutputStore{})
 }
@@ -638,6 +649,31 @@ func TestOnBeforeRunCreation_HandlerFailure_ContinuesExecution(t *testing.T) {
 	err := dispatcher.OnBeforeRunCreation(context.Background(), pendingRun, newFakeExecutionSpec())
 
 	require.NoError(t, err)
+}
+
+func TestOnBeforeRunCreation_RuntimeEnvInjectionFailure_ReturnsError(t *testing.T) {
+	handler := &fakeHandler{
+		name:         "FakePlugin",
+		pluginConfig: &PluginConfig{},
+		pluginOutput: &apiv2beta1.PluginOutput{},
+		envVars: []corev1.EnvVar{
+			{Name: "PLUGIN_TEST", Value: "test"},
+		},
+	}
+	dispatcher, _ := newFakeDispatcher([]RunPluginHandler{handler})
+
+	executionSpec := &failingRuntimeEnvExecutionSpec{
+		ExecutionSpec: newFakeExecutionSpec(),
+	}
+
+	err := dispatcher.OnBeforeRunCreation(
+		context.Background(),
+		pendingRun,
+		executionSpec,
+	)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to inject plugin runtime env")
 }
 
 func TestOnRunEnd_HandlerFailure_ReturnsTrueWithoutParentRun(t *testing.T) {
