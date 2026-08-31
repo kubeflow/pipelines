@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -22,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -33,7 +35,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/kubernetes"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/transport"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -71,7 +72,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	shutdownContext := signals.SetupSignalHandler()
+	stopCh := shutdownContext.Done()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {
@@ -162,28 +164,67 @@ func main() {
 	go scheduleInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
-	go startMetricsServer()
+	var serverWg sync.WaitGroup
+	serverWg.Add(1)
+	go func() {
+		defer serverWg.Done()
+		startMetricsServer(shutdownContext, controller)
+	}()
 
-	if err = controller.Run(2, stopCh); err != nil {
+	if err = controller.Run(2, stopCh); err != nil && shutdownContext.Err() == nil {
 		log.Fatalf("Error running controller: %s", err.Error())
 	}
+
+	// Wait for the metrics server to finish its graceful shutdown before
+	// the process exits, so in-flight Prometheus scrapes are not dropped.
+	serverWg.Wait()
 }
 
-func startMetricsServer() {
+func newMetricsMux(readinessCheck func() bool) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if readinessCheck() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("not ready"))
+		}
+	})
+	return mux
+}
+
+func startMetricsServer(shutdownContext context.Context, controller *Controller) {
 	addr := ":" + metricsPort
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           newMetricsMux(controller.HasSynced),
 		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	log.Infof("Starting metrics server at %s...", addr)
 
+	shutdownDone := make(chan struct{})
+	go func() {
+		defer close(shutdownDone)
+		<-shutdownContext.Done()
+		log.Info("Shutting down metrics server...")
+		shutdownTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownTimeout); err != nil {
+			log.Errorf("Metrics server graceful shutdown failed: %v", err)
+		}
+	}()
+
 	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Metrics server failed: %v", err)
 	}
+	<-shutdownDone
 }
 
 func initEnv() {
