@@ -21,6 +21,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -46,7 +47,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.repo_root = Path(self.temp_dir.name)
         self.files = {
-            Path('go.mod'): 'module example.com/root\n\ngo 1.28.0\n',
+            Path('go.mod'):
+                'module example.com/root\n\ngo 1.28.0\n',
             Path('nested/go.mod'):
                 'module example.com/nested\n\ngo 1.28.0\n\n'
                 'toolchain go1.28.2\n\n'
@@ -66,8 +68,8 @@ class UpdateGoVersionTest(unittest.TestCase):
             path.write_text(contents, encoding='utf-8')
         self._git('init', '-q')
         self._git('add', '--', *(str(path) for path in self.files))
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'initial')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'initial')
 
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -98,20 +100,18 @@ class UpdateGoVersionTest(unittest.TestCase):
             self._git('status', '--porcelain=v1', '--',
                       *(str(path) for path in self.files)).stdout, '')
         for relative_path in self.files:
-            self.assertNotIn(
-                '\r', self._git('show', f':{relative_path}').stdout)
+            self.assertNotIn('\r',
+                             self._git('show', f':{relative_path}').stdout)
             contents = (self.repo_root / relative_path).read_bytes()
             self.assertIn(b'\r\n', contents)
             self.assertNotIn(b'\n', contents.replace(b'\r\n', b''))
 
     def _recovery_patches(self):
-        recovery_dir = (self.repo_root / '.git' /
-                        'go-version-update-recovery')
+        recovery_dir = (self.repo_root / '.git' / 'go-version-update-recovery')
         return list(recovery_dir.rglob('*.patch'))
 
     def _recovery_bundles(self):
-        recovery_dir = (self.repo_root / '.git' /
-                        'go-version-update-recovery')
+        recovery_dir = (self.repo_root / '.git' / 'go-version-update-recovery')
         return list(recovery_dir.glob('*.bundle'))
 
     def _restore_patch(self, relative_path):
@@ -145,13 +145,12 @@ class UpdateGoVersionTest(unittest.TestCase):
             f'golang:1.28.3-alpine@{DIGESTS["1.28.3-alpine"]}',
             expected[Path('another/Dockerfile.worker')],
         )
-        self.assertEqual(calls,
-                         ['1.28.3', '1.28.3-alpine', '1.28.3-bookworm'])
+        self.assertEqual(calls, ['1.28.3', '1.28.3-alpine', '1.28.3-bookworm'])
 
     def test_patch_update_preserves_existing_language_floor(self):
         root = self.repo_root / 'go.mod'
-        root.write_text('module example.com/root\n\ngo 1.28.2\n',
-                        encoding='utf-8')
+        root.write_text(
+            'module example.com/root\n\ngo 1.28.2\n', encoding='utf-8')
 
         expected = update_go_version.synchronized_contents(
             self.repo_root,
@@ -165,8 +164,8 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_rejects_target_below_module_language_floor(self):
         nested = self.repo_root / 'nested/go.mod'
-        nested.write_text('module example.com/nested\n\ngo 1.28.4\n',
-                          encoding='utf-8')
+        nested.write_text(
+            'module example.com/nested\n\ngo 1.28.4\n', encoding='utf-8')
 
         with self.assertRaisesRegex(ValueError, 'exceeds the target compiler'):
             update_go_version.synchronized_contents(
@@ -178,8 +177,8 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_rejects_higher_minor_module_language_floor(self):
         nested = self.repo_root / 'nested/go.mod'
-        nested.write_text('module example.com/nested\n\ngo 1.30.0\n',
-                          encoding='utf-8')
+        nested.write_text(
+            'module example.com/nested\n\ngo 1.30.0\n', encoding='utf-8')
 
         with self.assertRaisesRegex(ValueError, 'exceeds the target compiler'):
             update_go_version.synchronized_contents(
@@ -252,11 +251,11 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_rejects_bare_toolchain_directive(self):
         nested = self.repo_root / 'nested/go.mod'
-        nested.write_text('module example.com/nested\n\ngo 1.28.0\n\ntoolchain\n',
-                          encoding='utf-8')
+        nested.write_text(
+            'module example.com/nested\n\ngo 1.28.0\n\ntoolchain\n',
+            encoding='utf-8')
 
-        with self.assertRaisesRegex(ValueError,
-                                    'invalid toolchain directive'):
+        with self.assertRaisesRegex(ValueError, 'invalid toolchain directive'):
             update_go_version.synchronized_contents(
                 self.repo_root,
                 '1.28.3',
@@ -281,10 +280,9 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_rejects_malformed_go_and_toolchain_blocks(self):
         nested = self.repo_root / 'nested/go.mod'
-        for contents in (
-                'module example.com/nested\n\ngo (\n  1.28.0\n)\n',
-                'module example.com/nested\n\ngo 1.28.0\n\n'
-                'toolchain (\n  go1.28.2\n)\n'):
+        for contents in ('module example.com/nested\n\ngo (\n  1.28.0\n)\n',
+                         'module example.com/nested\n\ngo 1.28.0\n\n'
+                         'toolchain (\n  go1.28.2\n)\n'):
             with self.subTest(contents=contents):
                 nested.write_text(contents, encoding='utf-8')
                 with self.assertRaisesRegex(ValueError, 'invalid .* directive'):
@@ -375,8 +373,8 @@ class UpdateGoVersionTest(unittest.TestCase):
             repository_paths=self.files,
         )
         self._git('add', '--', *(str(path) for path in self.files))
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'update')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'update')
         second = update_go_version.sync(
             self.repo_root,
             '1.29.0',
@@ -387,6 +385,58 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertEqual(set(first), set(self.files))
         self.assertEqual(second, [])
 
+    def test_concurrent_identical_updaters_are_serialized(self):
+        first_resolver_entered = threading.Event()
+        release_first_resolver = threading.Event()
+        second_resolver_entered = threading.Event()
+        results = {}
+        resolver_call = 0
+
+        def first_resolver(tag):
+            nonlocal resolver_call
+            resolver_call += 1
+            if resolver_call == 1:
+                first_resolver_entered.set()
+                self.assertTrue(release_first_resolver.wait(timeout=10))
+            return DIGESTS[tag]
+
+        def second_resolver(tag):
+            second_resolver_entered.set()
+            return DIGESTS[tag]
+
+        def run(name, resolver):
+            try:
+                results[name] = update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=resolver,
+                    repository_paths=self.files,
+                )
+            except BaseException as error:
+                results[name] = error
+
+        first = threading.Thread(target=run, args=('first', first_resolver))
+        second = threading.Thread(target=run, args=('second', second_resolver))
+        first.start()
+        self.assertTrue(first_resolver_entered.wait(timeout=10))
+        second.start()
+        self.assertFalse(second_resolver_entered.wait(timeout=0.25))
+        release_first_resolver.set()
+        first.join(timeout=20)
+        second.join(timeout=20)
+
+        self.assertFalse(first.is_alive())
+        self.assertFalse(second.is_alive())
+        self.assertEqual(set(results['first']), set(self.files))
+        self.assertIsInstance(results['second'], RuntimeError)
+        self.assertIn('tracked and clean', str(results['second']))
+        self.assertFalse(second_resolver_entered.is_set())
+        for relative_path in self.files:
+            self.assertNotEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                self.files[relative_path],
+            )
+
     def test_second_sync_rejects_uncommitted_managed_update(self):
         resolver = lambda tag: DIGESTS[tag]
         first = update_go_version.sync(
@@ -396,8 +446,7 @@ class UpdateGoVersionTest(unittest.TestCase):
             repository_paths=self.files,
         )
 
-        with self.assertRaisesRegex(RuntimeError,
-                                    'must be tracked and clean'):
+        with self.assertRaisesRegex(RuntimeError, 'must be tracked and clean'):
             update_go_version.sync(
                 self.repo_root,
                 '1.29.0',
@@ -417,12 +466,11 @@ class UpdateGoVersionTest(unittest.TestCase):
             repository_paths=self.files,
         )
         self._git('add', '--', *(str(path) for path in self.files))
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'update')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'update')
         self._git('rm', 'nested/go.mod')
 
-        with self.assertRaisesRegex(RuntimeError,
-                                    'nested/go.mod disappeared'):
+        with self.assertRaisesRegex(RuntimeError, 'nested/go.mod disappeared'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
@@ -444,16 +492,15 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
     def test_startup_rejects_staged_deletion_of_relevant_yaml(self):
-        relative_path = Path('runtime.yaml')
+        relative_path = Path('runtime.YAML')
         runtime = self.repo_root / relative_path
         runtime.write_text('image: golang:1.28.0\n', encoding='utf-8')
         self._git('add', str(relative_path))
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'runtime')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'runtime')
         self._git('rm', str(relative_path))
 
-        with self.assertRaisesRegex(RuntimeError,
-                                    'runtime.yaml disappeared'):
+        with self.assertRaisesRegex(RuntimeError, 'runtime.YAML disappeared'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
@@ -526,10 +573,9 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_concurrent_edit_during_digest_resolution_is_not_overwritten(self):
         root = self.repo_root / 'go.mod'
-        concurrent_contents = (
-            'module example.com/root\n\n'
-            'go 1.28.0\n\n'
-            '// concurrent edit\n')
+        concurrent_contents = ('module example.com/root\n\n'
+                               'go 1.28.0\n\n'
+                               '// concurrent edit\n')
         edited = False
 
         def edit_then_resolve(tag):
@@ -548,13 +594,12 @@ class UpdateGoVersionTest(unittest.TestCase):
                 repository_paths=self.files,
             )
 
-        self.assertEqual(root.read_text(encoding='utf-8'),
-                         concurrent_contents)
+        self.assertEqual(root.read_text(encoding='utf-8'), concurrent_contents)
         for relative_path, contents in self.files.items():
             if relative_path != Path('go.mod'):
-                self.assertEqual(
-                    (self.repo_root /
-                     relative_path).read_text(encoding='utf-8'), contents)
+                self.assertEqual((self.repo_root /
+                                  relative_path).read_text(encoding='utf-8'),
+                                 contents)
 
     def test_mode_change_during_digest_resolution_invalidates_snapshot(self):
         dockerfile = self.repo_root / 'Dockerfile'
@@ -578,16 +623,18 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), changed_mode)
-        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
-                         self.files[Path('Dockerfile')])
+        self.assertEqual(
+            dockerfile.read_text(encoding='utf-8'),
+            self.files[Path('Dockerfile')])
         self.assertEqual(self._recovery_patches(), [])
 
-    def test_unrelated_index_change_during_resolution_invalidates_snapshot(self):
+    def test_unrelated_index_change_during_resolution_invalidates_snapshot(
+            self):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
         self._git('add', 'notes.txt')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'notes')
         changed = False
 
         def stage_unrelated_then_resolve(tag):
@@ -606,8 +653,7 @@ class UpdateGoVersionTest(unittest.TestCase):
                 repository_paths=self.files,
             )
 
-        self.assertEqual(self._git('show', ':notes.txt').stdout,
-                         'concurrent\n')
+        self.assertEqual(self._git('show', ':notes.txt').stdout, 'concurrent\n')
         self.assertEqual(self._recovery_patches(), [])
 
     def test_head_change_during_resolution_rejects_stale_plan(self):
@@ -616,8 +662,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         alternate_contents = 'module example.com/root\n\ngo 1.28.1\n'
         root.write_text(alternate_contents, encoding='utf-8')
         self._git('add', 'go.mod')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'alternate')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'alternate')
         alternate_head = self._git('rev-parse', 'HEAD').stdout.strip()
         self._git('checkout', '-q', initial_head)
         switched = False
@@ -643,10 +689,9 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_managed_paths_must_be_tracked_and_clean(self):
         root = self.repo_root / 'go.mod'
-        root.write_text(self.files[Path('go.mod')] + '// unstaged\n',
-                        encoding='utf-8')
-        with self.assertRaisesRegex(RuntimeError,
-                                    'must be tracked and clean'):
+        root.write_text(
+            self.files[Path('go.mod')] + '// unstaged\n', encoding='utf-8')
+        with self.assertRaisesRegex(RuntimeError, 'must be tracked and clean'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
@@ -662,12 +707,71 @@ class UpdateGoVersionTest(unittest.TestCase):
         )
         self._git('add', 'Dockerfile')
 
-        with self.assertRaisesRegex(RuntimeError,
-                                    'must be tracked and clean'):
+        with self.assertRaisesRegex(RuntimeError, 'must be tracked and clean'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
                 digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+    def test_assume_unchanged_managed_path_is_rejected(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        self._git('update-index', '--assume-unchanged', 'Dockerfile')
+        dockerfile.write_text(
+            self.files[Path('Dockerfile')] + '# hidden edit\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'assume-unchanged and skip-worktree'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'flag validation must precede resolution'),
+                repository_paths=self.files,
+            )
+
+        self.assertIn('# hidden edit', dockerfile.read_text(encoding='utf-8'))
+
+    def test_skip_worktree_managed_path_is_rejected(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        self._git('update-index', '--skip-worktree', 'Dockerfile')
+        dockerfile.write_text(
+            self.files[Path('Dockerfile')] + '# hidden edit\n',
+            encoding='utf-8',
+        )
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'assume-unchanged and skip-worktree'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'flag validation must precede resolution'),
+                repository_paths=self.files,
+            )
+
+        self.assertIn('# hidden edit', dockerfile.read_text(encoding='utf-8'))
+
+    def test_managed_path_clean_smudge_filter_is_rejected(self):
+        attributes = self.repo_root / '.gitattributes'
+        attributes.write_text(
+            'Dockerfile filter=managed-test\n', encoding='utf-8')
+        self._git('add', '.gitattributes')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'filter')
+        self._git('config', 'filter.managed-test.clean', 'cat')
+        self._git('config', 'filter.managed-test.smudge', 'cat')
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'unsupported Git clean/smudge filters'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda _tag: self.fail(
+                    'filter validation must precede resolution'),
                 repository_paths=self.files,
             )
 
@@ -688,24 +792,24 @@ class UpdateGoVersionTest(unittest.TestCase):
             with self.subTest(message=message), mock.patch.object(
                     update_go_version,
                     '_git',
-                    return_value=subprocess.CompletedProcess(
-                        ('git',), 0, output, ''),
+                    return_value=subprocess.CompletedProcess(('git',), 0,
+                                                             output, ''),
             ):
                 with self.assertRaisesRegex(RuntimeError, message):
                     update_go_version._indexed_stage_zero_entries(
                         self.repo_root, (Path('go.mod'),))
 
-    def test_complete_index_reader_preserves_object_ids_and_rejects_stages(self):
+    def test_complete_index_reader_preserves_object_ids_and_rejects_stages(
+            self):
         first_object = '1' * 40
         second_object = '2' * 40
-        complete = (
-            f'100644 {first_object} 0\tgo.mod\0'
-            f'100755 {second_object} 0\ttools/helper\0')
+        complete = (f'100644 {first_object} 0\tgo.mod\0'
+                    f'100755 {second_object} 0\ttools/helper\0')
         with mock.patch.object(
                 update_go_version,
                 '_git',
-                return_value=subprocess.CompletedProcess(
-                    ('git',), 0, complete, ''),
+                return_value=subprocess.CompletedProcess(('git',), 0, complete,
+                                                         ''),
         ):
             self.assertEqual(
                 update_go_version._complete_stage_zero_index(self.repo_root),
@@ -717,8 +821,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         with mock.patch.object(
                 update_go_version,
                 '_git',
-                return_value=subprocess.CompletedProcess(
-                    ('git',), 0, conflicted, ''),
+                return_value=subprocess.CompletedProcess(('git',), 0,
+                                                         conflicted, ''),
         ):
             with self.assertRaisesRegex(RuntimeError,
                                         'unsupported Git index stage 2'):
@@ -728,8 +832,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
         self._git('add', 'notes.txt')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'notes')
         notes.write_text('concurrent unrelated edit\n', encoding='utf-8')
 
         changed = update_go_version.sync(
@@ -740,15 +844,15 @@ class UpdateGoVersionTest(unittest.TestCase):
         )
 
         self.assertEqual(set(changed), set(self.files))
-        self.assertEqual(notes.read_text(encoding='utf-8'),
-                         'concurrent unrelated edit\n')
+        self.assertEqual(
+            notes.read_text(encoding='utf-8'), 'concurrent unrelated edit\n')
 
     def test_worktree_verification_may_not_change_unplanned_files(self):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
         self._git('add', 'notes.txt')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'notes')
 
         def mutate_worktree(repo_root):
             if Path(repo_root) != self.repo_root:
@@ -780,10 +884,9 @@ class UpdateGoVersionTest(unittest.TestCase):
             digest_resolver=lambda tag: DIGESTS[tag],
             repository_paths=self.files,
         )[Path('go.mod')]
-        concurrent = (
-            'module example.com/root\n\n'
-            'go 1.28.0\n\n'
-            '// concurrent staged edit\n')
+        concurrent = ('module example.com/root\n\n'
+                      'go 1.28.0\n\n'
+                      '// concurrent staged edit\n')
 
         def stage_edit_but_restore_planned_worktree(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -817,13 +920,11 @@ class UpdateGoVersionTest(unittest.TestCase):
     def test_verification_rejects_concurrent_edit_of_unchanged_managed_path(
             self):
         dockerfile = self.repo_root / 'Dockerfile'
-        current = (
-            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        current = (f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
         dockerfile.write_text(current, encoding='utf-8')
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'current Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'current Dockerfile')
         concurrent = current + '# concurrent edit\n'
 
         def edit_unchanged_path(repo_root):
@@ -851,13 +952,11 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_verification_rejects_symlink_at_unchanged_managed_path(self):
         dockerfile = self.repo_root / 'Dockerfile'
-        current = (
-            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        current = (f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
         dockerfile.write_text(current, encoding='utf-8')
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'current Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'current Dockerfile')
 
         def replace_unchanged_path(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -886,13 +985,11 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_verification_rejects_mode_change_at_unchanged_managed_path(self):
         dockerfile = self.repo_root / 'Dockerfile'
-        current = (
-            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        current = (f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
         dockerfile.write_text(current, encoding='utf-8')
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'current Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'current Dockerfile')
         original_mode = stat.S_IMODE(dockerfile.stat().st_mode)
         concurrent_mode = original_mode ^ stat.S_IXUSR
 
@@ -916,8 +1013,8 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode),
-                         concurrent_mode)
+        self.assertEqual(
+            stat.S_IMODE(dockerfile.stat().st_mode), concurrent_mode)
         self.assertTrue(self._recovery_bundles())
 
     def test_verification_rejects_added_managed_path_membership(self):
@@ -926,8 +1023,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         def add_managed_path(repo_root):
             if Path(repo_root) == self.repo_root:
                 added.parent.mkdir()
-                added.write_text('module example.com/late\n\ngo 1.28.0\n',
-                                 encoding='utf-8')
+                added.write_text(
+                    'module example.com/late\n\ngo 1.28.0\n', encoding='utf-8')
 
         with mock.patch.object(
                 update_go_version,
@@ -945,8 +1042,9 @@ class UpdateGoVersionTest(unittest.TestCase):
                     repository_paths=self.files,
                 )
 
-        self.assertEqual(added.read_text(encoding='utf-8'),
-                         'module example.com/late\n\ngo 1.28.0\n')
+        self.assertEqual(
+            added.read_text(encoding='utf-8'),
+            'module example.com/late\n\ngo 1.28.0\n')
         for relative_path, original in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
@@ -963,8 +1061,8 @@ class UpdateGoVersionTest(unittest.TestCase):
             repository_paths=self.files,
         )
         self._git('add', '--', *(str(path) for path in self.files))
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'update')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'update')
         added = self.repo_root / 'late/go.mod'
         created = False
 
@@ -972,14 +1070,13 @@ class UpdateGoVersionTest(unittest.TestCase):
             nonlocal created
             if not created:
                 added.parent.mkdir()
-                added.write_text('module example.com/late\n\ngo 1.28.0\n',
-                                 encoding='utf-8')
+                added.write_text(
+                    'module example.com/late\n\ngo 1.28.0\n', encoding='utf-8')
                 created = True
             return DIGESTS[tag]
 
         with self.assertRaisesRegex(
-                RuntimeError,
-                'path membership changed.*added late/go.mod'):
+                RuntimeError, 'path membership changed.*added late/go.mod'):
             update_go_version.sync(
                 self.repo_root,
                 '1.28.3',
@@ -994,8 +1091,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         notes = self.repo_root / 'notes.txt'
         notes.write_text('original\n', encoding='utf-8')
         self._git('add', 'notes.txt')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm', 'notes')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'notes')
         concurrent = 'concurrent staged edit\n'
 
         def stage_unrelated_edit(repo_root):
@@ -1023,15 +1120,11 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertEqual(self._git('show', ':notes.txt').stdout, concurrent)
 
     def test_apply_failure_keeps_recovery_patch_and_originals(self):
-        real_git = update_go_version._git
-
-        def fail_apply(repo_root, *arguments):
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                raise RuntimeError('simulated apply failure')
-            return real_git(repo_root, *arguments)
-
-        with mock.patch.object(update_go_version,
-                               '_git', side_effect=fail_apply):
+        with mock.patch.object(
+                update_go_version,
+                '_apply_managed_contents',
+                side_effect=RuntimeError('simulated apply failure'),
+        ):
             with self.assertRaisesRegex(RuntimeError,
                                         'recovery bundle retained at'):
                 update_go_version.sync(
@@ -1049,27 +1142,33 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
     def test_complete_original_artifacts_exist_before_live_apply(self):
-        real_git = update_go_version._git
 
-        def inspect_journal_then_fail(repo_root, *arguments):
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                artifacts = self._recovery_patches()
-                self.assertEqual(len(artifacts), len(self.files) + 1)
-                bundle = self._recovery_bundles()[0]
-                manifest = json.loads(
-                    (bundle / 'manifest.json').read_text(encoding='utf-8'))
-                self.assertEqual(set(manifest['originalRestorePatches']),
-                                 {str(path) for path in self.files})
-                raise RuntimeError('simulated crash window')
-            return real_git(repo_root, *arguments)
+        def inspect_journal_then_fail(*_arguments):
+            artifacts = self._recovery_patches()
+            self.assertEqual(len(artifacts), len(self.files) + 1)
+            bundle = self._recovery_bundles()[0]
+            manifest = json.loads(
+                (bundle / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(
+                set(manifest['originalRestorePatches']),
+                {str(path) for path in self.files})
+            self.assertEqual(
+                set(manifest['originalFiles']),
+                {str(path) for path in self.files})
+            for relative_path, original in manifest['originalFiles'].items():
+                self.assertEqual(
+                    (bundle / original['contents']).read_bytes(),
+                    self.files[Path(relative_path)].encode('utf-8'),
+                )
+                self.assertEqual(original['mode'], '0644')
+            raise RuntimeError('simulated crash window')
 
         with mock.patch.object(
                 update_go_version,
-                '_git',
+                '_apply_managed_contents',
                 side_effect=inspect_journal_then_fail,
         ):
-            with self.assertRaisesRegex(RuntimeError,
-                                        'simulated crash window'):
+            with self.assertRaisesRegex(RuntimeError, 'simulated crash window'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1085,6 +1184,9 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
     def test_hard_crash_after_apply_leaves_complete_recovery_bundle(self):
+        self._git('config', 'core.fileMode', 'false')
+        dockerfile = self.repo_root / 'Dockerfile'
+        dockerfile.chmod(0o645)
         child = r'''
 import importlib.util
 import json
@@ -1097,15 +1199,13 @@ sys.path.insert(0, str(Path(script).parent))
 spec = importlib.util.spec_from_file_location('crash_update_go_version', script)
 updater = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updater)
-real_git = updater._git
+real_apply = updater._apply_managed_contents
 
-def apply_then_crash(repo_root, *arguments):
-    result = real_git(repo_root, *arguments)
-    if arguments[:2] == ('apply', '--whitespace=nowarn'):
-        os._exit(97)
-    return result
+def apply_then_crash(*arguments):
+    real_apply(*arguments)
+    os._exit(97)
 
-updater._git = apply_then_crash
+updater._apply_managed_contents = apply_then_crash
 digests = json.loads(digests_json)
 updater.sync(
     Path(repo),
@@ -1135,24 +1235,27 @@ updater.sync(
         self.assertEqual(len(bundles), 1)
         manifest = json.loads(
             (bundles[0] / 'manifest.json').read_text(encoding='utf-8'))
-        self.assertEqual(set(manifest['originalRestorePatches']),
-                         {str(path) for path in self.files})
-        for relative_path, restore_name in manifest[
-                'originalRestorePatches'].items():
+        self.assertEqual(
+            set(manifest['originalRestorePatches']),
+            {str(path) for path in self.files})
+        self.assertEqual(
+            set(manifest['originalFiles']), {str(path) for path in self.files})
+        for relative_path, original in manifest['originalFiles'].items():
             path = self.repo_root / relative_path
             path.unlink()
-            self._git('apply', str(bundles[0] / restore_name))
+            path.write_bytes((bundles[0] / original['contents']).read_bytes())
+            path.chmod(int(original['mode'], 8))
         for relative_path, contents in self.files.items():
             self.assertEqual(
                 (self.repo_root / relative_path).read_text(encoding='utf-8'),
                 contents,
             )
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o645)
 
     def test_artifact_write_failure_prevents_live_apply(self):
         real_write = update_go_version._write_durable_recovery_file
         write_count = 0
         live_apply_called = False
-        real_git = update_go_version._git
 
         def fail_during_bundle_write(*args, **kwargs):
             nonlocal write_count
@@ -1161,11 +1264,9 @@ updater.sync(
                 raise OSError('simulated recovery storage full')
             return real_write(*args, **kwargs)
 
-        def record_live_apply(repo_root, *arguments):
+        def record_live_apply(*_arguments):
             nonlocal live_apply_called
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                live_apply_called = True
-            return real_git(repo_root, *arguments)
+            live_apply_called = True
 
         with mock.patch.object(
                 update_go_version,
@@ -1173,7 +1274,7 @@ updater.sync(
                 side_effect=fail_during_bundle_write,
         ), mock.patch.object(
                 update_go_version,
-                '_git',
+                '_apply_managed_contents',
                 side_effect=record_live_apply,
         ):
             with self.assertRaisesRegex(RuntimeError,
@@ -1193,26 +1294,21 @@ updater.sync(
                 contents,
             )
 
-    def test_partial_apply_failure_restores_only_applied_paths(self):
-        real_git = update_go_version._git
+    def test_unconfirmed_partial_write_is_not_rolled_back(self):
+        real_apply = update_go_version._apply_managed_contents
 
-        def partially_apply_then_fail(repo_root, *arguments):
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                patch_path = arguments[-1]
-                real_git(repo_root, 'apply', '--include=Dockerfile',
-                         '--whitespace=nowarn', patch_path)
-                self.assertIn(
-                    'golang:1.28.3',
-                    (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
-                )
-                raise RuntimeError('simulated partial apply failure')
-            return real_git(repo_root, *arguments)
+        def partially_apply_then_fail(*arguments):
+            real_apply(*arguments)
+            raise RuntimeError('simulated partial apply failure')
 
-        with mock.patch.object(update_go_version,
-                               '_git', side_effect=partially_apply_then_fail):
+        with mock.patch.object(
+                update_go_version,
+                '_apply_managed_contents',
+                side_effect=partially_apply_then_fail):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'simulated partial apply failure.*recovery bundle retained'):
+                    'simulated partial apply failure.*recovery bundle retained'
+            ):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1221,38 +1317,32 @@ updater.sync(
                 )
 
         self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
+        self.assertIn('toolchain go1.28.3',
+                      (self.repo_root / 'go.mod').read_text(encoding='utf-8'))
         for relative_path, contents in self.files.items():
-            self.assertEqual(
-                (self.repo_root / relative_path).read_text(encoding='utf-8'),
-                contents,
-            )
+            if relative_path != Path('go.mod'):
+                self.assertEqual((self.repo_root /
+                                  relative_path).read_text(encoding='utf-8'),
+                                 contents)
 
     def test_partial_apply_recovery_preserves_unresolved_paths(self):
-        real_git = update_go_version._git
+        real_apply = update_go_version._apply_managed_contents
         concurrent = '// concurrent managed edit\n'
 
-        def partially_apply_edit_then_fail(repo_root, *arguments):
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                patch_path = arguments[-1]
-                real_git(repo_root, 'apply', '--include=Dockerfile',
-                         '--whitespace=nowarn', patch_path)
-                self.assertIn(
-                    'golang:1.28.3',
-                    (self.repo_root / 'Dockerfile').read_text(encoding='utf-8'),
-                )
-                (self.repo_root / 'go.mod').write_text(concurrent,
-                                                       encoding='utf-8')
-                raise RuntimeError('simulated partial apply failure')
-            return real_git(repo_root, *arguments)
+        def partially_apply_edit_then_fail(*arguments):
+            real_apply(*arguments)
+            (self.repo_root / 'go.mod').write_text(concurrent, encoding='utf-8')
+            raise RuntimeError('simulated partial apply failure')
 
         with mock.patch.object(
                 update_go_version,
-                '_git',
+                '_apply_managed_contents',
                 side_effect=partially_apply_edit_then_fail,
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'managed paths left unchanged.*go.mod.*recovery bundle retained'):
+                    'simulated partial apply failure.*recovery bundle retained'
+            ):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1297,16 +1387,15 @@ updater.sync(
         self.assertFalse(root.exists())
         restore_patch = self._restore_patch(Path('go.mod'))
         self._git('apply', str(restore_patch))
-        self.assertEqual(root.read_text(encoding='utf-8'),
-                         self.files[Path('go.mod')])
+        self.assertEqual(
+            root.read_text(encoding='utf-8'), self.files[Path('go.mod')])
 
     def test_original_restore_patch_preserves_executable_mode(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.chmod(0o755)
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'executable Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'executable Dockerfile')
 
         def remove_then_fail(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -1318,8 +1407,7 @@ updater.sync(
                 '_verify_repository_consistency',
                 side_effect=remove_then_fail,
         ):
-            with self.assertRaisesRegex(RuntimeError,
-                                        'original restore patch'):
+            with self.assertRaisesRegex(RuntimeError, 'original restore patch'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1329,17 +1417,17 @@ updater.sync(
 
         restore_patch = self._restore_patch(Path('Dockerfile'))
         self._git('apply', str(restore_patch))
-        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
-                         self.files[Path('Dockerfile')])
+        self.assertEqual(
+            dockerfile.read_text(encoding='utf-8'),
+            self.files[Path('Dockerfile')])
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
 
     def test_non_owner_execute_mode_is_unresolved_and_preserved(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.chmod(0o755)
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'executable Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'executable Dockerfile')
 
         def change_mode_then_fail(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -1362,25 +1450,24 @@ updater.sync(
                     repository_paths=self.files,
                 )
 
-        self.assertIn('golang:1.28.3',
-                      dockerfile.read_text(encoding='utf-8'))
+        self.assertIn('golang:1.28.3', dockerfile.read_text(encoding='utf-8'))
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o645)
         restore_patch = self._restore_patch(Path('Dockerfile'))
         concurrent = self.repo_root / 'Dockerfile.concurrent'
         dockerfile.rename(concurrent)
         self._git('apply', str(restore_patch))
-        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
-                         self.files[Path('Dockerfile')])
+        self.assertEqual(
+            dockerfile.read_text(encoding='utf-8'),
+            self.files[Path('Dockerfile')])
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o755)
         self.assertEqual(stat.S_IMODE(concurrent.stat().st_mode), 0o645)
 
-    def test_git_compatible_permission_change_does_not_block_rollback(self):
+    def test_any_raw_permission_change_blocks_rollback(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.chmod(0o755)
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'executable Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'executable Dockerfile')
 
         def change_compatible_permissions_then_fail(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -1403,28 +1490,23 @@ updater.sync(
                     repository_paths=self.files,
                 )
 
-        self.assertNotIn('managed paths left unchanged',
-                         str(context.exception))
-        self.assertNotIn('automatic rollback failed', str(context.exception))
-        self.assertEqual(dockerfile.read_text(encoding='utf-8'),
-                         self.files[Path('Dockerfile')])
-        # Recovery promises Git's executable mode, not preservation of every
-        # group/other POSIX permission bit.
-        self.assertTrue(dockerfile.stat().st_mode & stat.S_IXUSR)
+        self.assertIn('managed paths left unchanged', str(context.exception))
+        self.assertIn('automatic rollback failed', str(context.exception))
+        self.assertIn('golang:1.28.3', dockerfile.read_text(encoding='utf-8'))
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o754)
 
     def test_filemode_false_uses_index_mode_for_detached_plan(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.chmod(0o755)
         self._git('add', 'Dockerfile')
-        self._git('-c', 'user.name=Test', '-c',
-                  'user.email=test@example.com', 'commit', '-qm',
-                  'executable Dockerfile')
+        self._git('-c', 'user.name=Test', '-c', 'user.email=test@example.com',
+                  'commit', '-qm', 'executable Dockerfile')
         self._git('config', 'core.fileMode', 'false')
         dockerfile.chmod(0o645)
 
         self.assertEqual(
-            self._git('status', '--porcelain=v1', '--',
-                      'Dockerfile').stdout, '')
+            self._git('status', '--porcelain=v1', '--', 'Dockerfile').stdout,
+            '')
         self.assertTrue(
             self._git('ls-files', '--stage', '--',
                       'Dockerfile').stdout.startswith('100755 '))
@@ -1437,11 +1519,38 @@ updater.sync(
         )
 
         self.assertEqual(set(changed), set(self.files))
-        self.assertIn('golang:1.28.3',
-                      dockerfile.read_text(encoding='utf-8'))
+        self.assertIn('golang:1.28.3', dockerfile.read_text(encoding='utf-8'))
         self.assertTrue(
             self._git('ls-files', '--stage', '--',
                       'Dockerfile').stdout.startswith('100755 '))
+
+    def test_filemode_false_preserves_concurrent_raw_mode_change(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        self._git('config', 'core.fileMode', 'false')
+
+        def chmod_then_fail(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.chmod(0o645)
+                raise RuntimeError('simulated concurrent chmod')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=chmod_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'simulated concurrent chmod.*managed paths left '
+                    'unchanged.*Dockerfile.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode), 0o645)
+        self.assertIn('golang:1.28.3', dockerfile.read_text(encoding='utf-8'))
 
     def test_truncated_path_restore_patch_preserves_then_recovers(self):
         root = self.repo_root / 'go.mod'
@@ -1457,8 +1566,7 @@ updater.sync(
                 '_verify_repository_consistency',
                 side_effect=truncate_then_fail,
         ):
-            with self.assertRaisesRegex(RuntimeError,
-                                        'original restore patch'):
+            with self.assertRaisesRegex(RuntimeError, 'original restore patch'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1473,8 +1581,8 @@ updater.sync(
         concurrent = self.repo_root / 'go.mod.concurrent'
         root.rename(concurrent)
         self._git('apply', str(restore_patch))
-        self.assertEqual(root.read_text(encoding='utf-8'),
-                         self.files[Path('go.mod')])
+        self.assertEqual(
+            root.read_text(encoding='utf-8'), self.files[Path('go.mod')])
         self.assertEqual(concurrent.read_bytes(), truncated)
 
     def test_symlink_path_restore_patch_preserves_then_recovers(self):
@@ -1491,8 +1599,7 @@ updater.sync(
                 '_verify_repository_consistency',
                 side_effect=replace_with_symlink_then_fail,
         ):
-            with self.assertRaisesRegex(RuntimeError,
-                                        'original restore patch'):
+            with self.assertRaisesRegex(RuntimeError, 'original restore patch'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -1508,20 +1615,20 @@ updater.sync(
         concurrent = self.repo_root / 'go.mod.concurrent-link'
         root.rename(concurrent)
         self._git('apply', str(restore_patch))
-        self.assertEqual(root.read_text(encoding='utf-8'),
-                         self.files[Path('go.mod')])
+        self.assertEqual(
+            root.read_text(encoding='utf-8'), self.files[Path('go.mod')])
         self.assertTrue(concurrent.is_symlink())
 
     def test_path_recovery_continues_after_one_path_fails(self):
-        real_apply = update_go_version._git_apply_contents
+        real_restore = update_go_version._restore_managed_contents
         failed = False
 
-        def fail_first_recovery(repo_root, patch, *, reverse, check=False):
+        def fail_first_recovery(*arguments):
             nonlocal failed
             if not failed:
                 failed = True
                 raise RuntimeError('simulated path recovery failure')
-            return real_apply(repo_root, patch, reverse=reverse, check=check)
+            return real_restore(*arguments)
 
         def fail_current_repository(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -1529,7 +1636,7 @@ updater.sync(
 
         with mock.patch.object(
                 update_go_version,
-                '_git_apply_contents',
+                '_restore_managed_contents',
                 side_effect=fail_first_recovery,
         ), mock.patch.object(
                 update_go_version,
@@ -1553,23 +1660,22 @@ updater.sync(
         )
         for relative_path, contents in self.files.items():
             if relative_path != Path('go.mod'):
-                self.assertEqual(
-                    (self.repo_root /
-                     relative_path).read_text(encoding='utf-8'), contents)
+                self.assertEqual((self.repo_root /
+                                  relative_path).read_text(encoding='utf-8'),
+                                 contents)
         self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_path_recovery_finishes_before_reraising_interrupt(self):
-        real_apply = update_go_version._git_apply_contents
+        real_restore = update_go_version._restore_managed_contents
         interrupted = False
 
-        def interrupt_first_recovery(repo_root, patch, *, reverse,
-                                     check=False):
+        def interrupt_first_recovery(*arguments):
             nonlocal interrupted
             if not interrupted:
                 interrupted = True
                 raise KeyboardInterrupt
-            return real_apply(repo_root, patch, reverse=reverse, check=check)
+            return real_restore(*arguments)
 
         def fail_current_repository(repo_root):
             if Path(repo_root) == self.repo_root:
@@ -1577,7 +1683,7 @@ updater.sync(
 
         with mock.patch.object(
                 update_go_version,
-                '_git_apply_contents',
+                '_restore_managed_contents',
                 side_effect=interrupt_first_recovery,
         ), mock.patch.object(
                 update_go_version,
@@ -1601,9 +1707,9 @@ updater.sync(
         )
         for relative_path, contents in self.files.items():
             if relative_path != Path('go.mod'):
-                self.assertEqual(
-                    (self.repo_root /
-                     relative_path).read_text(encoding='utf-8'), contents)
+                self.assertEqual((self.repo_root /
+                                  relative_path).read_text(encoding='utf-8'),
+                                 contents)
         self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
@@ -1689,17 +1795,18 @@ updater.sync(
                 contents,
             )
 
-    def test_interrupt_after_git_apply_rolls_back_and_keeps_patch(self):
-        real_git = update_go_version._git
+    def test_interrupt_after_unconfirmed_write_keeps_patch(self):
+        real_apply = update_go_version._apply_managed_contents
 
-        def apply_then_interrupt(repo_root, *arguments):
-            if arguments[:2] == ('apply', '--whitespace=nowarn'):
-                real_git(repo_root, *arguments)
-                raise KeyboardInterrupt
-            return real_git(repo_root, *arguments)
+        def apply_then_interrupt(*arguments):
+            real_apply(*arguments)
+            raise KeyboardInterrupt
 
-        with mock.patch.object(update_go_version,
-                               '_git', side_effect=apply_then_interrupt):
+        with mock.patch.object(
+                update_go_version,
+                '_apply_managed_contents',
+                side_effect=apply_then_interrupt,
+        ):
             with self.assertWarnsRegex(RuntimeWarning,
                                        'recovery bundle retained at'):
                 with self.assertRaises(KeyboardInterrupt):
@@ -1712,10 +1819,12 @@ updater.sync(
 
         self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
         for relative_path, contents in self.files.items():
-            self.assertEqual(
-                (self.repo_root / relative_path).read_text(encoding='utf-8'),
-                contents,
-            )
+            actual = (self.repo_root /
+                      relative_path).read_text(encoding='utf-8')
+            if relative_path == Path('go.mod'):
+                self.assertIn('toolchain go1.28.3', actual)
+            else:
+                self.assertEqual(actual, contents)
 
     def test_invalid_utf8_concurrent_edit_does_not_mask_recovery_error(self):
         root = self.repo_root / 'go.mod'
@@ -1745,12 +1854,14 @@ updater.sync(
         self.assertTrue(self._restore_patch(Path('go.mod')).exists())
 
     def test_interrupt_before_recovery_patch_does_not_report_none(self):
-        with mock.patch.object(update_go_version,
-                               '_write_recovery_bundle',
-                               side_effect=KeyboardInterrupt):
+        with mock.patch.object(
+                update_go_version,
+                '_write_recovery_bundle',
+                side_effect=KeyboardInterrupt):
             with self.assertWarnsRegex(
                     RuntimeWarning,
-                    'interrupted before application; managed files were not changed') as warning:
+                    'interrupted before application; managed files were not changed'
+            ) as warning:
                 with self.assertRaises(KeyboardInterrupt):
                     update_go_version.sync(
                         self.repo_root,
@@ -1771,8 +1882,8 @@ updater.sync(
         )
 
         self.assertEqual(set(changed), set(self.files))
-        self.assertEqual(self._git('diff', '--cached', '--name-only').stdout,
-                         '')
+        self.assertEqual(
+            self._git('diff', '--cached', '--name-only').stdout, '')
         self.assertEqual(self._recovery_patches(), [])
 
     def test_recovery_patch_cleanup_failure_is_only_a_warning(self):
@@ -1822,8 +1933,7 @@ updater.sync(
                     f'module example.com/nested\n\ngo {version}\n',
                     encoding='utf-8',
                 )
-                with self.assertRaisesRegex(ValueError,
-                                            'invalid go directive'):
+                with self.assertRaisesRegex(ValueError, 'invalid go directive'):
                     update_go_version.synchronized_contents(
                         self.repo_root,
                         '1.28.3',
@@ -1861,13 +1971,11 @@ updater.sync(
     def test_rejects_additional_unmanaged_golang_stage(self):
         dockerfile = self.repo_root / 'Dockerfile'
         dockerfile.write_text(
-            self.files[Path('Dockerfile')] +
-            'FROM golang:1.26.0 AS stale\n',
+            self.files[Path('Dockerfile')] + 'FROM golang:1.26.0 AS stale\n',
             encoding='utf-8',
         )
 
-        with self.assertRaisesRegex(ValueError,
-                                    'unsupported Go runtime pins'):
+        with self.assertRaisesRegex(ValueError, 'unsupported Go runtime pins'):
             update_go_version.synchronized_contents(
                 self.repo_root,
                 '1.28.3',
@@ -1882,7 +1990,8 @@ updater.sync(
                 'RUN --mount=from=golang:1.27.0,target=/go true\n',
                 'COPY --from=${IMAGE:-golang} /go/bin/go /usr/bin/go\n',
                 'RUN --mount=from=golang${TAG},target=/go true\n',
-                'RUN <<EOF\ncurl https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\nEOF\n'):
+                'RUN <<EOF\ncurl https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\nEOF\n'
+        ):
             with self.subTest(instruction=instruction):
                 dockerfile.write_text(
                     f'FROM golang:1.28.0@{OLD_DIGEST} AS builder\n' +
@@ -1908,8 +2017,7 @@ updater.sync(
             encoding='utf-8',
         )
 
-        with self.assertRaisesRegex(ValueError,
-                                    'unsupported Go runtime pins'):
+        with self.assertRaisesRegex(ValueError, 'unsupported Go runtime pins'):
             update_go_version.synchronized_contents(
                 self.repo_root,
                 '1.28.3',
@@ -1933,8 +2041,8 @@ updater.sync(
             )
 
         self.assertTrue(root.is_symlink())
-        self.assertEqual(target.read_text(encoding='utf-8'),
-                         self.files[Path('go.mod')])
+        self.assertEqual(
+            target.read_text(encoding='utf-8'), self.files[Path('go.mod')])
 
     def test_rejects_tagless_yaml_runtime(self):
         relative_path = Path('bad/component.yaml')
@@ -1942,13 +2050,14 @@ updater.sync(
         path.parent.mkdir(parents=True)
         repository_paths = set(self.files) | {relative_path}
 
-        for contents in ('container: golang\n',
-                         'image: docker.io/library/golang # latest\n',
-                         '  - image: "golang" # builder\n',
-                         'container: { image: golang }\n',
-                         'container: {"image":"golang"}\n',
-                         'container: {options: "", "image":"golang"}\n',
-                         'container: {credentials: {user: test}, image: golang}\n'):
+        for contents in (
+                'container: golang\n',
+                'image: docker.io/library/golang # latest\n',
+                '  - image: "golang" # builder\n',
+                'container: { image: golang }\n',
+                'container: {"image":"golang"}\n',
+                'container: {options: "", "image":"golang"}\n',
+                'container: {credentials: {user: test}, image: golang}\n'):
             with self.subTest(contents=contents):
                 path.write_text(contents, encoding='utf-8')
                 with self.assertRaisesRegex(ValueError,
@@ -1985,8 +2094,7 @@ updater.sync(
             repository_paths=self.files,
         )
 
-        self.assertEqual(calls,
-                         ['1.28.0', '1.28.0-alpine', '1.28.0-bookworm'])
+        self.assertEqual(calls, ['1.28.0', '1.28.0-alpine', '1.28.0-bookworm'])
 
     def test_digest_retry_budget_fits_workflow_timeout(self):
         worst_case = update_go_version._digest_verification_worst_case_seconds(
@@ -2019,8 +2127,7 @@ updater.sync(
                 'monotonic',
                 side_effect=(0, 100, 101, 541),
         ):
-            with self.assertRaisesRegex(RuntimeError,
-                                        'end-to-end deadline'):
+            with self.assertRaisesRegex(RuntimeError, 'end-to-end deadline'):
                 update_go_version.verify_image_digests(
                     self.repo_root,
                     digest_resolver=resolver,
@@ -2051,8 +2158,7 @@ updater.sync(
             encoding='utf-8',
         )
 
-        with self.assertRaisesRegex(ValueError,
-                                    'inconsistent pinned digests'):
+        with self.assertRaisesRegex(ValueError, 'inconsistent pinned digests'):
             update_go_version.verify_image_digests(
                 self.repo_root,
                 digest_resolver=lambda _tag: OLD_DIGEST,
@@ -2070,8 +2176,8 @@ updater.sync(
         ignored.write_text('ignored/\n', encoding='utf-8')
         ignored_module = self.repo_root / 'ignored/go.mod'
         ignored_module.parent.mkdir()
-        ignored_module.write_text('module ignored\n\ngo 1.28.0\n',
-                                  encoding='utf-8')
+        ignored_module.write_text(
+            'module ignored\n\ngo 1.28.0\n', encoding='utf-8')
 
         paths = update_go_version._repository_paths(self.repo_root)
 
@@ -2118,8 +2224,8 @@ updater.sync(
                         'run',
                         return_value=completed,
                 ):
-                    with self.assertRaisesRegex(RuntimeError,
-                                                'manifest digest|invalid digest'):
+                    with self.assertRaisesRegex(
+                            RuntimeError, 'manifest digest|invalid digest'):
                         update_go_version.resolve_docker_hub_digest('1.28.3')
 
     def test_digest_resolver_reports_missing_docker_and_lookup_failure(self):

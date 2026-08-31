@@ -38,11 +38,24 @@ METADATA_BUILD_TIMEOUT_SECONDS = 120
 METADATA_INSPECTION_TIMEOUT_SECONDS = 10
 MAX_METADATA_INPUT_BYTES = 4 * 1024 * 1024
 DOCKER_CLASSIFICATIONS = {'managed', 'unsupported', 'irrelevant', 'invalid'}
+RUNTIME_METADATA_SUFFIXES = frozenset({'.sh', '.yaml', '.yml'})
+YAML_METADATA_SUFFIXES = frozenset({'.yaml', '.yml'})
 
 
 def is_container_recipe(relative_path: Path) -> bool:
     return (relative_path.name.startswith('Dockerfile') or
             relative_path.name.startswith('Containerfile'))
+
+
+def is_runtime_metadata_path(relative_path: Path) -> bool:
+    """Return whether a path belongs to the runtime metadata inventory."""
+    return (is_container_recipe(relative_path) or
+            relative_path.suffix.casefold() in RUNTIME_METADATA_SUFFIXES)
+
+
+def is_yaml_metadata_path(relative_path: Path) -> bool:
+    """Return whether a path is YAML, independent of suffix casing."""
+    return relative_path.suffix.casefold() in YAML_METADATA_SUFFIXES
 
 
 @lru_cache(maxsize=1)
@@ -127,8 +140,8 @@ def module_versions(contents: str,
 
 def yaml_mapping_values(contents: str,
                         target_keys: Iterable[str]) -> Dict[str, List[str]]:
-    values = inspect_metadata(Path('metadata.yaml'), contents).get(
-        'yamlValues', {})
+    values = inspect_metadata(Path('metadata.yaml'),
+                              contents).get('yamlValues', {})
     return {key: list(values.get(key, [])) for key in target_keys}
 
 
@@ -150,18 +163,18 @@ def docker_runtime_classification(contents: str) -> Dict:
 
 
 def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
-    if relative_path.suffix.lower() in {'.yaml', '.yml'}:
+    if is_yaml_metadata_path(relative_path):
         if relative_path in INTENTIONALLY_INVALID_YAML_PATHS:
             return False
         metadata = inspect_metadata(relative_path, contents)
         values = metadata.get('yamlValues', {})
-        if any(_is_golang_image(value)
-               for key in ('container', 'image')
-               for value in values.get(key, [])):
+        if any(
+                _is_golang_image(value)
+                for key in ('container', 'image')
+                for value in values.get(key, [])):
             return True
         if any(value.casefold().startswith(DOCKER_USE_PREFIX) and
-               _is_golang_image(value)
-               for value in values.get('uses', [])):
+               _is_golang_image(value) for value in values.get('uses', [])):
             return True
         return bool(metadata.get('hasGoDownload'))
 
@@ -169,16 +182,15 @@ def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
         return docker_runtime_classification(
             contents)['classification'] != 'irrelevant'
 
-    active_text = '\n'.join(
-        line for line in contents.splitlines()
-        if not line.lstrip().startswith('#'))
+    active_text = '\n'.join(line for line in contents.splitlines()
+                            if not line.lstrip().startswith('#'))
     return GO_TEXT_REFERENCE_PATTERN.search(active_text) is not None
 
 
 def has_setup_go_use(contents: str) -> bool:
     values = yaml_mapping_values(contents, ('uses',))['uses']
-    return any(value.casefold().startswith(SETUP_GO_USE_PREFIX)
-               for value in values)
+    return any(
+        value.casefold().startswith(SETUP_GO_USE_PREFIX) for value in values)
 
 
 def _is_golang_image(value: str) -> bool:

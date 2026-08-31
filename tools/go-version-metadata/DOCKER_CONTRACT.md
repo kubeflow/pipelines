@@ -140,9 +140,13 @@ helper enforces these deterministic limits:
 - discovered candidates: 10,000;
 - one Docker word passed to BuildKit normalization: 16 KiB;
 - total distinct Docker words passed to BuildKit normalization: 32 KiB;
+- distinct variables in one Docker word: 6;
+- branch alternatives for one Docker word: 729 (all unset, empty, and
+  nonempty states for up to six variables);
+- total Docker alternative-expansion input work: 1 MiB;
 - POSIX shell AST nodes: 100,000;
 - POSIX shell AST depth: 256; and
-- total visited or normalized semantic literal bytes: 4 MiB.
+- total visited or normalized semantic literal bytes: 16 MiB.
 
 Repeated alias/word objects are memoized and charged once. Limits for shell
 depth and work are computed from lexer-visible or AST-visible structures, not
@@ -215,13 +219,16 @@ its discovery reads and captures one immutable starting snapshot:
 1. the exact `HEAD` object ID;
 2. the complete Git index: every tracked path's stage-0 entry as
    `(path, full Git mode, object ID)`, with no higher-stage entries; and
-3. every managed path's worktree file type, exact bytes, and Git-binary mode
-   (`100644` or `100755`, based on owner-execute semantics).
+3. every managed path's worktree file type, exact bytes, and complete
+   filesystem permission mode.
 
 Managed paths must be ordinary files and must initially match their stage-0
-index entries. The updater must compare the complete snapshot, including object
-IDs, before and after planning, before application, after application, and
-after repository verification. A mismatch is a concurrent edit: it must not be
-overwritten or reported as success. Recovery artifacts persist original bytes
-and modes before live mutation and remain usable when a path is missing or
-truncated.
+index entries. Paths with assume-unchanged or skip-worktree flags, or with
+clean/smudge filters, are rejected because Git cannot provide a raw-worktree
+transaction invariant for them. The updater must compare the complete
+snapshot, including object IDs, before and after planning, before application,
+after application, and after repository verification. A lock in the Git common
+directory permits only one updater transaction at a time. A mismatch is a
+concurrent edit: it must not be overwritten or reported as success. Recovery
+artifacts persist original bytes and modes before live mutation and remain
+usable when a path is missing or truncated.

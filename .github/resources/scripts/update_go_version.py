@@ -15,7 +15,9 @@
 """Update the repository-wide Go compiler and pinned builder images."""
 
 import argparse
+from contextlib import contextmanager
 from dataclasses import dataclass
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -29,10 +31,12 @@ import time
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 import warnings
 
-from go_version_metadata import (METADATA_BUILD_TIMEOUT_SECONDS,
-                                 docker_runtime_classification,
-                                 has_go_runtime_reference,
-                                 is_container_recipe, module_versions)
+from go_version_metadata import docker_runtime_classification
+from go_version_metadata import has_go_runtime_reference
+from go_version_metadata import is_container_recipe
+from go_version_metadata import is_runtime_metadata_path
+from go_version_metadata import METADATA_BUILD_TIMEOUT_SECONDS
+from go_version_metadata import module_versions
 
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
 VERSION_PATTERN = re.compile(
@@ -50,9 +54,7 @@ TOOLCHAIN_PATTERN = re.compile(
     r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*(?=\r?$)', re.MULTILINE)
 TOOLCHAIN_LINE_PATTERN = re.compile(
     r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+'
-    r'(?:[ \t]*//[^\r\n]*)?[ \t]*(?:\r?\n)?(?:\r?\n)?',
-    re.MULTILINE)
-SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*(?:\r?\n)?(?:\r?\n)?', re.MULTILINE)
 DIGEST_LOOKUP_ATTEMPTS = 3
 DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
 DIGEST_LOOKUP_SOURCE_COUNT = 2
@@ -68,7 +70,7 @@ class WorktreePathSnapshot:
     path: Path
     contents: bytes
     file_type: int
-    git_mode: str
+    mode: int
 
 
 @dataclass(frozen=True)
@@ -134,8 +136,9 @@ def _managed_identity_inventory(
 ) -> Tuple[Path, ...]:
     """Identify managed tracked paths without consulting the worktree."""
     sources: Dict[Path, Set[str]] = {}
-    for relative_path, (_mode, object_id) in _head_blob_entries(
-            repo_root, head).items():
+    for relative_path, (_mode,
+                        object_id) in _head_blob_entries(repo_root,
+                                                         head).items():
         if repository_paths is None or relative_path in repository_paths:
             sources.setdefault(relative_path, set()).add(object_id)
     for relative_path, _mode, object_id in index_entries:
@@ -152,14 +155,12 @@ def _managed_identity_inventory(
     for relative_path, object_ids in sources.items():
         if relative_path.name == 'go.mod':
             continue
-        if not (is_container_recipe(relative_path) or
-                relative_path.suffix in SCANNED_RUNTIME_SUFFIXES):
+        if not is_runtime_metadata_path(relative_path):
             continue
         for object_id in object_ids:
             contents = blob_contents.get(object_id)
             if contents is None:
-                contents = _git(repo_root, 'cat-file', 'blob',
-                                object_id).stdout
+                contents = _git(repo_root, 'cat-file', 'blob', object_id).stdout
                 blob_contents[object_id] = contents
             if has_go_runtime_reference(relative_path, contents):
                 managed.add(relative_path)
@@ -174,8 +175,9 @@ def _module_versions(
     go_version_text, toolchain_version_text = module_versions(
         contents, relative_path)
     go_version = _parse_version(go_version_text)
-    toolchain_version = (_parse_version(toolchain_version_text)
-                         if toolchain_version_text else None)
+    toolchain_version = (
+        _parse_version(toolchain_version_text)
+        if toolchain_version_text else None)
     return go_version, toolchain_version
 
 
@@ -188,16 +190,17 @@ def _updated_module_contents(contents: str, relative_path: Path,
     toolchain_match = toolchain_matches[0] if toolchain_matches else None
     line_ending = ('\r\n'
                    if contents[go_match.end():].startswith('\r\n') else '\n')
-    toolchain_comment = (
-        toolchain_match.group('comment') if toolchain_match else '') or ''
+    toolchain_comment = (toolchain_match.group('comment')
+                         if toolchain_match else '') or ''
     if go_version > target:
         floor = '.'.join(str(part) for part in go_version)
         compiler = '.'.join(str(part) for part in target)
         raise ValueError(
             f'{relative_path} requires Go {floor}, which exceeds the target '
             f'compiler {compiler}')
-    language_floor = (go_version if go_version[:2] == target[:2] else
-                      (target[0], target[1], 0))
+    language_floor = (
+        go_version if go_version[:2] == target[:2] else
+        (target[0], target[1], 0))
     language_version = '.'.join(str(part) for part in language_floor)
     updated = GO_DIRECTIVE_PATTERN.sub(
         lambda _match: f'go {language_version}{go_comment}',
@@ -222,8 +225,7 @@ def _managed_dockerfiles(repo_root: Path,
     managed = {}
     unmanaged = []
     for relative_path in repository_paths:
-        if not (is_container_recipe(relative_path) or
-                relative_path.suffix in SCANNED_RUNTIME_SUFFIXES):
+        if not is_runtime_metadata_path(relative_path):
             continue
         path = repo_root / relative_path
         if not path.exists():
@@ -239,10 +241,8 @@ def _managed_dockerfiles(repo_root: Path,
             docker = {'classification': 'unsupported', 'candidates': []}
         candidates = docker['candidates']
         if (not is_container_recipe(relative_path) or
-                docker['classification'] != 'managed' or
-                len(candidates) != 1):
-            unmanaged.append(
-                f'{relative_path} ({docker["classification"]})')
+                docker['classification'] != 'managed' or len(candidates) != 1):
+            unmanaged.append(f'{relative_path} ({docker["classification"]})')
             continue
         candidate = candidates[0]
         required = {'version', 'flavor', 'digest', 'alias', 'line', 'value'}
@@ -267,8 +267,7 @@ def _current_managed_paths(repo_root: Path) -> Tuple[Path, ...]:
         path for path in repository_paths
         if path.name == 'go.mod' and (repo_root / path).exists()
     }
-    docker_paths = set(
-        _managed_dockerfiles(repo_root, repository_paths).keys())
+    docker_paths = set(_managed_dockerfiles(repo_root, repository_paths).keys())
     return tuple(sorted(module_paths | docker_paths))
 
 
@@ -322,17 +321,18 @@ def resolve_docker_hub_digest(tag: str,
     for attempt in range(DIGEST_LOOKUP_ATTEMPTS):
         for image in images:
             try:
-                timeout = (DIGEST_LOOKUP_TIMEOUT_SECONDS if deadline is None
-                           else min(DIGEST_LOOKUP_TIMEOUT_SECONDS,
-                                    _remaining_verification_seconds(deadline)))
+                timeout = (
+                    DIGEST_LOOKUP_TIMEOUT_SECONDS if deadline is None else min(
+                        DIGEST_LOOKUP_TIMEOUT_SECONDS,
+                        _remaining_verification_seconds(deadline)))
                 return _inspect_manifest_digest(image, timeout=timeout)
             except FileNotFoundError as error:
                 raise RuntimeError(
                     'docker buildx is required to resolve Go builder image '
                     'digests') from error
             except subprocess.CalledProcessError as error:
-                detail = (error.stderr.strip() or error.stdout.strip() or
-                          str(error))
+                detail = (
+                    error.stderr.strip() or error.stdout.strip() or str(error))
                 failures[image] = detail
             except subprocess.TimeoutExpired as error:
                 failures[image] = f'timed out after {error.timeout} seconds'
@@ -348,9 +348,9 @@ def resolve_docker_hub_digest(tag: str,
                 time.sleep(backoff)
     raise RuntimeError('could not resolve the Go builder image from Docker Hub '
                        'or its configured mirror after '
-                       f'{DIGEST_LOOKUP_ATTEMPTS} attempts: ' + '; '.join(
-                           f'{image}: {detail}'
-                           for image, detail in failures.items()))
+                       f'{DIGEST_LOOKUP_ATTEMPTS} attempts: ' +
+                       '; '.join(f'{image}: {detail}'
+                                 for image, detail in failures.items()))
 
 
 def verify_image_digests(
@@ -371,8 +371,7 @@ def verify_image_digests(
 
     worst_case_seconds = _digest_verification_worst_case_seconds(
         len(pins_by_tag))
-    configured_seconds = (METADATA_BUILD_TIMEOUT_SECONDS +
-                          worst_case_seconds)
+    configured_seconds = (METADATA_BUILD_TIMEOUT_SECONDS + worst_case_seconds)
     if configured_seconds > DIGEST_VERIFICATION_BUDGET_SECONDS:
         raise RuntimeError(
             'Go builder digest verification is configured for a worst-case '
@@ -384,9 +383,8 @@ def verify_image_digests(
     errors = []
     for tag, pins_by_digest in sorted(pins_by_tag.items()):
         if len(pins_by_digest) != 1:
-            errors.append(
-                f'golang:{tag} has inconsistent pinned digests: '
-                f'{sorted(pins_by_digest)}')
+            errors.append(f'golang:{tag} has inconsistent pinned digests: '
+                          f'{sorted(pins_by_digest)}')
             continue
         pinned_digest = next(iter(pins_by_digest))
         _remaining_verification_seconds(deadline)
@@ -401,9 +399,8 @@ def verify_image_digests(
         if pinned_digest != resolved_digest:
             relative_paths = ', '.join(
                 str(path) for path in sorted(pins_by_digest[pinned_digest]))
-            errors.append(
-                f'golang:{tag} resolves to {resolved_digest}, but '
-                f'{relative_paths} pin {pinned_digest}')
+            errors.append(f'golang:{tag} resolves to {resolved_digest}, but '
+                          f'{relative_paths} pin {pinned_digest}')
     if errors:
         raise ValueError('Go builder image digest verification failed:\n  ' +
                          '\n  '.join(errors))
@@ -412,8 +409,7 @@ def verify_image_digests(
 def _digest_verification_worst_case_seconds(tag_count: int) -> int:
     return tag_count * (
         DIGEST_LOOKUP_ATTEMPTS * DIGEST_LOOKUP_SOURCE_COUNT *
-        DIGEST_LOOKUP_TIMEOUT_SECONDS +
-        sum(DIGEST_LOOKUP_BACKOFF_SECONDS))
+        DIGEST_LOOKUP_TIMEOUT_SECONDS + sum(DIGEST_LOOKUP_BACKOFF_SECONDS))
 
 
 def synchronized_contents(
@@ -447,8 +443,8 @@ def _synchronized_contents_and_originals(
         raise ValueError('the repository root go.mod was not found')
 
     original_contents = {
-        relative_path: _read_regular_contents(repo_root / relative_path,
-                                              relative_path)
+        relative_path:
+            _read_regular_contents(repo_root / relative_path, relative_path)
         for relative_path in module_paths
     }
     root_contents = original_contents[Path('go.mod')]
@@ -457,9 +453,8 @@ def _synchronized_contents_and_originals(
     current = root_toolchain_version or root_go_version
     if target < current:
         current_version = '.'.join(str(part) for part in current)
-        raise ValueError(
-            f'refusing to downgrade Go from {current_version} to '
-            f'{target_version}')
+        raise ValueError(f'refusing to downgrade Go from {current_version} to '
+                         f'{target_version}')
 
     expected_contents = {}
     for relative_path in module_paths:
@@ -475,8 +470,7 @@ def _synchronized_contents_and_originals(
     if originals_callback is not None:
         originals_callback(original_contents)
     flavors = {
-        candidate['flavor']
-        for _contents, candidate in dockerfiles.values()
+        candidate['flavor'] for _contents, candidate in dockerfiles.values()
     }
     digests = {}
     for flavor in sorted(flavors):
@@ -527,11 +521,22 @@ def sync(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> List[Path]:
+    with _exclusive_transaction_lock(repo_root):
+        return _sync_locked(repo_root, target_version, digest_resolver,
+                            repository_paths)
+
+
+def _sync_locked(
+    repo_root: Path,
+    target_version: str,
+    digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
+    repository_paths: Optional[Iterable[Path]] = None,
+) -> List[Path]:
     initial_head = _git(repo_root, 'rev-parse', '--verify',
                         'HEAD').stdout.strip()
     initial_index = _complete_stage_zero_index(repo_root)
-    scoped_repository_paths = (set(repository_paths)
-                               if repository_paths is not None else None)
+    scoped_repository_paths = (
+        set(repository_paths) if repository_paths is not None else None)
     managed_identity = _managed_identity_inventory(
         repo_root,
         initial_head,
@@ -582,18 +587,16 @@ def sync(
         for path, mode, object_id in snapshot.index_entries
     }
     managed_index_entries = {
-        path: snapshot_index[path]
-        for path in original_contents
+        path: snapshot_index[path] for path in original_contents
     }
     worktree_parent = tempfile.TemporaryDirectory(
         prefix='kfp-go-version-worktree-')
     worktree = Path(worktree_parent.name) / 'repository'
     recovery_bundle = None
     recovery_path = None
-    path_patches = {}
     original_restore_patches = {}
     original_restore_paths = {}
-    application_attempted = False
+    owned_paths = []
     try:
         _git(repo_root, 'worktree', 'add', '--detach', str(worktree),
              start_head)
@@ -637,10 +640,8 @@ def sync(
                 str(relative_path),
             ).stdout
             if not path_patch:
-                raise RuntimeError(
-                    f'Git produced an empty recovery patch for '
-                    f'{relative_path}')
-            path_patches[relative_path] = path_patch
+                raise RuntimeError(f'Git produced an empty recovery patch for '
+                                   f'{relative_path}')
             restore_patch = _git(
                 worktree,
                 '--literal-pathspecs',
@@ -668,13 +669,23 @@ def sync(
              target_version,
              patch,
              original_restore_patches,
+             snapshot,
          )
 
         _validate_all_managed_paths(repo_root, snapshot, original_contents)
         _git(repo_root, 'apply', '--check', '--whitespace=nowarn',
              str(recovery_path))
-        application_attempted = True
-        _git(repo_root, 'apply', '--whitespace=nowarn', str(recovery_path))
+        live_contents = dict(original_contents)
+        for relative_path in changed_paths:
+            _validate_all_managed_paths(repo_root, snapshot, live_contents)
+            _apply_managed_contents(
+                repo_root,
+                relative_path,
+                expected_contents[relative_path],
+                snapshot,
+            )
+            owned_paths.append(relative_path)
+            live_contents[relative_path] = expected_contents[relative_path]
         _validate_all_managed_paths(repo_root, snapshot, expected_contents)
         _verify_repository_consistency(repo_root)
         _validate_all_managed_paths(repo_root, snapshot, expected_contents)
@@ -682,17 +693,16 @@ def sync(
         rollback_errors = []
         unresolved_paths = []
         recovery_interrupt = None
-        if application_attempted:
+        if owned_paths:
             (rollback_errors, unresolved_paths,
              recovery_interrupt) = _recover_applied_paths(
-                repo_root,
-                changed_paths,
-                original_contents,
-                expected_contents,
-                snapshot,
-                path_patches,
-                original_restore_paths,
-            )
+                 repo_root,
+                 owned_paths,
+                 original_contents,
+                 expected_contents,
+                 snapshot,
+                 original_restore_paths,
+             )
         rollback_detail = ''
         if rollback_errors:
             rollback_detail += ('; automatic rollback failed: ' +
@@ -748,6 +758,23 @@ def sync(
     return sorted(changed_paths)
 
 
+@contextmanager
+def _exclusive_transaction_lock(repo_root: Path):
+    common_dir_text = _git(repo_root, 'rev-parse',
+                           '--git-common-dir').stdout.strip()
+    common_dir = Path(common_dir_text)
+    if not common_dir.is_absolute():
+        common_dir = repo_root / common_dir
+    lock_path = common_dir.resolve() / 'go-version-update.lock'
+    descriptor = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+
 def _git(repo_root: Path, *arguments: str) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
@@ -781,7 +808,9 @@ def _empty_tree_oid(repo_root: Path) -> str:
 
 def _require_clean_managed_paths(repo_root: Path,
                                  relative_paths: Iterable[Path]) -> str:
-    paths = tuple(str(path) for path in sorted(relative_paths))
+    relative_paths = tuple(sorted(relative_paths))
+    _require_supported_managed_git_state(repo_root, relative_paths)
+    paths = tuple(str(path) for path in relative_paths)
     head = _git(repo_root, 'rev-parse', '--verify', 'HEAD').stdout.strip()
     _git(repo_root, '--literal-pathspecs', 'ls-files', '--error-unmatch', '--',
          *paths)
@@ -792,6 +821,46 @@ def _require_clean_managed_paths(repo_root: Path,
             'managed Go version files must be tracked and clean before '
             'updating')
     return head
+
+
+def _require_supported_managed_git_state(
+    repo_root: Path,
+    relative_paths: Iterable[Path],
+) -> None:
+    relative_paths = tuple(sorted(relative_paths))
+    path_arguments = tuple(str(path) for path in relative_paths)
+    flags = _git(repo_root, '--literal-pathspecs', 'ls-files', '-v', '-z', '--',
+                 *path_arguments).stdout
+    flagged = []
+    seen = set()
+    for entry in flags.split('\0'):
+        if not entry:
+            continue
+        tag, path_text = entry.split(' ', 1)
+        relative_path = Path(path_text)
+        seen.add(relative_path)
+        if tag != 'H':
+            flagged.append(f'{relative_path} ({tag})')
+    missing = set(relative_paths) - seen
+    if missing:
+        flagged.extend(f'{path} (missing)' for path in sorted(missing))
+    if flagged:
+        raise RuntimeError(
+            'managed Go version files use unsupported Git index flags; '
+            'clear assume-unchanged and skip-worktree before updating: ' +
+            ', '.join(flagged))
+
+    attributes = _git(repo_root, '--literal-pathspecs', 'check-attr', '-z',
+                      'filter', '--', *path_arguments).stdout.split('\0')
+    filtered = []
+    for offset in range(0, len(attributes) - 2, 3):
+        path_text, attribute, value = attributes[offset:offset + 3]
+        if attribute == 'filter' and value != 'unspecified':
+            filtered.append(f'{path_text} ({value})')
+    if filtered:
+        raise RuntimeError(
+            'managed Go version files use unsupported Git clean/smudge '
+            'filters: ' + ', '.join(filtered))
 
 
 def _capture_repository_snapshot(
@@ -814,18 +883,9 @@ def _capture_repository_snapshot(
         raise RuntimeError(
             'Git index changed while capturing the Go version update '
             'snapshot')
-    index_map = {
-        path: (mode, object_id)
-        for path, mode, object_id in current_index
-    }
     file_mode_enabled = _core_file_mode_enabled(repo_root)
     worktree_paths = tuple(
-        _snapshot_worktree_path(
-            repo_root,
-            path,
-            git_mode_override=(None if file_mode_enabled else
-                               index_map[path][0]),
-        ) for path in relative_paths)
+        _snapshot_worktree_path(repo_root, path) for path in relative_paths)
     if any(state.contents != expected_contents[state.path].encode('utf-8')
            for state in worktree_paths):
         raise RuntimeError(
@@ -849,7 +909,6 @@ def _capture_repository_snapshot(
 def _snapshot_worktree_path(
     repo_root: Path,
     relative_path: Path,
-    git_mode_override: Optional[str] = None,
 ) -> WorktreePathSnapshot:
     path = repo_root / relative_path
     try:
@@ -865,9 +924,7 @@ def _snapshot_worktree_path(
         path=relative_path,
         contents=path.read_bytes(),
         file_type=stat.S_IFMT(path_stat.st_mode),
-        git_mode=(git_mode_override or
-                  ('100755'
-                   if path_stat.st_mode & stat.S_IXUSR else '100644')),
+        mode=stat.S_IMODE(path_stat.st_mode),
     )
 
 
@@ -879,6 +936,7 @@ def _ensure_snapshot_state(
 ) -> None:
     """Require HEAD, index identity, contents, and modes to match a snapshot."""
     relative_paths = tuple(relative_paths)
+    _require_supported_managed_git_state(repo_root, relative_paths)
     head = _git(repo_root, 'rev-parse', '--verify', 'HEAD').stdout.strip()
     if head != snapshot.head:
         raise RuntimeError(
@@ -892,20 +950,11 @@ def _ensure_snapshot_state(
     if file_mode_enabled != snapshot.file_mode_enabled:
         raise RuntimeError(
             'Git core.fileMode changed while committing Go version update')
-    index_map = {
-        path: (mode, object_id)
-        for path, mode, object_id in actual_index
-    }
     path_snapshots = {state.path: state for state in snapshot.worktree_paths}
     changed = []
     for relative_path in relative_paths:
         try:
-            current = _snapshot_worktree_path(
-                repo_root,
-                relative_path,
-                git_mode_override=(None if file_mode_enabled else
-                                   index_map[relative_path][0]),
-            )
+            current = _snapshot_worktree_path(repo_root, relative_path)
         except (RuntimeError, ValueError) as error:
             changed.append(f'{relative_path} ({error})')
             continue
@@ -915,7 +964,7 @@ def _ensure_snapshot_state(
         expected_path = path_snapshots[relative_path]
         if current.file_type != expected_path.file_type:
             changed.append(f'{relative_path} (worktree file type changed)')
-        elif current.git_mode != expected_path.git_mode:
+        elif current.mode != expected_path.mode:
             changed.append(f'{relative_path} (worktree mode changed)')
     if changed:
         raise RuntimeError(
@@ -942,14 +991,13 @@ def _validate_all_managed_paths(
         removed = set(managed_paths) - set(current_managed_paths)
         details = []
         if added:
-            details.append('added ' + ', '.join(
-                str(path) for path in sorted(added)))
+            details.append('added ' +
+                           ', '.join(str(path) for path in sorted(added)))
         if removed:
-            details.append('removed ' + ', '.join(
-                str(path) for path in sorted(removed)))
-        raise RuntimeError(
-            'managed Go version path membership changed: ' +
-            '; '.join(details))
+            details.append('removed ' +
+                           ', '.join(str(path) for path in sorted(removed)))
+        raise RuntimeError('managed Go version path membership changed: ' +
+                           '; '.join(details))
     expected_paths = set(expected_contents)
     snapshot_paths = set(managed_paths)
     if expected_paths != snapshot_paths:
@@ -957,14 +1005,14 @@ def _validate_all_managed_paths(
         extra = expected_paths - snapshot_paths
         details = []
         if missing:
-            details.append('missing ' + ', '.join(str(path)
-                                                 for path in sorted(missing)))
+            details.append('missing ' +
+                           ', '.join(str(path) for path in sorted(missing)))
         if extra:
-            details.append('unexpected ' + ', '.join(
-                str(path) for path in sorted(extra)))
+            details.append('unexpected ' +
+                           ', '.join(str(path) for path in sorted(extra)))
         raise RuntimeError(
-            'managed Go version validation received an incomplete path set: '
-            + '; '.join(details))
+            'managed Go version validation received an incomplete path set: ' +
+            '; '.join(details))
     if require_head_match:
         clean_head = _require_clean_managed_paths(repo_root, managed_paths)
         if clean_head != snapshot.head:
@@ -998,8 +1046,8 @@ def _indexed_stage_zero_entries(
         relative_path = Path(path_text)
         parsed_entries.append((relative_path, mode, object_id, stage))
         path_counts[relative_path] = path_counts.get(relative_path, 0) + 1
-    duplicates = sorted(path for path, count in path_counts.items()
-                        if count > 1)
+    duplicates = sorted(
+        path for path, count in path_counts.items() if count > 1)
     if duplicates:
         raise RuntimeError(
             'managed Go version files have multiple Git index entries: ' +
@@ -1062,8 +1110,7 @@ def _core_file_mode_enabled(repo_root: Path) -> bool:
     return value == 'true'
 
 
-def _verify_worktree_plan(worktree: Path,
-                          expected_contents: Dict[Path, str],
+def _verify_worktree_plan(worktree: Path, expected_contents: Dict[Path, str],
                           expected_index_entries: Dict[Path, Tuple[str, str]],
                           changed_paths: Iterable[Path]) -> None:
     changed_paths = tuple(changed_paths)
@@ -1107,11 +1154,10 @@ def _verify_repository_consistency(repo_root: Path) -> None:
             text=True,
         )
     except (FileNotFoundError, subprocess.CalledProcessError) as error:
-        detail = getattr(error, 'stderr', '') or getattr(error, 'stdout', '') or str(
-            error)
-        raise RuntimeError(
-            f'Go version consistency verification failed: '
-            f'{detail.strip()}') from error
+        detail = getattr(error, 'stderr', '') or getattr(error, 'stdout',
+                                                         '') or str(error)
+        raise RuntimeError(f'Go version consistency verification failed: '
+                           f'{detail.strip()}') from error
 
 
 def _write_recovery_bundle(
@@ -1120,6 +1166,7 @@ def _write_recovery_bundle(
     target_version: str,
     combined_patch: str,
     original_restore_patches: Dict[Path, str],
+    snapshot: RepositorySnapshot,
 ) -> Tuple[Path, Path, Dict[Path, Path]]:
     common_dir_text = _git(repo_root, 'rev-parse',
                            '--git-common-dir').stdout.strip()
@@ -1136,13 +1183,17 @@ def _write_recovery_bundle(
             prefix=f'.pending-{start_head[:12]}-to-go{target_version}-',
         ))
     pending.chmod(0o700)
-    bundle = pending.with_name(pending.name.removeprefix('.pending-') +
-                               '.bundle')
+    bundle = pending.with_name(
+        pending.name.removeprefix('.pending-') + '.bundle')
     try:
         combined_name = 'combined-forward.patch'
         _write_durable_recovery_file(pending / combined_name, combined_patch)
         restore_names = {}
         manifest_paths = {}
+        original_files = {}
+        snapshot_paths = {
+            state.path: state for state in snapshot.worktree_paths
+        }
         for index, relative_path in enumerate(sorted(original_restore_patches)):
             restore_name = f'{index:04d}-restore-original.patch'
             _write_durable_recovery_file(
@@ -1151,10 +1202,19 @@ def _write_recovery_bundle(
             )
             restore_names[relative_path] = restore_name
             manifest_paths[str(relative_path)] = restore_name
+            original_name = f'{index:04d}-original.bin'
+            original = snapshot_paths[relative_path]
+            _write_durable_recovery_bytes(pending / original_name,
+                                          original.contents)
+            original_files[str(relative_path)] = {
+                'contents': original_name,
+                'mode': f'{original.mode:04o}',
+            }
         manifest = {
             'startHead': start_head,
             'targetVersion': target_version,
             'combinedForwardPatch': combined_name,
+            'originalFiles': original_files,
             'originalRestorePatches': manifest_paths,
         }
         _write_durable_recovery_file(
@@ -1190,9 +1250,13 @@ def _write_recovery_bundle(
 
 
 def _write_durable_recovery_file(path: Path, contents: str) -> None:
+    _write_durable_recovery_bytes(path, contents.encode('utf-8'))
+
+
+def _write_durable_recovery_bytes(path: Path, contents: bytes) -> None:
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        with os.fdopen(descriptor, 'w', encoding='utf-8') as recovery_file:
+        with os.fdopen(descriptor, 'wb') as recovery_file:
             descriptor = -1
             recovery_file.write(contents)
             recovery_file.flush()
@@ -1211,8 +1275,7 @@ def _fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
-def _snapshot_state_matches(repo_root: Path,
-                            snapshot: RepositorySnapshot,
+def _snapshot_state_matches(repo_root: Path, snapshot: RepositorySnapshot,
                             expected_contents: Dict[Path, str],
                             relative_paths: Iterable[Path]) -> bool:
     try:
@@ -1223,13 +1286,47 @@ def _snapshot_state_matches(repo_root: Path,
         return False
 
 
+def _write_managed_contents(
+    repo_root: Path,
+    relative_path: Path,
+    contents: str,
+    snapshot: RepositorySnapshot,
+) -> None:
+    path = repo_root / relative_path
+    expected_path = next(state for state in snapshot.worktree_paths
+                         if state.path == relative_path)
+    _ensure_regular_destination(path, relative_path)
+    with path.open('r+b') as destination:
+        destination.seek(0)
+        destination.write(contents.encode('utf-8'))
+        destination.truncate()
+        destination.flush()
+        os.fsync(destination.fileno())
+    current = _snapshot_worktree_path(repo_root, relative_path)
+    if (current.contents != contents.encode('utf-8') or
+            current.file_type != expected_path.file_type or
+            current.mode != expected_path.mode):
+        raise RuntimeError(
+            f'{relative_path} changed while writing the Go version update')
+
+
+def _apply_managed_contents(repo_root: Path, relative_path: Path, contents: str,
+                            snapshot: RepositorySnapshot) -> None:
+    _write_managed_contents(repo_root, relative_path, contents, snapshot)
+
+
+def _restore_managed_contents(repo_root: Path, relative_path: Path,
+                              contents: str,
+                              snapshot: RepositorySnapshot) -> None:
+    _write_managed_contents(repo_root, relative_path, contents, snapshot)
+
+
 def _recover_applied_paths(
     repo_root: Path,
     relative_paths: Iterable[Path],
     original_contents: Dict[Path, str],
     expected_contents: Dict[Path, str],
     snapshot: RepositorySnapshot,
-    path_patches: Dict[Path, str],
     original_restore_paths: Dict[Path, Path],
 ) -> Tuple[List[str], List[str], Optional[BaseException]]:
     errors = []
@@ -1241,14 +1338,13 @@ def _recover_applied_paths(
             continue
         if not _snapshot_state_matches(repo_root, snapshot, expected_contents,
                                        (relative_path,)):
-            unresolved.append(
-                f'{relative_path} (original restore patch: '
-                f'{original_restore_paths[relative_path]})')
+            unresolved.append(f'{relative_path} (original restore patch: '
+                              f'{original_restore_paths[relative_path]})')
             continue
         try:
-            patch = path_patches[relative_path]
-            _git_apply_contents(repo_root, patch, reverse=True, check=True)
-            _git_apply_contents(repo_root, patch, reverse=True)
+            _restore_managed_contents(repo_root, relative_path,
+                                      original_contents[relative_path],
+                                      snapshot)
             _ensure_snapshot_state(repo_root, snapshot, original_contents,
                                    (relative_path,))
         except BaseException as error:
@@ -1266,39 +1362,19 @@ def _recover_applied_paths(
     return errors, unresolved, interrupt
 
 
-def _git_apply_contents(repo_root: Path, patch: str, *, reverse: bool,
-                        check: bool = False) -> None:
-    arguments = ['git', 'apply']
-    if reverse:
-        arguments.append('--reverse')
-    if check:
-        arguments.append('--check')
-    arguments.extend(('--whitespace=nowarn', '-'))
-    try:
-        subprocess.run(
-            arguments,
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-            input=patch,
-        )
-    except (FileNotFoundError, subprocess.CalledProcessError) as error:
-        detail = getattr(error, 'stderr', '') or str(error)
-        raise RuntimeError(
-            f'git apply recovery failed: {detail.strip()}') from error
-
-
-def _ensure_expected_contents(repo_root: Path,
-                              expected_contents: Dict[Path, str],
-                              relative_paths: Iterable[Path],
-                              expected_index_entries: Optional[Dict[
-                                  Path, Tuple[str, str]]] = None) -> None:
+def _ensure_expected_contents(
+    repo_root: Path,
+    expected_contents: Dict[Path, str],
+    relative_paths: Iterable[Path],
+    expected_index_entries: Optional[Dict[Path, Tuple[str,
+                                                      str]]] = None) -> None:
     relative_paths = tuple(relative_paths)
-    indexed_entries = (_indexed_stage_zero_entries(repo_root, relative_paths)
-                       if expected_index_entries is not None else {})
-    file_mode_enabled = (_core_file_mode_enabled(repo_root)
-                         if expected_index_entries is not None else False)
+    indexed_entries = (
+        _indexed_stage_zero_entries(repo_root, relative_paths)
+        if expected_index_entries is not None else {})
+    file_mode_enabled = (
+        _core_file_mode_enabled(repo_root)
+        if expected_index_entries is not None else False)
     changed = []
     for relative_path in relative_paths:
         try:
@@ -1340,7 +1416,9 @@ def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
             'special files are not supported')
 
 
-def _read_regular_contents(path: Path, relative_path: Path, *,
+def _read_regular_contents(path: Path,
+                           relative_path: Path,
+                           *,
                            errors: str = 'strict') -> str:
     _ensure_regular_destination(path, relative_path)
     with path.open('r', encoding='utf-8', errors=errors, newline='') as source:
@@ -1393,7 +1471,8 @@ def main() -> int:
         )
 
     checker = repo_root / '.github/resources/scripts/go_version_consistency_test.py'
-    return subprocess.run((sys.executable, str(checker)), cwd=repo_root).returncode
+    return subprocess.run((sys.executable, str(checker)),
+                          cwd=repo_root).returncode
 
 
 if __name__ == '__main__':

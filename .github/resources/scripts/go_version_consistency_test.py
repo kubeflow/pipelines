@@ -18,9 +18,13 @@ import re
 import subprocess
 import unittest
 
-from go_version_metadata import (docker_runtime_classification,
-                                 has_go_runtime_reference, has_setup_go_use,
-                                 is_container_recipe, module_versions)
+from go_version_metadata import docker_runtime_classification
+from go_version_metadata import has_go_runtime_reference
+from go_version_metadata import has_setup_go_use
+from go_version_metadata import is_container_recipe
+from go_version_metadata import is_runtime_metadata_path
+from go_version_metadata import is_yaml_metadata_path
+from go_version_metadata import module_versions
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
@@ -44,8 +48,7 @@ GO_SETUP_ACTIONS = (
 PRECOMMIT_WORKFLOW = Path('.github/workflows/pre-commit.yml')
 CI_SCRIPTS_WORKFLOW = Path('.github/workflows/ci-scripts-tests.yml')
 GO_IMAGE_DIGEST_WORKFLOW = Path('.github/workflows/go-image-digests.yml')
-GO_VERSION_METADATA = Path(
-    '.github/resources/scripts/go_version_metadata.py')
+GO_VERSION_METADATA = Path('.github/resources/scripts/go_version_metadata.py')
 GO_VERSION_HELPER = Path('tools/go-version-metadata/main.go')
 
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
@@ -55,6 +58,12 @@ GO_DIRECTIVE_PATTERN = re.compile(
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
     rf'^[ \t]*toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
+ROOT_GO_DIRECTIVE_PATTERN = re.compile(
+    rf'^go[ \t]+(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
+ROOT_TOOLCHAIN_PATTERN = re.compile(
+    rf'^toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 PRECOMMIT_CHECK_PATTERN = re.compile(
     r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
@@ -76,8 +85,7 @@ def _read(relative_path):
 
 def _repository_paths():
     return {
-        Path(path)
-        for path in subprocess.run(
+        Path(path) for path in subprocess.run(
             ('git', 'ls-files', '-z', '--cached', '--others',
              '--exclude-standard'),
             cwd=REPOSITORY_ROOT,
@@ -144,10 +152,28 @@ class GoVersionConsistencyTest(unittest.TestCase):
                         'go.mod',
                     )
 
+    def test_root_module_uses_setup_go_canonical_directives(self):
+        contents = _read(Path('go.mod'))
+        go_version, toolchain_version = module_versions(contents,
+                                                        Path('go.mod'))
+        go_matches = ROOT_GO_DIRECTIVE_PATTERN.findall(contents)
+        self.assertEqual(
+            go_matches,
+            [go_version],
+            'root go.mod must contain one column-zero, patch-qualified go '
+            'directive so actions/setup-go resolves an exact version',
+        )
+        toolchain_matches = ROOT_TOOLCHAIN_PATTERN.findall(contents)
+        self.assertEqual(
+            toolchain_matches,
+            [toolchain_version] if toolchain_version else [],
+            'the root toolchain directive, when present, must be column-zero '
+            'and patch-qualified so actions/setup-go can resolve it',
+        )
+
     def test_malformed_toolchain_directives_are_rejected(self):
         for directive in ('toolchain', 'toolchain go1.27',
-                          '  toolchain default',
-                          'toolchain go1.27.1 extra'):
+                          '  toolchain default', 'toolchain go1.27.1 extra'):
             with self.subTest(directive=directive):
                 contents = f'module example.com/test\n\ngo 1.27.0\n\n{directive}\n'
                 with self.assertRaisesRegex(ValueError,
@@ -176,14 +202,13 @@ class GoVersionConsistencyTest(unittest.TestCase):
         )
 
     def test_module_block_entries_are_not_directives(self):
-        contents = (
-            'module example.com/test\n\n'
-            'require (\n'
-            '  go v1.0.0\n'
-            '  toolchain v1.0.0\n'
-            ')\n\n'
-            'go 1.27.0\n\n'
-            'toolchain go1.27.1\n')
+        contents = ('module example.com/test\n\n'
+                    'require (\n'
+                    '  go v1.0.0\n'
+                    '  toolchain v1.0.0\n'
+                    ')\n\n'
+                    'go 1.27.0\n\n'
+                    'toolchain go1.27.1\n')
 
         self.assertEqual(
             _module_versions_from_contents(contents, Path('test/go.mod')),
@@ -191,13 +216,11 @@ class GoVersionConsistencyTest(unittest.TestCase):
         )
 
     def test_malformed_go_and_toolchain_blocks_are_rejected(self):
-        for contents in (
-                'module example.com/test\n\ngo (\n  1.27.0\n)\n',
-                'module example.com/test\n\ngo 1.27.0\n\n'
-                'toolchain (\n  go1.27.1\n)\n'):
+        for contents in ('module example.com/test\n\ngo (\n  1.27.0\n)\n',
+                         'module example.com/test\n\ngo 1.27.0\n\n'
+                         'toolchain (\n  go1.27.1\n)\n'):
             with self.subTest(contents=contents):
-                with self.assertRaisesRegex(ValueError,
-                                            'invalid .* directive'):
+                with self.assertRaisesRegex(ValueError, 'invalid .* directive'):
                     _module_versions_from_contents(contents,
                                                    Path('test/go.mod'))
 
@@ -238,8 +261,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     f'{relative_path} Go image must match the root effective '
                     'Go version',
                 )
-                image_references_by_flavor.setdefault(flavor, set()).add(
-                    image_reference)
+                image_references_by_flavor.setdefault(
+                    flavor, set()).add(image_reference)
 
         self.assertEqual(
             discovered,
@@ -258,8 +281,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_no_unmanaged_go_runtime_pins(self):
         discovered = set()
         for relative_path in _repository_paths():
-            if not (is_container_recipe(relative_path) or
-                    relative_path.suffix in {'.sh', '.yaml', '.yml'}):
+            if not is_runtime_metadata_path(relative_path):
                 continue
             path = REPOSITORY_ROOT / relative_path
             if not path.exists():
@@ -277,30 +299,31 @@ class GoVersionConsistencyTest(unittest.TestCase):
         )
 
     def test_go_runtime_reference_detection_is_tag_agnostic(self):
-        for reference in ('FROM golang AS builder',
-                          'FROM golang@sha256:' + ('a' * 64) + ' AS builder',
-                          'container: golang',
-                          'image: docker.io/library/golang',
-                          '  - image: "golang" # builder',
-                          'container: { image: golang }',
-                          'container: {"image":"golang"}',
-                          'container: {credentials: {user: test}, image: golang}',
-                          'steps: [{uses: docker://golang:1.20}]',
-                          'FROM golang:latest',
-                          'FROM golang:${GO_VERSION}',
-                          'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
-                          'https://go.dev/dl/go1.27.0.linux-amd64.tar.gz'):
+        self.assertTrue(
+            has_go_runtime_reference(
+                Path('runtime.YAML'), 'image: golang:1.20\n'))
+        for reference in (
+                'FROM golang AS builder',
+                'FROM golang@sha256:' + ('a' * 64) + ' AS builder',
+                'container: golang', 'image: docker.io/library/golang',
+                '  - image: "golang" # builder', 'container: { image: golang }',
+                'container: {"image":"golang"}',
+                'container: {credentials: {user: test}, image: golang}',
+                'steps: [{uses: docker://golang:1.20}]', 'FROM golang:latest',
+                'FROM golang:${GO_VERSION}',
+                'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
+                'https://go.dev/dl/go1.27.0.linux-amd64.tar.gz'):
             with self.subTest(reference=reference):
-                relative_path = (Path('Dockerfile')
-                                 if reference.startswith('FROM') else
-                                 Path('test.yaml'))
+                relative_path = (
+                    Path('Dockerfile')
+                    if reference.startswith('FROM') else Path('test.yaml'))
                 self.assertTrue(
                     has_go_runtime_reference(relative_path, reference))
         for non_runtime_reference in ('language: golang', 'golangci-lint'):
             with self.subTest(non_runtime_reference=non_runtime_reference):
                 self.assertFalse(
-                    has_go_runtime_reference(Path('test.yaml'),
-                                             non_runtime_reference))
+                    has_go_runtime_reference(
+                        Path('test.yaml'), non_runtime_reference))
         for commented_reference in (
                 '# golang:latest',
                 '  # image: golang:latest',
@@ -310,38 +333,39 @@ class GoVersionConsistencyTest(unittest.TestCase):
         ):
             with self.subTest(commented_reference=commented_reference):
                 self.assertFalse(
-                    has_go_runtime_reference(Path('test.yaml'),
-                                             commented_reference))
+                    has_go_runtime_reference(
+                        Path('test.yaml'), commented_reference))
 
     def test_setup_go_detection_supports_workflow_list_items(self):
-        for step in ('      uses: actions/setup-go@v7',
-                     '    - uses: actions/setup-go@v7',
-                     '    - uses: actions/setup-go@abc123 # v7',
-                     "    - uses: 'actions/setup-go@abc123' # v7",
-                     '    - uses: "actions/setup-go@abc123" # v7',
-                     '    - {uses: actions/setup-go@abc123, name: Go}',
-                     '    - {"uses":"actions/setup-go@abc123","name":"Go"}',
-                     '    - {name: Go, "uses":"actions/setup-go@abc123"}',
-                     '    steps: [{env: {A: B}, uses: actions/setup-go@abc123}]'):
+        for step in (
+                '      uses: actions/setup-go@v7',
+                '    - uses: actions/setup-go@v7',
+                '    - uses: actions/setup-go@abc123 # v7',
+                "    - uses: 'actions/setup-go@abc123' # v7",
+                '    - uses: "actions/setup-go@abc123" # v7',
+                '    - {uses: actions/setup-go@abc123, name: Go}',
+                '    - {"uses":"actions/setup-go@abc123","name":"Go"}',
+                '    - {name: Go, "uses":"actions/setup-go@abc123"}',
+                '    steps: [{env: {A: B}, uses: actions/setup-go@abc123}]'):
             with self.subTest(step=step):
                 self.assertTrue(has_setup_go_use(step))
-        self.assertTrue(has_setup_go_use(
-            '    - uses: Actions/Setup-Go@v7'))
-        self.assertFalse(has_setup_go_use(
-            '    # - uses: actions/setup-go@v7'))
-        self.assertFalse(has_setup_go_use(
-            '    # - {"uses":"actions/setup-go@v7"}'))
-        self.assertFalse(has_setup_go_use(
-            '    run: echo \'{"uses":"actions/setup-go@v7"}\''))
-        self.assertFalse(has_setup_go_use(
-            '    run: |\n'
-            '      cat <<EOF\n'
-            '      uses: actions/setup-go@v7\n'
-            '      EOF\n'))
+        self.assertTrue(has_setup_go_use('    - uses: Actions/Setup-Go@v7'))
+        self.assertFalse(has_setup_go_use('    # - uses: actions/setup-go@v7'))
+        self.assertFalse(
+            has_setup_go_use('    # - {"uses":"actions/setup-go@v7"}'))
+        self.assertFalse(
+            has_setup_go_use(
+                '    run: echo \'{"uses":"actions/setup-go@v7"}\''))
+        self.assertFalse(
+            has_setup_go_use('    run: |\n'
+                             '      cat <<EOF\n'
+                             '      uses: actions/setup-go@v7\n'
+                             '      EOF\n'))
         for action in ('./.github/actions/golang', 'owner/golang@v1'):
             with self.subTest(action=action):
-                self.assertFalse(has_go_runtime_reference(
-                    Path('workflow.yaml'), f'- uses: {action}\n'))
+                self.assertFalse(
+                    has_go_runtime_reference(
+                        Path('workflow.yaml'), f'- uses: {action}\n'))
 
     def test_setup_go_actions_use_root_module_version(self):
         for relative_path in GO_SETUP_ACTIONS:
@@ -361,7 +385,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_all_direct_setup_go_uses_are_managed(self):
         discovered = set()
         for relative_path in _repository_paths():
-            if relative_path.suffix not in {'.yaml', '.yml'}:
+            if not is_yaml_metadata_path(relative_path):
                 continue
             is_workflow = relative_path.is_relative_to(
                 Path('.github/workflows'))
@@ -396,10 +420,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
             r'[ \t]*$',
         )
         self.assertNotRegex(contents, DIGEST_CHECK_PATTERN)
-        self.assertRegex(_read(GO_IMAGE_DIGEST_WORKFLOW),
-                         DIGEST_CHECK_PATTERN)
-        self.assertIn(str(GO_VERSION_METADATA),
-                      _read(GO_IMAGE_DIGEST_WORKFLOW))
+        self.assertRegex(_read(GO_IMAGE_DIGEST_WORKFLOW), DIGEST_CHECK_PATTERN)
+        self.assertIn(str(GO_VERSION_METADATA), _read(GO_IMAGE_DIGEST_WORKFLOW))
         self.assertIn('tools/go-version-metadata/**',
                       _read(GO_IMAGE_DIGEST_WORKFLOW))
         self.assertTrue((REPOSITORY_ROOT / GO_VERSION_HELPER).exists())

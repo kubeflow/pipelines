@@ -826,9 +826,9 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 			classification: "unsupported",
 		},
 		{
-			name:           "non-golang component with matching suffix",
+			name:           "unknown can introduce final component delimiter",
 			image:          "registry.example:5000/ns/xx${VALUE}ang:latest",
-			classification: "irrelevant",
+			classification: "unsupported",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -844,13 +844,52 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 }
 
 func TestDockerWordAlternativeBounds(t *testing.T) {
+	supported := "FROM alpine\nARG VALUE=${A:-x}${B:-x}${C:-x}${D:-x}${E:-x}${F:-x}\n"
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: supported})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "irrelevant" {
+		t.Fatalf("six-variable boundary classification = %q, want irrelevant; error=%q", metadata.DockerClassification, metadata.DockerError)
+	}
+
 	contents := "FROM alpine\nARG VALUE=${A:-x}${B:-x}${C:-x}${D:-x}${E:-x}${F:-x}${G:-x}\n"
-	metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+	metadata, err = inspect(request{Path: "Dockerfile", Contents: contents})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if metadata.DockerClassification != "invalid" || !strings.Contains(metadata.DockerError, "more than 6 variables") {
 		t.Fatalf("classification = %q, error=%q, want bounded invalid", metadata.DockerClassification, metadata.DockerError)
+	}
+
+	workBudget := newDockerDiscovery('\\')
+	boundaryWord := "alpine"
+	workBudget.alternativeWork = maxDockerAlternativeWork - len(boundaryWord)
+	if _, err := workBudget.dockerWordAlternatives(boundaryWord); err != nil {
+		t.Fatalf("exact alternative-work boundary: %v", err)
+	}
+	if _, err := workBudget.dockerWordAlternatives("x"); !isResourceLimit(err, "alternative-expansion work limit") {
+		t.Fatalf("alternative-work boundary+1 error = %v", err)
+	}
+}
+
+func TestDockerSymbolicBranchesPreserveNestedStateAndDelimiters(t *testing.T) {
+	for _, instruction := range []string{
+		`ARG IMAGE=${A:-g${B}lang:latest}`,
+		`ENV IMAGE=foo${X}go${Y}ang:latest`,
+		`FROM foo${X}go${Y}ang:latest`,
+	} {
+		contents := "FROM alpine\n" + instruction + "\n"
+		if strings.HasPrefix(instruction, "FROM ") {
+			contents = instruction + "\n"
+		}
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "unsupported" {
+			t.Fatalf("%s: classification = %q, want unsupported; error=%q", instruction, metadata.DockerClassification, metadata.DockerError)
+		}
 	}
 }
 
@@ -884,7 +923,7 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 		{
 			name:           "duplicate alias",
 			contents:       "FROM alpine AS base\nFROM alpine AS base\n",
-			classification: "invalid",
+			classification: "irrelevant",
 		},
 		{
 			name:           "self COPY by alias",
@@ -918,6 +957,16 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 				`ONBUILD SHELL ["fish","-c"]` + "\n" +
 				"ONBUILD RUN echo alpine\n" +
 				"FROM parent AS child\n" +
+				"RUN echo alpine\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell", "unsupported-shell"},
+		},
+		{
+			name: "expanded local parent joins inherited state",
+			contents: "FROM alpine AS base\n" +
+				`SHELL ["fish","-c"]` + "\n" +
+				"ONBUILD RUN echo alpine\n" +
+				"FROM ${BASE:-base} AS child\n" +
 				"RUN echo alpine\n",
 			classification: "unsupported",
 			candidateKinds: []string{"unsupported-shell", "unsupported-shell"},
@@ -959,6 +1008,8 @@ func TestRuntimeShellContextDomains(t *testing.T) {
 		{name: "unbraced pid is numeric", script: `echo go$$lang`, classification: "irrelevant"},
 		{name: "shell name is not empty", script: `echo go$0lang`, classification: "irrelevant"},
 		{name: "last background pid may be unset", script: `echo go$!lang`, classification: "unsupported"},
+		{name: "ordinary variables vary independently", script: `echo ${A:+g}${B:-olang}:latest`, classification: "unsupported"},
+		{name: "option flags are nonempty", script: `echo go${-:+l}ang:latest`, classification: "unsupported"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nRUN " + test.script + "\n"})
@@ -967,6 +1018,91 @@ func TestRuntimeShellContextDomains(t *testing.T) {
 			}
 			if metadata.DockerClassification != test.classification {
 				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
+			}
+		})
+	}
+}
+
+func TestRuntimeExpansionAccountingPrecedesDeduplication(t *testing.T) {
+	script := "echo " + strings.TrimSpace(strings.Repeat("$X ", 1000))
+	accounted := 0
+	_, err := parseRuntimeShellWordsWithBudget(script, nil, func(count int) error {
+		accounted += count
+		if accounted > 1024 {
+			return resourceLimitf("test expansion budget exceeded")
+		}
+		return nil
+	})
+	if err == nil || !strings.Contains(err.Error(), "test expansion budget exceeded") {
+		t.Fatalf("error = %v, want pre-dedup work rejection", err)
+	}
+}
+
+func TestDeferredEvaluationUsesCentralAdmission(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		configure  func(*dockerDiscovery)
+		triggers   []*deferredDockerInstruction
+		errorMatch string
+	}{
+		{
+			name: "instruction limit",
+			configure: func(discovery *dockerDiscovery) {
+				discovery.instructions = maxDockerInstructions - 1
+			},
+			triggers: []*deferredDockerInstruction{
+				{expression: "ARG A=alpine", line: 1},
+				{expression: "ARG B=alpine", line: 2},
+			},
+			errorMatch: "instruction limit",
+		},
+		{
+			name: "candidate limit",
+			configure: func(discovery *dockerDiscovery) {
+				discovery.candidates = maxDockerCandidates - 1
+			},
+			triggers: []*deferredDockerInstruction{
+				{expression: "RUN echo golang:latest", line: 1},
+				{expression: "RUN echo golang:latest", line: 2},
+			},
+			errorMatch: "candidate limit",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			discovery := newDockerDiscovery('\\')
+			test.configure(discovery)
+			_, _, err := discovery.evaluateDeferred(test.triggers, dockerInstructionContext{shell: defaultRuntimeShell()})
+			if err == nil || !strings.Contains(err.Error(), test.errorMatch) {
+				t.Fatalf("error = %v, want %q", err, test.errorMatch)
+			}
+		})
+	}
+}
+
+func TestBuildKitStageGraphValidity(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		contents string
+	}{
+		{
+			name: "forward stage cycle",
+			contents: "FROM alpine AS stage0\n" +
+				"COPY --from=stage2 /x /x\n" +
+				"FROM alpine AS stage1\nCOPY --from=stage0 /x /x\n" +
+				"FROM alpine AS stage2\nCOPY --from=stage1 /x /x\n",
+		},
+		{
+			name:     "expanded COPY source",
+			contents: "FROM alpine\nCOPY --from=${SOURCE} /x /x\n",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "invalid" {
+				t.Fatalf("classification = %q, want invalid; error=%q", metadata.DockerClassification, metadata.DockerError)
 			}
 		})
 	}

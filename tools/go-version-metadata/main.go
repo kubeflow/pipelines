@@ -88,7 +88,7 @@ const (
 	maxDockerInstructionDepth = 256
 	maxShellASTNodes          = 100000
 	maxShellASTDepth          = 256
-	maxDockerNormalizedBytes  = maxInputBytes
+	maxDockerNormalizedBytes  = 16 << 20
 	maxDockerWordInputBytes   = 16 << 10
 	maxDockerWordWorkBytes    = 32 << 10
 	maxDockerWordVariables    = 6
@@ -334,6 +334,9 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	if err := validateDockerStructure(parsed.AST, discovery); err != nil {
 		return "invalid", nil, err.Error()
 	}
+	if err := validateDockerStageGraph(parsed.AST, discovery); err != nil {
+		return "invalid", nil, err.Error()
+	}
 	for _, node := range parsed.AST.Children {
 		if strings.EqualFold(node.Value, "from") {
 			if err := discovery.completeCurrentStage(); err != nil {
@@ -384,6 +387,120 @@ func validateDockerStructure(ast *parser.Node, discovery *dockerDiscovery) error
 	return nil
 }
 
+func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) error {
+	type validationStage struct {
+		name         string
+		dependencies map[int]bool
+	}
+	stages := []*validationStage{}
+	finalNames := map[string]int{}
+	for _, node := range ast.Children {
+		typed, err := parseDockerInstruction(node, discovery)
+		if err != nil {
+			return err
+		}
+		if stage, ok := typed.(*instructions.Stage); ok {
+			index := len(stages)
+			stages = append(stages, &validationStage{name: stage.Name, dependencies: map[int]bool{}})
+			if stage.Name != "" {
+				finalNames[strings.ToLower(stage.Name)] = index
+			}
+		}
+	}
+	resolve := func(value string, names map[string]int) (int, bool) {
+		if index, err := strconv.Atoi(value); err == nil && index >= 0 && index < len(stages) {
+			return index, true
+		}
+		index, found := names[strings.ToLower(value)]
+		return index, found
+	}
+	validateSource := func(value string, names map[string]int) (int, bool, error) {
+		if _, err := discovery.dockerWordAlternatives(value); err != nil {
+			return 0, false, err
+		}
+		if discovery.dockerWordHasUnknown(value) {
+			return 0, false, fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
+		}
+		if dependency, local := resolve(value, names); local {
+			return dependency, true, nil
+		}
+		return 0, false, nil
+	}
+	current := -1
+	priorNames := map[string]int{}
+	for _, node := range ast.Children {
+		typed, err := parseDockerInstruction(node, discovery)
+		if err != nil {
+			return err
+		}
+		switch command := typed.(type) {
+		case *instructions.Stage:
+			current++
+			alternatives, err := discovery.dockerWordAlternatives(command.BaseName)
+			if err != nil {
+				return err
+			}
+			for _, base := range alternatives {
+				if dependency, local := resolve(base, priorNames); local {
+					stages[current].dependencies[dependency] = true
+				}
+			}
+			if command.Name != "" {
+				priorNames[strings.ToLower(command.Name)] = current
+			}
+		case *instructions.CopyCommand:
+			if command.From != "" {
+				dependency, local, err := validateSource(command.From, finalNames)
+				if err != nil {
+					return fmt.Errorf("line %d: %w", node.StartLine, err)
+				}
+				if local {
+					stages[current].dependencies[dependency] = true
+				}
+			}
+		case *instructions.RunCommand:
+			for _, mount := range instructions.GetMounts(command) {
+				if mount.From == "" {
+					continue
+				}
+				dependency, local, err := validateSource(mount.From, finalNames)
+				if err != nil {
+					return fmt.Errorf("line %d: %w", node.StartLine, err)
+				}
+				if local {
+					stages[current].dependencies[dependency] = true
+				}
+			}
+		}
+	}
+	visiting := make([]bool, len(stages))
+	visited := make([]bool, len(stages))
+	var visit func(int) error
+	visit = func(index int) error {
+		if visiting[index] {
+			return fmt.Errorf("circular dependency detected on stage %d", index)
+		}
+		if visited[index] {
+			return nil
+		}
+		visiting[index] = true
+		for dependency := range stages[index].dependencies {
+			if err := visit(dependency); err != nil {
+				return err
+			}
+		}
+		visiting[index] = false
+		visited[index] = true
+		return nil
+	}
+	for index := range stages {
+		if err := visit(index); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type dockerWordKey struct {
 	value string
 }
@@ -391,7 +508,7 @@ type dockerWordKey struct {
 type dockerWordResult struct {
 	validation string
 	values     []string
-	symbolic   string
+	symbolic   []string
 	unknown    bool
 	err        error
 }
@@ -435,6 +552,7 @@ type dockerDiscovery struct {
 	wordMemo         map[dockerWordKey]dockerWordResult
 	runtimeWordsMemo map[runtimeWordsKey]runtimeWordsResult
 	instructions     int
+	candidates       int
 	normalizedBytes  int
 	wordWorkBytes    int
 	alternativeWork  int
@@ -460,9 +578,8 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 	if depth > maxDockerInstructionDepth {
 		return resourceLimitf("Docker metadata exceeds the %d-level instruction depth limit", maxDockerInstructionDepth)
 	}
-	discovery.instructions++
-	if discovery.instructions > maxDockerInstructions {
-		return resourceLimitf("Docker metadata exceeds the %d-instruction limit", maxDockerInstructions)
+	if err := discovery.admitInstructions(1); err != nil {
+		return err
 	}
 	typed, err := parseDockerInstruction(node, discovery)
 	if err != nil {
@@ -483,6 +600,9 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 	original := node.Original
 	canonical := canonicalDockerGoImagePattern.FindStringSubmatch(original)
 	if allowManaged && strings.EqualFold(node.Value, "from") && node.StartLine == node.EndLine && canonical != nil {
+		if err := discovery.admitCandidates(1); err != nil {
+			return err
+		}
 		*managed = append(*managed, dockerCandidate{
 			Kind:    "from",
 			Value:   original,
@@ -497,15 +617,15 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 		if err != nil {
 			return fmt.Errorf("line %d: %w", node.StartLine, err)
 		}
+		if err := discovery.admitCandidates(len(candidates)); err != nil {
+			return err
+		}
 		*unsupported = append(*unsupported, candidates...)
 	}
 	if allowManaged {
 		if command, ok := typed.(*instructions.ShellCommand); ok {
 			discovery.setRuntimeShell(command.Shell)
 		}
-	}
-	if len(*managed)+len(*unsupported) > maxDockerCandidates {
-		return resourceLimitf("Docker metadata exceeds the %d-candidate limit", maxDockerCandidates)
 	}
 	if onbuild, ok := typed.(*instructions.OnbuildCommand); ok {
 		if allowManaged {
@@ -558,6 +678,9 @@ func validateDockerInstructionWords(typed any, discovery *dockerDiscovery) error
 func (discovery *dockerDiscovery) evaluateDeferred(triggers []*deferredDockerInstruction, context dockerInstructionContext) ([]dockerCandidate, runtimeShell, error) {
 	candidates := []dockerCandidate{}
 	for _, trigger := range triggers {
+		if err := discovery.admitInstructions(1); err != nil {
+			return nil, context.shell, err
+		}
 		contents := fmt.Sprintf("# escape=%c\n%s", discovery.escapeToken, trigger.expression)
 		parsed, err := parser.Parse(strings.NewReader(contents))
 		if err != nil {
@@ -582,12 +705,31 @@ func (discovery *dockerDiscovery) evaluateDeferred(triggers []*deferredDockerIns
 		if err != nil {
 			return nil, context.shell, fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
 		}
+		if err := discovery.admitCandidates(len(found)); err != nil {
+			return nil, context.shell, err
+		}
 		candidates = append(candidates, found...)
 		if command, ok := typed.(*instructions.ShellCommand); ok {
 			context.shell = runtimeShellFor(command.Shell)
 		}
 	}
 	return candidates, context.shell, nil
+}
+
+func (discovery *dockerDiscovery) admitInstructions(count int) error {
+	discovery.instructions += count
+	if discovery.instructions > maxDockerInstructions {
+		return resourceLimitf("Docker metadata exceeds the %d-instruction limit", maxDockerInstructions)
+	}
+	return nil
+}
+
+func (discovery *dockerDiscovery) admitCandidates(count int) error {
+	discovery.candidates += count
+	if discovery.candidates > maxDockerCandidates {
+		return resourceLimitf("Docker metadata exceeds the %d-candidate limit", maxDockerCandidates)
+	}
+	return nil
 }
 
 func dockerInstructionCandidates(node *parser.Node, typed any, context dockerInstructionContext, discovery *dockerDiscovery) ([]dockerCandidate, error) {
@@ -747,15 +889,39 @@ func isPOSIXShellExecutable(command string) bool {
 }
 
 func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsupported *[]dockerCandidate) error {
-	if stage.Name != "" {
-		if _, duplicate := discovery.stageReferences[strings.ToLower(stage.Name)]; duplicate {
-			return fmt.Errorf("duplicate stage name %q", stage.Name)
+	baseAlternatives, err := discovery.dockerWordAlternatives(stage.BaseName)
+	if err != nil {
+		return err
+	}
+	baseStates := []*dockerStageState{}
+	seenBases := map[*dockerStageState]bool{}
+	externalPossible := false
+	for _, alternative := range baseAlternatives {
+		base, local := discovery.stageReferences[strings.ToLower(alternative)]
+		if !local {
+			externalPossible = true
+			continue
+		}
+		if !seenBases[base] {
+			seenBases[base] = true
+			baseStates = append(baseStates, base)
 		}
 	}
-	base, local := discovery.stageReferences[strings.ToLower(stage.BaseName)]
+	for _, symbolic := range discovery.wordMemo[dockerWordKey{value: stage.BaseName}].symbolic {
+		externalPossible = true
+		for reference, base := range discovery.stageReferences {
+			if symbolicGlobCanEqual(symbolic, reference) && !seenBases[base] {
+				seenBases[base] = true
+				baseStates = append(baseStates, base)
+			}
+		}
+	}
 	shellState := defaultRuntimeShell()
-	if local {
-		shellState = base.shell
+	if !externalPossible && len(baseStates) > 0 {
+		shellState = baseStates[0].shell
+	}
+	for _, base := range baseStates {
+		shellState.known = shellState.known && base.shell.known
 	}
 	index := strconv.Itoa(discovery.stageCount)
 	discovery.stageCount++
@@ -765,12 +931,17 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 	}
 	discovery.currentStage = current
 	discovery.allStages = append(discovery.allStages, current)
-	if local && len(base.triggers) > 0 {
-		found, resultingShell, err := discovery.evaluateDeferred(base.triggers, discovery.currentContext())
+	for _, base := range baseStates {
+		if len(base.triggers) == 0 {
+			continue
+		}
+		context := discovery.currentContext()
+		context.shell = base.shell
+		found, resultingShell, err := discovery.evaluateDeferred(base.triggers, context)
 		if err != nil {
 			return err
 		}
-		current.shell = resultingShell
+		current.shell.known = current.shell.known && resultingShell.known
 		*unsupported = append(*unsupported, found...)
 		for _, trigger := range base.triggers {
 			trigger.consumed = true
@@ -892,28 +1063,18 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		return nil, err
 	}
 	discovery.wordLexer.SkipUnsetEnv = false
-	unknownSentinel := "__KFP_DOCKER_UNKNOWN_7F3A__"
-	for strings.Contains(value, unknownSentinel) {
-		unknownSentinel += "_"
-	}
-	symbolicEnvironment := make([]string, 0, len(variables))
-	for _, name := range variables {
-		symbolicEnvironment = append(symbolicEnvironment, name+"="+unknownSentinel)
-	}
-	symbolic := probe.Result
-	if len(variables) > 0 {
-		discovery.alternativeWork += len(value)
-		if discovery.alternativeWork > maxDockerAlternativeWork {
-			err := resourceLimitf("Docker metadata exceeds the %d-byte alternative-expansion work limit", maxDockerAlternativeWork)
-			discovery.wordMemo[key] = dockerWordResult{err: err}
-			return nil, err
+	sentinels := make([]string, len(variables))
+	for index := range variables {
+		sentinel := fmt.Sprintf("__KFP_DOCKER_UNKNOWN_%d_7F3A__", index)
+		for strings.Contains(value, sentinel) {
+			sentinel += "_"
 		}
-		if normalized, _, symbolicErr := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(symbolicEnvironment)); symbolicErr == nil {
-			symbolic = strings.ReplaceAll(normalized, unknownSentinel, string(dockerUnknownMarker))
-		}
+		sentinels[index] = sentinel
 	}
 	alternatives := make([]string, 0, combinations)
-	seen := map[string]bool{}
+	symbolic := make([]string, 0, combinations)
+	seenAlternatives := map[string]bool{}
+	seenSymbolic := map[string]bool{}
 	var firstExpansionError error
 	for combination := 0; combination < combinations; combination++ {
 		discovery.alternativeWork += len(value)
@@ -924,30 +1085,38 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		}
 		state := combination
 		environment := make([]string, 0, len(variables))
-		for _, name := range variables {
+		for index, name := range variables {
 			switch state % 3 {
 			case 1:
 				environment = append(environment, name+"=")
 			case 2:
-				environment = append(environment, name+"=x")
+				environment = append(environment, name+"="+sentinels[index])
 			}
 			state /= 3
 		}
-		normalized, _, normalizeErr := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(environment))
+		normalizedSymbolic, _, normalizeErr := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(environment))
 		if normalizeErr != nil {
 			if firstExpansionError == nil {
 				firstExpansionError = normalizeErr
 			}
 			continue
 		}
-		if seen[normalized] {
-			continue
+		normalized := normalizedSymbolic
+		for index, sentinel := range sentinels {
+			normalized = strings.ReplaceAll(normalized, sentinel, "x")
+			normalizedSymbolic = strings.ReplaceAll(normalizedSymbolic, sentinel, string([]byte{byte(index + 1)}))
 		}
-		seen[normalized] = true
-		alternatives = append(alternatives, normalized)
-		if err := discovery.accountNormalizedBytes(len(normalized)); err != nil {
+		if err := discovery.accountNormalizedBytes(len(normalizedSymbolic)); err != nil {
 			discovery.wordMemo[key] = dockerWordResult{err: err}
 			return nil, err
+		}
+		if !seenAlternatives[normalized] {
+			seenAlternatives[normalized] = true
+			alternatives = append(alternatives, normalized)
+		}
+		if containsSymbolicMarker(normalizedSymbolic) && !seenSymbolic[normalizedSymbolic] {
+			seenSymbolic[normalizedSymbolic] = true
+			symbolic = append(symbolic, normalizedSymbolic)
 		}
 	}
 	if len(alternatives) == 0 {
@@ -965,19 +1134,45 @@ func (discovery *dockerDiscovery) dockerWordHasUnknown(value string) bool {
 
 const dockerUnknownMarker = byte(0)
 
+func isSymbolicMarker(value byte) bool {
+	return value == dockerUnknownMarker || value >= 1 && value <= maxDockerWordVariables
+}
+
+func containsSymbolicMarker(value string) bool {
+	for index := 0; index < len(value); index++ {
+		if isSymbolicMarker(value[index]) {
+			return true
+		}
+	}
+	return false
+}
+
+func symbolicOnlyMarkers(value string) bool {
+	if value == "" {
+		return true
+	}
+	for index := 0; index < len(value); index++ {
+		if !isSymbolicMarker(value[index]) {
+			return false
+		}
+	}
+	return true
+}
+
 func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string, downloadOnly bool) bool {
 	if !discovery.dockerWordHasUnknown(value) {
 		return false
 	}
-	symbolic := discovery.wordMemo[dockerWordKey{value: value}].symbolic
-	if symbolicDownloadPrefixPossible(symbolic) {
-		return true
+	for _, symbolic := range discovery.wordMemo[dockerWordKey{value: value}].symbolic {
+		if symbolicDownloadPrefixPossible(symbolic) || !downloadOnly && symbolicGolangImagePossible(symbolic) {
+			return true
+		}
 	}
-	return !downloadOnly && symbolicGolangImagePossible(symbolic)
+	return false
 }
 
 func symbolicDownloadPrefixPossible(symbolic string) bool {
-	if strings.Trim(symbolic, string(dockerUnknownMarker)) == "" {
+	if symbolicOnlyMarkers(symbolic) {
 		return false
 	}
 	for _, prefix := range []string{"https://go.dev/dl/go", "https://dl.google.com/go/go"} {
@@ -1007,7 +1202,7 @@ func symbolicGlobCanStartWith(pattern, prefix string) bool {
 			return false
 		}
 		seen[current] = true
-		if pattern[patternIndex] == dockerUnknownMarker {
+		if isSymbolicMarker(pattern[patternIndex]) {
 			return visit(patternIndex+1, prefixIndex, matchedFixed) || visit(patternIndex, prefixIndex+1, matchedFixed)
 		}
 		return strings.EqualFold(pattern[patternIndex:patternIndex+1], prefix[prefixIndex:prefixIndex+1]) && visit(patternIndex+1, prefixIndex+1, true)
@@ -1016,55 +1211,70 @@ func symbolicGlobCanStartWith(pattern, prefix string) bool {
 }
 
 func symbolicGolangImagePossible(symbolic string) bool {
-	transportOffset := 0
+	repositoryStart := 0
 	if strings.HasPrefix(strings.ToLower(symbolic), "docker://") {
-		transportOffset = len("docker://")
+		repositoryStart = len("docker://")
 	}
-	repository := symbolic[transportOffset:]
-	if strings.Trim(repository, string(dockerUnknownMarker)) == "" {
+	repository := symbolic[repositoryStart:]
+	if symbolicOnlyMarkers(repository) {
 		return false
 	}
-	if digest := strings.IndexByte(repository, '@'); digest >= 0 {
-		if strings.ContainsAny(repository[digest+1:], "/@") {
-			return false
+	starts := []int{0}
+	ends := []int{len(repository)}
+	for index := 0; index < len(repository); index++ {
+		if isSymbolicMarker(repository[index]) {
+			// An unknown value can introduce a path delimiter and then begin the
+			// final repository component within the same expansion.
+			starts = append(starts, index)
+			continue
 		}
-		repository = repository[:digest]
-	}
-	lastSlash := strings.LastIndexByte(repository, '/')
-	if tag := strings.LastIndexByte(repository, ':'); tag > lastSlash {
-		if strings.ContainsAny(repository[tag+1:], "/:@") {
-			return false
+		switch repository[index] {
+		case '/':
+			starts = append(starts, index+1)
+		case ':', '@':
+			ends = append(ends, index)
 		}
-		repository = repository[:tag]
 	}
-	if slash := strings.LastIndexByte(repository, '/'); slash >= 0 {
-		repository = repository[slash+1:]
+	for _, start := range starts {
+		for _, end := range ends {
+			if start < end && symbolicGlobCanEqualAnchored(repository[start:end], "golang") {
+				return true
+			}
+		}
 	}
-	if strings.Trim(repository, string(dockerUnknownMarker)) == "" {
-		return false
-	}
-	return symbolicGlobCanEqual(repository, "golang")
+	return false
 }
 
 func symbolicGlobCanEqual(pattern, target string) bool {
-	type state struct{ pattern, target int }
+	return symbolicGlobCanEqualState(pattern, target, false)
+}
+
+func symbolicGlobCanEqualAnchored(pattern, target string) bool {
+	return symbolicGlobCanEqualState(pattern, target, true)
+}
+
+func symbolicGlobCanEqualState(pattern, target string, requireFixed bool) bool {
+	type state struct {
+		pattern, target int
+		matchedFixed    bool
+	}
 	seen := map[state]bool{}
-	var visit func(int, int) bool
-	visit = func(patternIndex, targetIndex int) bool {
+	var visit func(int, int, bool) bool
+	visit = func(patternIndex, targetIndex int, matchedFixed bool) bool {
 		if patternIndex == len(pattern) {
-			return targetIndex == len(target)
+			return targetIndex == len(target) && (!requireFixed || matchedFixed)
 		}
-		current := state{patternIndex, targetIndex}
+		current := state{patternIndex, targetIndex, matchedFixed}
 		if seen[current] {
 			return false
 		}
 		seen[current] = true
-		if pattern[patternIndex] == dockerUnknownMarker {
-			return visit(patternIndex+1, targetIndex) || targetIndex < len(target) && visit(patternIndex, targetIndex+1)
+		if isSymbolicMarker(pattern[patternIndex]) {
+			return visit(patternIndex+1, targetIndex, matchedFixed) || targetIndex < len(target) && visit(patternIndex, targetIndex+1, matchedFixed)
 		}
-		return targetIndex < len(target) && strings.EqualFold(pattern[patternIndex:patternIndex+1], target[targetIndex:targetIndex+1]) && visit(patternIndex+1, targetIndex+1)
+		return targetIndex < len(target) && strings.EqualFold(pattern[patternIndex:patternIndex+1], target[targetIndex:targetIndex+1]) && visit(patternIndex+1, targetIndex+1, true)
 	}
-	return visit(0, 0)
+	return visit(0, 0, false)
 }
 
 func (discovery *dockerDiscovery) accountNormalizedBytes(count int) error {
@@ -1146,14 +1356,7 @@ func (discovery *dockerDiscovery) runtimeWords(value string, parameters []string
 	if result, found := discovery.runtimeWordsMemo[key]; found {
 		return result.values, result.err
 	}
-	words, err := parseRuntimeShellWords(value, parameters)
-	if err == nil {
-		length := 0
-		for _, word := range words {
-			length += len(word)
-		}
-		err = discovery.accountNormalizedBytes(length)
-	}
+	words, err := parseRuntimeShellWordsWithBudget(value, parameters, discovery.accountNormalizedBytes)
 	discovery.runtimeWordsMemo[key] = runtimeWordsResult{values: words, err: err}
 	return words, err
 }
@@ -1164,17 +1367,26 @@ func scanRuntimeWords(words []string) (bool, bool) {
 	for _, word := range words {
 		literal = literal || containsDockerGoToken(word)
 		download = download || goDownloadPattern.MatchString(word)
+		if containsSymbolicMarker(word) {
+			literal = literal || symbolicGolangImagePossible(word)
+			download = download || symbolicDownloadPrefixPossible(word)
+		}
 	}
 	return literal, download
 }
 
 func parseRuntimeShellWords(value string, parameters []string) ([]string, error) {
+	return parseRuntimeShellWordsWithBudget(value, parameters, func(int) error { return nil })
+}
+
+func parseRuntimeShellWordsWithBudget(value string, parameters []string, account func(int) error) ([]string, error) {
 	parsed, err := shsyntax.NewParser(shsyntax.Variant(shsyntax.LangPOSIX)).Parse(strings.NewReader(value), "runtime-shell")
 	if err != nil {
 		return nil, fmt.Errorf("parse POSIX runtime shell: %w", err)
 	}
 	words := []*shsyntax.Word{}
 	excludedWords := map[*shsyntax.Word]bool{}
+	ordinaryVariables := map[string]bool{}
 	nodes := 0
 	depth := 0
 	var walkErr error
@@ -1204,6 +1416,12 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 		if word, ok := node.(*shsyntax.Word); ok {
 			words = append(words, word)
 		}
+		if parameter, ok := node.(*shsyntax.ParamExp); ok && parameter.Param != nil {
+			name := parameter.Param.Value
+			if !isRuntimeSpecialParameter(name) {
+				ordinaryVariables[name] = true
+			}
+		}
 		if redirect, ok := node.(*shsyntax.Redirect); ok && (redirect.Op == shsyntax.Hdoc || redirect.Op == shsyntax.DashHdoc) {
 			excludedWords[redirect.Word] = true
 		}
@@ -1213,57 +1431,122 @@ func parseRuntimeShellWords(value string, parameters []string) ([]string, error)
 		return nil, walkErr
 	}
 
+	variables := make([]string, 0, len(ordinaryVariables))
+	for name := range ordinaryVariables {
+		variables = append(variables, name)
+	}
+	sort.Strings(variables)
+	sentinels := make([]string, len(variables))
+	for index := range variables {
+		sentinel := fmt.Sprintf("__KFP_RUNTIME_UNKNOWN_%d_7F3A__", index)
+		for strings.Contains(value, sentinel) {
+			sentinel += "_"
+		}
+		sentinels[index] = sentinel
+	}
+
 	result := []string{}
 	seen := map[string]bool{}
-	for _, environmentValue := range []string{"", "x"} {
-		positionals := []string{}
-		zero := "sh"
-		lastBackgroundPID := ""
-		if environmentValue != "" {
-			lastBackgroundPID = "1"
-		}
-		if len(parameters) > 0 {
-			zero = parameters[0]
-			positionals = append(positionals, parameters[1:]...)
-		}
-		indexed := expand.Variable{Set: true, Kind: expand.Indexed, List: positionals}
-		environment := &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{
-			"0":    {Set: true, Kind: expand.String, Str: zero},
-			"@":    indexed,
-			"*":    indexed,
-			"#":    {Set: true, Kind: expand.String, Str: strconv.Itoa(len(positionals))},
-			"?":    {Set: true, Kind: expand.String, Str: "0"},
-			"$":    {Set: true, Kind: expand.String, Str: "1"},
-			"!":    {Set: true, Kind: expand.String, Str: lastBackgroundPID},
-			"-":    {Set: true, Kind: expand.String, Str: ""},
-			"PPID": {Set: true, Kind: expand.String, Str: "1"},
-		}}
-		for index, parameter := range positionals {
-			environment.values[strconv.Itoa(index+1)] = expand.Variable{Set: true, Kind: expand.String, Str: parameter}
-		}
-		config := &expand.Config{
-			Env: environment,
-			CmdSubst: func(io.Writer, *shsyntax.CmdSubst) error {
-				return nil
-			},
-		}
-		for _, word := range words {
-			if excludedWords[word] {
-				continue
+	expandEnvironment := func(ordinary map[string]expand.Variable) error {
+		for _, lastBackgroundPID := range []string{"", "1"} {
+			positionals := []string{}
+			zero := "sh"
+			if len(parameters) > 0 {
+				zero = parameters[0]
+				positionals = append(positionals, parameters[1:]...)
 			}
-			fields, expandErr := expand.Fields(config, word)
-			if expandErr != nil {
-				return nil, fmt.Errorf("expand POSIX runtime shell word: %w", expandErr)
+			indexed := expand.Variable{Set: true, Kind: expand.Indexed, List: positionals}
+			values := map[string]expand.Variable{
+				"0":    {Set: true, Kind: expand.String, Str: zero},
+				"@":    indexed,
+				"*":    indexed,
+				"#":    {Set: true, Kind: expand.String, Str: strconv.Itoa(len(positionals))},
+				"?":    {Set: true, Kind: expand.String, Str: "0"},
+				"$":    {Set: true, Kind: expand.String, Str: "1"},
+				"!":    {Set: true, Kind: expand.String, Str: lastBackgroundPID},
+				"-":    {Set: true, Kind: expand.String, Str: "s"},
+				"PPID": {Set: true, Kind: expand.String, Str: "1"},
 			}
-			for _, field := range fields {
-				if !seen[field] {
-					seen[field] = true
-					result = append(result, field)
+			for name, variable := range ordinary {
+				values[name] = variable
+			}
+			environment := &runtimeShellEnvironment{values: values}
+			for index, parameter := range positionals {
+				environment.values[strconv.Itoa(index+1)] = expand.Variable{Set: true, Kind: expand.String, Str: parameter}
+			}
+			config := &expand.Config{
+				Env: environment,
+				CmdSubst: func(io.Writer, *shsyntax.CmdSubst) error {
+					return nil
+				},
+			}
+			for _, word := range words {
+				if excludedWords[word] {
+					continue
+				}
+				span := int(word.End().Offset() - word.Pos().Offset())
+				if span < 1 {
+					span = 1
+				}
+				if err := account(span); err != nil {
+					return err
+				}
+				fields, expandErr := expand.Fields(config, word)
+				if expandErr != nil {
+					return fmt.Errorf("expand POSIX runtime shell word: %w", expandErr)
+				}
+				for _, field := range fields {
+					for _, sentinel := range sentinels {
+						field = strings.ReplaceAll(field, sentinel, string(dockerUnknownMarker))
+					}
+					if err := account(len(field)); err != nil {
+						return err
+					}
+					if !seen[field] {
+						seen[field] = true
+						result = append(result, field)
+					}
 				}
 			}
 		}
+		return nil
+	}
+	states := make([]uint8, len(variables))
+	for {
+		ordinary := map[string]expand.Variable{}
+		for index, state := range states {
+			switch state {
+			case 1:
+				ordinary[variables[index]] = expand.Variable{Set: true, Exported: true, Kind: expand.String, Str: ""}
+			case 2:
+				ordinary[variables[index]] = expand.Variable{Set: true, Exported: true, Kind: expand.String, Str: sentinels[index]}
+			}
+		}
+		if err := expandEnvironment(ordinary); err != nil {
+			return nil, err
+		}
+		index := 0
+		for index < len(states) {
+			states[index]++
+			if states[index] < 3 {
+				break
+			}
+			states[index] = 0
+			index++
+		}
+		if index == len(states) {
+			break
+		}
 	}
 	return result, nil
+}
+
+func isRuntimeSpecialParameter(name string) bool {
+	if name == "@" || name == "*" || name == "#" || name == "?" || name == "$" || name == "!" || name == "-" || name == "PPID" {
+		return true
+	}
+	_, err := strconv.Atoi(name)
+	return err == nil
 }
 
 func markArithmeticIdentifierWords(expression shsyntax.ArithmExpr, excluded map[*shsyntax.Word]bool) {
