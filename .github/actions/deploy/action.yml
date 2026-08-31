@@ -180,7 +180,10 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/runtime-base-images/modelcar.tar"
+        # The runtime-base-images producer uploads modelcar.tar at the root of
+        # its artifact. The download action preserves that layout under
+        # image_path, so do not add a nonexistent runtime-base-images/ prefix.
+        MODELCAR_IMAGE_ARCHIVE="${{ inputs.image_path }}/modelcar.tar"
         if [[ ! -f "${MODELCAR_IMAGE_ARCHIVE}" ]]; then
           echo "::error::Modelcar fixture archive not found at ${MODELCAR_IMAGE_ARCHIVE}"
           exit 1
@@ -221,7 +224,7 @@ runs:
         fi
 
         if [ "${{ inputs.multi_user }}" = "true" ]; then
-          echo "Deploying in Multi User Mode"
+          echo "Deploying in Multi User mode"
           ARGS="${ARGS} --multi-user"
         fi
 

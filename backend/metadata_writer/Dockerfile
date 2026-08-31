@@ -20,7 +20,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       && chmod +x /usr/local/bin/bazel \
       && git clone --depth 1 --branch v1.21.0 https://github.com/google/ml-metadata.git /tmp/ml-metadata \
       && cd /tmp/ml-metadata \
-      && BAZELFLAGS="--copt=-march=armv8.3-a --host_copt=-march=armv8.3-a" python3 -m pip wheel . --no-deps --wheel-dir /tmp/mlmd-wheel \
+      && BAZELFLAGS="--copt=-march=armv8.3-a --host_copt=-march=armv8.3-a --experimental_google_legacy_api" python3 -m pip wheel . --no-deps --wheel-dir /tmp/mlmd-wheel \
       && python3 -m pip install --no-cache-dir /tmp/mlmd-wheel/ml_metadata-1.21.0-*.whl \
       && cd / \
       && rm -rf /tmp/ml-metadata /tmp/mlmd-wheel \
