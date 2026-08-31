@@ -658,6 +658,27 @@ func TestClearTagsMiddleware_BodyPreserved(t *testing.T) {
 	assert.Equal(t, original, string(capturedBody))
 }
 
+func TestClearTagsMiddleware_LargeBodyRejected(t *testing.T) {
+	// Create a payload larger than MaxFileLength (32MB).
+	// To avoid actual massive allocation in test, we can just use a specialized reader,
+	// but strings.Repeat is fine for a quick unit test with 33MB.
+	original := strings.Repeat("a", common.MaxFileLength+1)
+
+	downstreamCalled := false
+	downstream := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		downstreamCalled = true
+		w.WriteHeader(http.StatusOK)
+	})
+	handler := clearTagsMiddleware(downstream)
+
+	req := httptest.NewRequest(http.MethodPut, "/apis/v2beta1/pipelines/123", bytes.NewBufferString(original))
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	assert.False(t, downstreamCalled, "downstream should not be called when request is too large")
+	assert.Equal(t, http.StatusRequestEntityTooLarge, rec.Code)
+}
+
 func noOpHandler(w http.ResponseWriter, r *http.Request) {}
 
 func newNoOpHTTPRouterDeps() HTTPRouterDeps {

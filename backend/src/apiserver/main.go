@@ -375,14 +375,18 @@ func clearTagsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if (r.Method == http.MethodPut || r.Method == http.MethodPatch) && r.Body != nil &&
 			isPipelineUpdatePath(r.URL.Path) {
+			// Enforce a strict max size on API updates to prevent OOM / DoS from unbounded reads
+			r.Body = http.MaxBytesReader(w, r.Body, int64(common.MaxFileLength))
 			body, err := io.ReadAll(r.Body)
 			r.Body.Close()
-			if err == nil {
-				var raw map[string]json.RawMessage
-				if json.Unmarshal(body, &raw) == nil {
-					if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
-						r.Header.Set(common.ClearTagsMetadataKey, "true")
-					}
+			if err != nil {
+				http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			var raw map[string]json.RawMessage
+			if json.Unmarshal(body, &raw) == nil {
+				if tagsVal, hasTags := raw["tags"]; hasTags && string(tagsVal) == "{}" {
+					r.Header.Set(common.ClearTagsMetadataKey, "true")
 				}
 			}
 			r.Body = io.NopCloser(bytes.NewReader(body))
