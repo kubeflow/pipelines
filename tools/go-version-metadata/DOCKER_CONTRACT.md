@@ -149,6 +149,12 @@ limit is `invalid`; exceeding the external deadline is a helper failure. Fuzz
 tests must assert bounded completion and no panic for inputs within the public
 request-size limit.
 
+Before invoking BuildKit word normalization, instruction fields are scanned by
+a linear, escape-tolerant potential-source filter. Fields that cannot contain a
+Go image or download source are not normalized. This keeps irrelevant nested
+parameter defaults within the public deadline without weakening normalization
+of escaped, quoted, or expanded candidate spellings.
+
 ## Differential acceptance
 
 `testdata/docker-contract.json` is the acceptance matrix. Its
@@ -158,7 +164,10 @@ listed environment, and a test-provided `capture` executable to compare word
 construction with `/bin/sh`. Oracle cases never contain untrusted generated
 shell text. The `oracles` on classification cases are coverage annotations;
 the standalone oracle arrays contain the executable differential inputs and
-expected outputs.
+expected outputs. `executableCrossProducts` generates every configured source
+kind × instruction field × shell/exec/heredoc form × top-level/`ONBUILD`
+context. Heredoc forms outside `RUN` remain explicit negative grammar cases,
+so adding an axis value cannot silently omit unsupported intersections.
 
 Contract acceptance requires every matrix case, both differential suites, the
 resource-boundary tests, and the repository consistency tests to pass.

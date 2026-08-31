@@ -358,6 +358,9 @@ class UpdateGoVersionTest(unittest.TestCase):
             digest_resolver=resolver,
             repository_paths=self.files,
         )
+        self._git('add', '--', *(str(path) for path in self.files))
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'update')
         second = update_go_version.sync(
             self.repo_root,
             '1.29.0',
@@ -367,6 +370,27 @@ class UpdateGoVersionTest(unittest.TestCase):
 
         self.assertEqual(set(first), set(self.files))
         self.assertEqual(second, [])
+
+    def test_second_sync_rejects_uncommitted_managed_update(self):
+        resolver = lambda tag: DIGESTS[tag]
+        first = update_go_version.sync(
+            self.repo_root,
+            '1.29.0',
+            digest_resolver=resolver,
+            repository_paths=self.files,
+        )
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    'must be tracked and clean'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.29.0',
+                digest_resolver=lambda _tag: self.fail(
+                    'digest resolution must follow initial validation'),
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(set(first), set(self.files))
 
     def test_digest_failure_does_not_write_partial_changes(self):
 
@@ -675,6 +699,112 @@ class UpdateGoVersionTest(unittest.TestCase):
             self._git('ls-files', '--stage', '--',
                       'go.mod').stdout.startswith('100644 '))
         self.assertTrue(self._restore_patch(Path('go.mod')).exists())
+
+    def test_verification_rejects_concurrent_edit_of_unchanged_managed_path(
+            self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        current = (
+            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        dockerfile.write_text(current, encoding='utf-8')
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'current Dockerfile')
+        concurrent = current + '# concurrent edit\n'
+
+        def edit_unchanged_path(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.write_text(concurrent, encoding='utf-8')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=edit_unchanged_path,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'files changed.*Dockerfile.*all managed paths after '
+                    'recovery.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(dockerfile.read_text(encoding='utf-8'), concurrent)
+        self.assertTrue(self._recovery_bundles())
+
+    def test_verification_rejects_symlink_at_unchanged_managed_path(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        current = (
+            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        dockerfile.write_text(current, encoding='utf-8')
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'current Dockerfile')
+
+        def replace_unchanged_path(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.unlink()
+                dockerfile.symlink_to('concurrent-Dockerfile')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=replace_unchanged_path,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'Dockerfile.*regular file.*all managed paths after '
+                    'recovery.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertTrue(dockerfile.is_symlink())
+        self.assertEqual(dockerfile.readlink(), Path('concurrent-Dockerfile'))
+        self.assertTrue(self._recovery_bundles())
+
+    def test_verification_rejects_mode_change_at_unchanged_managed_path(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        current = (
+            f'FROM golang:1.28.3@{DIGESTS["1.28.3"]} AS builder\n')
+        dockerfile.write_text(current, encoding='utf-8')
+        self._git('add', 'Dockerfile')
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm',
+                  'current Dockerfile')
+        original_mode = stat.S_IMODE(dockerfile.stat().st_mode)
+        concurrent_mode = original_mode ^ stat.S_IXUSR
+
+        def change_unchanged_path_mode(repo_root):
+            if Path(repo_root) == self.repo_root:
+                dockerfile.chmod(concurrent_mode)
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=change_unchanged_path_mode,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'Dockerfile.*worktree mode changed.*all managed paths '
+                    'after recovery.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode),
+                         concurrent_mode)
+        self.assertTrue(self._recovery_bundles())
 
     def test_verification_preserves_unrelated_concurrent_staged_edit(self):
         notes = self.repo_root / 'notes.txt'

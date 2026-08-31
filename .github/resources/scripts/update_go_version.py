@@ -442,25 +442,18 @@ def sync(
             continue
         changed_paths.append(relative_path)
 
-    _ensure_snapshot_state(repo_root, snapshot, original_contents,
-                           original_contents.keys())
+    _validate_all_managed_paths(repo_root, snapshot, original_contents)
     if not changed_paths:
         return []
 
-    clean_head = _require_clean_managed_paths(repo_root,
-                                              original_contents.keys())
-    if clean_head != snapshot.head:
-        raise RuntimeError(
-            f'HEAD changed during Go version update from {snapshot.head} '
-            f'to {clean_head}')
     start_head = snapshot.head
     snapshot_index = {
         path: (mode, object_id)
         for path, mode, object_id in snapshot.index_entries
     }
-    expected_index_entries = {
+    managed_index_entries = {
         path: snapshot_index[path]
-        for path in changed_paths
+        for path in original_contents
     }
     worktree_parent = tempfile.TemporaryDirectory(
         prefix='kfp-go-version-worktree-')
@@ -479,7 +472,8 @@ def sync(
             _ensure_regular_destination(path, relative_path)
             path.write_text(expected_contents[relative_path], encoding='utf-8')
         _verify_worktree_plan(worktree, expected_contents,
-                              expected_index_entries, changed_paths)
+                              managed_index_entries, changed_paths)
+        _validate_all_managed_paths(repo_root, snapshot, original_contents)
         patch = _git(
             worktree,
             '--literal-pathspecs',
@@ -546,17 +540,14 @@ def sync(
              original_restore_patches,
          )
 
-        _ensure_snapshot_state(repo_root, snapshot, original_contents,
-                               original_contents.keys())
+        _validate_all_managed_paths(repo_root, snapshot, original_contents)
         _git(repo_root, 'apply', '--check', '--whitespace=nowarn',
              str(recovery_path))
         application_attempted = True
         _git(repo_root, 'apply', '--whitespace=nowarn', str(recovery_path))
-        _ensure_snapshot_state(repo_root, snapshot, expected_contents,
-                               changed_paths)
+        _validate_all_managed_paths(repo_root, snapshot, expected_contents)
         _verify_repository_consistency(repo_root)
-        _ensure_snapshot_state(repo_root, snapshot, expected_contents,
-                               changed_paths)
+        _validate_all_managed_paths(repo_root, snapshot, expected_contents)
     except BaseException as update_error:
         rollback_errors = []
         unresolved_paths = []
@@ -716,8 +707,12 @@ def _capture_repository_snapshot(
         worktree_paths=worktree_paths,
         file_mode_enabled=file_mode_enabled,
     )
-    _ensure_snapshot_state(repo_root, snapshot, expected_contents,
-                           relative_paths)
+    _validate_all_managed_paths(
+        repo_root,
+        snapshot,
+        expected_contents,
+        require_head_match=True,
+    )
     return snapshot
 
 
@@ -796,6 +791,40 @@ def _ensure_snapshot_state(
         raise RuntimeError(
             'files changed while committing Go version update: ' +
             ', '.join(sorted(changed)))
+
+
+def _validate_all_managed_paths(
+    repo_root: Path,
+    snapshot: RepositorySnapshot,
+    expected_contents: Dict[Path, str],
+    *,
+    require_head_match: bool = False,
+) -> None:
+    """Validate the complete managed-path transaction boundary."""
+    managed_paths = tuple(state.path for state in snapshot.worktree_paths)
+    expected_paths = set(expected_contents)
+    snapshot_paths = set(managed_paths)
+    if expected_paths != snapshot_paths:
+        missing = snapshot_paths - expected_paths
+        extra = expected_paths - snapshot_paths
+        details = []
+        if missing:
+            details.append('missing ' + ', '.join(str(path)
+                                                 for path in sorted(missing)))
+        if extra:
+            details.append('unexpected ' + ', '.join(
+                str(path) for path in sorted(extra)))
+        raise RuntimeError(
+            'managed Go version validation received an incomplete path set: '
+            + '; '.join(details))
+    if require_head_match:
+        clean_head = _require_clean_managed_paths(repo_root, managed_paths)
+        if clean_head != snapshot.head:
+            raise RuntimeError(
+                f'HEAD changed during Go version update from {snapshot.head} '
+                f'to {clean_head}')
+    _ensure_snapshot_state(repo_root, snapshot, expected_contents,
+                           managed_paths)
 
 
 def _indexed_stage_zero_entries(
@@ -890,13 +919,14 @@ def _verify_worktree_plan(worktree: Path,
                           expected_index_entries: Dict[Path, Tuple[str, str]],
                           changed_paths: Iterable[Path]) -> None:
     changed_paths = tuple(changed_paths)
+    managed_paths = tuple(sorted(expected_contents))
     worktree_index_entries = _indexed_stage_zero_entries(
-        worktree, changed_paths)
+        worktree, managed_paths)
     if worktree_index_entries != expected_index_entries:
         raise RuntimeError(
             'temporary worktree Git index entries do not match the update '
             'plan')
-    _ensure_expected_contents(worktree, expected_contents, changed_paths,
+    _ensure_expected_contents(worktree, expected_contents, managed_paths,
                               expected_index_entries)
     _verify_repository_consistency(worktree)
     actual = set(
@@ -1079,6 +1109,12 @@ def _recover_applied_paths(
             errors.append(
                 f'{relative_path}: {error}; original restore patch retained '
                 f'at {original_restore_paths[relative_path]}')
+    try:
+        _validate_all_managed_paths(repo_root, snapshot, original_contents)
+    except BaseException as error:
+        if not isinstance(error, Exception) and interrupt is None:
+            interrupt = error
+        errors.append(f'all managed paths after recovery: {error}')
     return errors, unresolved, interrupt
 
 

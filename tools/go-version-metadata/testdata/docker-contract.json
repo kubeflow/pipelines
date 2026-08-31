@@ -4,7 +4,8 @@
     "polarity": "detect means a source or unsupported construct must not pass; allow means the input must remain managed or irrelevant",
     "classification": "managed, unsupported, irrelevant, or invalid",
     "candidateKinds": "ordered semantic source kinds; omitted when no candidate is required",
-    "oracles": "optional differential oracle names: buildkit or sh"
+    "oracles": "optional differential oracle names: buildkit or sh",
+    "executableCrossProducts": "generated source kind x instruction field x form x deferred-context acceptance cases"
   },
   "buildkitWordOracles": [
     {"id": "docker-backslash-concat", "escape": "\\", "word": "g\\olang:latest", "env": {}, "want": "golang:latest"},
@@ -23,6 +24,18 @@
     {"id": "sh-parameter-name", "script": "golang=alpine; capture \"${#golang}\"", "env": {}, "wantArgv": ["6"]},
     {"id": "sh-parameter-operand", "script": "capture \"${IMAGE:-golang:latest}\"", "env": {}, "wantArgv": ["golang:latest"]},
     {"id": "sh-parameter-set", "script": "capture \"${IMAGE:-golang:latest}\"", "env": {"IMAGE": "alpine"}, "wantArgv": ["alpine"]}
+  ],
+  "executableCrossProducts": [
+    {
+      "id": "runtime-source",
+      "sources": [
+        {"id": "image", "value": "golang:latest", "candidateKind": "literal"},
+        {"id": "download", "value": "https://go.dev/dl/go1.27.0.linux-amd64.tar.gz", "candidateKind": "download"}
+      ],
+      "instructions": ["RUN", "CMD", "ENTRYPOINT", "HEALTHCHECK"],
+      "forms": ["shell", "exec", "heredoc"],
+      "contexts": ["top-level", "onbuild"]
+    }
   ],
   "cases": [
     {

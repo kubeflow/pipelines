@@ -69,7 +69,8 @@ type response struct {
 	Module               *moduleMetadata     `json:"module,omitempty"`
 }
 
-var goDownloadPattern = regexp.MustCompile(`(?i)(?:dl\.google\.com/go/|go\.dev/dl/)go`)
+var goDownloadPattern = regexp.MustCompile(`(?i)^https://(?:dl\.google\.com/go/|go\.dev/dl/)go`)
+var goDownloadTextPattern = regexp.MustCompile(`(?i)(?:^|[^a-z0-9+.-])https://(?:dl\.google\.com/go/|go\.dev/dl/)go`)
 var potentialDockerGoPattern = regexp.MustCompile(`(?i)g[^a-z0-9]*o[^a-z0-9]*l[^a-z0-9]*a[^a-z0-9]*n[^a-z0-9]*g`)
 var potentialDockerGoDownloadPattern = regexp.MustCompile(
 	`(?i)(?:` +
@@ -274,7 +275,7 @@ func walkYAML(node *yaml.Node, values map[string][]string, hasDownload *bool, st
 	if node.Kind == yaml.AliasNode {
 		return walkYAML(node.Alias, values, hasDownload, state, depth+1)
 	}
-	if node.Kind == yaml.ScalarNode && goDownloadPattern.MatchString(node.Value) {
+	if node.Kind == yaml.ScalarNode && goDownloadTextPattern.MatchString(node.Value) {
 		*hasDownload = true
 	}
 	if node.Kind == yaml.MappingNode {
@@ -327,12 +328,15 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	if err != nil {
 		return "invalid", nil, err.Error()
 	}
+	if err := validateDockerStructure(parsed.AST); err != nil {
+		return "invalid", nil, err.Error()
+	}
 
 	managed := []dockerCandidate{}
 	unsupported := []dockerCandidate{}
 	discovery := newDockerDiscovery(parsed.EscapeToken)
 	for _, node := range parsed.AST.Children {
-		if err := classifyDockerInstruction(node, true, 0, discovery, &managed, &unsupported); err != nil {
+		if err := classifyDockerInstruction(node, true, false, 0, discovery, &managed, &unsupported); err != nil {
 			return "invalid", nil, err.Error()
 		}
 	}
@@ -345,6 +349,33 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	return "irrelevant", nil, ""
 }
 
+func validateDockerStructure(ast *parser.Node) error {
+	hasStage := false
+	for _, node := range ast.Children {
+		typed, err := parseDockerInstruction(node)
+		if err != nil {
+			if !isRunMountExpansionError(node, err) {
+				return err
+			}
+		}
+		if _, ok := typed.(*instructions.Stage); ok {
+			hasStage = true
+			continue
+		}
+		if _, ok := typed.(*instructions.ArgCommand); ok && !hasStage {
+			continue
+		}
+		if !hasStage {
+			return fmt.Errorf("line %d: %s requires a preceding FROM instruction", node.StartLine, node.Value)
+		}
+	}
+	return nil
+}
+
+func isRunMountExpansionError(node *parser.Node, parseError error) bool {
+	return strings.EqualFold(node.Value, "run") && strings.Contains(parseError.Error(), "'from' doesn't support variable expansion")
+}
+
 type dockerWordKey struct {
 	value string
 }
@@ -355,7 +386,8 @@ type dockerWordResult struct {
 }
 
 type runtimeWordsKey struct {
-	value string
+	value      string
+	parameters string
 }
 
 type runtimeWordsResult struct {
@@ -366,8 +398,6 @@ type runtimeWordsResult struct {
 type runtimeShell struct {
 	known bool
 }
-
-type ignoredDockerInstruction struct{}
 
 type dockerDiscovery struct {
 	wordLexer        *shell.Lex
@@ -393,7 +423,7 @@ func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 	}
 }
 
-func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
+func classifyDockerInstruction(node *parser.Node, allowManaged, deferred bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
 	if depth > maxDockerInstructionDepth {
 		return resourceLimitf("Docker metadata exceeds the %d-level instruction depth limit", maxDockerInstructionDepth)
 	}
@@ -436,7 +466,7 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 			Alias:   canonical[4],
 		})
 	} else {
-		candidates, err := dockerInstructionCandidates(node, typed, discovery)
+		candidates, err := dockerInstructionCandidates(node, typed, deferred, discovery)
 		if err != nil {
 			return fmt.Errorf("line %d: %w", node.StartLine, err)
 		}
@@ -453,23 +483,23 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 	if len(*managed)+len(*unsupported) > maxDockerCandidates {
 		return resourceLimitf("Docker metadata exceeds the %d-candidate limit", maxDockerCandidates)
 	}
-	for _, child := range node.Children {
-		if err := classifyDockerInstruction(child, false, depth+1, discovery, managed, unsupported); err != nil {
-			return err
+	if onbuild, ok := typed.(*instructions.OnbuildCommand); ok {
+		trigger, err := parser.Parse(strings.NewReader(onbuild.Expression))
+		if err != nil {
+			return fmt.Errorf("line %d: parse ONBUILD trigger: %w", node.StartLine, err)
 		}
-	}
-	for value := node.Next; value != nil; value = value.Next {
-		for _, child := range value.Children {
-			if err := classifyDockerInstruction(child, false, depth+1, discovery, managed, unsupported); err != nil {
-				return err
-			}
+		if len(trigger.AST.Children) != 1 {
+			return fmt.Errorf("line %d: ONBUILD must contain exactly one instruction", node.StartLine)
+		}
+		if err := classifyDockerInstruction(trigger.AST.Children[0], false, true, depth+1, discovery, managed, unsupported); err != nil {
+			return fmt.Errorf("line %d: ONBUILD trigger: %w", node.StartLine, err)
 		}
 	}
 	return nil
 }
 
 func fallbackDockerInstructionCandidates(node *parser.Node, discovery *dockerDiscovery, parseError error) ([]dockerCandidate, bool, error) {
-	if !strings.EqualFold(node.Value, "run") || !strings.Contains(parseError.Error(), "'from' doesn't support variable expansion") {
+	if !isRunMountExpansionError(node, parseError) {
 		return nil, false, nil
 	}
 	candidates := []dockerCandidate{}
@@ -507,14 +537,7 @@ func fallbackDockerInstructionCandidates(node *parser.Node, discovery *dockerDis
 }
 
 func parseDockerInstruction(node *parser.Node) (any, error) {
-	switch strings.ToLower(node.Value) {
-	case "from", "arg", "env", "add", "copy", "run", "cmd", "entrypoint", "healthcheck", "shell":
-		return instructions.ParseInstruction(node)
-	case "label", "maintainer", "onbuild", "workdir", "expose", "user", "volume", "stopsignal":
-		return ignoredDockerInstruction{}, nil
-	default:
-		return nil, fmt.Errorf("unsupported Docker instruction %q", node.Value)
-	}
+	return instructions.ParseInstruction(node)
 }
 
 func containsPotentialDockerGoReference(value string) bool {
@@ -522,14 +545,14 @@ func containsPotentialDockerGoReference(value string) bool {
 		potentialDockerGoDownloadPattern.MatchString(value)
 }
 
-func dockerInstructionCandidates(node *parser.Node, typed any, discovery *dockerDiscovery) ([]dockerCandidate, error) {
+func dockerInstructionCandidates(node *parser.Node, typed any, deferred bool, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
 	appendImageCandidate := func(kind, value string) error {
 		normalized, err := discovery.normalizeDockerWord(value)
 		if err != nil {
 			return err
 		}
-		if discovery.isStageReference(normalized) {
+		if !deferred && discovery.isStageReference(normalized) {
 			return nil
 		}
 		if isGolangImage(normalized) || containsDockerGoToken(normalized) {
@@ -548,16 +571,22 @@ func dockerInstructionCandidates(node *parser.Node, typed any, discovery *docker
 			if argument.Value == nil {
 				continue
 			}
+			if !containsPotentialDockerGoReference(*argument.Value) {
+				continue
+			}
 			normalized, err := discovery.normalizeDockerWord(*argument.Value)
 			if err != nil {
 				return nil, err
 			}
-			if containsDockerGoToken(normalized) {
+			if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
 				candidates = append(candidates, dockerCandidate{Kind: "arg-default", Value: *argument.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.EnvCommand:
 		for _, environment := range command.Env {
+			if !containsPotentialDockerGoReference(environment.Value) {
+				continue
+			}
 			normalized, err := discovery.normalizeDockerWord(environment.Value)
 			if err != nil {
 				return nil, err
@@ -568,6 +597,9 @@ func dockerInstructionCandidates(node *parser.Node, typed any, discovery *docker
 		}
 	case *instructions.AddCommand:
 		for _, source := range command.SourcePaths {
+			if !containsPotentialDockerGoReference(source) {
+				continue
+			}
 			normalized, err := discovery.normalizeDockerWord(source)
 			if err != nil {
 				return nil, err
@@ -681,26 +713,13 @@ func (discovery *dockerDiscovery) normalizeDockerWord(value string) (string, err
 	}
 	normalized, _, err := discovery.wordLexer.ProcessWord(value, shell.EnvsFromSlice(nil))
 	if err != nil {
-		if isParameterIdentifierExpression(value) {
-			normalized = value
-			err = nil
-		} else {
-			err = fmt.Errorf("normalize Docker word %q: %w", value, err)
-		}
+		err = fmt.Errorf("normalize Docker word %q: %w", value, err)
 	}
 	if err == nil {
 		err = discovery.accountNormalizedBytes(len(normalized))
 	}
 	discovery.wordMemo[key] = dockerWordResult{value: normalized, err: err}
 	return normalized, err
-}
-
-func isParameterIdentifierExpression(value string) bool {
-	if len(value) < 5 || !strings.HasPrefix(value, "${") || value[len(value)-1] != '}' || value[2] != '#' && value[2] != '!' {
-		return false
-	}
-	nameEnd, _, ok := shellParameterNameEnd(value, 3)
-	return ok && nameEnd == len(value)-1
 }
 
 func (discovery *dockerDiscovery) accountNormalizedBytes(count int) error {
@@ -718,20 +737,14 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 			return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
 		}
 		var err error
-		script := strings.Join(command.CmdLine, " ")
-		words, err = discovery.runtimeWords(script)
+		script := dockerShellScript(command)
+		words, err = discovery.runtimeWords(script, nil)
 		if err != nil {
 			var limitError *resourceLimitError
 			if errors.As(err, &limitError) {
 				return nil, err
 			}
-			// BuildKit removes heredoc bodies from CmdLine but retains their
-			// redirection markers. That fragment is not a standalone shell
-			// program; the typed Files below are the executable values.
-			if len(command.Files) == 0 || containsPotentialDockerGoReference(script) {
-				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
-			}
-			words = nil
+			return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
 		}
 	} else {
 		length := 0
@@ -742,7 +755,11 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 			return nil, err
 		}
 		if len(words) >= 3 && isPOSIXShellExecutable(words[0]) && words[1] == "-c" {
-			scriptWords, err := discovery.runtimeWords(words[2])
+			parameters := append([]string{words[0]}, words[3:]...)
+			if len(words) > 3 {
+				parameters[0] = words[3]
+			}
+			scriptWords, err := discovery.runtimeWords(words[2], parameters)
 			if err != nil {
 				var limitError *resourceLimitError
 				if errors.As(err, &limitError) {
@@ -750,7 +767,7 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 				}
 				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
 			}
-			words = append(words, scriptWords...)
+			words = scriptWords
 		}
 	}
 	literal, download := scanRuntimeWords(words)
@@ -761,35 +778,30 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 	if literal {
 		candidates = append(candidates, dockerCandidate{Kind: "literal", Value: node.Original, Line: node.StartLine})
 	}
-	for _, file := range command.Files {
-		fileWords, err := discovery.runtimeWords(file.Data)
-		if err != nil {
-			var limitError *resourceLimitError
-			if errors.As(err, &limitError) {
-				return nil, err
-			}
-			if containsPotentialDockerGoReference(file.Data) {
-				return []dockerCandidate{{Kind: "unsupported-shell", Value: node.Original, Line: node.StartLine}}, nil
-			}
-			continue
-		}
-		fileLiteral, fileDownload := scanRuntimeWords(fileWords)
-		if fileDownload {
-			candidates = append(candidates, dockerCandidate{Kind: "download", Value: file.Data, Line: node.StartLine})
-		}
-		if fileLiteral {
-			candidates = append(candidates, dockerCandidate{Kind: "literal", Value: node.Original, Line: node.StartLine})
-		}
-	}
 	return candidates, nil
 }
 
-func (discovery *dockerDiscovery) runtimeWords(value string) ([]string, error) {
-	key := runtimeWordsKey{value: value}
+func dockerShellScript(command instructions.ShellDependantCmdLine) string {
+	script := strings.Join(command.CmdLine, " ")
+	if len(command.Files) == 1 && len(command.CmdLine) == 1 && parser.MustParseHeredoc(command.CmdLine[0]) != nil {
+		return command.Files[0].Data
+	}
+	for _, file := range command.Files {
+		script += "\n" + file.Data
+		if !strings.HasSuffix(file.Data, "\n") {
+			script += "\n"
+		}
+		script += file.Name + "\n"
+	}
+	return script
+}
+
+func (discovery *dockerDiscovery) runtimeWords(value string, parameters []string) ([]string, error) {
+	key := runtimeWordsKey{value: value, parameters: strings.Join(parameters, "\x00")}
 	if result, found := discovery.runtimeWordsMemo[key]; found {
 		return result.values, result.err
 	}
-	words, err := parseRuntimeShellWords(value)
+	words, err := parseRuntimeShellWords(value, parameters)
 	if err == nil {
 		length := 0
 		for _, word := range words {
@@ -811,12 +823,13 @@ func scanRuntimeWords(words []string) (bool, bool) {
 	return literal, download
 }
 
-func parseRuntimeShellWords(value string) ([]string, error) {
+func parseRuntimeShellWords(value string, parameters []string) ([]string, error) {
 	parsed, err := shsyntax.NewParser(shsyntax.Variant(shsyntax.LangPOSIX)).Parse(strings.NewReader(value), "runtime-shell")
 	if err != nil {
 		return nil, fmt.Errorf("parse POSIX runtime shell: %w", err)
 	}
 	words := []*shsyntax.Word{}
+	excludedWords := map[*shsyntax.Word]bool{}
 	nodes := 0
 	depth := 0
 	var walkErr error
@@ -843,6 +856,9 @@ func parseRuntimeShellWords(value string) ([]string, error) {
 		if word, ok := node.(*shsyntax.Word); ok {
 			words = append(words, word)
 		}
+		if redirect, ok := node.(*shsyntax.Redirect); ok && (redirect.Op == shsyntax.Hdoc || redirect.Op == shsyntax.DashHdoc) {
+			excludedWords[redirect.Word] = true
+		}
 		return true
 	})
 	if walkErr != nil {
@@ -852,13 +868,26 @@ func parseRuntimeShellWords(value string) ([]string, error) {
 	result := []string{}
 	seen := map[string]bool{}
 	for _, environmentValue := range []string{"", "x"} {
+		environment := &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{}}
+		if len(parameters) > 0 {
+			positionals := append([]string(nil), parameters[1:]...)
+			environment.values["@"] = expand.Variable{Set: true, Kind: expand.Indexed, List: positionals}
+			environment.values["*"] = environment.values["@"]
+			environment.values["#"] = expand.Variable{Set: true, Kind: expand.String, Str: strconv.Itoa(len(positionals))}
+			for index, parameter := range parameters {
+				environment.values[strconv.Itoa(index)] = expand.Variable{Set: true, Kind: expand.String, Str: parameter}
+			}
+		}
 		config := &expand.Config{
-			Env: &runtimeShellEnvironment{fallback: environmentValue, values: map[string]expand.Variable{}},
+			Env: environment,
 			CmdSubst: func(io.Writer, *shsyntax.CmdSubst) error {
 				return nil
 			},
 		}
 		for _, word := range words {
+			if excludedWords[word] {
+				continue
+			}
 			fields, expandErr := expand.Fields(config, word)
 			if expandErr != nil {
 				return nil, fmt.Errorf("expand POSIX runtime shell word: %w", expandErr)

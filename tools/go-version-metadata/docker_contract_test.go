@@ -16,6 +16,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"slices"
@@ -26,10 +27,25 @@ import (
 )
 
 type dockerContract struct {
-	SchemaVersion       int                        `json:"schemaVersion"`
-	BuildKitWordOracles []buildKitWordOracle       `json:"buildkitWordOracles"`
-	ShellOracles        []shellOracle              `json:"shellOracles"`
-	Cases               []dockerClassificationCase `json:"cases"`
+	SchemaVersion           int                            `json:"schemaVersion"`
+	BuildKitWordOracles     []buildKitWordOracle           `json:"buildkitWordOracles"`
+	ShellOracles            []shellOracle                  `json:"shellOracles"`
+	ExecutableCrossProducts []dockerExecutableCrossProduct `json:"executableCrossProducts"`
+	Cases                   []dockerClassificationCase     `json:"cases"`
+}
+
+type dockerExecutableCrossProduct struct {
+	ID           string                   `json:"id"`
+	Sources      []dockerExecutableSource `json:"sources"`
+	Instructions []string                 `json:"instructions"`
+	Forms        []string                 `json:"forms"`
+	Contexts     []string                 `json:"contexts"`
+}
+
+type dockerExecutableSource struct {
+	ID            string `json:"id"`
+	Value         string `json:"value"`
+	CandidateKind string `json:"candidateKind"`
 }
 
 type buildKitWordOracle struct {
@@ -115,6 +131,81 @@ func TestDockerContractClassificationMatrix(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDockerContractExecutableCrossProducts(t *testing.T) {
+	contract := readDockerContract(t)
+	seen := map[string]bool{}
+	for _, matrix := range contract.ExecutableCrossProducts {
+		matrix := matrix
+		for _, source := range matrix.Sources {
+			for _, instruction := range matrix.Instructions {
+				for _, form := range matrix.Forms {
+					for _, context := range matrix.Contexts {
+						id := strings.Join([]string{matrix.ID, source.ID, strings.ToLower(instruction), form, context}, "/")
+						t.Run(id, func(t *testing.T) {
+							if matrix.ID == "" || source.ID == "" || seen[id] {
+								t.Fatalf("generated contract case ID %q is empty or duplicated", id)
+							}
+							seen[id] = true
+							contents, valid := renderDockerExecutableCase(t, source.Value, instruction, form, context)
+							classification, candidates, parseError := classifyDockerfile(contents)
+							if !valid {
+								if classification != "invalid" {
+									t.Fatalf("classification = %q, want invalid (error %q)", classification, parseError)
+								}
+								return
+							}
+							if classification != "unsupported" {
+								t.Fatalf("classification = %q, want unsupported (error %q)", classification, parseError)
+							}
+							kinds := make([]string, 0, len(candidates))
+							for _, candidate := range candidates {
+								kinds = append(kinds, candidate.Kind)
+							}
+							if want := []string{source.CandidateKind}; !slices.Equal(kinds, want) {
+								t.Fatalf("candidate kinds = %q, want %q", kinds, want)
+							}
+						})
+					}
+				}
+			}
+		}
+	}
+}
+
+func renderDockerExecutableCase(t *testing.T, source, instruction, form, context string) (string, bool) {
+	t.Helper()
+	prefix := instruction
+	if instruction == "HEALTHCHECK" {
+		prefix += " CMD"
+	}
+	var payload string
+	switch form {
+	case "shell":
+		payload = fmt.Sprintf("%s echo %s", prefix, source)
+	case "exec":
+		encoded, err := json.Marshal([]string{"echo", source})
+		if err != nil {
+			t.Fatal(err)
+		}
+		payload = prefix + " " + string(encoded)
+	case "heredoc":
+		payload = fmt.Sprintf("%s <<EOF\necho %s\nEOF", prefix, source)
+	default:
+		t.Fatalf("unknown executable form %q", form)
+	}
+	switch context {
+	case "top-level":
+	case "onbuild":
+		payload = "ONBUILD " + payload
+	default:
+		t.Fatalf("unknown executable context %q", context)
+	}
+	// BuildKit only defines executable heredoc files for RUN. The remaining
+	// combinations stay in the product as negative grammar cases.
+	valid := form != "heredoc" || instruction == "RUN"
+	return "FROM alpine\n" + payload + "\n", valid
 }
 
 func generateDockerContractInput(t *testing.T, generator dockerContractGenerator) string {

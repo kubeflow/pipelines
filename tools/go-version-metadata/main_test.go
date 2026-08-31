@@ -50,6 +50,29 @@ literal: image:golang
 	}
 }
 
+func TestYAMLGoDownloadUsesExactHTTPSOrigin(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		value  string
+		wantGo bool
+	}{
+		{name: "embedded command", value: "run: curl https://go.dev/dl/go1.27.0.tar.gz", wantGo: true},
+		{name: "legacy origin", value: "url: https://dl.google.com/go/go1.27.0.tar.gz", wantGo: true},
+		{name: "HTTP scheme", value: "url: http://go.dev/dl/go1.27.0.tar.gz"},
+		{name: "unrelated origin", value: "url: https://example.com/go.dev/dl/go1.27.0.tar.gz"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "workflow.yaml", Contents: test.value + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.HasGoDownload != test.wantGo {
+				t.Fatalf("HasGoDownload = %t, want %t", metadata.HasGoDownload, test.wantGo)
+			}
+		})
+	}
+}
+
 func TestDockerClassification(t *testing.T) {
 	digest := strings.Repeat("a", 64)
 	tests := []struct {
@@ -166,6 +189,24 @@ func TestDockerClassification(t *testing.T) {
 			contents:       "FROM alpine\nENV TOOLCHAIN=golang:latest DOWNLOAD=https://go.dev/dl/go1.27.0.tar.gz\n",
 			classification: "unsupported",
 			candidateKinds: []string{"env-value", "env-value"},
+		},
+		{
+			name: "download values are recognized across typed fields",
+			contents: "FROM alpine\n" +
+				"ARG URL=https://go.dev/dl/go1.27.0.tar.gz\n" +
+				"ENV LEGACY=https://dl.google.com/go/go1.27.0.tar.gz\n" +
+				"ADD https://GO.DEV/dl/go1.27.0.tar.gz /tmp/go.tgz\n" +
+				"RUN wget https://go.dev/dl/go1.27.0.tar.gz\n",
+			classification: "unsupported",
+			candidateKinds: []string{"arg-default", "env-value", "add-download", "download"},
+		},
+		{
+			name: "download URLs require exact scheme host and path prefix",
+			contents: "FROM alpine\n" +
+				"ARG A=http://go.dev/dl/go1.27.0.tar.gz\n" +
+				"ARG B=https://example.com/go.dev/dl/go1.27.0.tar.gz\n" +
+				"ARG C=https://go.dev.example/dl/go1.27.0.tar.gz\n",
+			classification: "irrelevant",
 		},
 		{
 			name:           "ordinary copy operands are not runtime sources",
@@ -294,6 +335,26 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from", "literal"},
 		},
 		{
+			name: "exec POSIX shell receives positional arguments",
+			contents: "FROM alpine\n" +
+				"RUN [\"sh\",\"-c\",\"echo ${0}lang:latest\",\"go\"]\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
+			name: "exec POSIX shell ignores inactive raw script text",
+			contents: "FROM alpine\n" +
+				"RUN [\"sh\",\"-c\",\"echo alpine # golang:latest\",\"golang\"]\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "exec POSIX shell expands positional argument vector",
+			contents: "FROM alpine\n" +
+				"RUN [\"sh\",\"-c\",\"echo $@\",\"zero\",\"golang:latest\"]\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
 			name: "nested canonical form is never managed",
 			contents: "FROM alpine\nONBUILD FROM golang:1.27.0@sha256:" + digest +
 				" AS hidden\n",
@@ -335,6 +396,28 @@ func TestDockerClassification(t *testing.T) {
 			classification: "irrelevant",
 		},
 		{
+			name: "onbuild sources do not resolve in defining stage namespace",
+			contents: "FROM alpine AS golang\n" +
+				"ONBUILD COPY --from=golang /bin/x /bin/x\n",
+			classification: "unsupported",
+			candidateKinds: []string{"copy-from"},
+		},
+		{
+			name: "onbuild heredoc retains defining shell state",
+			contents: "FROM alpine\n" +
+				"SHELL [\"fish\",\"-c\"]\n" +
+				"ONBUILD RUN <<EOF\necho golang:latest\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell"},
+		},
+		{
+			name: "onbuild heredoc retains typed executable body",
+			contents: "FROM alpine\n" +
+				"ONBUILD RUN <<EOF\necho golang:latest\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"literal"},
+		},
+		{
 			name:           "current stage alias cannot hide its external base",
 			contents:       "FROM golang:latest AS golang\n",
 			classification: "unsupported",
@@ -354,6 +437,22 @@ func TestDockerClassification(t *testing.T) {
 				"echo alpine # golang:latest\n" +
 				"# golang:latest\nEOF\n",
 			classification: "irrelevant",
+		},
+		{
+			name:           "heredoc delimiter is not an executable value",
+			contents:       "FROM alpine\nRUN cat <<golang\nhello\ngolang\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "bare executable heredoc delimiter is not a value",
+			contents:       "FROM alpine\nRUN <<golang\necho alpine\ngolang\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "invalid executable heredoc command fails closed",
+			contents:       "FROM alpine\nRUN ( <<EOF\nhello\nEOF\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
 			name: "runtime escaping is independent of Dockerfile escape",
@@ -428,11 +527,11 @@ func TestDockerClassification(t *testing.T) {
 			classification: "invalid",
 		},
 		{
-			name: "parameter identifiers and assignment names are not sources",
+			name: "invalid Docker parameter expressions are invalid",
 			contents: "FROM alpine\n" +
 				"ARG LENGTH=${#golang}\n" +
 				"RUN golang=alpine echo ${#golang}\n",
-			classification: "irrelevant",
+			classification: "invalid",
 		},
 		{
 			name: "assignment name does not hide literal operand",
@@ -479,6 +578,21 @@ func TestDockerClassification(t *testing.T) {
 		{
 			name:           "malformed candidate-bearing file",
 			contents:       "FROM golang:latest AS builder\nRUN <<EOF\n",
+			classification: "invalid",
+		},
+		{
+			name:           "empty workdir is invalid",
+			contents:       "FROM alpine\nWORKDIR\nFROM golang:1.27.0@sha256:" + digest + " AS builder\n",
+			classification: "invalid",
+		},
+		{
+			name:           "run before first stage is invalid",
+			contents:       "RUN true\nFROM golang:1.27.0@sha256:" + digest + " AS builder\n",
+			classification: "invalid",
+		},
+		{
+			name:           "forbidden onbuild payload is invalid",
+			contents:       "FROM golang:1.27.0@sha256:" + digest + " AS builder\nONBUILD MAINTAINER example\n",
 			classification: "invalid",
 		},
 	}
@@ -623,7 +737,7 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 		buildKit, _, err := lexer.ProcessWord(input, shell.EnvsFromSlice(nil))
 		if err != nil {
 			t.Errorf("BuildKit ProcessWord(%q): %v", input, err)
-		} else if words, runtimeErr := discovery.runtimeWords(input); runtimeErr != nil {
+		} else if words, runtimeErr := discovery.runtimeWords(input, nil); runtimeErr != nil {
 			t.Errorf("runtimeWords(%q): %v", input, runtimeErr)
 		} else if len(words) != 1 || words[0] != buildKit {
 			t.Errorf("runtimeWords(%q) = %q, BuildKit = %q", input, words, buildKit)
@@ -657,7 +771,7 @@ func TestPOSIXRuntimeDiscoveryMatchesBinSh(t *testing.T) {
 			if got := string(output); got != test.wantOutput {
 				t.Fatalf("/bin/sh output = %q, want %q", got, test.wantOutput)
 			}
-			words, err := parseRuntimeShellWords(test.script)
+			words, err := parseRuntimeShellWords(test.script, nil)
 			if err != nil {
 				t.Fatalf("POSIX parser rejected /bin/sh input: %v", err)
 			}
@@ -688,10 +802,10 @@ func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 	if _, err := discovery.normalizeDockerWord(quoted); err != nil {
 		t.Fatalf("quoted parameter-like text error = %v", err)
 	}
-	if _, err := discovery.runtimeWords(deep); !isResourceLimit(err, "shell AST depth") {
+	if _, err := discovery.runtimeWords(deep, nil); !isResourceLimit(err, "shell AST depth") {
 		t.Fatalf("deep runtime shell word error = %v", err)
 	}
-	if _, err := discovery.runtimeWords(quoted); err != nil {
+	if _, err := discovery.runtimeWords(quoted, nil); err != nil {
 		t.Fatalf("quoted runtime parameter-like text error = %v", err)
 	}
 

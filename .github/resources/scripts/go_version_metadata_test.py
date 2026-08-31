@@ -146,6 +146,18 @@ class GoVersionMetadataTest(unittest.TestCase):
             go_version_metadata.METADATA_INSPECTION_TIMEOUT_SECONDS,
         )
 
+    def test_public_deadline_handles_distinct_deep_irrelevant_arg_defaults(self):
+        depth = 9333
+        nested_default = '${A:-' * depth + 'xx' + '}' * depth
+        contents = 'FROM alpine\n' + ''.join(
+            f'ARG A{index}={nested_default}{index}\n' for index in range(8))
+        self.assertEqual(len(contents.encode('utf-8')), 448084)
+
+        result = docker_runtime_classification(contents)
+
+        self.assertEqual(result['classification'], 'irrelevant')
+        self.assertEqual(result['candidates'], [])
+
     def test_metadata_helper_timeout_is_actionable_and_retried(self):
         completed = subprocess.CompletedProcess(
             args=('helper',), returncode=0, stdout='{}\n', stderr='')
