@@ -222,9 +222,9 @@ class DataprocBatchRemoteRunner:
           job_name_pattern = re.compile(_DATAPROC_OPERATION_URI_TEMPLATE)
           match = job_name_pattern.match(resource.resource_uri)
           try:
-            matched_project = match.group('project')
-            matched_region = match.group('region')
-            matched_operation_id = match.group('operation')
+            matched_project = match.group('project')  # pyrefly: ignore[missing-attribute]
+            matched_region = match.group('region')  # pyrefly: ignore[missing-attribute]
+            matched_operation_id = match.group('operation')  # pyrefly: ignore[missing-attribute]
           except AttributeError as err:
             raise ValueError(
                 'Invalid Resource uri: {}. Expect: {}.'.format(
