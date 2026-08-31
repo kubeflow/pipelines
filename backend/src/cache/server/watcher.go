@@ -34,9 +34,14 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			LabelSelector: CacheIDLabelKey,
 		}
 		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(ctx, listOptions)
-
 		if err != nil {
 			log.Printf("%s", "Watcher error:"+err.Error())
+			return
+		}
+
+		if watcher == nil {
+			log.Printf("%s", "Watcher error: nil watcher returned")
+			return
 		}
 
 		for event := range watcher.ResultChan() {
