@@ -32,7 +32,7 @@
     "markdown-to-jsx": "^7.0.0",
     "pako": "^2.0.4",
     "proto3-json-serializer": "^4.0.2",
-    "protobufjs": "~8.7.2",
+    "protobufjs": "~8.8.0",
     "re-resizable": "^6.11.2",
     "react": "^19",
     "react-ace": "^15.0.0",
