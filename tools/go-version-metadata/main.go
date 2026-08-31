@@ -500,8 +500,7 @@ func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, 
 		*unsupported = append(*unsupported, candidates...)
 	}
 	if allowManaged {
-		switch command := typed.(type) {
-		case *instructions.ShellCommand:
+		if command, ok := typed.(*instructions.ShellCommand); ok {
 			discovery.setRuntimeShell(command.Shell)
 		}
 	}
