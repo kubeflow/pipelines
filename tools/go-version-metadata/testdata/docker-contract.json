@@ -314,6 +314,12 @@
       "want": {"classification": "invalid", "errorContains": "shell AST depth"}
     },
     {
+      "id": "source-bearing-docker-word-public-deadline",
+      "polarity": "detect",
+      "generator": {"kind": "distinct-nested-docker-defaults", "depth": 9331, "leaf": "golang:latestx", "count": 8, "bytes": 448084},
+      "want": {"classification": "invalid", "errorContains": "normalization input limit"}
+    },
+    {
       "id": "instruction-limit",
       "polarity": "detect",
       "generator": {"kind": "repeat-instruction", "instruction": "RUN true", "count": 100001, "prefix": "FROM alpine"},

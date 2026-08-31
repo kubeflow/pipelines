@@ -29,7 +29,8 @@ import time
 from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple
 import warnings
 
-from go_version_metadata import (docker_runtime_classification,
+from go_version_metadata import (METADATA_BUILD_TIMEOUT_SECONDS,
+                                 docker_runtime_classification,
                                  has_go_runtime_reference,
                                  is_container_recipe, module_versions)
 
@@ -42,21 +43,24 @@ DIGEST_PATTERN = re.compile(r'^sha256:[0-9a-f]{64}$')
 GO_DIRECTIVE_PATTERN = re.compile(
     rf'^[ \t]*go[ \t]+(?P<version>1\.{DECIMAL_PATTERN}'
     rf'(?:\.{DECIMAL_PATTERN})?)'
-    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*(?=\r?$)', re.MULTILINE)
 TOOLCHAIN_PATTERN = re.compile(
     rf'^[ \t]*toolchain[ \t]+go(?P<version>1\.{DECIMAL_PATTERN}'
     rf'\.{DECIMAL_PATTERN})'
-    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
+    r'(?P<comment>[ \t]*//[^\r\n]*)?[ \t]*(?=\r?$)', re.MULTILINE)
 TOOLCHAIN_LINE_PATTERN = re.compile(
     r'^[ \t]*toolchain[ \t]+go\d+\.\d+\.\d+'
-    r'(?:[ \t]*//[^\r\n]*)?[ \t]*\n?(?:\n)?',
+    r'(?:[ \t]*//[^\r\n]*)?[ \t]*(?:\r?\n)?(?:\r?\n)?',
     re.MULTILINE)
 SCANNED_RUNTIME_SUFFIXES = {'.sh', '.yaml', '.yml'}
 DIGEST_LOOKUP_ATTEMPTS = 3
 DIGEST_LOOKUP_BACKOFF_SECONDS = (1, 2)
 DIGEST_LOOKUP_SOURCE_COUNT = 2
 DIGEST_LOOKUP_TIMEOUT_SECONDS = 20
-DIGEST_VERIFICATION_BUDGET_SECONDS = 540
+DIGEST_WORKFLOW_TIMEOUT_SECONDS = 600
+DIGEST_WORKFLOW_RUNNER_HEADROOM_SECONDS = 60
+DIGEST_VERIFICATION_BUDGET_SECONDS = (
+    DIGEST_WORKFLOW_TIMEOUT_SECONDS - DIGEST_WORKFLOW_RUNNER_HEADROOM_SECONDS)
 
 
 @dataclass(frozen=True)
@@ -127,6 +131,8 @@ def _updated_module_contents(contents: str, relative_path: Path,
     go_comment = go_match.group('comment') or ''
     toolchain_matches = list(TOOLCHAIN_PATTERN.finditer(contents))
     toolchain_match = toolchain_matches[0] if toolchain_matches else None
+    line_ending = ('\r\n'
+                   if contents[go_match.end():].startswith('\r\n') else '\n')
     toolchain_comment = (
         toolchain_match.group('comment') if toolchain_match else '') or ''
     if go_version > target:
@@ -147,12 +153,12 @@ def _updated_module_contents(contents: str, relative_path: Path,
     if target[2] != 0:
         target_version = '.'.join(str(part) for part in target)
         updated = GO_DIRECTIVE_PATTERN.sub(
-            lambda match: (f'{match.group(0)}\n\n'
+            lambda match: (f'{match.group(0)}{line_ending}{line_ending}'
                            f'toolchain go{target_version}{toolchain_comment}'),
             updated,
             count=1,
         )
-    return updated.rstrip('\n') + '\n'
+    return updated.rstrip('\r\n') + line_ending
 
 
 def _managed_dockerfiles(repo_root: Path,
@@ -167,11 +173,11 @@ def _managed_dockerfiles(repo_root: Path,
         path = repo_root / relative_path
         if not path.exists():
             continue
-        contents = path.read_text(encoding='utf-8', errors='ignore')
+        contents = _read_regular_contents(path, relative_path, errors='ignore')
         if not has_go_runtime_reference(relative_path, contents):
             continue
         _ensure_regular_destination(path, relative_path)
-        contents = path.read_text(encoding='utf-8', errors='ignore')
+        contents = _read_regular_contents(path, relative_path, errors='ignore')
         if is_container_recipe(relative_path):
             docker = docker_runtime_classification(contents)
         else:
@@ -200,7 +206,33 @@ def _managed_dockerfiles(repo_root: Path,
     return managed
 
 
-def _inspect_manifest_digest(image: str) -> str:
+def _current_managed_paths(repo_root: Path) -> Tuple[Path, ...]:
+    repository_paths = _repository_paths(repo_root)
+    module_paths = {
+        path for path in repository_paths
+        if path.name == 'go.mod' and (repo_root / path).exists()
+    }
+    docker_paths = set(
+        _managed_dockerfiles(repo_root, repository_paths).keys())
+    return tuple(sorted(module_paths | docker_paths))
+
+
+def _verification_deadline_error() -> RuntimeError:
+    return RuntimeError(
+        'Go builder digest verification exceeded its '
+        f'{DIGEST_VERIFICATION_BUDGET_SECONDS}-second end-to-end deadline')
+
+
+def _remaining_verification_seconds(deadline: float) -> float:
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise _verification_deadline_error()
+    return remaining
+
+
+def _inspect_manifest_digest(image: str,
+                             timeout: float = DIGEST_LOOKUP_TIMEOUT_SECONDS) \
+        -> str:
     result = subprocess.run(
         (
             'docker',
@@ -214,7 +246,7 @@ def _inspect_manifest_digest(image: str) -> str:
         check=True,
         capture_output=True,
         text=True,
-        timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS,
+        timeout=timeout,
     )
     try:
         digest = json.loads(result.stdout)['digest']
@@ -227,13 +259,18 @@ def _inspect_manifest_digest(image: str) -> str:
     return digest
 
 
-def resolve_docker_hub_digest(tag: str) -> str:
+def resolve_docker_hub_digest(tag: str,
+                              *,
+                              deadline: Optional[float] = None) -> str:
     images = (f'golang:{tag}', f'mirror.gcr.io/library/golang:{tag}')
     failures = {}
     for attempt in range(DIGEST_LOOKUP_ATTEMPTS):
         for image in images:
             try:
-                return _inspect_manifest_digest(image)
+                timeout = (DIGEST_LOOKUP_TIMEOUT_SECONDS if deadline is None
+                           else min(DIGEST_LOOKUP_TIMEOUT_SECONDS,
+                                    _remaining_verification_seconds(deadline)))
+                return _inspect_manifest_digest(image, timeout=timeout)
             except FileNotFoundError as error:
                 raise RuntimeError(
                     'docker buildx is required to resolve Go builder image '
@@ -245,7 +282,15 @@ def resolve_docker_hub_digest(tag: str) -> str:
             except subprocess.TimeoutExpired as error:
                 failures[image] = f'timed out after {error.timeout} seconds'
         if attempt < DIGEST_LOOKUP_ATTEMPTS - 1:
-            time.sleep(DIGEST_LOOKUP_BACKOFF_SECONDS[attempt])
+            backoff = DIGEST_LOOKUP_BACKOFF_SECONDS[attempt]
+            if deadline is None:
+                time.sleep(backoff)
+            else:
+                remaining = _remaining_verification_seconds(deadline)
+                if remaining < backoff:
+                    time.sleep(remaining)
+                    raise _verification_deadline_error()
+                time.sleep(backoff)
     raise RuntimeError('could not resolve the Go builder image from Docker Hub '
                        'or its configured mirror after '
                        f'{DIGEST_LOOKUP_ATTEMPTS} attempts: ' + '; '.join(
@@ -258,8 +303,10 @@ def verify_image_digests(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> None:
+    deadline = time.monotonic() + DIGEST_VERIFICATION_BUDGET_SECONDS
     paths = set(repository_paths or _repository_paths(repo_root))
     dockerfiles = _managed_dockerfiles(repo_root, paths)
+    _remaining_verification_seconds(deadline)
     pins_by_tag: Dict[str, Dict[str, List[Path]]] = {}
     for relative_path, (_contents, candidate) in dockerfiles.items():
         tag = candidate['version'] + candidate['flavor']
@@ -269,10 +316,14 @@ def verify_image_digests(
 
     worst_case_seconds = _digest_verification_worst_case_seconds(
         len(pins_by_tag))
-    if worst_case_seconds > DIGEST_VERIFICATION_BUDGET_SECONDS:
+    configured_seconds = (METADATA_BUILD_TIMEOUT_SECONDS +
+                          worst_case_seconds)
+    if configured_seconds > DIGEST_VERIFICATION_BUDGET_SECONDS:
         raise RuntimeError(
             'Go builder digest verification is configured for a worst-case '
-            f'{worst_case_seconds} seconds, exceeding its '
+            f'{configured_seconds} seconds including '
+            f'{METADATA_BUILD_TIMEOUT_SECONDS} seconds of metadata helper '
+            'build/setup headroom, exceeding its '
             f'{DIGEST_VERIFICATION_BUDGET_SECONDS}-second budget')
 
     errors = []
@@ -283,7 +334,12 @@ def verify_image_digests(
                 f'{sorted(pins_by_digest)}')
             continue
         pinned_digest = next(iter(pins_by_digest))
-        resolved_digest = digest_resolver(tag)
+        _remaining_verification_seconds(deadline)
+        if digest_resolver is resolve_docker_hub_digest:
+            resolved_digest = digest_resolver(tag, deadline=deadline)
+        else:
+            resolved_digest = digest_resolver(tag)
+        _remaining_verification_seconds(deadline)
         if DIGEST_PATTERN.fullmatch(resolved_digest) is None:
             raise ValueError(f'invalid digest resolved for golang:{tag}: '
                              f'{resolved_digest!r}')
@@ -802,6 +858,24 @@ def _validate_all_managed_paths(
 ) -> None:
     """Validate the complete managed-path transaction boundary."""
     managed_paths = tuple(state.path for state in snapshot.worktree_paths)
+    try:
+        current_managed_paths = _current_managed_paths(repo_root)
+    except (RuntimeError, ValueError) as error:
+        raise RuntimeError(
+            f'managed Go version path membership changed: {error}') from error
+    if current_managed_paths != managed_paths:
+        added = set(current_managed_paths) - set(managed_paths)
+        removed = set(managed_paths) - set(current_managed_paths)
+        details = []
+        if added:
+            details.append('added ' + ', '.join(
+                str(path) for path in sorted(added)))
+        if removed:
+            details.append('removed ' + ', '.join(
+                str(path) for path in sorted(removed)))
+        raise RuntimeError(
+            'managed Go version path membership changed: ' +
+            '; '.join(details))
     expected_paths = set(expected_contents)
     snapshot_paths = set(managed_paths)
     if expected_paths != snapshot_paths:
@@ -1192,9 +1266,11 @@ def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
             'special files are not supported')
 
 
-def _read_regular_contents(path: Path, relative_path: Path) -> str:
+def _read_regular_contents(path: Path, relative_path: Path, *,
+                           errors: str = 'strict') -> str:
     _ensure_regular_destination(path, relative_path)
-    return path.read_text(encoding='utf-8')
+    with path.open('r', encoding='utf-8', errors=errors, newline='') as source:
+        return source.read()
 
 
 def _is_executable(path: Path, relative_path: Path) -> bool:

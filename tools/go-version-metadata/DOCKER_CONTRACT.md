@@ -138,6 +138,8 @@ helper enforces these deterministic limits:
 - parsed Docker instructions: 100,000;
 - nested instruction/`ONBUILD` depth: 256;
 - discovered candidates: 10,000;
+- one Docker word passed to BuildKit normalization: 16 KiB;
+- total distinct Docker words passed to BuildKit normalization: 32 KiB;
 - POSIX shell AST nodes: 100,000;
 - POSIX shell AST depth: 256; and
 - total visited or normalized semantic literal bytes: 4 MiB.
@@ -149,11 +151,14 @@ limit is `invalid`; exceeding the external deadline is a helper failure. Fuzz
 tests must assert bounded completion and no panic for inputs within the public
 request-size limit.
 
-Before invoking BuildKit word normalization, instruction fields are scanned by
-a linear, escape-tolerant potential-source filter. Fields that cannot contain a
-Go image or download source are not normalized. This keeps irrelevant nested
-parameter defaults within the public deadline without weakening normalization
-of escaped, quoted, or expanded candidate spellings.
+Before invoking BuildKit word normalization, every semantic Docker word is
+charged against the per-word and total distinct-input limits above. Every typed
+field that BuildKit marks expandable is normalized; candidate admission has no
+literal prefilter that could skip a value assembled across expansion
+boundaries. Both irrelevant and source-bearing nested parameter defaults
+therefore complete within the public deadline or fail with a deterministic
+resource error. Escaped, quoted, or expanded values within the normalization
+budget use the pinned BuildKit implementation.
 
 ## Differential acceptance
 

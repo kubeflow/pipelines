@@ -76,6 +76,29 @@ class GoVersionMetadataTest(unittest.TestCase):
         self.assertTrue(has_setup_go_use(contents))
         self.assertTrue(has_go_runtime_reference(Path('test.yaml'), contents))
 
+    def test_yaml_action_uses_are_semantic_and_case_insensitive(self):
+        for value in ('docker://golang:1.20',
+                      'Docker://docker.io/library/Golang:1.20'):
+            with self.subTest(value=value):
+                self.assertTrue(has_go_runtime_reference(
+                    Path('workflow.yaml'),
+                    f'steps: [{{uses: {value}}}]\n',
+                ))
+        self.assertTrue(has_setup_go_use(
+            'steps: [{uses: Actions/Setup-Go@v7}]\n'))
+
+    def test_malformed_escaped_yaml_candidates_fail_closed(self):
+        for escape in (r'\x61', r'\u0061', r'\U00000061'):
+            contents = f'container: {{image: "gol{escape}ng"\n'
+            with self.subTest(kind='runtime', escape=escape):
+                with self.assertRaises(ValueError):
+                    has_go_runtime_reference(Path('workflow.yaml'), contents)
+        for escape in (r'\x2d', r'\u002d', r'\U0000002d'):
+            contents = f'steps: [{{uses: "actions/setup{escape}go@v7"}}\n'
+            with self.subTest(kind='setup-go', escape=escape):
+                with self.assertRaises(ValueError):
+                    has_setup_go_use(contents)
+
     def test_yaml_colon_requires_mapping_separation(self):
         contents = (
             'image:golang\n'
@@ -146,17 +169,17 @@ class GoVersionMetadataTest(unittest.TestCase):
             go_version_metadata.METADATA_INSPECTION_TIMEOUT_SECONDS,
         )
 
-    def test_public_deadline_handles_distinct_deep_irrelevant_arg_defaults(self):
-        depth = 9333
-        nested_default = '${A:-' * depth + 'xx' + '}' * depth
+    def test_public_deadline_bounds_distinct_deep_source_arg_defaults(self):
+        depth = 9331
+        nested_default = '${A:-' * depth + 'golang:latestx' + '}' * depth
         contents = 'FROM alpine\n' + ''.join(
             f'ARG A{index}={nested_default}{index}\n' for index in range(8))
         self.assertEqual(len(contents.encode('utf-8')), 448084)
 
         result = docker_runtime_classification(contents)
 
-        self.assertEqual(result['classification'], 'irrelevant')
-        self.assertEqual(result['candidates'], [])
+        self.assertEqual(result['classification'], 'invalid')
+        self.assertIn('normalization input limit', result['error'])
 
     def test_metadata_helper_timeout_is_actionable_and_retried(self):
         completed = subprocess.CompletedProcess(

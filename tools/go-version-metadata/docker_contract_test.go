@@ -77,6 +77,7 @@ type dockerContractGenerator struct {
 	Instruction string `json:"instruction"`
 	Count       int    `json:"count"`
 	Prefix      string `json:"prefix"`
+	Bytes       int    `json:"bytes"`
 }
 
 type dockerContractWant struct {
@@ -222,6 +223,19 @@ func generateDockerContractInput(t *testing.T, generator dockerContractGenerator
 			contents.WriteByte('\n')
 		}
 		return contents.String()
+	case "distinct-nested-docker-defaults":
+		var contents strings.Builder
+		contents.WriteString("FROM alpine\n")
+		for index := range generator.Count {
+			fmt.Fprintf(&contents, "ARG A%d=%s%s%s%d\n", index,
+				strings.Repeat("${A:-", generator.Depth), generator.Leaf,
+				strings.Repeat("}", generator.Depth), index)
+		}
+		result := contents.String()
+		if generator.Bytes != 0 && len(result) != generator.Bytes {
+			t.Fatalf("generated Docker contract input is %d bytes, want %d", len(result), generator.Bytes)
+		}
+		return result
 	default:
 		t.Fatalf("unknown Docker contract generator %q", generator.Kind)
 		return ""

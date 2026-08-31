@@ -16,6 +16,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import re
 import stat
 import subprocess
 import sys
@@ -87,6 +88,21 @@ class UpdateGoVersionTest(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+
+    def _checkout_crlf_worktree(self):
+        self._git('config', 'core.autocrlf', 'true')
+        for relative_path in self.files:
+            (self.repo_root / relative_path).unlink()
+        self._git('checkout', '--', *(str(path) for path in self.files))
+        self.assertEqual(
+            self._git('status', '--porcelain=v1', '--',
+                      *(str(path) for path in self.files)).stdout, '')
+        for relative_path in self.files:
+            self.assertNotIn(
+                '\r', self._git('show', f':{relative_path}').stdout)
+            contents = (self.repo_root / relative_path).read_bytes()
+            self.assertIn(b'\r\n', contents)
+            self.assertNotIn(b'\n', contents.replace(b'\r\n', b''))
 
     def _recovery_patches(self):
         recovery_dir = (self.repo_root / '.git' /
@@ -391,6 +407,50 @@ class UpdateGoVersionTest(unittest.TestCase):
             )
 
         self.assertEqual(set(first), set(self.files))
+
+    def test_sync_preserves_crlf_bytes(self):
+        self._checkout_crlf_worktree()
+
+        changed = update_go_version.sync(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )
+
+        self.assertEqual(set(changed), set(self.files))
+        for relative_path in self.files:
+            contents = (self.repo_root / relative_path).read_bytes()
+            self.assertIn(b'\r\n', contents)
+            self.assertNotIn(b'\n', contents.replace(b'\r\n', b''))
+
+    def test_recovery_restores_exact_crlf_bytes(self):
+        self._checkout_crlf_worktree()
+        originals = {
+            relative_path: (self.repo_root / relative_path).read_bytes()
+            for relative_path in self.files
+        }
+
+        def fail_verification(repo_root):
+            if Path(repo_root) == self.repo_root:
+                raise RuntimeError('verify failed')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=fail_verification,
+        ):
+            with self.assertRaisesRegex(RuntimeError, 'verify failed'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        for relative_path, original in originals.items():
+            self.assertEqual((self.repo_root / relative_path).read_bytes(),
+                             original)
 
     def test_digest_failure_does_not_write_partial_changes(self):
 
@@ -757,8 +817,8 @@ class UpdateGoVersionTest(unittest.TestCase):
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
-                    'Dockerfile.*regular file.*all managed paths after '
-                    'recovery.*recovery bundle retained'):
+                    'path membership changed.*removed Dockerfile.*all managed '
+                    'paths after recovery.*recovery bundle retained'):
                 update_go_version.sync(
                     self.repo_root,
                     '1.28.3',
@@ -805,6 +865,76 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertEqual(stat.S_IMODE(dockerfile.stat().st_mode),
                          concurrent_mode)
         self.assertTrue(self._recovery_bundles())
+
+    def test_verification_rejects_added_managed_path_membership(self):
+        added = self.repo_root / 'late/go.mod'
+
+        def add_managed_path(repo_root):
+            if Path(repo_root) == self.repo_root:
+                added.parent.mkdir()
+                added.write_text('module example.com/late\n\ngo 1.28.0\n',
+                                 encoding='utf-8')
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=add_managed_path,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'path membership changed.*added late/go.mod.*all managed '
+                    'paths after recovery.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(added.read_text(encoding='utf-8'),
+                         'module example.com/late\n\ngo 1.28.0\n')
+        for relative_path, original in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                original,
+            )
+        self.assertTrue(self._recovery_bundles())
+
+    def test_no_change_rejects_managed_path_added_during_resolution(self):
+        resolver = lambda tag: DIGESTS[tag]
+        update_go_version.sync(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=resolver,
+            repository_paths=self.files,
+        )
+        self._git('add', '--', *(str(path) for path in self.files))
+        self._git('-c', 'user.name=Test', '-c',
+                  'user.email=test@example.com', 'commit', '-qm', 'update')
+        added = self.repo_root / 'late/go.mod'
+        created = False
+
+        def add_managed_path_then_resolve(tag):
+            nonlocal created
+            if not created:
+                added.parent.mkdir()
+                added.write_text('module example.com/late\n\ngo 1.28.0\n',
+                                 encoding='utf-8')
+                created = True
+            return DIGESTS[tag]
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'path membership changed.*added late/go.mod'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=add_managed_path_then_resolve,
+                repository_paths=self.files,
+            )
+
+        self.assertTrue(added.exists())
+        self.assertEqual(self._recovery_bundles(), [])
 
     def test_verification_preserves_unrelated_concurrent_staged_edit(self):
         notes = self.repo_root / 'notes.txt'
@@ -1807,14 +1937,43 @@ updater.sync(
     def test_digest_retry_budget_fits_workflow_timeout(self):
         worst_case = update_go_version._digest_verification_worst_case_seconds(
             3)
+        workflow = (SCRIPT_PATH.parents[2] /
+                    'workflows/go-image-digests.yml').read_text(
+                        encoding='utf-8')
+        timeout_minutes = int(
+            re.search(r'(?m)^\s*timeout-minutes:\s*(\d+)\s*$',
+                      workflow).group(1))
 
         self.assertEqual(worst_case, 369)
+        self.assertEqual(update_go_version.METADATA_BUILD_TIMEOUT_SECONDS, 120)
+        self.assertEqual(timeout_minutes * 60,
+                         update_go_version.DIGEST_WORKFLOW_TIMEOUT_SECONDS)
+        self.assertEqual(
+            update_go_version.DIGEST_VERIFICATION_BUDGET_SECONDS +
+            update_go_version.DIGEST_WORKFLOW_RUNNER_HEADROOM_SECONDS,
+            update_go_version.DIGEST_WORKFLOW_TIMEOUT_SECONDS,
+        )
         self.assertLessEqual(
-            worst_case,
+            update_go_version.METADATA_BUILD_TIMEOUT_SECONDS + worst_case,
             update_go_version.DIGEST_VERIFICATION_BUDGET_SECONDS,
         )
-        self.assertLess(update_go_version.DIGEST_VERIFICATION_BUDGET_SECONDS,
-                        600)
+
+    def test_digest_verification_enforces_one_end_to_end_deadline(self):
+        resolver = mock.Mock(return_value=OLD_DIGEST)
+        with mock.patch.object(
+                update_go_version.time,
+                'monotonic',
+                side_effect=(0, 100, 101, 541),
+        ):
+            with self.assertRaisesRegex(RuntimeError,
+                                        'end-to-end deadline'):
+                update_go_version.verify_image_digests(
+                    self.repo_root,
+                    digest_resolver=resolver,
+                    repository_paths=self.files,
+                )
+
+        resolver.assert_called_once_with('1.28.0')
 
     def test_rejects_builder_digest_that_does_not_match_tag(self):
         resolved_digest = 'sha256:' + ('9' * 64)

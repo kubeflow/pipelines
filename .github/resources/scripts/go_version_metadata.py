@@ -29,6 +29,9 @@ GO_TEXT_REFERENCE_PATTERN = re.compile(
     r'(?:\bgolang(?=[:@])|(?:dl\.google\.com/go/|go\.dev/dl/)go)',
     re.IGNORECASE,
 )
+YAML_NUMERIC_ESCAPE_PATTERN = re.compile(
+    r'\\(?:x([0-9a-fA-F]{2})|u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8}))')
+SETUP_GO_USE_PREFIX = 'actions/setup-go@'
 METADATA_BUILD_TIMEOUT_SECONDS = 120
 METADATA_INSPECTION_TIMEOUT_SECONDS = 10
 MAX_METADATA_INPUT_BYTES = 4 * 1024 * 1024
@@ -149,12 +152,12 @@ def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
         try:
             metadata = inspect_metadata(relative_path, contents)
         except ValueError:
-            if GO_TEXT_REFERENCE_PATTERN.search(contents):
+            if _potential_yaml_go_reference(contents):
                 raise
             return False
         values = metadata.get('yamlValues', {})
         if any(_is_golang_image(value)
-               for key in ('container', 'image')
+               for key in ('container', 'image', 'uses')
                for value in values.get(key, [])):
             return True
         return bool(metadata.get('hasGoDownload'))
@@ -173,15 +176,39 @@ def has_setup_go_use(contents: str) -> bool:
     try:
         values = yaml_mapping_values(contents, ('uses',))['uses']
     except ValueError:
-        if 'actions/setup-go@' in contents:
+        if SETUP_GO_USE_PREFIX in _decode_yaml_numeric_escapes(
+                contents).casefold():
             raise
         return False
-    return any(value.startswith('actions/setup-go@') for value in values)
+    return any(value.casefold().startswith(SETUP_GO_USE_PREFIX)
+               for value in values)
+
+
+def _decode_yaml_numeric_escapes(contents: str) -> str:
+    """Decode candidate-relevant YAML numeric escapes conservatively.
+
+    This is only a fail-closed precheck after semantic YAML parsing failed. It
+    intentionally over-approximates double-quoted scalar placement.
+    """
+    def replacement(match: re.Match) -> str:
+        encoded = next(group for group in match.groups() if group is not None)
+        try:
+            return chr(int(encoded, 16))
+        except (ValueError, OverflowError):
+            return match.group(0)
+
+    return YAML_NUMERIC_ESCAPE_PATTERN.sub(replacement, contents)
+
+
+def _potential_yaml_go_reference(contents: str) -> bool:
+    decoded = _decode_yaml_numeric_escapes(contents)
+    return bool(GO_TEXT_REFERENCE_PATTERN.search(decoded) or
+                re.search(r'(?i)\bgolang(?=$|[^a-z0-9])', decoded))
 
 
 def _is_golang_image(value: str) -> bool:
     image = value.strip()
-    if image.startswith('docker://'):
+    if image.casefold().startswith('docker://'):
         image = image[len('docker://'):]
     name = image.rsplit('/', 1)[-1]
     return re.match(r'^golang(?=[:@]|$)', name, re.IGNORECASE) is not None

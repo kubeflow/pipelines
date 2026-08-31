@@ -285,6 +285,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
                           'container: { image: golang }',
                           'container: {"image":"golang"}',
                           'container: {credentials: {user: test}, image: golang}',
+                          'steps: [{uses: docker://golang:1.20}]',
                           'FROM golang:latest',
                           'FROM golang:${GO_VERSION}',
                           'https://dl.google.com/go/go${GO_VERSION}.tar.gz',
@@ -324,6 +325,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
                      '    steps: [{env: {A: B}, uses: actions/setup-go@abc123}]'):
             with self.subTest(step=step):
                 self.assertTrue(has_setup_go_use(step))
+        self.assertTrue(has_setup_go_use(
+            '    - uses: Actions/Setup-Go@v7'))
         self.assertFalse(has_setup_go_use(
             '    # - uses: actions/setup-go@v7'))
         self.assertFalse(has_setup_go_use(

@@ -310,12 +310,11 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"copy-from", "run-mount-from"},
 		},
 		{
-			name: "interpolated external sources are unsupported",
+			name: "invalid interpolated run mount invalidates the document",
 			contents: "FROM golang:1.27.0@sha256:" + digest + " AS builder\n" +
 				"COPY --from=${IMAGE:-golang} /go /go\n" +
 				"RUN --mount=type=bind,from=golang${TAG},target=/go true\n",
-			classification: "unsupported",
-			candidateKinds: []string{"from", "copy-from", "run-mount-from"},
+			classification: "invalid",
 		},
 		{
 			name: "nested and executable literal image sources are unsupported",
@@ -623,6 +622,152 @@ func TestDockerClassification(t *testing.T) {
 	}
 }
 
+func TestDockerSourceDiscoveryCrossProduct(t *testing.T) {
+	tests := []struct {
+		name        string
+		instruction string
+		kind        string
+	}{
+		{name: "ARG image", instruction: "ARG VALUE=golang:latest", kind: "arg-default"},
+		{name: "ARG download", instruction: "ARG VALUE=https://go.dev/dl/go1.27.0.tar.gz", kind: "arg-default"},
+		{name: "ENV image", instruction: "ENV VALUE=golang:latest", kind: "env-value"},
+		{name: "ENV download", instruction: "ENV VALUE=https://go.dev/dl/go1.27.0.tar.gz", kind: "env-value"},
+		{name: "ADD download", instruction: "ADD https://go.dev/dl/go1.27.0.tar.gz /tmp/go.tgz", kind: "add-download"},
+		{name: "RUN shell image", instruction: "RUN echo golang:latest", kind: "literal"},
+		{name: "RUN shell download", instruction: "RUN echo https://go.dev/dl/go1.27.0.tar.gz", kind: "download"},
+		{name: "RUN exec image", instruction: `RUN ["echo","golang:latest"]`, kind: "literal"},
+		{name: "RUN exec download", instruction: `RUN ["echo","https://go.dev/dl/go1.27.0.tar.gz"]`, kind: "download"},
+		{name: "CMD shell", instruction: "CMD echo golang:latest", kind: "literal"},
+		{name: "ENTRYPOINT exec", instruction: `ENTRYPOINT ["echo","golang:latest"]`, kind: "literal"},
+		{name: "HEALTHCHECK shell", instruction: "HEALTHCHECK CMD echo golang:latest", kind: "literal"},
+	}
+	for _, test := range tests {
+		for _, deferred := range []bool{false, true} {
+			name := test.name + "/top-level"
+			instruction := test.instruction
+			if deferred {
+				name = test.name + "/ONBUILD"
+				instruction = "ONBUILD " + instruction
+			}
+			t.Run(name, func(t *testing.T) {
+				metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\n" + instruction + "\n"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if metadata.DockerClassification != "unsupported" {
+					t.Fatalf("classification = %q, want unsupported; error=%q", metadata.DockerClassification, metadata.DockerError)
+				}
+				if got := metadata.DockerCandidates[0].Kind; got != test.kind {
+					t.Fatalf("candidate kind = %q, want %q", got, test.kind)
+				}
+			})
+		}
+	}
+}
+
+func TestDockerValidityBoundaryAdversarial(t *testing.T) {
+	digest := strings.Repeat("a", 64)
+	managed := "FROM golang:1.27.0@sha256:" + digest + " AS builder\n"
+	for name, contents := range map[string]string{
+		"empty document":               "",
+		"only global ARG":              "ARG VALUE=alpine\n",
+		"malformed irrelevant ARG":     managed + "ARG VALUE=${#alpine}\n",
+		"malformed irrelevant ENV":     managed + "ENV VALUE=${!alpine}\n",
+		"malformed irrelevant WORKDIR": managed + "WORKDIR '${ALPINE\n",
+		"interpolated RUN mount":       managed + "RUN --mount=type=bind,from=${IMAGE:-alpine},target=/src true\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "invalid" {
+				t.Fatalf("classification = %q, want invalid; error=%q", metadata.DockerClassification, metadata.DockerError)
+			}
+		})
+	}
+}
+
+func TestOrderedDeferredShellState(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		contents string
+		want     []string
+	}{
+		{
+			name: "ordered trigger SHELL transitions",
+			contents: "FROM alpine\n" +
+				`ONBUILD SHELL ["fish","-c"]` + "\n" +
+				"ONBUILD RUN echo alpine\n" +
+				`ONBUILD SHELL ["sh","-c"]` + "\n" +
+				"ONBUILD RUN echo golang:latest\n",
+			want: []string{"unsupported-shell", "literal"},
+		},
+		{
+			name: "final defining shell applies to earlier trigger",
+			contents: "FROM alpine\n" +
+				"ONBUILD RUN echo alpine\n" +
+				`SHELL ["fish","-c"]` + "\n",
+			want: []string{"unsupported-shell"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var kinds []string
+			for _, candidate := range metadata.DockerCandidates {
+				kinds = append(kinds, candidate.Kind)
+			}
+			if !reflect.DeepEqual(kinds, test.want) {
+				t.Fatalf("candidate kinds = %q, want %q; error=%q", kinds, test.want, metadata.DockerError)
+			}
+		})
+	}
+}
+
+func TestRuntimeArithmeticIdentifiersAreNotSources(t *testing.T) {
+	for _, script := range []string{
+		"echo $((golang + 1))",
+		"echo $((1 + golang * 2))",
+		"echo $((golang = 1))",
+	} {
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nRUN " + script + "\n"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "irrelevant" {
+			t.Errorf("script %q classification = %q, want irrelevant; candidates=%#v", script, metadata.DockerClassification, metadata.DockerCandidates)
+		}
+	}
+}
+
+func TestExecShellArgumentSemantics(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		argv           string
+		classification string
+	}{
+		{name: "$0", argv: `["sh","-c","echo ${0}lang:latest","go"]`, classification: "unsupported"},
+		{name: "$1", argv: `["sh","-c","echo ${1}lang:latest","zero","go"]`, classification: "unsupported"},
+		{name: "$@", argv: `["sh","-c","echo $@","zero","golang:latest"]`, classification: "unsupported"},
+		{name: "unused $0", argv: `["sh","-c","echo alpine","golang:latest"]`, classification: "irrelevant"},
+		{name: "$# excludes $0", argv: `["sh","-c","echo $#","golang:latest"]`, classification: "irrelevant"},
+		{name: "comment text", argv: `["sh","-c","echo alpine # golang:latest","zero"]`, classification: "irrelevant"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nRUN " + test.argv + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
+			}
+		})
+	}
+}
+
 func TestDockerGoTokenBoundaries(t *testing.T) {
 	for _, value := range []string{
 		"golang;",
@@ -790,11 +935,15 @@ func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 		t.Fatal(err)
 	}
 	bytesAfterFirst := discovery.normalizedBytes
+	workAfterFirst := discovery.wordWorkBytes
 	if _, err := discovery.normalizeDockerWord(value); err != nil {
 		t.Fatal(err)
 	}
 	if discovery.normalizedBytes != bytesAfterFirst {
 		t.Fatalf("memoized normalization increased byte budget from %d to %d", bytesAfterFirst, discovery.normalizedBytes)
+	}
+	if discovery.wordWorkBytes != workAfterFirst {
+		t.Fatalf("memoized normalization increased work budget from %d to %d", workAfterFirst, discovery.wordWorkBytes)
 	}
 
 	deep := strings.Repeat("${A:-", maxShellASTDepth+1) + "alpine" + strings.Repeat("}", maxShellASTDepth+1)
@@ -809,12 +958,26 @@ func TestDockerWordNormalizationBudgetsAndMemoization(t *testing.T) {
 		t.Fatalf("quoted runtime parameter-like text error = %v", err)
 	}
 
-	byteBudget := newDockerDiscovery('\\')
-	large := strings.Repeat("a", maxDockerNormalizedBytes/2+1)
-	if _, err := byteBudget.normalizeDockerWord(large); err != nil {
+	wordBudget := newDockerDiscovery('\\')
+	large := strings.Repeat("a", maxDockerWordInputBytes)
+	if _, err := wordBudget.normalizeDockerWord(large); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := byteBudget.normalizeDockerWord(large + "b"); !isResourceLimit(err, "normalized-word limit") {
+	if _, err := wordBudget.normalizeDockerWord(large + "b"); !isResourceLimit(err, "normalization input limit") {
+		t.Fatalf("Docker word input budget error = %v", err)
+	}
+	if _, err := wordBudget.normalizeDockerWord(strings.Repeat("b", maxDockerWordInputBytes)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wordBudget.normalizeDockerWord("distinct"); !isResourceLimit(err, "word-normalization work limit") {
+		t.Fatalf("Docker word work budget error = %v", err)
+	}
+
+	normalizedBudget := newDockerDiscovery('\\')
+	if err := normalizedBudget.accountNormalizedBytes(maxDockerNormalizedBytes); err != nil {
+		t.Fatal(err)
+	}
+	if err := normalizedBudget.accountNormalizedBytes(1); !isResourceLimit(err, "normalized-word limit") {
 		t.Fatalf("normalized Docker word budget error = %v", err)
 	}
 }
