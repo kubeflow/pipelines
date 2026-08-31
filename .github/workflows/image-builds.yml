@@ -42,6 +42,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
       - name: Configure runtime base image artifact
         id: configure-runtime-base-images
         shell: bash
@@ -104,7 +108,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          # Preserve both the runtime base image archive and modelcar.tar.
+          path: ${{ env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 1
 
@@ -116,10 +121,6 @@ jobs:
       image_tag: ${{ steps.configure.outputs.image_tag }}
       registry: ${{ steps.configure.outputs.registry }}
     strategy:
-      # A single failing image build must not cancel the other builds in the
-      # matrix: cancelled jobs skip their rebuild fallback (a cancelled build
-      # step has outcome 'cancelled', not 'failure'), so fail-fast turns one
-      # transient failure into a full workflow failure.
       fail-fast: false
       matrix:
         image:
@@ -174,6 +175,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
+
       - name: Read frontend Node version
         id: frontend_node
         run: echo "version=$(tr -d '\r\n' < frontend/.nvmrc | sed 's/^v//')" >> "$GITHUB_OUTPUT"
@@ -197,7 +202,6 @@ jobs:
         id: save-image
         continue-on-error: true
         env:
-          # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
         with:
           context: ${{ matrix.image.context }}
@@ -218,7 +222,6 @@ jobs:
         if: ${{ steps.save-image.outcome == 'failure' }}
         id: rebuild
         env:
-          # Disable the job summary report in the GitHub Actions UI
           DOCKER_BUILD_SUMMARY: false
         with:
           context: ${{ matrix.image.context }}
