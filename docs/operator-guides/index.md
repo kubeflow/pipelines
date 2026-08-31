@@ -9,4 +9,5 @@ installation
 server-config
 multi-user
 configure-object-store
+mlflow-plugin
 ```

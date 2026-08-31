@@ -9,4 +9,5 @@ migration
 core-functions/index
 components/index
 data-handling/index
+integrations/index
 ```
