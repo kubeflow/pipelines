@@ -23,7 +23,7 @@ import CustomTable, {
   CustomRendererProps,
 } from 'src/components/CustomTable';
 import RunList from './RunList';
-import immerProduce from 'immer';
+import { produce as immerProduce } from 'immer';
 import {
   V2beta1ListExperimentsResponse,
   V2beta1Experiment,
