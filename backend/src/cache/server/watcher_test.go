@@ -98,7 +98,6 @@ func TestWatchPodsIgnoresErrorEventsWithoutPanic(t *testing.T) {
 
 	select {
 	case <-done:
-		// PASS: WatchPods handled watch.Error without panicking and exited cleanly on context cancellation.
 	case <-time.After(2 * time.Second):
 		t.Fatal("WatchPods failed to exit after context cancellation")
 	}
