@@ -67,7 +67,9 @@ func (s *RunLogServer) ReadRunLogV1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	// Set the success headers without committing a status code: the first
+	// streamed log write sends 200 implicitly, while a validation failure
+	// inside ReadLog can still produce a non-2xx JSON response.
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Cache-Control", "no-cache, private")
 
