@@ -21,12 +21,15 @@ Every Dockerfile produces exactly one result:
   canonical form exactly.
 - `unsupported`: the file has a statically visible Go source that is not the
   one canonical source, has more than one canonical source, uses an unsupported
-  shell for a shell-form executable field, or uses shell syntax outside the
-  supported POSIX grammar.
+  shell for a shell-form executable field, uses shell syntax outside the
+  supported POSIX grammar, or uses a valid Docker construct whose semantics are
+  explicitly outside the bounded policy below.
 - `irrelevant`: none of the included value fields contains a statically visible
   Go source and no unsupported shell is used to interpret an executable field.
-- `invalid`: BuildKit rejects the Dockerfile, an instruction is not part of the
-  pinned typed instruction set, or a parsing/resource contract is exceeded.
+- `invalid`: the pinned parser or typed-instruction parser rejects the
+  Dockerfile, one of the explicitly listed offline structural checks below
+  fails, an instruction is not part of the pinned typed instruction set, or a
+  parsing/resource contract is exceeded.
 
 A canonical source does not hide another source: one canonical source plus any
 unsupported source is `unsupported`. An `ONBUILD` payload is never managed;
@@ -96,6 +99,17 @@ Assignment values and parameter operator operands are values and are inspected.
 Thus `golang=alpine` and `${#golang}` are irrelevant, while
 `IMAGE=golang:latest` and `${IMAGE:-golang:latest}` are unsupported.
 
+The offline stage-graph checks cover stage ordering for top-level `FROM`,
+`COPY --from`, and `RUN --mount=from`, plus self/cycle detection among those
+top-level references. Named and numeric top-level references to the current or
+a later stage are `invalid`. Deferred `ONBUILD COPY --from` and
+`ONBUILD RUN --mount=from` depend on the eventual child build's stage namespace;
+numeric references and names that denote the defining/current or a later local
+stage are therefore `unsupported`, not guessed. This is not a claim to perform
+complete Dockerfile2LLB validation: filesystem/context checks, build-argument
+dependent graphs, deferred child-build graphs, and other solver-time checks are
+outside this offline contract.
+
 ## Docker words and runtime shells
 
 Docker word fields are normalized with BuildKit's lexer using the parsed
@@ -128,6 +142,18 @@ The static contract detects literal concatenation such as `g\olang`,
 It does not claim to resolve values produced solely at runtime by files, secret
 mounts, command substitution, network responses, or an interpreter not covered
 above. A statically visible Go token within those constructs is still detected.
+
+Docker-word alternatives are complete only for direct substitution and the
+setness/emptiness operators `-`, `:-`, `+`, and `:+`. Other valid parameter
+operators, including prefix/suffix pattern removal, are classified
+`unsupported` before source classification; they never fall through as
+irrelevant. Symbolic direct substitutions may introduce repository path, tag,
+or digest boundaries, so anchored fragments such as `go${VALUE}latest` are
+conservatively detected when some value can form `golang:<tag>`.
+POSIX runtime-shell prefix/suffix pattern-removal results are projected as
+symbolic spans. They are explicitly `unsupported` when adjacent static text can
+assemble a Go source; otherwise ordinary uses such as removing a filename
+suffix remain within the supported shell grammar.
 
 ## Resource contract
 
@@ -199,7 +225,7 @@ repository component; an unknown Alpine tag cannot change `alpine` into the
 supported HTTPS host/path prefix around the unknown span.
 
 `dockerConformance` is the Docker-backed grammar corpus for review findings
-1–6. Run it on a host with Docker using
+1–7. Run it on a host with Docker using
 `KFP_RUN_DOCKER_CONFORMANCE=1 go test ./tools/go-version-metadata -run
 TestDockerContractAgainstDocker`. The runner prepends `# check=skip=all` so the
 result represents Dockerfile acceptance rather than optional build-check lint

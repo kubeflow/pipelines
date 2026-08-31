@@ -307,15 +307,15 @@ func TestDockerContractDockerConformanceCoverage(t *testing.T) {
 			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
 		}
 		seen[testCase.ID] = true
-		if testCase.Finding < 1 || testCase.Finding > 6 {
-			t.Errorf("%s: finding = %d, want 1 through 6", testCase.ID, testCase.Finding)
+		if testCase.Finding < 1 || testCase.Finding > 7 {
+			t.Errorf("%s: finding = %d, want 1 through 7", testCase.ID, testCase.Finding)
 		}
 		findings[testCase.Finding] = true
 		if (testCase.Dockerfile == "") == (testCase.Generator == nil) {
 			t.Errorf("%s: exactly one of dockerfile or generator must be set", testCase.ID)
 		}
 	}
-	for finding := 1; finding <= 6; finding++ {
+	for finding := 1; finding <= 7; finding++ {
 		if !findings[finding] {
 			t.Errorf("Docker conformance corpus does not cover finding %d", finding)
 		}

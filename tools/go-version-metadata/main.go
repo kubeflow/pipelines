@@ -108,6 +108,22 @@ func resourceLimitf(format string, arguments ...any) error {
 	return &resourceLimitError{message: fmt.Sprintf(format, arguments...)}
 }
 
+type unsupportedDockerPolicyError struct {
+	candidate dockerCandidate
+	message   string
+}
+
+func (err *unsupportedDockerPolicyError) Error() string {
+	return err.message
+}
+
+func unsupportedDockerPolicyf(kind, value string, line int, format string, arguments ...any) error {
+	return &unsupportedDockerPolicyError{
+		candidate: dockerCandidate{Kind: kind, Value: value, Line: line},
+		message:   fmt.Sprintf(format, arguments...),
+	}
+}
+
 func main() {
 	input, err := decodeRequest(os.Stdin)
 	if err != nil {
@@ -332,10 +348,10 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	unsupported := []dockerCandidate{}
 	discovery := newDockerDiscovery(parsed.EscapeToken)
 	if err := validateDockerStructure(parsed.AST, discovery); err != nil {
-		return "invalid", nil, err.Error()
+		return dockerValidationFailure(err)
 	}
 	if err := validateDockerStageGraph(parsed.AST, discovery); err != nil {
-		return "invalid", nil, err.Error()
+		return dockerValidationFailure(err)
 	}
 	for _, node := range parsed.AST.Children {
 		if strings.EqualFold(node.Value, "from") {
@@ -361,6 +377,14 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 		return "managed", managed, ""
 	}
 	return "irrelevant", nil, ""
+}
+
+func dockerValidationFailure(err error) (string, []dockerCandidate, string) {
+	var unsupported *unsupportedDockerPolicyError
+	if errors.As(err, &unsupported) {
+		return "unsupported", []dockerCandidate{unsupported.candidate}, ""
+	}
+	return "invalid", nil, err.Error()
 }
 
 func validateDockerStructure(ast *parser.Node, discovery *dockerDiscovery) error {
@@ -454,6 +478,9 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				if err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
 				}
+				if local && dependency >= current {
+					return fmt.Errorf("line %d: stage source %q must reference a prior stage", node.StartLine, command.From)
+				}
 				if local {
 					stages[current].dependencies[dependency] = true
 				}
@@ -467,8 +494,35 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				if err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
 				}
+				if local && dependency >= current {
+					return fmt.Errorf("line %d: stage source %q must reference a prior stage", node.StartLine, mount.From)
+				}
 				if local {
 					stages[current].dependencies[dependency] = true
+				}
+			}
+		case *instructions.OnbuildCommand:
+			contents := fmt.Sprintf("# escape=%c\n%s", discovery.escapeToken, command.Expression)
+			parsed, err := parser.Parse(strings.NewReader(contents))
+			if err != nil || len(parsed.AST.Children) != 1 {
+				continue
+			}
+			deferred, err := parseDockerInstruction(parsed.AST.Children[0], discovery)
+			if err != nil {
+				return err
+			}
+			switch deferred := deferred.(type) {
+			case *instructions.CopyCommand:
+				if deferred.From != "" && deferredStageSourceIsOutsideContract(deferred.From, current, finalNames) {
+					return unsupportedDockerPolicyf("copy-from", deferred.From, node.StartLine,
+						"line %d: deferred COPY --from resolution is outside the offline stage-graph contract", node.StartLine)
+				}
+			case *instructions.RunCommand:
+				for _, mount := range instructions.GetMounts(deferred) {
+					if mount.From != "" && deferredStageSourceIsOutsideContract(mount.From, current, finalNames) {
+						return unsupportedDockerPolicyf("run-mount-from", mount.From, node.StartLine,
+							"line %d: deferred RUN --mount=from resolution is outside the offline stage-graph contract", node.StartLine)
+					}
 				}
 			}
 		}
@@ -499,6 +553,14 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 		}
 	}
 	return nil
+}
+
+func deferredStageSourceIsOutsideContract(value string, definingStage int, finalNames map[string]int) bool {
+	if _, err := strconv.Atoi(value); err == nil {
+		return true
+	}
+	dependency, local := finalNames[strings.ToLower(value)]
+	return local && dependency >= definingStage
 }
 
 type dockerWordKey struct {
@@ -642,16 +704,20 @@ func parseDockerInstruction(node *parser.Node, discovery *dockerDiscovery) (any,
 	if err != nil {
 		return nil, err
 	}
-	if err := validateDockerInstructionWords(typed, discovery); err != nil {
+	if err := validateDockerInstructionWords(typed, discovery, node.StartLine); err != nil {
 		return nil, err
 	}
 	return typed, nil
 }
 
-func validateDockerInstructionWords(typed any, discovery *dockerDiscovery) error {
+func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line int) error {
 	validate := func(word string) (string, error) {
 		if _, err := discovery.dockerWordAlternatives(word); err != nil {
 			return "", err
+		}
+		if operator, found := unsupportedDockerWordOperator(word); found {
+			return "", unsupportedDockerPolicyf("unsupported-word", word, line,
+				"line %d: Docker parameter operator %q is outside the bounded word-expansion contract", line, operator)
 		}
 		return word, nil
 	}
@@ -1224,8 +1290,10 @@ func symbolicGolangImagePossible(symbolic string) bool {
 	for index := 0; index < len(repository); index++ {
 		if isSymbolicMarker(repository[index]) {
 			// An unknown value can introduce a path delimiter and then begin the
-			// final repository component within the same expansion.
+			// final repository component, or can terminate that component with a
+			// tag/digest delimiter, within the same expansion.
 			starts = append(starts, index)
+			ends = append(ends, index+1)
 			continue
 		}
 		switch repository[index] {
@@ -1387,6 +1455,7 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 	words := []*shsyntax.Word{}
 	excludedWords := map[*shsyntax.Word]bool{}
 	ordinaryVariables := map[string]bool{}
+	patternExpansions := []*shsyntax.ParamExp{}
 	nodes := 0
 	depth := 0
 	var walkErr error
@@ -1421,6 +1490,12 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 			if !isRuntimeSpecialParameter(name) {
 				ordinaryVariables[name] = true
 			}
+			if parameter.Exp != nil {
+				switch parameter.Exp.Op {
+				case shsyntax.RemSmallPrefix, shsyntax.RemLargePrefix, shsyntax.RemSmallSuffix, shsyntax.RemLargeSuffix:
+					patternExpansions = append(patternExpansions, parameter)
+				}
+			}
 		}
 		if redirect, ok := node.(*shsyntax.Redirect); ok && (redirect.Op == shsyntax.Hdoc || redirect.Op == shsyntax.DashHdoc) {
 			excludedWords[redirect.Word] = true
@@ -1429,6 +1504,12 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 	})
 	if walkErr != nil {
 		return nil, walkErr
+	}
+	for _, word := range words {
+		projected, hasPattern := projectRuntimePatternWord(value, word, patternExpansions)
+		if hasPattern && (symbolicGolangImagePossible(projected) || symbolicDownloadPrefixPossible(projected)) {
+			return nil, fmt.Errorf("POSIX parameter pattern removal can assemble a Go source and is outside the bounded runtime-shell contract")
+		}
 	}
 
 	variables := make([]string, 0, len(ordinaryVariables))
@@ -1539,6 +1620,59 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 		}
 	}
 	return result, nil
+}
+
+func projectRuntimePatternWord(value string, word *shsyntax.Word, parameters []*shsyntax.ParamExp) (string, bool) {
+	wordStart := int(word.Pos().Offset())
+	wordEnd := int(word.End().Offset())
+	if wordStart < 0 || wordEnd > len(value) || wordStart >= wordEnd {
+		return "", false
+	}
+	type span struct{ start, end int }
+	spans := []span{}
+	for _, parameter := range parameters {
+		start := int(parameter.Pos().Offset())
+		end := int(parameter.End().Offset())
+		if start >= wordStart && end <= wordEnd && start < end {
+			spans = append(spans, span{start: start, end: end})
+		}
+	}
+	if len(spans) == 0 {
+		return "", false
+	}
+	sort.Slice(spans, func(left, right int) bool { return spans[left].start < spans[right].start })
+	var projected strings.Builder
+	cursor := wordStart
+	for _, current := range spans {
+		if current.start < cursor {
+			continue
+		}
+		projected.WriteString(projectRuntimeStaticFragment(value[cursor:current.start]))
+		projected.WriteByte(dockerUnknownMarker)
+		cursor = current.end
+	}
+	projected.WriteString(projectRuntimeStaticFragment(value[cursor:wordEnd]))
+	return projected.String(), true
+}
+
+func projectRuntimeStaticFragment(value string) string {
+	var projected strings.Builder
+	for index := 0; index < len(value); index++ {
+		switch value[index] {
+		case '\'', '"':
+			continue
+		case '\\':
+			if index+1 < len(value) {
+				index++
+				if value[index] != '\n' {
+					projected.WriteByte(value[index])
+				}
+			}
+		default:
+			projected.WriteByte(value[index])
+		}
+	}
+	return projected.String()
 }
 
 func isRuntimeSpecialParameter(name string) bool {
@@ -1665,6 +1799,42 @@ func parameterExpansionWordStart(value string, start int) (int, int, int, bool) 
 		return 0, nameEnd, inspected + 1, false
 	}
 	return cursor + 1, nameEnd, inspected + 1, true
+}
+
+// unsupportedDockerWordOperator identifies parameter operators whose result
+// depends on value contents rather than only setness/emptiness. The bounded
+// policy deliberately supports direct substitution and -, :-, +, and :+;
+// accepted Docker words using other operators fail closed as unsupported.
+func unsupportedDockerWordOperator(value string) (string, bool) {
+	for index := 0; index+2 < len(value); index++ {
+		if value[index] != '$' || value[index+1] != '{' {
+			continue
+		}
+		cursor, _, ok := shellParameterNameEnd(value, index+2)
+		if !ok || cursor >= len(value) {
+			continue
+		}
+		operatorStart := cursor
+		if value[cursor] == ':' {
+			cursor++
+			if cursor >= len(value) {
+				continue
+			}
+		}
+		switch value[cursor] {
+		case '-', '+':
+			continue
+		case '}', ':':
+			continue
+		default:
+			end := cursor + 1
+			if end < len(value) && value[end] == value[cursor] && (value[cursor] == '#' || value[cursor] == '%') {
+				end++
+			}
+			return value[operatorStart:end], true
+		}
+	}
+	return "", false
 }
 
 // shellParameterNameEnd mirrors BuildKit shellWord.processName. In particular,

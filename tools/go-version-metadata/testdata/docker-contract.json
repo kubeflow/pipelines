@@ -119,6 +119,30 @@
       "finding": 6,
       "dockerfile": "FROM scratch\nARG LENGTH=${#golang}\n",
       "accepted": false
+    },
+    {
+      "id": "finding-7-pattern-removal-is-valid-but-policy-unsupported",
+      "finding": 7,
+      "dockerfile": "FROM scratch\nARG IMAGE=${X#?}olang:latest\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-7-symbolic-tag-boundary",
+      "finding": 7,
+      "dockerfile": "FROM scratch\nARG IMAGE=go${X}latest\n",
+      "accepted": true
+    },
+    {
+      "id": "finding-7-top-level-forward-stage-rejected",
+      "finding": 7,
+      "dockerfile": "FROM alpine AS first\nCOPY --from=later /x /x\nFROM busybox AS later\n",
+      "accepted": false
+    },
+    {
+      "id": "finding-7-onbuild-forward-stage-is-policy-unsupported",
+      "finding": 7,
+      "dockerfile": "FROM alpine AS base\nONBUILD COPY --from=later /x /x\nFROM base AS child\nFROM busybox AS later\n",
+      "accepted": true
     }
   ],
   "cases": [
@@ -141,6 +165,66 @@
       "polarity": "detect",
       "dockerfile": "FROM golang:1.27.0@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa AS builder\nFROM golang:latest AS stale\n",
       "want": {"classification": "unsupported", "candidateKinds": ["from", "from"]}
+    },
+    {
+      "id": "pattern-removal-operator-explicitly-unsupported",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG IMAGE=${X#?}olang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-word"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "runtime-pattern-removal-operator-explicitly-unsupported",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nRUN echo ${X#?}olang:latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-shell"]},
+      "oracles": ["sh"]
+    },
+    {
+      "id": "unknown-can-introduce-image-tag-boundary",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine\nARG IMAGE=go${X}latest\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "top-level-named-forward-stage-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS first\nCOPY --from=later /x /x\nFROM busybox AS later\n",
+      "want": {"classification": "invalid", "errorContains": "must reference a prior stage"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "top-level-numeric-forward-stage-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS first\nCOPY --from=1 /x /x\nFROM busybox AS later\n",
+      "want": {"classification": "invalid", "errorContains": "must reference a prior stage"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "top-level-run-mount-forward-stage-invalid",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS first\nRUN --mount=type=bind,from=later,target=/x true\nFROM busybox AS later\n",
+      "want": {"classification": "invalid", "errorContains": "must reference a prior stage"},
+      "oracles": ["buildkit"]
+    },
+    {
+      "id": "onbuild-forward-stage-explicitly-unsupported",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS base\nONBUILD COPY --from=later /x /x\nFROM base AS child\nFROM busybox AS later\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["copy-from"]}
+    },
+    {
+      "id": "onbuild-numeric-stage-explicitly-unsupported",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS base\nONBUILD COPY --from=1 /x /x\nFROM base AS child\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["copy-from"]}
+    },
+    {
+      "id": "onbuild-run-mount-forward-stage-explicitly-unsupported",
+      "polarity": "detect",
+      "dockerfile": "FROM alpine AS base\nONBUILD RUN --mount=type=bind,from=later,target=/x true\nFROM base AS child\nFROM busybox AS later\n",
+      "want": {"classification": "unsupported", "candidateKinds": ["run-mount-from"]}
     },
     {
       "id": "prior-local-stage-named-golang",
