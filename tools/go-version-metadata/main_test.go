@@ -831,6 +831,21 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 			image:          "registry.example:5000/ns/xx${VALUE}ang:latest",
 			classification: "unsupported",
 		},
+		{
+			name:           "unknown can turn colon into registry port",
+			image:          "registry.example:${VALUE}ang:latest",
+			classification: "unsupported",
+		},
+		{
+			name:           "distinct unknowns compose after registry port colon",
+			image:          "registry.example:${PORT}${PREFIX}ang:latest",
+			classification: "unsupported",
+		},
+		{
+			name:           "pure variable tag remains outside bounded projection",
+			image:          "alpine:${TAG}",
+			classification: "irrelevant",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM " + test.image + "\n"})
@@ -841,6 +856,19 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
 			}
 		})
+	}
+}
+
+func TestEscapedDollarDoesNotActivateDockerPatternOperator(t *testing.T) {
+	metadata, err := inspect(request{
+		Path:     "Dockerfile",
+		Contents: "FROM alpine\nARG VALUE=$${X#?}${X}\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "irrelevant" {
+		t.Fatalf("classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
 	}
 }
 
@@ -1219,6 +1247,12 @@ func TestBuildKitStageAliasCaseDomains(t *testing.T) {
 				`SHELL ["fish","-c"]` + "\n" +
 				"FROM Base\nRUN echo alpine\n",
 			classification: "irrelevant",
+		},
+		{
+			name: "uppercase Golang FROM is not suppressed by lowercase alias",
+			contents: "FROM alpine AS golang\n" +
+				"FROM GOLANG\n",
+			classification: "unsupported",
 		},
 		{
 			name: "COPY alias is case insensitive",

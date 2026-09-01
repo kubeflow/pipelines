@@ -120,6 +120,37 @@ type dockerContractWant struct {
 	ErrorContains  string   `json:"errorContains"`
 }
 
+// dockerConformanceInventory is intentionally kept in test code rather than in
+// docker-contract.json. That makes the executable Docker-backed oracle list a
+// frozen contract: deleting or renaming a fixture cannot also delete the only
+// record that said the semantic domain was required.
+var dockerConformanceInventory = map[string]string{
+	"finding-1-arg-download-source":                             "arg-download",
+	"finding-2-exec-sh-positional-argument":                     "exec-shell-positionals",
+	"finding-3-onbuild-heredoc":                                 "onbuild-heredoc",
+	"finding-4-heredoc-delimiter-name":                          "heredoc-identifiers",
+	"finding-4-unterminated-heredoc":                            "heredoc-validity",
+	"finding-5-source-bearing-public-deadline":                  "resource-deadline",
+	"finding-6-empty-workdir":                                   "typed-validity",
+	"finding-6-run-before-from":                                 "stage-order",
+	"finding-6-forbidden-onbuild-from":                          "onbuild-validity",
+	"finding-6-invalid-arg-word":                                "docker-word-validity",
+	"finding-7-pattern-removal-is-valid-but-policy-unsupported": "docker-word-operator-policy",
+	"finding-7-symbolic-tag-boundary":                           "symbolic-image-boundary",
+	"finding-7-top-level-forward-stage-rejected":                "copy-stage-resolution",
+	"finding-7-onbuild-forward-stage-is-policy-unsupported":     "onbuild-stage-resolution",
+	"runtime-pattern-removal-composition":                       "runtime-pattern-composition",
+	"escaped-docker-operator-literal":                           "docker-word-quoting",
+	"copy-stage-index-out-of-range":                             "copy-stage-resolution",
+	"onbuild-copy-variable-expansion":                           "onbuild-stage-resolution",
+	"numeric-from-is-external-image":                            "numeric-from-external",
+	"numeric-run-mount-is-external-image":                       "numeric-run-mount-external",
+	"negative-copy-stage-index":                                 "negative-copy-index",
+	"normalized-alias-lowercase-from-is-local":                  "from-alias-normalized-local",
+	"raw-uppercase-from-is-external":                            "from-alias-raw-external",
+	"copy-alias-lookup-is-case-insensitive":                     "copy-alias-case-insensitive",
+}
+
 func readDockerContract(t *testing.T) dockerContract {
 	t.Helper()
 	contents, err := os.ReadFile("testdata/docker-contract.json")
@@ -161,6 +192,9 @@ func validateDockerContractCoverage(t *testing.T, contract dockerContract) {
 		}
 	}
 	requireNonemptyUniqueIDs(t, "Docker conformance case", conformanceIDs)
+	if err := validateDockerConformanceInventory(contract.DockerConformance); err != nil {
+		t.Error(err)
+	}
 	requireExactIDs(t, "BuildKit word oracle", []string{
 		"docker-backslash-concat",
 		"docker-double-quote-concat",
@@ -277,15 +311,54 @@ func executableSourceIDs(sources []dockerExecutableSource) []string {
 
 func requireExactIDs(t *testing.T, domain string, want, got []string) {
 	t.Helper()
-	slices.Sort(want)
-	slices.Sort(got)
-	if !slices.Equal(got, want) {
+	if !exactIDsEqual(want, got) {
+		slices.Sort(want)
+		slices.Sort(got)
 		t.Errorf("%s IDs/tokens = %q, want exactly %q", domain, got, want)
 	}
 }
 
+func exactIDsEqual(want, got []string) bool {
+	want = slices.Clone(want)
+	got = slices.Clone(got)
+	slices.Sort(want)
+	slices.Sort(got)
+	return slices.Equal(got, want)
+}
+
+func validateDockerConformanceInventory(cases []dockerConformanceCase) error {
+	wantIDs := slices.Collect(func(yield func(string) bool) {
+		for id := range dockerConformanceInventory {
+			yield(id)
+		}
+	})
+	gotIDs := make([]string, 0, len(cases))
+	for _, testCase := range cases {
+		gotIDs = append(gotIDs, testCase.ID)
+		if wantDomain, found := dockerConformanceInventory[testCase.ID]; found && testCase.Domain != wantDomain {
+			return fmt.Errorf("Docker conformance case %q domain = %q, want %q", testCase.ID, testCase.Domain, wantDomain)
+		}
+	}
+	if !exactIDsEqual(wantIDs, gotIDs) {
+		slices.Sort(wantIDs)
+		slices.Sort(gotIDs)
+		return fmt.Errorf("Docker conformance inventory IDs = %q, want exactly %q", gotIDs, wantIDs)
+	}
+	return nil
+}
+
 func TestDockerContractStructuralCoverage(t *testing.T) {
 	readDockerContract(t)
+}
+
+func TestDockerContractInventoryRejectsEveryOmission(t *testing.T) {
+	contract := readDockerContract(t)
+	for index, omitted := range contract.DockerConformance {
+		withoutOne := append(slices.Clone(contract.DockerConformance[:index]), contract.DockerConformance[index+1:]...)
+		if err := validateDockerConformanceInventory(withoutOne); err == nil {
+			t.Errorf("inventory unexpectedly accepts omission of %q", omitted.ID)
+		}
+	}
 }
 
 func TestDockerContractClassificationMatrix(t *testing.T) {
@@ -481,7 +554,6 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 
 func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 	seen := map[string]bool{}
-	domains := map[string]int{}
 	for _, testCase := range readDockerContract(t).DockerConformance {
 		if testCase.ID == "" || seen[testCase.ID] {
 			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
@@ -490,7 +562,6 @@ func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 		if testCase.Domain == "" {
 			t.Errorf("%s: semantic domain must not be empty", testCase.ID)
 		}
-		domains[testCase.Domain]++
 		if testCase.Want.Classification == "" {
 			t.Errorf("%s: executable classification oracle is required", testCase.ID)
 		}
@@ -502,18 +573,6 @@ func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 			contents = generateDockerContractInput(t, *testCase.Generator)
 		}
 		assertDockerClassification(t, contents, testCase.Want)
-	}
-	for _, domain := range []string{
-		"numeric-from-external",
-		"numeric-run-mount-external",
-		"negative-copy-index",
-		"from-alias-normalized-local",
-		"from-alias-raw-external",
-		"copy-alias-case-insensitive",
-	} {
-		if domains[domain] != 1 {
-			t.Errorf("required Docker conformance domain %q has %d cases, want exactly 1", domain, domains[domain])
-		}
 	}
 }
 

@@ -642,6 +642,42 @@ class UpdateGoVersionTest(unittest.TestCase):
         self.assertFalse(
             list(root.parent.glob(f'.{root.name}.go-update-*')))
 
+    def test_same_contents_inode_replacement_fails_and_retains_recovery(self):
+        root = self.repo_root / 'go.mod'
+        original_inode = root.stat().st_ino
+        replacement = root.with_name('replacement-go.mod')
+        replaced = False
+
+        def replace_after_apply(repo_root):
+            nonlocal replaced
+            if Path(repo_root) == self.repo_root:
+                replacement.write_bytes(root.read_bytes())
+                replacement.chmod(stat.S_IMODE(root.stat().st_mode))
+                os.replace(replacement, root)
+                replaced = True
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=replace_after_apply,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'worktree identity changed.*managed paths left '
+                    'unchanged.*go.mod.*recovery bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertTrue(replaced)
+        self.assertNotEqual(root.stat().st_ino, original_inode)
+        self.assertIn('toolchain go1.28.3',
+                      root.read_text(encoding='utf-8'))
+        self.assertEqual(len(self._recovery_bundles()), 1)
+
     def test_live_publication_does_not_require_directory_fsync(self):
         real_fsync_directory = update_go_version._fsync_directory
 

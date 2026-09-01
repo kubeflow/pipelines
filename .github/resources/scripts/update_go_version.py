@@ -982,7 +982,7 @@ def _ensure_snapshot_state(
     expected_contents: Dict[Path, str],
     relative_paths: Iterable[Path],
 ) -> None:
-    """Require HEAD, index identity, contents, and modes to match a snapshot."""
+    """Require repository and complete managed-path identity to match."""
     relative_paths = tuple(relative_paths)
     _require_supported_managed_git_state(repo_root, relative_paths)
     head = _git(repo_root, 'rev-parse', '--verify', 'HEAD').stdout.strip()
@@ -1014,6 +1014,11 @@ def _ensure_snapshot_state(
             changed.append(f'{relative_path} (worktree file type changed)')
         elif current.mode != expected_path.mode:
             changed.append(f'{relative_path} (worktree mode changed)')
+        elif (current.device != expected_path.device or
+              current.inode != expected_path.inode):
+            changed.append(f'{relative_path} (worktree identity changed)')
+        elif current.link_count != expected_path.link_count:
+            changed.append(f'{relative_path} (worktree link count changed)')
     if changed:
         raise RuntimeError(
             'files changed while committing Go version update: ' +

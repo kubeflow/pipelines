@@ -850,7 +850,14 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 			if rejectCurrent && (numericLocal || !numeric) && context.isCurrentStageReference(normalized) {
 				return fmt.Errorf("%s cannot reference the current stage %q", kind, normalized)
 			}
-			if !context.conservative && (numericLocal || !numeric) && discovery.isStageReference(normalized) {
+			local := discovery.isStageReference(normalized)
+			if kind == "from" {
+				// BuildKit normalizes declared aliases, but FROM compares its raw
+				// base token against that normalized namespace. COPY --from and
+				// RUN --mount=from, by contrast, fold their lookup keys.
+				local = discovery.isBaseReference(normalized)
+			}
+			if !context.conservative && (numericLocal || !numeric) && local {
 				continue
 			}
 			allLocal = false
@@ -1092,6 +1099,11 @@ func (discovery *dockerDiscovery) setRuntimeShell(command []string) {
 
 func (discovery *dockerDiscovery) isStageReference(value string) bool {
 	_, found := discovery.stageReferences[strings.ToLower(value)]
+	return found
+}
+
+func (discovery *dockerDiscovery) isBaseReference(value string) bool {
+	_, found := discovery.baseReferences[value]
 	return found
 }
 
@@ -1471,15 +1483,22 @@ func symbolicGolangImagePossible(symbolic symbolicValue) bool {
 	starts := []int{0}
 	ends := []int{len(atoms)}
 	inSuffix := false
+	portCompatible := false
+	type injectedStart struct {
+		index  int
+		prefix string
+	}
+	injectedStarts := []injectedStart{}
 	for index, atom := range atoms {
 		if atom.variable != "" {
-			if inSuffix {
-				continue
+			// An expansion can introduce a slash and start a new repository
+			// component. After a colon that is only possible when the text
+			// since the colon can still be a registry port.
+			if !inSuffix {
+				starts = append(starts, index)
+			} else if portCompatible {
+				injectedStarts = append(injectedStarts, injectedStart{index: index, prefix: "0/"})
 			}
-			// An unknown value can introduce a path delimiter and then begin the
-			// final repository component, or can terminate that component with a
-			// tag/digest delimiter, within the same expansion.
-			starts = append(starts, index)
 			ends = append(ends, index+1)
 			continue
 		}
@@ -1487,10 +1506,16 @@ func symbolicGolangImagePossible(symbolic symbolicValue) bool {
 		case '/':
 			starts = append(starts, index+1)
 			inSuffix = false
+			portCompatible = false
 		case ':', '@':
 			if !inSuffix {
 				ends = append(ends, index)
 				inSuffix = true
+				portCompatible = atom.literal == ':'
+			}
+		default:
+			if inSuffix && (atom.literal < '0' || atom.literal > '9') {
+				portCompatible = false
 			}
 		}
 	}
@@ -1501,7 +1526,82 @@ func symbolicGolangImagePossible(symbolic symbolicValue) bool {
 			}
 		}
 	}
+	for _, start := range injectedStarts {
+		// The injected slash starts a fresh repository component, so delimiters
+		// after it must be interpreted independently of the earlier colon that
+		// may have become a registry port.
+		injectedEnds := []int{len(atoms)}
+		for index := start.index + 1; index < len(atoms); index++ {
+			if atoms[index].variable == "" && (atoms[index].literal == ':' || atoms[index].literal == '@') {
+				injectedEnds = append(injectedEnds, index)
+			}
+		}
+		for _, end := range injectedEnds {
+			if start.index < end && symbolicGlobCanEqualAfterInjectedSlash(
+				symbolicValueFromAtoms(atoms[start.index:end]), "golang", start.prefix,
+			) {
+				return true
+			}
+		}
+	}
 	return false
+}
+
+// symbolicGlobCanEqualAfterInjectedSlash checks a component that begins inside
+// the first variable. injectedPrefix is the witness text before that component
+// (a slash, optionally preceded by a registry port). Keeping the full assignment
+// in the map preserves repeated-variable identity at later occurrences.
+func symbolicGlobCanEqualAfterInjectedSlash(pattern symbolicValue, target, injectedPrefix string) bool {
+	atoms := pattern.atoms()
+	if len(atoms) == 0 || atoms[0].variable == "" {
+		return false
+	}
+	// Keep the bounded policy's pure-variable exclusion: an unknown may
+	// introduce the registry-port/path boundary, but some literal source text
+	// must still anchor the reserved final component.
+	hasLiteral := false
+	for _, atom := range atoms {
+		hasLiteral = hasLiteral || atom.variable == ""
+	}
+	if !hasLiteral {
+		return false
+	}
+	first := atoms[0].variable
+	for end := 0; end <= len(target); end++ {
+		assignment := injectedPrefix + target[:end]
+		assignments := map[string]string{first: assignment}
+		if symbolicAtomsCanEqual(atoms[1:], target[end:], assignments) {
+			return true
+		}
+	}
+	return false
+}
+
+func symbolicAtomsCanEqual(atoms []symbolicAtom, target string, assignments map[string]string) bool {
+	if len(atoms) == 0 {
+		return target == ""
+	}
+	atom := atoms[0]
+	if atom.variable != "" {
+		assigned, found := assignments[atom.variable]
+		if found {
+			return strings.HasPrefix(target, assigned) &&
+				symbolicAtomsCanEqual(atoms[1:], target[len(assigned):], assignments)
+		}
+		for end := 0; end <= len(target); end++ {
+			branch := make(map[string]string, len(assignments)+1)
+			for identity, value := range assignments {
+				branch[identity] = value
+			}
+			branch[atom.variable] = target[:end]
+			if symbolicAtomsCanEqual(atoms[1:], target[end:], branch) {
+				return true
+			}
+		}
+		return false
+	}
+	return len(target) > 0 && strings.EqualFold(string(atom.literal), target[:1]) &&
+		symbolicAtomsCanEqual(atoms[1:], target[1:], assignments)
 }
 
 func symbolicValueFromAtoms(atoms []symbolicAtom) symbolicValue {
@@ -2041,6 +2141,12 @@ func unsupportedDockerWordOperator(value string, activeVariables map[string]bool
 			continue
 		}
 		if value[index] == byte(escapeToken) {
+			index++
+			continue
+		}
+		if value[index] == '$' && value[index+1] == '$' {
+			// Docker's word lexer reduces $$ to a literal dollar. Consume the
+			// pair so the second byte cannot be mistaken for an active ${...}.
 			index++
 			continue
 		}
