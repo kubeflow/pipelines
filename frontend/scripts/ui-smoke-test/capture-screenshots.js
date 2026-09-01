@@ -15,12 +15,29 @@ const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   resolveSemanticScenarios,
 } = require('./semantic-capture-scenarios.js');
-const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest.js');
+const {
+  SEMANTIC_COLOR_PALETTE,
+  SEMANTIC_ID_KINDS,
+  SEMANTIC_ID_NORMALIZATION_MODES,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+  SEMANTIC_ID_PATH_PATTERN,
+  SEMANTIC_ID_TOKEN_PATTERN,
+  semanticIdNormalizationRenderingContract,
+  semanticIdToken,
+} = require('./semantic-id-normalization.js');
+const {
+  COMPARISON_RUN_FIXTURES,
+  REVISION_FLAVORS,
+  SEMANTIC_FIXTURE_SET,
+  SEMANTIC_SCHEMA_VERSION,
+  TASK_FIXTURES,
+  validateCombinedSemanticManifest,
+} = require('./semantic-manifest.js');
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DEFAULT_SEED_MANIFEST = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
-const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
+const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
 const CAPTURE_OWNER_FILENAME = '.ui-smoke-capture-managed.json';
 const CAPTURE_OWNER_SCHEMA_VERSION = 1;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
@@ -56,6 +73,7 @@ const DIAGNOSTIC_TEXT_LIMIT = 500;
 const CAPTURE_ARGUMENT_NAMES = new Set([
   'base-url',
   'label',
+  'normalization-mode',
   'output',
   'port',
   'revision-role',
@@ -211,8 +229,29 @@ function parseCaptureOptions(args = process.argv.slice(2), env = process.env) {
   }
   const semanticManifestPath = getArg(args, 'semantic-manifest', null);
   const sourceProvenancePath = getArg(args, 'source-provenance', null);
+  const semanticIdNormalizationMode = getArg(args, 'normalization-mode', null);
+  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(semanticIdNormalizationMode)) {
+    throw new Error(
+      `--normalization-mode is required and must be ${Object.values(SEMANTIC_ID_NORMALIZATION_MODES).join(' or ')}.`,
+    );
+  }
   if ((semanticManifestPath || sourceProvenancePath) && !revisionRole) {
     throw new Error('--revision-role is required with capture provenance inputs.');
+  }
+  if (semanticIdNormalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK) {
+    if (
+      !semanticManifestPath ||
+      !sourceProvenancePath ||
+      !['base', 'head'].includes(revisionRole)
+    ) {
+      throw new Error(
+        'semantic-full-stack normalization requires --revision-role base|head, --semantic-manifest, and --source-provenance.',
+      );
+    }
+  } else if (semanticManifestPath || sourceProvenancePath) {
+    throw new Error(
+      'disabled-browser-compatibility normalization forbids semantic and source provenance inputs.',
+    );
   }
 
   return {
@@ -232,13 +271,14 @@ function parseCaptureOptions(args = process.argv.slice(2), env = process.env) {
       env.UI_SMOKE_SEED_MANIFEST || DEFAULT_SEED_MANIFEST,
     ),
     revisionRole,
+    semanticIdNormalizationMode,
     semanticManifestPath,
     sourceProvenancePath,
     viewports: parseViewports(viewportValue),
   };
 }
 
-function attestJsonInput(filePath, description) {
+function loadAttestedJsonInput(filePath, description) {
   if (!filePath) return null;
   const resolvedPath = path.resolve(filePath);
   const stat = fs.lstatSync(resolvedPath);
@@ -256,17 +296,78 @@ function attestJsonInput(filePath, description) {
     throw new Error(`${description} must contain a JSON object.`);
   }
   return {
-    path: resolvedPath,
-    schemaVersion:
-      typeof value.schemaVersion === 'string' || typeof value.schemaVersion === 'number'
-        ? value.schemaVersion
-        : null,
-    sha256: crypto.createHash('sha256').update(contents).digest('hex'),
-    sizeBytes: contents.length,
+    attestation: {
+      path: resolvedPath,
+      schemaVersion:
+        typeof value.schemaVersion === 'string' || typeof value.schemaVersion === 'number'
+          ? value.schemaVersion
+          : null,
+      sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+      sizeBytes: contents.length,
+    },
+    value,
   };
 }
 
-function loadSeedValues(manifestPath, options = {}) {
+function attestJsonInput(filePath, description) {
+  return loadAttestedJsonInput(filePath, description)?.attestation || null;
+}
+
+function seedValuesFromManifest(manifest) {
+  const defaults = manifest.defaults || {};
+  const resources = manifest.resources || {};
+  const runIds = Array.isArray(resources.runIds) ? resources.runIds : [];
+  const semanticBindings = manifest.semantic?.bindings || {};
+  const semanticResources = semanticBindings.resources || {};
+  const semanticRuns = semanticBindings.runs || {};
+  const richRun = semanticRuns['run.training-1'] || {};
+  const taskId = (semanticKey) => richRun.taskInstances?.[semanticKey]?.[0]?.taskId || null;
+  const artifactId = (semanticKey) => richRun.artifacts?.[semanticKey]?.artifactIds?.[0] || null;
+  const artifactMemberId = (semanticKey, memberKey) =>
+    richRun.artifacts?.[semanticKey]?.members?.[memberKey]?.artifactIds?.[0] || null;
+  const semanticComparisonRunIds = COMPARISON_RUN_FIXTURES.map(
+    (semanticKey) => semanticResources[semanticKey]?.id,
+  ).filter(Boolean);
+  const semanticCompareRunlist =
+    semanticComparisonRunIds.length === COMPARISON_RUN_FIXTURES.length
+      ? semanticComparisonRunIds.join(',')
+      : null;
+
+  return {
+    artifactId:
+      defaults.artifactId ||
+      artifactId('artifact.html-report') ||
+      artifactId('artifact.scalar-metrics'),
+    compareRunlist:
+      semanticCompareRunlist || defaults.compareRunlist || runIds.slice(0, 3).join(','),
+    consumeMetricsTaskId: taskId('task.consume-metrics'),
+    executionId:
+      defaults.executionId ||
+      richRun.taskInstances?.['task.write-metrics']?.[0]?.mlmdExecutionId ||
+      null,
+    experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
+    htmlArtifactId: artifactId('artifact.html-report'),
+    historicalArtifactId: defaults.historicalArtifactId || null,
+    markdownArtifactId: artifactId('artifact.markdown-report'),
+    nestedDagTaskId: taskId('task.nested-dag'),
+    parallelTaskId: taskId('task.parallel-loop'),
+    pipelineId: defaults.pipelineId || (resources.pipelineIds || [])[0],
+    recurringRunId: defaults.recurringRunId || (resources.recurringRunIds || [])[0],
+    relatedArtifactId:
+      artifactMemberId('artifact.scalar-metrics', 'metric.accuracy') ||
+      artifactId('artifact.scalar-metrics'),
+    runId: defaults.runId || runIds[0],
+    richRunId:
+      semanticResources['run.training-1']?.id || richRun.runId || defaults.runId || runIds[0],
+    retryTaskId: taskId('task.retry-once'),
+    rocArtifactId: artifactId('artifact.roc-curve'),
+    scalarArtifactId: artifactId('artifact.scalar-metrics'),
+    taskId: defaults.taskId || taskId('task.write-metrics'),
+    writeMetricsTaskId: taskId('task.write-metrics'),
+  };
+}
+
+function loadSeedManifestInput(manifestPath, options = {}) {
   const required = options.required === true;
   if (!manifestPath || !fs.existsSync(manifestPath)) {
     if (required) {
@@ -278,58 +379,8 @@ function loadSeedValues(manifestPath, options = {}) {
   }
 
   try {
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    const defaults = manifest.defaults || {};
-    const resources = manifest.resources || {};
-    const runIds = Array.isArray(resources.runIds) ? resources.runIds : [];
-    const semanticBindings = manifest.semantic?.bindings || {};
-    const semanticResources = semanticBindings.resources || {};
-    const semanticRuns = semanticBindings.runs || {};
-    const richRun = semanticRuns['run.training-1'] || {};
-    const taskId = (semanticKey) => richRun.taskInstances?.[semanticKey]?.[0]?.taskId || null;
-    const artifactId = (semanticKey) => richRun.artifacts?.[semanticKey]?.artifactIds?.[0] || null;
-    const artifactMemberId = (semanticKey, memberKey) =>
-      richRun.artifacts?.[semanticKey]?.members?.[memberKey]?.artifactIds?.[0] || null;
-    const semanticComparisonRunIds = COMPARISON_RUN_FIXTURES.map(
-      (semanticKey) => semanticResources[semanticKey]?.id,
-    ).filter(Boolean);
-    const semanticCompareRunlist =
-      semanticComparisonRunIds.length === COMPARISON_RUN_FIXTURES.length
-        ? semanticComparisonRunIds.join(',')
-        : null;
-
-    return {
-      artifactId:
-        defaults.artifactId ||
-        artifactId('artifact.html-report') ||
-        artifactId('artifact.scalar-metrics'),
-      compareRunlist:
-        semanticCompareRunlist || defaults.compareRunlist || runIds.slice(0, 3).join(','),
-      consumeMetricsTaskId: taskId('task.consume-metrics'),
-      executionId:
-        defaults.executionId ||
-        richRun.taskInstances?.['task.write-metrics']?.[0]?.mlmdExecutionId ||
-        null,
-      experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
-      htmlArtifactId: artifactId('artifact.html-report'),
-      historicalArtifactId: defaults.historicalArtifactId || null,
-      markdownArtifactId: artifactId('artifact.markdown-report'),
-      nestedDagTaskId: taskId('task.nested-dag'),
-      parallelTaskId: taskId('task.parallel-loop'),
-      pipelineId: defaults.pipelineId || (resources.pipelineIds || [])[0],
-      recurringRunId: defaults.recurringRunId || (resources.recurringRunIds || [])[0],
-      relatedArtifactId:
-        artifactMemberId('artifact.scalar-metrics', 'metric.accuracy') ||
-        artifactId('artifact.scalar-metrics'),
-      runId: defaults.runId || runIds[0],
-      richRunId:
-        semanticResources['run.training-1']?.id || richRun.runId || defaults.runId || runIds[0],
-      retryTaskId: taskId('task.retry-once'),
-      rocArtifactId: artifactId('artifact.roc-curve'),
-      scalarArtifactId: artifactId('artifact.scalar-metrics'),
-      taskId: defaults.taskId || taskId('task.write-metrics'),
-      writeMetricsTaskId: taskId('task.write-metrics'),
-    };
+    const input = loadAttestedJsonInput(manifestPath, 'Seed manifest');
+    return { ...input, seedValues: seedValuesFromManifest(input.value) };
   } catch (error) {
     if (required) {
       throw new Error(`Failed to load seed manifest ${manifestPath}: ${error.message}`, {
@@ -339,6 +390,1252 @@ function loadSeedValues(manifestPath, options = {}) {
     console.log(`Warning: failed to parse seed manifest ${manifestPath}: ${error.message}`);
     return null;
   }
+}
+
+function loadSeedValues(manifestPath, options = {}) {
+  return loadSeedManifestInput(manifestPath, options)?.seedValues || null;
+}
+
+function semanticIdNormalizationError(message, captureValidity = 'seed_failure') {
+  const error = new Error(message);
+  error.captureValidity = captureValidity;
+  return error;
+}
+
+function validateSemanticIdNormalizationMode(options) {
+  const mode = options?.semanticIdNormalizationMode;
+  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(mode)) {
+    throw semanticIdNormalizationError(
+      `Capture requires an explicit semantic ID normalization mode; received ${mode || '(missing)'}.`,
+    );
+  }
+  if (mode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK) {
+    if (
+      !options.semanticManifestPath ||
+      !options.sourceProvenancePath ||
+      !['base', 'head'].includes(options.revisionRole)
+    ) {
+      throw semanticIdNormalizationError(
+        'semantic-full-stack normalization requires base|head revision role plus semantic and source provenance.',
+      );
+    }
+  } else if (options.semanticManifestPath || options.sourceProvenancePath) {
+    throw semanticIdNormalizationError(
+      'disabled-browser-compatibility normalization forbids semantic and source provenance.',
+    );
+  }
+  return mode;
+}
+
+function identifierValues(value) {
+  const values = Array.isArray(value) ? value : [];
+  return [...new Set(values.map((entry) => String(entry || '')).filter(Boolean))].sort();
+}
+
+function semanticIdentifierSegment(value, fallback) {
+  return (
+    String(value || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9.-]+/g, '-')
+      .replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '') || fallback
+  );
+}
+
+function executorLogAttemptIndex(uri) {
+  if (typeof uri !== 'string' || uri.length === 0 || uri.trim() !== uri) return null;
+  const match = uri.match(/(?:^|\/)executor-logs-(0|[1-9]\d*)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function legacyExecutionSemanticScope(runKey, executionKey, instance, index) {
+  if (instance?.executionRole === 'run-root') return `${runKey}/execution.root[${index}]`;
+  if (instance?.executionRole === 'loop-controller') {
+    return `${runKey}/${executionKey}/controller`;
+  }
+  if (instance?.executionRole === 'loop-iteration') {
+    return `${runKey}/${executionKey}/iteration[${instance.iterationIndex}]`;
+  }
+  return `${runKey}/${executionKey}[${index}]`;
+}
+
+function taskVisualSemanticId(runKey, taskKey, index) {
+  return `${runKey}/${taskKey}[${index}]`;
+}
+
+function unjoinableLegacyTaskEquivalence(manifest, runKey, taskKey) {
+  const baseRun = manifest.deployments?.base?.bindings?.runs?.[runKey];
+  const runProfile = manifest.logical?.runProfiles?.[baseRun?.fixtureProfile];
+  const instances = baseRun?.taskInstances?.[taskKey];
+  if (
+    baseRun?.revisionFlavor !== REVISION_FLAVORS.LEGACY ||
+    baseRun?.lineageComplete !== true ||
+    taskKey !== runProfile?.loop?.worker ||
+    !Array.isArray(instances) ||
+    instances.length !== runProfile.loop.iterations
+  ) {
+    return '';
+  }
+  if (
+    instances.some(
+      (instance) => instance?.mlmdExecutionId || Number.isSafeInteger(instance?.iterationIndex),
+    )
+  ) {
+    return '';
+  }
+  return `${runKey}/${taskKey}/equivalent`;
+}
+
+function legacyExecutionVisualIdentity(runKey, executionKey, instance, index) {
+  const executionScope = legacyExecutionSemanticScope(runKey, executionKey, instance, index);
+  if (instance?.executionRole === 'run-root') {
+    return { tokenKind: 'execution', tokenSemanticId: `${executionScope}/execution` };
+  }
+  if (instance?.executionRole === 'loop-controller') {
+    return { tokenKind: 'task', tokenSemanticId: taskVisualSemanticId(runKey, executionKey, 0) };
+  }
+  if (instance?.executionRole === 'loop-iteration') {
+    return { tokenKind: 'task', tokenSemanticId: executionScope };
+  }
+  const taskIndex = Number.isSafeInteger(instance?.iterationIndex)
+    ? instance.iterationIndex
+    : index;
+  return {
+    tokenKind: 'task',
+    tokenSemanticId: taskVisualSemanticId(runKey, executionKey, taskIndex),
+  };
+}
+
+function buildSemanticIdentifierCatalog(manifest, revisionRole) {
+  if (revisionRole !== 'base' && revisionRole !== 'head') {
+    throw semanticIdNormalizationError(
+      `Semantic identifier bindings require revision role base or head, received ${revisionRole || '(missing)'}.`,
+      'missing_fixture',
+    );
+  }
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw semanticIdNormalizationError('Semantic fixture manifest must contain an object.');
+  }
+  if (manifest.schemaVersion !== SEMANTIC_SCHEMA_VERSION) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest must use schema ${SEMANTIC_SCHEMA_VERSION}.`,
+    );
+  }
+  if (manifest.fixtureSet !== SEMANTIC_FIXTURE_SET) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest must use fixture set ${SEMANTIC_FIXTURE_SET}.`,
+    );
+  }
+  const deployment = manifest.deployments?.[revisionRole];
+  const bindings = deployment?.bindings;
+  if (!bindings || typeof bindings !== 'object' || Array.isArray(bindings)) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest has no ${revisionRole} deployment bindings.`,
+      'missing_fixture',
+    );
+  }
+  if (
+    !manifest.logical?.resources ||
+    typeof manifest.logical.resources !== 'object' ||
+    Array.isArray(manifest.logical.resources) ||
+    Object.keys(manifest.logical.resources).length === 0 ||
+    !bindings.resources ||
+    !bindings.runs ||
+    Object.keys(bindings.resources).length === 0 ||
+    Object.keys(bindings.runs).length === 0
+  ) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest ${revisionRole} deployment has incomplete logical or generated bindings.`,
+      'missing_fixture',
+    );
+  }
+  const expectedFlavor =
+    revisionRole === 'base' ? REVISION_FLAVORS.LEGACY : REVISION_FLAVORS.NATIVE;
+  if (deployment.revisionFlavor !== expectedFlavor) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest ${revisionRole} deployment must use ${expectedFlavor}, received ${deployment.revisionFlavor || '(missing)'}.`,
+      'missing_fixture',
+    );
+  }
+  if (
+    deployment.validation?.valid !== true ||
+    !Array.isArray(deployment.validation?.errors) ||
+    deployment.validation.errors.length !== 0
+  ) {
+    throw semanticIdNormalizationError(
+      `Semantic fixture manifest ${revisionRole} deployment has not passed fixture validation.`,
+      'seed_failure',
+    );
+  }
+
+  const identifiers = [];
+  const identitiesByKindAndValue = new Map();
+  const identitiesByToken = new Map();
+  const valuesByKindAndSemanticId = new Map();
+  const add = (kind, semanticId, rawValue, metadata = {}) => {
+    if (rawValue === undefined || rawValue === null || rawValue === '') return;
+    const value = String(rawValue);
+    if (!SEMANTIC_ID_KINDS.includes(kind)) {
+      throw semanticIdNormalizationError(`Unsupported semantic identifier kind ${kind}.`);
+    }
+    if (!SEMANTIC_ID_PATH_PATTERN.test(semanticId)) {
+      throw semanticIdNormalizationError(`Invalid semantic identifier path ${semanticId}.`);
+    }
+    const displayLabel =
+      typeof metadata.displayLabel === 'string'
+        ? metadata.displayLabel.replace(/\s+/g, ' ').trim()
+        : '';
+    const observedDisplayLabel =
+      typeof metadata.observedDisplayLabel === 'string'
+        ? metadata.observedDisplayLabel.replace(/\s+/g, ' ').trim()
+        : '';
+    if (
+      displayLabel &&
+      (kind !== 'run' || displayLabel.length > 1000 || /[\u0000-\u001f]/.test(displayLabel))
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic identifier ${semanticId} has an invalid deterministic display label.`,
+      );
+    }
+    if (observedDisplayLabel && displayLabel && observedDisplayLabel !== displayLabel) {
+      throw semanticIdNormalizationError(
+        `Semantic run ${semanticId} display label ${observedDisplayLabel} does not match fixture label ${displayLabel}.`,
+        'missing_fixture',
+      );
+    }
+    const equivalenceClass = metadata.equivalenceClass || '';
+    if (equivalenceClass && (kind !== 'task' || !SEMANTIC_ID_PATH_PATTERN.test(equivalenceClass))) {
+      throw semanticIdNormalizationError(
+        `Semantic identifier ${semanticId} has an invalid visual equivalence class.`,
+      );
+    }
+    const tokenKind = metadata.tokenKind || kind;
+    const tokenSemanticId = metadata.tokenSemanticId || equivalenceClass || semanticId;
+    if (
+      !SEMANTIC_ID_KINDS.includes(tokenKind) ||
+      !SEMANTIC_ID_PATH_PATTERN.test(tokenSemanticId) ||
+      (equivalenceClass && tokenSemanticId !== equivalenceClass)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic identifier ${semanticId} has an invalid visual identity.`,
+      );
+    }
+    const token = semanticIdToken(tokenKind, tokenSemanticId);
+    if (!SEMANTIC_ID_TOKEN_PATTERN.test(token)) {
+      throw semanticIdNormalizationError(`Invalid semantic identifier token ${token}.`);
+    }
+    const tokenIdentity = identitiesByToken.get(token);
+    if (
+      tokenIdentity &&
+      (tokenIdentity.tokenKind !== tokenKind || tokenIdentity.tokenSemanticId !== tokenSemanticId)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ${kind} identifiers ${tokenIdentity.semanticId} and ${semanticId} produce the same visual token.`,
+      );
+    }
+    const collisionKey = `${kind}\u0000${value}`;
+    const existing = identitiesByKindAndValue.get(collisionKey);
+    if (existing) {
+      if (existing.semanticId !== semanticId || existing.token !== token) {
+        throw semanticIdNormalizationError(
+          `Generated ${kind} identifier is ambiguously bound to ${existing.semanticId} and ${semanticId}.`,
+        );
+      }
+      if (displayLabel && existing.displayLabel && existing.displayLabel !== displayLabel) {
+        throw semanticIdNormalizationError(
+          `Semantic ${kind} identifier ${semanticId} has conflicting deterministic display labels.`,
+        );
+      }
+      if (displayLabel && !existing.displayLabel) existing.displayLabel = displayLabel;
+      return existing;
+    }
+    const semanticKey = `${kind}\u0000${semanticId}`;
+    const existingValue = valuesByKindAndSemanticId.get(semanticKey);
+    if (existingValue !== undefined && existingValue !== value) {
+      throw semanticIdNormalizationError(
+        `Semantic ${kind} identifier ${semanticId} is bound to multiple generated values.`,
+      );
+    }
+    const identifier = {
+      kind,
+      semanticId,
+      token,
+      tokenKind,
+      tokenSemanticId,
+      value,
+      ...(displayLabel ? { displayLabel } : {}),
+      ...(equivalenceClass ? { equivalenceClass } : {}),
+    };
+    identitiesByKindAndValue.set(collisionKey, identifier);
+    identitiesByToken.set(token, identifier);
+    valuesByKindAndSemanticId.set(semanticKey, value);
+    identifiers.push(identifier);
+    return identifier;
+  };
+
+  const artifactSemanticIdsByValue = new Map();
+
+  for (const [semanticKey, resource] of Object.entries(bindings.resources || {}).sort(
+    ([left], [right]) => left.localeCompare(right),
+  )) {
+    if (semanticKey.startsWith('run.')) {
+      add('run', semanticKey, resource?.id, {
+        displayLabel: manifest.logical?.resources?.[semanticKey]?.displayName,
+        observedDisplayLabel: resource?.displayName,
+      });
+    }
+  }
+
+  for (const [runKey, run] of Object.entries(bindings.runs || {}).sort(([left], [right]) =>
+    left.localeCompare(right),
+  )) {
+    add('run', runKey, run?.runId, {
+      displayLabel: manifest.logical?.resources?.[runKey]?.displayName,
+      observedDisplayLabel: run?.displayName,
+    });
+    const taskArtifactReferences = [];
+    const runProfile = manifest.logical?.runProfiles?.[run.fixtureProfile];
+
+    for (const [taskKey, instances] of Object.entries(run?.taskInstances || {}).sort(
+      ([left], [right]) => left.localeCompare(right),
+    )) {
+      for (const [index, instance] of (Array.isArray(instances) ? instances : []).entries()) {
+        const taskSemanticId = taskVisualSemanticId(runKey, taskKey, index);
+        const equivalenceClass = unjoinableLegacyTaskEquivalence(manifest, runKey, taskKey);
+        add('task', taskSemanticId, instance?.taskId, {
+          ...(equivalenceClass ? { equivalenceClass } : {}),
+          tokenKind: 'task',
+          tokenSemanticId: equivalenceClass || taskSemanticId,
+        });
+        if (instance?.mlmdExecutionId) {
+          const taskExecutions = run?.executionInstances?.[taskKey] || [];
+          const legacyExecutionIndex = taskExecutions.findIndex(
+            (execution) => execution?.executionId === instance.mlmdExecutionId,
+          );
+          if (legacyExecutionIndex < 0) {
+            if (run.lineageComplete === true) {
+              throw semanticIdNormalizationError(
+                `Task ${taskSemanticId} references legacy execution ${instance.mlmdExecutionId} outside its semantic execution group.`,
+                'missing_fixture',
+              );
+            }
+            add('execution', `${taskSemanticId}/execution`, instance.mlmdExecutionId, {
+              tokenKind: 'task',
+              tokenSemanticId: taskSemanticId,
+            });
+          } else {
+            const executionScope = legacyExecutionSemanticScope(
+              runKey,
+              taskKey,
+              taskExecutions[legacyExecutionIndex],
+              legacyExecutionIndex,
+            );
+            add('execution', `${executionScope}/execution`, instance.mlmdExecutionId, {
+              tokenKind: 'task',
+              tokenSemanticId: taskSemanticId,
+            });
+          }
+        }
+        const failedMainJobs = Array.isArray(instance?.failedMainJobs)
+          ? instance.failedMainJobs
+          : [];
+        for (const [attemptIndex, podName] of failedMainJobs.entries()) {
+          const podSemanticId = `${taskSemanticId}/pod.executor[${attemptIndex}]`;
+          add('pod', `${podSemanticId}/name`, podName, {
+            tokenKind: 'pod',
+            tokenSemanticId: `${podSemanticId}/name`,
+          });
+        }
+        const taskPodRole = TASK_FIXTURES[taskKey]?.kind === 'runtime' ? 'executor' : 'driver';
+        const taskPodIndex = taskKey === runProfile?.retry?.task ? failedMainJobs.length : 0;
+        const taskPodSemanticId = `${taskSemanticId}/pod.${taskPodRole}[${taskPodIndex}]`;
+        add('pod', `${taskPodSemanticId}/name`, instance?.podName, {
+          tokenKind: 'pod',
+          tokenSemanticId: `${taskPodSemanticId}/name`,
+        });
+        const podIndexesByRole = new Map();
+        for (const pod of instance?.podBindings || []) {
+          const role = String(pod?.type || '').toLowerCase();
+          if (role !== 'driver' && role !== 'executor') {
+            throw semanticIdNormalizationError(
+              `Task ${taskSemanticId} contains a pod without a stable DRIVER/EXECUTOR role.`,
+              'missing_fixture',
+            );
+          }
+          const podIndex = podIndexesByRole.get(role) || 0;
+          podIndexesByRole.set(role, podIndex + 1);
+          const podSemanticId = `${taskSemanticId}/pod.${role}[${podIndex}]`;
+          add('pod', `${podSemanticId}/name`, pod?.name, {
+            tokenKind: 'pod',
+            tokenSemanticId: `${podSemanticId}/name`,
+          });
+          add('pod', `${podSemanticId}/uid`, pod?.uid, {
+            tokenKind: 'pod',
+            tokenSemanticId: `${podSemanticId}/uid`,
+          });
+        }
+        if (instance?.artifactReferences) {
+          taskArtifactReferences.push({
+            references: instance.artifactReferences,
+            taskKey,
+            taskSemanticId,
+          });
+        }
+      }
+    }
+
+    for (const [scopeKey, instances] of Object.entries(run?.scopeInstances || {}).sort(
+      ([left], [right]) => left.localeCompare(right),
+    )) {
+      for (const [index, instance] of (Array.isArray(instances) ? instances : []).entries()) {
+        if (!Number.isSafeInteger(instance?.iterationIndex)) {
+          throw semanticIdNormalizationError(
+            `Native scope ${runKey}/${scopeKey}[${index}] is missing an iteration index.`,
+            'missing_fixture',
+          );
+        }
+        const scopeSemanticId = `${runKey}/${scopeKey}/iteration[${instance.iterationIndex}]`;
+        add('task', `${scopeSemanticId}/task`, instance?.taskId, {
+          tokenKind: 'task',
+          tokenSemanticId: scopeSemanticId,
+        });
+        const podIndexesByRole = new Map();
+        for (const pod of instance?.podBindings || []) {
+          const role = String(pod?.type || '').toLowerCase();
+          if (role !== 'driver' && role !== 'executor') {
+            throw semanticIdNormalizationError(
+              `Native scope ${scopeSemanticId} contains a pod without a stable role.`,
+              'missing_fixture',
+            );
+          }
+          const podIndex = podIndexesByRole.get(role) || 0;
+          podIndexesByRole.set(role, podIndex + 1);
+          const podSemanticId = `${scopeSemanticId}/pod.${role}[${podIndex}]`;
+          add('pod', `${podSemanticId}/name`, pod?.name, {
+            tokenKind: 'pod',
+            tokenSemanticId: `${podSemanticId}/name`,
+          });
+          add('pod', `${podSemanticId}/uid`, pod?.uid, {
+            tokenKind: 'pod',
+            tokenSemanticId: `${podSemanticId}/uid`,
+          });
+        }
+      }
+    }
+
+    for (const [executionKey, instances] of Object.entries(run?.executionInstances || {}).sort(
+      ([left], [right]) => left.localeCompare(right),
+    )) {
+      const retryExecutorLogs = [];
+      for (const [index, instance] of (Array.isArray(instances) ? instances : []).entries()) {
+        const executionScope = legacyExecutionSemanticScope(runKey, executionKey, instance, index);
+        add(
+          'execution',
+          `${executionScope}/execution`,
+          instance?.executionId,
+          legacyExecutionVisualIdentity(runKey, executionKey, instance, index),
+        );
+        const executionVisualIdentity = legacyExecutionVisualIdentity(
+          runKey,
+          executionKey,
+          instance,
+          index,
+        );
+        const executionPodRole =
+          TASK_FIXTURES[executionKey]?.kind === 'runtime' ? 'executor' : 'driver';
+        const executionPodIndex =
+          executionKey === runProfile?.retry?.task ? runProfile.retry.attempts - 1 : 0;
+        const executionPodSemanticId = `${executionVisualIdentity.tokenSemanticId}/pod.${executionPodRole}[${executionPodIndex}]`;
+        add('pod', `${executionPodSemanticId}/name`, instance?.podName, {
+          tokenKind: 'pod',
+          tokenSemanticId: `${executionPodSemanticId}/name`,
+        });
+        add('pod', `${executionPodSemanticId}/uid`, instance?.podUid, {
+          tokenKind: 'pod',
+          tokenSemanticId: `${executionPodSemanticId}/uid`,
+        });
+        for (const record of instance?.executorLogs || []) {
+          if (executionKey === 'task.retry-once') {
+            retryExecutorLogs.push(record);
+            continue;
+          }
+          const attemptIndex = executorLogAttemptIndex(record?.uri);
+          const artifactSemanticId = `${executionScope}/artifact.executor-logs[${attemptIndex}]`;
+          add('artifact', artifactSemanticId, record?.artifactId);
+          add('artifact-uri', `${artifactSemanticId}/uri`, record?.uri);
+        }
+      }
+      if (executionKey === 'task.retry-once') {
+        retryExecutorLogs.sort(
+          (left, right) => executorLogAttemptIndex(left?.uri) - executorLogAttemptIndex(right?.uri),
+        );
+        for (const record of retryExecutorLogs) {
+          const attemptIndex = executorLogAttemptIndex(record?.uri);
+          const artifactSemanticId = `${runKey}/${executionKey}[0]/artifact.executor-logs[${attemptIndex}]`;
+          add('artifact', artifactSemanticId, record?.artifactId);
+          add('artifact-uri', `${artifactSemanticId}/uri`, record?.uri);
+        }
+      }
+    }
+
+    for (const [artifactKey, artifact] of Object.entries(run?.artifacts || {}).sort(
+      ([left], [right]) => left.localeCompare(right),
+    )) {
+      const groupIds = identifierValues(artifact?.artifactIds);
+      const memberReferencesByValue = new Map();
+      for (const [memberKey, member] of Object.entries(artifact?.members || {}).sort(
+        ([left], [right]) => left.localeCompare(right),
+      )) {
+        for (const [index, value] of identifierValues(member?.artifactIds).entries()) {
+          const references = memberReferencesByValue.get(value) || [];
+          references.push(`${runKey}/${artifactKey}/${memberKey}[${index}]`);
+          memberReferencesByValue.set(value, references);
+        }
+      }
+
+      const emitted = new Set();
+      for (const [index, value] of groupIds.entries()) {
+        const memberReferences = memberReferencesByValue.get(value) || [];
+        const semanticId =
+          memberReferences.length === 1
+            ? memberReferences[0]
+            : `${runKey}/${artifactKey}[${index}]`;
+        add('artifact', semanticId, value);
+        artifactSemanticIdsByValue.set(value, semanticId);
+        emitted.add(value);
+      }
+      for (const [value, memberReferences] of memberReferencesByValue) {
+        if (emitted.has(value)) continue;
+        const semanticId =
+          memberReferences.length === 1
+            ? memberReferences[0]
+            : `${runKey}/${artifactKey}[${groupIds.length + emitted.size}]`;
+        add('artifact', semanticId, value);
+        artifactSemanticIdsByValue.set(value, semanticId);
+        emitted.add(value);
+      }
+
+      for (const record of artifact?.records || artifact?.files || []) {
+        const artifactId = String(record?.artifactId || '');
+        const semanticId = artifactSemanticIdsByValue.get(artifactId);
+        if (semanticId) add('artifact-uri', `${semanticId}/uri`, record?.uri);
+      }
+    }
+
+    for (const { references, taskKey, taskSemanticId } of taskArtifactReferences) {
+      let executorLogGroupCount = 0;
+      for (const direction of ['outputs', 'inputs']) {
+        for (const [groupIndex, group] of (references?.[direction] || []).entries()) {
+          const groupKey = semanticIdentifierSegment(group?.key, 'artifact');
+          const groupSemanticId = `${taskSemanticId}/${direction}.${groupKey}[${groupIndex}]`;
+          const isNativeExecutorLogs =
+            revisionRole === 'head' && direction === 'outputs' && group?.key === 'executor-logs';
+          let artifactEntries = (group?.artifacts || []).map((record, artifactIndex) => ({
+            artifactIndex,
+            record,
+          }));
+          if (isNativeExecutorLogs) {
+            executorLogGroupCount += 1;
+            if (executorLogGroupCount !== 1 || TASK_FIXTURES[taskKey]?.kind !== 'runtime') {
+              throw semanticIdNormalizationError(
+                `Task artifact reference ${groupSemanticId} is not a valid native runtime executor-log group.`,
+                'missing_fixture',
+              );
+            }
+            const expectedCount = taskKey === 'task.retry-once' ? 2 : 1;
+            if (!Array.isArray(group?.artifacts) || group.artifacts.length !== expectedCount) {
+              throw semanticIdNormalizationError(
+                `Task artifact reference ${groupSemanticId} must contain exactly ${expectedCount} executor-log artifact(s).`,
+                'missing_fixture',
+              );
+            }
+            artifactEntries = group.artifacts
+              .map((record) => ({
+                artifactIndex: executorLogAttemptIndex(record?.uri),
+                record,
+              }))
+              .sort((left, right) => left.artifactIndex - right.artifactIndex);
+            if (
+              artifactEntries.some(
+                (entry, index) => entry.artifactIndex === null || entry.artifactIndex !== index,
+              )
+            ) {
+              throw semanticIdNormalizationError(
+                `Task artifact reference ${groupSemanticId} must use contiguous executor-log attempt URIs starting at 0.`,
+                'missing_fixture',
+              );
+            }
+          }
+          for (const { artifactIndex, record } of artifactEntries) {
+            const rawArtifactId = String(record?.artifactId || '');
+            if (isNativeExecutorLogs) {
+              const rawUri = String(record?.uri || '');
+              const recordKeys = Object.keys(record || {}).sort();
+              if (
+                !rawArtifactId ||
+                record?.name !== 'executor-logs' ||
+                record?.type !== 'Artifact' ||
+                JSON.stringify(recordKeys) !==
+                  JSON.stringify(['artifactId', 'name', 'type', 'uri']) ||
+                executorLogAttemptIndex(rawUri) !== artifactIndex
+              ) {
+                throw semanticIdNormalizationError(
+                  `Task artifact reference ${groupSemanticId}/artifact[${artifactIndex}] has an invalid executor-log record.`,
+                  'missing_fixture',
+                );
+              }
+              const artifactSemanticId = `${taskSemanticId}/artifact.executor-logs[${artifactIndex}]`;
+              add('artifact', artifactSemanticId, rawArtifactId);
+              add('artifact-uri', `${artifactSemanticId}/uri`, rawUri);
+              continue;
+            }
+            const artifactSemanticId = artifactSemanticIdsByValue.get(rawArtifactId);
+            if (!artifactSemanticId) {
+              throw semanticIdNormalizationError(
+                `Task artifact reference ${groupSemanticId}/artifact[${artifactIndex}] is not bound to a declared semantic artifact.`,
+                'missing_fixture',
+              );
+            }
+            add('artifact-uri', `${artifactSemanticId}/uri`, record?.uri);
+          }
+        }
+      }
+    }
+  }
+
+  return identifiers.sort((left, right) => {
+    const kind = left.kind.localeCompare(right.kind);
+    return kind || left.semanticId.localeCompare(right.semanticId);
+  });
+}
+
+function loadSemanticIdentifierCatalog(manifestPath, revisionRole) {
+  if (!manifestPath) {
+    throw semanticIdNormalizationError(
+      'Semantic fixture manifest is required for semantic ID normalization.',
+      'missing_fixture',
+    );
+  }
+  try {
+    const manifest = loadAttestedJsonInput(manifestPath, 'Semantic fixture manifest').value;
+    validateCombinedSemanticManifest(manifest);
+    return buildSemanticIdentifierCatalog(manifest, revisionRole);
+  } catch (error) {
+    if (CAPTURE_VALIDITIES.has(error?.captureValidity)) throw error;
+    throw semanticIdNormalizationError(
+      `Failed to load semantic identifier bindings from ${manifestPath}: ${error.message}`,
+    );
+  }
+}
+
+function prepareSemanticIdNormalization(config, catalog) {
+  const scopes = config?.scopes || [];
+  if (!Array.isArray(scopes)) {
+    throw semanticIdNormalizationError('Semantic ID normalization scopes must be an array.');
+  }
+  const supportedKinds = new Set(SEMANTIC_ID_KINDS);
+  const identifiersBySemanticId = new Map(catalog.map((entry) => [entry.semanticId, entry]));
+
+  return scopes.map((scope, scopeIndex) => {
+    if (!scope || typeof scope !== 'object' || Array.isArray(scope)) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} is invalid.`,
+      );
+    }
+    const allowedFields = new Set([
+      'kinds',
+      'match',
+      'maxReplacementsPerIdentifier',
+      'maxReplacements',
+      'minReplacementsPerIdentifier',
+      'minReplacements',
+      'selector',
+      'semanticIds',
+      'semanticIdPrefixes',
+    ]);
+    const unknownField = Object.keys(scope).find((field) => !allowedFields.has(field));
+    if (unknownField) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} has unknown field ${unknownField}.`,
+      );
+    }
+    if (typeof scope.selector !== 'string' || !scope.selector || scope.selector.length > 1024) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} has an invalid selector.`,
+      );
+    }
+    if (scope.match !== 'exact' && scope.match !== 'substring') {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} must use exact or substring matching.`,
+      );
+    }
+    const hasKinds = Array.isArray(scope.kinds) && scope.kinds.length > 0;
+    const hasSemanticIds = Array.isArray(scope.semanticIds) && scope.semanticIds.length > 0;
+    const hasSemanticIdPrefixes =
+      Array.isArray(scope.semanticIdPrefixes) && scope.semanticIdPrefixes.length > 0;
+    if (Number(hasKinds) + Number(hasSemanticIds) + Number(hasSemanticIdPrefixes) !== 1) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} must select kinds, semanticIds, or semanticIdPrefixes.`,
+      );
+    }
+
+    let candidates;
+    if (hasKinds) {
+      const kinds = [...new Set(scope.kinds)];
+      if (kinds.length !== scope.kinds.length || kinds.some((kind) => !supportedKinds.has(kind))) {
+        throw semanticIdNormalizationError(
+          `Semantic ID normalization scope ${scopeIndex} has invalid or duplicate kinds.`,
+        );
+      }
+      candidates = catalog.filter((entry) => kinds.includes(entry.kind));
+    } else if (hasSemanticIds) {
+      const semanticIds = [...new Set(scope.semanticIds)];
+      if (semanticIds.length !== scope.semanticIds.length) {
+        throw semanticIdNormalizationError(
+          `Semantic ID normalization scope ${scopeIndex} has duplicate semanticIds.`,
+        );
+      }
+      candidates = semanticIds.map((semanticId) => {
+        const identifier = identifiersBySemanticId.get(semanticId);
+        if (!identifier) {
+          throw semanticIdNormalizationError(
+            `Semantic ID normalization scope ${scopeIndex} is missing fixture ${semanticId}.`,
+            'missing_fixture',
+          );
+        }
+        return identifier;
+      });
+    } else {
+      const semanticIdPrefixes = [...new Set(scope.semanticIdPrefixes)];
+      if (
+        semanticIdPrefixes.length !== scope.semanticIdPrefixes.length ||
+        semanticIdPrefixes.some(
+          (prefix) => typeof prefix !== 'string' || !SEMANTIC_ID_PATH_PATTERN.test(prefix),
+        )
+      ) {
+        throw semanticIdNormalizationError(
+          `Semantic ID normalization scope ${scopeIndex} has invalid or duplicate semanticIdPrefixes.`,
+        );
+      }
+      candidates = catalog.filter((entry) =>
+        semanticIdPrefixes.some((prefix) => entry.semanticId.startsWith(prefix)),
+      );
+    }
+    if (candidates.length === 0 && !(hasSemanticIdPrefixes && (scope.minReplacements ?? 0) === 0)) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} selected no fixture identifiers.`,
+        'missing_fixture',
+      );
+    }
+    if (
+      scope.match === 'substring' &&
+      candidates.some((candidate) => candidate.value.length < 8 || /^\d+$/.test(candidate.value))
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} cannot substring-match short or numeric identifiers.`,
+      );
+    }
+
+    const minReplacements = scope.minReplacements ?? 0;
+    const maxReplacements = scope.maxReplacements ?? null;
+    if (!Number.isSafeInteger(minReplacements) || minReplacements < 0) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} has invalid minReplacements.`,
+      );
+    }
+    if (
+      maxReplacements !== null &&
+      (!Number.isSafeInteger(maxReplacements) || maxReplacements < minReplacements)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} has invalid maxReplacements.`,
+      );
+    }
+    const minReplacementsPerIdentifier = scope.minReplacementsPerIdentifier ?? 0;
+    const maxReplacementsPerIdentifier = scope.maxReplacementsPerIdentifier ?? null;
+    if (
+      !Number.isSafeInteger(minReplacementsPerIdentifier) ||
+      minReplacementsPerIdentifier < 0 ||
+      (maxReplacementsPerIdentifier !== null &&
+        (!Number.isSafeInteger(maxReplacementsPerIdentifier) ||
+          maxReplacementsPerIdentifier < minReplacementsPerIdentifier))
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} has invalid per-identifier replacement bounds.`,
+      );
+    }
+    if (
+      (hasKinds || hasSemanticIdPrefixes) &&
+      (minReplacementsPerIdentifier > 0 || maxReplacementsPerIdentifier !== null)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scopeIndex} can only use per-identifier bounds with semanticIds.`,
+      );
+    }
+
+    const bindingsByRawValue = new Map();
+    for (const candidate of candidates) {
+      const existing = bindingsByRawValue.get(candidate.value);
+      if (existing && existing.token !== candidate.token) {
+        throw semanticIdNormalizationError(
+          `Semantic ID normalization scope ${scopeIndex} maps one generated ID to both ${existing.semanticId} and ${candidate.semanticId}.`,
+        );
+      }
+      bindingsByRawValue.set(candidate.value, candidate);
+    }
+
+    return {
+      candidates: [...bindingsByRawValue.values()].sort(
+        (left, right) =>
+          right.value.length - left.value.length || left.semanticId.localeCompare(right.semanticId),
+      ),
+      match: scope.match,
+      maxReplacements,
+      maxReplacementsPerIdentifier,
+      minReplacements,
+      minReplacementsPerIdentifier,
+      selector: scope.selector,
+      selectedBy: hasKinds
+        ? { kinds: [...new Set(scope.kinds)].sort() }
+        : hasSemanticIds
+          ? { semanticIds: [...scope.semanticIds].sort() }
+          : { semanticIdPrefixes: [...new Set(scope.semanticIdPrefixes)].sort() },
+    };
+  });
+}
+
+function prepareSemanticDerivedColorNormalization(config, catalog) {
+  const scopes = config?.derivedColorScopes || [];
+  if (!Array.isArray(scopes)) {
+    throw semanticIdNormalizationError(
+      'Semantic derived-color normalization scopes must be an array.',
+    );
+  }
+  const keys = new Set();
+  const identifiersBySemanticId = new Map(
+    (catalog || []).map((entry) => [entry.semanticId, entry]),
+  );
+  return scopes.map((scope, scopeIndex) => {
+    if (!scope || typeof scope !== 'object' || Array.isArray(scope)) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scopeIndex} is invalid.`,
+      );
+    }
+    const allowedFields = new Set([
+      'containerSelector',
+      'key',
+      'labelItemSelector',
+      'mappingStrategy',
+      'maxElements',
+      'minElements',
+      'selector',
+      'semanticIds',
+    ]);
+    const unknownField = Object.keys(scope).find((field) => !allowedFields.has(field));
+    if (unknownField) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scopeIndex} has unknown field ${unknownField}.`,
+      );
+    }
+    if (
+      typeof scope.key !== 'string' ||
+      !/^[a-z0-9][a-z0-9-]*$/.test(scope.key) ||
+      keys.has(scope.key)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scopeIndex} has an invalid or duplicate key.`,
+      );
+    }
+    keys.add(scope.key);
+    for (const selectorField of ['containerSelector', 'labelItemSelector', 'selector']) {
+      if (
+        typeof scope[selectorField] !== 'string' ||
+        !scope[selectorField] ||
+        scope[selectorField].length > 1024
+      ) {
+        throw semanticIdNormalizationError(
+          `Semantic derived-color normalization scope ${scope.key} has an invalid ${selectorField}.`,
+        );
+      }
+    }
+    if (!['color-backed-labels', 'ordered-label-cards'].includes(scope.mappingStrategy)) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scope.key} has an invalid mappingStrategy.`,
+      );
+    }
+    const minElements = scope.minElements ?? 1;
+    const maxElements = scope.maxElements ?? null;
+    if (
+      !Number.isSafeInteger(minElements) ||
+      minElements < 1 ||
+      (maxElements !== null && (!Number.isSafeInteger(maxElements) || maxElements < minElements))
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scope.key} has invalid element bounds.`,
+      );
+    }
+    if (
+      !Array.isArray(scope.semanticIds) ||
+      scope.semanticIds.length === 0 ||
+      new Set(scope.semanticIds).size !== scope.semanticIds.length ||
+      scope.semanticIds.some(
+        (semanticId) =>
+          typeof semanticId !== 'string' || !SEMANTIC_ID_PATH_PATTERN.test(semanticId),
+      )
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scope.key} has invalid semanticIds.`,
+      );
+    }
+    const series = [...scope.semanticIds].sort().map((semanticId) => {
+      const identifier = identifiersBySemanticId.get(semanticId);
+      if (!identifier || identifier.kind !== 'run') {
+        throw semanticIdNormalizationError(
+          `Semantic derived-color normalization scope ${scope.key} is missing run fixture ${semanticId}.`,
+          'missing_fixture',
+        );
+      }
+      if (
+        typeof identifier.displayLabel !== 'string' ||
+        !identifier.displayLabel ||
+        identifier.displayLabel.length > 1000 ||
+        /[\u0000-\u001f]/.test(identifier.displayLabel)
+      ) {
+        throw semanticIdNormalizationError(
+          `Semantic derived-color normalization scope ${scope.key} is missing a deterministic display label for ${semanticId}.`,
+          'missing_fixture',
+        );
+      }
+      return { displayLabel: identifier.displayLabel, semanticId };
+    });
+    const displayLabels = series.map((entry) => entry.displayLabel);
+    if (new Set(displayLabels).size !== displayLabels.length) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scope.key} has duplicate deterministic display labels.`,
+        'missing_fixture',
+      );
+    }
+    if (minElements !== series.length || maxElements !== series.length) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization scope ${scope.key} must require exactly ${series.length} element(s), one for each semanticId.`,
+      );
+    }
+    return {
+      containerSelector: scope.containerSelector,
+      key: scope.key,
+      labelItemSelector: scope.labelItemSelector,
+      mappingStrategy: scope.mappingStrategy,
+      maxElements,
+      minElements,
+      selector: scope.selector,
+      semanticIds: series.map((entry) => entry.semanticId),
+      series,
+    };
+  });
+}
+
+async function normalizeSemanticDerivedColors(page, config, catalog) {
+  const plan = prepareSemanticDerivedColorNormalization(config, catalog);
+  if (plan.length === 0) return [];
+  const evaluated = await page.evaluate(
+    ({ palette, scopes }) => {
+      const normalizedColor = (value) =>
+        String(value || '')
+          .replace(/\s+/g, '')
+          .toLowerCase();
+      const normalizedLabel = (value) =>
+        String(value || '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      return scopes.map((scope) => {
+        const elements = Array.from(document.querySelectorAll(scope.selector));
+        const sourceColors = elements.map((element) => {
+          const computed = getComputedStyle(element);
+          return computed.stroke || element.getAttribute('stroke') || '';
+        });
+        const sourceColorIndexes = new Map();
+        sourceColors.forEach((color, index) => {
+          const normalized = normalizedColor(color);
+          if (normalized) sourceColorIndexes.set(normalized, index);
+        });
+        const mappingBySourceColor = new Map();
+        let ambiguous = sourceColorIndexes.size !== sourceColors.length;
+        const seenCompanions = new Set();
+        const labelItems = Array.from(document.querySelectorAll(scope.labelItemSelector));
+        const matchingSeriesFor = (item) => {
+          const titledElement = item.querySelector?.('[title]');
+          const visibleLabel = normalizedLabel(
+            titledElement?.getAttribute('title') || item.textContent,
+          );
+          if (!visibleLabel) return [];
+          return scope.series.filter((series) =>
+            visibleLabel.includes(normalizedLabel(series.displayLabel)),
+          );
+        };
+        const bindSourceColor = (sourceColor, matchingSeries, companion = null) => {
+          if (!sourceColorIndexes.has(sourceColor) || matchingSeries.length !== 1) {
+            ambiguous = true;
+            return;
+          }
+          const semanticId = matchingSeries[0].semanticId;
+          const existing = mappingBySourceColor.get(sourceColor);
+          if (existing && existing.semanticId !== semanticId) ambiguous = true;
+          if (!existing) mappingBySourceColor.set(sourceColor, { elements: [], semanticId });
+          if (companion) mappingBySourceColor.get(sourceColor).elements.push(companion);
+        };
+        if (scope.mappingStrategy === 'ordered-label-cards') {
+          if (labelItems.length !== sourceColors.length) ambiguous = true;
+          labelItems.forEach((item, index) => {
+            bindSourceColor(normalizedColor(sourceColors[index]), matchingSeriesFor(item));
+          });
+        } else {
+          for (const item of labelItems) {
+            const matchingSeries = matchingSeriesFor(item);
+            const styledElements = [
+              ...(item.matches('[style]') ? [item] : []),
+              ...item.querySelectorAll('[style]'),
+            ];
+            for (const element of styledElements) {
+              const sourceColor = normalizedColor(getComputedStyle(element).backgroundColor);
+              if (!sourceColorIndexes.has(sourceColor)) continue;
+              bindSourceColor(sourceColor, matchingSeries, element);
+            }
+          }
+        }
+
+        const seriesOrder = new Map(
+          scope.series.map((series, index) => [series.semanticId, index]),
+        );
+        const mappings = [...mappingBySourceColor.entries()]
+          .map(([sourceColor, mapping]) => ({ ...mapping, sourceColor }))
+          .sort(
+            (left, right) => seriesOrder.get(left.semanticId) - seriesOrder.get(right.semanticId),
+          );
+        if (new Set(mappings.map((mapping) => mapping.semanticId)).size !== mappings.length) {
+          ambiguous = true;
+        }
+        const paletteBySourceColor = new Map();
+        mappings.forEach((mapping) => {
+          const color = palette[seriesOrder.get(mapping.semanticId) % palette.length];
+          paletteBySourceColor.set(mapping.sourceColor, color);
+          for (const element of mapping.elements) {
+            seenCompanions.add(element);
+            element.style.setProperty('background-color', color, 'important');
+          }
+        });
+        elements.forEach((element, index) => {
+          const color = paletteBySourceColor.get(normalizedColor(sourceColors[index]));
+          if (!color) return;
+          element.setAttribute('stroke', color);
+          element.style.setProperty('stroke', color, 'important');
+        });
+        for (const container of document.querySelectorAll(scope.containerSelector)) {
+          for (const element of container.querySelectorAll('span[style]')) {
+            if (!/^Series #\d+$/.test(normalizedLabel(element.parentElement?.textContent)))
+              continue;
+            const color = paletteBySourceColor.get(
+              normalizedColor(getComputedStyle(element).backgroundColor),
+            );
+            if (!color) continue;
+            seenCompanions.add(element);
+            element.style.setProperty('background-color', color, 'important');
+          }
+        }
+        return {
+          ambiguous,
+          companionCount: seenCompanions.size,
+          elementCount: elements.length,
+          mappings: mappings.map(({ semanticId, sourceColor }) => ({ semanticId, sourceColor })),
+        };
+      });
+    },
+    { palette: SEMANTIC_COLOR_PALETTE, scopes: plan },
+  );
+
+  return plan.map((scope, index) => {
+    const result = evaluated[index] || {
+      ambiguous: true,
+      companionCount: 0,
+      elementCount: 0,
+      mappings: [],
+    };
+    if (
+      result.elementCount < scope.minElements ||
+      (scope.maxElements !== null && result.elementCount > scope.maxElements)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization ${scope.key} found ${result.elementCount} element(s); expected ${scope.minElements}${
+          scope.maxElements === null ? ' or more' : `-${scope.maxElements}`
+        }.`,
+        'selector_drift',
+      );
+    }
+    if (
+      result.ambiguous ||
+      result.mappings.length !== result.elementCount ||
+      result.companionCount < result.elementCount
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic derived-color normalization ${scope.key} could not map each curve to one visible semantic label.`,
+        'selector_drift',
+      );
+    }
+    return {
+      companionCount: result.companionCount,
+      containerSelector: scope.containerSelector,
+      elementCount: result.elementCount,
+      key: scope.key,
+      labelItemSelector: scope.labelItemSelector,
+      mappingStrategy: scope.mappingStrategy,
+      maxElements: scope.maxElements,
+      mappings: result.mappings.map((mapping) => ({
+        paletteColor:
+          SEMANTIC_COLOR_PALETTE[
+            scope.semanticIds.indexOf(mapping.semanticId) % SEMANTIC_COLOR_PALETTE.length
+          ],
+        semanticId: mapping.semanticId,
+        sourceColorSha256: crypto.createHash('sha256').update(mapping.sourceColor).digest('hex'),
+      })),
+      minElements: scope.minElements,
+      selector: scope.selector,
+      semanticIds: scope.semanticIds,
+    };
+  });
+}
+
+async function normalizeSemanticIds(page, config, catalog) {
+  if (
+    config !== undefined &&
+    config !== null &&
+    (!config ||
+      typeof config !== 'object' ||
+      Array.isArray(config) ||
+      Object.keys(config).some((field) => field !== 'scopes' && field !== 'derivedColorScopes'))
+  ) {
+    throw semanticIdNormalizationError('Semantic ID normalization config is invalid.');
+  }
+  const plan = prepareSemanticIdNormalization(config || { scopes: [] }, catalog || []);
+  const evaluated = await page.evaluate((scopes) => {
+    const results = [];
+    for (const scope of scopes) {
+      const roots = Array.from(document.querySelectorAll(scope.selector));
+      const counts = Object.fromEntries(
+        scope.candidates.map((candidate) => [candidate.semanticId, 0]),
+      );
+      const seenTextNodes = new Set();
+      for (const root of roots) {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+          if (seenTextNodes.has(node)) continue;
+          seenTextNodes.add(node);
+          const parentName = node.parentElement?.tagName;
+          if (parentName === 'SCRIPT' || parentName === 'STYLE') continue;
+          let value = node.nodeValue || '';
+          if (scope.match === 'exact') {
+            const trimmed = value.trim();
+            const candidate = scope.candidates.find((entry) => entry.value === trimmed);
+            if (!candidate) continue;
+            const start = value.indexOf(trimmed);
+            node.nodeValue = `${value.slice(0, start)}${candidate.token}${value.slice(start + trimmed.length)}`;
+            counts[candidate.semanticId] += 1;
+            continue;
+          }
+          const originalValue = value;
+          const parts = [];
+          let cursor = 0;
+          while (cursor < originalValue.length) {
+            let nextCandidate = null;
+            let nextIndex = -1;
+            for (const candidate of scope.candidates) {
+              const candidateIndex = originalValue.indexOf(candidate.value, cursor);
+              if (candidateIndex === -1) continue;
+              if (nextIndex === -1 || candidateIndex < nextIndex) {
+                nextCandidate = candidate;
+                nextIndex = candidateIndex;
+              }
+            }
+            if (!nextCandidate) break;
+            parts.push(originalValue.slice(cursor, nextIndex), nextCandidate.token);
+            counts[nextCandidate.semanticId] += 1;
+            cursor = nextIndex + nextCandidate.value.length;
+          }
+          if (cursor > 0) {
+            parts.push(originalValue.slice(cursor));
+            node.nodeValue = parts.join('');
+          }
+        }
+      }
+      results.push({ counts, rootCount: roots.length });
+    }
+    return results;
+  }, plan);
+
+  const scopes = plan.map((scope, index) => {
+    const result = evaluated[index] || { counts: {}, rootCount: 0 };
+    const replacementCount = Object.values(result.counts).reduce((sum, count) => sum + count, 0);
+    if (
+      replacementCount < scope.minReplacements ||
+      (scope.maxReplacements !== null && replacementCount > scope.maxReplacements)
+    ) {
+      throw semanticIdNormalizationError(
+        `Semantic ID normalization scope ${scope.selector} replaced ${replacementCount} identifier(s); expected ${scope.minReplacements}${scope.maxReplacements === null ? ' or more' : `-${scope.maxReplacements}`}.`,
+        'selector_drift',
+      );
+    }
+    for (const candidate of scope.candidates) {
+      const count = result.counts[candidate.semanticId] || 0;
+      if (
+        count < scope.minReplacementsPerIdentifier ||
+        (scope.maxReplacementsPerIdentifier !== null && count > scope.maxReplacementsPerIdentifier)
+      ) {
+        throw semanticIdNormalizationError(
+          `Semantic ID normalization scope ${scope.selector} replaced ${candidate.semanticId} ${count} time(s); expected ${scope.minReplacementsPerIdentifier}${
+            scope.maxReplacementsPerIdentifier === null
+              ? ' or more'
+              : `-${scope.maxReplacementsPerIdentifier}`
+          }.`,
+          'selector_drift',
+        );
+      }
+    }
+    const explicitlySelected = new Set(scope.selectedBy.semanticIds || []);
+    const entries = scope.candidates
+      .map((candidate) => ({
+        ...(candidate.equivalenceClass ? { equivalenceClass: candidate.equivalenceClass } : {}),
+        kind: candidate.kind,
+        replacementCount: result.counts[candidate.semanticId] || 0,
+        semanticId: candidate.semanticId,
+        sourceIdSha256: crypto.createHash('sha256').update(candidate.value).digest('hex'),
+        token: candidate.token,
+        tokenKind: candidate.tokenKind,
+        tokenSemanticId: candidate.tokenSemanticId,
+      }))
+      .filter((entry) => entry.replacementCount > 0 || explicitlySelected.has(entry.semanticId));
+    return {
+      ...scope.selectedBy,
+      entries,
+      match: scope.match,
+      maxReplacements: scope.maxReplacements,
+      maxReplacementsPerIdentifier: scope.maxReplacementsPerIdentifier,
+      minReplacements: scope.minReplacements,
+      minReplacementsPerIdentifier: scope.minReplacementsPerIdentifier,
+      replacementCount,
+      rootCount: result.rootCount,
+      selector: scope.selector,
+    };
+  });
+
+  const derivedColorScopes = await normalizeSemanticDerivedColors(
+    page,
+    config || {},
+    catalog || [],
+  );
+  return {
+    complete: true,
+    derivedColorScopes,
+    schemaVersion: SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+    scopes,
+    totalReplacementCount: scopes.reduce((sum, scope) => sum + scope.replacementCount, 0),
+  };
 }
 
 function resolvePathTemplate(routePath, seedValues) {
@@ -1333,12 +2630,17 @@ function classifyCaptureFailure(error, diagnostics) {
 }
 
 async function captureScreenshots(options, dependencies = {}) {
+  const semanticIdNormalizationMode = validateSemanticIdNormalizationMode(options);
   const chromium = dependencies.chromium || require('playwright').chromium;
   const revisionAware = options.revisionRole === 'base' || options.revisionRole === 'head';
   let seedLoadError = null;
+  let seedManifestInput = null;
   let seedValues = null;
   try {
-    seedValues = loadSeedValues(options.seedManifestPath, { required: revisionAware });
+    seedManifestInput = loadSeedManifestInput(options.seedManifestPath, {
+      required: revisionAware,
+    });
+    seedValues = seedManifestInput?.seedValues || null;
   } catch (error) {
     seedLoadError = error;
   }
@@ -1348,6 +2650,28 @@ async function captureScreenshots(options, dependencies = {}) {
   const selectedPageNames =
     options.pages || !revisionAware ? options.pageNames : revisionAwarePageNames(options.pageNames);
   const { pages: filteredPages, unknownPageNames } = selectPages(selectedPageNames, pages);
+  let semanticIdentifierCatalog = [];
+  let semanticIdentifierLoadError = null;
+  let semanticManifestInput = null;
+  const semanticIdNormalizationEnabled =
+    semanticIdNormalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK;
+  if (semanticIdNormalizationEnabled) {
+    try {
+      semanticManifestInput = loadAttestedJsonInput(
+        options.semanticManifestPath,
+        'Semantic fixture manifest',
+      );
+      validateCombinedSemanticManifest(semanticManifestInput.value);
+      if (filteredPages.some((page) => page.semanticIdNormalization)) {
+        semanticIdentifierCatalog = buildSemanticIdentifierCatalog(
+          semanticManifestInput.value,
+          options.revisionRole,
+        );
+      }
+    } catch (error) {
+      semanticIdentifierLoadError = error;
+    }
+  }
   const startedAt = new Date().toISOString();
   const captureId = crypto.randomUUID();
   const fatalErrors = [];
@@ -1365,15 +2689,17 @@ async function captureScreenshots(options, dependencies = {}) {
   if (seedLoadError) {
     fatalErrors.push(`Seed manifest is invalid: ${seedLoadError.message}`);
   }
+  if (semanticIdentifierLoadError) {
+    fatalErrors.push(
+      `Semantic identifier bindings are invalid: ${semanticIdentifierLoadError.message}`,
+    );
+  }
 
   try {
     if (seedValues && !seedLoadError) {
-      inputs.seedManifest = attestJsonInput(options.seedManifestPath, 'Seed manifest');
+      inputs.seedManifest = seedManifestInput.attestation;
     }
-    inputs.semanticManifest = attestJsonInput(
-      options.semanticManifestPath,
-      'Semantic fixture manifest',
-    );
+    inputs.semanticManifest = semanticManifestInput?.attestation || null;
     inputs.sourceProvenance = attestJsonInput(options.sourceProvenancePath, 'Source provenance');
   } catch (error) {
     fatalErrors.push(`Capture provenance is invalid: ${error.message}`);
@@ -1482,6 +2808,7 @@ async function captureScreenshots(options, dependencies = {}) {
           let diagnostics = { consoleErrors: [], failedRequests: [], dropped: {} };
           let fontStatus = null;
           let resolvedRoute = null;
+          let semanticIdNormalization = null;
           try {
             // Hash-only navigation on a reused page is a same-document navigation and returns no
             // HTTP response. A fresh page guarantees that every route performs a network request
@@ -1526,6 +2853,11 @@ async function captureScreenshots(options, dependencies = {}) {
             };
             await page.waitForTimeout(pageConfig.waitForTimeoutMs || 2000);
             await normalizeDynamicText(page);
+            semanticIdNormalization = await normalizeSemanticIds(
+              page,
+              semanticIdNormalizationEnabled ? pageConfig.semanticIdNormalization : null,
+              semanticIdentifierCatalog,
+            );
             await page.screenshot({
               animations: 'disabled',
               fullPage: false,
@@ -1563,6 +2895,7 @@ async function captureScreenshots(options, dependencies = {}) {
               routeExpectation: pageConfig.routeExpectation || null,
               scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
               semanticScenario: pageConfig.semanticScenario || pageConfig.name,
+              semanticIdNormalization,
               sha256,
               status,
               viewport,
@@ -1648,7 +2981,9 @@ async function captureScreenshots(options, dependencies = {}) {
       const filename = captureFilename(pageConfig.name, viewport);
       if (!completedFilenames.has(filename)) {
         addResult({
-          captureValidity: fatalErrors.some((error) => /seed|provenance/i.test(error))
+          captureValidity: fatalErrors.some((error) =>
+            /seed|fixture|provenance|semantic identifier/i.test(error),
+          )
             ? 'seed_failure'
             : 'infrastructure_failure',
           error: fatalErrors.at(-1) || 'Capture did not complete.',
@@ -1698,6 +3033,9 @@ async function captureScreenshots(options, dependencies = {}) {
       locale: 'en-US',
       polling: 'timers at or above 5000ms disabled',
       reducedMotion: 'reduce',
+      semanticIdNormalization: semanticIdNormalizationRenderingContract(
+        semanticIdNormalizationMode,
+      ),
       timezone: 'UTC',
     },
     inputs,
@@ -1748,11 +3086,13 @@ module.exports = {
   CAPTURE_VALIDITIES,
   DETERMINISTIC_TIME_ISO,
   DETERMINISTIC_FONT_ASSETS,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
   PAGES,
   assertDeterministicFont,
   assertRouteExpectation,
   assertNavigationResponse,
   buildRevisionAwarePages,
+  buildSemanticIdentifierCatalog,
   captureFilename,
   captureScreenshots,
   classifyCaptureFailure,
@@ -1763,10 +3103,15 @@ module.exports = {
   installNetworkIsolation,
   isAllowedCaptureNetworkUrl,
   loadSeedValues,
+  loadSemanticIdentifierCatalog,
   normalizeDynamicText,
+  normalizeSemanticDerivedColors,
+  normalizeSemanticIds,
   normalizeBaseUrl,
   parseCaptureOptions,
   parseViewports,
+  prepareSemanticIdNormalization,
+  prepareSemanticDerivedColorNormalization,
   rocCurveReadyPredicate,
   resolveCaptureUrl,
   resolvePathTemplate,

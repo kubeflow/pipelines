@@ -1,7 +1,7 @@
 /**
- * Minimal protobuf codec for the MLMD GetArtifactsByID call used by the
- * screenshot fixture seeder. Keeping this codec local lets the standalone
- * utility run without the frontend's generated google-protobuf dependencies.
+ * Minimal protobuf codec for the MLMD lineage calls used by the screenshot
+ * fixture seeder. Keeping this codec local lets the standalone utility run
+ * without the frontend's generated google-protobuf dependencies.
  */
 
 const MAX_FIELD_NUMBER = 0x1fffffff;
@@ -35,6 +35,45 @@ function encodeGetArtifactsByIdRequest(artifactIds) {
     fields.push(Buffer.from([0x08]), encodeVarint(value, `MLMD artifact ID ${artifactId}`));
   }
   return Buffer.concat(fields);
+}
+
+function encodeContextIdRequest(contextId) {
+  const value = BigInt(contextId);
+  if (value <= 0n || value > MAX_INT64) {
+    throw new Error(`MLMD context ID ${contextId} is outside the positive int64 range.`);
+  }
+  return Buffer.concat([Buffer.from([0x08]), encodeVarint(value, `MLMD context ID ${contextId}`)]);
+}
+
+function encodeExecutionIdsRequest(executionIds) {
+  const fields = [];
+  for (const executionId of executionIds) {
+    const value = BigInt(executionId);
+    if (value <= 0n || value > MAX_INT64) {
+      throw new Error(`MLMD execution ID ${executionId} is outside the positive int64 range.`);
+    }
+    fields.push(Buffer.from([0x08]), encodeVarint(value, `MLMD execution ID ${executionId}`));
+  }
+  return Buffer.concat(fields);
+}
+
+function encodeStringField(fieldNumber, value, context) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${context} must be a nonempty string.`);
+  }
+  const bytes = Buffer.from(value, 'utf8');
+  return Buffer.concat([
+    encodeVarint(BigInt(fieldNumber << 3) | 2n, `${context} field tag`),
+    encodeVarint(bytes.length, `${context} byte length`),
+    bytes,
+  ]);
+}
+
+function encodeGetContextByTypeAndNameRequest(typeName, contextName) {
+  return Buffer.concat([
+    encodeStringField(1, typeName, 'MLMD context type name'),
+    encodeStringField(2, contextName, 'MLMD context name'),
+  ]);
 }
 
 class ProtoReader {
@@ -148,6 +187,14 @@ function safeInt64Number(value, context) {
     throw new Error(`${context} ${signed} cannot be represented safely as a JavaScript number.`);
   }
   return number;
+}
+
+function positiveInt64String(value, context) {
+  const signed = int64FromVarint(value, context);
+  if (signed <= 0n) {
+    throw new Error(`${context} must be a positive int64.`);
+  }
+  return signed.toString();
 }
 
 function setOwn(target, key, value) {
@@ -324,9 +371,187 @@ function decodeArtifactProperty(bytes) {
   return { key, value };
 }
 
+const EXECUTION_STATES = Object.freeze({
+  0: 'UNKNOWN',
+  1: 'NEW',
+  2: 'RUNNING',
+  3: 'COMPLETE',
+  4: 'FAILED',
+  5: 'CACHED',
+  6: 'CANCELED',
+});
+
+const EVENT_TYPES = Object.freeze({
+  0: 'UNKNOWN',
+  1: 'DECLARED_OUTPUT',
+  2: 'DECLARED_INPUT',
+  3: 'INPUT',
+  4: 'OUTPUT',
+  5: 'INTERNAL_INPUT',
+  6: 'INTERNAL_OUTPUT',
+  7: 'PENDING_OUTPUT',
+});
+
+function decodeEnum(value, names, context) {
+  const number = safeInt64Number(value, context);
+  if (!Object.hasOwn(names, number)) {
+    throw new Error(`${context} contains unsupported enum value ${number}.`);
+  }
+  return names[number];
+}
+
+function decodeExecution(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.Execution');
+  let executionId = null;
+  let name = null;
+  let state = 'UNKNOWN';
+  let type = null;
+  const properties = {};
+  const customProperties = {};
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 0, 'ml_metadata.Execution.id');
+      executionId = positiveInt64String(reader.readVarint('execution id'), 'MLMD execution ID');
+    } else if (fieldNumber === 3) {
+      expectWireType(wireType, 0, 'ml_metadata.Execution.last_known_state');
+      state = decodeEnum(
+        reader.readVarint('last_known_state'),
+        EXECUTION_STATES,
+        'ml_metadata.Execution.last_known_state',
+      );
+    } else if (fieldNumber === 4 || fieldNumber === 5) {
+      expectWireType(wireType, 2, `ml_metadata.Execution field ${fieldNumber}`);
+      const { key, value } = decodeArtifactProperty(reader.readBytes('property entry'));
+      if (value !== undefined) {
+        setOwn(fieldNumber === 4 ? properties : customProperties, key, value);
+      }
+    } else if (fieldNumber === 6) {
+      expectWireType(wireType, 2, 'ml_metadata.Execution.name');
+      name = reader.readString('execution name');
+    } else if (fieldNumber === 7) {
+      expectWireType(wireType, 2, 'ml_metadata.Execution.type');
+      type = reader.readString('execution type');
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  if (executionId === null) {
+    throw new Error('ml_metadata.Execution is missing its required positive ID.');
+  }
+  return Object.fromEntries(
+    Object.entries({
+      executionId,
+      metadata: { ...properties, ...customProperties },
+      name,
+      state,
+      type,
+    }).filter(([, value]) => value !== null),
+  );
+}
+
+function decodeContext(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.Context');
+  let contextId = null;
+  let name = null;
+  let type = null;
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 0, 'ml_metadata.Context.id');
+      contextId = positiveInt64String(reader.readVarint('context id'), 'MLMD context ID');
+    } else if (fieldNumber === 3) {
+      expectWireType(wireType, 2, 'ml_metadata.Context.name');
+      name = reader.readString('context name');
+    } else if (fieldNumber === 6) {
+      expectWireType(wireType, 2, 'ml_metadata.Context.type');
+      type = reader.readString('context type');
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  if (contextId === null) {
+    throw new Error('ml_metadata.Context is missing its required positive ID.');
+  }
+  return Object.fromEntries(
+    Object.entries({ contextId, name, type }).filter(([, value]) => value !== null),
+  );
+}
+
+function decodeEventPathStep(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.Event.Path.Step');
+  let step = null;
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 0, 'ml_metadata.Event.Path.Step.index');
+      step = {
+        index: int64FromVarint(reader.readVarint('path index'), 'MLMD event path index').toString(),
+      };
+    } else if (fieldNumber === 2) {
+      expectWireType(wireType, 2, 'ml_metadata.Event.Path.Step.key');
+      step = { key: reader.readString('path key') };
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  if (step === null) {
+    throw new Error('ml_metadata.Event.Path.Step does not contain an index or key.');
+  }
+  return step;
+}
+
+function decodeEventPath(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.Event.Path');
+  const steps = [];
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 2, 'ml_metadata.Event.Path.steps');
+      steps.push(decodeEventPathStep(reader.readBytes('path step')));
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  return steps;
+}
+
+function decodeEvent(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.Event');
+  let artifactId = null;
+  let executionId = null;
+  let path = [];
+  let type = 'UNKNOWN';
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 0, 'ml_metadata.Event.artifact_id');
+      artifactId = positiveInt64String(reader.readVarint('artifact id'), 'MLMD event artifact ID');
+    } else if (fieldNumber === 2) {
+      expectWireType(wireType, 0, 'ml_metadata.Event.execution_id');
+      executionId = positiveInt64String(
+        reader.readVarint('execution id'),
+        'MLMD event execution ID',
+      );
+    } else if (fieldNumber === 3) {
+      expectWireType(wireType, 2, 'ml_metadata.Event.path');
+      path = decodeEventPath(reader.readBytes('event path'));
+    } else if (fieldNumber === 4) {
+      expectWireType(wireType, 0, 'ml_metadata.Event.type');
+      type = decodeEnum(reader.readVarint('event type'), EVENT_TYPES, 'ml_metadata.Event.type');
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  if (artifactId === null || executionId === null) {
+    throw new Error('ml_metadata.Event is missing a required positive artifact or execution ID.');
+  }
+  return { artifactId, executionId, path, type };
+}
+
 function decodeArtifact(bytes) {
   const reader = new ProtoReader(bytes, 'ml_metadata.Artifact');
-  let artifactId = '0';
+  let artifactId = null;
   let name = null;
   let type = null;
   let uri = null;
@@ -336,7 +561,7 @@ function decodeArtifact(bytes) {
     const { fieldNumber, wireType } = reader.readTag();
     if (fieldNumber === 1) {
       expectWireType(wireType, 0, 'ml_metadata.Artifact.id');
-      artifactId = int64FromVarint(reader.readVarint('artifact id'), 'MLMD artifact ID').toString();
+      artifactId = positiveInt64String(reader.readVarint('artifact id'), 'MLMD artifact ID');
     } else if (fieldNumber === 3) {
       expectWireType(wireType, 2, 'ml_metadata.Artifact.uri');
       uri = reader.readString('artifact uri');
@@ -355,6 +580,9 @@ function decodeArtifact(bytes) {
     } else {
       reader.skipField(wireType);
     }
+  }
+  if (artifactId === null) {
+    throw new Error('ml_metadata.Artifact is missing its required positive ID.');
   }
   return Object.fromEntries(
     Object.entries({
@@ -382,7 +610,89 @@ function decodeGetArtifactsByIdResponse(bytes) {
   return artifacts;
 }
 
+function decodeGetContextByTypeAndNameResponse(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.GetContextByTypeAndNameResponse');
+  let context = null;
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 2, 'ml_metadata.GetContextByTypeAndNameResponse.context');
+      if (context !== null) {
+        throw new Error(
+          'ml_metadata.GetContextByTypeAndNameResponse contains more than one context.',
+        );
+      }
+      context = decodeContext(reader.readBytes('context'));
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  return context;
+}
+
+function decodeContextResponse(bytes, responseName, fieldName, decodeRecord) {
+  const reader = new ProtoReader(bytes, `ml_metadata.${responseName}`);
+  const records = [];
+  let nextPageToken = '';
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 2, `ml_metadata.${responseName}.${fieldName}`);
+      records.push(decodeRecord(reader.readBytes(fieldName.slice(0, -1))));
+    } else if (fieldNumber === 2) {
+      expectWireType(wireType, 2, `ml_metadata.${responseName}.next_page_token`);
+      nextPageToken = reader.readString('next_page_token');
+    } else if (responseName === 'GetExecutionsByContextResponse' && fieldNumber === 3) {
+      expectWireType(wireType, 2, 'ml_metadata.GetExecutionsByContextResponse.transaction_options');
+      reader.readBytes('transaction_options');
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  if (nextPageToken !== '') {
+    throw new Error(
+      `ml_metadata.${responseName} unexpectedly contains next_page_token; the unpaginated request would be incomplete.`,
+    );
+  }
+  return records;
+}
+
+function decodeGetExecutionsByContextResponse(bytes) {
+  return decodeContextResponse(
+    bytes,
+    'GetExecutionsByContextResponse',
+    'executions',
+    decodeExecution,
+  );
+}
+
+function decodeGetArtifactsByContextResponse(bytes) {
+  return decodeContextResponse(bytes, 'GetArtifactsByContextResponse', 'artifacts', decodeArtifact);
+}
+
+function decodeGetEventsByExecutionIdsResponse(bytes) {
+  const reader = new ProtoReader(bytes, 'ml_metadata.GetEventsByExecutionIDsResponse');
+  const events = [];
+  while (!reader.done) {
+    const { fieldNumber, wireType } = reader.readTag();
+    if (fieldNumber === 1) {
+      expectWireType(wireType, 2, 'ml_metadata.GetEventsByExecutionIDsResponse.events');
+      events.push(decodeEvent(reader.readBytes('event')));
+    } else {
+      reader.skipField(wireType);
+    }
+  }
+  return events;
+}
+
 module.exports = {
+  decodeGetArtifactsByContextResponse,
   decodeGetArtifactsByIdResponse,
+  decodeGetContextByTypeAndNameResponse,
+  decodeGetEventsByExecutionIdsResponse,
+  decodeGetExecutionsByContextResponse,
+  encodeContextIdRequest,
+  encodeExecutionIdsRequest,
+  encodeGetContextByTypeAndNameRequest,
   encodeGetArtifactsByIdRequest,
 };

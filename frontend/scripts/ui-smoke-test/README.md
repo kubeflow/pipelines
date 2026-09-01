@@ -190,8 +190,26 @@ object. Full-stack semantic captures also pin Chromium through the nested lockfi
 scale factor of 2, UTC, `en-US`, a light color scheme, reduced motion, and embedded Roboto 5.3.0
 WOFF2 assets at weights 400, 500, and 700. Each font digest is attested in the capture manifest.
 They freeze the browser clock, disable long polling timers, normalize rendered timestamps and
-durations, and apply the same deterministic styles inside artifact frames. A missing pinned font is
-an infrastructure failure instead of a host-dependent screenshot.
+durations, and apply the same deterministic styles inside artifact frames. Scenario-declared run,
+task, execution, Artifact, Artifact URI, pod-name, and pod-UID values are first validated at their
+real generated values, then replaced inside narrowly scoped text nodes with stable semantic tokens
+immediately before the screenshot. When 2.17.1 exposes repeated uncached `ParallelFor` task rows
+without an execution or iteration identity, their task UUIDs use one explicit visual equivalence
+token in both revisions. Every source task keeps its exact semantic path and raw-ID digest in the
+capture evidence. Independently identified MLMD executions and native iteration scopes remain
+distinct by iteration, and the separately observed parent DAGs, pods, and logs remain exact.
+ROC series whose colors are derived from generated IDs are rebound to fixed palette slots by
+semantic run identity after matching manifest-bound display names. Every declared ROC fixture must
+be present. The capture manifest records the source kind and semantic path separately from the
+cross-revision visual-token identity, plus replacement counts and SHA-256 digests of original
+values and source colors without recording raw generated identities. It never applies a page-wide
+UUID or numeric regex, and a missing, ambiguous, or unexpectedly repeated required replacement is
+a capture failure.
+Full-stack captures must explicitly request and attest `semantic-full-stack`; browser-only captures
+must explicitly request `disabled-browser-compatibility` and cannot provide semantic or source
+provenance. Comparison re-reads the attested semantic manifest, recomputes its fixture validation,
+and verifies every normalized source-ID digest against it. A missing pinned font is an
+infrastructure failure instead of a host-dependent screenshot.
 
 For reviewed per-scenario exceptions, pass `--scenario-policy /path/to/policy.json`. The policy is
 operator input and is not allowed for non-comparison workflows. The runner combines it with the
@@ -237,9 +255,25 @@ Full-stack seeding creates the same logical pipeline, run, metrics, ROC data, ar
 two-item `ParallelFor`, and nested DAG in each revision through that revision's supported APIs.
 The artifact set includes deterministic scalar metrics, classification metrics, HTML, and Markdown
 contents plus producer and consumer relationships.
-Legacy runs are hydrated from their MLMD-backed run response. Native runs page through
-`/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and Artifact relationships. The
-resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
+The 2.17.1 Argo reporter does not populate a complete task/Artifact projection. Legacy hydration
+therefore resolves the exact `system.PipelineRun` MLMD context by the KFP run ID, loads every
+execution, Artifact, and Event in that context, and reconstructs only the fixture's declared
+producer/consumer ports from actual `INPUT` and `OUTPUT` Events. Any context ID exposed by GetRun is
+treated as a cross-check, not as the source of truth. MLMD execution names, pod identities,
+iteration indexes, parent DAG IDs, and executor-log Events provide complete task, retry, lineage,
+and containment coverage without guessing between repeated task names. The legacy task API stores
+dependency children as unjoinable Argo node IDs, so `depends-on` edges are explicitly marked as
+`pipeline-version-spec` evidence parsed from the exact PipelineVersion referenced by the observed
+run; containment and Artifact consumer edges remain independently backed by MLMD. Missing,
+ambiguous, undeclared, version-mismatched,
+cross-context, or GetRun/MLMD-conflicting evidence fails seeding. Executor-log Events are accepted
+only when the referenced MLMD Artifact has type `system.Artifact`, custom display name
+`executor-logs`, and a deterministic attempt-suffixed URI. Native runs page
+through `/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and Artifact
+relationships. Both revisions retain launcher-managed `executor-logs-N` Artifacts, order retry logs
+by their URI suffix rather than API response order, and map their IDs and URIs to the same semantic
+attempt identities without admitting other undeclared Artifacts.
+The resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
 routes and selectors do not need identical IDs.
 
 Capture scenarios are semantic journeys rather than a shared list of URLs. The base and head may
@@ -315,7 +349,9 @@ successfully captured expected removal is still analyzed and keeps all five imag
 review. Its trusted scenario default disables the failure threshold, while a reviewed policy may
 supply a numeric threshold that is enforced normally. Every emitted PNG is listed in the
 managed-output marker and recorded with its SHA-256 digest and byte size in the summary and
-self-contained report.
+self-contained report. Base and head capture manifests must also carry the same versioned semantic
+ID normalization policy; malformed or incomplete per-screenshot replacement evidence is rejected
+before pixel thresholds are evaluated.
 
 Full-stack comparisons create unique `ui-smoke-base-*` and `ui-smoke-head-*` clusters. Each has its
 own kubeconfig, context, database, object store, cache, Kubernetes resources, image scope, ports,
@@ -352,9 +388,9 @@ node smoke-test-runner.js --teardown
    deterministic pipeline so the richer topology remains the single semantic source of truth.
    The base records legacy MLMD task/artifact data; a native head records Task/Artifact API data.
 8. Discovers generated IDs from each revision's run details and writes separate capture-compatible
-   seed manifests plus one `ui-smoke-semantic/v2` manifest keyed by logical fixtures. The manifest
-   maps per-revision run, task instance, artifact, retry-attempt, iteration, and relationship IDs;
-   unknown or incomplete semantic bindings stop the comparison.
+   seed manifests plus one `ui-smoke-semantic/v3` manifest keyed by logical fixtures. The manifest
+   maps per-revision run, task instance, artifact, Artifact URI, pod identity, retry-attempt,
+   iteration, and relationship IDs; unknown or incomplete semantic bindings stop the comparison.
 9. Binds each capture to the revision-specific deployed UI URL, semantic manifest, and immutable
    source provenance.
 10. Captures both revisions, compares only exact successful manifest pairs with pinned analysis
@@ -399,17 +435,21 @@ node capture-screenshots.js \
   --base-url http://127.0.0.1:3000 \
   --output ./screenshots/base \
   --label base \
+  --normalization-mode semantic-full-stack \
   --revision-role base \
   --seed-manifest ./seed/base.json \
-  --semantic-manifest ./semantic-fixtures.json
+  --semantic-manifest ./semantic-fixtures.json \
+  --source-provenance ./source-provenance.json
 
 node capture-screenshots.js \
   --base-url http://127.0.0.1:3001 \
   --output ./screenshots/head \
   --label head \
+  --normalization-mode semantic-full-stack \
   --revision-role head \
   --seed-manifest ./seed/head.json \
-  --semantic-manifest ./semantic-fixtures.json
+  --semantic-manifest ./semantic-fixtures.json \
+  --source-provenance ./source-provenance.json
 
 node generate-comparison.js \
   --main ./screenshots/base \
