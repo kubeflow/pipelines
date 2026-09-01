@@ -1,12 +1,16 @@
 # This workflow checks whether all CI checks passed, publishes the SHA-bound
 # ci-passed commit status, and maintains the informational ci-passed label.
 # Eligibility changes for one PR head share a single writer and finish by
-# reconciling current live PR state.
+# reconciling current live PR state. A completed workflow run on the same
+# head SHA re-derives the aggregate from current check state so a later
+# same-SHA re-run cannot leave a stale green.
 name: CI Check
 
 on:
   pull_request_target:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  workflow_run:
+    types: [completed]
 
 jobs:
   check_ci_status:
@@ -14,16 +18,19 @@ jobs:
     # Skip unrelated labels before entering concurrency so Dependabot/Prow label
     # bursts cannot leave cancelled checks on the current head SHA.
     if: >-
-      (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') ||
-      (github.event.action == 'edited' && github.event.changes.base.ref.from != '') ||
-      (github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) ||
-      (github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test'))
+      github.event_name == 'pull_request_target' &&
+      (
+        (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') ||
+        (github.event.action == 'edited' && github.event.changes.base.ref.from != '') ||
+        (github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) ||
+        (github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test'))
+      )
     concurrency:
       # Every event that can change eligibility for one PR head shares a
-      # single writer. The newest event cancels and supersedes older work; its
-      # final reconciliation re-reads current PR state before publishing.
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-      cancel-in-progress: true
+      # single writer keyed on the head SHA. A queued invalidation must never
+      # be silently replaced, so in-progress runs are not cancelled.
+      group: ci-passed-reconcile-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -184,13 +191,45 @@ jobs:
               association === "OWNER" ||
               association === "COLLABORATOR"
             );
+
+            // P1 #2: persist a base-retarget revalidation requirement. A base
+            // change does not re-run pull_request CI, so the requirement must
+            // survive label-only events until a head update revalidates CI.
+            const baseRetargetEvent = context.payload.action === "edited" &&
+              context.payload.changes &&
+              context.payload.changes.base &&
+              context.payload.changes.base.ref &&
+              context.payload.changes.base.ref.from;
+            let baseRevalidationRequired = false;
+            {
+              const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: eventHeadSha,
+              });
+              const ciPassed = statuses.find((s) => s.context === "ci-passed");
+              baseRevalidationRequired = Boolean(ciPassed &&
+                ciPassed.state === "failure" &&
+                (ciPassed.description || "").startsWith("Base branch retargeted"));
+            }
+
             const passed = eligible &&
               "${{ steps.eligibility.outputs.should_poll }}" === "true" &&
-              "${{ steps.poll.outcome }}" === "success";
-            const state = passed ? "success" : "failure";
-            const description = passed
-              ? "All CI checks passed on this exact commit."
-              : "CI checks did not pass or the PR requires revalidation.";
+              "${{ steps.poll.outcome }}" === "success" &&
+              !baseRevalidationRequired;
+
+            let state;
+            let description;
+            if (baseRetargetEvent || baseRevalidationRequired) {
+              state = "failure";
+              description = "Base branch retargeted; CI revalidation is required.";
+            } else if (passed) {
+              state = "success";
+              description = "All CI checks passed on this exact commit.";
+            } else {
+              state = "failure";
+              description = "CI checks did not pass or the PR requires revalidation.";
+            }
 
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
@@ -208,19 +247,267 @@ jobs:
                 issue_number: prNumber,
                 labels: ["ci-passed"],
               });
+              // P1 #3: close the read-publish interleaving with a second
+              // full-state read immediately after the mutation. Any drift
+              // (head move, base change, close, or loss of eligibility)
+              // publishes an explicit failure.
               const { data: afterLabel } = await github.rest.pulls.get({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: prNumber,
               });
-              if (afterLabel.head.sha !== eventHeadSha) {
+              const afterLabels = new Set(afterLabel.labels.map((label) => label.name));
+              const afterAssociation = afterLabel.author_association;
+              const afterEligible = !afterLabels.has("needs-ok-to-test") && (
+                afterLabels.has("ok-to-test") ||
+                afterLabel.user.login === "dependabot[bot]" ||
+                afterAssociation === "MEMBER" ||
+                afterAssociation === "OWNER" ||
+                afterAssociation === "COLLABORATOR"
+              );
+              if (afterLabel.state !== "open" ||
+                  afterLabel.head.sha !== eventHeadSha ||
+                  afterLabel.base.ref !== eventBaseRef ||
+                  !afterEligible) {
                 await github.rest.issues.removeLabel({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: prNumber,
                   name: "ci-passed",
                 });
+                await github.rest.repos.createCommitStatus({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  sha: eventHeadSha,
+                  context: "ci-passed",
+                  state: "failure",
+                  description: "PR state changed during reconciliation; CI revalidation is required.",
+                });
               }
+            } else {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: "ci-passed",
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+  reconcile_workflow_run:
+    # Reconcile ci-passed when a trusted constituent workflow completes. Skip
+    # our own CI Check run and housekeeping/approval workflows; only trusted
+    # constituent workflows re-derive the aggregate from current check state.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name != 'CI Check' &&
+      github.event.workflow_run.name != 'Approve Workflow Runs' &&
+      github.event.workflow_run.name != 'Mark stale issues and pull requests' &&
+      github.event.workflow_run.name != 'CI Health Report'
+    concurrency:
+      group: ci-passed-reconcile-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: read
+      issues: write
+      pull-requests: read
+      statuses: write
+    steps:
+      - name: Resolve pull request for workflow_run head SHA
+        id: resolve
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const headSha = context.payload.workflow_run.head_sha;
+            const headRepository = context.payload.workflow_run.head_repository;
+            const headBranch = context.payload.workflow_run.head_branch;
+
+            let matched = "false";
+            let prNumber = "";
+            let prBaseRef = "";
+
+            if (headRepository && headBranch) {
+              try {
+                const { data: pulls } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${headRepository.owner.login}:${headBranch}`,
+                  state: "open",
+                });
+                const pr = pulls.find((p) => p.head.sha === headSha);
+                if (pr) {
+                  matched = "true";
+                  prNumber = String(pr.number);
+                  prBaseRef = pr.base.ref;
+                }
+              } catch (error) {
+                core.info(`SHA-to-PR mapping failed: ${error.message}`);
+              }
+            }
+
+            core.setOutput("matched", matched);
+            core.setOutput("pr_number", prNumber);
+            core.setOutput("pr_base_ref", prBaseRef);
+            core.info(`workflow_run head ${headSha} maps to PR ${prNumber || "(none)"} (matched=${matched})`);
+
+      - name: Read current ci-passed status for the workflow_run head SHA
+        id: status
+        if: steps.resolve.outputs.matched == 'true'
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const headSha = context.payload.workflow_run.head_sha;
+            const conclusion = context.payload.workflow_run.conclusion;
+
+            // A non-success completion must re-poll to re-derive the aggregate
+            // from current check state. A success completion only re-polls when
+            // the current ci-passed status is failure, so a successful re-run
+            // can clear a stale red (a green or absent status needs nothing).
+            let needsRepoll = "false";
+            if (conclusion !== "success") {
+              needsRepoll = "true";
+            } else {
+              const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: headSha,
+              });
+              const ciPassed = statuses.find((s) => s.context === "ci-passed");
+              needsRepoll = ciPassed && ciPassed.state === "failure" ? "true" : "false";
+            }
+
+            core.setOutput("needs_repoll", needsRepoll);
+            core.info(`workflow_run head ${headSha}: needs_repoll=${needsRepoll} (conclusion=${conclusion})`);
+
+      - name: Re-poll all CI checks for the workflow_run head SHA
+        id: repoll
+        if: steps.resolve.outputs.matched == 'true' && steps.status.outputs.needs_repoll == 'true'
+        uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
+        with:
+          commit_sha: ${{ github.event.workflow_run.head_sha }}
+          delay: '5'
+          retries: '10'
+          polling_interval: '5'
+          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
+          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
+          # causing false negatives in the status gate. If the Copilot reviewer adds or
+          # renames checks, update this list accordingly.
+          checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Reconcile ci-passed for the workflow_run head SHA
+        if: always()
+        uses: actions/github-script@v9
+        with:
+          retries: 3
+          script: |
+            const matched = "${{ steps.resolve.outputs.matched }}";
+            const headSha = context.payload.workflow_run.head_sha;
+            const conclusion = context.payload.workflow_run.conclusion;
+
+            if (matched !== "true") {
+              core.info(`No reconcile needed (matched=${matched}).`);
+              return;
+            }
+
+            const prNumber = Number("${{ steps.resolve.outputs.pr_number }}");
+            const resolvedBaseRef = "${{ steps.resolve.outputs.pr_base_ref }}";
+
+            // Publish onto the event's own SHA only; never onto the live PR
+            // head. Re-read live PR state immediately before publishing.
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            if (pullRequest.state !== "open" ||
+                pullRequest.head.sha !== headSha ||
+                pullRequest.base.ref !== resolvedBaseRef) {
+              core.info(`PR #${prNumber} moved/closed/retargeted from ${headSha}; not publishing for a stale SHA.`);
+              return;
+            }
+
+            // N1: honor the P1#2 base-retarget revalidation marker. A base
+            // change does not re-run pull_request CI, so the marker must
+            // persist on the head SHA and block any re-derivation back to
+            // success until the head is updated and revalidated.
+            let baseRevalidationRequired = false;
+            let currentStatusIsFailure = false;
+            {
+              const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: headSha,
+              });
+              const ciPassed = statuses.find((s) => s.context === "ci-passed");
+              baseRevalidationRequired = Boolean(ciPassed &&
+                ciPassed.state === "failure" &&
+                (ciPassed.description || "").startsWith("Base branch retargeted"));
+              currentStatusIsFailure = Boolean(ciPassed && ciPassed.state === "failure");
+            }
+
+            if (baseRevalidationRequired) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: headSha,
+                context: "ci-passed",
+                state: "failure",
+                description: "Base branch retargeted; CI revalidation is required.",
+              });
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: "ci-passed",
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+              core.info(`Base branch retargeted for ${headSha}; revalidation is required.`);
+              return;
+            }
+
+            // N2: a success conclusion only re-polls when the current
+            // ci-passed status is failure. If it is already green (or absent),
+            // there is nothing to re-derive and this is a no-op.
+            if (conclusion === "success" && !currentStatusIsFailure) {
+              core.info(`Current ci-passed status is not failure (conclusion=${conclusion}); no reconcile needed.`);
+              return;
+            }
+
+            const pollPassed = "${{ steps.repoll.outcome }}" === "success";
+            const state = pollPassed ? "success" : "failure";
+            const description = pollPassed
+              ? "All CI checks passed on this exact commit."
+              : "CI checks did not pass or the PR requires revalidation.";
+
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: headSha,
+              context: "ci-passed",
+              state,
+              description,
+            });
+
+            if (state === "success") {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: ["ci-passed"],
+              });
             } else {
               try {
                 await github.rest.issues.removeLabel({

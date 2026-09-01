@@ -38,11 +38,32 @@ AUTHORS = {
 def extract_step_script(workflow: str, step_name: str,
                         next_step_name: str | None = None) -> str:
     start = workflow.index(f'      - name: {step_name}')
-    end = (workflow.index(f'      - name: {next_step_name}', start)
-           if next_step_name else len(workflow))
+    if next_step_name:
+        end = workflow.index(f'      - name: {next_step_name}', start)
+    else:
+        end = len(workflow)
     step = workflow[start:end]
     marker = 'run: |' if 'run: |' in step else 'script: |'
-    return textwrap.dedent(step.split(marker, 1)[1]).strip()
+    marker_idx = step.index(marker)
+    # Indentation of the marker key (``run:``/``script:``). The literal block
+    # body is indented further and ends at the first line indented no deeper
+    # than the key itself (a following step, job header, or EOF).
+    line_start = step.rfind('\n', 0, marker_idx) + 1
+    marker_indent = len(step[line_start:marker_idx]) - len(
+        step[line_start:marker_idx].lstrip())
+    lines = step[marker_idx + len(marker):].split('\n')
+    block: list[str] = []
+    for line in lines:
+        if line.strip() == '':
+            block.append('')
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= marker_indent:
+            break
+        block.append(line)
+    while block and block[-1].strip() == '':
+        block.pop()
+    return textwrap.dedent('\n'.join(block)).strip()
 
 
 def expected_eligible(author: str, association: str, has_ok: bool,
@@ -86,7 +107,10 @@ def execute_eligibility(workflow: str, author: str, association: str,
 def execute_javascript(script: str, setup: str, workspace: Path) -> list:
     harness = f'''
 const calls = [];
-const core = {{ info: (message) => calls.push(["info", String(message)]) }};
+const core = {{
+  info: (message) => calls.push(["info", String(message)]),
+  setOutput: (name, value) => calls.push(["setOutput", String(name), String(value)]),
+}};
 {setup}
 (async () => {{
 {textwrap.indent(script, '  ')}
@@ -107,36 +131,126 @@ def execute_reconcile(workflow: str, should_poll: str, poll_outcome: str,
                       association: str = 'MEMBER', author: str = 'alice',
                       live_head: str = 'event-sha',
                       live_base: str = 'master',
-                      post_label_head: str = 'event-sha') -> list:
+                      post_label_head: str = 'event-sha',
+                      post_label_base: str | None = None,
+                      post_label_state: str = 'open',
+                      post_label_labels: list[str] | None = None,
+                      prior_statuses: list | None = None,
+                      action: str = 'opened',
+                      changes_base_from: str = '') -> list:
     script = extract_step_script(
         workflow, 'Reconcile ci-passed status and informational label')
     script = script.replace(
         '${{ steps.eligibility.outputs.should_poll }}', should_poll)
     script = script.replace('${{ steps.poll.outcome }}', poll_outcome)
     labels = labels or []
+    post_label_labels = labels if post_label_labels is None else post_label_labels
+    post_label_base = live_base if post_label_base is None else post_label_base
+    prior_statuses = [] if prior_statuses is None else prior_statuses
     setup = f'''
 const context = {{
   repo: {{ owner: "kubeflow", repo: "pipelines" }},
-  payload: {{ pull_request: {{
-    number: 7, head: {{ sha: "event-sha" }}, base: {{ ref: "master" }}
-  }} }},
+  payload: {{
+    action: {json.dumps(action)},
+    changes: {{ base: {{ ref: {{ from: {json.dumps(changes_base_from)} }} }} }},
+    pull_request: {{
+      number: 7, head: {{ sha: "event-sha" }}, base: {{ ref: "master" }}
+    }},
+  }},
 }};
 let pullReads = 0;
 const github = {{ rest: {{
   pulls: {{ get: async () => {{
     pullReads += 1;
+    const isFirst = pullReads === 1;
     return {{ data: {{
-      number: 7, state: "open",
-      head: {{ sha: pullReads === 1 ? {json.dumps(live_head)} : {json.dumps(post_label_head)} }},
-      base: {{ ref: {json.dumps(live_base)} }},
-      labels: {json.dumps([{'name': label} for label in labels])},
+      number: 7, state: isFirst ? "open" : {json.dumps(post_label_state)},
+      head: {{ sha: isFirst ? {json.dumps(live_head)} : {json.dumps(post_label_head)} }},
+      base: {{ ref: isFirst ? {json.dumps(live_base)} : {json.dumps(post_label_base)} }},
+      labels: isFirst ? {json.dumps([{'name': label} for label in labels])} : {json.dumps([{'name': label} for label in post_label_labels])},
       user: {{ login: {json.dumps(author)} }},
       author_association: {json.dumps(association)},
     }} }};
   }} }},
+  repos: {{
+    createCommitStatus: async (options) => {{
+      calls.push(["status", options.state, options.sha]);
+      return {{ data: options }};
+    }},
+    listCommitStatusesForRef: async () => {{
+      return {{ data: {json.dumps(prior_statuses)} }};
+    }},
+  }},
+  issues: {{
+    addLabels: async () => calls.push(["add-label"]),
+    removeLabel: async () => calls.push(["remove-label"]),
+  }},
+}} }};
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        return execute_javascript(script, setup, Path(directory))
+
+
+def execute_workflow_run_resolve(workflow: str, pulls: list,
+                                 head_sha: str = 'head-sha',
+                                 head_repo_owner: str = 'kubeflow',
+                                 head_branch: str = 'dependabot-ci-passed-eligibility') -> dict:
+    script = extract_step_script(
+        workflow, 'Resolve pull request for workflow_run head SHA',
+        'Read current ci-passed status for the workflow_run head SHA')
+    setup = f'''
+const context = {{
+  repo: {{ owner: "kubeflow", repo: "pipelines" }},
+  payload: {{ workflow_run: {{
+    head_sha: {json.dumps(head_sha)},
+    head_repository: {{ owner: {{ login: {json.dumps(head_repo_owner)} }} }},
+    head_branch: {json.dumps(head_branch)},
+  }} }},
+}};
+const github = {{ rest: {{
+  pulls: {{ list: async () => {{ return {{ data: {json.dumps(pulls)} }}; }} }},
+}} }};
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        calls = execute_javascript(script, setup, Path(directory))
+    return {call[1]: call[2] for call in calls if call[0] == 'setOutput'}
+
+
+def execute_workflow_run_reconcile(workflow: str, matched: str,
+                                   pr_number: str, pr_base_ref: str,
+                                   repoll_outcome: str,
+                                   conclusion: str = 'failure',
+                                   live_state: str = 'open',
+                                   live_head: str = 'head-sha',
+                                   live_base: str = 'master',
+                                   prior_statuses: list | None = None) -> list:
+    script = extract_step_script(
+        workflow, 'Reconcile ci-passed for the workflow_run head SHA')
+    script = script.replace('${{ steps.resolve.outputs.matched }}', matched)
+    script = script.replace('${{ steps.resolve.outputs.pr_number }}', pr_number)
+    script = script.replace('${{ steps.resolve.outputs.pr_base_ref }}', pr_base_ref)
+    script = script.replace('${{ steps.repoll.outcome }}', repoll_outcome)
+    prior_statuses = [] if prior_statuses is None else prior_statuses
+    setup = f'''
+const context = {{
+  repo: {{ owner: "kubeflow", repo: "pipelines" }},
+  payload: {{ workflow_run: {{
+    head_sha: "head-sha",
+    conclusion: {json.dumps(conclusion)},
+  }} }},
+}};
+const github = {{ rest: {{
+  pulls: {{ get: async () => {{ return {{ data: {{
+    number: 7, state: {json.dumps(live_state)},
+    head: {{ sha: {json.dumps(live_head)} }},
+    base: {{ ref: {json.dumps(live_base)} }},
+    labels: [], user: {{ login: "dependabot[bot]" }}, author_association: "NONE",
+  }} }}; }} }},
   repos: {{ createCommitStatus: async (options) => {{
     calls.push(["status", options.state, options.sha]);
     return {{ data: options }};
+  }}, listCommitStatusesForRef: async () => {{
+    return {{ data: {json.dumps(prior_statuses)} }};
   }} }},
   issues: {{
     addLabels: async () => calls.push(["add-label"]),
@@ -186,9 +300,9 @@ class CiPassEligibilityTest(unittest.TestCase):
     def test_single_writer_concurrency_and_permissions(self):
         self.assertFalse(ADD_LABEL_PATH.exists())
         self.assertIn(
-            'group: ${{ github.workflow }}-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}',
+            'group: ci-passed-reconcile-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}',
             self.workflow)
-        self.assertIn('cancel-in-progress: true', self.workflow)
+        self.assertIn('cancel-in-progress: false', self.workflow)
         self.assertIn('statuses: write', self.workflow)
         self.assertIn('issues: write', self.workflow)
 
@@ -236,6 +350,127 @@ class CiPassEligibilityTest(unittest.TestCase):
         self.assertIn('github.event.changes.base.ref.from', condition)
         self.assertIn('types: [opened, synchronize, reopened, edited, labeled, unlabeled]',
                       self.workflow)
+
+    def test_workflow_run_trigger_declared_without_check_run_suite(self):
+        self.assertIn('workflow_run:', self.workflow)
+        self.assertIn('types: [completed]', self.workflow)
+        self.assertNotIn('check_run:', self.workflow)
+        self.assertNotIn('check_suite:', self.workflow)
+
+    def test_workflow_run_resolves_pr_by_head_sha(self):
+        # Open PR whose head matches the event SHA.
+        outputs = execute_workflow_run_resolve(self.workflow, [
+            {'number': 7, 'head': {'sha': 'head-sha'},
+             'base': {'ref': 'master'}},
+        ])
+        self.assertEqual(outputs['matched'], 'true')
+        self.assertEqual(outputs['pr_number'], '7')
+        self.assertEqual(outputs['pr_base_ref'], 'master')
+
+        # Stale SHA: the PR head has moved past the event SHA.
+        outputs = execute_workflow_run_resolve(self.workflow, [
+            {'number': 7, 'head': {'sha': 'new-sha'},
+             'base': {'ref': 'master'}},
+        ])
+        self.assertEqual(outputs['matched'], 'false')
+        self.assertEqual(outputs['pr_number'], '')
+
+        # No open PR at this head (direct push / already merged).
+        outputs = execute_workflow_run_resolve(self.workflow, [])
+        self.assertEqual(outputs['matched'], 'false')
+        self.assertEqual(outputs['pr_number'], '')
+
+    def test_workflow_run_rerun_failure_flips_red(self):
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='failure', conclusion='failure')
+        self.assertIn(['status', 'failure', 'head-sha'], calls)
+        self.assertIn(['remove-label'], calls)
+
+    def test_workflow_run_rerun_success_keeps_green(self):
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='success', conclusion='failure')
+        self.assertIn(['status', 'success', 'head-sha'], calls)
+        self.assertIn(['add-label'], calls)
+
+    def test_workflow_run_stale_sha_is_noop(self):
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='false', pr_number='', pr_base_ref='',
+            repoll_outcome='skipped', conclusion='failure')
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+
+    def test_workflow_run_success_conclusion_is_noop(self):
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='skipped', conclusion='success')
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+
+    def test_workflow_run_never_publishes_onto_live_head(self):
+        # The event SHA no longer matches the live PR head: refuse to publish.
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='failure', conclusion='failure',
+            live_head='new-sha')
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+
+    def test_workflow_run_base_retarget_blocks_success_restore(self):
+        # A base retarget left a persisted revalidation marker on the head SHA.
+        # A non-success workflow_run completion whose re-poll is green must not
+        # overwrite the marker with success.
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='success', conclusion='failure',
+            prior_statuses=[{'context': 'ci-passed', 'state': 'failure',
+                             'description': 'Base branch retargeted; CI revalidation is required.'}])
+        self.assertIn(['status', 'failure', 'head-sha'], calls)
+        self.assertNotIn(['status', 'success', 'head-sha'], calls)
+        self.assertIn(['remove-label'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_workflow_run_success_conclusion_clears_stale_red(self):
+        # A success-conclusion workflow_run with a current ci-passed failure
+        # status re-polls and re-derives success, clearing the stale red.
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='success', conclusion='success',
+            prior_statuses=[{'context': 'ci-passed', 'state': 'failure',
+                             'description': 'CI checks did not pass or the PR requires revalidation.'}])
+        self.assertIn(['status', 'success', 'head-sha'], calls)
+        self.assertIn(['add-label'], calls)
+
+    def test_base_retarget_event_publishes_revalidation_marker(self):
+        # A base change event must publish a persistent revalidation marker.
+        calls = execute_reconcile(
+            self.workflow, 'false', 'skipped',
+            labels=['ok-to-test'], association='MEMBER',
+            action='edited', changes_base_from='master')
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+
+    def test_base_retarget_persistence_blocks_label_restore(self):
+        # A base retarget left a persisted revalidation marker on the head SHA.
+        # A later ok-to-test label on the unchanged head must not restore success.
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER',
+            prior_statuses=[{'context': 'ci-passed', 'state': 'failure',
+                             'description': 'Base branch retargeted; CI revalidation is required.'}])
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+        self.assertIn(['remove-label'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_final_publish_race_publishes_failure(self):
+        # The post-mutation snapshot no longer matches (base retargeted during
+        # reconciliation) -> an explicit failure is published.
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER',
+            post_label_base='release-2.17')
+        self.assertIn(['add-label'], calls)
+        self.assertIn(['remove-label'], calls)
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
 
 
 if __name__ == '__main__':
