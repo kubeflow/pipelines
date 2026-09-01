@@ -318,9 +318,8 @@ func extendPodSpecPatch(
 					return fmt.Errorf("failed to resolve resource claim: %w", err)
 				}
 
-				isSingleClaim := resolvedParam.GetStructValue() != nil
-				isListClaim := resolvedParam.GetListValue() != nil
-				if isSingleClaim {
+				switch {
+				case resolvedParam.GetStructValue() != nil:
 					structVal := resolvedParam.GetStructValue()
 					if structVal != nil && len(structVal.Fields) > 0 {
 						paramJSON, err := structVal.MarshalJSON()
@@ -339,7 +338,7 @@ func extendPodSpecPatch(
 					} else {
 						return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
 					}
-				} else if isListClaim {
+				case resolvedParam.GetListValue() != nil:
 					listVal := resolvedParam.GetListValue()
 					if listVal != nil && len(listVal.Values) > 0 {
 						paramJSON, err := listVal.MarshalJSON()
@@ -358,7 +357,7 @@ func extendPodSpecPatch(
 						}
 						k8sClaims = append(k8sClaims, resolvedList...)
 					}
-				} else {
+				default:
 					return fmt.Errorf("encountered unexpected resource claim proto value, must be either struct or list type")
 				}
 			} else {
