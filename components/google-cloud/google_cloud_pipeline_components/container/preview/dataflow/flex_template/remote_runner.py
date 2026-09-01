@@ -176,9 +176,9 @@ class DataflowFlexTemplateRemoteRunner:
       job_name_pattern = re.compile(_DATAFLOW_JOB_URI_TEMPLATE)
       match = job_name_pattern.match(job_resources.resources[0].resource_uri)
       try:
-        matched_project = match.group('project')
-        matched_location = match.group('location')
-        matched_job_id = match.group('job')
+        matched_project = match.group('project')  # pyrefly: ignore[missing-attribute]
+        matched_location = match.group('location')  # pyrefly: ignore[missing-attribute]
+        matched_job_id = match.group('job')  # pyrefly: ignore[missing-attribute]
       except AttributeError as err:
         raise ValueError(
             'Invalid Resource uri: {}. Expect: {}.'.format(
