@@ -18,7 +18,10 @@ const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
 const COMPARISON_SUMMARY_FILENAME = 'summary.json';
 const COMPARISON_SUMMARY_SCHEMA_VERSION = 2;
+const COMPARISON_REPORT_FILENAME = 'report.html';
 const MANAGED_OUTPUTS_FILENAME = '.managed-outputs.json';
+const MANAGED_OUTPUTS_SCHEMA_VERSION = 2;
+const MANAGED_STATIC_OUTPUTS = [COMPARISON_REPORT_FILENAME, COMPARISON_SUMMARY_FILENAME];
 const FRESHNESS_TOLERANCE_MS = 1000;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
 const COMPARISON_ARGUMENT_NAMES = new Set([
@@ -195,6 +198,10 @@ function escapeXml(value) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function escapeHtml(value) {
+  return escapeXml(value).replace(/'/g, '&#39;');
 }
 
 async function createLabeledImage(imagePath, label, width, height) {
@@ -617,16 +624,30 @@ function loadCaptureManifest(directory) {
     return null;
   }
 
+  let manifestContents;
   let manifest;
   try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifestContents = fs.readFileSync(manifestPath);
+    manifest = JSON.parse(manifestContents.toString('utf8'));
   } catch (error) {
     throw new ComparisonError(
       `Unable to parse capture manifest ${manifestPath}: ${error.message}`,
       'manifest',
     );
   }
-  return validateCaptureManifest(manifest, manifestPath);
+  const validated = validateCaptureManifest(manifest, manifestPath);
+  return {
+    ...validated,
+    attestation: {
+      captureId: manifest.captureId,
+      manifestSha256: crypto.createHash('sha256').update(manifestContents).digest('hex'),
+      manifestSizeBytes: manifestContents.length,
+      requiredFilenames: [...validated.records.values()]
+        .filter((result) => result.required && result.status === 'success')
+        .map((result) => result.filename)
+        .sort(),
+    },
+  };
 }
 
 function failedPlanResult(filename, required, message, failureType = 'capture') {
@@ -724,6 +745,10 @@ function buildComparisonPlan(mainDir, prDir) {
 
   return {
     ...buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir),
+    captures: {
+      base: mainManifest.attestation,
+      head: prManifest.attestation,
+    },
     mainLabel: mainManifest.label || 'main (base)',
     prLabel: prManifest.label || 'PR (head)',
     sourceMode: 'manifest',
@@ -732,7 +757,7 @@ function buildComparisonPlan(mainDir, prDir) {
 
 function validateFreshCapture(record, filePath, side) {
   if (!record) {
-    return;
+    return null;
   }
   let stat;
   try {
@@ -755,21 +780,23 @@ function validateFreshCapture(record, filePath, side) {
       'stale',
     );
   }
-  let actualSha256;
+  let contents;
   try {
-    actualSha256 = sha256File(filePath);
+    contents = fs.readFileSync(filePath);
   } catch (error) {
     throw new ComparisonError(
       `${side} screenshot could not be hashed: ${error.message}`,
       'integrity',
     );
   }
+  const actualSha256 = crypto.createHash('sha256').update(contents).digest('hex');
   if (actualSha256 !== record.sha256) {
     throw new ComparisonError(
       `${side} screenshot content does not match its capture manifest: ${filePath}`,
       'integrity',
     );
   }
+  return contents;
 }
 
 function validateManagedOutputFilenames(filenames, label) {
@@ -794,8 +821,27 @@ function validateManagedOutputFilenames(filenames, label) {
 function writeManagedOutputMarker(outputDir, filenames) {
   fs.writeFileSync(
     path.join(outputDir, MANAGED_OUTPUTS_FILENAME),
-    `${JSON.stringify({ schemaVersion: 1, filenames }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        schemaVersion: MANAGED_OUTPUTS_SCHEMA_VERSION,
+        artifacts: MANAGED_STATIC_OUTPUTS,
+        filenames,
+      },
+      null,
+      2,
+    )}\n`,
   );
+}
+
+function existingOutputStat(outputPath) {
+  try {
+    return fs.lstatSync(outputPath);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return null;
+    }
+    throw error;
+  }
 }
 
 function cleanComparisonOutputs(outputDir, currentFilenames = []) {
@@ -806,6 +852,7 @@ function cleanComparisonOutputs(outputDir, currentFilenames = []) {
   const removed = [];
 
   let previousFilenames = [];
+  let previousStaticOutputs = [];
   if (entries.length > 0) {
     let markerStat;
     try {
@@ -825,16 +872,36 @@ function cleanComparisonOutputs(outputDir, currentFilenames = []) {
     } catch (error) {
       throw new Error(`Comparison ownership marker is invalid: ${error.message}`);
     }
-    if (marker?.schemaVersion !== 1) {
+    if (marker?.schemaVersion !== 1 && marker?.schemaVersion !== MANAGED_OUTPUTS_SCHEMA_VERSION) {
       throw new Error(`Unsupported comparison ownership marker in ${markerPath}.`);
     }
     previousFilenames = validateManagedOutputFilenames(
       marker.filenames,
       'Comparison ownership marker',
     );
+    if (marker.schemaVersion === 1) {
+      previousStaticOutputs = [COMPARISON_SUMMARY_FILENAME];
+    } else {
+      if (
+        !Array.isArray(marker.artifacts) ||
+        marker.artifacts.length !== MANAGED_STATIC_OUTPUTS.length ||
+        marker.artifacts.some((filename, index) => filename !== MANAGED_STATIC_OUTPUTS[index])
+      ) {
+        throw new Error(`Comparison ownership marker has invalid managed artifacts: ${markerPath}`);
+      }
+      previousStaticOutputs = MANAGED_STATIC_OUTPUTS;
+    }
   }
 
-  for (const filename of [...previousFilenames, COMPARISON_SUMMARY_FILENAME]) {
+  const previouslyManaged = new Set([...previousFilenames, ...previousStaticOutputs]);
+  for (const filename of [...nextFilenames, ...MANAGED_STATIC_OUTPUTS]) {
+    const target = path.join(outputDir, filename);
+    if (existingOutputStat(target) && !previouslyManaged.has(filename)) {
+      throw new Error(`Refusing to overwrite an unmanaged comparison output: ${filename}`);
+    }
+  }
+
+  for (const filename of previouslyManaged) {
     const target = path.join(outputDir, filename);
     try {
       const stat = fs.lstatSync(target);
@@ -847,19 +914,25 @@ function cleanComparisonOutputs(outputDir, currentFilenames = []) {
       if (error.code !== 'ENOENT') throw error;
     }
   }
-
-  for (const filename of nextFilenames) {
-    if (fs.existsSync(path.join(outputDir, filename))) {
-      throw new Error(`Refusing to overwrite an unmanaged comparison output: ${filename}`);
-    }
-  }
   writeManagedOutputMarker(outputDir, nextFilenames);
   return removed;
 }
 
-function summarizeComparison({ fatalErrors, mainLabel, options, prLabel, results, sourceMode }) {
-  const failed = results.filter((result) => result.status === 'failed');
-  const success = results.filter((result) => result.status === 'success');
+function summarizeComparison({
+  captures,
+  fatalErrors,
+  mainLabel,
+  options,
+  prLabel,
+  results,
+  sourceMode,
+}) {
+  const orderedResults = [...results].sort((left, right) => {
+    if (left.filename === right.filename) return 0;
+    return left.filename < right.filename ? -1 : 1;
+  });
+  const failed = orderedResults.filter((result) => result.status === 'failed');
+  const success = orderedResults.filter((result) => result.status === 'success');
   const pagesExceedingFailThreshold =
     options.failThreshold === null ? [] : success.filter((result) => result.exceedsFailThreshold);
   const valid = fatalErrors.length === 0 && failed.length === 0 && success.length > 0;
@@ -871,6 +944,7 @@ function summarizeComparison({ fatalErrors, mainLabel, options, prLabel, results
     mainLabel,
     prLabel,
     sourceMode,
+    captures,
     thresholds: {
       diffThreshold: options.diffThreshold,
       failThreshold: options.failThreshold,
@@ -880,11 +954,11 @@ function summarizeComparison({ fatalErrors, mainLabel, options, prLabel, results
       looksSameTolerance: options.looksSameTolerance,
     },
     fatalErrors,
-    results,
+    results: orderedResults,
     stats: {
-      total: results.length,
+      total: orderedResults.length,
       success: success.length,
-      skipped: results.filter((result) => result.status === 'skipped').length,
+      skipped: orderedResults.filter((result) => result.status === 'skipped').length,
       failed: failed.length,
       missing: failed.filter((result) => result.failureType === 'missing').length,
       stale: failed.filter((result) => result.failureType === 'stale').length,
@@ -899,6 +973,79 @@ function summarizeComparison({ fatalErrors, mainLabel, options, prLabel, results
     valid,
     passed,
   };
+}
+
+function imageDataUrl(contents) {
+  return `data:image/png;base64,${contents.toString('base64')}`;
+}
+
+function renderCaptureAttestation(role, attestation) {
+  if (!attestation) {
+    return `<section class="capture"><h2>${escapeHtml(role)}</h2><p>Capture manifest unavailable.</p></section>`;
+  }
+  return `<section class="capture"><h2>${escapeHtml(role)}</h2><dl><dt>Capture ID</dt><dd><code>${escapeHtml(attestation.captureId)}</code></dd><dt>Manifest SHA-256</dt><dd><code>${escapeHtml(attestation.manifestSha256)}</code></dd><dt>Manifest size</dt><dd>${attestation.manifestSizeBytes} bytes</dd><dt>Required successful screenshots</dt><dd>${attestation.requiredFilenames.length}</dd></dl></section>`;
+}
+
+function renderImageFigure(caption, alt, contents) {
+  const dataUrl = imageDataUrl(contents);
+  return `<figure><figcaption>${escapeHtml(caption)}</figcaption><a href="${dataUrl}" title="Open the full-size embedded image"><img src="${dataUrl}" alt="${escapeHtml(alt)}" loading="lazy"></a></figure>`;
+}
+
+function renderComparisonResult(result, embeddedImages) {
+  let statusDetail;
+  if (result.status === 'success') {
+    statusDetail = `${result.diffPercent.toFixed(4)}% visual difference; ${result.diffRegionCount} highlighted region(s); ${result.exceedsFailThreshold ? 'above' : 'within'} the failure threshold.`;
+  } else if (result.status === 'skipped') {
+    statusDetail = result.reason;
+  } else {
+    statusDetail = `${result.failureType || 'comparison'}: ${result.error}`;
+  }
+
+  let images = '';
+  if (result.status === 'success') {
+    const imageSet = embeddedImages.get(result.filename);
+    if (!imageSet) {
+      throw new Error(`Missing embedded report images for ${result.filename}.`);
+    }
+    images = `<div class="images">${renderImageFigure('Base', `Base capture for ${result.page}`, imageSet.base)}${renderImageFigure('Head', `Head capture for ${result.page}`, imageSet.head)}${renderImageFigure('Highlighted comparison', `Side-by-side highlighted comparison for ${result.page}`, imageSet.comparison)}</div>`;
+  }
+
+  return `<section class="result status-${escapeHtml(result.status)}"><h2>${escapeHtml(result.page)}</h2><p class="metadata"><span>Status: ${escapeHtml(result.status)}</span><span>Capture validity: ${result.status === 'success' ? 'valid' : 'invalid'}</span><span>${result.required ? 'Required' : 'Optional'}</span></p><p>${escapeHtml(statusDetail)}</p>${images}</section>`;
+}
+
+function createComparisonReport(summary, embeddedImages) {
+  const overallStatus = summary.passed ? 'passed' : 'failed';
+  const fatalErrors = summary.fatalErrors.length
+    ? `<section class="errors"><h2>Fatal errors</h2><ul>${summary.fatalErrors.map((error) => `<li>${escapeHtml(error)}</li>`).join('')}</ul></section>`
+    : '';
+  const results = summary.results.length
+    ? summary.results.map((result) => renderComparisonResult(result, embeddedImages)).join('')
+    : '<section class="empty"><h2>No comparison results</h2><p>No valid screenshot pairs were available.</p></section>';
+  const baseCapture = renderCaptureAttestation('Base capture', summary.captures?.base);
+  const headCapture = renderCaptureAttestation('Head capture', summary.captures?.head);
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>UI smoke comparison: ${escapeHtml(overallStatus)}</title>
+  <style>
+    :root{color-scheme:light;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6fa;color:#171821}body{max-width:1600px;margin:0 auto;padding:24px}h1,h2{line-height:1.25}code{overflow-wrap:anywhere}.overview,.captures,.metadata,.images{display:grid;gap:12px}.overview{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:20px 0}.overview div,.capture,.result,.errors,.empty{background:#fff;border:1px solid #d9dce7;border-radius:8px;padding:16px}.overview strong,.metadata span{display:block}.captures{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:20px}.capture h2,.result h2{margin-top:0}.capture dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:0}.capture dd{margin:0;min-width:0}.metadata{grid-template-columns:repeat(auto-fit,minmax(160px,max-content));color:#4b5063}.images{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}figure{margin:0}figcaption{font-weight:650;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #c8cbd7;background:#fff}a:focus{outline:3px solid #3157d5;outline-offset:3px}.status-failed{border-left:5px solid #b42318}.status-skipped{border-left:5px solid #b7791f}.status-success{border-left:5px solid #16803c}.errors{border-left:5px solid #b42318}.errors li+li{margin-top:8px}@media(max-width:700px){body{padding:12px}.capture dl{grid-template-columns:1fr}.capture dt{font-weight:650}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>UI smoke comparison</h1>
+    <div class="overview"><div><strong>Overall status</strong>${escapeHtml(overallStatus)}</div><div><strong>Capture validity</strong>${summary.valid ? 'valid' : 'invalid'}</div><div><strong>Base revision</strong>${escapeHtml(summary.mainLabel)}</div><div><strong>Head revision</strong>${escapeHtml(summary.prLabel)}</div><div><strong>Successful pairs</strong>${summary.stats.success}</div><div><strong>Pairs with visual differences</strong>${summary.stats.pagesWithDiff}</div></div>
+  </header>
+  <div class="captures">${baseCapture}${headCapture}</div>
+  ${fatalErrors}
+  <main>${results}</main>
+</body>
+</html>
+`;
 }
 
 function logSummary(summary, summaryPath) {
@@ -930,6 +1077,8 @@ async function runComparison(options, dependencies = {}) {
   const compareImages = dependencies.looksSame || looksSame;
   const fatalErrors = validateComparisonOptions(options);
   const results = [];
+  const embeddedImages = new Map();
+  let captures = { base: null, head: null };
   let mainLabel = 'main (base)';
   let prLabel = 'PR (head)';
   let sourceMode = 'unknown';
@@ -948,6 +1097,7 @@ async function runComparison(options, dependencies = {}) {
       mainLabel = options.mainLabel || plan.mainLabel;
       prLabel = options.prLabel || plan.prLabel;
       sourceMode = plan.sourceMode;
+      captures = plan.captures;
       cleanComparisonOutputs(options.outputDir, plan.filenames);
       results.push(...plan.results);
 
@@ -958,8 +1108,8 @@ async function runComparison(options, dependencies = {}) {
       for (const pair of plan.pairs) {
         const outputPath = path.join(options.outputDir, pair.filename);
         try {
-          validateFreshCapture(pair.mainRecord, pair.mainPath, 'Base');
-          validateFreshCapture(pair.prRecord, pair.prPath, 'Head');
+          const baseImage = validateFreshCapture(pair.mainRecord, pair.mainPath, 'Base');
+          const headImage = validateFreshCapture(pair.prRecord, pair.prPath, 'Head');
           const diffAnalysis = await analyzeDiff(
             pair.mainPath,
             pair.prPath,
@@ -979,6 +1129,12 @@ async function runComparison(options, dependencies = {}) {
             diffAnalysis,
             hasVisualDiff,
           );
+          const comparisonImage = fs.readFileSync(outputPath);
+          embeddedImages.set(pair.filename, {
+            base: baseImage,
+            head: headImage,
+            comparison: comparisonImage,
+          });
           results.push({
             filename: pair.filename,
             page: pair.page,
@@ -1017,6 +1173,7 @@ async function runComparison(options, dependencies = {}) {
   }
 
   const summary = summarizeComparison({
+    captures,
     fatalErrors,
     mainLabel,
     options,
@@ -1025,8 +1182,12 @@ async function runComparison(options, dependencies = {}) {
     sourceMode,
   });
   const summaryPath = path.join(options.outputDir, COMPARISON_SUMMARY_FILENAME);
-  fs.writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`);
+  const reportPath = path.join(options.outputDir, COMPARISON_REPORT_FILENAME);
+  const report = createComparisonReport(summary, embeddedImages);
+  fs.writeFileSync(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, { flag: 'wx' });
+  fs.writeFileSync(reportPath, report, { flag: 'wx' });
   logSummary(summary, summaryPath);
+  console.log(`Report saved to: ${reportPath}`);
 
   if (summary.stats.pagesExceedingFailThreshold > 0) {
     console.error(
@@ -1034,7 +1195,7 @@ async function runComparison(options, dependencies = {}) {
     );
   }
 
-  return { exitCode: summary.passed ? 0 : 1, summary, summaryPath };
+  return { exitCode: summary.passed ? 0 : 1, reportPath, summary, summaryPath };
 }
 
 async function main(args = process.argv.slice(2), env = process.env) {
@@ -1060,11 +1221,13 @@ async function main(args = process.argv.slice(2), env = process.env) {
 
 module.exports = {
   CAPTURE_MANIFEST_SCHEMA_VERSION,
+  COMPARISON_REPORT_FILENAME,
   COMPARISON_SUMMARY_SCHEMA_VERSION,
   ComparisonError,
   analyzeDiff,
   buildComparisonPlan,
   cleanComparisonOutputs,
+  createComparisonReport,
   createDiffOverlay,
   deriveDiffPercent,
   extractDiffRegions,

@@ -1,30 +1,61 @@
 #!/usr/bin/env node
 /**
  * Kind cluster lifecycle and local proxy support for the UI smoke test.
+ *
+ * A stack instance owns its cluster, kubeconfig, ports, image archives, and child processes. This
+ * lets base and head run without sharing Kubernetes, database, MLMD, object-store, or host process
+ * state.
  */
 
 const { execFileSync, spawn } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
+const os = require('os');
 const path = require('path');
 
 const CLUSTER_NAME = 'ui-smoke-test';
 const KUBE_CONTEXT = `kind-${CLUSTER_NAME}`;
 const NAMESPACE = 'kubeflow';
 const FRONTEND_SERVER_PORT = 3001;
-const PORT_FORWARDS = [
+const LOOPBACK_HOST = '127.0.0.1';
+const LOOPBACK_LISTEN_PRELOAD = `'use strict';
+const net = require('node:net');
+const originalListen = net.Server.prototype.listen;
+net.Server.prototype.listen = function loopbackOnlyListen(...args) {
+  const endpoint = args[0];
+  if (endpoint && typeof endpoint === 'object' && !Array.isArray(endpoint)) {
+    if (Object.hasOwn(endpoint, 'port')) args[0] = { ...endpoint, host: '${LOOPBACK_HOST}' };
+  } else if (
+    typeof endpoint === 'number' ||
+    (typeof endpoint === 'string' && /^[0-9]+$/.test(endpoint))
+  ) {
+    if (args.length === 1) args.push('${LOOPBACK_HOST}');
+    else if (typeof args[1] === 'string') args[1] = '${LOOPBACK_HOST}';
+    else if (args[1] === undefined || args[1] === null) args[1] = '${LOOPBACK_HOST}';
+    else args.splice(1, 0, '${LOOPBACK_HOST}');
+  }
+  return originalListen.apply(this, args);
+};
+`;
+const DEFAULT_KUBECONFIG = path.join(os.tmpdir(), 'kfp-ui-smoke-test', 'kubeconfig');
+const DEFAULT_PORTS = Object.freeze({
+  api: 3002,
+  frontendServer: FRONTEND_SERVER_PORT,
+  metadata: 9090,
+  objectStore: 9000,
+});
+const PORT_FORWARDS = Object.freeze([
   { service: 'metadata-envoy-service', localPort: 9090, remotePort: 9090 },
   { service: 'ml-pipeline', localPort: 3002, remotePort: 8888 },
   { service: 'seaweedfs', localPort: 9000, remotePort: 9000 },
-];
+]);
 const SEED_RUNTIME_IMAGE =
   'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
 
-// The platform-agnostic kustomization currently renders these Deployments and no StatefulSets or
-// Jobs. Keep this list explicit so a missing workload fails setup instead of being skipped by an
-// empty label or namespace query.
-const PLATFORM_DEPLOYMENTS = [
+// Kept for compatibility with callers that display the historical inventory. Readiness is now
+// based on the Deployments rendered by the selected revision.
+const PLATFORM_DEPLOYMENTS = Object.freeze([
   'cache-deployer-deployment',
   'cache-server',
   'metadata-envoy-deployment',
@@ -39,10 +70,7 @@ const PLATFORM_DEPLOYMENTS = [
   'mysql',
   'seaweedfs',
   'workflow-controller',
-];
-
-const processes = [];
-let frontendServerProcess = null;
+]);
 
 function log(message, type = 'info') {
   const colors = {
@@ -80,37 +108,80 @@ function requireSuccess(result, action) {
   return result;
 }
 
-function spawnProcess(command, args, options = {}) {
-  const child = spawn(command, args, { stdio: 'pipe', ...options });
-  child.stdout?.on('data', (data) => {
-    if (process.env.VERBOSE) process.stdout.write(data);
-  });
-  child.stderr?.on('data', (data) => {
-    if (process.env.VERBOSE) process.stderr.write(data);
-  });
-  processes.push(child);
-  return child;
+function validateName(value, description) {
+  if (typeof value !== 'string' || !/^[a-z0-9](?:[a-z0-9.-]{0,61}[a-z0-9])?$/.test(value)) {
+    throw new Error(`${description} must be a lowercase DNS-compatible name.`);
+  }
+  return value;
 }
 
-function kubectlArgs(...args) {
-  return ['--context', KUBE_CONTEXT, ...args];
+function validatePort(value, description) {
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`${description} must be an integer from 1 through 65535.`);
+  }
+  return port;
 }
 
-function isKindInstalled(runner = run) {
-  return runner('kind', ['version']).success;
+function validatePorts(value = {}) {
+  const ports = {
+    api: validatePort(value.api ?? DEFAULT_PORTS.api, 'API port'),
+    frontendServer: validatePort(
+      value.frontendServer ?? DEFAULT_PORTS.frontendServer,
+      'frontend-server port',
+    ),
+    metadata:
+      value.metadata === null
+        ? null
+        : validatePort(value.metadata ?? DEFAULT_PORTS.metadata, 'metadata port'),
+    objectStore: validatePort(value.objectStore ?? DEFAULT_PORTS.objectStore, 'object-store port'),
+  };
+  const configuredPorts = Object.values(ports).filter((port) => port !== null);
+  if (new Set(configuredPorts).size !== configuredPorts.length) {
+    throw new Error(
+      'A stack must use distinct API, frontend-server, metadata, and object-store ports.',
+    );
+  }
+  return Object.freeze(ports);
 }
 
-function isKubectlInstalled(runner = run) {
-  return runner('kubectl', ['version', '--client']).success;
+function validateKubeconfigPath(value) {
+  if (typeof value !== 'string' || value.length === 0 || !path.isAbsolute(value)) {
+    throw new Error('kubeconfigPath must be an absolute path.');
+  }
+  return path.normalize(value);
 }
 
-function isDockerRunning(runner = run) {
-  return runner('docker', ['info']).success;
+function sanitizeImageTagPart(value) {
+  const safe = String(value)
+    .replace(/[^a-zA-Z0-9_.-]/g, '-')
+    .replace(/^[.-]+/, '')
+    .slice(0, 120);
+  return safe || 'local';
 }
 
-function isClusterRunning(runner = run) {
-  const result = runner('kind', ['get', 'clusters']);
-  return result.success && result.output.split('\n').includes(CLUSTER_NAME);
+function localImageTag(component, suffix) {
+  return `${component.imageTag}:${sanitizeImageTagPart(suffix)}`;
+}
+
+function componentBuildArguments(component, buildMetadata = {}) {
+  const mappings = component.buildArgs || {};
+  const args = [];
+  for (const [argumentName, metadataName] of Object.entries(mappings)) {
+    if (!/^[A-Z][A-Z0-9_]*$/.test(argumentName)) {
+      throw new Error(
+        `Component ${component.name} declares an invalid Docker build argument: ${argumentName}`,
+      );
+    }
+    const value = buildMetadata[metadataName];
+    if (typeof value !== 'string' || value.length === 0 || /[\r\n\0]/.test(value)) {
+      throw new Error(
+        `Component ${component.name} requires non-empty build metadata ${metadataName}.`,
+      );
+    }
+    args.push('--build-arg', `${argumentName}=${value}`);
+  }
+  return args;
 }
 
 function getHttpStatus(url, timeout = 2000, get = http.get) {
@@ -125,54 +196,6 @@ function getHttpStatus(url, timeout = 2000, get = http.get) {
       reject(new Error(`Timed out requesting ${url}`));
     });
   });
-}
-
-async function isKfpHealthy(options = {}) {
-  const { url = `http://localhost:${FRONTEND_SERVER_PORT}/apis/v2beta1/healthz`, get = http.get } =
-    options;
-  try {
-    return (await getHttpStatus(url, 2000, get)) === 200;
-  } catch (error) {
-    return false;
-  }
-}
-
-async function getClusterStatus(options = {}) {
-  const { runner = run, healthCheck = isKfpHealthy } = options;
-  const status = {
-    kindInstalled: isKindInstalled(runner),
-    kubectlInstalled: isKubectlInstalled(runner),
-    dockerRunning: isDockerRunning(runner),
-    clusterRunning: false,
-    kfpDeployed: false,
-    kfpHealthy: false,
-    servicesReady: false,
-  };
-  if (!status.kindInstalled || !status.kubectlInstalled || !status.dockerRunning) return status;
-
-  status.clusterRunning = isClusterRunning(runner);
-  if (!status.clusterRunning) return status;
-
-  const deployment = runner(
-    'kubectl',
-    kubectlArgs('-n', NAMESPACE, 'get', 'deployment', 'ml-pipeline'),
-  );
-  status.kfpDeployed = deployment.success;
-  if (!status.kfpDeployed) return status;
-
-  status.servicesReady = runner(
-    'kubectl',
-    kubectlArgs(
-      '-n',
-      NAMESPACE,
-      'wait',
-      '--for=condition=Available',
-      '--timeout=1s',
-      'deployment/ml-pipeline',
-    ),
-  ).success;
-  status.kfpHealthy = await healthCheck();
-  return status;
 }
 
 function isPortInUseSync(port) {
@@ -212,314 +235,6 @@ function checkPortAvailability(ports, options = {}) {
     conflicts.push({ port, pid, process: processName });
   }
   return conflicts;
-}
-
-function restoreKubectlContext(previousContext, runner = run) {
-  const result = previousContext
-    ? runner('kubectl', ['config', 'use-context', previousContext])
-    : runner('kubectl', ['config', 'unset', 'current-context']);
-  requireSuccess(result, 'Failed to restore the previous kubectl context');
-}
-
-function preloadSeedRuntimeImage(runner = run) {
-  requireSuccess(
-    runner('docker', ['pull', SEED_RUNTIME_IMAGE], {
-      timeout: 300000,
-      stdio: 'inherit',
-    }),
-    `Failed to pull deterministic seed image ${SEED_RUNTIME_IMAGE}`,
-  );
-  requireSuccess(
-    runner('kind', ['load', 'docker-image', SEED_RUNTIME_IMAGE, '--name', CLUSTER_NAME], {
-      timeout: 180000,
-    }),
-    `Failed to load deterministic seed image ${SEED_RUNTIME_IMAGE} into Kind`,
-  );
-}
-
-function applyKfpManifests(repoRoot, runner = run) {
-  const clusterScoped = path.join(repoRoot, 'manifests', 'kustomize', 'cluster-scoped-resources');
-  const platformAgnostic = path.join(
-    repoRoot,
-    'manifests',
-    'kustomize',
-    'env',
-    'platform-agnostic',
-  );
-
-  requireSuccess(
-    runner('kubectl', kubectlArgs('apply', '-k', clusterScoped), {
-      timeout: 120000,
-      stdio: 'inherit',
-    }),
-    'Failed to apply cluster-scoped KFP manifests',
-  );
-  requireSuccess(
-    runner(
-      'kubectl',
-      kubectlArgs(
-        'wait',
-        '--for=condition=established',
-        '--timeout=1m',
-        'crd/applications.app.k8s.io',
-      ),
-      { timeout: 70000 },
-    ),
-    'KFP application CRD was not established',
-  );
-  requireSuccess(
-    runner('kubectl', kubectlArgs('apply', '-k', platformAgnostic), {
-      timeout: 180000,
-      stdio: 'inherit',
-    }),
-    'Failed to apply platform-agnostic KFP manifests',
-  );
-
-  requireSuccess(
-    runner(
-      'kubectl',
-      kubectlArgs(
-        '-n',
-        NAMESPACE,
-        'wait',
-        '--for=condition=Available',
-        '--timeout=10m',
-        ...PLATFORM_DEPLOYMENTS.map((deployment) => `deployment/${deployment}`),
-      ),
-      { timeout: 610000 },
-    ),
-    'Platform-agnostic KFP deployments did not all become available',
-  );
-}
-
-async function ensureCluster(repoRoot, options = {}) {
-  const { runner = run } = options;
-  if (!isKindInstalled(runner)) throw new Error('kind is not installed');
-  if (!isKubectlInstalled(runner)) throw new Error('kubectl is not installed');
-  if (!isDockerRunning(runner)) throw new Error('Docker is not running');
-
-  if (isClusterRunning(runner)) {
-    throw new Error(
-      `Managed Kind cluster ${CLUSTER_NAME} already exists. Refusing to reuse potentially stale ` +
-        'backend images or data; run smoke-test-runner.js --teardown before comparing again.',
-    );
-  }
-
-  const setupErrors = [];
-  let created = false;
-  log(`Creating Kind cluster ${CLUSTER_NAME}...`);
-  const currentContextResult = runner('kubectl', ['config', 'current-context']);
-  const previousContext = currentContextResult.success ? currentContextResult.output : '';
-  try {
-    requireSuccess(
-      runner('kind', ['create', 'cluster', '--name', CLUSTER_NAME], { timeout: 600000 }),
-      `Failed to create Kind cluster ${CLUSTER_NAME}`,
-    );
-    created = true;
-  } catch (error) {
-    setupErrors.push(error);
-  }
-
-  try {
-    restoreKubectlContext(previousContext, runner);
-  } catch (error) {
-    setupErrors.push(error);
-  }
-
-  if (setupErrors.length === 0) {
-    try {
-      preloadSeedRuntimeImage(runner);
-      applyKfpManifests(repoRoot, runner);
-    } catch (error) {
-      setupErrors.push(error);
-    }
-  }
-
-  if (setupErrors.length > 0) {
-    const clusterMayExist = created || isClusterRunning(runner);
-    let rollbackError = null;
-    if (clusterMayExist) {
-      log(`Rolling back failed Kind cluster setup for ${CLUSTER_NAME}...`, 'warn');
-      try {
-        requireSuccess(
-          runner('kind', ['delete', 'cluster', '--name', CLUSTER_NAME]),
-          `Failed to roll back managed Kind cluster ${CLUSTER_NAME}`,
-        );
-      } catch (error) {
-        rollbackError = error;
-      }
-    }
-
-    if (rollbackError) {
-      throw new AggregateError(
-        [...setupErrors, rollbackError],
-        `Kind cluster ${CLUSTER_NAME} setup and rollback both failed`,
-      );
-    }
-    if (setupErrors.length > 1) {
-      throw new AggregateError(setupErrors, `Kind cluster ${CLUSTER_NAME} setup failed`);
-    }
-    throw setupErrors[0];
-  }
-
-  return { created, context: KUBE_CONTEXT };
-}
-
-function teardownCluster(options = {}) {
-  const { runner = run } = options;
-  log(`Deleting Kind cluster ${CLUSTER_NAME}...`);
-  return runner('kind', ['delete', 'cluster', '--name', CLUSTER_NAME]).success;
-}
-
-function localImageTag(component, suffix) {
-  const safeSuffix = String(suffix).replace(/[^a-zA-Z0-9_.-]/g, '-');
-  return `${component.imageTag}:${safeSuffix}`;
-}
-
-function getClusterPlatform(runner = run) {
-  const result = runner(
-    'kubectl',
-    kubectlArgs('get', 'nodes', '-o', 'jsonpath={.items[0].status.nodeInfo.architecture}'),
-  );
-  requireSuccess(result, 'Failed to determine the Kind node architecture');
-  const architecture = result.output.trim();
-  if (!/^[a-z0-9_]+$/.test(architecture)) {
-    throw new Error(`Kind reported an invalid node architecture: ${JSON.stringify(architecture)}`);
-  }
-  return `linux/${architecture}`;
-}
-
-async function buildAndDeployComponents(components, repoRoot, options = {}) {
-  const { runner = run, tagSuffix = `${process.pid}-${Date.now()}` } = options;
-  if (components.length === 0) {
-    log('No backend components to rebuild');
-    return { images: {} };
-  }
-
-  const images = {};
-  const deployments = new Set();
-  const runtimeEnvironment = {};
-  const platform = options.platform || getClusterPlatform(runner);
-  if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
-    throw new Error(`Invalid backend image platform: ${JSON.stringify(platform)}`);
-  }
-  for (const component of components) {
-    if (!component.dockerfile || !component.imageTag) {
-      throw new Error(`Component ${component.name} is missing Docker build metadata.`);
-    }
-    const image = localImageTag(component, tagSuffix);
-    images[component.name] = image;
-    log(`Building ${component.name} as ${image}...`);
-    requireSuccess(
-      runner(
-        'docker',
-        ['build', '--platform', platform, '--tag', image, '--file', component.dockerfile, '.'],
-        { cwd: repoRoot, timeout: 600000, stdio: 'inherit' },
-      ),
-      `Failed to build ${component.name}`,
-    );
-    requireSuccess(
-      runner('kind', ['load', 'docker-image', image, '--name', CLUSTER_NAME], {
-        timeout: 180000,
-      }),
-      `Failed to load ${image} into Kind`,
-    );
-
-    if (component.deployment) {
-      requireSuccess(
-        runner(
-          'kubectl',
-          kubectlArgs(
-            '-n',
-            NAMESPACE,
-            'set',
-            'image',
-            `deployment/${component.deployment}`,
-            `${component.container}=${image}`,
-          ),
-        ),
-        `Failed to set image on deployment/${component.deployment}`,
-      );
-      const pullPolicyPatch = JSON.stringify({
-        spec: {
-          template: {
-            spec: {
-              containers: [{ name: component.container, imagePullPolicy: 'IfNotPresent' }],
-            },
-          },
-        },
-      });
-      requireSuccess(
-        runner(
-          'kubectl',
-          kubectlArgs(
-            '-n',
-            NAMESPACE,
-            'patch',
-            `deployment/${component.deployment}`,
-            '--type=strategic',
-            '-p',
-            pullPolicyPatch,
-          ),
-        ),
-        `Failed to set IfNotPresent on deployment/${component.deployment}`,
-      );
-      deployments.add(component.deployment);
-    }
-    if (component.runtimeEnv) runtimeEnvironment[component.runtimeEnv] = image;
-  }
-
-  const runtimeEntries = Object.entries(runtimeEnvironment);
-  if (runtimeEntries.length > 0) {
-    requireSuccess(
-      runner(
-        'kubectl',
-        kubectlArgs(
-          '-n',
-          NAMESPACE,
-          'set',
-          'env',
-          'deployment/ml-pipeline',
-          ...runtimeEntries.map(([name, image]) => `${name}=${image}`),
-        ),
-      ),
-      'Failed to configure local KFP runtime images',
-    );
-    deployments.add('ml-pipeline');
-  }
-
-  for (const deployment of deployments) {
-    requireSuccess(
-      runner(
-        'kubectl',
-        kubectlArgs('-n', NAMESPACE, 'rollout', 'restart', `deployment/${deployment}`),
-      ),
-      `Failed to restart deployment/${deployment}`,
-    );
-    requireSuccess(
-      runner(
-        'kubectl',
-        kubectlArgs(
-          '-n',
-          NAMESPACE,
-          'rollout',
-          'status',
-          `deployment/${deployment}`,
-          '--timeout=180s',
-        ),
-        { timeout: 190000 },
-      ),
-      `Deployment ${deployment} did not become ready`,
-    );
-  }
-  return { images };
-}
-
-function reapplyManifests(repoRoot, options = {}) {
-  const { runner = run } = options;
-  log('Re-applying KFP manifests...');
-  applyKfpManifests(repoRoot, runner);
-  return true;
 }
 
 function isPortInUse(port) {
@@ -569,7 +284,7 @@ async function waitForChildReadiness(child, readiness) {
   }
   let onError;
   let onExit;
-  const failure = new Promise((resolve, reject) => {
+  const failure = new Promise((_resolve, reject) => {
     onError = (error) => reject(error);
     onExit = (code, signal) => {
       reject(new Error(`Child process exited before readiness (code=${code}, signal=${signal})`));
@@ -583,116 +298,6 @@ async function waitForChildReadiness(child, readiness) {
     child.off('error', onError);
     child.off('exit', onExit);
   }
-}
-
-async function ensurePortForwarding(options = {}) {
-  const {
-    spawnFn = spawnProcess,
-    portInUse = isPortInUse,
-    waitForTcpFn = waitForTcp,
-    timeout = 15000,
-  } = options;
-  const started = [];
-  try {
-    for (const forward of PORT_FORWARDS) {
-      if (await portInUse(forward.localPort)) {
-        throw new Error(
-          `Port ${forward.localPort} became occupied before ${forward.service} forwarding started.`,
-        );
-      }
-      const child = spawnFn(
-        'kubectl',
-        kubectlArgs(
-          'port-forward',
-          '-n',
-          NAMESPACE,
-          `svc/${forward.service}`,
-          `${forward.localPort}:${forward.remotePort}`,
-        ),
-      );
-      started.push(child);
-      const ready = await waitForChildReadiness(child, () =>
-        waitForTcpFn(forward.localPort, timeout, { child }),
-      );
-      if (!ready || child.exitCode !== null || child.signalCode !== null) {
-        throw new Error(`Port forward for ${forward.service} did not become ready.`);
-      }
-      log(`${forward.service} -> localhost:${forward.localPort}`);
-    }
-    return started;
-  } catch (error) {
-    for (const child of started) child.kill('SIGTERM');
-    throw error;
-  }
-}
-
-function frontendServerEnvironment(baseEnvironment = process.env) {
-  const endpointRewrite = [
-    `seaweedfs.${NAMESPACE}:9000=localhost:9000`,
-    `seaweedfs.${NAMESPACE}:80=localhost:9000`,
-    `seaweedfs.${NAMESPACE}.svc:9000=localhost:9000`,
-    `seaweedfs.${NAMESPACE}.svc:80=localhost:9000`,
-    `seaweedfs.${NAMESPACE}.svc.cluster.local:9000=localhost:9000`,
-    `seaweedfs.${NAMESPACE}.svc.cluster.local:80=localhost:9000`,
-  ].join(',');
-  return {
-    ...baseEnvironment,
-    FRONTEND_SERVER_NAMESPACE: NAMESPACE,
-    MINIO_ENDPOINT_REWRITE: endpointRewrite,
-    MINIO_HOST: 'localhost',
-    MINIO_NAMESPACE: '',
-    ML_PIPELINE_SERVICE_PORT: '3002',
-  };
-}
-
-async function startFrontendServer(repoRoot, options = {}) {
-  const {
-    skipBuild = false,
-    runner = run,
-    spawnFn = spawnProcess,
-    waitForServiceFn = waitForService,
-  } = options;
-  const serverDir = path.join(repoRoot, 'frontend', 'server');
-  const serverEntry = path.join(serverDir, 'dist', 'server.js');
-  if (skipBuild) {
-    if (!fs.existsSync(serverEntry)) {
-      throw new Error(`Cannot skip server build: ${serverEntry} does not exist.`);
-    }
-  } else {
-    requireSuccess(
-      runner('npm', ['ci'], { cwd: serverDir, timeout: 120000, stdio: 'inherit' }),
-      'Failed to install frontend server dependencies',
-    );
-    requireSuccess(
-      runner('npm', ['run', 'build'], { cwd: serverDir, timeout: 120000 }),
-      'Failed to build frontend server',
-    );
-  }
-
-  const buildDir = path.join(repoRoot, 'frontend', 'build');
-  const child = spawnFn('node', ['dist/server.js', buildDir, String(FRONTEND_SERVER_PORT)], {
-    cwd: serverDir,
-    env: frontendServerEnvironment(),
-  });
-  frontendServerProcess = child;
-  const healthUrl = `http://localhost:${FRONTEND_SERVER_PORT}/apis/v2beta1/healthz`;
-  try {
-    const ready = await waitForChildReadiness(child, () =>
-      waitForServiceFn(healthUrl, 15000, { child }),
-    );
-    if (!ready) throw new Error(`Frontend server did not become healthy at ${healthUrl}.`);
-    return child;
-  } catch (error) {
-    child.kill('SIGTERM');
-    frontendServerProcess = null;
-    throw error;
-  }
-}
-
-function stopFrontendServer() {
-  if (!frontendServerProcess) return;
-  frontendServerProcess.kill('SIGTERM');
-  frontendServerProcess = null;
 }
 
 async function waitForService(url, timeout = 30000, options = {}) {
@@ -716,47 +321,1261 @@ async function waitForService(url, timeout = 30000, options = {}) {
 }
 
 async function terminateChild(child, timeout = 3000) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) return;
-  await new Promise((resolve) => {
-    let finished = false;
-    let timer;
-    const finish = () => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timer);
-      child.off?.('close', finish);
-      resolve();
+  if (!child || child.exitCode !== null || child.signalCode !== null) return true;
+  const signalAndWait = (signal, waitTimeout) =>
+    new Promise((resolve, reject) => {
+      let finished = false;
+      let timer;
+      const finish = (closed) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        child.off?.('close', onClose);
+        resolve(closed || child.exitCode !== null || child.signalCode !== null);
+      };
+      const onClose = () => finish(true);
+      child.once?.('close', onClose);
+      timer = setTimeout(() => finish(false), waitTimeout);
+      let signaled;
+      try {
+        signaled = child.kill(signal);
+      } catch (error) {
+        clearTimeout(timer);
+        child.off?.('close', onClose);
+        reject(error);
+        return;
+      }
+      if (signaled === false && child.exitCode === null && child.signalCode === null) {
+        finish(false);
+      }
+    });
+
+  if (await signalAndWait('SIGTERM', timeout)) return true;
+  if (await signalAndWait('SIGKILL', Math.max(100, Math.min(timeout, 1000)))) return true;
+  throw new Error(`Child process ${child.pid || 'unknown'} did not exit after SIGKILL.`);
+}
+
+function mergeImageOverrides(...overrides) {
+  const merged = { deployments: [], images: {}, runtimeEnvironment: {} };
+  for (const value of overrides.filter(Boolean)) {
+    Object.assign(merged.images, value.images || {});
+    Object.assign(merged.runtimeEnvironment, value.runtimeEnvironment || {});
+    merged.deployments.push(...(value.deployments || []));
+  }
+  return merged;
+}
+
+function createKindStack(config = {}) {
+  const clusterName = validateName(config.clusterName || CLUSTER_NAME, 'clusterName');
+  const context = validateName(config.context || `kind-${clusterName}`, 'context');
+  const namespace = validateName(config.namespace || NAMESPACE, 'namespace');
+  const kubeconfigPath = validateKubeconfigPath(config.kubeconfigPath || DEFAULT_KUBECONFIG);
+  const ports = validatePorts(config.ports);
+  const role = sanitizeImageTagPart(config.role || 'stack');
+  const revision = sanitizeImageTagPart(config.revision || 'local');
+  const imageScope = sanitizeImageTagPart(config.imageScope || `${role}-${revision}`);
+  const archiveDir = path.resolve(
+    config.archiveDir || path.join(path.dirname(kubeconfigPath), 'image-archives'),
+  );
+  const defaultRunner = config.runner || run;
+  const defaultSpawn = config.spawn || spawn;
+  const processes = [];
+  const loadedImages = new Set();
+  let frontendServerProcess = null;
+  let seedRuntimeLoaded = false;
+  let createdThisRun = false;
+  let ownsCluster = false;
+
+  const portForwards = Object.freeze(
+    [
+      ports.metadata === null
+        ? null
+        : { service: 'metadata-envoy-service', localPort: ports.metadata, remotePort: 9090 },
+      { service: 'ml-pipeline', localPort: ports.api, remotePort: 8888 },
+      { service: 'seaweedfs', localPort: ports.objectStore, remotePort: 9000 },
+    ].filter(Boolean),
+  );
+  const deployedUiPortForward = Object.freeze({
+    service: 'ml-pipeline-ui',
+    localPort: ports.frontendServer,
+    remotePort: 80,
+  });
+
+  function commandEnvironment(baseEnvironment = process.env) {
+    return { ...baseEnvironment, KUBECONFIG: kubeconfigPath };
+  }
+
+  function commandOptions(options = {}) {
+    return { ...options, env: commandEnvironment(options.env || process.env) };
+  }
+
+  function kubectlArgs(...args) {
+    return ['--kubeconfig', kubeconfigPath, '--context', context, ...args];
+  }
+
+  function stackRunner(options = {}) {
+    return options.runner || defaultRunner;
+  }
+
+  function spawnProcess(command, args, options = {}) {
+    const spawnFn = options.spawnFn || defaultSpawn;
+    const spawnOptions = commandOptions({ stdio: 'pipe', ...options });
+    delete spawnOptions.spawnFn;
+    const child = spawnFn(command, args, spawnOptions);
+    child.stdout?.on('data', (data) => {
+      if (process.env.VERBOSE) process.stdout.write(data);
+    });
+    child.stderr?.on('data', (data) => {
+      if (process.env.VERBOSE) process.stderr.write(data);
+    });
+    processes.push(child);
+    return child;
+  }
+
+  function isKindInstalled(options = {}) {
+    return stackRunner(options)('kind', ['version']).success;
+  }
+
+  function isKubectlInstalled(options = {}) {
+    return stackRunner(options)('kubectl', ['version', '--client']).success;
+  }
+
+  function isDockerRunning(options = {}) {
+    return stackRunner(options)('docker', ['info']).success;
+  }
+
+  function isClusterRunning(options = {}) {
+    const result = stackRunner(options)('kind', ['get', 'clusters']);
+    return result.success && result.output.split('\n').includes(clusterName);
+  }
+
+  async function isKfpHealthy(options = {}) {
+    const {
+      url = `http://127.0.0.1:${ports.frontendServer}/apis/v2beta1/healthz`,
+      get = http.get,
+    } = options;
+    try {
+      return (await getHttpStatus(url, 2000, get)) === 200;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function getClusterStatus(options = {}) {
+    const runner = stackRunner(options);
+    const healthCheck = options.healthCheck || isKfpHealthy;
+    const status = {
+      kindInstalled: isKindInstalled({ runner }),
+      kubectlInstalled: isKubectlInstalled({ runner }),
+      dockerRunning: isDockerRunning({ runner }),
+      clusterRunning: false,
+      kfpDeployed: false,
+      kfpHealthy: false,
+      servicesReady: false,
     };
-    child.once?.('close', finish);
-    child.kill('SIGTERM');
-    timer = setTimeout(() => {
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
-      finish();
-    }, timeout);
+    if (!status.kindInstalled || !status.kubectlInstalled || !status.dockerRunning) return status;
+
+    status.clusterRunning = isClusterRunning({ runner });
+    if (!status.clusterRunning) return status;
+    status.kfpDeployed = runner(
+      'kubectl',
+      kubectlArgs('-n', namespace, 'get', 'deployment', 'ml-pipeline'),
+      commandOptions(),
+    ).success;
+    if (!status.kfpDeployed) return status;
+    status.servicesReady = runner(
+      'kubectl',
+      kubectlArgs(
+        '-n',
+        namespace,
+        'wait',
+        '--for=condition=Available',
+        '--timeout=1s',
+        'deployment/ml-pipeline',
+      ),
+      commandOptions(),
+    ).success;
+    status.kfpHealthy = await healthCheck();
+    return status;
+  }
+
+  function getClusterPlatform(options = {}) {
+    const runner = stackRunner(options);
+    const result = runner(
+      'kubectl',
+      kubectlArgs('get', 'nodes', '-o', 'jsonpath={.items[0].status.nodeInfo.architecture}'),
+      commandOptions(),
+    );
+    requireSuccess(result, `Failed to determine the Kind node architecture for ${clusterName}`);
+    const architecture = result.output.trim();
+    if (!/^[a-z0-9_]+$/.test(architecture)) {
+      throw new Error(
+        `Kind reported an invalid node architecture: ${JSON.stringify(architecture)}`,
+      );
+    }
+    return `linux/${architecture}`;
+  }
+
+  function getDockerPlatform(options = {}) {
+    const runner = stackRunner(options);
+    const result = runner(
+      'docker',
+      ['info', '--format', '{{.OSType}}/{{.Architecture}}'],
+      commandOptions(),
+    );
+    requireSuccess(result, 'Failed to determine the Docker server platform');
+    const aliases = { aarch64: 'arm64', x86_64: 'amd64' };
+    const reported = result.output.trim().toLowerCase();
+    const match = reported.match(/^linux\/([a-z0-9_]+)$/);
+    if (!match) {
+      throw new Error(
+        `Docker reported an unsupported server platform: ${JSON.stringify(reported)}`,
+      );
+    }
+    const architecture = aliases[match[1]] || match[1];
+    return `linux/${architecture}`;
+  }
+
+  function imageArchivePath(stem, platform) {
+    return path.join(
+      archiveDir,
+      `${sanitizeImageTagPart(stem)}-${sanitizeImageTagPart(platform)}.tar`,
+    );
+  }
+
+  function saveAndLoadImage(image, stem, platform, options = {}) {
+    const runner = stackRunner(options);
+    const imageArchive = imageArchivePath(stem, platform);
+    fs.mkdirSync(archiveDir, { recursive: true });
+    try {
+      exportImageForPlatform(image, imageArchive, platform, { runner });
+      requireSuccess(
+        runner(
+          'kind',
+          ['load', 'image-archive', imageArchive, '--name', clusterName],
+          commandOptions({ timeout: 180000 }),
+        ),
+        `Failed to load ${image} into Kind cluster ${clusterName}`,
+      );
+      loadedImages.add(image);
+    } finally {
+      fs.rmSync(imageArchive, { force: true });
+    }
+  }
+
+  function platformImageError(image, platform, action, result) {
+    const detail = result.error || result.output || 'unknown error';
+    return new Error(
+      `Image ${image} cannot be ${action} for the Kind node platform ${platform}: ${detail}. ` +
+        `Use a ${platform} image, an amd64 Kind node with emulation, or provide a local image override.`,
+    );
+  }
+
+  function pullImageForPlatform(image, platform, options = {}) {
+    const runner = stackRunner(options);
+    const result = runner(
+      'docker',
+      ['pull', '--platform', platform, image],
+      commandOptions({ timeout: 300000, stdio: 'inherit' }),
+    );
+    if (!result.success) throw platformImageError(image, platform, 'pulled', result);
+  }
+
+  function exportImageForPlatform(image, imageArchive, platform, options = {}) {
+    const runner = stackRunner(options);
+    const result = runner(
+      'docker',
+      ['save', '--platform', platform, '--output', imageArchive, image],
+      commandOptions({ timeout: 300000, stdio: 'inherit' }),
+    );
+    if (!result.success) throw platformImageError(image, platform, 'exported', result);
+  }
+
+  function verifyImageForPlatform(image, stem, platform, options = {}) {
+    const runner = stackRunner(options);
+    const imageArchive = imageArchivePath(`preflight-${stem}`, platform);
+    fs.mkdirSync(archiveDir, { recursive: true });
+    try {
+      pullImageForPlatform(image, platform, { runner });
+      exportImageForPlatform(image, imageArchive, platform, { runner });
+    } finally {
+      fs.rmSync(imageArchive, { force: true });
+    }
+  }
+
+  function preloadSeedRuntimeImage(options = {}) {
+    if (seedRuntimeLoaded && options.force !== true) return;
+    const runner = stackRunner(options);
+    const platform = options.platform || getClusterPlatform({ runner });
+    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
+      throw new Error(`Invalid seed image platform: ${JSON.stringify(platform)}`);
+    }
+    pullImageForPlatform(SEED_RUNTIME_IMAGE, platform, { runner });
+    saveAndLoadImage(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
+    seedRuntimeLoaded = true;
+  }
+
+  function preflightSeedRuntimeImage(options = {}) {
+    const runner = stackRunner(options);
+    const platform = options.platform || getDockerPlatform({ runner });
+    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
+      throw new Error(`Invalid seed image platform: ${JSON.stringify(platform)}`);
+    }
+    verifyImageForPlatform(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
+    return { image: SEED_RUNTIME_IMAGE, platform };
+  }
+
+  function scopedImageTag(component, suffix = imageScope) {
+    return localImageTag(component, `${clusterName}-${suffix}`);
+  }
+
+  async function buildComponentImages(components, repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const overrides = { deployments: [], images: {}, runtimeEnvironment: {} };
+    if (components.length === 0) return overrides;
+    const platform = options.platform || getClusterPlatform({ runner });
+    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
+      throw new Error(`Invalid backend image platform: ${JSON.stringify(platform)}`);
+    }
+    const tagSuffix = sanitizeImageTagPart(options.tagSuffix || imageScope);
+    for (const component of components) {
+      if (!component.dockerfile || !component.imageTag) {
+        throw new Error(`Component ${component.name} is missing Docker build metadata.`);
+      }
+      const image = scopedImageTag(component, tagSuffix);
+      const buildArguments = componentBuildArguments(component, options.buildMetadata);
+      overrides.images[component.name] = image;
+      log(`Building ${component.name} as ${image}...`);
+      requireSuccess(
+        runner(
+          'docker',
+          [
+            'build',
+            '--platform',
+            platform,
+            '--tag',
+            image,
+            '--file',
+            component.dockerfile,
+            ...buildArguments,
+            '.',
+          ],
+          commandOptions({ cwd: repoRoot, timeout: 600000, stdio: 'inherit' }),
+        ),
+        `Failed to build ${component.name}`,
+      );
+      if (options.load !== false) {
+        saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, platform, { runner });
+      }
+      if (component.deployment) {
+        overrides.deployments.push({
+          container: component.container,
+          deployment: component.deployment,
+          image,
+        });
+      }
+      if (component.runtimeEnv) overrides.runtimeEnvironment[component.runtimeEnv] = image;
+    }
+    return overrides;
+  }
+
+  function loadImageOverrides(imageOverrides, platform, options = {}) {
+    const runner = stackRunner(options);
+    const images = [
+      ...new Set([
+        ...Object.values(imageOverrides?.images || {}),
+        ...Object.values(imageOverrides?.runtimeEnvironment || {}),
+      ]),
+    ];
+    for (const [index, image] of images.entries()) {
+      if (typeof image !== 'string' || image.length === 0) {
+        throw new Error('Local image overrides must contain non-empty image references.');
+      }
+      if (loadedImages.has(image)) continue;
+      saveAndLoadImage(image, `local-image-${index}`, platform, { runner });
+    }
+    return images;
+  }
+
+  function deploymentPatches(imageOverrides) {
+    const byDeployment = new Map();
+    for (const override of imageOverrides.deployments || []) {
+      if (!override.deployment || !override.container || !override.image) {
+        throw new Error('Deployment image overrides require deployment, container, and image.');
+      }
+      if (!byDeployment.has(override.deployment)) {
+        byDeployment.set(override.deployment, []);
+      }
+      byDeployment.get(override.deployment).push({
+        image: override.image,
+        imagePullPolicy: 'IfNotPresent',
+        name: override.container,
+      });
+    }
+
+    const runtimeEntries = Object.entries(imageOverrides.runtimeEnvironment || {});
+    if (runtimeEntries.length > 0) {
+      const containers = byDeployment.get('ml-pipeline') || [];
+      let apiServer = containers.find((container) => container.name === 'ml-pipeline-api-server');
+      if (!apiServer) {
+        apiServer = { name: 'ml-pipeline-api-server' };
+        containers.push(apiServer);
+      }
+      apiServer.env = runtimeEntries.map(([name, value]) => ({ name, value }));
+      byDeployment.set('ml-pipeline', containers);
+    }
+
+    return [...byDeployment.entries()].map(([deployment, containers]) => ({
+      patch: JSON.stringify({
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: { name: deployment },
+        spec: { template: { spec: { containers } } },
+      }),
+      target: { group: 'apps', kind: 'Deployment', name: deployment, version: 'v1' },
+    }));
+  }
+
+  function renderRevisionManifests(repoRoot, imageOverrides, options = {}) {
+    const runner = stackRunner(options);
+    const overlayDir = path.join(archiveDir, 'manifest-overlay');
+    const renderedPath = path.join(archiveDir, 'platform-agnostic.yaml');
+    const platformAgnostic = path.join(
+      repoRoot,
+      'manifests',
+      'kustomize',
+      'env',
+      'platform-agnostic',
+    );
+    const patches = deploymentPatches(imageOverrides);
+    const needsOverlay = patches.length > 0;
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.rmSync(renderedPath, { force: true });
+    fs.rmSync(overlayDir, { force: true, recursive: true });
+    let renderRoot = platformAgnostic;
+    const renderArguments = [];
+    if (needsOverlay) {
+      fs.mkdirSync(overlayDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(overlayDir, 'kustomization.json'),
+        JSON.stringify(
+          {
+            apiVersion: 'kustomize.config.k8s.io/v1beta1',
+            kind: 'Kustomization',
+            patches,
+            resources: [platformAgnostic],
+          },
+          null,
+          2,
+        ),
+      );
+      renderRoot = overlayDir;
+      renderArguments.push('--load-restrictor=LoadRestrictionsNone');
+    }
+    const renderResult = runner(
+      'kubectl',
+      ['kustomize', renderRoot, ...renderArguments, '--output', renderedPath],
+      commandOptions({ timeout: 180000 }),
+    );
+    requireSuccess(
+      renderResult,
+      `Failed to render revision manifests with exact image overrides for ${clusterName}`,
+    );
+    // Test runners commonly return rendered text instead of implementing kubectl's --output flag.
+    if (!fs.existsSync(renderedPath) && renderResult.output) {
+      fs.writeFileSync(renderedPath, renderResult.output);
+    }
+    if (!fs.existsSync(renderedPath)) {
+      throw new Error(`kubectl kustomize did not create ${renderedPath}.`);
+    }
+    return { overlayDir, renderedPath };
+  }
+
+  function extractManifestImages(manifestContents) {
+    const images = [];
+    let runtimeImageName = null;
+    for (const line of manifestContents.split(/\r?\n/)) {
+      const embeddedKubeflowImages = line.match(
+        /ghcr\.io\/kubeflow\/[a-z0-9._/-]+(?::[a-z0-9._-]+|@sha256:[a-f0-9]{64})/gi,
+      );
+      if (embeddedKubeflowImages) images.push(...embeddedKubeflowImages);
+      const imageMatch = line.match(/^\s*(?:-\s*)?image:\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$/);
+      if (imageMatch) images.push(imageMatch[1]);
+
+      const nameMatch = line.match(/^\s*-?\s*name:\s*(V2_(?:DRIVER|LAUNCHER)_IMAGE)\s*$/);
+      if (nameMatch) {
+        runtimeImageName = nameMatch[1];
+        continue;
+      }
+      if (runtimeImageName) {
+        const valueMatch = line.match(/^\s*value:\s*["']?([^\s"'#]+)["']?\s*(?:#.*)?$/);
+        if (valueMatch) images.push(valueMatch[1]);
+        if (line.trim() && !/^\s*(?:value:|valueFrom:)/.test(line)) runtimeImageName = null;
+      }
+    }
+    return [...new Set(images)];
+  }
+
+  function validateReleaseManifestImages(images, release) {
+    if (!/^\d+\.\d+\.\d+$/.test(release)) {
+      throw new Error(`Expected release must be an exact semantic version, received ${release}.`);
+    }
+    const firstPartyImages = images.filter((image) => image.startsWith('ghcr.io/kubeflow/'));
+    if (firstPartyImages.length === 0) {
+      throw new Error(
+        `Rendered manifests did not contain any Kubeflow release images for ${release}.`,
+      );
+    }
+    const mismatched = firstPartyImages.filter((image) => !image.endsWith(`:${release}`));
+    if (mismatched.length > 0) {
+      throw new Error(
+        `Rendered Kubeflow images do not match release ${release}: ${mismatched.join(', ')}.`,
+      );
+    }
+    return firstPartyImages;
+  }
+
+  function validateLocalManifestImages(images, imageOverrides) {
+    const firstPartyImages = images.filter((image) => image.startsWith('ghcr.io/kubeflow/'));
+    if (firstPartyImages.length > 0) {
+      throw new Error(
+        `Rendered revision manifests retain non-local Kubeflow images: ${firstPartyImages.join(', ')}. ` +
+          'Add an exact component build and manifest override before applying the head stack.',
+      );
+    }
+    const expectedImages = new Set([
+      ...Object.values(imageOverrides.images || {}),
+      ...Object.values(imageOverrides.runtimeEnvironment || {}),
+    ]);
+    const missing = [...expectedImages].filter((image) => !images.includes(image));
+    if (missing.length > 0) {
+      throw new Error(
+        `Rendered revision manifests omitted locally built images: ${missing.join(', ')}.`,
+      );
+    }
+    return [...expectedImages];
+  }
+
+  function preloadManifestImages(manifestPath, platform, options = {}) {
+    const runner = stackRunner(options);
+    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
+      throw new Error(`Invalid manifest image platform: ${JSON.stringify(platform)}`);
+    }
+    const images = extractManifestImages(fs.readFileSync(manifestPath, 'utf8'));
+    for (const [index, image] of images.entries()) {
+      if (loadedImages.has(image)) continue;
+      pullImageForPlatform(image, platform, { runner });
+      saveAndLoadImage(image, `manifest-image-${index}`, platform, { runner });
+    }
+    return images;
+  }
+
+  function cleanRenderedManifests(rendered) {
+    fs.rmSync(rendered.overlayDir, { force: true, recursive: true });
+    fs.rmSync(rendered.renderedPath, { force: true });
+  }
+
+  function preflightReleaseImages(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const platform = options.platform || getDockerPlatform({ runner });
+    const rendered = renderRevisionManifests(
+      repoRoot,
+      mergeImageOverrides(options.imageOverrides),
+      { runner },
+    );
+    try {
+      const images = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8'));
+      if (options.expectedRelease) validateReleaseManifestImages(images, options.expectedRelease);
+      for (const [index, image] of images.entries()) {
+        verifyImageForPlatform(image, `release-image-${index}`, platform, { runner });
+      }
+      return { images, platform };
+    } finally {
+      cleanRenderedManifests(rendered);
+    }
+  }
+
+  function preflightThirdPartyImages(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const platform = options.platform || getDockerPlatform({ runner });
+    const rendered = renderRevisionManifests(repoRoot, mergeImageOverrides(), { runner });
+    try {
+      const images = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8')).filter(
+        (image) => !image.startsWith('ghcr.io/kubeflow/'),
+      );
+      for (const [index, image] of images.entries()) {
+        verifyImageForPlatform(image, `third-party-image-${index}`, platform, { runner });
+      }
+      return { images, platform };
+    } finally {
+      cleanRenderedManifests(rendered);
+    }
+  }
+
+  function listDeployments(options = {}) {
+    const runner = stackRunner(options);
+    const result = runner(
+      'kubectl',
+      kubectlArgs(
+        '-n',
+        namespace,
+        'get',
+        'deployments',
+        '-o',
+        'jsonpath={range .items[*]}{.metadata.name}{"\\n"}{end}',
+      ),
+      commandOptions(),
+    );
+    requireSuccess(result, `Failed to list Deployments in ${namespace} for ${clusterName}`);
+    const deployments = result.output
+      .split('\n')
+      .map((name) => name.trim())
+      .filter(Boolean);
+    if (deployments.length === 0) {
+      throw new Error(`No Deployments were rendered for ${clusterName} in namespace ${namespace}.`);
+    }
+    const invalid = deployments.find((name) => !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(name));
+    if (invalid) {
+      throw new Error(`kubectl returned an invalid Deployment name: ${JSON.stringify(invalid)}`);
+    }
+    return [...new Set(deployments)].sort();
+  }
+
+  function applyKfpManifests(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const clusterScoped = path.join(repoRoot, 'manifests', 'kustomize', 'cluster-scoped-resources');
+    const imageOverrides = mergeImageOverrides(options.imageOverrides);
+    const platform = options.platform || getClusterPlatform({ runner });
+    const rendered = renderRevisionManifests(repoRoot, imageOverrides, { runner });
+
+    try {
+      const renderedImages = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8'));
+      if (options.expectedRelease) {
+        validateReleaseManifestImages(renderedImages, options.expectedRelease);
+      }
+      if (options.requireLocalFirstParty) {
+        validateLocalManifestImages(renderedImages, imageOverrides);
+      }
+      // Pull and archive every rendered runtime image before any workload is created. A missing
+      // architecture therefore fails explicitly instead of surfacing as an opaque ImagePullBackOff.
+      preloadManifestImages(rendered.renderedPath, platform, { runner });
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs('apply', '-k', clusterScoped),
+          commandOptions({ timeout: 120000, stdio: 'inherit' }),
+        ),
+        'Failed to apply cluster-scoped KFP manifests',
+      );
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            'wait',
+            '--for=condition=established',
+            '--timeout=1m',
+            'crd/applications.app.k8s.io',
+          ),
+          commandOptions({ timeout: 70000 }),
+        ),
+        'KFP application CRD was not established',
+      );
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs('apply', '-f', rendered.renderedPath),
+          commandOptions({ timeout: 180000, stdio: 'inherit' }),
+        ),
+        'Failed to apply platform-agnostic KFP manifests',
+      );
+
+      const deployments = listDeployments({ runner });
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            '-n',
+            namespace,
+            'wait',
+            '--for=condition=Available',
+            '--timeout=10m',
+            ...deployments.map((deployment) => `deployment/${deployment}`),
+          ),
+          commandOptions({ timeout: 610000 }),
+        ),
+        'Platform-agnostic KFP deployments did not all become available',
+      );
+      return { deployments, renderedImages };
+    } finally {
+      cleanRenderedManifests(rendered);
+    }
+  }
+
+  function deleteCluster(options = {}) {
+    const runner = stackRunner(options);
+    log(`Deleting Kind cluster ${clusterName}...`);
+    const result = runner(
+      'kind',
+      ['delete', 'cluster', '--name', clusterName, '--kubeconfig', kubeconfigPath],
+      commandOptions(),
+    );
+    if (result.success) {
+      createdThisRun = false;
+      ownsCluster = false;
+      seedRuntimeLoaded = false;
+      loadedImages.clear();
+    }
+    return result;
+  }
+
+  function destroyOwnedCluster(options = {}) {
+    if (!ownsCluster) {
+      log(`Skipping deletion of unowned Kind cluster ${clusterName}.`, 'debug');
+      return { skipped: true, success: true };
+    }
+    return deleteCluster(options);
+  }
+
+  function throwWithRollback(setupErrors, options = {}) {
+    const runner = stackRunner(options);
+    const clusterMayExist = ownsCluster && (createdThisRun || isClusterRunning({ runner }));
+    let rollbackError = null;
+    if (clusterMayExist) {
+      log(`Rolling back failed Kind cluster setup for ${clusterName}...`, 'warn');
+      try {
+        requireSuccess(
+          deleteCluster({ runner }),
+          `Failed to roll back managed Kind cluster ${clusterName}`,
+        );
+      } catch (error) {
+        rollbackError = error;
+      }
+    } else {
+      ownsCluster = false;
+    }
+    if (rollbackError) {
+      throw new AggregateError(
+        [...setupErrors, rollbackError],
+        `Kind cluster ${clusterName} setup and rollback both failed`,
+      );
+    }
+    if (setupErrors.length > 1) {
+      throw new AggregateError(setupErrors, `Kind cluster ${clusterName} setup failed`);
+    }
+    throw setupErrors[0];
+  }
+
+  async function createCluster(options = {}) {
+    const runner = stackRunner(options);
+    if (!isKindInstalled({ runner })) throw new Error('kind is not installed');
+    if (!isKubectlInstalled({ runner })) throw new Error('kubectl is not installed');
+    if (!isDockerRunning({ runner })) throw new Error('Docker is not running');
+    if (isClusterRunning({ runner })) {
+      throw new Error(
+        `Managed Kind cluster ${clusterName} already exists. Refusing to reuse potentially stale ` +
+          'backend images or data; destroy that exact stack before comparing again.',
+      );
+    }
+
+    fs.mkdirSync(path.dirname(kubeconfigPath), { recursive: true });
+    log(`Creating Kind cluster ${clusterName}...`);
+    ownsCluster = true;
+    const result = runner(
+      'kind',
+      ['create', 'cluster', '--name', clusterName, '--kubeconfig', kubeconfigPath],
+      commandOptions({ timeout: 600000 }),
+    );
+    if (!result.success) {
+      throwWithRollback(
+        [
+          new Error(
+            `Failed to create Kind cluster ${clusterName}: ${result.error || result.output}`,
+          ),
+        ],
+        { runner },
+      );
+    }
+    createdThisRun = true;
+    return { clusterName, context, created: true, kubeconfigPath };
+  }
+
+  async function deployRevision(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const platform = options.platform || getClusterPlatform({ runner });
+    preloadSeedRuntimeImage({
+      force: options.forceSeedRuntime,
+      platform,
+      runner,
+    });
+    const builtOverrides = options.components
+      ? await buildComponentImages(options.components, repoRoot, {
+          buildMetadata: options.buildMetadata,
+          platform,
+          runner,
+          tagSuffix: options.tagSuffix,
+        })
+      : null;
+    const imageOverrides = mergeImageOverrides(options.imageOverrides, builtOverrides);
+    const result = applyKfpManifests(repoRoot, {
+      expectedRelease: options.expectedRelease,
+      imageOverrides,
+      platform,
+      requireLocalFirstParty: options.requireLocalFirstParty,
+      runner,
+    });
+    return { ...result, images: imageOverrides.images };
+  }
+
+  async function ensureCluster(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    try {
+      const creation = await createCluster({ runner });
+      await deployRevision(repoRoot, { ...options, runner });
+      return creation;
+    } catch (error) {
+      if (!createdThisRun) throw error;
+      throwWithRollback([error], { runner });
+    }
+  }
+
+  function teardownCluster(options = {}) {
+    return deleteCluster(options).success;
+  }
+
+  function applyLiveImageOverrides(imageOverrides, options = {}) {
+    const runner = stackRunner(options);
+    const deployments = new Set();
+    for (const override of imageOverrides.deployments || []) {
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            '-n',
+            namespace,
+            'set',
+            'image',
+            `deployment/${override.deployment}`,
+            `${override.container}=${override.image}`,
+          ),
+          commandOptions(),
+        ),
+        `Failed to set image on deployment/${override.deployment}`,
+      );
+      const pullPolicyPatch = JSON.stringify({
+        spec: {
+          template: {
+            spec: {
+              containers: [{ name: override.container, imagePullPolicy: 'IfNotPresent' }],
+            },
+          },
+        },
+      });
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            '-n',
+            namespace,
+            'patch',
+            `deployment/${override.deployment}`,
+            '--type=strategic',
+            '-p',
+            pullPolicyPatch,
+          ),
+          commandOptions(),
+        ),
+        `Failed to set IfNotPresent on deployment/${override.deployment}`,
+      );
+      deployments.add(override.deployment);
+    }
+
+    const runtimeEntries = Object.entries(imageOverrides.runtimeEnvironment || {});
+    if (runtimeEntries.length > 0) {
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            '-n',
+            namespace,
+            'set',
+            'env',
+            'deployment/ml-pipeline',
+            ...runtimeEntries.map(([name, image]) => `${name}=${image}`),
+          ),
+          commandOptions(),
+        ),
+        'Failed to configure local KFP runtime images',
+      );
+      deployments.add('ml-pipeline');
+    }
+    for (const deployment of deployments) {
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs('-n', namespace, 'rollout', 'restart', `deployment/${deployment}`),
+          commandOptions(),
+        ),
+        `Failed to restart deployment/${deployment}`,
+      );
+      requireSuccess(
+        runner(
+          'kubectl',
+          kubectlArgs(
+            '-n',
+            namespace,
+            'rollout',
+            'status',
+            `deployment/${deployment}`,
+            '--timeout=180s',
+          ),
+          commandOptions({ timeout: 190000 }),
+        ),
+        `Deployment ${deployment} did not become ready`,
+      );
+    }
+  }
+
+  async function buildAndDeployComponents(components, repoRoot, options = {}) {
+    if (components.length === 0) {
+      log('No backend components to rebuild');
+      return { images: {} };
+    }
+    const imageOverrides = await buildComponentImages(components, repoRoot, options);
+    applyLiveImageOverrides(imageOverrides, options);
+    return { images: imageOverrides.images };
+  }
+
+  function reapplyManifests(repoRoot, options = {}) {
+    log(`Re-applying KFP manifests to ${clusterName}...`);
+    return applyKfpManifests(repoRoot, options);
+  }
+
+  async function ensurePortForwards(forwards, options = {}) {
+    const spawnFn =
+      options.spawnFn ||
+      ((command, args, spawnOptions) => spawnProcess(command, args, spawnOptions));
+    const portInUse = options.portInUse || isPortInUse;
+    const waitForTcpFn = options.waitForTcpFn || waitForTcp;
+    const timeout = options.timeout || 15000;
+    const started = [];
+    try {
+      for (const forward of forwards) {
+        if (await portInUse(forward.localPort)) {
+          throw new Error(
+            `Port ${forward.localPort} became occupied before ${forward.service} forwarding started.`,
+          );
+        }
+        const child = spawnFn(
+          'kubectl',
+          kubectlArgs(
+            'port-forward',
+            '-n',
+            namespace,
+            `svc/${forward.service}`,
+            `${forward.localPort}:${forward.remotePort}`,
+          ),
+          commandOptions(),
+        );
+        if (!processes.includes(child)) processes.push(child);
+        started.push(child);
+        const ready = await waitForChildReadiness(child, () =>
+          waitForTcpFn(forward.localPort, timeout, { child }),
+        );
+        if (!ready || child.exitCode !== null || child.signalCode !== null) {
+          throw new Error(`Port forward for ${forward.service} did not become ready.`);
+        }
+        log(`${clusterName}: ${forward.service} -> localhost:${forward.localPort}`);
+      }
+      return started;
+    } catch (error) {
+      for (const child of started) child.kill('SIGTERM');
+      throw error;
+    }
+  }
+
+  async function ensureDeployedUiPortForwarding(options = {}) {
+    return ensurePortForwards([deployedUiPortForward], options);
+  }
+
+  async function ensurePortForwarding(options = {}) {
+    return ensurePortForwards(portForwards, options);
+  }
+
+  function frontendServerEnvironment(baseEnvironment = process.env) {
+    const endpointRewrite = [
+      `seaweedfs.${namespace}:9000=localhost:${ports.objectStore}`,
+      `seaweedfs.${namespace}:80=localhost:${ports.objectStore}`,
+      `seaweedfs.${namespace}.svc:9000=localhost:${ports.objectStore}`,
+      `seaweedfs.${namespace}.svc:80=localhost:${ports.objectStore}`,
+      `seaweedfs.${namespace}.svc.cluster.local:9000=localhost:${ports.objectStore}`,
+      `seaweedfs.${namespace}.svc.cluster.local:80=localhost:${ports.objectStore}`,
+    ].join(',');
+    const environment = {
+      ...commandEnvironment(baseEnvironment),
+      FRONTEND_SERVER_NAMESPACE: namespace,
+      MINIO_ENDPOINT_REWRITE: endpointRewrite,
+      MINIO_HOST: 'localhost',
+      MINIO_NAMESPACE: '',
+      MINIO_PORT: String(ports.objectStore),
+      ML_PIPELINE_SERVICE_HOST: LOOPBACK_HOST,
+      ML_PIPELINE_SERVICE_PORT: String(ports.api),
+      ML_PIPELINE_SERVICE_SCHEME: 'http',
+    };
+    if (ports.metadata === null) {
+      delete environment.METADATA_ENVOY_SERVICE_SERVICE_HOST;
+      delete environment.METADATA_ENVOY_SERVICE_SERVICE_PORT;
+      delete environment.METADATA_ENVOY_SERVICE_SERVICE_SCHEME;
+    } else {
+      environment.METADATA_ENVOY_SERVICE_SERVICE_HOST = LOOPBACK_HOST;
+      environment.METADATA_ENVOY_SERVICE_SERVICE_PORT = String(ports.metadata);
+      environment.METADATA_ENVOY_SERVICE_SERVICE_SCHEME = 'http';
+    }
+    return environment;
+  }
+
+  function writeLoopbackListenPreload() {
+    fs.mkdirSync(archiveDir, { recursive: true });
+    const preloadPath = path.join(archiveDir, 'loopback-listen.cjs');
+    fs.writeFileSync(preloadPath, LOOPBACK_LISTEN_PRELOAD, { mode: 0o600 });
+    return preloadPath;
+  }
+
+  async function startFrontendServer(repoRoot, options = {}) {
+    const runner = stackRunner(options);
+    const spawnFn =
+      options.spawnFn ||
+      ((command, args, spawnOptions) => spawnProcess(command, args, spawnOptions));
+    const waitForServiceFn = options.waitForServiceFn || waitForService;
+    const serverDir = path.join(repoRoot, 'frontend', 'server');
+    const serverEntry = path.join(serverDir, 'dist', 'server.js');
+    if (options.skipBuild) {
+      if (!fs.existsSync(serverEntry)) {
+        throw new Error(`Cannot skip server build: ${serverEntry} does not exist.`);
+      }
+    } else {
+      requireSuccess(
+        runner(
+          'npm',
+          ['ci'],
+          commandOptions({ cwd: serverDir, timeout: 120000, stdio: 'inherit' }),
+        ),
+        'Failed to install frontend server dependencies',
+      );
+      requireSuccess(
+        runner('npm', ['run', 'build'], commandOptions({ cwd: serverDir, timeout: 120000 })),
+        'Failed to build frontend server',
+      );
+    }
+
+    const buildDir = path.join(repoRoot, 'frontend', 'build');
+    const loopbackPreload = writeLoopbackListenPreload();
+    const child = spawnFn(
+      'node',
+      ['--require', loopbackPreload, 'dist/server.js', buildDir, String(ports.frontendServer)],
+      {
+        cwd: serverDir,
+        env: frontendServerEnvironment(options.env || process.env),
+      },
+    );
+    if (!processes.includes(child)) processes.push(child);
+    frontendServerProcess = child;
+    const healthUrl = `http://127.0.0.1:${ports.frontendServer}/apis/v2beta1/healthz`;
+    try {
+      const ready = await waitForChildReadiness(child, () =>
+        waitForServiceFn(healthUrl, 15000, { child }),
+      );
+      if (!ready) throw new Error(`Frontend server did not become healthy at ${healthUrl}.`);
+      return child;
+    } catch (error) {
+      child.kill('SIGTERM');
+      frontendServerProcess = null;
+      throw error;
+    }
+  }
+
+  function stopFrontendServer() {
+    if (!frontendServerProcess) return;
+    frontendServerProcess.kill('SIGTERM');
+    frontendServerProcess = null;
+  }
+
+  async function cleanup(options = {}) {
+    const terminate = options.terminate || terminateChild;
+    log(`Cleaning up processes for ${clusterName}...`);
+    const tracked = [...processes];
+    const results = await Promise.allSettled(tracked.map((child) => terminate(child)));
+    const failures = results
+      .map((result, index) => ({ child: tracked[index], result }))
+      .filter(({ result }) => result.status === 'rejected');
+    processes.splice(
+      0,
+      processes.length,
+      ...failures
+        .map(({ child }) => child)
+        .filter((child) => child.exitCode === null && child.signalCode === null),
+    );
+    if (!processes.includes(frontendServerProcess)) frontendServerProcess = null;
+    if (failures.length > 0) {
+      throw new AggregateError(
+        failures.map(({ result }) => result.reason),
+        `Failed to stop ${failures.length} process(es) for ${clusterName}.`,
+      );
+    }
+  }
+
+  return Object.freeze({
+    CLUSTER_NAME: clusterName,
+    FRONTEND_SERVER_PORT: ports.frontendServer,
+    KUBE_CONTEXT: context,
+    NAMESPACE: namespace,
+    PORT_FORWARDS: portForwards,
+    applyKfpManifests,
+    archiveDir,
+    buildAndDeployComponents,
+    buildComponentImages,
+    cleanup,
+    clusterName,
+    commandEnvironment,
+    context,
+    createCluster,
+    deployRevision,
+    destroyCluster: destroyOwnedCluster,
+    destroyOwnedCluster,
+    deployedUiPortForward,
+    deployedUiUrl: `http://127.0.0.1:${ports.frontendServer}`,
+    ensureDeployedUiPortForwarding,
+    ensureCluster,
+    ensurePortForwarding,
+    extractManifestImages,
+    frontendServerEnvironment,
+    frontendServerUrl: `http://127.0.0.1:${ports.frontendServer}`,
+    getClusterPlatform,
+    getDockerPlatform,
+    getClusterStatus,
+    imageScope,
+    isClusterRunning,
+    isDockerRunning,
+    isKfpHealthy,
+    isKindInstalled,
+    isKubectlInstalled,
+    kubeconfigPath,
+    loadImageOverrides,
+    kubectlArgs,
+    namespace,
+    portForwards,
+    ports,
+    preflightReleaseImages,
+    preflightSeedRuntimeImage,
+    preflightThirdPartyImages,
+    preloadManifestImages,
+    preloadSeedRuntimeImage,
+    reapplyManifests,
+    revision,
+    role,
+    saveAndLoadImage,
+    scopedImageTag,
+    spawnProcess,
+    startFrontendServer,
+    stopFrontendServer,
+    teardownCluster,
+    validateReleaseManifestImages,
+    validateLocalManifestImages,
   });
 }
 
-async function cleanup(options = {}) {
-  const { runner = run, terminate = terminateChild } = options;
-  log('Cleaning up processes...');
-  await Promise.all(
-    processes.map(async (child) => {
-      try {
-        await terminate(child);
-      } catch (error) {
-        // The process may already have exited.
-      }
-    }),
-  );
-  processes.length = 0;
-  frontendServerProcess = null;
+const defaultStack = createKindStack({
+  clusterName: CLUSTER_NAME,
+  context: KUBE_CONTEXT,
+  kubeconfigPath: DEFAULT_KUBECONFIG,
+  namespace: NAMESPACE,
+  ports: DEFAULT_PORTS,
+  role: 'compatibility',
+});
+
+function isKindInstalled(runner = run) {
+  return defaultStack.isKindInstalled({ runner });
+}
+
+function isKubectlInstalled(runner = run) {
+  return defaultStack.isKubectlInstalled({ runner });
+}
+
+function isDockerRunning(runner = run) {
+  return defaultStack.isDockerRunning({ runner });
+}
+
+function isClusterRunning(runner = run) {
+  return defaultStack.isClusterRunning({ runner });
+}
+
+function isKfpHealthy(options = {}) {
+  return defaultStack.isKfpHealthy(options);
+}
+
+function getClusterStatus(options = {}) {
+  return defaultStack.getClusterStatus(options);
+}
+
+function preloadSeedRuntimeImage(runner = run, options = {}) {
+  return defaultStack.preloadSeedRuntimeImage({ ...options, runner });
+}
+
+function applyKfpManifests(repoRoot, runner = run) {
+  return defaultStack.applyKfpManifests(repoRoot, { runner });
+}
+
+async function ensureCluster(repoRoot, options = {}) {
+  const result = await defaultStack.ensureCluster(repoRoot, options);
+  return { created: result.created, context: result.context };
+}
+
+function teardownCluster(options = {}) {
+  return defaultStack.teardownCluster(options);
+}
+
+function getClusterPlatform(runner = run) {
+  return defaultStack.getClusterPlatform({ runner });
+}
+
+function buildAndDeployComponents(components, repoRoot, options = {}) {
+  return defaultStack.buildAndDeployComponents(components, repoRoot, options);
+}
+
+function reapplyManifests(repoRoot, options = {}) {
+  return defaultStack.reapplyManifests(repoRoot, options);
+}
+
+function ensurePortForwarding(options = {}) {
+  return defaultStack.ensurePortForwarding(options);
+}
+
+function frontendServerEnvironment(baseEnvironment = process.env) {
+  return defaultStack.frontendServerEnvironment(baseEnvironment);
+}
+
+function startFrontendServer(repoRoot, options = {}) {
+  return defaultStack.startFrontendServer(repoRoot, options);
+}
+
+function stopFrontendServer() {
+  return defaultStack.stopFrontendServer();
+}
+
+function cleanup(options = {}) {
+  return defaultStack.cleanup(options);
+}
+
+function spawnProcess(command, args, options = {}) {
+  return defaultStack.spawnProcess(command, args, options);
 }
 
 module.exports = {
   CLUSTER_NAME,
+  DEFAULT_KUBECONFIG,
+  DEFAULT_PORTS,
+  FRONTEND_SERVER_PORT,
   KUBE_CONTEXT,
   NAMESPACE,
-  FRONTEND_SERVER_PORT,
   PLATFORM_DEPLOYMENTS,
   PORT_FORWARDS,
   SEED_RUNTIME_IMAGE,
@@ -764,6 +1583,7 @@ module.exports = {
   buildAndDeployComponents,
   checkPortAvailability,
   cleanup,
+  createKindStack,
   ensureCluster,
   ensurePortForwarding,
   frontendServerEnvironment,
@@ -780,7 +1600,6 @@ module.exports = {
   log,
   preloadSeedRuntimeImage,
   reapplyManifests,
-  restoreKubectlContext,
   run,
   spawnProcess,
   startFrontendServer,

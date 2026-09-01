@@ -1,9 +1,10 @@
 # UI smoke-test utility
 
 This utility compares fresh screenshots of the Kubeflow Pipelines UI at a base Git ref and a
-local or fetched pull-request head. It uses one live Kind backend for both frontends, creates a
-manifest for every capture, and fails closed when a required page is missing, degraded, stale,
-corrupt, or different beyond the configured threshold.
+local or fetched pull-request head. Its full-stack mode runs each UI with its matching
+frontend-server, backend images, manifests, database, object store, metadata system, cache, and
+Kubernetes state. It creates a manifest for every capture and fails closed when a required page is
+missing, degraded, stale, corrupt, or different beyond the configured threshold.
 
 ## Prerequisites
 
@@ -11,6 +12,11 @@ corrupt, or different beyond the configured threshold.
   `frontend/package.json`
 - Git, Docker, Kind, and `kubectl` for comparisons
 - `gh`, authenticated to the target repository, only when `--comment` is used
+
+Before creating a cluster, the runner renders both revision overlays, verifies and exports every
+dependency image for the Kind node's explicit platform, and builds every reviewed first-party head
+image for that platform. An amd64-only release image on an arm64 Kind node therefore fails before
+cluster creation with instructions to use a matching image or an amd64 node with emulation.
 
 Install the utility's pinned dependencies and browser once:
 
@@ -20,8 +26,10 @@ npm ci
 npx playwright install chromium
 ```
 
-The runner restores this nested package exactly with `npm ci` on every invocation and installs the
-pinned Chromium build when it is absent. An explicit install is useful for warming those caches.
+Before a capture run, the runner restores this nested package exactly with `npm ci` and installs
+the pinned Chromium build when it is absent. Help, teardown, and an upgrade capability check that
+fails before capture do not install dependencies. An explicit install is useful for warming those
+caches.
 
 ## Compare local changes
 
@@ -35,16 +43,40 @@ This comparison includes committed, staged, unstaged, and untracked local files.
 uses the merge base with the selected base ref and handles rename sources as deletes, so moving a
 file out of a sensitive tree cannot hide it.
 
-The tool can attribute regressions only in the browser bundle. Both bundles therefore use the base
-ref's `frontend/server`, manifests, and backend. A change under any of those surfaces stops the run
-by default. To make an explicitly scoped browser-only comparison that ignores those changes:
+When only browser code changed, the default comparison uses the base runtime for both bundles. A
+change to the frontend-server, backend, or manifests stops that compatibility workflow. For a
+revision-matched comparison, explicitly select a reviewed local checkout:
+
+```bash
+node smoke-test-runner.js \
+  --compare 2.17.1 \
+  --full-stack \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --pr-number 13986
+```
+
+The selected path must be the root of a worktree belonging to the same repository. Dirty local
+changes are supported, including changed lockfiles, frontend-server, backend, and manifests. The
+runner snapshots the selected commit plus its staged, unstaged, and non-ignored untracked files
+into a detached run-scoped worktree, records a cryptographic source fingerprint, and aborts if the
+source changes while the snapshot is being made. Symlinks cannot escape the checkout. The trust
+flag is required because this mode installs dependencies, builds images, starts servers, and
+deploys manifests from that immutable snapshot.
+
+When the base is a release such as `2.17.1`, the runner resolves the fully qualified release tag
+from the canonical `kubeflow/pipelines` repository, verifies that the local tag peels to the same
+commit, and pins all base work to that verified commit SHA. A moved or counterfeit local release
+tag is rejected.
+
+To make an explicitly scoped browser-only comparison that ignores changed runtime surfaces:
 
 ```bash
 node smoke-test-runner.js --compare origin/master --browser-only
 ```
 
-The head label and report record every ignored surface. This result says nothing about the changed
-server, backend, or deployment inputs.
+The head label and report record every ignored surface. This result is a browser compatibility
+signal only; it says nothing about the changed server, backend, deployment, or migration behavior.
 
 To label local screenshots for an existing pull request:
 
@@ -87,6 +119,40 @@ node smoke-test-runner.js \
   --browser-only
 ```
 
+Fetched PRs cannot use `--full-stack` or `--upgrade`. Review and check out the target locally, then
+select it with `--head-checkout --trust-local-head`.
+
+## Upgrade a populated installation
+
+Upgrade mode exercises a different invariant from two clean stacks: base data and persistent
+volume identities must survive while the same environment is migrated and upgraded.
+
+```bash
+node smoke-test-runner.js \
+  --compare 2.17.1 \
+  --upgrade \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --pr-number 13986
+```
+
+The fail-closed lifecycle is: deploy base, seed base, capture base, freeze writers, inventory PVCs
+and semantic fixtures, run and validate the migration's durable marker, deploy head into the same
+environment, validate the startup gate, prove PVC and fixture continuity, prune only explicitly
+allowed non-persistent resources, capture head, and generate the attested comparison and HTML
+report. A reviewed target advertises matching migration and startup-gate versions in
+`.ui-smoke-upgrade.json` and names an in-checkout adapter that supplies those lifecycle operations.
+Adapter paths cannot escape the selected checkout. The adapter factory must be side-effect-free,
+and the adapter must provide `cleanupEnvironment`; the runner registers cleanup before invoking
+any deployment operation. A cleanup failure invalidates an otherwise successful result.
+
+PR #13986 does not yet contain the MLMD-to-native migration or startup gate tracked by #14029.
+Against that head, upgrade mode writes `upgrade-result.json` with
+`captureValidity: "migration_unavailable"` and invokes no cluster or head-mutation callback. This
+is an intentional release-blocker result, not a successful visual comparison. Capability
+discovery happens before Docker, Kind, or nested package setup, so an unavailable migration cannot
+mutate the host or cluster as a side effect of preflight.
+
 ## Capture an existing UI
 
 To capture a development server without creating a cluster or building another ref:
@@ -122,6 +188,13 @@ mismatches. Before each screenshot, the browser disables animations and transiti
 fonts, and executes each configured readiness predicate rather than merely evaluating its function
 object.
 
+Full-stack seeding creates the same logical pipeline, run, metrics, ROC data, artifacts, retry,
+two-item `ParallelFor`, and nested DAG in each revision through that revision's supported APIs.
+Legacy runs are hydrated from their MLMD-backed run response. Native runs page through
+`/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and Artifact relationships. The
+resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
+routes and selectors do not need identical IDs.
+
 ## PR comments
 
 GitHub is never modified by default. Add `--comment` to a comparison that has `--pr` or
@@ -152,56 +225,84 @@ screenshots:
   latest-run.txt
   runs/
     <timestamp>-<pid>-<random>/
-      seed-manifest.json
+      semantic-fixtures.json
+      source-provenance.json
+      seed/
+        base.json
+        head.json
+      kubeconfigs/
+        base.yaml
+        head.yaml
+      upgrade-result.json        # upgrade mode, including fail-closed blockers
       screenshots/
-        base/manifest.json
+        base/manifest.json        # includes seed, semantic, and source attestations
         head/manifest.json
         comparison/<page>-<viewport>.png
         comparison/summary.json
+        comparison/report.html   # self-contained base/head/diff browser report
       worktrees/
 ```
 
 `latest-run.txt` contains the absolute path of the newest run. Worktrees, temporary Git refs,
-proxies, port-forwards, and the local frontend server are cleaned up on success,
-failure, `SIGINT`, or `SIGTERM`. Completed screenshots and reports are retained. Other runs are
-never automatically deleted.
+proxies, port-forwards, local servers, and owned clusters are cleaned up on ordinary success or
+failure. The runner also requests cleanup on `SIGINT` and `SIGTERM`, but an uncatchable termination
+can leave run-scoped resources that must be removed by exact name. Completed screenshots and
+reports are retained. Other runs are never automatically deleted.
 
-Comparisons use the dedicated `ui-smoke-test` Kind cluster and refuse to reuse it: carrying over a
-database or locally loaded image could make a comparison falsely pass. The cluster remains after a
-run for inspection. Teardown is therefore required before the next comparison:
+Comparison thresholds are evaluated only for complete, cryptographically attested capture pairs.
+Missing, degraded, corrupt, or stale captures remain capture-validity failures rather than being
+reported as pixel differences.
 
-To delete the managed Kind cluster:
+Full-stack comparisons create unique `ui-smoke-base-*` and `ui-smoke-head-*` clusters. Each has its
+own kubeconfig, context, database, object store, cache, Kubernetes resources, image scope, ports,
+and child processes. The runner never changes or depends on the global `current-context`.
+Run-scoped clusters are destroyed during cleanup so their state cannot leak into another run.
+
+The compatibility workflow retains the historical fixed `ui-smoke-test` cluster behavior. To
+delete that legacy managed cluster:
 
 ```bash
 node smoke-test-runner.js --teardown
 ```
 
-## What the live comparison does
+## What a full-stack comparison does
 
-1. Validates arguments, dependencies, tools, Git refs, and all required local ports.
-2. Creates unique run state and detached base/head worktrees.
-3. Detects the merge-base change set, including the local working tree when applicable.
-4. Builds both browser bundles; fetched builds use the two-phase constrained container flow.
-5. Creates the clean, dedicated managed Kind cluster from the trusted base manifests without
-   leaving the user's current Kubernetes context changed; an existing managed cluster is rejected.
-6. Pulls and preloads the digest-pinned seed runtime, applies both manifest layers, and waits for
-   every platform deployment. Any setup failure rolls back the newly created cluster.
-7. Forwards the API, metadata, and SeaweedFS services and starts the frontend server with the same
-   artifact-storage environment used by `frontend/scripts/start-proxy-and-server.sh`.
-8. Creates or validates deterministic pipeline, experiment, run, and recurring-run resources,
-   including populated scalar-metric and ROC artifacts, and writes their IDs to the per-run seed
-   manifest. Every seeded run must reach `SUCCEEDED`.
-9. Serves both static builds from loopback-only proxies against the same backend.
-10. Captures every configured page for both revisions concurrently, compares only exact successful
-    manifest pairs with pinned analysis settings, writes the report, and applies the exit policy.
+1. Validates the reviewed checkout, dependencies, tools, an exact release-tag base such as
+   `2.17.1`, and both non-overlapping port sets. The rendered first-party base images must carry
+   that exact release tag.
+2. Creates unique run state and a detached base worktree, then renders only each revision's actual
+   platform-agnostic overlay. Workload and optional-service discovery never scans unrelated YAML.
+3. Verifies and exports every rendered dependency image and builds the selected head's
+   revision-compatible frontend, frontend-server, backend, and runtime images for the explicit Kind
+   node platform. Any architecture or build failure occurs before cluster creation.
+4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
+   preflighted for that revision. Exact local image overrides and runtime-image variables are
+   applied to the rendered head before any workload starts.
+5. Applies the manifests and waits for the deployments actually rendered by that revision.
+6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
+   readiness checks, and screenshots all use that deployed UI and its matching in-cluster
+   frontend-server/backend; full-stack mode does not substitute a host-side server or static proxy.
+7. Executes equivalent deterministic fixtures through each revision's supported API and runtime.
+   They cover scalar and ROC metrics, artifact producer/consumer relationships, a retry, a
+   two-item `ParallelFor`, and nested DAG parent/child relationships. List-filler runs use a small
+   deterministic pipeline so the richer topology remains the single semantic source of truth.
+   The base records legacy MLMD task/artifact data; a native head records Task/Artifact API data.
+8. Discovers generated IDs from each revision's run details and writes separate capture-compatible
+   seed manifests plus one `ui-smoke-semantic/v2` manifest keyed by logical fixtures. The manifest
+   maps per-revision run, task instance, artifact, retry-attempt, iteration, and relationship IDs;
+   unknown or incomplete semantic bindings stop the comparison.
+9. Binds each capture to the revision-specific deployed UI URL, semantic manifest, and immutable
+   source provenance.
+10. Captures both revisions, compares only exact successful manifest pairs with pinned analysis
+    settings, writes the report, and applies the exit policy.
 11. If explicitly requested, posts the report even when visual differences make the run fail.
 
-The local proxy pins API requests to the configured backend origin, rejects unsafe absolute-form
-targets and path/symlink escapes, and returns real missing-asset errors instead of the SPA shell.
-It permits read-only HTTP methods plus MLMD `Get*` RPCs, rejecting backend mutations from captured
-frontend code.
-The browser blocks service workers and all HTTP(S)/WebSocket traffic outside the exact capture
-origin, so fetched frontend code cannot probe other localhost, LAN, or internet services.
+The compatibility workflow's local proxy pins API requests to the configured backend origin,
+rejects unsafe absolute-form targets and path/symlink escapes, and returns real missing-asset errors
+instead of the SPA shell. It permits read-only HTTP methods plus MLMD `Get*` RPCs, rejecting backend
+mutations from captured frontend code. The browser blocks service workers and all
+HTTP(S)/WebSocket traffic outside the exact capture origin, so captured frontend code cannot probe
+other localhost, LAN, or internet services.
 
 ## Direct utilities
 

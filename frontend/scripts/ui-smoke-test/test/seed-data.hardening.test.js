@@ -2,19 +2,157 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 
 const {
   METRICS_EXECUTOR_OUTPUT,
   MINIMAL_PIPELINE_YAML,
+  RICH_PIPELINE_YAML,
   RESOURCE_DEFINITIONS,
   SEED_IMAGE,
+  SEMANTIC_MARKER,
+  fetchMlmdArtifactsByIds,
+  fetchRunBindingResponse,
   resolveApiUrl,
   seedData,
   uploadPipeline,
   validateDetailRoutes,
+  waitForSemanticBindings,
   waitForRunsStable,
 } = require('../seed-data');
+
+function nativeRichRunResponse(runId = 'run-created') {
+  const rocMetadata = structuredClone(
+    METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+  );
+  return {
+    displayName: RESOURCE_DEFINITIONS.runs[0].displayName,
+    runId,
+    taskCount: 8,
+    tasks: [
+      {
+        childTasks: [{ name: 'consume-metrics', taskId: 'task-consume-metrics' }],
+        name: 'write-metrics',
+        outputs: {
+          artifacts: [
+            {
+              artifactKey: 'scalar_metrics',
+              artifacts: [
+                { artifactId: 'metric-loss', name: 'loss', numberValue: 0.08 },
+                { artifactId: 'metric-accuracy', name: 'accuracy', numberValue: 0.92 },
+              ],
+            },
+            {
+              artifactKey: 'roc_curve',
+              artifacts: [
+                {
+                  artifactId: 'roc-artifact',
+                  metadata: rocMetadata,
+                  name: 'roc_curve',
+                },
+              ],
+            },
+          ],
+        },
+        scopePath: 'root.write-metrics',
+        state: 'SUCCEEDED',
+        taskId: 'task-write-metrics',
+        type: 'RUNTIME',
+      },
+      {
+        inputs: {
+          artifacts: [
+            {
+              artifactKey: 'metrics',
+              artifacts: [
+                { artifactId: 'metric-loss', name: 'loss', numberValue: 0.08 },
+                { artifactId: 'metric-accuracy', name: 'accuracy', numberValue: 0.92 },
+              ],
+            },
+          ],
+        },
+        name: 'consume-metrics',
+        scopePath: 'root.consume-metrics',
+        state: 'SUCCEEDED',
+        taskId: 'task-consume-metrics',
+        type: 'RUNTIME',
+      },
+      {
+        name: 'retry-once',
+        pods: [
+          { name: 'retry-0', type: 'EXECUTOR' },
+          { name: 'retry-1', type: 'EXECUTOR' },
+        ],
+        scopePath: 'root.retry-once',
+        state: 'SUCCEEDED',
+        taskId: 'task-retry',
+        type: 'RUNTIME',
+      },
+      {
+        name: 'parallel-loop',
+        scopePath: 'root.parallel-loop',
+        state: 'SUCCEEDED',
+        taskId: 'task-loop',
+        type: 'LOOP',
+        typeAttributes: { iterationCount: 2 },
+      },
+      {
+        displayName: 'parallel-loop',
+        name: 'parallel-loop-0',
+        parentTaskId: 'task-loop',
+        scopePath: 'root.parallel-loop.parallel-loop-0',
+        state: 'SUCCEEDED',
+        taskId: 'task-loop-scope-0',
+        type: 'DAG',
+        typeAttributes: { iterationIndex: 0 },
+      },
+      {
+        displayName: 'parallel-loop',
+        name: 'parallel-loop-1',
+        parentTaskId: 'task-loop',
+        scopePath: 'root.parallel-loop.parallel-loop-1',
+        state: 'SUCCEEDED',
+        taskId: 'task-loop-scope-1',
+        type: 'DAG',
+        typeAttributes: { iterationIndex: 1 },
+      },
+      {
+        name: 'loop-worker',
+        parentTaskId: 'task-loop-scope-0',
+        scopePath: 'root.parallel-loop.loop-worker',
+        state: 'SUCCEEDED',
+        taskId: 'task-loop-worker-0',
+        type: 'RUNTIME',
+        typeAttributes: { iterationIndex: 0 },
+      },
+      {
+        name: 'loop-worker',
+        parentTaskId: 'task-loop-scope-1',
+        scopePath: 'root.parallel-loop.loop-worker',
+        state: 'SUCCEEDED',
+        taskId: 'task-loop-worker-1',
+        type: 'RUNTIME',
+        typeAttributes: { iterationIndex: 1 },
+      },
+      {
+        name: 'nested-dag',
+        scopePath: 'root.nested-dag',
+        state: 'SUCCEEDED',
+        taskId: 'task-nested',
+        type: 'DAG',
+      },
+      {
+        name: 'nested-worker',
+        parentTaskId: 'task-nested',
+        scopePath: 'root.nested-dag.nested-worker',
+        state: 'SUCCEEDED',
+        taskId: 'task-nested-worker',
+        type: 'RUNTIME',
+      },
+    ],
+  };
+}
 
 function temporaryManifest(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-data-test-'));
@@ -66,6 +204,29 @@ test('uploads a valid v2 pipeline as multipart form data', async () => {
   );
 });
 
+test('rich fixture uses pinned revision-compatible topology without runtime installs', async () => {
+  let call;
+  await uploadPipeline(
+    'ui-smoke-rich',
+    'rich topology',
+    async (...args) => {
+      call = args;
+      return { pipeline_id: 'pipeline-rich' };
+    },
+    { pipelineYaml: RICH_PIPELINE_YAML },
+  );
+
+  const multipart = call[3].rawBody.toString('utf8');
+  assert.ok(multipart.includes(RICH_PIPELINE_YAML));
+  assert.match(multipart, /retryPolicy:[\s\S]*maxRetryCount: 1/);
+  assert.match(multipart, /KFP_RETRY_INDEX/);
+  assert.match(multipart, /parameterIterator:[\s\S]*raw: '\["alpha", "beta"\]'/);
+  assert.match(multipart, /comp-nested-dag:[\s\S]*nested-worker:/);
+  assert.match(multipart, /taskOutputArtifact:[\s\S]*producerTask: write-metrics/);
+  assert.equal((multipart.match(new RegExp(SEED_IMAGE, 'g')) || []).length, 5);
+  assert.doesNotMatch(multipart, /pip install|kfp\.dsl\.executor_main|python:/);
+});
+
 test('API URLs preserve a configured path prefix', () => {
   assert.equal(
     resolveApiUrl('https://example.test/kfp-api', '/apis/v2beta1/healthz').toString(),
@@ -75,6 +236,284 @@ test('API URLs preserve a configured path prefix', () => {
     resolveApiUrl('https://example.test/', '/apis/v2beta1/healthz').toString(),
     'https://example.test/apis/v2beta1/healthz',
   );
+});
+
+test('resource definitions carry stable semantic keys', () => {
+  for (const definitions of Object.values(RESOURCE_DEFINITIONS)) {
+    for (const definition of definitions) {
+      assert.match(definition.semanticKey, /^[a-z][a-z0-9.-]+$/);
+      assert.ok(definition.displayName || definition.name);
+    }
+  }
+  assert.deepEqual(
+    RESOURCE_DEFINITIONS.runs
+      .filter((definition) => definition.fixtureProfile === 'rich-topology')
+      .map((definition) => definition.semanticKey),
+    ['run.training-1'],
+  );
+  assert.equal(RESOURCE_DEFINITIONS.runs[0].pipelineSemanticKey, 'pipeline.training');
+  assert.ok(
+    RESOURCE_DEFINITIONS.runs
+      .slice(1)
+      .every((definition) => definition.fixtureProfile === 'metrics'),
+  );
+});
+
+test('falls back from an unsupported FULL query to the legacy detail response', async () => {
+  const endpoints = [];
+  const response = await fetchRunBindingResponse('legacy/run', async (_method, endpoint) => {
+    endpoints.push(endpoint);
+    if (endpoint.endsWith('?view=FULL')) throw new Error('unknown query parameter view');
+    return {
+      run_details: { pipeline_context_id: '1', task_details: [] },
+      run_id: 'legacy/run',
+    };
+  });
+
+  assert.deepEqual(endpoints, [
+    '/apis/v2beta1/runs/legacy%2Frun?view=FULL',
+    '/apis/v2beta1/runs/legacy%2Frun',
+  ]);
+  assert.equal(response.run_id, 'legacy/run');
+});
+
+test('hydrates legacy run artifact IDs with actual MLMD metric and ROC values', async () => {
+  const requestedArtifactIds = [];
+  const response = await fetchRunBindingResponse(
+    'legacy-run',
+    async (_method, endpoint) => {
+      assert.equal(endpoint, '/apis/v2beta1/runs/legacy-run?view=FULL');
+      return {
+        run_details: {
+          pipeline_context_id: '1',
+          task_details: [
+            {
+              display_name: 'write-metrics',
+              outputs: {
+                roc_curve: { artifact_ids: ['82'] },
+                scalar_metrics: { artifact_ids: ['81'] },
+              },
+            },
+          ],
+        },
+        run_id: 'legacy-run',
+      };
+    },
+    {
+      fetchLegacyArtifacts: async (artifactIds) => {
+        requestedArtifactIds.push(...artifactIds);
+        return [
+          { artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } },
+          {
+            artifactId: '82',
+            metadata: structuredClone(
+              METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+            ),
+          },
+        ];
+      },
+    },
+  );
+
+  assert.deepEqual(requestedArtifactIds, ['81', '82']);
+  assert.deepEqual(response.semanticArtifacts[0].metadata, { accuracy: 0.92, loss: 0.08 });
+  assert.equal(response.semanticArtifacts[1].metadata.confidenceMetrics.length, 5);
+});
+
+function testVarint(value) {
+  let remaining = BigInt(value);
+  const bytes = [];
+  do {
+    let byte = Number(remaining & 0x7fn);
+    remaining >>= 7n;
+    if (remaining !== 0n) byte |= 0x80;
+    bytes.push(byte);
+  } while (remaining !== 0n);
+  return Buffer.from(bytes);
+}
+
+function testField(fieldNumber, wireType, payload) {
+  return Buffer.concat([testVarint((fieldNumber << 3) | wireType), Buffer.from(payload)]);
+}
+
+function testMessageField(fieldNumber, message) {
+  return testField(fieldNumber, 2, Buffer.concat([testVarint(message.length), message]));
+}
+
+function testStringField(fieldNumber, value) {
+  return testMessageField(fieldNumber, Buffer.from(value));
+}
+
+function testDoubleField(fieldNumber, value) {
+  const bytes = Buffer.alloc(8);
+  bytes.writeDoubleLE(value);
+  return testField(fieldNumber, 1, bytes);
+}
+
+function testGoogleValue(value) {
+  if (value === null) return testField(1, 0, testVarint(0));
+  if (typeof value === 'number') return testDoubleField(2, value);
+  if (typeof value === 'string') return testStringField(3, value);
+  if (typeof value === 'boolean') return testField(4, 0, testVarint(value ? 1 : 0));
+  if (Array.isArray(value)) {
+    return testMessageField(
+      6,
+      Buffer.concat(value.map((entry) => testMessageField(1, testGoogleValue(entry)))),
+    );
+  }
+  return testMessageField(
+    5,
+    Buffer.concat(
+      Object.entries(value).map(([key, entry]) =>
+        testMessageField(
+          1,
+          Buffer.concat([testStringField(1, key), testMessageField(2, testGoogleValue(entry))]),
+        ),
+      ),
+    ),
+  );
+}
+
+function testMlmdValue(value) {
+  if (typeof value === 'number') return testDoubleField(2, value);
+  return testMessageField(
+    4,
+    testMessageField(
+      1,
+      Buffer.concat([testStringField(1, 'list'), testMessageField(2, testGoogleValue(value))]),
+    ),
+  );
+}
+
+function testMlmdArtifact(artifactId, metadata) {
+  return Buffer.concat([
+    testField(1, 0, testVarint(artifactId)),
+    ...Object.entries(metadata).map(([key, value]) =>
+      testMessageField(
+        5,
+        Buffer.concat([testStringField(1, key), testMessageField(2, testMlmdValue(value))]),
+      ),
+    ),
+  ]);
+}
+
+function testMlmdResponse(artifacts) {
+  return Buffer.concat(
+    artifacts.map(({ artifactId, metadata }) =>
+      testMessageField(1, testMlmdArtifact(artifactId, metadata)),
+    ),
+  );
+}
+
+function grpcFrame(type, payload) {
+  const frame = Buffer.alloc(5 + payload.length);
+  frame[0] = type;
+  frame.writeUInt32BE(payload.length, 1);
+  Buffer.from(payload).copy(frame, 5);
+  return frame;
+}
+
+test('decodes scalar and ROC values from the MLMD gRPC-web artifact response', async () => {
+  const responseBytes = testMlmdResponse([
+    { artifactId: 81, metadata: { accuracy: 0.92, loss: 0.08 } },
+    {
+      artifactId: 82,
+      metadata: METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+    },
+  ]);
+
+  const artifacts = await fetchMlmdArtifactsByIds(
+    ['81', '82'],
+    async (method, endpoint, body, options) => {
+      assert.equal(method, 'POST');
+      assert.equal(endpoint, '/ml_metadata.MetadataStoreService/GetArtifactsByID');
+      assert.equal(body, null);
+      assert.equal(options.responseType, 'buffer');
+      assert.equal(options.headers['Content-Type'], 'application/grpc-web+proto');
+      const requestFrame = options.rawBody;
+      const requestLength = requestFrame.readUInt32BE(1);
+      assert.equal(requestLength, 4);
+      assert.equal(requestFrame.subarray(5, 5 + requestLength).toString('hex'), '08510852');
+      return Buffer.concat([
+        grpcFrame(0x00, responseBytes),
+        grpcFrame(0x80, Buffer.from('grpc-status: 0\r\n')),
+      ]);
+    },
+  );
+
+  assert.deepEqual(artifacts, [
+    { artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } },
+    {
+      artifactId: '82',
+      metadata: structuredClone(METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata),
+    },
+  ]);
+});
+
+test('legacy MLMD hydration runs when generated protobuf modules are unavailable', () => {
+  const responseBytes = Buffer.concat([
+    grpcFrame(
+      0x00,
+      testMlmdResponse([{ artifactId: 81, metadata: { accuracy: 0.92, loss: 0.08 } }]),
+    ),
+    grpcFrame(0x80, Buffer.from('grpc-status: 0\r\n')),
+  ]);
+  const seedDataPath = path.resolve(__dirname, '../seed-data.js');
+  const script = String.raw`
+    const Module = require('node:module');
+    const originalLoad = Module._load;
+    Module._load = function(request, parent, isMain) {
+      if (/google-protobuf|third_party[\\/]mlmd[\\/]generated/.test(request)) {
+        throw new Error('blocked generated protobuf dependency: ' + request);
+      }
+      return originalLoad.call(this, request, parent, isMain);
+    };
+    const seedDataPath = process.argv[1];
+    const responseBody = Buffer.from(process.argv[2], 'base64');
+    const { fetchMlmdArtifactsByIds } = require(seedDataPath);
+    fetchMlmdArtifactsByIds(['81'], async (_method, _endpoint, _body, options) => {
+      process.stderr.write(options.rawBody.toString('hex'));
+      return responseBody;
+    }).then((artifacts) => process.stdout.write(JSON.stringify(artifacts)));
+  `;
+
+  const child = spawnSync(
+    process.execPath,
+    ['-e', script, seedDataPath, responseBytes.toString('base64')],
+    { encoding: 'utf8' },
+  );
+  assert.equal(child.status, 0, child.stderr);
+  assert.equal(child.stderr, '00000000020851');
+  assert.deepEqual(JSON.parse(child.stdout), [
+    { artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } },
+  ]);
+});
+
+test('hydrates native semantic bindings through the paginated Task/Artifact API', async () => {
+  const native = nativeRichRunResponse('native/run');
+  const tasks = native.tasks;
+  const calls = [];
+  const response = await fetchRunBindingResponse('native/run', async (_method, endpoint) => {
+    calls.push(endpoint);
+    if (endpoint === '/apis/v2beta1/runs/native%2Frun?view=FULL') {
+      return { displayName: native.displayName, runId: native.runId, taskCount: tasks.length };
+    }
+    if (endpoint === '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100') {
+      return { tasks: tasks.slice(0, 4), next_page_token: 'next page' };
+    }
+    if (endpoint === '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100&page_token=next+page') {
+      return { tasks: tasks.slice(4) };
+    }
+    throw new Error(`Unexpected endpoint: ${endpoint}`);
+  });
+
+  assert.equal(response.runId, 'native/run');
+  assert.deepEqual(response.tasks, tasks);
+  assert.deepEqual(calls, [
+    '/apis/v2beta1/runs/native%2Frun?view=FULL',
+    '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100',
+    '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100&page_token=next+page',
+  ]);
 });
 
 test('fills each missing deterministic resource type instead of skipping on partial data', async (t) => {
@@ -113,6 +552,9 @@ test('fills each missing deterministic resource type instead of skipping on part
     if (method === 'POST' && endpoint === '/apis/v2beta1/recurringruns') {
       return { ...body, recurring_run_id: 'recurring-created' };
     }
+    if (method === 'GET' && endpoint === '/apis/v2beta1/runs/run-created?view=FULL') {
+      return nativeRichRunResponse();
+    }
     if (method === 'GET') return {};
     throw new Error(`Unexpected request: ${method} ${endpoint}`);
   };
@@ -144,11 +586,21 @@ test('fills each missing deterministic resource type instead of skipping on part
   const runCall = calls.find(
     (call) => call.method === 'POST' && call.endpoint === '/apis/v2beta1/runs',
   );
-  assert.equal(runCall.body.display_name, RESOURCE_DEFINITIONS.runs[0]);
+  assert.equal(runCall.body.display_name, RESOURCE_DEFINITIONS.runs[0].displayName);
+  assert.match(runCall.body.description, new RegExp(`${SEMANTIC_MARKER}=run\\.training-1`));
   assert.deepEqual(runCall.body.pipeline_version_reference, {
     pipeline_id: 'pipeline-existing',
     pipeline_version_id: 'version-existing',
   });
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  assert.equal(manifest.defaults.runId, 'run-created');
+  assert.deepEqual(manifest.resources.runIds, ['run-created']);
+  assert.equal(manifest.semantic.revisionFlavor, 'native-task-artifact');
+  assert.equal(manifest.semantic.validation.valid, true);
+  const metricBinding =
+    manifest.semantic.bindings.runs['run.training-1'].artifacts['artifact.scalar-metrics'];
+  assert.deepEqual(metricBinding.artifactIds, ['metric-accuracy', 'metric-loss']);
+  assert.deepEqual(Object.keys(metricBinding.members), ['metric.accuracy', 'metric.loss']);
 });
 
 test('propagates partial creation failures and does not write a manifest', async (t) => {
@@ -211,14 +663,21 @@ test('requires every seeded detail route to load before reporting success', asyn
       };
     }
     if (endpoint.startsWith('/apis/v2beta1/runs?')) {
-      return { runs: [{ run_id: 'run-1', display_name: RESOURCE_DEFINITIONS.runs[0] }] };
+      return {
+        runs: [
+          {
+            run_id: 'run-1',
+            display_name: RESOURCE_DEFINITIONS.runs[0].displayName,
+          },
+        ],
+      };
     }
     if (endpoint.startsWith('/apis/v2beta1/recurringruns?')) {
       return {
         recurring_runs: [
           {
             recurring_run_id: 'recurring-1',
-            display_name: RESOURCE_DEFINITIONS.recurringRuns[0],
+            display_name: RESOURCE_DEFINITIONS.recurringRuns[0].displayName,
           },
         ],
       };
@@ -315,5 +774,116 @@ test('waits for every seeded run to succeed and rejects terminal failures', asyn
       timeout: 20,
     }),
     /Timed out.*stuck-run=RUNNING/,
+  );
+});
+
+test('polls semantic bindings until eventually consistent task and artifact data is valid', async () => {
+  let clock = 0;
+  let detailRequests = 0;
+  let taskRequests = 0;
+  const selections = {
+    experiments: {},
+    pipelines: {},
+    pipelineVersions: {},
+    recurringRuns: {},
+    runs: {
+      'run.training-2': {
+        definition: RESOURCE_DEFINITIONS.runs[1],
+        resource: { run_id: 'run-1' },
+      },
+    },
+  };
+
+  const semantic = await waitForSemanticBindings(
+    selections,
+    async (_method, endpoint) => {
+      if (endpoint === '/apis/v2beta1/runs/run-1?view=FULL') {
+        detailRequests++;
+        return { runId: 'run-1', taskCount: taskRequests > 0 ? 1 : 0 };
+      }
+      assert.equal(endpoint, '/apis/v2beta1/runs/run-1/tasks?page_size=100');
+      taskRequests++;
+      if (taskRequests === 1) return { tasks: [] };
+      return {
+        tasks: [
+          {
+            name: 'write-metrics',
+            outputs: {
+              artifacts: [
+                {
+                  artifactKey: 'scalar_metrics',
+                  artifacts: [
+                    { artifactId: 'accuracy-1', name: 'accuracy', numberValue: 0.92 },
+                    { artifactId: 'loss-1', name: 'loss', numberValue: 0.08 },
+                  ],
+                },
+                {
+                  artifactKey: 'roc_curve',
+                  artifacts: [
+                    {
+                      artifactId: 'roc-1',
+                      metadata: structuredClone(
+                        METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+                      ),
+                      name: 'roc_curve',
+                    },
+                  ],
+                },
+              ],
+            },
+            taskId: 'task-1',
+            type: 'RUNTIME',
+          },
+        ],
+      };
+    },
+    {
+      interval: 10,
+      now: () => clock,
+      sleep: async (milliseconds) => {
+        clock += milliseconds;
+      },
+      timeout: 100,
+    },
+  );
+
+  assert.equal(detailRequests, 2);
+  assert.equal(taskRequests, 2);
+  assert.equal(semantic.validation.valid, true);
+});
+
+test('attributes semantic discovery timeouts to missing fixtures or API incompatibility', async () => {
+  const selections = {
+    experiments: {},
+    pipelines: {},
+    pipelineVersions: {},
+    recurringRuns: {},
+    runs: {
+      'run.training-2': {
+        definition: RESOURCE_DEFINITIONS.runs[1],
+        resource: { run_id: 'run-1' },
+      },
+    },
+  };
+
+  await assert.rejects(
+    waitForSemanticBindings(selections, async () => ({ runId: 'run-1', taskCount: 0, tasks: [] }), {
+      timeout: 0,
+    }),
+    (error) =>
+      error.code === 'MISSING_FIXTURE' &&
+      /expected 1 task\.write-metrics instance/.test(error.message),
+  );
+
+  await assert.rejects(
+    waitForSemanticBindings(
+      selections,
+      async () => {
+        throw new Error('run detail API rejected view=FULL');
+      },
+      { timeout: 0 },
+    ),
+    (error) =>
+      error.code === 'API_INCOMPATIBILITY' && /run detail API rejected/.test(error.message),
   );
 });

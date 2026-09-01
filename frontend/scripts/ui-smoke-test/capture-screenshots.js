@@ -20,7 +20,16 @@ const CAPTURE_OWNER_FILENAME = '.ui-smoke-capture-managed.json';
 const CAPTURE_OWNER_SCHEMA_VERSION = 1;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
 const DETERMINISTIC_STYLE_ID = 'ui-smoke-test-deterministic-rendering';
-const CAPTURE_ARGUMENT_NAMES = new Set(['base-url', 'label', 'output', 'port', 'seed-manifest']);
+const CAPTURE_ARGUMENT_NAMES = new Set([
+  'base-url',
+  'label',
+  'output',
+  'port',
+  'revision-role',
+  'seed-manifest',
+  'semantic-manifest',
+  'source-provenance',
+]);
 const DETERMINISTIC_CSS = `
   *, *::before, *::after {
     animation-delay: 0s !important;
@@ -141,6 +150,16 @@ function parseCaptureOptions(args = process.argv.slice(2), env = process.env) {
   const viewportValue = rawViewportEnv && rawViewportEnv.trim() ? rawViewportEnv : '1280x800';
   const rawPageNames = env.UI_SMOKE_PAGES;
 
+  const revisionRole = getArg(args, 'revision-role', null);
+  if (revisionRole !== null && !['base', 'head', 'current'].includes(revisionRole)) {
+    throw new Error('--revision-role must be base, head, or current.');
+  }
+  const semanticManifestPath = getArg(args, 'semantic-manifest', null);
+  const sourceProvenancePath = getArg(args, 'source-provenance', null);
+  if ((semanticManifestPath || sourceProvenancePath) && !revisionRole) {
+    throw new Error('--revision-role is required with capture provenance inputs.');
+  }
+
   return {
     baseUrl,
     label: getArg(args, 'label', 'screenshot'),
@@ -157,7 +176,38 @@ function parseCaptureOptions(args = process.argv.slice(2), env = process.env) {
       'seed-manifest',
       env.UI_SMOKE_SEED_MANIFEST || DEFAULT_SEED_MANIFEST,
     ),
+    revisionRole,
+    semanticManifestPath,
+    sourceProvenancePath,
     viewports: parseViewports(viewportValue),
+  };
+}
+
+function attestJsonInput(filePath, description) {
+  if (!filePath) return null;
+  const resolvedPath = path.resolve(filePath);
+  const stat = fs.lstatSync(resolvedPath);
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(`${description} must be a non-symlink regular file.`);
+  }
+  const contents = fs.readFileSync(resolvedPath);
+  let value;
+  try {
+    value = JSON.parse(contents.toString('utf8'));
+  } catch (error) {
+    throw new Error(`${description} must contain valid JSON: ${error.message}`);
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${description} must contain a JSON object.`);
+  }
+  return {
+    path: resolvedPath,
+    schemaVersion:
+      typeof value.schemaVersion === 'string' || typeof value.schemaVersion === 'number'
+        ? value.schemaVersion
+        : null,
+    sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+    sizeBytes: contents.length,
   };
 }
 
@@ -832,7 +882,26 @@ async function captureScreenshots(options, dependencies = {}) {
   const fatalErrors = [];
   const results = [];
   const completedFilenames = new Set();
+  const inputs = {
+    revisionRole: options.revisionRole || null,
+    seedManifest: null,
+    semanticManifest: null,
+    sourceProvenance: null,
+  };
   let browser;
+
+  try {
+    if (seedValues) {
+      inputs.seedManifest = attestJsonInput(options.seedManifestPath, 'Seed manifest');
+    }
+    inputs.semanticManifest = attestJsonInput(
+      options.semanticManifestPath,
+      'Semantic fixture manifest',
+    );
+    inputs.sourceProvenance = attestJsonInput(options.sourceProvenancePath, 'Source provenance');
+  } catch (error) {
+    fatalErrors.push(`Capture provenance is invalid: ${error.message}`);
+  }
 
   console.log(`Starting screenshot capture for ${options.label}`);
   console.log(`Base URL: ${options.baseUrl}`);
@@ -1057,6 +1126,7 @@ async function captureScreenshots(options, dependencies = {}) {
     completedAt,
     timestamp: completedAt,
     baseUrl: options.baseUrl,
+    inputs,
     seedManifestPath: seedValues ? options.seedManifestPath : null,
     viewports: options.viewports,
     results,
