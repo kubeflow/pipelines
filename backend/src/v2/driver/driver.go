@@ -112,13 +112,14 @@ type Options struct {
 
 // TaskConfig needs to stay aligned with the TaskConfig in the SDK.
 type TaskConfig struct {
-	Affinity     *k8score.Affinity            `json:"affinity"`
-	Tolerations  []k8score.Toleration         `json:"tolerations"`
-	NodeSelector map[string]string            `json:"nodeSelector"`
-	Env          []k8score.EnvVar             `json:"env"`
-	Volumes      []k8score.Volume             `json:"volumes"`
-	VolumeMounts []k8score.VolumeMount        `json:"volumeMounts"`
-	Resources    k8score.ResourceRequirements `json:"resources"`
+	Affinity       *k8score.Affinity            `json:"affinity"`
+	Tolerations    []k8score.Toleration         `json:"tolerations"`
+	NodeSelector   map[string]string            `json:"nodeSelector"`
+	Env            []k8score.EnvVar             `json:"env"`
+	Volumes        []k8score.Volume             `json:"volumes"`
+	VolumeMounts   []k8score.VolumeMount        `json:"volumeMounts"`
+	Resources      k8score.ResourceRequirements `json:"resources"`
+	ResourceClaims []k8score.PodResourceClaim   `json:"resourceClaims"`
 }
 
 // Identifying information used for error messages
@@ -212,12 +213,13 @@ func getTaskConfigOptions(
 	passthroughEnabled := map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{}
 	// setOnTask contains all possible fields even if they are not in the passthrough list.
 	setOnPod := map[pipelinespec.TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum]bool{
-		pipelinespec.TaskConfigPassthroughType_RESOURCES:                true,
-		pipelinespec.TaskConfigPassthroughType_ENV:                      true,
-		pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY:      true,
-		pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS:   true,
-		pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR: true,
-		pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES:       true,
+		pipelinespec.TaskConfigPassthroughType_RESOURCES:                  true,
+		pipelinespec.TaskConfigPassthroughType_ENV:                        true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_AFFINITY:        true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_TOLERATIONS:     true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_NODE_SELECTOR:   true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_VOLUMES:         true,
+		pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS: true,
 	}
 
 	if componentSpec == nil {

@@ -300,6 +300,94 @@ func extendPodSpecPatch(
 		}
 	}
 
+	// Get pod resource claims (DRA)
+	if podResourceClaims := kubernetesExecutorConfig.GetPodResourceClaims(); podResourceClaims != nil {
+		var k8sClaims []k8score.PodResourceClaim
+
+		for _, claim := range podResourceClaims {
+			if claim == nil {
+				continue
+			}
+			if claim.ResourceClaimJson != nil {
+				resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
+					claim.GetResourceClaimJson(), inputParams)
+				if err != nil {
+					if errors.Is(err, ErrResolvedParameterNull) {
+						continue
+					}
+					return fmt.Errorf("failed to resolve resource claim: %w", err)
+				}
+
+				isSingleClaim := resolvedParam.GetStructValue() != nil
+				isListClaim := resolvedParam.GetListValue() != nil
+				if isSingleClaim {
+					structVal := resolvedParam.GetStructValue()
+					if structVal != nil && len(structVal.Fields) > 0 {
+						paramJSON, err := structVal.MarshalJSON()
+						if err != nil {
+							return err
+						}
+						var resolved k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolved); err != nil {
+							return fmt.Errorf("failed to unmarshal single resource claim from json: %w", err)
+						}
+						if resolved.ResourceClaimTemplateName == nil || *resolved.ResourceClaimTemplateName == "" {
+							return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+						}
+						resolved.Name = *resolved.ResourceClaimTemplateName
+						k8sClaims = append(k8sClaims, resolved)
+					} else {
+						return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+					}
+				} else if isListClaim {
+					listVal := resolvedParam.GetListValue()
+					if listVal != nil && len(listVal.Values) > 0 {
+						paramJSON, err := listVal.MarshalJSON()
+						if err != nil {
+							return err
+						}
+						var resolvedList []k8score.PodResourceClaim
+						if err = json.Unmarshal(paramJSON, &resolvedList); err != nil {
+							return fmt.Errorf("failed to unmarshal list resource claims from json: %w", err)
+						}
+						for i := range resolvedList {
+							if resolvedList[i].ResourceClaimTemplateName == nil || *resolvedList[i].ResourceClaimTemplateName == "" {
+								return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+							}
+							resolvedList[i].Name = *resolvedList[i].ResourceClaimTemplateName
+						}
+						k8sClaims = append(k8sClaims, resolvedList...)
+					}
+				} else {
+					return fmt.Errorf("encountered unexpected resource claim proto value, must be either struct or list type")
+				}
+			} else {
+				templateName := claim.ResourceClaimTemplateName
+				if templateName == "" {
+					return fmt.Errorf("resourceClaimTemplateName must be non-empty in resource claim")
+				}
+				k8sClaims = append(k8sClaims, k8score.PodResourceClaim{
+					Name:                      templateName,
+					ResourceClaimTemplateName: &templateName,
+				})
+			}
+		}
+
+		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			taskConfig.ResourceClaims = k8sClaims
+		}
+
+		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
+			podSpec.ResourceClaims = append(podSpec.ResourceClaims, k8sClaims...)
+			for _, rc := range k8sClaims {
+				podSpec.Containers[0].Resources.Claims = append(
+					podSpec.Containers[0].Resources.Claims,
+					k8score.ResourceClaim{Name: rc.Name},
+				)
+			}
+		}
+	}
+
 	// Get secret mount information
 	for _, secretAsVolume := range kubernetesExecutorConfig.GetSecretAsVolume() {
 		var secretName string

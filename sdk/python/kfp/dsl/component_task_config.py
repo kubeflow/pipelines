@@ -38,6 +38,10 @@ class TaskConfigField(IntEnum):
     KUBERNETES_VOLUMES = (
         pipeline_spec_pb2.TaskConfigPassthroughType
         .TaskConfigPassthroughTypeEnum.KUBERNETES_VOLUMES)
+    # Indicates that DRA resource claims should be passed through to the external workload.
+    KUBERNETES_RESOURCE_CLAIMS = (
+        pipeline_spec_pb2.TaskConfigPassthroughType
+        .TaskConfigPassthroughTypeEnum.KUBERNETES_RESOURCE_CLAIMS)
 
 
 @dataclasses.dataclass
