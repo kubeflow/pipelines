@@ -7,11 +7,28 @@ const { execFileSync } = require('child_process');
 
 const COMPONENTS = [
   {
+    name: 'frontend',
+    dockerfile: 'frontend/Dockerfile',
+    imageTag: 'kfp-ui-smoke/frontend',
+    deployment: 'ml-pipeline-ui',
+    container: 'ml-pipeline-ui',
+    buildArgs: {
+      COMMIT_HASH: 'commitSha',
+      TAG_NAME: 'tagName',
+      DATE: 'buildDate',
+      NODE_VERSION: 'nodeVersion',
+    },
+  },
+  {
     name: 'apiserver',
     dockerfile: 'backend/Dockerfile',
     imageTag: 'kfp-ui-smoke/apiserver',
     deployment: 'ml-pipeline',
     container: 'ml-pipeline-api-server',
+    buildArgs: {
+      COMMIT_SHA: 'commitSha',
+      TAG_NAME: 'tagName',
+    },
   },
   {
     name: 'persistence-agent',

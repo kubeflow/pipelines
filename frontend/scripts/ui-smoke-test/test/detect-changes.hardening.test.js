@@ -177,11 +177,27 @@ test('covers external Docker inputs and all deployed local images', () => {
   ]) {
     assert.equal(isBackendBuildInput(file), true, file);
   }
-  for (const name of ['metadata-writer', 'cache-deployer', 'metadata-envoy']) {
+  for (const name of [
+    'frontend',
+    'apiserver',
+    'metadata-writer',
+    'cache-deployer',
+    'metadata-envoy',
+  ]) {
     const component = COMPONENTS.find((candidate) => candidate.name === name);
     assert.ok(component, `${name} component is present`);
     assert.ok(component.dockerfile);
     assert.ok(component.deployment);
     assert.ok(component.container);
   }
+  assert.deepEqual(COMPONENTS.find(({ name }) => name === 'frontend').buildArgs, {
+    COMMIT_HASH: 'commitSha',
+    TAG_NAME: 'tagName',
+    DATE: 'buildDate',
+    NODE_VERSION: 'nodeVersion',
+  });
+  assert.deepEqual(COMPONENTS.find(({ name }) => name === 'apiserver').buildArgs, {
+    COMMIT_SHA: 'commitSha',
+    TAG_NAME: 'tagName',
+  });
 });

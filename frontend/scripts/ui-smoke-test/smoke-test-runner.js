@@ -9,14 +9,29 @@ const { execFileSync, spawn, spawnSync } = require('child_process');
 const { parseArgs } = require('util');
 
 const clusterManager = require('./cluster-manager');
-const { detectChanges } = require('./detect-changes');
+const { COMPONENTS, detectChanges } = require('./detect-changes');
 const { seedData } = require('./seed-data');
+const { combineSemanticManifests } = require('./semantic-manifest');
+const {
+  CAPTURE_VALIDITY,
+  CONTRACT_VERSION: UPGRADE_CONTRACT_VERSION,
+  MIGRATION_REQUIREMENT,
+  PHASES: UPGRADE_PHASES,
+  assessUpgradeCapabilities,
+  createResultWriteFailure,
+  orchestrateUpgrade,
+  validateOperations: validateUpgradeOperations,
+  validateRequest: validateUpgradeRequest,
+  validateSafeRemovedResources,
+  writeUpgradeComparisonArtifacts,
+} = require('./upgrade-orchestrator');
 const { validateRepository: validateGithubRepository } = require('./upload-to-pr');
 
 const SCRIPT_DIR = __dirname;
 const REPO_ROOT = path.resolve(SCRIPT_DIR, '../../..');
 const STATE_DIR = path.join(REPO_ROOT, '.ui-smoke-test');
 const DEFAULT_REPOSITORY = 'kubeflow/pipelines';
+const AUTHORITATIVE_RELEASE_REPOSITORY = `https://github.com/${DEFAULT_REPOSITORY}.git`;
 const BASE_PROXY_PORT = 4001;
 const HEAD_PROXY_PORT = 4002;
 const NODE_VERSION = '24.14.0';
@@ -26,6 +41,11 @@ const PROCESS_TIMEOUT = 10 * 60 * 1000;
 const LOOKS_SAME_TOLERANCE = 2.3;
 const LOOKS_SAME_CLUSTER_SIZE = 8;
 const EXTERNAL_TOOL_CACHE = '.ui-smoke-tool-cache';
+const UPGRADE_CAPABILITY_DESCRIPTOR = '.ui-smoke-upgrade.json';
+const STACK_PORTS = Object.freeze({
+  base: Object.freeze({ api: 3102, frontendServer: 3101, metadata: 9190, objectStore: 9100 }),
+  head: Object.freeze({ api: 3202, frontendServer: 3201, metadata: 9290, objectStore: 9200 }),
+});
 const CURRENT_ONLY_PAGES = [
   'pipelines',
   'experiments',
@@ -75,6 +95,10 @@ Supported options:
   --pr-number <number>            Label local HEAD as this PR without fetching it
   --comment                       Create or update the smoke-test PR comment
   --browser-only                  Explicitly ignore server/backend/manifests changes
+  --full-stack                    Compare two isolated, revision-matched stacks
+  --upgrade                       Upgrade a populated base stack in place before head capture
+  --head-checkout <path>          Reviewed local checkout used by --full-stack or --upgrade
+  --trust-local-head              Confirm that the selected local runtime may execute
   --viewports <WxH,...>           Capture viewports (default: 1280x800)
   --fail-threshold <percent>      Fail above this visual-difference percentage (default: 0)
   --diff-threshold <percent>      Draw diff markers above this percentage (default: 0)
@@ -153,6 +177,10 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
         'pr-number': { type: 'string' },
         comment: { type: 'boolean', default: false },
         'browser-only': { type: 'boolean', default: false },
+        'full-stack': { type: 'boolean', default: false },
+        upgrade: { type: 'boolean', default: false },
+        'head-checkout': { type: 'string' },
+        'trust-local-head': { type: 'boolean', default: false },
         viewports: {
           type: 'string',
           default: env.UI_SMOKE_VIEWPORTS || env.UI_SMOKE_VIEWPORT || '1280x800',
@@ -185,12 +213,16 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
     currentOnly: values['current-only'],
     diffThreshold: parsePercentage(values['diff-threshold'], '--diff-threshold'),
     failThreshold: parsePercentage(values['fail-threshold'], '--fail-threshold'),
+    fullStack: values['full-stack'],
+    headCheckout: values['head-checkout'] ? path.resolve(values['head-checkout']) : null,
     help: values.help,
     prNumber: validatePullRequestNumber(values.pr, '--pr'),
     displayPrNumber: validatePullRequestNumber(values['pr-number'], '--pr-number'),
     repository: validateRepository(values.repo),
     teardown: values.teardown,
+    trustLocalHead: values['trust-local-head'],
     trustPrCode: values['trust-pr-code'],
+    upgrade: values.upgrade,
     url: values.url ? normalizeHttpUrl(values.url) : null,
     useExisting: values['use-existing'],
     verbose: values.verbose,
@@ -236,6 +268,31 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
   if (options.browserOnly && !options.compareRef) {
     throw new Error('--browser-only is only valid with --compare.');
   }
+  if ((options.fullStack || options.upgrade) && !options.compareRef) {
+    throw new Error('--full-stack and --upgrade are only valid with --compare.');
+  }
+  if ([options.browserOnly, options.fullStack, options.upgrade].filter(Boolean).length > 1) {
+    throw new Error('--browser-only, --full-stack, and --upgrade are mutually exclusive.');
+  }
+  if (options.prNumber && (options.fullStack || options.upgrade || options.headCheckout)) {
+    throw new Error(
+      'Fetched PR runtime code cannot be executed. Use a reviewed local --head-checkout instead.',
+    );
+  }
+  if ((options.fullStack || options.upgrade) && !options.headCheckout) {
+    throw new Error('--full-stack and --upgrade require --head-checkout.');
+  }
+  if ((options.fullStack || options.upgrade) && !options.trustLocalHead) {
+    throw new Error(
+      '--full-stack and --upgrade require --trust-local-head for the reviewed local checkout.',
+    );
+  }
+  if (options.headCheckout && !(options.fullStack || options.upgrade)) {
+    throw new Error('--head-checkout is only valid with --full-stack or --upgrade.');
+  }
+  if (options.trustLocalHead && !(options.fullStack || options.upgrade)) {
+    throw new Error('--trust-local-head is only valid with --full-stack or --upgrade.');
+  }
 
   return options;
 }
@@ -250,15 +307,18 @@ function execute(command, args, options = {}) {
   const commandText = formatCommand(command, args);
   log(`Running: ${commandText}`, 'debug');
   try {
+    const encoding = Object.hasOwn(options, 'encoding') ? options.encoding : 'utf8';
     const output = execFileSync(command, args, {
       cwd: options.cwd,
-      encoding: 'utf8',
+      encoding,
       env: options.env || process.env,
       maxBuffer: 20 * 1024 * 1024,
       stdio: options.stdio || 'pipe',
       timeout: options.timeout || PROCESS_TIMEOUT,
     });
-    return typeof output === 'string' ? output.trim() : '';
+    if (Buffer.isBuffer(output)) return output;
+    if (typeof output !== 'string') return '';
+    return options.trim === false ? output : output.trim();
   } catch (error) {
     const detail = String(error.stderr || error.stdout || error.message).trim();
     throw new Error(`${commandText} failed${detail ? `: ${detail}` : '.'}`);
@@ -282,9 +342,9 @@ function assertNpmVersion(version) {
   }
 }
 
-function checkPrerequisites({ cluster = false, compare = false } = {}) {
+function checkPrerequisites({ cluster = false, compare = false, packageManager = true } = {}) {
   assertNodeVersion();
-  assertNpmVersion(execute('npm', ['--version']));
+  if (packageManager) assertNpmVersion(execute('npm', ['--version']));
   const missing = [];
   if (compare && !commandAvailable('git')) {
     missing.push('git');
@@ -297,6 +357,11 @@ function checkPrerequisites({ cluster = false, compare = false } = {}) {
   if (missing.length > 0) {
     throw new Error(`Missing prerequisite(s): ${missing.join(', ')}.`);
   }
+}
+
+function ensureComparisonRuntime() {
+  checkPrerequisites({ cluster: true, compare: true });
+  ensureToolDependencies();
 }
 
 function ensureToolDependencies() {
@@ -335,27 +400,24 @@ function registerCleanup(label, action) {
   cleanupActions.push({ action, label });
 }
 
-async function terminateChild(child) {
-  if (!child || child.exitCode !== null || child.signalCode !== null) {
-    return;
+async function terminateChild(child, timeout = 3000) {
+  return clusterManager.terminateChild(child, timeout);
+}
+
+async function executeCleanupActions(actions) {
+  const failures = [];
+  for (const { action, label } of [...actions].reverse()) {
+    try {
+      await action();
+    } catch (error) {
+      const failure = new Error(`Cleanup failed (${label}): ${error.message}`, { cause: error });
+      failures.push(failure);
+      log(failure.message, 'error');
+    }
   }
-  await new Promise((resolve) => {
-    let settled = false;
-    const finish = () => {
-      if (!settled) {
-        settled = true;
-        resolve();
-      }
-    };
-    child.once('close', finish);
-    child.kill('SIGTERM');
-    const timer = setTimeout(() => {
-      if (child.exitCode === null && child.signalCode === null) {
-        child.kill('SIGKILL');
-      }
-      finish();
-    }, 3000);
-  });
+  if (failures.length > 0) {
+    throw new AggregateError(failures, `${failures.length} cleanup action(s) failed.`);
+  }
 }
 
 async function cleanup() {
@@ -363,14 +425,9 @@ async function cleanup() {
     return cleanupPromise;
   }
   cleanupPromise = (async () => {
-    for (const { action, label } of [...cleanupActions].reverse()) {
-      try {
-        await action();
-      } catch (error) {
-        log(`Cleanup failed (${label}): ${error.message}`, 'error');
-      }
-    }
+    const actions = [...cleanupActions];
     cleanupActions.length = 0;
+    await executeCleanupActions(actions);
   })();
   return cleanupPromise;
 }
@@ -381,9 +438,11 @@ function installSignalHandlers() {
       if (signalReceived) return;
       signalReceived = signal;
       log(`Received ${signal}; cleaning up...`, 'error');
-      cleanup().finally(() => {
-        process.exit(signal === 'SIGINT' ? 130 : 143);
-      });
+      cleanup()
+        .catch((error) => log(`Signal cleanup failed: ${error.message}`, 'error'))
+        .finally(() => {
+          process.exit(signal === 'SIGINT' ? 130 : 143);
+        });
     });
   }
 }
@@ -423,13 +482,12 @@ function runChild(command, args, options = {}) {
     let settled = false;
     let timedOut = false;
     let timeoutTimer;
-    let killTimer;
-    const finish = (result) => {
+    let timeoutError = null;
+    const finish = (result, finishOptions = {}) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutTimer);
-      clearTimeout(killTimer);
-      children.delete(child);
+      if (!finishOptions.retainChild) children.delete(child);
       resolve(result);
     };
     children.add(child);
@@ -438,19 +496,34 @@ function runChild(command, args, options = {}) {
       finish({ error, success: false, timedOut });
     });
     child.once('close', (code, childSignal) => {
-      finish({ code, signal: childSignal, success: code === 0 && !timedOut, timedOut });
+      finish({
+        code,
+        error: timeoutError,
+        signal: childSignal,
+        success: code === 0 && !timedOut,
+        timedOut,
+      });
     });
     timeoutTimer = setTimeout(() => {
       timedOut = true;
-      child.kill('SIGTERM');
-      killTimer = setTimeout(() => {
-        if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
-        finish({
-          error: new Error(`${formatCommand(command, args)} timed out after ${timeout}ms`),
-          success: false,
-          timedOut: true,
+      timeoutError = new Error(`${formatCommand(command, args)} timed out after ${timeout}ms`);
+      terminateChild(child, killTimeout)
+        .then(() => {
+          // terminateChild resolves only after the child closes. The close handler normally wins;
+          // retain this fallback for test doubles that expose exit state without emitting close.
+          finish({ error: timeoutError, success: false, timedOut: true });
+        })
+        .catch((terminationError) => {
+          const error = new AggregateError(
+            [timeoutError, terminationError],
+            `${formatCommand(command, args)} timed out and could not be terminated.`,
+          );
+          // Keep a stubborn process registered so global cleanup can make another bounded attempt.
+          finish(
+            { error, success: false, terminationFailed: true, timedOut: true },
+            { retainChild: true },
+          );
         });
-      }, killTimeout);
     }, timeout);
   });
 }
@@ -485,14 +558,14 @@ async function waitForUrl(urlValue, child, timeout = 30000) {
   throw new Error(`Timed out waiting for a successful response from ${urlValue}.`);
 }
 
-function gitOutput(args, cwd = REPO_ROOT) {
-  return execute('git', args, { cwd });
+function gitOutput(args, cwd = REPO_ROOT, options = {}) {
+  return execute('git', args, { cwd, ...options });
 }
 
-function addDetachedWorktree(target, gitRef) {
-  gitOutput(['worktree', 'add', '--detach', target, gitRef]);
+function addDetachedWorktree(target, gitRef, repositoryRoot = REPO_ROOT) {
+  gitOutput(['worktree', 'add', '--detach', target, gitRef], repositoryRoot);
   registerCleanup(`remove worktree ${target}`, () => {
-    execute('git', ['worktree', 'remove', '--force', target], { cwd: REPO_ROOT });
+    execute('git', ['worktree', 'remove', '--force', target], { cwd: repositoryRoot });
   });
 }
 
@@ -641,16 +714,546 @@ async function buildExternalFrontend(repoRoot) {
   }
 }
 
-function shortSha(gitRef) {
-  return gitOutput(['rev-parse', '--short=12', `${gitRef}^{commit}`]);
+function shortSha(gitRef, cwd = REPO_ROOT) {
+  return gitOutput(['rev-parse', '--short=12', `${gitRef}^{commit}`], cwd);
 }
 
-function fullSha(gitRef) {
-  const sha = gitOutput(['rev-parse', `${gitRef}^{commit}`]);
+function fullSha(gitRef, cwd = REPO_ROOT) {
+  const sha = gitOutput(['rev-parse', `${gitRef}^{commit}`], cwd);
   if (!/^[0-9a-f]{40,64}$/i.test(sha)) {
     throw new Error(`Could not resolve a full commit SHA for ${gitRef}.`);
   }
   return sha.toLowerCase();
+}
+
+function revisionBuildMetadata(repoRoot, commitSha, git = gitOutput) {
+  if (!/^[0-9a-f]{40,64}$/i.test(commitSha)) {
+    throw new Error(`Cannot build revision images with invalid commit SHA ${commitSha}.`);
+  }
+  const nodeVersionPath = path.join(repoRoot, 'frontend', '.nvmrc');
+  const nodeVersion = fs.readFileSync(nodeVersionPath, 'utf8').trim().replace(/^v/, '');
+  if (!/^\d+\.\d+\.\d+$/.test(nodeVersion)) {
+    throw new Error(
+      `Invalid frontend Node version in ${nodeVersionPath}: ${nodeVersion || 'empty'}.`,
+    );
+  }
+  const buildDate = git(['show', '-s', '--format=%cI', commitSha], repoRoot);
+  if (!buildDate || /[\r\n\0]/.test(buildDate)) {
+    throw new Error(`Could not resolve deterministic build metadata for ${commitSha}.`);
+  }
+  return Object.freeze({
+    buildDate,
+    commitSha: commitSha.toLowerCase(),
+    nodeVersion,
+    tagName: commitSha.toLowerCase(),
+  });
+}
+
+function validateTrustedHeadCheckout(candidatePath, options = {}) {
+  const { git = gitOutput, repositoryRoot = REPO_ROOT } = options;
+  if (!candidatePath) throw new Error('A reviewed local head checkout is required.');
+
+  let checkoutRoot;
+  let expectedRoot;
+  try {
+    checkoutRoot = fs.realpathSync(candidatePath);
+    expectedRoot = fs.realpathSync(repositoryRoot);
+  } catch (error) {
+    throw new Error(`Cannot resolve the selected local checkout: ${error.message}`);
+  }
+  if (!fs.statSync(checkoutRoot).isDirectory()) {
+    throw new Error(`Selected local checkout is not a directory: ${checkoutRoot}`);
+  }
+
+  const selectedTopLevel = fs.realpathSync(git(['rev-parse', '--show-toplevel'], checkoutRoot));
+  if (selectedTopLevel !== checkoutRoot) {
+    throw new Error(`--head-checkout must name the Git worktree root: ${selectedTopLevel}`);
+  }
+  const commonDirectory = (root) => {
+    const value = git(['rev-parse', '--git-common-dir'], root);
+    return fs.realpathSync(path.resolve(root, value));
+  };
+  if (commonDirectory(checkoutRoot) !== commonDirectory(expectedRoot)) {
+    throw new Error('--head-checkout must be a worktree of the same repository.');
+  }
+  return checkoutRoot;
+}
+
+function parseCommitSha(value, description) {
+  const sha = String(value || '')
+    .trim()
+    .toLowerCase();
+  if (!/^[0-9a-f]{40,64}$/.test(sha)) {
+    throw new Error(`Could not resolve a full commit SHA for ${description}.`);
+  }
+  return sha;
+}
+
+function hashParts(parts) {
+  const hash = crypto.createHash('sha256');
+  for (const part of parts) {
+    const value = Buffer.isBuffer(part) ? part : Buffer.from(String(part));
+    hash.update(`${value.length}:`);
+    hash.update(value);
+  }
+  return hash.digest('hex');
+}
+
+function validateSnapshotRelativePath(relativePath) {
+  if (
+    !relativePath ||
+    path.isAbsolute(relativePath) ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`)
+  ) {
+    throw new Error(`Git returned an unsafe untracked path: ${JSON.stringify(relativePath)}.`);
+  }
+  return relativePath;
+}
+
+function decodeGitPath(pathBytes) {
+  const relativePath = pathBytes.toString('utf8');
+  if (!Buffer.from(relativePath, 'utf8').equals(pathBytes)) {
+    throw new Error(
+      'Trusted source snapshot contains a non-UTF-8 Git path, which cannot be represented safely.',
+    );
+  }
+  return relativePath;
+}
+
+function parseNullDelimitedGitPaths(output) {
+  const bytes = Buffer.isBuffer(output) ? output : Buffer.from(output, 'utf8');
+  if (bytes.length === 0) return [];
+  if (bytes.at(-1) !== 0) {
+    throw new Error('Git returned a truncated NUL-delimited path list.');
+  }
+  const paths = [];
+  let start = 0;
+  for (let index = 0; index < bytes.length; index++) {
+    if (bytes[index] !== 0) continue;
+    if (index > start) paths.push(decodeGitPath(bytes.subarray(start, index)));
+    start = index + 1;
+  }
+  return paths;
+}
+
+function captureWorkingTreeOverlay(sourceRoot, git = gitOutput) {
+  const headCommit = parseCommitSha(
+    git(['rev-parse', 'HEAD^{commit}'], sourceRoot),
+    'the reviewed checkout HEAD',
+  );
+  const trackedPatch = git(
+    ['diff', '--binary', '--full-index', '--no-ext-diff', '--no-textconv', 'HEAD', '--'],
+    sourceRoot,
+    { encoding: 'buffer', trim: false },
+  );
+  const untrackedPaths = parseNullDelimitedGitPaths(
+    git(['ls-files', '--others', '--exclude-standard', '-z'], sourceRoot, {
+      encoding: 'buffer',
+      trim: false,
+    }),
+  ).sort();
+  const untrackedEntries = untrackedPaths.map((relativePath) => {
+    validateSnapshotRelativePath(relativePath);
+    const sourcePath = path.join(sourceRoot, relativePath);
+    const stat = fs.lstatSync(sourcePath);
+    if (!stat.isFile() && !stat.isSymbolicLink()) {
+      throw new Error(
+        `Untracked snapshot input must be a regular file or symlink: ${relativePath}.`,
+      );
+    }
+    const content = stat.isSymbolicLink()
+      ? Buffer.from(fs.readlinkSync(sourcePath))
+      : fs.readFileSync(sourcePath);
+    return {
+      content,
+      executable: stat.isFile() && (stat.mode & 0o111) !== 0,
+      path: relativePath,
+      type: stat.isSymbolicLink() ? 'symlink' : 'file',
+    };
+  });
+  const endingHeadCommit = parseCommitSha(
+    git(['rev-parse', 'HEAD^{commit}'], sourceRoot),
+    'the reviewed checkout HEAD',
+  );
+  const fingerprint = hashParts([
+    'ui-smoke-working-tree/v1',
+    headCommit,
+    endingHeadCommit,
+    trackedPatch,
+    ...untrackedEntries.flatMap((entry) => [
+      entry.path,
+      entry.type,
+      entry.executable ? 'executable' : 'non-executable',
+      entry.content,
+    ]),
+  ]);
+  return { endingHeadCommit, fingerprint, headCommit, trackedPatch, untrackedEntries };
+}
+
+function copyOverlayEntry(targetRoot, entry) {
+  const destination = path.join(targetRoot, entry.path);
+  if (!isPathInside(targetRoot, destination)) {
+    throw new Error(`Snapshot overlay escaped its worktree: ${entry.path}.`);
+  }
+  if (fs.existsSync(destination)) {
+    throw new Error(`Untracked snapshot path unexpectedly exists in HEAD: ${entry.path}.`);
+  }
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  if (entry.type === 'symlink') {
+    fs.symlinkSync(entry.content.toString(), destination);
+    return;
+  }
+  fs.writeFileSync(destination, entry.content, { mode: entry.executable ? 0o755 : 0o644 });
+}
+
+function validateSnapshotSymlinks(snapshotRoot) {
+  const pending = [snapshotRoot];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (directory === snapshotRoot && entry.name === '.git') continue;
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(entryPath);
+        continue;
+      }
+      if (!entry.isSymbolicLink()) continue;
+      const linkedPath = path.resolve(path.dirname(entryPath), fs.readlinkSync(entryPath));
+      let realLinkedPath;
+      try {
+        realLinkedPath = fs.realpathSync(linkedPath);
+      } catch (error) {
+        throw new Error(
+          `Trusted source snapshot contains a dangling symlink: ${path.relative(snapshotRoot, entryPath)}.`,
+        );
+      }
+      if (
+        !isPathInside(snapshotRoot, linkedPath) ||
+        !isPathInside(fs.realpathSync(snapshotRoot), realLinkedPath)
+      ) {
+        throw new Error(
+          `Trusted source snapshot symlink escapes its worktree: ${path.relative(snapshotRoot, entryPath)}.`,
+        );
+      }
+    }
+  }
+}
+
+function sourceFingerprintLabel(provenance) {
+  if (!provenance?.fingerprint?.startsWith('sha256:')) return null;
+  return `source ${provenance.fingerprint.slice('sha256:'.length, 'sha256:'.length + 12)}`;
+}
+
+function formatSourceRevision(provenance, fallbackCommit) {
+  const label = sourceFingerprintLabel(provenance);
+  return label ? `HEAD@${fallbackCommit} (${label})` : `HEAD@${fallbackCommit}`;
+}
+
+function materializeTrustedHeadSnapshot(sourceRoot, targetRoot, options = {}) {
+  const { addWorktree = addDetachedWorktree, git = gitOutput } = options;
+  const firstCapture = captureWorkingTreeOverlay(sourceRoot, git);
+  const secondCapture = captureWorkingTreeOverlay(sourceRoot, git);
+  if (
+    firstCapture.headCommit !== firstCapture.endingHeadCommit ||
+    secondCapture.headCommit !== secondCapture.endingHeadCommit ||
+    firstCapture.fingerprint !== secondCapture.fingerprint
+  ) {
+    throw new Error(
+      'The reviewed local checkout changed while its source snapshot was being captured. Retry after edits stop.',
+    );
+  }
+
+  addWorktree(targetRoot, firstCapture.headCommit, sourceRoot);
+  const patchPath = path.join(
+    path.dirname(targetRoot),
+    `.${path.basename(targetRoot)}-${firstCapture.fingerprint.slice(0, 12)}.patch`,
+  );
+  try {
+    if (firstCapture.trackedPatch.length > 0) {
+      fs.writeFileSync(patchPath, firstCapture.trackedPatch);
+      git(['apply', '--binary', '--whitespace=nowarn', patchPath], targetRoot);
+    }
+    for (const entry of firstCapture.untrackedEntries) copyOverlayEntry(targetRoot, entry);
+    validateSnapshotSymlinks(targetRoot);
+  } finally {
+    fs.rmSync(patchPath, { force: true });
+  }
+
+  git(['add', '--all', '--', '.'], targetRoot);
+  const tree = git(['write-tree'], targetRoot).trim().toLowerCase();
+  if (!/^[0-9a-f]{40,64}$/.test(tree)) {
+    throw new Error('Could not compute the trusted source snapshot tree.');
+  }
+  const snapshotCommit = parseCommitSha(
+    git(['rev-parse', 'HEAD^{commit}'], targetRoot),
+    'the trusted source snapshot HEAD',
+  );
+  if (snapshotCommit !== firstCapture.headCommit) {
+    throw new Error('The trusted source snapshot detached at an unexpected commit.');
+  }
+
+  const fingerprint = `sha256:${hashParts(['ui-smoke-source/v1', snapshotCommit, tree])}`;
+  return Object.freeze({
+    fingerprint,
+    overlay: Object.freeze({
+      trackedPatchSha256: `sha256:${crypto
+        .createHash('sha256')
+        .update(firstCapture.trackedPatch)
+        .digest('hex')}`,
+      untrackedEntries: Object.freeze(
+        firstCapture.untrackedEntries.map((entry) =>
+          Object.freeze({
+            executable: entry.executable,
+            path: entry.path,
+            sha256: `sha256:${crypto.createHash('sha256').update(entry.content).digest('hex')}`,
+            type: entry.type,
+          }),
+        ),
+      ),
+    }),
+    revision: Object.freeze({ commit: snapshotCommit, ref: 'HEAD', tree }),
+    schemaVersion: 'ui-smoke-source/v1',
+  });
+}
+
+function readManifestSources(repoRoot) {
+  const manifestRoot = path.join(repoRoot, 'manifests');
+  const sources = [];
+  const pending = [manifestRoot];
+  while (pending.length > 0) {
+    const directory = pending.pop();
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) pending.push(entryPath);
+      if (entry.isFile() && /\.ya?ml$/i.test(entry.name)) {
+        sources.push(fs.readFileSync(entryPath, 'utf8'));
+      }
+    }
+  }
+  return sources.join('\n');
+}
+
+function renderRevisionManifestSources(repoRoot, options = {}) {
+  const execute = options.execFileSync || execFileSync;
+  const platformAgnostic = path.join(
+    repoRoot,
+    'manifests',
+    'kustomize',
+    'env',
+    'platform-agnostic',
+  );
+  if (!fs.statSync(platformAgnostic, { throwIfNoEntry: false })?.isDirectory()) {
+    throw new Error(`Revision is missing the platform-agnostic manifest at ${platformAgnostic}.`);
+  }
+
+  let rendered;
+  try {
+    rendered = execute('kubectl', ['kustomize', platformAgnostic], {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 180000,
+    });
+  } catch (error) {
+    throw new Error(`Failed to render revision manifests from ${platformAgnostic}.`, {
+      cause: error,
+    });
+  }
+  const contents = Buffer.isBuffer(rendered) ? rendered.toString('utf8') : rendered;
+  if (typeof contents !== 'string' || contents.trim() === '') {
+    throw new Error(`Rendered revision manifests from ${platformAgnostic} were empty.`);
+  }
+  return contents;
+}
+
+function manifestDefinesName(manifestSources, name) {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^\\s*name:\\s*["']?${escapedName}["']?\\s*$`, 'm').test(manifestSources);
+}
+
+function componentsForRevision(repoRoot, components = COMPONENTS, manifestSources = null) {
+  const sources = manifestSources === null ? readManifestSources(repoRoot) : manifestSources;
+  return components.filter(
+    (component) =>
+      fs.existsSync(path.join(repoRoot, component.dockerfile)) &&
+      (!component.deployment || manifestDefinesName(sources, component.deployment)),
+  );
+}
+
+function revisionUsesMetadataService(repoRoot, manifestSources = null) {
+  const sources = manifestSources === null ? readManifestSources(repoRoot) : manifestSources;
+  return manifestDefinesName(sources, 'metadata-envoy-service');
+}
+
+function stackConfiguration(run, role, revision, options = {}) {
+  if (!Object.hasOwn(STACK_PORTS, role)) throw new Error(`Unknown stack role: ${role}`);
+  const digest = crypto
+    .createHash('sha256')
+    .update(`${run.runId}:${role}`)
+    .digest('hex')
+    .slice(0, 12);
+  const ports = { ...STACK_PORTS[role] };
+  if (options.metadata === false) ports.metadata = null;
+  return {
+    archiveDir: path.join(run.runDir, 'images', role),
+    clusterName: `ui-smoke-${role}-${digest}`,
+    kubeconfigPath: path.join(run.runDir, 'kubeconfigs', `${role}.yaml`),
+    ports,
+    revision,
+    role,
+  };
+}
+
+function validateFullStackBaseRelease(baseRef) {
+  if (!/^\d+\.\d+\.\d+$/.test(baseRef)) {
+    throw new Error(
+      `--full-stack and --upgrade require an exact release base such as 2.17.1; received ${baseRef}.`,
+    );
+  }
+  return baseRef;
+}
+
+function resolvePublishedReleaseCommit(version, options = {}) {
+  const { cwd = REPO_ROOT, git = gitOutput } = options;
+  const tagRef = `refs/tags/${validateFullStackBaseRelease(version)}`;
+  const peeledRef = `${tagRef}^{}`;
+  let output;
+  try {
+    output = git(
+      ['ls-remote', '--exit-code', AUTHORITATIVE_RELEASE_REPOSITORY, tagRef, peeledRef],
+      cwd,
+      {
+        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+        trim: false,
+      },
+    );
+  } catch (error) {
+    throw new Error(
+      `Could not resolve published release tag ${tagRef} from ${AUTHORITATIVE_RELEASE_REPOSITORY}: ${error.message}`,
+    );
+  }
+
+  const advertised = new Map();
+  for (const line of output.split(/\r?\n/).filter(Boolean)) {
+    const match = line.match(/^([0-9a-f]{40,64})\t(.+)$/i);
+    if (!match || (match[2] !== tagRef && match[2] !== peeledRef) || advertised.has(match[2])) {
+      throw new Error(`Published release tag ${tagRef} returned an invalid Git advertisement.`);
+    }
+    advertised.set(match[2], match[1].toLowerCase());
+  }
+  const directCommit = advertised.get(tagRef);
+  if (!directCommit) {
+    throw new Error(`Published release tag ${tagRef} was not advertised by ${DEFAULT_REPOSITORY}.`);
+  }
+  return advertised.get(peeledRef) || directCommit;
+}
+
+function resolveExactBaseRelease(baseRef, options = {}) {
+  const {
+    cwd = REPO_ROOT,
+    git = gitOutput,
+    resolveCommit = fullSha,
+    resolvePublishedCommit = resolvePublishedReleaseCommit,
+  } = options;
+  const version = validateFullStackBaseRelease(baseRef);
+  const branchRef = `refs/heads/${version}`;
+  const matchingBranch = git(['for-each-ref', '--format=%(refname)', branchRef], cwd).trim();
+  if (matchingBranch) {
+    throw new Error(
+      `Refusing ambiguous release base ${version}: local branch ${branchRef} exists. Use a checkout without a semver-named branch.`,
+    );
+  }
+
+  const tagRef = `refs/tags/${version}`;
+  let commit;
+  try {
+    commit = resolveCommit(tagRef, cwd);
+  } catch (error) {
+    throw new Error(`Exact release tag ${tagRef} is missing or does not resolve to a commit.`);
+  }
+  const publishedCommit = parseCommitSha(
+    resolvePublishedCommit(version, { tagRef }),
+    `published release tag ${tagRef}`,
+  );
+  if (publishedCommit !== commit) {
+    throw new Error(
+      `Local release tag ${tagRef} resolves to ${commit}, but the published ${DEFAULT_REPOSITORY} tag resolves to ${publishedCommit}.`,
+    );
+  }
+  return Object.freeze({ commit, tagRef, version });
+}
+
+function readUpgradeCapabilities(headRoot) {
+  const descriptorPath = path.join(headRoot, UPGRADE_CAPABILITY_DESCRIPTOR);
+  let descriptorStat;
+  try {
+    descriptorStat = fs.lstatSync(descriptorPath);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return {
+      descriptorPath,
+      migration: {
+        available: false,
+        reason: `Missing reviewed capability descriptor ${UPGRADE_CAPABILITY_DESCRIPTOR}`,
+      },
+      startupGate: {
+        available: false,
+        reason: `Missing reviewed capability descriptor ${UPGRADE_CAPABILITY_DESCRIPTOR}`,
+      },
+    };
+  }
+
+  const realHeadRoot = fs.realpathSync(headRoot);
+  const realDescriptorPath = fs.realpathSync(descriptorPath);
+  if (
+    !descriptorStat.isFile() ||
+    descriptorStat.isSymbolicLink() ||
+    !isPathInside(realHeadRoot, realDescriptorPath)
+  ) {
+    throw new Error(
+      `${UPGRADE_CAPABILITY_DESCRIPTOR} must be a regular file inside the reviewed checkout.`,
+    );
+  }
+
+  let descriptor;
+  try {
+    descriptor = JSON.parse(fs.readFileSync(realDescriptorPath, 'utf8'));
+  } catch (error) {
+    throw new Error(`Invalid ${UPGRADE_CAPABILITY_DESCRIPTOR}: ${error.message}`);
+  }
+  if (descriptor.schemaVersion !== 'ui-smoke-upgrade/v1') {
+    throw new Error(`${UPGRADE_CAPABILITY_DESCRIPTOR} must use schemaVersion ui-smoke-upgrade/v1.`);
+  }
+  return {
+    ...descriptor.capabilities,
+    adapter: descriptor.adapter || null,
+    descriptorPath,
+    removedResources: descriptor.removedResources || [],
+  };
+}
+
+function loadUpgradeAdapter(headRoot, descriptor) {
+  if (!descriptor.adapter) return null;
+  const realHeadRoot = fs.realpathSync(headRoot);
+  const candidate = path.resolve(realHeadRoot, descriptor.adapter);
+  if (!isPathInside(realHeadRoot, candidate)) {
+    throw new Error(`${UPGRADE_CAPABILITY_DESCRIPTOR} adapter escapes the reviewed checkout.`);
+  }
+  const stat = fs.lstatSync(candidate);
+  const realCandidate = fs.realpathSync(candidate);
+  if (!stat.isFile() || stat.isSymbolicLink() || !isPathInside(realHeadRoot, realCandidate)) {
+    throw new Error('The reviewed upgrade adapter must be a regular file inside the checkout.');
+  }
+  const adapter = require(realCandidate);
+  if (!adapter || typeof adapter.createOperations !== 'function') {
+    throw new Error('The reviewed upgrade adapter must export createOperations(context).');
+  }
+  return adapter;
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 function pullRequestHeadSha(repository, prNumber) {
@@ -674,8 +1277,8 @@ function verifyPullRequestHead(repository, prNumber, expectedSha) {
   return currentSha;
 }
 
-function captureArguments(baseUrl, outputDir, label, seedManifestPath) {
-  return [
+function captureArguments(baseUrl, outputDir, label, seedManifestPath, provenance = {}) {
+  const args = [
     path.join(SCRIPT_DIR, 'capture-screenshots.js'),
     '--base-url',
     baseUrl,
@@ -686,6 +1289,16 @@ function captureArguments(baseUrl, outputDir, label, seedManifestPath) {
     '--seed-manifest',
     seedManifestPath,
   ];
+  if (provenance.revisionRole) {
+    args.push('--revision-role', provenance.revisionRole);
+  }
+  if (provenance.semanticManifestPath) {
+    args.push('--semantic-manifest', provenance.semanticManifestPath);
+  }
+  if (provenance.sourceProvenancePath) {
+    args.push('--source-provenance', provenance.sourceProvenancePath);
+  }
+  return args;
 }
 
 function fullCaptureEnvironment(options, env = process.env) {
@@ -703,20 +1316,45 @@ async function capturePair({
   screenshotsDir,
   labels,
   options,
+  baseSeedManifestPath,
+  headSeedManifestPath,
+  semanticManifestPath,
   seedManifestPath,
+  sourceProvenancePath,
 }) {
+  const resolvedBaseSeedManifest = baseSeedManifestPath || seedManifestPath;
+  const resolvedHeadSeedManifest = headSeedManifestPath || seedManifestPath;
+  if (!resolvedBaseSeedManifest || !resolvedHeadSeedManifest) {
+    throw new Error('Both base and head seed manifests are required for paired capture.');
+  }
   const captureEnvironment = fullCaptureEnvironment(options);
   const baseDir = path.join(screenshotsDir, 'base');
   const headDir = path.join(screenshotsDir, 'head');
   const [baseCapture, headCapture] = await Promise.all([
-    runChild(process.execPath, captureArguments(baseUrl, baseDir, labels.base, seedManifestPath), {
-      cwd: SCRIPT_DIR,
-      env: captureEnvironment,
-    }),
-    runChild(process.execPath, captureArguments(headUrl, headDir, labels.head, seedManifestPath), {
-      cwd: SCRIPT_DIR,
-      env: captureEnvironment,
-    }),
+    runChild(
+      process.execPath,
+      captureArguments(baseUrl, baseDir, labels.base, resolvedBaseSeedManifest, {
+        revisionRole: 'base',
+        semanticManifestPath,
+        sourceProvenancePath,
+      }),
+      {
+        cwd: SCRIPT_DIR,
+        env: captureEnvironment,
+      },
+    ),
+    runChild(
+      process.execPath,
+      captureArguments(headUrl, headDir, labels.head, resolvedHeadSeedManifest, {
+        revisionRole: 'head',
+        semanticManifestPath,
+        sourceProvenancePath,
+      }),
+      {
+        cwd: SCRIPT_DIR,
+        env: captureEnvironment,
+      },
+    ),
   ]);
 
   const comparisonDir = path.join(screenshotsDir, 'comparison');
@@ -795,25 +1433,607 @@ function fetchedDependencyInputs(changedFiles) {
 function comparisonServices(overrides = {}) {
   return {
     addDetachedWorktree,
+    assessUpgradeCapabilities,
     buildExternalFrontend,
     buildTrustedFrontend,
     capturePair,
     clusterManager,
+    combineSemanticManifests,
+    componentsForRevision,
+    components: COMPONENTS,
     detectChanges,
+    ensureComparisonRuntime,
     fetchPullRequest,
     fullSha,
     gitOutput,
+    loadUpgradeAdapter,
+    materializeTrustedHeadSnapshot,
+    orchestrateUpgrade,
     publishReport,
+    readUpgradeCapabilities,
     registerCleanup,
+    renderRevisionManifestSources,
     repoRoot: REPO_ROOT,
+    revisionBuildMetadata,
+    revisionUsesMetadataService,
+    resolveExactBaseRelease,
+    resolvePublishedReleaseCommit,
     scriptDir: SCRIPT_DIR,
     seedData,
     shortSha,
     spawnManaged,
+    stackConfiguration,
     waitForUrl,
     verifyPullRequestHead,
+    validateTrustedHeadCheckout,
+    validateSafeRemovedResources,
+    validateUpgradeOperations,
+    validateUpgradeRequest,
+    writeUpgradeComparisonArtifacts,
+    writeJson,
     ...overrides,
   };
+}
+
+function loadJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
+function portConflictError(conflicts) {
+  const details = conflicts
+    .map(
+      (conflict) =>
+        `${conflict.port} (${conflict.process || 'unknown'}, PID ${conflict.pid || 'unknown'})`,
+    )
+    .join(', ');
+  return new Error(
+    `Required local ports are already in use: ${details}. Stop those processes and retry.`,
+  );
+}
+
+function startStaticProxy(services, { backendUrl, buildRoot, port }) {
+  return services.spawnManaged(
+    process.execPath,
+    [
+      path.join(services.scriptDir, 'proxy-server.js'),
+      '--build',
+      path.join(buildRoot, 'frontend', 'build'),
+      '--port',
+      String(port),
+      '--backend',
+      backendUrl,
+    ],
+    { cwd: services.scriptDir },
+  );
+}
+
+async function validatePublicationHead(options, services, headRoot, expectedHeadSha) {
+  if (!options.comment) return;
+  if (!options.prNumber) {
+    if (services.gitOutput(['status', '--porcelain'], headRoot)) {
+      throw new Error('Refusing to publish a local comparison from a dirty working tree.');
+    }
+    const currentHeadSha = services.fullSha('HEAD', headRoot);
+    if (currentHeadSha !== expectedHeadSha) {
+      throw new Error(
+        `Refusing to publish a stale local comparison: HEAD moved from ${expectedHeadSha} to ${currentHeadSha}.`,
+      );
+    }
+  }
+  await services.verifyPullRequestHead(
+    options.repository,
+    options.prNumber || options.displayPrNumber,
+    expectedHeadSha,
+  );
+}
+
+async function finishComparison(options, services, results, headRoot, expectedHeadSha) {
+  await validatePublicationHead(options, services, headRoot, expectedHeadSha);
+  const publicationSucceeded = await services.publishReport(options, results.comparisonDir);
+  return (
+    results.baseCapture.success &&
+    results.headCapture.success &&
+    results.comparison.success &&
+    publicationSucceeded
+  );
+}
+
+async function requireStackDestroyed(stack) {
+  const destroyed = await stack.destroyCluster();
+  if (!(destroyed === true || destroyed?.success === true)) {
+    throw new Error(`Failed to delete isolated ${stack.role} cluster ${stack.clusterName}.`);
+  }
+}
+
+function onceAsync(operation) {
+  let pending = null;
+  return (...args) => {
+    if (!pending) pending = Promise.resolve().then(() => operation(...args));
+    return pending;
+  };
+}
+
+async function requireUpgradeEnvironmentCleaned(cleanupEnvironment, request) {
+  const result = await cleanupEnvironment({ reason: 'runner-cleanup', request });
+  if (!(result === true || result?.success === true)) {
+    throw new Error('Upgrade adapter failed to clean its owned environment.');
+  }
+}
+
+async function runUpgradeComparison({
+  baseCommitSha,
+  changes,
+  expectedHeadSha,
+  headRoot,
+  options,
+  run,
+  services,
+  sourceProvenance,
+}) {
+  const resultPath = path.join(run.runDir, 'upgrade-result.json');
+  const request = {
+    artifactRoot: run.runDir,
+    baseRevision: `${changes.baseRef}@${baseCommitSha}`,
+    headRevision: formatSourceRevision(sourceProvenance, expectedHeadSha),
+    runId: run.runId,
+    sourceProvenance,
+  };
+  let capabilities = { removedResources: [] };
+  let capabilityAssessment = null;
+  const persistSetupFailure = (error, phase, category) => {
+    const serializedError = {
+      category,
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : 'Error',
+    };
+    const failure = {
+      baseCaptured: false,
+      captureValidity: CAPTURE_VALIDITY.INFRASTRUCTURE_FAILURE,
+      complete: false,
+      contractVersion: UPGRADE_CONTRACT_VERSION,
+      error: serializedError,
+      headCaptured: false,
+      migration: capabilityAssessment || { requirement: MIGRATION_REQUIREMENT },
+      mode: 'upgrade-in-place',
+      phase,
+      phaseHistory: [{ phase, status: 'failed' }],
+      request,
+    };
+    try {
+      services.writeJson(resultPath, failure);
+    } catch (writeError) {
+      log(
+        `Upgrade setup failed and its result could not be persisted: ${serializedError.message}; ${writeError.message}`,
+        'error',
+      );
+      return false;
+    }
+    log(`Upgrade comparison stopped at ${phase}: ${category}. Details: ${resultPath}`, 'error');
+    return false;
+  };
+  try {
+    capabilities = services.readUpgradeCapabilities(headRoot);
+    capabilityAssessment = services.assessUpgradeCapabilities(capabilities);
+  } catch (error) {
+    return persistSetupFailure(error, UPGRADE_PHASES.CONFIGURATION_CHECK, 'configuration_failure');
+  }
+  let adapterOperations = {};
+  let cleanupUpgradeEnvironment = null;
+  let configurationValid = false;
+  if (capabilityAssessment.available) {
+    try {
+      services.validateUpgradeRequest(request);
+      services.validateSafeRemovedResources(capabilities.removedResources);
+      configurationValid = true;
+    } catch (error) {
+      // The orchestrator records the configuration failure in upgrade-result.json below.
+    }
+  }
+
+  if (configurationValid && capabilities.adapter) {
+    let adapter;
+    try {
+      adapter = services.loadUpgradeAdapter(headRoot, capabilities);
+    } catch (error) {
+      return persistSetupFailure(error, UPGRADE_PHASES.LOAD_ADAPTER, 'configuration_failure');
+    }
+    try {
+      adapterOperations = await adapter.createOperations(
+        Object.freeze({
+          baseCommitSha,
+          baseRef: baseCommitSha,
+          baseTagRef: changes.baseDisplayRef,
+          baseVersion: changes.baseRef,
+          expectedHeadSha,
+          headRoot,
+          options: Object.freeze({
+            diffThreshold: options.diffThreshold,
+            failThreshold: options.failThreshold,
+            viewports: options.viewports,
+          }),
+          runDir: run.runDir,
+          runId: run.runId,
+          sourceProvenance,
+          writeComparisonArtifacts: (artifactOptions) =>
+            services.writeUpgradeComparisonArtifacts({
+              ...artifactOptions,
+              artifactRoot: run.runDir,
+            }),
+        }),
+      );
+    } catch (error) {
+      return persistSetupFailure(error, UPGRADE_PHASES.CREATE_OPERATIONS, 'configuration_failure');
+    }
+    let operationsValid = false;
+    try {
+      services.validateUpgradeOperations(adapterOperations);
+      operationsValid = true;
+    } catch (error) {
+      // The orchestrator records the operation contract failure below.
+    }
+    if (operationsValid) {
+      try {
+        await services.ensureComparisonRuntime();
+      } catch (error) {
+        return persistSetupFailure(
+          error,
+          UPGRADE_PHASES.RUNTIME_PREFLIGHT,
+          CAPTURE_VALIDITY.INFRASTRUCTURE_FAILURE,
+        );
+      }
+      const cleanupEnvironment = onceAsync(adapterOperations.cleanupEnvironment);
+      adapterOperations = { ...adapterOperations, cleanupEnvironment };
+      cleanupUpgradeEnvironment = () =>
+        requireUpgradeEnvironmentCleaned(cleanupEnvironment, request);
+      services.registerCleanup(`clean upgrade environment ${run.runId}`, cleanupUpgradeEnvironment);
+    }
+  }
+  const adapterWriteResult = adapterOperations.writeResult;
+  let result;
+  let orchestrationError = null;
+  let cleanupError = null;
+  try {
+    result = await services.orchestrateUpgrade({
+      capabilities,
+      operations: {
+        ...adapterOperations,
+        async writeResult(value) {
+          let adapterError = null;
+          if (typeof adapterWriteResult === 'function') {
+            try {
+              await adapterWriteResult(value);
+            } catch (error) {
+              adapterError = error;
+            }
+          }
+          const persistedValue = adapterError
+            ? createResultWriteFailure(value, adapterError)
+            : value;
+          try {
+            services.writeJson(resultPath, persistedValue);
+          } catch (localError) {
+            const message = adapterError
+              ? `Adapter and local result persistence failed: ${adapterError.message}; ${localError.message}`
+              : `Local result persistence failed: ${localError.message}`;
+            throw new Error(message);
+          }
+          if (adapterError) {
+            const error = new Error(
+              `Upgrade adapter result persistence failed: ${adapterError.message}`,
+            );
+            error.persistedResult = persistedValue;
+            throw error;
+          }
+        },
+      },
+      removedResources: capabilities.removedResources,
+      request,
+    });
+  } catch (error) {
+    orchestrationError = error;
+  } finally {
+    if (cleanupUpgradeEnvironment) {
+      try {
+        await cleanupUpgradeEnvironment();
+      } catch (error) {
+        cleanupError = error;
+      }
+    }
+  }
+
+  if (cleanupError) {
+    const serializedCleanupError = {
+      message: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+      name: cleanupError instanceof Error ? cleanupError.name : 'Error',
+    };
+    result = {
+      ...(result || {}),
+      baseCaptured: result?.baseCaptured === true,
+      captureValidity: CAPTURE_VALIDITY.INFRASTRUCTURE_FAILURE,
+      cleanupError: serializedCleanupError,
+      complete: false,
+      contractVersion: result?.contractVersion || UPGRADE_CONTRACT_VERSION,
+      error: {
+        category: 'cleanup_failure',
+        message: `Upgrade environment cleanup failed: ${serializedCleanupError.message}`,
+        name: serializedCleanupError.name,
+      },
+      headCaptured: result?.headCaptured === true,
+      migration: result?.migration || capabilityAssessment,
+      mode: 'upgrade-in-place',
+      phase: UPGRADE_PHASES.CLEANUP_ENVIRONMENT,
+      phaseHistory: [
+        ...(Array.isArray(result?.phaseHistory) ? result.phaseHistory : []),
+        { phase: UPGRADE_PHASES.CLEANUP_ENVIRONMENT, status: 'failed' },
+      ],
+      request: result?.request || request,
+    };
+    try {
+      services.writeJson(resultPath, result);
+    } catch (writeError) {
+      log(
+        `Upgrade cleanup failed and the result could not be rewritten: ${serializedCleanupError.message}; ${writeError.message}`,
+        'error',
+      );
+      return false;
+    }
+  } else if (orchestrationError) {
+    return persistSetupFailure(
+      orchestrationError,
+      UPGRADE_PHASES.RUNTIME_PREFLIGHT,
+      CAPTURE_VALIDITY.INFRASTRUCTURE_FAILURE,
+    );
+  }
+
+  let persistedResult;
+  try {
+    const resultStat = fs.lstatSync(resultPath);
+    if (!resultStat.isFile() || resultStat.isSymbolicLink()) {
+      throw new Error('the result is not a non-symlink regular file');
+    }
+    persistedResult = JSON.parse(fs.readFileSync(resultPath, 'utf8'));
+    if (!persistedResult || typeof persistedResult !== 'object' || Array.isArray(persistedResult)) {
+      throw new Error('the result JSON is not an object');
+    }
+  } catch (error) {
+    log(`Upgrade comparison result was not persisted safely: ${error.message}`, 'error');
+    return false;
+  }
+  if (
+    persistedResult.complete !== result.complete ||
+    persistedResult.captureValidity !== result.captureValidity ||
+    persistedResult.comparisonPassed !== result.comparisonPassed ||
+    Boolean(persistedResult.resultWriteError) !== Boolean(result.resultWriteError) ||
+    persistedResult.phase !== result.phase
+  ) {
+    log('Persisted upgrade result does not match the orchestrator result.', 'error');
+    return false;
+  }
+
+  const succeeded =
+    result.complete === true &&
+    result.captureValidity === CAPTURE_VALIDITY.VALID &&
+    result.comparisonPassed === true &&
+    persistedResult.comparisonPassed === true &&
+    !result.resultWriteError;
+  if (succeeded) {
+    log(`Upgrade comparison completed. Result: ${resultPath}`);
+    return true;
+  }
+  log(
+    `Upgrade comparison stopped at ${result.phase}: ${result.captureValidity}. Details: ${resultPath}`,
+    'error',
+  );
+  return false;
+}
+
+async function runFullStackComparison({
+  baseCommitSha,
+  baseWorktree,
+  changes,
+  expectedHeadSha,
+  headRoot,
+  options,
+  run,
+  services,
+  sourceProvenance,
+  sourceProvenancePath,
+}) {
+  const manager = services.clusterManager;
+  if (typeof manager.createKindStack !== 'function') {
+    throw new Error('The cluster manager does not support isolated revision stacks.');
+  }
+
+  // Use the exact overlay that will be deployed. Scanning every YAML file in the repository can
+  // falsely discover workloads that are not part of this revision's platform-agnostic stack.
+  const baseManifestSources = services.renderRevisionManifestSources(baseWorktree);
+  const headManifestSources = services.renderRevisionManifestSources(headRoot);
+  const baseConfiguration = services.stackConfiguration(run, 'base', baseCommitSha, {
+    metadata: services.revisionUsesMetadataService(baseWorktree, baseManifestSources),
+  });
+  const headConfiguration = services.stackConfiguration(run, 'head', expectedHeadSha, {
+    metadata: services.revisionUsesMetadataService(headRoot, headManifestSources),
+  });
+  const conflicts = await manager.checkPortAvailability([
+    baseConfiguration.ports.frontendServer,
+    headConfiguration.ports.frontendServer,
+  ]);
+  if (conflicts.length > 0) throw portConflictError(conflicts);
+
+  const baseStack = manager.createKindStack(baseConfiguration);
+  const headStack = manager.createKindStack(headConfiguration);
+  for (const stack of [baseStack, headStack]) {
+    services.registerCleanup(`destroy isolated ${stack.role} cluster ${stack.clusterName}`, () =>
+      requireStackDestroyed(stack),
+    );
+    services.registerCleanup(`stop isolated ${stack.role} stack processes`, () => stack.cleanup());
+  }
+
+  const targetPlatform = baseStack.getDockerPlatform();
+  const seedRuntimePreflight = baseStack.preflightSeedRuntimeImage({
+    platform: targetPlatform,
+  });
+  if (seedRuntimePreflight.platform !== targetPlatform) {
+    throw new Error('Seed runtime preflight did not preserve the selected Kind target platform.');
+  }
+  const releasePreflight = baseStack.preflightReleaseImages(baseWorktree, {
+    expectedRelease: changes.baseRef,
+    platform: targetPlatform,
+  });
+  if (releasePreflight.platform !== targetPlatform) {
+    throw new Error('Release image preflight did not preserve the selected Kind target platform.');
+  }
+
+  const headDependencyPreflight = headStack.preflightThirdPartyImages(headRoot, {
+    platform: targetPlatform,
+  });
+  if (headDependencyPreflight.platform !== targetPlatform) {
+    throw new Error('Head image preflight did not preserve the selected Kind target platform.');
+  }
+
+  const headComponents = services.componentsForRevision(
+    headRoot,
+    services.components,
+    headManifestSources,
+  );
+  const headBuildMetadata = headComponents.some(
+    (component) => Object.keys(component.buildArgs || {}).length > 0,
+  )
+    ? services.revisionBuildMetadata(headRoot, expectedHeadSha)
+    : undefined;
+  const headImageOverrides =
+    headComponents.length > 0
+      ? await headStack.buildComponentImages(headComponents, headRoot, {
+          buildMetadata: headBuildMetadata,
+          load: false,
+          platform: targetPlatform,
+          tagSuffix: `${run.runId}-head`,
+        })
+      : { deployments: [], images: {}, runtimeEnvironment: {} };
+
+  await Promise.all([baseStack.createCluster(), headStack.createCluster()]);
+  for (const stack of [baseStack, headStack]) {
+    const actualPlatform = stack.getClusterPlatform();
+    if (actualPlatform !== targetPlatform) {
+      throw new Error(
+        `Kind cluster ${stack.clusterName} uses ${actualPlatform}, but images were preflighted for ${targetPlatform}.`,
+      );
+    }
+  }
+  // Establish the exact release stack before starting any head workload. All reviewed head images
+  // were already built for the validated target platform while no cluster existed.
+  await baseStack.deployRevision(baseWorktree, {
+    expectedRelease: changes.baseRef,
+    platform: targetPlatform,
+  });
+  if (Object.keys(headImageOverrides.images).length > 0) {
+    headStack.loadImageOverrides(headImageOverrides, targetPlatform);
+  }
+  await headStack.deployRevision(headRoot, {
+    imageOverrides: headImageOverrides,
+    platform: targetPlatform,
+    requireLocalFirstParty: true,
+    tagSuffix: `${run.runId}-head`,
+  });
+  const [[baseUiForward], [headUiForward]] = await Promise.all([
+    baseStack.ensureDeployedUiPortForwarding(),
+    headStack.ensureDeployedUiPortForwarding(),
+  ]);
+  const baseUrl = baseStack.deployedUiUrl;
+  const headUrl = headStack.deployedUiUrl;
+  await Promise.all([
+    services.waitForUrl(baseUrl, baseUiForward),
+    services.waitForUrl(headUrl, headUiForward),
+  ]);
+
+  const baseSeedManifestPath = path.join(run.runDir, 'seed', 'base.json');
+  const headSeedManifestPath = path.join(run.runDir, 'seed', 'head.json');
+  const [baseSeed, headSeed] = await Promise.all([
+    services.seedData({
+      apiBase: baseUrl,
+      manifestPath: baseSeedManifestPath,
+    }),
+    services.seedData({
+      apiBase: headUrl,
+      manifestPath: headSeedManifestPath,
+    }),
+  ]);
+  if (!baseSeed.success || !headSeed.success) {
+    const failures = [
+      !baseSeed.success ? `base: ${baseSeed.error || 'unknown error'}` : null,
+      !headSeed.success ? `head: ${headSeed.error || 'unknown error'}` : null,
+    ].filter(Boolean);
+    throw new Error(`Revision-aware fixture seeding failed (${failures.join('; ')}).`);
+  }
+
+  const baseSeedManifest = loadJson(baseSeedManifestPath);
+  const headSeedManifest = loadJson(headSeedManifestPath);
+  for (const [role, manifest, configuration] of [
+    ['base', baseSeedManifest, baseConfiguration],
+    ['head', headSeedManifest, headConfiguration],
+  ]) {
+    if (manifest.semantic?.validation?.valid !== true) {
+      const errors = manifest.semantic?.validation?.errors || ['semantic validation was absent'];
+      throw new Error(`${role} semantic fixture validation failed: ${errors.join('; ')}`);
+    }
+    const expectedFlavor =
+      configuration.ports.metadata === null ? 'native-task-artifact' : 'legacy-mlmd';
+    if (manifest.semantic.revisionFlavor !== expectedFlavor) {
+      throw new Error(
+        `${role} revision data model mismatch: expected ${expectedFlavor}, received ${manifest.semantic.revisionFlavor || 'unknown'}.`,
+      );
+    }
+  }
+  const semanticManifest = services.combineSemanticManifests(
+    {
+      base: baseSeedManifest,
+      head: headSeedManifest,
+    },
+    {
+      revisions: {
+        base: { commit: baseCommitSha, ref: changes.baseDisplayRef || changes.baseRef },
+        head: {
+          commit: expectedHeadSha,
+          ref: 'HEAD',
+          sourceFingerprint: sourceProvenance?.fingerprint || null,
+          tree: sourceProvenance?.revision?.tree || null,
+        },
+      },
+    },
+  );
+  const semanticManifestPath = path.join(run.runDir, 'semantic-fixtures.json');
+  services.writeJson(semanticManifestPath, semanticManifest);
+
+  const dirty = services.gitOutput(['status', '--porcelain'], headRoot) ? '+dirty' : '';
+  const displayNumber = options.displayPrNumber;
+  const snapshotLabel = sourceFingerprintLabel(sourceProvenance);
+  const headIdentity = `${expectedHeadSha}${dirty}${snapshotLabel ? `; ${snapshotLabel}` : ''}`;
+  const headLabel = displayNumber
+    ? `PR #${displayNumber} (${headIdentity}) [isolated full stack]`
+    : `HEAD (${headIdentity}) [isolated full stack]`;
+  const results = await services.capturePair({
+    baseSeedManifestPath,
+    baseUrl,
+    headSeedManifestPath,
+    headUrl,
+    labels: {
+      base: `base: ${changes.baseRef} (${baseCommitSha}) [isolated full stack]`,
+      head: headLabel,
+    },
+    options,
+    screenshotsDir: path.join(run.runDir, 'screenshots'),
+    semanticManifestPath,
+    sourceProvenancePath,
+  });
+  const success = await finishComparison(options, services, results, headRoot, expectedHeadSha);
+
+  await Promise.all([baseStack.cleanup(), headStack.cleanup()]);
+  await Promise.all([requireStackDestroyed(baseStack), requireStackDestroyed(headStack)]);
+
+  log(`Semantic fixture map: ${semanticManifestPath}`);
+  log(`Run artifacts: ${run.runDir}`);
+  log(`Comparison report: ${results.comparisonDir}`);
+  return success;
 }
 
 async function runComparison(options, run, overrides = {}) {
@@ -825,39 +2045,67 @@ async function runComparison(options, run, overrides = {}) {
   const seedManifestPath = path.join(run.runDir, 'seed-manifest.json');
   fs.mkdirSync(path.dirname(baseWorktree), { recursive: true });
 
-  const conflicts = await managedCluster.checkPortAvailability([
-    BASE_PROXY_PORT,
-    HEAD_PROXY_PORT,
-    managedCluster.FRONTEND_SERVER_PORT,
-    3002,
-    9000,
-    9090,
-  ]);
-  if (conflicts.length > 0) {
-    const details = conflicts
-      .map(
-        (conflict) =>
-          `${conflict.port} (${conflict.process || 'unknown'}, PID ${conflict.pid || 'unknown'})`,
-      )
-      .join(', ');
-    throw new Error(
-      `Required local ports are already in use: ${details}. Stop those processes and retry.`,
-    );
-  }
-
   let headRef = 'HEAD';
   let headRoot = services.repoRoot;
+  let comparisonRoot = services.repoRoot;
+  let sourceProvenance = null;
+  let sourceProvenancePath = null;
   if (options.prNumber) {
     headRef = services.fetchPullRequest(options.repository, options.prNumber, run.runId);
+  } else if (options.headCheckout) {
+    headRoot = services.validateTrustedHeadCheckout(options.headCheckout, {
+      git: services.gitOutput,
+      repositoryRoot: services.repoRoot,
+    });
+    comparisonRoot = headRoot;
   }
 
-  const changes = services.detectChanges(options.compareRef, headRef, {
-    cwd: services.repoRoot,
-    includeWorkingTree: !options.prNumber,
-  });
+  const exactBaseRelease =
+    options.fullStack || options.upgrade
+      ? services.resolveExactBaseRelease(options.compareRef, {
+          cwd: comparisonRoot,
+          git: services.gitOutput,
+          resolveCommit: services.fullSha,
+          resolvePublishedCommit: services.resolvePublishedReleaseCommit,
+        })
+      : null;
+
+  if (options.headCheckout) {
+    const selectedHeadRoot = headRoot;
+    sourceProvenance = services.materializeTrustedHeadSnapshot(selectedHeadRoot, headWorktree, {
+      addWorktree: services.addDetachedWorktree,
+      git: services.gitOutput,
+    });
+    sourceProvenancePath = path.join(run.runDir, 'source-provenance.json');
+    services.writeJson(sourceProvenancePath, sourceProvenance);
+    headRoot = headWorktree;
+    comparisonRoot = headWorktree;
+    log(`Trusted head snapshot: ${sourceFingerprintLabel(sourceProvenance)}`);
+  }
+
+  const detectedChanges = services.detectChanges(
+    exactBaseRelease ? exactBaseRelease.commit : options.compareRef,
+    headRef,
+    {
+      cwd: comparisonRoot,
+      includeWorkingTree: !options.prNumber,
+    },
+  );
+  const baseCommitSha = exactBaseRelease
+    ? exactBaseRelease.commit
+    : services.fullSha(detectedChanges.baseRef, comparisonRoot);
+  const changes = exactBaseRelease
+    ? {
+        ...detectedChanges,
+        baseDisplayRef: exactBaseRelease.tagRef,
+        baseRef: exactBaseRelease.version,
+      }
+    : detectedChanges;
   logChanges(changes);
-  const baseCommitSha = services.fullSha(changes.baseRef);
-  const expectedHeadSha = services.fullSha(headRef);
+  const expectedHeadSha = services.fullSha(headRef, comparisonRoot);
+  if (sourceProvenance && sourceProvenance.revision.commit !== expectedHeadSha) {
+    throw new Error('Trusted source provenance does not match the materialized snapshot HEAD.');
+  }
   const dependencyInputs = options.prNumber ? fetchedDependencyInputs(changes.changedFiles) : [];
   if (dependencyInputs.length > 0) {
     throw new Error(
@@ -872,25 +2120,64 @@ async function runComparison(options, run, overrides = {}) {
     changes.backendChanged ? 'backend' : null,
     changes.manifestsChanged ? 'manifests' : null,
   ].filter(Boolean);
-  if (ignoredSurfaces.length > 0 && !options.browserOnly) {
+  if (
+    ignoredSurfaces.length > 0 &&
+    !options.browserOnly &&
+    !options.fullStack &&
+    !options.upgrade
+  ) {
     throw new Error(
       `This utility can attribute only browser/frontend regressions; the comparison changes ${ignoredSurfaces.join(
         ', ',
-      )}. Use --browser-only to explicitly ignore those changes and compare only browser bundles.`,
+      )}. Use --full-stack with an explicitly trusted local checkout, or --browser-only to limit the result to browser compatibility.`,
     );
   }
-  if (ignoredSurfaces.length > 0) {
+  if (ignoredSurfaces.length > 0 && options.browserOnly) {
     log(
       `Browser-only comparison: ignoring changed ${ignoredSurfaces.join(', ')} and using the trusted base runtime for both captures.`,
       'error',
     );
   }
 
+  if (options.upgrade) {
+    return runUpgradeComparison({
+      baseCommitSha,
+      changes,
+      expectedHeadSha,
+      headRoot,
+      options,
+      run,
+      services,
+      sourceProvenance,
+    });
+  }
+
+  services.ensureComparisonRuntime();
+
   if (options.prNumber) {
     services.addDetachedWorktree(headWorktree, headRef);
     headRoot = headWorktree;
   }
-  services.addDetachedWorktree(baseWorktree, changes.baseRef);
+  services.addDetachedWorktree(
+    baseWorktree,
+    exactBaseRelease ? baseCommitSha : changes.baseRef,
+    comparisonRoot,
+  );
+
+  if (options.fullStack) {
+    return runFullStackComparison({
+      baseCommitSha,
+      baseWorktree,
+      changes,
+      expectedHeadSha,
+      headRoot,
+      options,
+      run,
+      services,
+      sourceProvenance,
+      sourceProvenancePath,
+    });
+  }
 
   if (options.prNumber) {
     log(`Building base frontend from ${changes.baseRef} in the pinned container...`);
@@ -903,6 +2190,16 @@ async function runComparison(options, run, overrides = {}) {
     log('Building local HEAD frontend...');
     await services.buildTrustedFrontend(headRoot);
   }
+
+  const conflicts = await managedCluster.checkPortAvailability([
+    BASE_PROXY_PORT,
+    HEAD_PROXY_PORT,
+    managedCluster.FRONTEND_SERVER_PORT,
+    3002,
+    9000,
+    9090,
+  ]);
+  if (conflicts.length > 0) throw portConflictError(conflicts);
 
   await managedCluster.ensureCluster(baseWorktree);
   services.registerCleanup('stop cluster-managed local processes', () => managedCluster.cleanup());
@@ -921,39 +2218,24 @@ async function runComparison(options, run, overrides = {}) {
   const backendUrl = `http://127.0.0.1:${managedCluster.FRONTEND_SERVER_PORT}`;
   const baseUrl = `http://127.0.0.1:${BASE_PROXY_PORT}`;
   const headUrl = `http://127.0.0.1:${HEAD_PROXY_PORT}`;
-  const baseProxy = services.spawnManaged(
-    process.execPath,
-    [
-      path.join(services.scriptDir, 'proxy-server.js'),
-      '--build',
-      path.join(baseWorktree, 'frontend', 'build'),
-      '--port',
-      String(BASE_PROXY_PORT),
-      '--backend',
-      backendUrl,
-    ],
-    { cwd: services.scriptDir },
-  );
-  const headProxy = services.spawnManaged(
-    process.execPath,
-    [
-      path.join(services.scriptDir, 'proxy-server.js'),
-      '--build',
-      path.join(headRoot, 'frontend', 'build'),
-      '--port',
-      String(HEAD_PROXY_PORT),
-      '--backend',
-      backendUrl,
-    ],
-    { cwd: services.scriptDir },
-  );
+  const baseProxy = startStaticProxy(services, {
+    backendUrl,
+    buildRoot: baseWorktree,
+    port: BASE_PROXY_PORT,
+  });
+  const headProxy = startStaticProxy(services, {
+    backendUrl,
+    buildRoot: headRoot,
+    port: HEAD_PROXY_PORT,
+  });
   await Promise.all([
     services.waitForUrl(baseUrl, baseProxy),
     services.waitForUrl(headUrl, headProxy),
   ]);
 
   const baseLabel = `base: ${changes.baseRef} (${baseCommitSha})`;
-  const dirty = !options.prNumber && services.gitOutput(['status', '--porcelain']) ? '+dirty' : '';
+  const dirty =
+    !options.prNumber && services.gitOutput(['status', '--porcelain'], headRoot) ? '+dirty' : '';
   const displayNumber = options.prNumber || options.displayPrNumber;
   let headLabel = displayNumber
     ? `PR #${displayNumber} (${expectedHeadSha}${dirty})`
@@ -969,30 +2251,7 @@ async function runComparison(options, run, overrides = {}) {
     screenshotsDir,
     seedManifestPath,
   });
-  if (options.comment) {
-    if (!options.prNumber) {
-      if (services.gitOutput(['status', '--porcelain'])) {
-        throw new Error('Refusing to publish a local comparison from a dirty working tree.');
-      }
-      const currentHeadSha = services.fullSha('HEAD');
-      if (currentHeadSha !== expectedHeadSha) {
-        throw new Error(
-          `Refusing to publish a stale local comparison: HEAD moved from ${expectedHeadSha} to ${currentHeadSha}.`,
-        );
-      }
-    }
-    await services.verifyPullRequestHead(
-      options.repository,
-      options.prNumber || options.displayPrNumber,
-      expectedHeadSha,
-    );
-  }
-  const publicationSucceeded = await services.publishReport(options, results.comparisonDir);
-  const success =
-    results.baseCapture.success &&
-    results.headCapture.success &&
-    results.comparison.success &&
-    publicationSucceeded;
+  const success = await finishComparison(options, services, results, headRoot, expectedHeadSha);
 
   log(`Run artifacts: ${run.runDir}`);
   log(`Comparison report: ${results.comparisonDir}`);
@@ -1041,11 +2300,15 @@ async function main(argv = process.argv.slice(2)) {
     return true;
   }
 
-  checkPrerequisites({
-    cluster: Boolean(options.compareRef),
-    compare: Boolean(options.compareRef),
-  });
-  ensureToolDependencies();
+  if (options.compareRef) {
+    checkPrerequisites({
+      compare: true,
+      packageManager: !(options.fullStack || options.upgrade),
+    });
+  } else {
+    checkPrerequisites();
+    ensureToolDependencies();
+  }
   const run = createRunDirectory();
   registerCleanup('stop remaining child processes', async () => {
     await Promise.all([...children].map(terminateChild));
@@ -1068,7 +2331,11 @@ if (require.main === module) {
     })
     .catch(async (error) => {
       log(error.message, 'error');
-      await cleanup();
+      try {
+        await cleanup();
+      } catch (cleanupError) {
+        if (cleanupError !== error) log(cleanupError.message, 'error');
+      }
       process.exitCode = 1;
     });
 }
@@ -1084,20 +2351,34 @@ module.exports = {
   PROCESS_TIMEOUT,
   assertNodeVersion,
   assertNpmVersion,
+  componentsForRevision,
+  comparisonServices,
   createRunDirectory,
+  executeCleanupActions,
   externalBuildArguments,
   externalInstallArguments,
   fetchedDependencyInputs,
   fullCaptureEnvironment,
   helpText,
+  loadUpgradeAdapter,
+  materializeTrustedHeadSnapshot,
   normalizeHttpUrl,
   parseCli,
   parsePercentage,
+  readUpgradeCapabilities,
+  renderRevisionManifestSources,
   requestSuccessful,
+  resolveExactBaseRelease,
+  resolvePublishedReleaseCommit,
+  revisionUsesMetadataService,
   runChild,
   runComparison,
+  stackConfiguration,
+  terminateChild,
   validateExternalBuildArtifact,
+  validateFullStackBaseRelease,
   validateRepository,
+  validateTrustedHeadCheckout,
   validateViewports,
   verifyPullRequestHead,
 };

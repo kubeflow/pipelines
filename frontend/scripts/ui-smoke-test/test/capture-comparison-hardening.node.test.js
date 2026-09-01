@@ -142,6 +142,21 @@ test('base URL handling preserves protocol, hostname, port, and path', () => {
 
   const portFallback = capture.parseCaptureOptions(['--port', '4567'], {});
   assert.equal(portFallback.baseUrl, 'http://localhost:4567');
+
+  const provenance = capture.parseCaptureOptions(
+    [
+      '--revision-role',
+      'head',
+      '--semantic-manifest',
+      '/tmp/semantic.json',
+      '--source-provenance',
+      '/tmp/source.json',
+    ],
+    {},
+  );
+  assert.equal(provenance.revisionRole, 'head');
+  assert.equal(provenance.semanticManifestPath, '/tmp/semantic.json');
+  assert.equal(provenance.sourceProvenancePath, '/tmp/source.json');
 });
 
 test('direct-tool parsers reject unknown, duplicate, and ambiguous arguments', () => {
@@ -154,6 +169,14 @@ test('direct-tool parsers reject unknown, duplicate, and ambiguous arguments', (
     () =>
       capture.parseCaptureOptions(['--base-url', 'http://localhost:4001', '--port', '4001'], {}),
     /mutually exclusive/,
+  );
+  assert.throws(
+    () => capture.parseCaptureOptions(['--semantic-manifest', '/tmp/semantic.json'], {}),
+    /revision-role is required/,
+  );
+  assert.throws(
+    () => capture.parseCaptureOptions(['--revision-role', 'other'], {}),
+    /base, head, or current/,
   );
   assert.throws(
     () => comparison.parseComparisonOptions(['--main', 'one', '--main', 'two'], {}),
@@ -528,6 +551,12 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
       };
     },
   });
+  const seedManifestPath = path.join(root, 'seed.json');
+  const semanticManifestPath = path.join(root, 'semantic.json');
+  const sourceProvenancePath = path.join(root, 'source.json');
+  fs.writeFileSync(seedManifestPath, JSON.stringify({ defaults: {}, resources: {} }));
+  fs.writeFileSync(semanticManifestPath, JSON.stringify({ schemaVersion: 'ui-smoke-semantic/v2' }));
+  fs.writeFileSync(sourceProvenancePath, JSON.stringify({ schemaVersion: 'ui-smoke-source/v1' }));
   const options = {
     baseUrl: 'https://example.test/kfp',
     label: 'fixture',
@@ -537,7 +566,10 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
       { name: 'fixture-page', path: '/#/fixture', waitFor: '#ready' },
       { name: 'second-page', path: '/#/second', waitFor: '#ready' },
     ],
-    seedManifestPath: null,
+    revisionRole: 'head',
+    seedManifestPath,
+    semanticManifestPath,
+    sourceProvenancePath,
     viewports: [{ width: 10, height: 10 }],
   };
 
@@ -548,6 +580,10 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   assert.equal(success.exitCode, 0);
   assert.equal(success.manifest.results.length, 2);
   assert.equal(success.manifest.results[0].sha256.length, 64);
+  assert.equal(success.manifest.inputs.revisionRole, 'head');
+  assert.equal(success.manifest.inputs.seedManifest.sha256.length, 64);
+  assert.equal(success.manifest.inputs.semanticManifest.schemaVersion, 'ui-smoke-semantic/v2');
+  assert.equal(success.manifest.inputs.sourceProvenance.schemaVersion, 'ui-smoke-source/v1');
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/fixture'));
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/second'));
   assert.equal(successEvents.filter((event) => event === 'new-page').length, 2);
@@ -599,8 +635,12 @@ test('manifest comparison ignores stale unlisted PNGs and cleans managed outputs
     writePng(path.join(prDir, filename)),
     writePng(path.join(mainDir, 'stale-10x10.png')),
   ]);
-  writeCaptureManifest(mainDir, [captureResult(filename)], 'base');
-  writeCaptureManifest(prDir, [captureResult(filename)], 'head');
+  writeCaptureManifest(mainDir, [captureResult(filename)], '<script>alert("base")</script>', {
+    captureId: 'base-capture',
+  });
+  writeCaptureManifest(prDir, [captureResult(filename)], 'head & "revision"', {
+    captureId: 'head-capture',
+  });
   fs.writeFileSync(path.join(outputDir, 'old-10x10.png'), 'old comparison');
   fs.writeFileSync(path.join(outputDir, 'notes-10x10.png'), 'unmanaged');
   fs.writeFileSync(
@@ -621,9 +661,54 @@ test('manifest comparison ignores stale unlisted PNGs and cleans managed outputs
   assert.equal(run.summary.results.length, 1);
   assert.equal(run.summary.results[0].filename, filename);
   assert.equal(run.summary.results[0].diffPercent, 0);
+  const mainManifest = fs.readFileSync(path.join(mainDir, 'manifest.json'));
+  const prManifest = fs.readFileSync(path.join(prDir, 'manifest.json'));
+  assert.deepEqual(run.summary.captures, {
+    base: {
+      captureId: 'base-capture',
+      manifestSha256: crypto.createHash('sha256').update(mainManifest).digest('hex'),
+      manifestSizeBytes: mainManifest.length,
+      requiredFilenames: [filename],
+    },
+    head: {
+      captureId: 'head-capture',
+      manifestSha256: crypto.createHash('sha256').update(prManifest).digest('hex'),
+      manifestSizeBytes: prManifest.length,
+      requiredFilenames: [filename],
+    },
+  });
   assert.equal(fs.existsSync(path.join(outputDir, filename)), true);
   assert.equal(fs.existsSync(path.join(outputDir, 'old-10x10.png')), false);
   assert.equal(fs.existsSync(path.join(outputDir, 'notes-10x10.png')), true);
+  assert.equal(run.reportPath, path.join(outputDir, 'report.html'));
+  const report = fs.readFileSync(run.reportPath, 'utf8');
+  assert.match(report, /^<!doctype html>/);
+  assert.equal(report.includes('<script>alert("base")</script>'), false);
+  assert.match(report, /&lt;script&gt;alert\(&quot;base&quot;\)&lt;\/script&gt;/);
+  assert.match(report, /head &amp; &quot;revision&quot;/);
+  assert.match(report, /Capture validity<\/strong>valid/);
+  assert.match(report, /Status: success/);
+  assert.match(report, /0\.0000% visual difference/);
+  assert.match(report, /Highlighted comparison/);
+  assert.equal((report.match(/<img src="data:image\/png;base64,/g) || []).length, 3);
+  assert.equal((report.match(/<a href="data:image\/png;base64,/g) || []).length, 3);
+  assert.doesNotMatch(report, /(?:href|src)="https?:/);
+
+  fs.writeFileSync(run.reportPath, '<!doctype html><p>stale managed report</p>');
+  const rerun = await comparison.runComparison(comparisonOptions(mainDir, prDir, outputDir), {
+    looksSame: equalAnalysis,
+  });
+  const regeneratedReport = fs.readFileSync(rerun.reportPath, 'utf8');
+  assert.equal(regeneratedReport.includes('stale managed report'), false);
+  assert.equal(regeneratedReport, report);
+  assert.deepEqual(
+    JSON.parse(fs.readFileSync(path.join(outputDir, '.managed-outputs.json'), 'utf8')),
+    {
+      schemaVersion: 2,
+      artifacts: ['report.html', 'summary.json'],
+      filenames: [filename],
+    },
+  );
 });
 
 test('comparison cleanup rejects non-empty unowned output directories', (t) => {
@@ -636,6 +721,33 @@ test('comparison cleanup rejects non-empty unowned output directories', (t) => {
     /non-empty unowned comparison directory/,
   );
   assert.equal(fs.readFileSync(unrelatedPath, 'utf8'), 'keep-me');
+
+  const legacyOutputDir = path.join(fixtureDirectory(t), 'legacy-comparison');
+  fs.mkdirSync(legacyOutputDir);
+  fs.writeFileSync(path.join(legacyOutputDir, 'old-10x10.png'), 'managed image');
+  fs.writeFileSync(path.join(legacyOutputDir, 'summary.json'), 'managed summary');
+  fs.writeFileSync(path.join(legacyOutputDir, 'report.html'), 'unmanaged report');
+  fs.writeFileSync(
+    path.join(legacyOutputDir, '.managed-outputs.json'),
+    JSON.stringify({ schemaVersion: 1, filenames: ['old-10x10.png'] }),
+  );
+
+  assert.throws(
+    () => comparison.cleanComparisonOutputs(legacyOutputDir, ['next-10x10.png']),
+    /unmanaged comparison output: report\.html/,
+  );
+  assert.equal(
+    fs.readFileSync(path.join(legacyOutputDir, 'old-10x10.png'), 'utf8'),
+    'managed image',
+  );
+  assert.equal(
+    fs.readFileSync(path.join(legacyOutputDir, 'summary.json'), 'utf8'),
+    'managed summary',
+  );
+  assert.equal(
+    fs.readFileSync(path.join(legacyOutputDir, 'report.html'), 'utf8'),
+    'unmanaged report',
+  );
 });
 
 test('optional unavailable captures are recorded as skipped without failing comparison', async (t) => {
