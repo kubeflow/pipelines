@@ -18,8 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"os/exec"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -63,6 +65,7 @@ type dockerConformanceCase struct {
 	Domain        string                   `json:"domain"`
 	Dockerfile    string                   `json:"dockerfile"`
 	Generator     *dockerContractGenerator `json:"generator"`
+	BuildArgs     map[string]string        `json:"buildArgs,omitempty"`
 	Accepted      bool                     `json:"accepted"`
 	ErrorContains string                   `json:"errorContains"`
 	Want          dockerContractWant       `json:"want"`
@@ -120,35 +123,46 @@ type dockerContractWant struct {
 	ErrorContains  string   `json:"errorContains"`
 }
 
-// dockerConformanceInventory is intentionally kept in test code rather than in
-// docker-contract.json. That makes the executable Docker-backed oracle list a
-// frozen contract: deleting or renaming a fixture cannot also delete the only
-// record that said the semantic domain was required.
-var dockerConformanceInventory = map[string]string{
-	"finding-1-arg-download-source":                             "arg-download",
-	"finding-2-exec-sh-positional-argument":                     "exec-shell-positionals",
-	"finding-3-onbuild-heredoc":                                 "onbuild-heredoc",
-	"finding-4-heredoc-delimiter-name":                          "heredoc-identifiers",
-	"finding-4-unterminated-heredoc":                            "heredoc-validity",
-	"finding-5-source-bearing-public-deadline":                  "resource-deadline",
-	"finding-6-empty-workdir":                                   "typed-validity",
-	"finding-6-run-before-from":                                 "stage-order",
-	"finding-6-forbidden-onbuild-from":                          "onbuild-validity",
-	"finding-6-invalid-arg-word":                                "docker-word-validity",
-	"finding-7-pattern-removal-is-valid-but-policy-unsupported": "docker-word-operator-policy",
-	"finding-7-symbolic-tag-boundary":                           "symbolic-image-boundary",
-	"finding-7-top-level-forward-stage-rejected":                "copy-stage-resolution",
-	"finding-7-onbuild-forward-stage-is-policy-unsupported":     "onbuild-stage-resolution",
-	"runtime-pattern-removal-composition":                       "runtime-pattern-composition",
-	"escaped-docker-operator-literal":                           "docker-word-quoting",
-	"copy-stage-index-out-of-range":                             "copy-stage-resolution",
-	"onbuild-copy-variable-expansion":                           "onbuild-stage-resolution",
-	"numeric-from-is-external-image":                            "numeric-from-external",
-	"numeric-run-mount-is-external-image":                       "numeric-run-mount-external",
-	"negative-copy-stage-index":                                 "negative-copy-index",
-	"normalized-alias-lowercase-from-is-local":                  "from-alias-normalized-local",
-	"raw-uppercase-from-is-external":                            "from-alias-raw-external",
-	"copy-alias-lookup-is-case-insensitive":                     "copy-alias-case-insensitive",
+// dockerConformanceScenarios is the authoritative, typed oracle. The JSON is a
+// human-readable contract export and must match every field here exactly. Tests
+// execute these scenarios directly so keeping an ID/domain while weakening its
+// Dockerfile or expected result cannot weaken coverage.
+func authoritativeDockerConformanceScenarios() []dockerConformanceCase {
+	return []dockerConformanceCase{
+		{ID: "finding-1-arg-download-source", Finding: 1, Domain: "arg-download", Dockerfile: "FROM scratch\nARG URL=https://go.dev/dl/go1.27.0.linux-amd64.tar.gz\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"arg-default"}}},
+		{ID: "finding-2-exec-sh-positional-argument", Finding: 2, Domain: "exec-shell-positionals", Dockerfile: "FROM scratch\nRUN [\"sh\",\"-c\",\"echo ${0}lang:latest\",\"go\"]\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"literal"}}},
+		{ID: "finding-3-onbuild-heredoc", Finding: 3, Domain: "onbuild-heredoc", Dockerfile: "FROM scratch\nONBUILD RUN <<SCRIPT\necho golang:latest\nSCRIPT\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"literal"}}},
+		{ID: "finding-4-heredoc-delimiter-name", Finding: 4, Domain: "heredoc-identifiers", Dockerfile: "FROM scratch\nRUN <<golang\necho alpine\ngolang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "finding-4-unterminated-heredoc", Finding: 4, Domain: "heredoc-validity", Dockerfile: "FROM scratch\nRUN <<EOF\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-5-source-bearing-public-deadline", Finding: 5, Domain: "resource-deadline", Generator: &dockerContractGenerator{Kind: "distinct-nested-docker-defaults", Depth: 9331, Leaf: "golang:latestx", Count: 8, Bytes: 448084}, Accepted: true, Want: dockerContractWant{Classification: "invalid", ErrorContains: "normalization input limit"}},
+		{ID: "finding-6-empty-workdir", Finding: 6, Domain: "typed-validity", Dockerfile: "FROM scratch\nWORKDIR\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-6-run-before-from", Finding: 6, Domain: "stage-order", Dockerfile: "RUN true\nFROM scratch\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-6-forbidden-onbuild-from", Finding: 6, Domain: "onbuild-validity", Dockerfile: "FROM scratch\nONBUILD FROM scratch\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-6-invalid-arg-word", Finding: 6, Domain: "docker-word-validity", Dockerfile: "FROM scratch\nARG LENGTH=${#golang}\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-7-pattern-removal-is-valid-but-policy-unsupported", Finding: 7, Domain: "docker-word-operator-policy", Dockerfile: "FROM scratch\nARG IMAGE=${X#?}olang:latest\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-word"}}},
+		{ID: "finding-7-symbolic-tag-boundary", Finding: 7, Domain: "symbolic-image-boundary", Dockerfile: "FROM scratch\nARG IMAGE=go${X}latest\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"arg-default"}}},
+		{ID: "finding-7-top-level-forward-stage-rejected", Finding: 7, Domain: "copy-stage-resolution", Dockerfile: "FROM alpine AS first\nCOPY --from=later /x /x\nFROM busybox AS later\n", Want: dockerContractWant{Classification: "invalid"}},
+		{ID: "finding-7-onbuild-forward-stage-is-policy-unsupported", Finding: 7, Domain: "onbuild-stage-resolution", Dockerfile: "FROM alpine AS base\nONBUILD COPY --from=later /x /x\nFROM base AS child\nFROM busybox AS later\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"copy-from"}}},
+		{ID: "runtime-pattern-removal-composition", Finding: 8, Domain: "runtime-pattern-composition", Dockerfile: "FROM alpine\nRUN echo ${X#?}${Y:-olang:latest}\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"download", "literal"}}},
+		{ID: "escaped-docker-operator-literal", Finding: 8, Domain: "docker-word-quoting", Dockerfile: "FROM alpine\nARG DOC=\\${X#?}\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "copy-stage-index-out-of-range", Finding: 8, Domain: "copy-stage-resolution", Dockerfile: "FROM alpine\nCOPY --from=99 /x /x\n", Want: dockerContractWant{Classification: "invalid", ErrorContains: "invalid stage index 99"}},
+		{ID: "onbuild-copy-variable-expansion", Finding: 8, Domain: "onbuild-stage-resolution", Dockerfile: "FROM alpine AS base\nONBUILD COPY --from=${SOURCE} /x /x\nFROM base\n", Want: dockerContractWant{Classification: "invalid", ErrorContains: "expanded stage source"}},
+		{ID: "numeric-from-is-external-image", Finding: 3, Domain: "numeric-from-external", Dockerfile: "FROM 0\n", ErrorContains: "failed to resolve source metadata", Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "numeric-run-mount-is-external-image", Finding: 3, Domain: "numeric-run-mount-external", Dockerfile: "FROM scratch\nRUN --mount=type=bind,from=0,target=/src true\n", ErrorContains: "failed to resolve source metadata", Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "negative-copy-stage-index", Finding: 3, Domain: "negative-copy-index", Dockerfile: "FROM scratch\nCOPY --from=-1 /x /x\n", ErrorContains: "invalid stage index -1", Want: dockerContractWant{Classification: "invalid", ErrorContains: "invalid stage index -1"}},
+		{ID: "normalized-alias-lowercase-from-is-local", Finding: 3, Domain: "from-alias-normalized-local", Dockerfile: "FROM scratch AS Base\nSHELL [\"fish\",\"-c\"]\nFROM base\nRUN echo alpine\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-shell"}}},
+		{ID: "raw-uppercase-from-is-external", Finding: 3, Domain: "from-alias-raw-external", Dockerfile: "FROM scratch AS base\nFROM Base\n", ErrorContains: "must be lowercase", Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "copy-alias-lookup-is-case-insensitive", Finding: 3, Domain: "copy-alias-case-insensitive", Dockerfile: "FROM scratch AS Base\nFROM scratch\nCOPY --from=BASE /x /x\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "ascii-positional-arg-declaration", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "ARG 0=go\nFROM $0lang:latest\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name"}}},
+		{ID: "special-arg-declaration", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "ARG ?=go\nFROM $?lang:latest\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name"}}},
+		{ID: "special-env-declaration", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "FROM scratch\nENV ?=go\nENV V=$?lang\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name"}}},
+		{ID: "valueless-positional-arg-declaration", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "ARG 0\nFROM scratch\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name"}}},
+		{ID: "unicode-digit-arg-is-ordinary", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "ARG １２=go\nFROM ${１２}lang:latest\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"from"}}},
+		{ID: "absent-special-parameter-is-fixed-unset", Finding: 2, Domain: "docker-special-parameter-declaration", Dockerfile: "FROM scratch\nARG V=$$olang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "ipv6-registry-symbolic-port-path", Finding: 1, Domain: "symbolic-reference-grammar", Dockerfile: "ARG X\nFROM [::1]:${X}ang:latest\n", BuildArgs: map[string]string{"X": "1/gol"}, ErrorContains: "[::1]:1/golang:latest", Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"from"}}},
+		{ID: "symbolic-tag-is-not-repository", Finding: 1, Domain: "symbolic-reference-grammar", Dockerfile: "ARG X\nFROM [::1]:1/ns:${X}ang\n", BuildArgs: map[string]string{"X": "gol"}, ErrorContains: "[::1]:1/ns:golang", Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "correlated-variable-reference-negative", Finding: 1, Domain: "symbolic-reference-grammar", Dockerfile: "ARG X\nFROM [::1]:1/p${X}olan${X}x:latest\n", BuildArgs: map[string]string{"X": "a"}, ErrorContains: "[::1]:1/paolanax:latest", Want: dockerContractWant{Classification: "irrelevant"}},
+	}
 }
 
 func readDockerContract(t *testing.T) dockerContract {
@@ -327,24 +341,37 @@ func exactIDsEqual(want, got []string) bool {
 }
 
 func validateDockerConformanceInventory(cases []dockerConformanceCase) error {
-	wantIDs := slices.Collect(func(yield func(string) bool) {
-		for id := range dockerConformanceInventory {
-			yield(id)
-		}
-	})
-	gotIDs := make([]string, 0, len(cases))
-	for _, testCase := range cases {
-		gotIDs = append(gotIDs, testCase.ID)
-		if wantDomain, found := dockerConformanceInventory[testCase.ID]; found && testCase.Domain != wantDomain {
-			return fmt.Errorf("Docker conformance case %q domain = %q, want %q", testCase.ID, testCase.Domain, wantDomain)
-		}
+	scenarios := authoritativeDockerConformanceScenarios()
+	if len(cases) != len(scenarios) {
+		return fmt.Errorf("Docker conformance scenario count = %d, want exactly %d", len(cases), len(scenarios))
 	}
-	if !exactIDsEqual(wantIDs, gotIDs) {
-		slices.Sort(wantIDs)
-		slices.Sort(gotIDs)
-		return fmt.Errorf("Docker conformance inventory IDs = %q, want exactly %q", gotIDs, wantIDs)
+	for index, want := range scenarios {
+		got := cases[index]
+		if !reflect.DeepEqual(got, want) {
+			return fmt.Errorf("Docker conformance scenario %d = %#v, want authoritative scenario %#v", index, got, want)
+		}
 	}
 	return nil
+}
+
+func cloneDockerConformanceScenarios() []dockerConformanceCase {
+	scenarios := authoritativeDockerConformanceScenarios()
+	result := make([]dockerConformanceCase, len(scenarios))
+	for index, scenario := range scenarios {
+		result[index] = scenario
+		result[index].Want.CandidateKinds = slices.Clone(scenario.Want.CandidateKinds)
+		if scenario.BuildArgs != nil {
+			result[index].BuildArgs = make(map[string]string, len(scenario.BuildArgs))
+			for name, value := range scenario.BuildArgs {
+				result[index].BuildArgs[name] = value
+			}
+		}
+		if scenario.Generator != nil {
+			generator := *scenario.Generator
+			result[index].Generator = &generator
+		}
+	}
+	return result
 }
 
 func TestDockerContractStructuralCoverage(t *testing.T) {
@@ -357,6 +384,50 @@ func TestDockerContractInventoryRejectsEveryOmission(t *testing.T) {
 		withoutOne := append(slices.Clone(contract.DockerConformance[:index]), contract.DockerConformance[index+1:]...)
 		if err := validateDockerConformanceInventory(withoutOne); err == nil {
 			t.Errorf("inventory unexpectedly accepts omission of %q", omitted.ID)
+		}
+	}
+}
+
+func TestDockerContractInventoryRejectsScenarioMutation(t *testing.T) {
+	scenarios := authoritativeDockerConformanceScenarios()
+	mutations := map[string]func(*dockerConformanceCase){
+		"content": func(testCase *dockerConformanceCase) {
+			testCase.Dockerfile = "FROM scratch\n"
+			testCase.Generator = nil
+		},
+		"acceptance": func(testCase *dockerConformanceCase) {
+			testCase.Accepted = !testCase.Accepted
+		},
+		"classification": func(testCase *dockerConformanceCase) {
+			testCase.Want.Classification = "managed"
+		},
+		"build-args": func(testCase *dockerConformanceCase) {
+			if testCase.BuildArgs == nil {
+				testCase.BuildArgs = map[string]string{"__mutation__": "value"}
+				return
+			}
+			testCase.BuildArgs["__mutation__"] = "value"
+		},
+	}
+	for name, mutate := range mutations {
+		for index, scenario := range scenarios {
+			mutated := cloneDockerConformanceScenarios()
+			mutate(&mutated[index])
+			if reflect.DeepEqual(mutated[index], scenario) {
+				// A managed classification or true acceptance could already match;
+				// force a distinct value while retaining the mutation's field.
+				switch name {
+				case "classification":
+					mutated[index].Want.Classification = "__mutated__"
+				default:
+					t.Fatalf("%s mutation did not change scenario %q", name, scenario.ID)
+				}
+			}
+			t.Run(name+"/"+scenario.ID, func(t *testing.T) {
+				if err := validateDockerConformanceInventory(mutated); err == nil {
+					t.Fatalf("inventory unexpectedly accepts %s mutation of %q", name, scenario.ID)
+				}
+			})
 		}
 	}
 }
@@ -519,9 +590,9 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("docker is not available")
 	}
-	contract := readDockerContract(t)
+	readDockerContract(t)
 	contextDirectory := t.TempDir()
-	for _, testCase := range contract.DockerConformance {
+	for _, testCase := range authoritativeDockerConformanceScenarios() {
 		testCase := testCase
 		t.Run(testCase.ID, func(t *testing.T) {
 			contents := testCase.Dockerfile
@@ -531,7 +602,13 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 			assertDockerClassification(t, contents, testCase.Want)
 			commandContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			command := exec.CommandContext(commandContext, "docker", "build", "--check", "-f", "-", contextDirectory)
+			arguments := []string{"build", "--check"}
+			buildArgNames := slices.Sorted(maps.Keys(testCase.BuildArgs))
+			for _, name := range buildArgNames {
+				arguments = append(arguments, "--build-arg", name+"="+testCase.BuildArgs[name])
+			}
+			arguments = append(arguments, "-f", "-", contextDirectory)
+			command := exec.CommandContext(commandContext, "docker", arguments...)
 			// Conformance is about Dockerfile acceptance, not optional lint
 			// warnings such as UndefinedVar on deliberately adversarial inputs.
 			command.Stdin = strings.NewReader("# check=skip=all\n" + contents)
@@ -554,7 +631,8 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 
 func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 	seen := map[string]bool{}
-	for _, testCase := range readDockerContract(t).DockerConformance {
+	readDockerContract(t)
+	for _, testCase := range authoritativeDockerConformanceScenarios() {
 		if testCase.ID == "" || seen[testCase.ID] {
 			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
 		}

@@ -2,8 +2,9 @@
 
 This document is the normative contract for Go source discovery performed by
 `go-version-metadata`. Changes to this contract require an intentional policy
-change and corresponding changes to `testdata/docker-contract.json`. A new
-example alone is not a reason to extend an ad hoc scanner.
+change and corresponding changes to the authoritative typed scenarios in
+`docker_contract_test.go`. The JSON is a checked export of those scenarios. A
+new example alone is not a reason to extend an ad hoc scanner.
 
 The contract is tied to the BuildKit Dockerfile parser version pinned in the
 root `go.mod`. BuildKit owns Dockerfile parsing, escape-directive handling,
@@ -38,9 +39,11 @@ payloads that BuildKit forbids, including `ONBUILD FROM`, are `invalid`.
 ## What is a Go source
 
 A Go image source is an image reference whose final repository component is
-exactly `golang`, case-insensitively, optionally qualified by a registry,
-namespace, tag, digest, or Docker transport prefix. Names such as `golangci`,
-`my-golang`, `golang.foo`, and `golang/tools` are not Go image sources.
+exactly `golang`, optionally qualified by a registry, namespace, tag, digest,
+or Docker transport prefix. Docker repository names are lowercase; concrete
+token discovery is additionally ASCII-case-insensitive so invalid uppercase
+spellings fail conservatively. Names such as `golangci`, `my-golang`,
+`golang.foo`, and `golang/tools` are not Go image sources.
 
 A Go download source is a URL whose normalized value starts a Go distribution
 download under `https://go.dev/dl/go...` or the legacy
@@ -72,7 +75,13 @@ instruction text are not substituted for typed values.
 
 Go-bearing `ARG` and `ENV` values are reserved even when unused. This is the
 explicit alternative to partially evaluating Docker variable flow. Their names
-are always identifiers and are permitted, including the name `golang`.
+are identifiers and are permitted, including the name `golang`, except for
+names that collide with POSIX special parameters or ASCII positional digit
+parameters. Docker permits declarations such as `ARG 0=go` and then expands
+`$0`, which would make the otherwise fixed-unset special-parameter model
+state-dependent. Such ARG and ENV names, including valueless ARG declarations,
+are therefore explicitly `unsupported` by this bounded policy. Unicode digits
+are ordinary Docker identifiers and do not fall under this restriction.
 
 `LABEL`, `MAINTAINER`, `WORKDIR`, `EXPOSE`, `USER`, `VOLUME`, `STOPSIGNAL`,
 ordinary `COPY` operands, local `ADD` operands, destinations, option values not
@@ -157,8 +166,21 @@ operators, including prefix/suffix pattern removal, are classified
 single-quoted spellings remain literals. Unknown values use non-textual typed
 identities rather than forgeable sentinel strings. Repeated occurrences of one
 variable share one assignment, including partial suffix constraints at every
-occurrence. They remain conservatively source-capable when that shared value can
-introduce path delimiters: for example, `g${X}l${X}ng` becomes
+occurrence. Docker special parameters (`$`, `?`, `#`, `!`, `-`, `@`, and `*`)
+and ASCII positional digit parameters are deterministically unset in Dockerfile
+metadata expansion after the declaration restriction above is enforced. They
+remain absent from every ordinary-variable branch; they never receive the
+ordinary unset/empty/arbitrary symbolic domain.
+Symbolic image values are matched as complete references using a
+bounded automaton derived from the `distribution/reference` grammar. The
+automaton distinguishes bracketed IPv6 authorities, registry ports, repository
+paths, tags, and digests; a colon after a namespace therefore cannot be
+reinterpreted as a registry port. It omits only the tag maximum length and
+digest-encoding minimum length, which safely over-approximates invalid suffixes
+without allowing a Go source to bypass discovery. Variables act as correlated
+state transformations, not independent wildcards. They remain conservatively
+source-capable when that shared value can introduce path delimiters: for
+example, `g${X}l${X}ng` becomes
 `g/golal/golang` for `X=/gola`. Image classification tracks repository, tag,
 and digest state separately. Symbolic direct substitutions may introduce
 repository path, tag, or digest boundaries, so anchored fragments such as
@@ -186,6 +208,9 @@ helper enforces these deterministic limits:
 - branch alternatives for one Docker word: 729 (all unset, empty, and
   nonempty states for up to six variables);
 - total Docker alternative-expansion input work: 1 MiB;
+- symbolic image-reference automaton states: 128;
+- symbolic variable transformations: 2,048;
+- symbolic reference match work: 1 MiB state visits;
 - POSIX shell AST nodes: 100,000;
 - POSIX shell AST depth: 256; and
 - total visited or normalized semantic literal bytes: 16 MiB.
@@ -214,7 +239,9 @@ normalized-output budgets exactly once.
 
 ## Differential acceptance
 
-`testdata/docker-contract.json` is the acceptance matrix. Its
+The typed scenarios in `docker_contract_test.go` are the authoritative
+acceptance matrix; `testdata/docker-contract.json` must match them field for
+field. Its
 `buildkitWordOracles` compare normalized Docker words with the pinned BuildKit
 implementation. Its `shellOracles` use a fixed, trusted corpus, an explicitly
 listed environment, and a test-provided `capture` executable to compare word
@@ -222,7 +249,10 @@ construction with `/bin/sh`. Oracle cases never contain untrusted generated
 shell text. Every `dockerConformance` record contains both a named semantic
 domain and an executable helper-classification expectation. Ordinary tests run
 that expectation; the opt-in Docker lane runs it together with Docker's
-acceptance result. Finding numbers are historical metadata, not a coverage
+acceptance result. A typed scenario may include explicit build arguments as a
+Docker-only witness for one feasible symbolic assignment. The helper
+classification always uses the unbound Dockerfile and must remain sound for
+every assignment. Finding numbers are historical metadata, not a coverage
 criterion. `executableCrossProducts` generates every configured source
 kind × instruction field × shell/exec/heredoc form × top-level/`ONBUILD`
 context. Heredoc forms outside `RUN` remain explicit negative grammar cases,

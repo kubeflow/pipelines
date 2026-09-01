@@ -26,9 +26,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"regexp/syntax"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -76,24 +78,26 @@ var exactToolchainVersionPattern = regexp.MustCompile(`^1\.(?:0|[1-9][0-9]*)\.(?
 var canonicalDockerGoImagePattern = regexp.MustCompile(`^FROM golang:((?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))(-[a-z0-9][a-z0-9._-]*)?@sha256:([0-9a-f]{64}) AS ([a-z0-9][a-z0-9_.-]*)$`)
 
 const (
-	maxInputBytes             = 4 << 20
-	maxRequestEnvelopeBytes   = 32 << 20
-	maxYAMLDocuments          = 64
-	maxYAMLNodes              = 100000
-	maxYAMLEdges              = 150000
-	maxYAMLDepth              = 256
-	maxYAMLScalarBytes        = 1 << 20
-	maxDockerInstructions     = 100000
-	maxDockerCandidates       = 10000
-	maxDockerInstructionDepth = 256
-	maxShellASTNodes          = 100000
-	maxShellASTDepth          = 256
-	maxDockerNormalizedBytes  = 16 << 20
-	maxDockerWordInputBytes   = 16 << 10
-	maxDockerWordWorkBytes    = 32 << 10
-	maxDockerWordVariables    = 6
-	maxDockerWordAlternatives = 729
-	maxDockerAlternativeWork  = 1 << 20
+	maxInputBytes               = 4 << 20
+	maxRequestEnvelopeBytes     = 32 << 20
+	maxYAMLDocuments            = 64
+	maxYAMLNodes                = 100000
+	maxYAMLEdges                = 150000
+	maxYAMLDepth                = 256
+	maxYAMLScalarBytes          = 1 << 20
+	maxDockerInstructions       = 100000
+	maxDockerCandidates         = 10000
+	maxDockerInstructionDepth   = 256
+	maxShellASTNodes            = 100000
+	maxShellASTDepth            = 256
+	maxDockerNormalizedBytes    = 16 << 20
+	maxDockerWordInputBytes     = 16 << 10
+	maxDockerWordWorkBytes      = 32 << 10
+	maxDockerWordVariables      = 6
+	maxDockerWordAlternatives   = 729
+	maxDockerAlternativeWork    = 1 << 20
+	maxReferenceMachineStates   = 128
+	maxReferenceTransformations = 2048
 )
 
 type resourceLimitError struct {
@@ -869,7 +873,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 		if allLocal && !discovery.dockerWordHasUnknown(value) {
 			return nil
 		}
-		if matched || discovery.dockerWordUnknownMayContainSource(value, false) || containsDockerGoToken(value) {
+		if matched || discovery.dockerWordUnknownMayContainSource(value, false) {
 			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
 		}
 		return nil
@@ -882,6 +886,9 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 		}
 	case *instructions.ArgCommand:
 		for _, argument := range command.Args {
+			if isDockerWordFixedUnsetParameter(argument.Key) {
+				candidates = append(candidates, dockerCandidate{Kind: "unsupported-parameter-name", Value: argument.Key, Line: node.StartLine})
+			}
 			if argument.Value == nil {
 				continue
 			}
@@ -896,12 +903,15 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(*argument.Value, false) || containsDockerGoToken(*argument.Value) || goDownloadTextPattern.MatchString(*argument.Value) {
+			if matched || discovery.dockerWordUnknownMayContainSource(*argument.Value, false) {
 				candidates = append(candidates, dockerCandidate{Kind: "arg-default", Value: *argument.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.EnvCommand:
 		for _, environment := range command.Env {
+			if isDockerWordFixedUnsetParameter(environment.Key) {
+				candidates = append(candidates, dockerCandidate{Kind: "unsupported-parameter-name", Value: environment.Key, Line: node.StartLine})
+			}
 			alternatives, err := discovery.dockerWordAlternatives(environment.Value)
 			if err != nil {
 				return nil, err
@@ -913,7 +923,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(environment.Value, false) || containsDockerGoToken(environment.Value) || goDownloadTextPattern.MatchString(environment.Value) {
+			if matched || discovery.dockerWordUnknownMayContainSource(environment.Value, false) {
 				candidates = append(candidates, dockerCandidate{Kind: "env-value", Value: environment.Value, Line: node.StartLine})
 			}
 		}
@@ -930,7 +940,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(source, true) || goDownloadTextPattern.MatchString(source) {
+			if matched || discovery.dockerWordUnknownMayContainSource(source, true) {
 				candidates = append(candidates, dockerCandidate{Kind: "add-download", Value: source, Line: node.StartLine})
 			}
 		}
@@ -1178,10 +1188,21 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		return nil, err
 	}
 	variables := make([]string, 0, len(probe.Unmatched))
+	hasFixedUnsetParameter := false
 	for name := range probe.Unmatched {
-		variables = append(variables, name)
+		// Docker's word lexer recognizes shell special and positional parameter
+		// syntax, but Docker's ARG/ENV state cannot supply those parameters while
+		// expanding Dockerfile metadata. BuildKit consequently gives them the one
+		// deterministic unset value. Do not project the ordinary variable domain
+		// (unset, empty, arbitrary) onto values that cannot occur.
+		if isDockerWordFixedUnsetParameter(name) {
+			hasFixedUnsetParameter = true
+		} else {
+			variables = append(variables, name)
+		}
 	}
 	sort.Strings(variables)
+	validation := probe.Result
 	if len(variables) > maxDockerWordVariables {
 		err := resourceLimitf("Docker word references more than %d variables", maxDockerWordVariables)
 		discovery.wordMemo[key] = dockerWordResult{err: err}
@@ -1189,24 +1210,26 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 	}
 	unknownNames := make(map[string]bool, len(probe.Unmatched))
 	for name := range probe.Unmatched {
-		unknownNames[name] = true
+		if !isDockerWordFixedUnsetParameter(name) {
+			unknownNames[name] = true
+		}
 	}
 	if _, unsupported := unsupportedDockerWordOperator(value, unknownNames, discovery.escapeToken); unsupported {
 		// Content-sensitive operators are outside the contract. Do not feed the
 		// private identity framing through an operator that can rewrite it; typed
 		// validation will emit the policy diagnostic immediately after this call.
-		if err := discovery.accountNormalizedBytes(len(probe.Result)); err != nil {
+		if err := discovery.accountNormalizedBytes(len(validation)); err != nil {
 			discovery.wordMemo[key] = dockerWordResult{err: err}
 			return nil, err
 		}
-		concrete := symbolicValue{segments: []symbolicSegment{{literal: probe.Result}}}
+		concrete := symbolicValue{segments: []symbolicSegment{{literal: validation}}}
 		discovery.wordMemo[key] = dockerWordResult{
-			validation: probe.Result,
+			validation: validation,
 			values:     []symbolicValue{concrete},
 			variables:  unknownNames,
-			unknown:    len(probe.Unmatched) > 0,
+			unknown:    len(variables) > 0,
 		}
-		return []string{probe.Result}, nil
+		return []string{validation}, nil
 	}
 	combinations := 1
 	for range variables {
@@ -1227,6 +1250,7 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 	seenAlternatives := map[string]bool{}
 	seenSymbolic := map[string]bool{}
 	var firstExpansionError error
+	fixedValidationSet := false
 	for combination := 0; combination < combinations; combination++ {
 		discovery.alternativeWork += len(value)
 		if discovery.alternativeWork > maxDockerAlternativeWork {
@@ -1260,6 +1284,13 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 			discovery.wordMemo[key] = dockerWordResult{err: err}
 			return nil, err
 		}
+		if hasFixedUnsetParameter && !fixedValidationSet {
+			// This is an exact BuildKit expansion with special/positional
+			// parameters absent. Never model them as set-empty: the non-colon -
+			// and + operators distinguish those states.
+			validation = normalized
+			fixedValidationSet = true
+		}
 		if !seenAlternatives[normalized] {
 			seenAlternatives[normalized] = true
 			alternatives = append(alternatives, normalized)
@@ -1280,13 +1311,30 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		return nil, err
 	}
 	discovery.wordMemo[key] = dockerWordResult{
-		validation: probe.Result,
+		validation: validation,
 		values:     typedLiteralValues(alternatives),
 		symbolic:   symbolic,
 		variables:  unknownNames,
-		unknown:    len(probe.Unmatched) > 0,
+		unknown:    len(variables) > 0,
 	}
 	return alternatives, nil
+}
+
+func isDockerWordFixedUnsetParameter(name string) bool {
+	if name == "" {
+		return false
+	}
+	if character, size := utf8.DecodeRuneInString(name); size == len(name) && isShellSpecialParameter(character) {
+		return true
+	}
+	// POSIX positional parameters use ASCII decimal digits. Unicode digits are
+	// ordinary BuildKit variable identifiers and can be supplied by ARG/ENV.
+	for index := 0; index < len(name); index++ {
+		if name[index] < '0' || name[index] > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func typedLiteralValues(values []string) []symbolicValue {
@@ -1459,149 +1507,313 @@ func symbolicGlobCanStartWith(pattern symbolicValue, prefix string) bool {
 }
 
 func symbolicGolangImagePossible(symbolic symbolicValue) bool {
-	atoms := symbolic.atoms()
-	dockerPrefix := "docker://"
-	if len(atoms) >= len(dockerPrefix) {
-		matched := true
-		for index := range dockerPrefix {
-			matched = matched && atoms[index].variable == "" && strings.EqualFold(string(atoms[index].literal), dockerPrefix[index:index+1])
-		}
-		if matched {
-			atoms = atoms[len(dockerPrefix):]
-		}
-	}
-	if len(atoms) == 0 {
+	if len(symbolic.segments) == 0 || symbolic.onlyVariables() {
 		return false
 	}
-	onlyVariables := true
-	for _, atom := range atoms {
-		onlyVariables = onlyVariables && atom.variable != ""
+	anchored := false
+	for _, segment := range symbolic.segments {
+		for _, character := range segment.literal {
+			anchored = anchored || strings.ContainsRune("golang", character)
+		}
 	}
-	if onlyVariables {
+	if !anchored {
 		return false
 	}
-	starts := []int{0}
-	ends := []int{len(atoms)}
-	inSuffix := false
-	portCompatible := false
-	type injectedStart struct {
-		index  int
-		prefix string
-	}
-	injectedStarts := []injectedStart{}
-	for index, atom := range atoms {
-		if atom.variable != "" {
-			// An expansion can introduce a slash and start a new repository
-			// component. After a colon that is only possible when the text
-			// since the colon can still be a registry port.
-			if !inSuffix {
-				starts = append(starts, index)
-			} else if portCompatible {
-				injectedStarts = append(injectedStarts, injectedStart{index: index, prefix: "0/"})
-			}
-			ends = append(ends, index+1)
-			continue
-		}
-		switch atom.literal {
-		case '/':
-			starts = append(starts, index+1)
-			inSuffix = false
-			portCompatible = false
-		case ':', '@':
-			if !inSuffix {
-				ends = append(ends, index)
-				inSuffix = true
-				portCompatible = atom.literal == ':'
-			}
-		default:
-			if inSuffix && (atom.literal < '0' || atom.literal > '9') {
-				portCompatible = false
-			}
-		}
-	}
-	for _, start := range starts {
-		for _, end := range ends {
-			if start < end && symbolicGlobCanEqualAnchored(symbolicValueFromAtoms(atoms[start:end]), "golang") {
-				return true
-			}
-		}
-	}
-	for _, start := range injectedStarts {
-		// The injected slash starts a fresh repository component, so delimiters
-		// after it must be interpreted independently of the earlier colon that
-		// may have become a registry port.
-		injectedEnds := []int{len(atoms)}
-		for index := start.index + 1; index < len(atoms); index++ {
-			if atoms[index].variable == "" && (atoms[index].literal == ':' || atoms[index].literal == '@') {
-				injectedEnds = append(injectedEnds, index)
-			}
-		}
-		for _, end := range injectedEnds {
-			if start.index < end && symbolicGlobCanEqualAfterInjectedSlash(
-				symbolicValueFromAtoms(atoms[start.index:end]), "golang", start.prefix,
-			) {
-				return true
-			}
-		}
-	}
-	return false
+	return golangReferenceMachine().matches(symbolic)
 }
 
-// symbolicGlobCanEqualAfterInjectedSlash checks a component that begins inside
-// the first variable. injectedPrefix is the witness text before that component
-// (a slash, optionally preceded by a registry port). Keeping the full assignment
-// in the map preserves repeated-variable identity at later occurrences.
-func symbolicGlobCanEqualAfterInjectedSlash(pattern symbolicValue, target, injectedPrefix string) bool {
-	atoms := pattern.atoms()
-	if len(atoms) == 0 || atoms[0].variable == "" {
-		return false
+type symbolicReferenceMachine struct {
+	literalTransitions  [][]int
+	variableTransitions [][]int
+	accepting           []bool
+	transformations     [][]int
+}
+
+var golangReferenceMachineState struct {
+	sync.Once
+	machine *symbolicReferenceMachine
+}
+
+func golangReferenceMachine() *symbolicReferenceMachine {
+	golangReferenceMachineState.Do(func() {
+		// These productions mirror distribution/reference's ReferenceRegexp,
+		// with the remote name's final component fixed to the reserved source.
+		// Matching the complete grammar keeps authority ports, path separators,
+		// tags, and digests in their semantic positions. The tag maximum and
+		// digest-encoding minimum are deliberately omitted: accepting additional
+		// suffix lengths can only reject an invalid file conservatively, while
+		// counters for those limits would make the transition monoid unboundedly
+		// expensive for no source-discovery benefit.
+		alphanumeric := `[a-z0-9]+`
+		separator := `(?:[._]|__|[-]+)`
+		pathComponent := alphanumeric + `(?:` + separator + alphanumeric + `)*`
+		domainComponent := `(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9])`
+		domainName := domainComponent + `(?:\.` + domainComponent + `)*`
+		ipv6Address := `\[[a-fA-F0-9:]+\]`
+		authority := `(?:` + domainName + `|` + ipv6Address + `)(?::[0-9]+)?`
+		tag := `:[a-zA-Z0-9_][a-zA-Z0-9_.-]*`
+		digest := `@[a-zA-Z][a-zA-Z0-9]*(?:[-_+.][a-zA-Z][a-zA-Z0-9]*)*:[a-fA-F0-9]+`
+		pattern := `(?:docker://)?(?:` + authority + `/)?(?:` + pathComponent + `/)*(?P<reserved>golang)(?:` + tag + `)?(?:` + digest + `)?`
+		golangReferenceMachineState.machine = compileSymbolicReferenceMachine(pattern)
+	})
+	return golangReferenceMachineState.machine
+}
+
+func compileSymbolicReferenceMachine(pattern string) *symbolicReferenceMachine {
+	expression, err := syntax.Parse(pattern, syntax.Perl)
+	if err != nil {
+		panic(fmt.Sprintf("invalid internal image-reference grammar: %v", err))
 	}
-	// Keep the bounded policy's pure-variable exclusion: an unknown may
-	// introduce the registry-port/path boundary, but some literal source text
-	// must still anchor the reserved final component.
-	hasLiteral := false
-	for _, atom := range atoms {
-		hasLiteral = hasLiteral || atom.variable == ""
+	program, err := syntax.Compile(expression.Simplify())
+	if err != nil {
+		panic(fmt.Sprintf("cannot compile internal image-reference grammar: %v", err))
 	}
-	if !hasLiteral {
-		return false
+
+	targetCapture := 0
+	for capture, name := range expression.CapNames() {
+		if name == "reserved" {
+			targetCapture = capture
+		}
 	}
-	first := atoms[0].variable
-	for end := 0; end <= len(target); end++ {
-		assignment := injectedPrefix + target[:end]
-		assignments := map[string]string{first: assignment}
-		if symbolicAtomsCanEqual(atoms[1:], target[end:], assignments) {
+	if targetCapture == 0 {
+		panic("internal image-reference grammar lacks its reserved component capture")
+	}
+	type nfaState struct {
+		pc           uint32
+		insideTarget bool
+		matchedFixed bool
+	}
+	type dfaState struct {
+		nfaStates []nfaState
+	}
+	encodeNFAState := func(state nfaState) uint64 {
+		encoded := uint64(state.pc) << 2
+		if state.insideTarget {
+			encoded |= 2
+		}
+		if state.matchedFixed {
+			encoded |= 1
+		}
+		return encoded
+	}
+	closure := func(seed []nfaState) []nfaState {
+		seen := make(map[uint64]bool, len(seed))
+		pending := append([]nfaState(nil), seed...)
+		result := []nfaState{}
+		for len(pending) > 0 {
+			state := pending[len(pending)-1]
+			pending = pending[:len(pending)-1]
+			encoded := encodeNFAState(state)
+			if seen[encoded] {
+				continue
+			}
+			seen[encoded] = true
+			instruction := program.Inst[state.pc]
+			switch instruction.Op {
+			case syntax.InstAlt, syntax.InstAltMatch:
+				left, right := state, state
+				left.pc, right.pc = instruction.Out, instruction.Arg
+				pending = append(pending, left, right)
+			case syntax.InstCapture:
+				state.pc = instruction.Out
+				if instruction.Arg == uint32(2*targetCapture) {
+					state.insideTarget = true
+				} else if instruction.Arg == uint32(2*targetCapture+1) {
+					state.insideTarget = false
+				}
+				pending = append(pending, state)
+			case syntax.InstNop, syntax.InstEmptyWidth:
+				state.pc = instruction.Out
+				pending = append(pending, state)
+			default:
+				result = append(result, state)
+			}
+		}
+		sort.Slice(result, func(left, right int) bool {
+			return encodeNFAState(result[left]) < encodeNFAState(result[right])
+		})
+		return result
+	}
+	key := func(states []nfaState) string {
+		encoded := make([]uint64, len(states))
+		for index, state := range states {
+			encoded[index] = encodeNFAState(state)
+		}
+		return fmt.Sprint(encoded)
+	}
+	states := []dfaState{{nfaStates: closure([]nfaState{{pc: uint32(program.Start)}})}}
+	stateIndexes := map[string]int{key(states[0].nfaStates): 0}
+	literalTransitions := [][]int{}
+	variableTransitions := [][]int{}
+	accepting := []bool{}
+	for stateIndex := 0; stateIndex < len(states); stateIndex++ {
+		state := states[stateIndex]
+		literalRow := make([]int, 128)
+		variableRow := make([]int, 128)
+		isAccepting := false
+		for _, nfaState := range state.nfaStates {
+			isAccepting = isAccepting || nfaState.matchedFixed && program.Inst[nfaState.pc].Op == syntax.InstMatch
+		}
+		accepting = append(accepting, isAccepting)
+		for character := 0; character < len(literalRow); character++ {
+			literalSeed := []nfaState{}
+			variableSeed := []nfaState{}
+			for _, nfaState := range state.nfaStates {
+				instruction := program.Inst[nfaState.pc]
+				if (instruction.Op == syntax.InstRune || instruction.Op == syntax.InstRune1 || instruction.Op == syntax.InstRuneAny || instruction.Op == syntax.InstRuneAnyNotNL) && instruction.MatchRune(rune(character)) {
+					nextState := nfaState
+					nextState.pc = instruction.Out
+					variableSeed = append(variableSeed, nextState)
+					nextState.matchedFixed = nextState.matchedFixed || nextState.insideTarget
+					literalSeed = append(literalSeed, nextState)
+				}
+			}
+			for mode, next := range [][]nfaState{closure(literalSeed), closure(variableSeed)} {
+				nextKey := key(next)
+				nextIndex, found := stateIndexes[nextKey]
+				if !found {
+					nextIndex = len(states)
+					if nextIndex >= maxReferenceMachineStates {
+						panic("internal image-reference grammar exceeds its state budget")
+					}
+					stateIndexes[nextKey] = nextIndex
+					states = append(states, dfaState{nfaStates: next})
+				}
+				if mode == 0 {
+					literalRow[character] = nextIndex
+				} else {
+					variableRow[character] = nextIndex
+				}
+			}
+		}
+		literalTransitions = append(literalTransitions, literalRow)
+		variableTransitions = append(variableTransitions, variableRow)
+	}
+
+	machine := &symbolicReferenceMachine{
+		literalTransitions:  literalTransitions,
+		variableTransitions: variableTransitions,
+		accepting:           accepting,
+	}
+	machine.transformations = machine.transitionMonoid()
+	return machine
+}
+
+func (machine *symbolicReferenceMachine) transitionMonoid() [][]int {
+	identity := make([]int, len(machine.variableTransitions))
+	for index := range identity {
+		identity[index] = index
+	}
+	transformationKey := func(transformation []int) string {
+		encoded := make([]byte, len(transformation)*2)
+		for index, state := range transformation {
+			encoded[2*index] = byte(state)
+			encoded[2*index+1] = byte(state >> 8)
+		}
+		return string(encoded)
+	}
+	generators := [][]int{}
+	seenGenerators := map[string]bool{}
+	for character := 0; character < 128; character++ {
+		generator := make([]int, len(machine.variableTransitions))
+		for state := range generator {
+			generator[state] = machine.variableTransitions[state][character]
+		}
+		generatorKey := transformationKey(generator)
+		if !seenGenerators[generatorKey] {
+			seenGenerators[generatorKey] = true
+			generators = append(generators, generator)
+		}
+	}
+	transformations := [][]int{identity}
+	seen := map[string]bool{transformationKey(identity): true}
+	for index := 0; index < len(transformations); index++ {
+		current := transformations[index]
+		for _, generator := range generators {
+			next := make([]int, len(current))
+			for state := range current {
+				next[state] = generator[current[state]]
+			}
+			nextKey := transformationKey(next)
+			if !seen[nextKey] {
+				seen[nextKey] = true
+				if len(transformations) >= maxReferenceTransformations {
+					panic("internal image-reference grammar exceeds its transformation budget")
+				}
+				transformations = append(transformations, next)
+			}
+		}
+	}
+	return transformations
+}
+
+func (machine *symbolicReferenceMachine) matches(value symbolicValue) bool {
+	variableIndexes := map[string]int{}
+	variableOccurrences := map[string]int{}
+	for _, segment := range value.segments {
+		if segment.variable != "" {
+			variableOccurrences[segment.variable]++
+			if _, found := variableIndexes[segment.variable]; !found {
+				variableIndexes[segment.variable] = len(variableIndexes)
+			}
+		}
+	}
+	assignments := make([]int, len(variableIndexes))
+	for index := range assignments {
+		assignments[index] = -1
+	}
+	work := 0
+	var visit func(int, int) bool
+	visit = func(segmentIndex, state int) bool {
+		work++
+		// Exhausting the bounded proof budget fails closed: the caller will
+		// classify the word as a possible unmanaged source.
+		if work > maxDockerAlternativeWork {
 			return true
 		}
-	}
-	return false
-}
-
-func symbolicAtomsCanEqual(atoms []symbolicAtom, target string, assignments map[string]string) bool {
-	if len(atoms) == 0 {
-		return target == ""
-	}
-	atom := atoms[0]
-	if atom.variable != "" {
-		assigned, found := assignments[atom.variable]
-		if found {
-			return strings.HasPrefix(target, assigned) &&
-				symbolicAtomsCanEqual(atoms[1:], target[len(assigned):], assignments)
+		if segmentIndex == len(value.segments) {
+			return machine.accepting[state]
 		}
-		for end := 0; end <= len(target); end++ {
-			branch := make(map[string]string, len(assignments)+1)
-			for identity, value := range assignments {
-				branch[identity] = value
+		segment := value.segments[segmentIndex]
+		if segment.variable == "" {
+			for index := 0; index < len(segment.literal); index++ {
+				character := segment.literal[index]
+				if character >= 128 {
+					return false
+				}
+				state = machine.literalTransitions[state][character]
 			}
-			branch[atom.variable] = target[:end]
-			if symbolicAtomsCanEqual(atoms[1:], target[end:], branch) {
+			return visit(segmentIndex+1, state)
+		}
+		variableIndex := variableIndexes[segment.variable]
+		if variableOccurrences[segment.variable] == 1 {
+			seenStates := make([]bool, len(machine.variableTransitions))
+			for _, transformation := range machine.transformations {
+				nextState := transformation[state]
+				if seenStates[nextState] {
+					continue
+				}
+				seenStates[nextState] = true
+				if visit(segmentIndex+1, nextState) {
+					return true
+				}
+			}
+			return false
+		}
+		if transformationIndex := assignments[variableIndex]; transformationIndex >= 0 {
+			return visit(segmentIndex+1, machine.transformations[transformationIndex][state])
+		}
+		for transformationIndex, transformation := range machine.transformations {
+			assignments[variableIndex] = transformationIndex
+			if visit(segmentIndex+1, transformation[state]) {
+				assignments[variableIndex] = -1
 				return true
 			}
 		}
+		assignments[variableIndex] = -1
 		return false
 	}
-	return len(target) > 0 && strings.EqualFold(string(atom.literal), target[:1]) &&
-		symbolicAtomsCanEqual(atoms[1:], target[1:], assignments)
+	return visit(0, 0)
 }
 
 func symbolicValueFromAtoms(atoms []symbolicAtom) symbolicValue {
@@ -1622,10 +1834,6 @@ func symbolicValueFromAtoms(atoms []symbolicAtom) symbolicValue {
 
 func symbolicGlobCanEqual(pattern symbolicValue, target string) bool {
 	return symbolicGlobCanEqualState(pattern, target, false, false)
-}
-
-func symbolicGlobCanEqualAnchored(pattern symbolicValue, target string) bool {
-	return symbolicGlobCanEqualState(pattern, target, true, true)
 }
 
 func symbolicGlobCanEqualState(pattern symbolicValue, target string, requireFixed, foldCase bool) bool {

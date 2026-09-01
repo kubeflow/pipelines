@@ -6,7 +6,7 @@
     "candidateKinds": "ordered semantic source kinds; omitted when no candidate is required",
     "executableCrossProducts": "generated source kind x instruction field x form x deferred-context acceptance cases",
     "wordExpansionCrossProducts": "generated conditional-operator branches across variable states, source kinds, and typed fields",
-    "dockerConformance": "executable helper classification plus opt-in Docker --check acceptance, grouped by semantic domain"
+    "dockerConformance": "executable helper classification plus opt-in Docker --check acceptance with optional build-argument witnesses, grouped by semantic domain"
   },
   "buildkitWordOracles": [
     {"id": "docker-backslash-concat", "escape": "\\", "word": "g\\olang:latest", "env": {}, "want": "golang:latest"},
@@ -253,6 +253,84 @@
       "domain": "copy-alias-case-insensitive",
       "dockerfile": "FROM scratch AS Base\nFROM scratch\nCOPY --from=BASE /x /x\n",
       "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "ascii-positional-arg-declaration",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "ARG 0=go\nFROM $0lang:latest\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "special-arg-declaration",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "ARG ?=go\nFROM $?lang:latest\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "special-env-declaration",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "FROM scratch\nENV ?=go\nENV V=$?lang\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "valueless-positional-arg-declaration",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "ARG 0\nFROM scratch\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "unicode-digit-arg-is-ordinary",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "ARG １２=go\nFROM ${１２}lang:latest\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["from"]}
+    },
+    {
+      "id": "absent-special-parameter-is-fixed-unset",
+      "finding": 2,
+      "domain": "docker-special-parameter-declaration",
+      "dockerfile": "FROM scratch\nARG V=$$olang\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "ipv6-registry-symbolic-port-path",
+      "finding": 1,
+      "domain": "symbolic-reference-grammar",
+      "dockerfile": "ARG X\nFROM [::1]:${X}ang:latest\n",
+      "buildArgs": {"X": "1/gol"},
+      "accepted": false,
+      "errorContains": "[::1]:1/golang:latest",
+      "want": {"classification": "unsupported", "candidateKinds": ["from"]}
+    },
+    {
+      "id": "symbolic-tag-is-not-repository",
+      "finding": 1,
+      "domain": "symbolic-reference-grammar",
+      "dockerfile": "ARG X\nFROM [::1]:1/ns:${X}ang\n",
+      "buildArgs": {"X": "gol"},
+      "accepted": false,
+      "errorContains": "[::1]:1/ns:golang",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "correlated-variable-reference-negative",
+      "finding": 1,
+      "domain": "symbolic-reference-grammar",
+      "dockerfile": "ARG X\nFROM [::1]:1/p${X}olan${X}x:latest\n",
+      "buildArgs": {"X": "a"},
+      "accepted": false,
+      "errorContains": "[::1]:1/paolanax:latest",
       "want": {"classification": "irrelevant"}
     }
   ],

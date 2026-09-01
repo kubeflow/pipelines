@@ -815,6 +815,196 @@ func TestDockerWordAlternativesAcrossExpansionBoundaries(t *testing.T) {
 	}
 }
 
+func TestDockerWordSpecialParametersUseBuildKitUnsetDomain(t *testing.T) {
+	type form struct {
+		name           string
+		value          func(string) string
+		wantNormalized string
+		classification string
+	}
+	forms := []form{
+		{
+			name:           "unbraced",
+			value:          func(parameter string) string { return "$" + parameter + "olang" },
+			wantNormalized: "olang",
+			classification: "irrelevant",
+		},
+		{
+			name:           "braced",
+			value:          func(parameter string) string { return "${" + parameter + "}olang" },
+			wantNormalized: "olang",
+			classification: "irrelevant",
+		},
+		{
+			name:           "unset default non-colon",
+			value:          func(parameter string) string { return "${" + parameter + "-go}lang" },
+			wantNormalized: "golang",
+			classification: "unsupported",
+		},
+		{
+			name:           "unset or empty default colon",
+			value:          func(parameter string) string { return "${" + parameter + ":-go}lang" },
+			wantNormalized: "golang",
+			classification: "unsupported",
+		},
+		{
+			name:           "set alternative non-colon",
+			value:          func(parameter string) string { return "${" + parameter + "+go}lang" },
+			wantNormalized: "lang",
+			classification: "irrelevant",
+		},
+		{
+			name:           "set and nonempty alternative colon",
+			value:          func(parameter string) string { return "${" + parameter + ":+go}lang" },
+			wantNormalized: "lang",
+			classification: "irrelevant",
+		},
+		{
+			name:           "inactive set alternative contains source non-colon",
+			value:          func(parameter string) string { return "${" + parameter + "+golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+		{
+			name:           "inactive set alternative contains source colon",
+			value:          func(parameter string) string { return "${" + parameter + ":+golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+		{
+			name:           "small prefix removal contains source",
+			value:          func(parameter string) string { return "${" + parameter + "#golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+		{
+			name:           "large prefix removal contains source",
+			value:          func(parameter string) string { return "${" + parameter + "##golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+		{
+			name:           "small suffix removal contains source",
+			value:          func(parameter string) string { return "${" + parameter + "%golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+		{
+			name:           "large suffix removal contains source",
+			value:          func(parameter string) string { return "${" + parameter + "%%golang}" },
+			wantNormalized: "",
+			classification: "irrelevant",
+		},
+	}
+	for _, parameter := range []string{"$", "?", "#", "!", "-", "0", "1", "@", "*"} {
+		for _, form := range forms {
+			t.Run(parameter+"/"+form.name, func(t *testing.T) {
+				value := form.value(parameter)
+				lexer := shell.NewLex('\\')
+				lexer.SkipUnsetEnv = false
+				buildKit, _, err := lexer.ProcessWord(value, shell.EnvsFromSlice(nil))
+				if err != nil {
+					t.Fatalf("BuildKit ProcessWord(%q): %v", value, err)
+				}
+				if buildKit != form.wantNormalized {
+					t.Fatalf("BuildKit ProcessWord(%q) = %q, want %q", value, buildKit, form.wantNormalized)
+				}
+
+				discovery := newDockerDiscovery('\\')
+				normalized, err := discovery.normalizeDockerWord(value)
+				if err != nil {
+					t.Fatalf("normalizeDockerWord(%q): %v", value, err)
+				}
+				if normalized != buildKit {
+					t.Fatalf("normalizeDockerWord(%q) = %q, BuildKit = %q", value, normalized, buildKit)
+				}
+				if discovery.dockerWordHasUnknown(value) {
+					t.Fatalf("dockerWordHasUnknown(%q) = true for fixed-unset parameter", value)
+				}
+
+				metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nARG V=" + value + "\n"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				if metadata.DockerClassification != form.classification {
+					t.Fatalf("classification = %q, want %q; candidates=%#v error=%q", metadata.DockerClassification, form.classification, metadata.DockerCandidates, metadata.DockerError)
+				}
+			})
+		}
+	}
+
+	for _, parameter := range []string{"X", "１２", "名"} {
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nARG V=${" + parameter + "}olang\n"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "unsupported" {
+			t.Fatalf("ordinary variable %q classification = %q, want unsupported", parameter, metadata.DockerClassification)
+		}
+	}
+
+	for _, test := range []struct {
+		name           string
+		value          string
+		classification string
+		outputs        []string
+	}{
+		{
+			name:           "ordinary branch cannot assign special parameter",
+			value:          `${X:+$?olang}`,
+			classification: "irrelevant",
+			outputs:        []string{"", "", "olang"},
+		},
+		{
+			name:           "fixed unset default retains ordinary domain",
+			value:          `${?-${X}lang}`,
+			classification: "unsupported",
+			outputs:        []string{"lang", "lang", "golang"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			for index, environment := range [][]string{nil, {"X="}, {"X=go"}} {
+				lexer := shell.NewLex('\\')
+				lexer.SkipUnsetEnv = false
+				output, _, err := lexer.ProcessWord(test.value, shell.EnvsFromSlice(environment))
+				if err != nil {
+					t.Fatalf("BuildKit state %d: %v", index, err)
+				}
+				if output != test.outputs[index] {
+					t.Fatalf("BuildKit state %d output = %q, want %q", index, output, test.outputs[index])
+				}
+			}
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nARG V=" + test.value + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v error=%q", metadata.DockerClassification, test.classification, metadata.DockerCandidates, metadata.DockerError)
+			}
+		})
+	}
+
+	for _, instruction := range []string{
+		"ARG V=${?+golang}",
+		"ENV V=${?+golang}",
+		"FROM alpine:${?+golang}",
+	} {
+		t.Run("inactive contiguous source/"+strings.Fields(instruction)[0], func(t *testing.T) {
+			contents := "FROM scratch\n" + instruction + "\n"
+			if strings.HasPrefix(instruction, "FROM ") {
+				contents = instruction + "\n"
+			}
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "irrelevant" {
+				t.Fatalf("%s classification = %q, want irrelevant; candidates=%#v error=%q", instruction, metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+			}
+		})
+	}
+}
+
 func TestSymbolicImageRepositoryComponent(t *testing.T) {
 	for _, test := range []struct {
 		name           string
@@ -842,6 +1032,41 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 			classification: "unsupported",
 		},
 		{
+			name:           "bracketed IPv6 authority and symbolic port path",
+			image:          "[2001:db8::1]:${VALUE}ang:latest",
+			classification: "unsupported",
+		},
+		{
+			name:           "tag text cannot become a repository component",
+			image:          "registry.example/ns:${VALUE}ang",
+			classification: "irrelevant",
+		},
+		{
+			name:           "repeated variable assignments stay correlated",
+			image:          "p${VALUE}olan${VALUE}x:latest",
+			classification: "irrelevant",
+		},
+		{
+			name:           "tag and digest follow a symbolic repository",
+			image:          "registry.example/ns/go${VALUE}ang:v1@sha256:0123456789abcdef0123456789abcdef",
+			classification: "unsupported",
+		},
+		{
+			name:           "uppercase repository is outside Docker reference grammar",
+			image:          "registry.example/ns/GO${VALUE}ANG:latest",
+			classification: "irrelevant",
+		},
+		{
+			name:           "invalid repeated period is not a path separator",
+			image:          "registry.example/ns../go${VALUE}ang:latest",
+			classification: "irrelevant",
+		},
+		{
+			name:           "nonhex digest encoding is outside reference grammar",
+			image:          "go${VALUE}ang@sha256:not-hex",
+			classification: "irrelevant",
+		},
+		{
 			name:           "pure variable tag remains outside bounded projection",
 			image:          "alpine:${TAG}",
 			classification: "irrelevant",
@@ -854,6 +1079,77 @@ func TestSymbolicImageRepositoryComponent(t *testing.T) {
 			}
 			if metadata.DockerClassification != test.classification {
 				t.Fatalf("classification = %q, want %q; candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerCandidates)
+			}
+		})
+	}
+}
+
+func TestSymbolicReferenceMachineBounds(t *testing.T) {
+	machine := golangReferenceMachine()
+	if got := len(machine.literalTransitions); got > maxReferenceMachineStates {
+		t.Fatalf("reference machine has %d states, limit %d", got, maxReferenceMachineStates)
+	}
+	if got := len(machine.transformations); got > maxReferenceTransformations {
+		t.Fatalf("reference machine has %d transformations, limit %d", got, maxReferenceTransformations)
+	}
+	if got, want := len(machine.literalTransitions), 77; got != want {
+		t.Fatalf("reference machine states = %d, want %d", got, want)
+	}
+	if got, want := len(machine.transformations), 1064; got != want {
+		t.Fatalf("reference transformations = %d, want %d", got, want)
+	}
+}
+
+func TestRepositorySymbolicNonGoValues(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		contents string
+	}{
+		{
+			name:     "release node module path",
+			contents: "FROM alpine\nENV NODE_PATH=$NVM_DIR/versions/node/v$NODE_VERSION/lib/node_modules\n",
+		},
+		{
+			name:     "release node executable path",
+			contents: "FROM alpine\nENV PATH=$NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH\n",
+		},
+		{
+			name:     "proxy virtual environment path",
+			contents: "FROM alpine\nENV PATH=\"${VIRTUAL_ENV}/bin:${PATH}\"\n",
+		},
+		{
+			name:     "frontend build image",
+			contents: "ARG NODE_VERSION\nFROM node:${NODE_VERSION}-slim AS build\n",
+		},
+		{
+			name:     "frontend runtime image",
+			contents: "ARG NODE_VERSION\nARG BASE_IMAGE=alpine\nFROM node:${NODE_VERSION}-${BASE_IMAGE}\n",
+		},
+		{
+			name: "frontend integration Node download",
+			contents: "FROM alpine\nARG NODE_VERSION\nRUN curl -fsSL \"https://nodejs.org/dist/v${NODE_VERSION}/" +
+				"node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\" | tar -xJ\n",
+		},
+		{
+			name: "backend protoc download",
+			contents: "FROM alpine\nARG PROTOC_VERSION\nRUN curl -L -o protoc.zip " +
+				"https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/" +
+				"protoc-${PROTOC_VERSION}-linux-x86_64.zip\n",
+		},
+		{
+			name: "backend generator download",
+			contents: "FROM alpine\nRUN curl -fL -o /usr/bin/swagger " +
+				"\"https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/" +
+				"swagger_linux_amd64\"\n",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "irrelevant" {
+				t.Fatalf("classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
 			}
 		})
 	}
@@ -1327,8 +1623,17 @@ func TestDockerGoTokenShellParameterNames(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if metadata.DockerClassification != "unsupported" {
-				t.Errorf("parameter %q with operator %q classification = %q, want unsupported", parameter, operator, metadata.DockerClassification)
+			want := "unsupported"
+			if isDockerWordFixedUnsetParameter(parameter) {
+				switch operator {
+				case "?", ":?":
+					want = "invalid"
+				case "+", ":+", "#", "%":
+					want = "irrelevant"
+				}
+			}
+			if metadata.DockerClassification != want {
+				t.Errorf("parameter %q with operator %q classification = %q, want %s", parameter, operator, metadata.DockerClassification, want)
 			}
 		}
 	}
