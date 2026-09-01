@@ -76,7 +76,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 	artifactPath, err := s.resourceManager.ResolveArtifactPath(runID, nodeID, artifactName)
 	if err != nil {
 		if isNotFoundError(err) {
-			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact: %v", err))
+			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact"))
 		} else {
 			s.writeErrorToResponse(response, http.StatusInternalServerError, err)
 		}
@@ -86,7 +86,7 @@ func (s *RunArtifactServer) ReadArtifact(response http.ResponseWriter, r *http.R
 	reader, err := s.resourceManager.ObjectStore().GetFileReader(r.Context(), artifactPath)
 	if err != nil {
 		if isNotFoundError(err) {
-			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact: artifact file not found at path %q", artifactPath))
+			s.writeErrorToResponse(response, http.StatusNotFound, util.NewNotFoundError(err, "Failed to read artifact file at path %q", artifactPath))
 		} else {
 			s.writeErrorToResponse(response, http.StatusInternalServerError, fmt.Errorf("failed to get file reader: %v", err))
 		}
@@ -139,7 +139,11 @@ func (s *RunArtifactServer) writeErrorToResponse(response http.ResponseWriter, c
 	glog.Errorf("Failed to read artifact. Error: %+v", err)
 	response.WriteHeader(code)
 	response.Header().Set("Content-Type", "application/json")
-	errorResponse := &api.Error{ErrorMessage: err.Error(), ErrorDetails: fmt.Sprintf("%+v", err)}
+	errMsg := err.Error()
+	if userErr, ok := err.(*util.UserError); ok && userErr.ExternalMessage() != "" {
+		errMsg = userErr.ExternalMessage()
+	}
+	errorResponse := &api.Error{ErrorMessage: errMsg, ErrorDetails: fmt.Sprintf("%+v", err)}
 	errBytes, err := json.Marshal(errorResponse)
 	if err != nil {
 		if _, writeErr := response.Write([]byte(`{"error_message": "Error streaming artifact"}`)); writeErr != nil {
