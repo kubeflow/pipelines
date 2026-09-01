@@ -60,10 +60,12 @@ type dockerWordExpansionOperator struct {
 type dockerConformanceCase struct {
 	ID            string                   `json:"id"`
 	Finding       int                      `json:"finding"`
+	Domain        string                   `json:"domain"`
 	Dockerfile    string                   `json:"dockerfile"`
 	Generator     *dockerContractGenerator `json:"generator"`
 	Accepted      bool                     `json:"accepted"`
 	ErrorContains string                   `json:"errorContains"`
+	Want          dockerContractWant       `json:"want"`
 }
 
 type dockerExecutableCrossProduct struct {
@@ -276,6 +278,7 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 			if testCase.Generator != nil {
 				contents = generateDockerContractInput(t, *testCase.Generator)
 			}
+			assertDockerClassification(t, contents, testCase.Want)
 			commandContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			command := exec.CommandContext(commandContext, "docker", "build", "--check", "-f", "-", contextDirectory)
@@ -299,26 +302,47 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 	}
 }
 
-func TestDockerContractDockerConformanceCoverage(t *testing.T) {
-	findings := map[int]bool{}
+func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 	seen := map[string]bool{}
 	for _, testCase := range readDockerContract(t).DockerConformance {
 		if testCase.ID == "" || seen[testCase.ID] {
 			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
 		}
 		seen[testCase.ID] = true
-		if testCase.Finding < 1 || testCase.Finding > 7 {
-			t.Errorf("%s: finding = %d, want 1 through 7", testCase.ID, testCase.Finding)
+		if testCase.Domain == "" {
+			t.Errorf("%s: semantic domain must not be empty", testCase.ID)
 		}
-		findings[testCase.Finding] = true
+		if testCase.Want.Classification == "" {
+			t.Errorf("%s: executable classification oracle is required", testCase.ID)
+		}
 		if (testCase.Dockerfile == "") == (testCase.Generator == nil) {
 			t.Errorf("%s: exactly one of dockerfile or generator must be set", testCase.ID)
 		}
-	}
-	for finding := 1; finding <= 7; finding++ {
-		if !findings[finding] {
-			t.Errorf("Docker conformance corpus does not cover finding %d", finding)
+		contents := testCase.Dockerfile
+		if testCase.Generator != nil {
+			contents = generateDockerContractInput(t, *testCase.Generator)
 		}
+		assertDockerClassification(t, contents, testCase.Want)
+	}
+}
+
+func assertDockerClassification(t *testing.T, contents string, want dockerContractWant) {
+	t.Helper()
+	classification, candidates, parseError := classifyDockerfile(contents)
+	if classification != want.Classification {
+		t.Fatalf("classification = %q, want %q (error %q)", classification, want.Classification, parseError)
+	}
+	if want.CandidateKinds != nil {
+		kinds := make([]string, 0, len(candidates))
+		for _, candidate := range candidates {
+			kinds = append(kinds, candidate.Kind)
+		}
+		if !slices.Equal(kinds, want.CandidateKinds) {
+			t.Fatalf("candidate kinds = %q, want %q", kinds, want.CandidateKinds)
+		}
+	}
+	if want.ErrorContains != "" && !strings.Contains(parseError, want.ErrorContains) {
+		t.Fatalf("error %q does not contain %q", parseError, want.ErrorContains)
 	}
 }
 

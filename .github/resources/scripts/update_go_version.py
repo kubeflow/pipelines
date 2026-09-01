@@ -16,6 +16,7 @@
 
 import argparse
 from contextlib import contextmanager
+import ctypes
 from dataclasses import dataclass
 import fcntl
 import json
@@ -71,6 +72,9 @@ class WorktreePathSnapshot:
     contents: bytes
     file_type: int
     mode: int
+    device: int
+    inode: int
+    link_count: int
 
 
 @dataclass(frozen=True)
@@ -911,20 +915,51 @@ def _snapshot_worktree_path(
     relative_path: Path,
 ) -> WorktreePathSnapshot:
     path = repo_root / relative_path
+    return _snapshot_regular_path(path, relative_path)
+
+
+def _snapshot_regular_path(
+    path: Path,
+    display_path: Path,
+) -> WorktreePathSnapshot:
     try:
-        path_stat = path.lstat()
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
     except FileNotFoundError as error:
-        raise RuntimeError(f'{relative_path} disappeared during Go update') \
+        raise RuntimeError(f'{display_path} disappeared during Go update') \
             from error
-    if not stat.S_ISREG(path_stat.st_mode):
-        raise ValueError(
-            f'{relative_path} must be a regular file; symlinks and other '
-            'special files are not supported')
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise ValueError(
+                f'{display_path} must be a regular file; symlinks and other '
+                'special files are not supported')
+        if before.st_nlink != 1:
+            raise ValueError(
+                f'{display_path} must not have hardlinks outside the managed '
+                'path set')
+        with os.fdopen(descriptor, 'rb', closefd=False) as source:
+            contents = source.read()
+        after = os.fstat(descriptor)
+        current = path.lstat()
+        identity = (before.st_dev, before.st_ino)
+        if ((after.st_dev, after.st_ino) != identity or
+                (current.st_dev, current.st_ino) != identity or
+                after.st_mode != before.st_mode or
+                after.st_nlink != before.st_nlink or
+                after.st_size != before.st_size or
+                after.st_mtime_ns != before.st_mtime_ns):
+            raise RuntimeError(
+                f'{display_path} changed while capturing Go update state')
+    finally:
+        os.close(descriptor)
     return WorktreePathSnapshot(
-        path=relative_path,
-        contents=path.read_bytes(),
-        file_type=stat.S_IFMT(path_stat.st_mode),
-        mode=stat.S_IMODE(path_stat.st_mode),
+        path=display_path,
+        contents=contents,
+        file_type=stat.S_IFMT(before.st_mode),
+        mode=stat.S_IMODE(before.st_mode),
+        device=before.st_dev,
+        inode=before.st_ino,
+        link_count=before.st_nlink,
     )
 
 
@@ -1286,39 +1321,130 @@ def _snapshot_state_matches(repo_root: Path, snapshot: RepositorySnapshot,
         return False
 
 
+def _same_worktree_path(left: WorktreePathSnapshot,
+                        right: WorktreePathSnapshot) -> bool:
+    return (left.contents == right.contents and
+            left.file_type == right.file_type and left.mode == right.mode and
+            left.device == right.device and left.inode == right.inode and
+            left.link_count == right.link_count)
+
+
+def _atomic_exchange(left: Path, right: Path) -> None:
+    """Atomically exchange two same-filesystem paths or fail explicitly."""
+    library = ctypes.CDLL(None, use_errno=True)
+    left_bytes = os.fsencode(left)
+    right_bytes = os.fsencode(right)
+    if sys.platform == 'darwin':
+        rename = library.renamex_np
+        rename.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint)
+        rename.restype = ctypes.c_int
+        result = rename(left_bytes, right_bytes, 0x00000002)  # RENAME_SWAP
+    elif sys.platform.startswith('linux'):
+        try:
+            rename = library.renameat2
+        except AttributeError as error:
+            raise RuntimeError(
+                'conditional Go update publication requires renameat2') \
+                from error
+        rename.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
+                           ctypes.c_char_p, ctypes.c_uint)
+        rename.restype = ctypes.c_int
+        result = rename(-100, left_bytes, -100, right_bytes,
+                        0x00000002)  # AT_FDCWD, RENAME_EXCHANGE
+    else:
+        raise RuntimeError(
+            f'conditional Go update publication is not supported on '
+            f'{sys.platform}')
+    if result != 0:
+        error_number = ctypes.get_errno()
+        raise OSError(error_number, os.strerror(error_number),
+                      f'{left} <-> {right}')
+
+
 def _write_managed_contents(
     repo_root: Path,
     relative_path: Path,
     contents: str,
     snapshot: RepositorySnapshot,
+    expected_live_contents: bytes,
 ) -> None:
     path = repo_root / relative_path
     expected_path = next(state for state in snapshot.worktree_paths
                          if state.path == relative_path)
-    _ensure_regular_destination(path, relative_path)
-    with path.open('r+b') as destination:
-        destination.seek(0)
-        destination.write(contents.encode('utf-8'))
-        destination.truncate()
-        destination.flush()
-        os.fsync(destination.fileno())
+    live_before = _snapshot_worktree_path(repo_root, relative_path)
+    if (live_before.contents != expected_live_contents or
+            live_before.file_type != expected_path.file_type or
+            live_before.mode != expected_path.mode):
+        raise RuntimeError(
+            f'{relative_path} changed before conditional Go update '
+            'publication')
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=path.parent, prefix=f'.{path.name}.go-update-')
+    temporary = Path(temporary_name)
+    exchanged = False
+    candidate = None
+    try:
+        with os.fdopen(descriptor, 'wb') as destination:
+            descriptor = -1
+            os.fchmod(destination.fileno(), expected_path.mode)
+            destination.write(contents.encode('utf-8'))
+            destination.flush()
+            os.fsync(destination.fileno())
+        candidate = _snapshot_regular_path(temporary, relative_path)
+        _fsync_directory(path.parent)
+        _atomic_exchange(path, temporary)
+        exchanged = True
+        displaced = _snapshot_regular_path(temporary, relative_path)
+        if not _same_worktree_path(displaced, live_before):
+            current = _snapshot_worktree_path(repo_root, relative_path)
+            if _same_worktree_path(current, candidate):
+                _atomic_exchange(path, temporary)
+                exchanged = False
+                _fsync_directory(path.parent)
+            raise RuntimeError(
+                f'{relative_path} changed during conditional Go update '
+                'publication')
+        temporary.unlink()
+        exchanged = False
+        _fsync_directory(path.parent)
+    except BaseException:
+        if descriptor >= 0:
+            os.close(descriptor)
+        if exchanged and candidate is not None and temporary.exists():
+            try:
+                current = _snapshot_worktree_path(repo_root, relative_path)
+                if _same_worktree_path(current, candidate):
+                    _atomic_exchange(path, temporary)
+                    exchanged = False
+                    _fsync_directory(path.parent)
+            except Exception:
+                pass
+        if temporary.exists() and not exchanged:
+            temporary.unlink()
+        raise
     current = _snapshot_worktree_path(repo_root, relative_path)
     if (current.contents != contents.encode('utf-8') or
             current.file_type != expected_path.file_type or
             current.mode != expected_path.mode):
         raise RuntimeError(
-            f'{relative_path} changed while writing the Go version update')
+            f'{relative_path} changed after conditional Go update '
+            'publication')
 
 
 def _apply_managed_contents(repo_root: Path, relative_path: Path, contents: str,
                             snapshot: RepositorySnapshot) -> None:
-    _write_managed_contents(repo_root, relative_path, contents, snapshot)
+    expected = next(state.contents for state in snapshot.worktree_paths
+                    if state.path == relative_path)
+    _write_managed_contents(repo_root, relative_path, contents, snapshot,
+                            expected)
 
 
 def _restore_managed_contents(repo_root: Path, relative_path: Path,
                               contents: str,
-                              snapshot: RepositorySnapshot) -> None:
-    _write_managed_contents(repo_root, relative_path, contents, snapshot)
+                              snapshot: RepositorySnapshot,
+                              expected_live_contents: str) -> None:
+    _write_managed_contents(repo_root, relative_path, contents, snapshot,
+                            expected_live_contents.encode('utf-8'))
 
 
 def _recover_applied_paths(
@@ -1344,7 +1470,8 @@ def _recover_applied_paths(
         try:
             _restore_managed_contents(repo_root, relative_path,
                                       original_contents[relative_path],
-                                      snapshot)
+                                      snapshot,
+                                      expected_contents[relative_path])
             _ensure_snapshot_state(repo_root, snapshot, original_contents,
                                    (relative_path,))
         except BaseException as error:
@@ -1406,14 +1533,18 @@ def _ensure_expected_contents(
 
 def _ensure_regular_destination(path: Path, relative_path: Path) -> None:
     try:
-        mode = path.lstat().st_mode
+        path_stat = path.lstat()
     except FileNotFoundError as error:
         raise RuntimeError(f'{relative_path} disappeared during Go update') \
             from error
-    if not stat.S_ISREG(mode):
+    if not stat.S_ISREG(path_stat.st_mode):
         raise ValueError(
             f'{relative_path} must be a regular file; symlinks and other '
             'special files are not supported')
+    if path_stat.st_nlink != 1:
+        raise ValueError(
+            f'{relative_path} must not have hardlinks outside the managed '
+            'path set')
 
 
 def _read_regular_contents(path: Path,

@@ -15,6 +15,7 @@
 
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import stat
@@ -600,6 +601,56 @@ class UpdateGoVersionTest(unittest.TestCase):
                 self.assertEqual((self.repo_root /
                                   relative_path).read_text(encoding='utf-8'),
                                  contents)
+
+    def test_concurrent_edit_at_publication_is_not_overwritten(self):
+        root = self.repo_root / 'go.mod'
+        concurrent_contents = self.files[Path('go.mod')] + \
+            '// concurrent publication edit\n'
+        real_exchange = update_go_version._atomic_exchange
+        edited = False
+
+        def edit_immediately_before_exchange(left, right):
+            nonlocal edited
+            if Path(left) == root and not edited:
+                root.write_text(concurrent_contents, encoding='utf-8')
+                edited = True
+            return real_exchange(left, right)
+
+        with mock.patch.object(
+                update_go_version,
+                '_atomic_exchange',
+                side_effect=edit_immediately_before_exchange,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'changed during conditional Go update publication'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertTrue(edited)
+        self.assertEqual(root.read_text(encoding='utf-8'), concurrent_contents)
+
+    def test_managed_hardlink_outside_repository_is_rejected(self):
+        root = self.repo_root / 'go.mod'
+        outside = self.repo_root.parent / f'{self.repo_root.name}-go.mod-link'
+        os.link(root, outside)
+        self.addCleanup(outside.unlink, missing_ok=True)
+        original = root.read_bytes()
+
+        with self.assertRaisesRegex(ValueError, 'must not have hardlinks'):
+            update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(root.read_bytes(), original)
+        self.assertEqual(outside.read_bytes(), original)
 
     def test_mode_change_during_digest_resolution_invalidates_snapshot(self):
         dockerfile = self.repo_root / 'Dockerfile'

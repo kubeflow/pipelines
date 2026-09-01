@@ -431,24 +431,18 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			}
 		}
 	}
-	resolve := func(value string, names map[string]int) (int, bool) {
-		if index, err := strconv.Atoi(value); err == nil && index >= 0 && index < len(stages) {
-			return index, true
-		}
+	resolveNamed := func(value string, names map[string]int) (int, bool) {
 		index, found := names[strings.ToLower(value)]
 		return index, found
 	}
-	validateSource := func(value string, names map[string]int) (int, bool, error) {
+	validateLiteralSource := func(value string) error {
 		if _, err := discovery.dockerWordAlternatives(value); err != nil {
-			return 0, false, err
+			return err
 		}
 		if discovery.dockerWordHasUnknown(value) {
-			return 0, false, fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
+			return fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
 		}
-		if dependency, local := resolve(value, names); local {
-			return dependency, true, nil
-		}
-		return 0, false, nil
+		return nil
 	}
 	current := -1
 	priorNames := map[string]int{}
@@ -465,7 +459,9 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				return err
 			}
 			for _, base := range alternatives {
-				if dependency, local := resolve(base, priorNames); local {
+				// FROM resolves only previously declared named aliases. Numeric
+				// values are external image names, not stage indices.
+				if dependency, local := resolveNamed(base, priorNames); local {
 					stages[current].dependencies[dependency] = true
 				}
 			}
@@ -474,9 +470,17 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			}
 		case *instructions.CopyCommand:
 			if command.From != "" {
-				dependency, local, err := validateSource(command.From, finalNames)
-				if err != nil {
+				if err := validateLiteralSource(command.From); err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
+				}
+				dependency, local := 0, false
+				if index, err := strconv.Atoi(command.From); err == nil && index >= 0 {
+					if index >= current {
+						return fmt.Errorf("line %d: invalid stage index %d", node.StartLine, index)
+					}
+					dependency, local = index, true
+				} else {
+					dependency, local = resolveNamed(command.From, finalNames)
 				}
 				if local && dependency >= current {
 					return fmt.Errorf("line %d: stage source %q must reference a prior stage", node.StartLine, command.From)
@@ -490,10 +494,12 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				if mount.From == "" {
 					continue
 				}
-				dependency, local, err := validateSource(mount.From, finalNames)
-				if err != nil {
+				if err := validateLiteralSource(mount.From); err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
 				}
+				// RUN --mount=from uses named local aliases. A numeric token is
+				// an external image name, unlike COPY --from's stage-index form.
+				dependency, local := resolveNamed(mount.From, finalNames)
 				if local && dependency >= current {
 					return fmt.Errorf("line %d: stage source %q must reference a prior stage", node.StartLine, mount.From)
 				}
@@ -513,12 +519,22 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			}
 			switch deferred := deferred.(type) {
 			case *instructions.CopyCommand:
+				if deferred.From != "" {
+					if err := validateLiteralSource(deferred.From); err != nil {
+						return fmt.Errorf("line %d: ONBUILD COPY --from: %w", node.StartLine, err)
+					}
+				}
 				if deferred.From != "" && deferredStageSourceIsOutsideContract(deferred.From, current, finalNames) {
 					return unsupportedDockerPolicyf("copy-from", deferred.From, node.StartLine,
 						"line %d: deferred COPY --from resolution is outside the offline stage-graph contract", node.StartLine)
 				}
 			case *instructions.RunCommand:
 				for _, mount := range instructions.GetMounts(deferred) {
+					if mount.From != "" {
+						if err := validateLiteralSource(mount.From); err != nil {
+							return fmt.Errorf("line %d: ONBUILD RUN --mount=from: %w", node.StartLine, err)
+						}
+					}
 					if mount.From != "" && deferredStageSourceIsOutsideContract(mount.From, current, finalNames) {
 						return unsupportedDockerPolicyf("run-mount-from", mount.From, node.StartLine,
 							"line %d: deferred RUN --mount=from resolution is outside the offline stage-graph contract", node.StartLine)
@@ -571,6 +587,7 @@ type dockerWordResult struct {
 	validation string
 	values     []string
 	symbolic   []string
+	variables  map[string]bool
 	unknown    bool
 	err        error
 }
@@ -715,7 +732,8 @@ func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line 
 		if _, err := discovery.dockerWordAlternatives(word); err != nil {
 			return "", err
 		}
-		if operator, found := unsupportedDockerWordOperator(word); found {
+		result := discovery.wordMemo[dockerWordKey{value: word}]
+		if operator, found := unsupportedDockerWordOperator(word, result.variables); found {
 			return "", unsupportedDockerPolicyf("unsupported-word", word, line,
 				"line %d: Docker parameter operator %q is outside the bounded word-expansion contract", line, operator)
 		}
@@ -800,7 +818,7 @@ func (discovery *dockerDiscovery) admitCandidates(count int) error {
 
 func dockerInstructionCandidates(node *parser.Node, typed any, context dockerInstructionContext, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
-	appendImageCandidate := func(kind, value string, rejectCurrent bool) error {
+	appendImageCandidate := func(kind, value string, rejectCurrent, numericLocal bool) error {
 		alternatives, err := discovery.dockerWordAlternatives(value)
 		if err != nil {
 			return err
@@ -808,10 +826,11 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 		matched := false
 		allLocal := len(alternatives) > 0
 		for _, normalized := range alternatives {
-			if rejectCurrent && context.isCurrentStageReference(normalized) {
+			numeric := isNonnegativeDecimal(normalized)
+			if rejectCurrent && (numericLocal || !numeric) && context.isCurrentStageReference(normalized) {
 				return fmt.Errorf("%s cannot reference the current stage %q", kind, normalized)
 			}
-			if !context.conservative && discovery.isStageReference(normalized) {
+			if !context.conservative && (numericLocal || !numeric) && discovery.isStageReference(normalized) {
 				continue
 			}
 			allLocal = false
@@ -831,7 +850,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 
 	switch command := typed.(type) {
 	case *instructions.Stage:
-		if err := appendImageCandidate("from", command.BaseName, false); err != nil {
+		if err := appendImageCandidate("from", command.BaseName, false, false); err != nil {
 			return nil, err
 		}
 	case *instructions.ArgCommand:
@@ -890,7 +909,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 		}
 	case *instructions.CopyCommand:
 		if command.From != "" {
-			if err := appendImageCandidate("copy-from", command.From, true); err != nil {
+			if err := appendImageCandidate("copy-from", command.From, true, true); err != nil {
 				return nil, err
 			}
 		}
@@ -899,7 +918,7 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 			if mount.From == "" {
 				continue
 			}
-			if err := appendImageCandidate("run-mount-from", mount.From, true); err != nil {
+			if err := appendImageCandidate("run-mount-from", mount.From, true, false); err != nil {
 				return nil, err
 			}
 		}
@@ -954,6 +973,11 @@ func isPOSIXShellExecutable(command string) bool {
 	return command == "sh" || command == "/bin/sh"
 }
 
+func isNonnegativeDecimal(value string) bool {
+	index, err := strconv.Atoi(value)
+	return err == nil && index >= 0
+}
+
 func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsupported *[]dockerCandidate) error {
 	baseAlternatives, err := discovery.dockerWordAlternatives(stage.BaseName)
 	if err != nil {
@@ -963,6 +987,10 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 	seenBases := map[*dockerStageState]bool{}
 	externalPossible := false
 	for _, alternative := range baseAlternatives {
+		if isNonnegativeDecimal(alternative) {
+			externalPossible = true
+			continue
+		}
 		base, local := discovery.stageReferences[strings.ToLower(alternative)]
 		if !local {
 			externalPossible = true
@@ -976,6 +1004,9 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 	for _, symbolic := range discovery.wordMemo[dockerWordKey{value: stage.BaseName}].symbolic {
 		externalPossible = true
 		for reference, base := range discovery.stageReferences {
+			if isNonnegativeDecimal(reference) {
+				continue
+			}
 			if symbolicGlobCanEqual(symbolic, reference) && !seenBases[base] {
 				seenBases[base] = true
 				baseStates = append(baseStates, base)
@@ -1109,6 +1140,11 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		discovery.wordMemo[key] = dockerWordResult{err: err}
 		return nil, err
 	}
+	if strings.ContainsRune(probe.Result, '\x00') {
+		err := fmt.Errorf("normalize Docker word %q: NUL is not supported", value)
+		discovery.wordMemo[key] = dockerWordResult{err: err}
+		return nil, err
+	}
 	variables := make([]string, 0, len(probe.Unmatched))
 	for name := range probe.Unmatched {
 		variables = append(variables, name)
@@ -1131,11 +1167,7 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 	discovery.wordLexer.SkipUnsetEnv = false
 	sentinels := make([]string, len(variables))
 	for index := range variables {
-		sentinel := fmt.Sprintf("__KFP_DOCKER_UNKNOWN_%d_7F3A__", index)
-		for strings.Contains(value, sentinel) {
-			sentinel += "_"
-		}
-		sentinels[index] = sentinel
+		sentinels[index] = fmt.Sprintf("\x00D%d\x00", index)
 	}
 	alternatives := make([]string, 0, combinations)
 	symbolic := make([]string, 0, combinations)
@@ -1190,7 +1222,17 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		discovery.wordMemo[key] = dockerWordResult{err: err}
 		return nil, err
 	}
-	discovery.wordMemo[key] = dockerWordResult{validation: probe.Result, values: alternatives, symbolic: symbolic, unknown: len(probe.Unmatched) > 0}
+	unknownNames := make(map[string]bool, len(probe.Unmatched))
+	for name := range probe.Unmatched {
+		unknownNames[name] = true
+	}
+	discovery.wordMemo[key] = dockerWordResult{
+		validation: probe.Result,
+		values:     alternatives,
+		symbolic:   symbolic,
+		variables:  unknownNames,
+		unknown:    len(probe.Unmatched) > 0,
+	}
 	return alternatives, nil
 }
 
@@ -1198,10 +1240,8 @@ func (discovery *dockerDiscovery) dockerWordHasUnknown(value string) bool {
 	return discovery.wordMemo[dockerWordKey{value: value}].unknown
 }
 
-const dockerUnknownMarker = byte(0)
-
 func isSymbolicMarker(value byte) bool {
-	return value == dockerUnknownMarker || value >= 1 && value <= maxDockerWordVariables
+	return value >= 1 && value <= maxDockerWordVariables
 }
 
 func containsSymbolicMarker(value string) bool {
@@ -1250,11 +1290,7 @@ func symbolicDownloadPrefixPossible(symbolic string) bool {
 }
 
 func symbolicGlobCanStartWith(pattern, prefix string) bool {
-	type state struct {
-		pattern, prefix int
-		matchedFixed    bool
-	}
-	seen := map[state]bool{}
+	assignments := map[byte]string{}
 	var visit func(int, int, bool) bool
 	visit = func(patternIndex, prefixIndex int, matchedFixed bool) bool {
 		if prefixIndex == len(prefix) {
@@ -1263,13 +1299,21 @@ func symbolicGlobCanStartWith(pattern, prefix string) bool {
 		if patternIndex == len(pattern) {
 			return false
 		}
-		current := state{patternIndex, prefixIndex, matchedFixed}
-		if seen[current] {
+		marker := pattern[patternIndex]
+		if isSymbolicMarker(marker) {
+			if assigned, found := assignments[marker]; found {
+				return strings.HasPrefix(prefix[prefixIndex:], assigned) &&
+					visit(patternIndex+1, prefixIndex+len(assigned), matchedFixed)
+			}
+			for end := prefixIndex; end <= len(prefix); end++ {
+				assignments[marker] = prefix[prefixIndex:end]
+				if visit(patternIndex+1, end, matchedFixed) {
+					delete(assignments, marker)
+					return true
+				}
+			}
+			delete(assignments, marker)
 			return false
-		}
-		seen[current] = true
-		if isSymbolicMarker(pattern[patternIndex]) {
-			return visit(patternIndex+1, prefixIndex, matchedFixed) || visit(patternIndex, prefixIndex+1, matchedFixed)
 		}
 		return strings.EqualFold(pattern[patternIndex:patternIndex+1], prefix[prefixIndex:prefixIndex+1]) && visit(patternIndex+1, prefixIndex+1, true)
 	}
@@ -1287,8 +1331,20 @@ func symbolicGolangImagePossible(symbolic string) bool {
 	}
 	starts := []int{0}
 	ends := []int{len(repository)}
+	inSuffix := false
 	for index := 0; index < len(repository); index++ {
 		if isSymbolicMarker(repository[index]) {
+			if inSuffix {
+				continue
+			}
+			// A delimiter introduced by an unknown is part of that variable's
+			// value. Reusing the same variable elsewhere would repeat the
+			// delimiter and requires whole-reference reasoning; keep those cases
+			// on the explicit literal-delimiter path instead of treating each
+			// occurrence independently.
+			if strings.Count(repository, repository[index:index+1]) != 1 {
+				continue
+			}
 			// An unknown value can introduce a path delimiter and then begin the
 			// final repository component, or can terminate that component with a
 			// tag/digest delimiter, within the same expansion.
@@ -1299,8 +1355,12 @@ func symbolicGolangImagePossible(symbolic string) bool {
 		switch repository[index] {
 		case '/':
 			starts = append(starts, index+1)
+			inSuffix = false
 		case ':', '@':
-			ends = append(ends, index)
+			if !inSuffix {
+				ends = append(ends, index)
+				inSuffix = true
+			}
 		}
 	}
 	for _, start := range starts {
@@ -1322,23 +1382,27 @@ func symbolicGlobCanEqualAnchored(pattern, target string) bool {
 }
 
 func symbolicGlobCanEqualState(pattern, target string, requireFixed bool) bool {
-	type state struct {
-		pattern, target int
-		matchedFixed    bool
-	}
-	seen := map[state]bool{}
+	assignments := map[byte]string{}
 	var visit func(int, int, bool) bool
 	visit = func(patternIndex, targetIndex int, matchedFixed bool) bool {
 		if patternIndex == len(pattern) {
 			return targetIndex == len(target) && (!requireFixed || matchedFixed)
 		}
-		current := state{patternIndex, targetIndex, matchedFixed}
-		if seen[current] {
+		marker := pattern[patternIndex]
+		if isSymbolicMarker(marker) {
+			if assigned, found := assignments[marker]; found {
+				return strings.HasPrefix(target[targetIndex:], assigned) &&
+					visit(patternIndex+1, targetIndex+len(assigned), matchedFixed)
+			}
+			for end := targetIndex; end <= len(target); end++ {
+				assignments[marker] = target[targetIndex:end]
+				if visit(patternIndex+1, end, matchedFixed) {
+					delete(assignments, marker)
+					return true
+				}
+			}
+			delete(assignments, marker)
 			return false
-		}
-		seen[current] = true
-		if isSymbolicMarker(pattern[patternIndex]) {
-			return visit(patternIndex+1, targetIndex, matchedFixed) || targetIndex < len(target) && visit(patternIndex, targetIndex+1, matchedFixed)
 		}
 		return targetIndex < len(target) && strings.EqualFold(pattern[patternIndex:patternIndex+1], target[targetIndex:targetIndex+1]) && visit(patternIndex+1, targetIndex+1, true)
 	}
@@ -1505,11 +1569,12 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 	if walkErr != nil {
 		return nil, walkErr
 	}
-	for _, word := range words {
-		projected, hasPattern := projectRuntimePatternWord(value, word, patternExpansions)
-		if hasPattern && (symbolicGolangImagePossible(projected) || symbolicDownloadPrefixPossible(projected)) {
-			return nil, fmt.Errorf("POSIX parameter pattern removal can assemble a Go source and is outside the bounded runtime-shell contract")
+	if len(patternExpansions) > 0 {
+		rewritten, err := rewriteRuntimePatternExpansions(value, patternExpansions)
+		if err != nil {
+			return nil, err
 		}
+		return parseRuntimeShellWordsWithBudget(rewritten, parameters, account)
 	}
 
 	variables := make([]string, 0, len(ordinaryVariables))
@@ -1519,11 +1584,7 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 	sort.Strings(variables)
 	sentinels := make([]string, len(variables))
 	for index := range variables {
-		sentinel := fmt.Sprintf("__KFP_RUNTIME_UNKNOWN_%d_7F3A__", index)
-		for strings.Contains(value, sentinel) {
-			sentinel += "_"
-		}
-		sentinels[index] = sentinel
+		sentinels[index] = fmt.Sprintf("\x00R%d\x00", index)
 	}
 
 	result := []string{}
@@ -1577,8 +1638,8 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 					return fmt.Errorf("expand POSIX runtime shell word: %w", expandErr)
 				}
 				for _, field := range fields {
-					for _, sentinel := range sentinels {
-						field = strings.ReplaceAll(field, sentinel, string(dockerUnknownMarker))
+					for index, sentinel := range sentinels {
+						field = strings.ReplaceAll(field, sentinel, string([]byte{byte(index + 1)}))
 					}
 					if err := account(len(field)); err != nil {
 						return err
@@ -1622,57 +1683,39 @@ func parseRuntimeShellWordsWithBudget(value string, parameters []string, account
 	return result, nil
 }
 
-func projectRuntimePatternWord(value string, word *shsyntax.Word, parameters []*shsyntax.ParamExp) (string, bool) {
-	wordStart := int(word.Pos().Offset())
-	wordEnd := int(word.End().Offset())
-	if wordStart < 0 || wordEnd > len(value) || wordStart >= wordEnd {
-		return "", false
-	}
+func rewriteRuntimePatternExpansions(value string, parameters []*shsyntax.ParamExp) (string, error) {
 	type span struct{ start, end int }
 	spans := []span{}
 	for _, parameter := range parameters {
 		start := int(parameter.Pos().Offset())
 		end := int(parameter.End().Offset())
-		if start >= wordStart && end <= wordEnd && start < end {
-			spans = append(spans, span{start: start, end: end})
+		if start < 0 || end > len(value) || start >= end {
+			return "", fmt.Errorf("runtime-shell parameter span is outside its source")
 		}
-	}
-	if len(spans) == 0 {
-		return "", false
+		spans = append(spans, span{start: start, end: end})
 	}
 	sort.Slice(spans, func(left, right int) bool { return spans[left].start < spans[right].start })
-	var projected strings.Builder
-	cursor := wordStart
+	prefix := "__KFP_PATTERN_RESULT_"
+	for strings.Contains(value, prefix) {
+		prefix += "_"
+	}
+	var rewritten strings.Builder
+	cursor := 0
+	inserted := 0
 	for _, current := range spans {
 		if current.start < cursor {
 			continue
 		}
-		projected.WriteString(projectRuntimeStaticFragment(value[cursor:current.start]))
-		projected.WriteByte(dockerUnknownMarker)
+		rewritten.WriteString(value[cursor:current.start])
+		fmt.Fprintf(&rewritten, "${%s%d}", prefix, inserted)
+		inserted++
 		cursor = current.end
 	}
-	projected.WriteString(projectRuntimeStaticFragment(value[cursor:wordEnd]))
-	return projected.String(), true
-}
-
-func projectRuntimeStaticFragment(value string) string {
-	var projected strings.Builder
-	for index := 0; index < len(value); index++ {
-		switch value[index] {
-		case '\'', '"':
-			continue
-		case '\\':
-			if index+1 < len(value) {
-				index++
-				if value[index] != '\n' {
-					projected.WriteByte(value[index])
-				}
-			}
-		default:
-			projected.WriteByte(value[index])
-		}
+	if inserted == 0 {
+		return "", fmt.Errorf("runtime-shell pattern expansion rewrite made no progress")
 	}
-	return projected.String()
+	rewritten.WriteString(value[cursor:])
+	return rewritten.String(), nil
 }
 
 func isRuntimeSpecialParameter(name string) bool {
@@ -1805,13 +1848,17 @@ func parameterExpansionWordStart(value string, start int) (int, int, int, bool) 
 // depends on value contents rather than only setness/emptiness. The bounded
 // policy deliberately supports direct substitution and -, :-, +, and :+;
 // accepted Docker words using other operators fail closed as unsupported.
-func unsupportedDockerWordOperator(value string) (string, bool) {
+func unsupportedDockerWordOperator(value string, activeVariables map[string]bool) (string, bool) {
 	for index := 0; index+2 < len(value); index++ {
 		if value[index] != '$' || value[index+1] != '{' {
 			continue
 		}
-		cursor, _, ok := shellParameterNameEnd(value, index+2)
+		nameStart := index + 2
+		cursor, _, ok := shellParameterNameEnd(value, nameStart)
 		if !ok || cursor >= len(value) {
+			continue
+		}
+		if !activeVariables[value[nameStart:cursor]] {
 			continue
 		}
 		operatorStart := cursor

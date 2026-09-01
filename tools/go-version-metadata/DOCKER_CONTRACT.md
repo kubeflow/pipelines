@@ -86,12 +86,14 @@ conformance matrix.
 
 ## Local identifiers
 
-Local stage identifiers are not image sources. A previously declared stage may
-be named `golang`, and both that name and its zero-based numeric index are
-permitted in `FROM`, `COPY --from`, and `RUN --mount=from`. Matching is
-case-insensitive, as in BuildKit. The stage must precede the reference. The
-external base of `FROM ... AS golang` is still classified before the new alias
-is recorded, so `FROM golang:latest AS golang` is unsupported.
+Local stage identifiers are not image sources, but each instruction has its
+own resolver. `FROM` resolves only previously declared named aliases;
+`COPY --from` resolves prior named aliases and in-range zero-based numeric stage
+indices; `RUN --mount=from` resolves only named aliases, so a numeric token is
+an external image name. Matching of names is case-insensitive. Out-of-range or
+forward numeric `COPY --from` indices are `invalid`. The external base of
+`FROM ... AS golang` is still classified before the new alias is recorded, so
+`FROM golang:latest AS golang` is unsupported.
 
 Stage aliases, ARG names, ENV names, shell assignment names, and shell parameter
 names are identifiers. A `golang` substring in an identifier is not a source.
@@ -99,13 +101,15 @@ Assignment values and parameter operator operands are values and are inspected.
 Thus `golang=alpine` and `${#golang}` are irrelevant, while
 `IMAGE=golang:latest` and `${IMAGE:-golang:latest}` are unsupported.
 
-The offline stage-graph checks cover stage ordering for top-level `FROM`,
-`COPY --from`, and `RUN --mount=from`, plus self/cycle detection among those
-top-level references. Named and numeric top-level references to the current or
-a later stage are `invalid`. Deferred `ONBUILD COPY --from` and
+The offline stage-graph checks cover those instruction-specific top-level
+rules, plus self/cycle detection among local references. Named local references
+to the current or a later stage are `invalid` where the instruction resolves
+named stages. Deferred `ONBUILD COPY --from` and
 `ONBUILD RUN --mount=from` depend on the eventual child build's stage namespace;
 numeric references and names that denote the defining/current or a later local
-stage are therefore `unsupported`, not guessed. This is not a claim to perform
+stage are therefore `unsupported`, not guessed. Variable expansion in these
+deferred source fields is `invalid`, matching BuildKit's field restriction.
+This is not a claim to perform
 complete Dockerfile2LLB validation: filesystem/context checks, build-argument
 dependent graphs, deferred child-build graphs, and other solver-time checks are
 outside this offline contract.
@@ -146,14 +150,20 @@ above. A statically visible Go token within those constructs is still detected.
 Docker-word alternatives are complete only for direct substitution and the
 setness/emptiness operators `-`, `:-`, `+`, and `:+`. Other valid parameter
 operators, including prefix/suffix pattern removal, are classified
-`unsupported` before source classification; they never fall through as
-irrelevant. Symbolic direct substitutions may introduce repository path, tag,
-or digest boundaries, so anchored fragments such as `go${VALUE}latest` are
-conservatively detected when some value can form `golang:<tag>`.
-POSIX runtime-shell prefix/suffix pattern-removal results are projected as
-symbolic spans. They are explicitly `unsupported` when adjacent static text can
-assemble a Go source; otherwise ordinary uses such as removing a filename
-suffix remain within the supported shell grammar.
+`unsupported` after BuildKit identifies them as active syntax; escaped and
+single-quoted spellings remain literals. Unknown values use non-textual typed
+identities rather than forgeable sentinel strings. Repeated occurrences of one
+variable share one assignment, and image classification tracks repository,
+tag, and digest state separately. Symbolic direct substitutions may introduce
+repository path, tag, or digest boundaries, so anchored fragments such as
+`go${VALUE}latest` are detected when some value can form `golang:<tag>`, while
+an unknown inside `alpine:<tag>` cannot change the repository.
+
+POSIX runtime-shell prefix/suffix pattern-removal nodes are replaced by typed
+unknown result nodes before the complete word is expanded. This preserves
+composition with adjacent defaults and substitutions, so
+`${X#?}${Y:-olang:latest}` cannot be split into independently scanned strings.
+Ordinary unanchored uses such as removing a filename suffix remain irrelevant.
 
 ## Resource contract
 
@@ -203,9 +213,11 @@ normalized-output budgets exactly once.
 implementation. Its `shellOracles` use a fixed, trusted corpus, an explicitly
 listed environment, and a test-provided `capture` executable to compare word
 construction with `/bin/sh`. Oracle cases never contain untrusted generated
-shell text. The `oracles` on classification cases are coverage annotations;
-the standalone oracle arrays contain the executable differential inputs and
-expected outputs. `executableCrossProducts` generates every configured source
+shell text. Every `dockerConformance` record contains both a named semantic
+domain and an executable helper-classification expectation. Ordinary tests run
+that expectation; the opt-in Docker lane runs it together with Docker's
+acceptance result. Finding numbers are historical metadata, not a coverage
+criterion. `executableCrossProducts` generates every configured source
 kind × instruction field × shell/exec/heredoc form × top-level/`ONBUILD`
 context. Heredoc forms outside `RUN` remain explicit negative grammar cases,
 so adding an axis value cannot silently omit unsupported intersections.
@@ -224,14 +236,12 @@ repository component; an unknown Alpine tag cannot change `alpine` into the
 `golang` repository. Downloads likewise require static text anchoring the
 supported HTTPS host/path prefix around the unknown span.
 
-`dockerConformance` is the Docker-backed grammar corpus for review findings
-1–7. Run it on a host with Docker using
+Run the Docker-backed grammar corpus on a host with Docker using
 `KFP_RUN_DOCKER_CONFORMANCE=1 go test ./tools/go-version-metadata -run
 TestDockerContractAgainstDocker`. The runner prepends `# check=skip=all` so the
 result represents Dockerfile acceptance rather than optional build-check lint
-warnings, bounds captured diagnostic output, and requires every finding number
-from 1 through 6 to remain represented. The ordinary test suite skips this
-lane when Docker was not explicitly requested.
+warnings and bounds captured diagnostic output. The ordinary test suite still
+executes every helper oracle when Docker is unavailable.
 
 Contract acceptance requires every matrix case, both differential suites, the
 resource-boundary tests, the opt-in Docker-backed corpus when Docker is
@@ -245,16 +255,21 @@ its discovery reads and captures one immutable starting snapshot:
 1. the exact `HEAD` object ID;
 2. the complete Git index: every tracked path's stage-0 entry as
    `(path, full Git mode, object ID)`, with no higher-stage entries; and
-3. every managed path's worktree file type, exact bytes, and complete
-   filesystem permission mode.
+3. every managed path's worktree file type, exact bytes, complete filesystem
+   permission mode, device/inode identity, and link count.
 
-Managed paths must be ordinary files and must initially match their stage-0
+Managed paths must be singly linked ordinary files and must initially match their stage-0
 index entries. Paths with assume-unchanged or skip-worktree flags, or with
 clean/smudge filters, are rejected because Git cannot provide a raw-worktree
 transaction invariant for them. The updater must compare the complete
 snapshot, including object IDs, before and after planning, before application,
 after application, and after repository verification. A lock in the Git common
-directory permits only one updater transaction at a time. A mismatch is a
-concurrent edit: it must not be overwritten or reported as success. Recovery
+directory permits only one updater transaction at a time, but correctness does
+not depend on other writers taking that lock. Each replacement is written and
+fsynced beside the destination, atomically exchanged with the live path, and
+committed only if the displaced inode, bytes, mode, and link count equal the
+immediately preceding live snapshot. A mismatch is exchanged back when the
+candidate path is still owned by the updater; it must not be overwritten or
+reported as success. Recovery
 artifacts persist original bytes and modes before live mutation and remain
 usable when a path is missing or truncated.

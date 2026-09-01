@@ -60,10 +60,10 @@ TOOLCHAIN_PATTERN = re.compile(
     rf'^[ \t]*toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 ROOT_GO_DIRECTIVE_PATTERN = re.compile(
-    rf'^go[ \t]+(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
+    rf'^go (1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 ROOT_TOOLCHAIN_PATTERN = re.compile(
-    rf'^toolchain[ \t]+go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
+    rf'^toolchain go(1\.{DECIMAL_PATTERN}\.{DECIMAL_PATTERN})'
     r'(?:[ \t]*//[^\r\n]*)?[ \t]*$', re.MULTILINE)
 PRECOMMIT_CHECK_PATTERN = re.compile(
     r'(?m)^[ \t]*(?:-[ \t]+)?run:[ \t]+make[ \t]+'
@@ -170,6 +170,17 @@ class GoVersionConsistencyTest(unittest.TestCase):
             'the root toolchain directive, when present, must be column-zero '
             'and patch-qualified so actions/setup-go can resolve it',
         )
+
+    def test_root_directives_use_setup_go_literal_space_syntax(self):
+        for directive in ('go\t1.27.0', 'go  1.27.0'):
+            with self.subTest(directive=directive):
+                self.assertEqual(ROOT_GO_DIRECTIVE_PATTERN.findall(directive),
+                                 [])
+        for directive in ('toolchain\tgo1.27.1',
+                          'toolchain  go1.27.1'):
+            with self.subTest(directive=directive):
+                self.assertEqual(
+                    ROOT_TOOLCHAIN_PATTERN.findall(directive), [])
 
     def test_malformed_toolchain_directives_are_rejected(self):
         for directive in ('toolchain', 'toolchain go1.27',

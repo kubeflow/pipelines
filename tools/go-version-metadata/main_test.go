@@ -931,9 +931,9 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 			classification: "invalid",
 		},
 		{
-			name:           "self RUN mount by numeric index",
+			name:           "numeric RUN mount is an external image name",
 			contents:       "FROM alpine AS base\nRUN --mount=type=bind,from=0,target=/src true\n",
-			classification: "invalid",
+			classification: "irrelevant",
 		},
 		{
 			name: "prior namespace and inherited config",
