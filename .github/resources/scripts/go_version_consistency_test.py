@@ -51,6 +51,14 @@ GO_IMAGE_DIGEST_WORKFLOW = Path('.github/workflows/go-image-digests.yml')
 GO_VERSION_METADATA = Path('.github/resources/scripts/go_version_metadata.py')
 GO_VERSION_HELPER = Path('tools/go-version-metadata/main.go')
 
+# `backend/api/tools/go.mod` carries no Go source: it exists so the API
+# generator image can read a pinned tool version out of it. Because nothing
+# imports the module, `go mod tidy` reports `"all" matched no packages` and
+# prunes the requirement, which silently breaks the image build.
+API_TOOLS_MODULE = Path('backend/api/tools/go.mod')
+API_TOOLS_DOCKERFILE = Path('backend/api/Dockerfile')
+API_TOOLS_PINS = ('github.com/go-swagger/go-swagger',)
+
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
 
 GO_DIRECTIVE_PATTERN = re.compile(
@@ -436,6 +444,35 @@ class GoVersionConsistencyTest(unittest.TestCase):
         self.assertIn('tools/go-version-metadata/**',
                       _read(GO_IMAGE_DIGEST_WORKFLOW))
         self.assertTrue((REPOSITORY_ROOT / GO_VERSION_HELPER).exists())
+
+    def test_api_tools_module_retains_downloaded_tool_pins(self):
+        """The API generator image reads tool versions out of this module."""
+        contents = _read(API_TOOLS_MODULE)
+        for module_path in API_TOOLS_PINS:
+            with self.subTest(module_path=module_path):
+                self.assertRegex(
+                    contents,
+                    rf'(?m)^[ \t]*(?:require[ \t]+)?'
+                    rf'{re.escape(module_path)}[ \t]+v[^\s]+',
+                    f'{API_TOOLS_MODULE} must keep a require for '
+                    f'{module_path}; it is the version source for a tool the '
+                    f'{API_TOOLS_DOCKERFILE} image downloads, and `go mod '
+                    f'tidy` prunes it because no Go source imports it.',
+                )
+
+    def test_api_tools_pins_are_read_by_the_generator_image(self):
+        """Guard the other half of the coupling: the Dockerfile query."""
+        contents = _read(API_TOOLS_DOCKERFILE)
+        self.assertIn(str(API_TOOLS_MODULE.parent), contents)
+        for module_path in API_TOOLS_PINS:
+            with self.subTest(module_path=module_path):
+                self.assertIn(
+                    module_path,
+                    contents,
+                    f'{API_TOOLS_DOCKERFILE} no longer reads {module_path} '
+                    f'from {API_TOOLS_MODULE}; if the pin moved, update '
+                    'API_TOOLS_PINS so the guard tracks its new home.',
+                )
 
 
 if __name__ == '__main__':
