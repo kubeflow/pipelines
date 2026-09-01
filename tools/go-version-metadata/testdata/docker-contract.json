@@ -202,6 +202,58 @@
       "dockerfile": "FROM alpine AS base\nONBUILD COPY --from=${SOURCE} /x /x\nFROM base\n",
       "accepted": false,
       "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "numeric-from-is-external-image",
+      "finding": 3,
+      "domain": "numeric-from-external",
+      "dockerfile": "FROM 0\n",
+      "accepted": false,
+      "errorContains": "failed to resolve source metadata",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "numeric-run-mount-is-external-image",
+      "finding": 3,
+      "domain": "numeric-run-mount-external",
+      "dockerfile": "FROM scratch\nRUN --mount=type=bind,from=0,target=/src true\n",
+      "accepted": false,
+      "errorContains": "failed to resolve source metadata",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "negative-copy-stage-index",
+      "finding": 3,
+      "domain": "negative-copy-index",
+      "dockerfile": "FROM scratch\nCOPY --from=-1 /x /x\n",
+      "accepted": false,
+      "errorContains": "invalid stage index -1",
+      "want": {"classification": "invalid", "errorContains": "invalid stage index -1"}
+    },
+    {
+      "id": "normalized-alias-lowercase-from-is-local",
+      "finding": 3,
+      "domain": "from-alias-normalized-local",
+      "dockerfile": "FROM scratch AS Base\nSHELL [\"fish\",\"-c\"]\nFROM base\nRUN echo alpine\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-shell"]}
+    },
+    {
+      "id": "raw-uppercase-from-is-external",
+      "finding": 3,
+      "domain": "from-alias-raw-external",
+      "dockerfile": "FROM scratch AS base\nFROM Base\n",
+      "accepted": false,
+      "errorContains": "must be lowercase",
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "copy-alias-lookup-is-case-insensitive",
+      "finding": 3,
+      "domain": "copy-alias-case-insensitive",
+      "dockerfile": "FROM scratch AS Base\nFROM scratch\nCOPY --from=BASE /x /x\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
     }
   ],
   "cases": [
@@ -327,15 +379,15 @@
     },
     {
       "id": "repeated-variable-identity-is-preserved",
-      "polarity": "allow",
+      "polarity": "detect",
       "dockerfile": "FROM alpine\nARG IMAGE=g${X}l${X}ng:latest\n",
-      "want": {"classification": "irrelevant"}
+      "want": {"classification": "unsupported", "candidateKinds": ["arg-default"]}
     },
     {
       "id": "runtime-repeated-variable-identity-is-preserved",
-      "polarity": "allow",
+      "polarity": "detect",
       "dockerfile": "FROM alpine\nRUN echo g${X}l${X}ng:latest\n",
-      "want": {"classification": "irrelevant"}
+      "want": {"classification": "unsupported", "candidateKinds": ["literal"]}
     },
     {
       "id": "runtime-distinct-variable-identities-vary-independently",

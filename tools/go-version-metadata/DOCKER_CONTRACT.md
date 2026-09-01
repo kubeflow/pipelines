@@ -87,11 +87,14 @@ conformance matrix.
 ## Local identifiers
 
 Local stage identifiers are not image sources, but each instruction has its
-own resolver. `FROM` resolves only previously declared named aliases;
+own resolver. BuildKit lowercases aliases when storing them, while `FROM`
+looks up its expanded base spelling without lowercasing it: `AS Base` followed
+by `FROM base` is local, but `FROM Base` is external. `FROM` resolves only
+previously declared named aliases;
 `COPY --from` resolves prior named aliases and in-range zero-based numeric stage
 indices; `RUN --mount=from` resolves only named aliases, so a numeric token is
-an external image name. Matching of names is case-insensitive. Out-of-range or
-forward numeric `COPY --from` indices are `invalid`. The external base of
+an external image name. COPY and RUN named lookups are case-insensitive.
+Negative, out-of-range, or forward numeric `COPY --from` indices are `invalid`. The external base of
 `FROM ... AS golang` is still classified before the new alias is recorded, so
 `FROM golang:latest AS golang` is unsupported.
 
@@ -153,8 +156,11 @@ operators, including prefix/suffix pattern removal, are classified
 `unsupported` after BuildKit identifies them as active syntax; escaped and
 single-quoted spellings remain literals. Unknown values use non-textual typed
 identities rather than forgeable sentinel strings. Repeated occurrences of one
-variable share one assignment, and image classification tracks repository,
-tag, and digest state separately. Symbolic direct substitutions may introduce
+variable share one assignment, including partial suffix constraints at every
+occurrence. They remain conservatively source-capable when that shared value can
+introduce path delimiters: for example, `g${X}l${X}ng` becomes
+`g/golal/golang` for `X=/gola`. Image classification tracks repository, tag,
+and digest state separately. Symbolic direct substitutions may introduce
 repository path, tag, or digest boundaries, so anchored fragments such as
 `go${VALUE}latest` are detected when some value can form `golang:<tag>`, while
 an unknown inside `alpine:<tag>` cannot change the repository.
@@ -236,12 +242,36 @@ repository component; an unknown Alpine tag cannot change `alpine` into the
 `golang` repository. Downloads likewise require static text anchoring the
 supported HTTPS host/path prefix around the unknown span.
 
+The contract harness freezes the schema as well as the outcomes. BuildKit-word
+and POSIX-shell oracle IDs are exact nonempty sets. Executable products require
+the complete 2 source × 4 instruction × 3 form × 2 context matrix (48 cases),
+and conditional-word products require the complete 2 source × 2 field × 4
+operator × 3 state matrix (48 cases). Operator state maps must contain exactly
+`unset`, `empty`, and `nonempty`; an omitted list, axis value, or state is a
+structural test failure rather than a vacuous pass.
+
+The pinned lexers emit collision-free NUL-framed identities into a private
+construction buffer. That buffer is decoded exactly once into typed literal and
+variable segments; matching, repository-component analysis, and stored memoized
+results never reparse marker strings. The framing is not a second accepted input
+syntax. Raw NUL is rejected uniformly for Docker words and runtime scripts before
+classification, while other literal control bytes remain ordinary input and
+never become symbolic variables.
+Repeated occurrences of one variable or one rewritten runtime pattern result
+share an identity. Quote and escape provenance is preserved when deciding
+whether a Docker parameter operator is active, so an active `${X}` elsewhere
+cannot activate literal `\${X#?}` or `'${X#?}'` text.
+
 Run the Docker-backed grammar corpus on a host with Docker using
 `KFP_RUN_DOCKER_CONFORMANCE=1 go test ./tools/go-version-metadata -run
 TestDockerContractAgainstDocker`. The runner prepends `# check=skip=all` so the
 result represents Dockerfile acceptance rather than optional build-check lint
 warnings and bounds captured diagnostic output. The ordinary test suite still
 executes every helper oracle when Docker is unavailable.
+The coverage test requires exactly one executable Docker-backed case for each
+numeric FROM, numeric RUN mount, negative COPY index, normalized local FROM
+alias, raw external FROM alias, and case-insensitive COPY alias domain; an
+empty or partial conformance list cannot satisfy the contract.
 
 Contract acceptance requires every matrix case, both differential suites, the
 resource-boundary tests, the opt-in Docker-backed corpus when Docker is
@@ -264,12 +294,19 @@ clean/smudge filters, are rejected because Git cannot provide a raw-worktree
 transaction invariant for them. The updater must compare the complete
 snapshot, including object IDs, before and after planning, before application,
 after application, and after repository verification. A lock in the Git common
-directory permits only one updater transaction at a time, but correctness does
-not depend on other writers taking that lock. Each replacement is written and
-fsynced beside the destination, atomically exchanged with the live path, and
-committed only if the displaced inode, bytes, mode, and link count equal the
-immediately preceding live snapshot. A mismatch is exchanged back when the
-candidate path is still owned by the updater; it must not be overwritten or
-reported as success. Recovery
-artifacts persist original bytes and modes before live mutation and remain
-usable when a path is missing or truncated.
+directory supplies a cooperative single-writer transaction: every updater must
+take that lock, and processes that mutate a managed inode without it are outside
+the transaction guarantee. Live application opens the existing path without
+following symlinks, confirms its inode, bytes, mode, and link count, then writes,
+truncates, and fsyncs that same inode before validating both the descriptor and
+pathname again. It never publishes by exchanging or unlinking pathnames. An
+observed non-cooperating change is rejected, but writes through arbitrary open
+descriptors cannot be serialized or detected after final validation.
+
+If the updater's own candidate write, truncate, or fsync fails, it immediately
+rewrites and fsyncs the original bytes through the still-open descriptor and
+confirms the original descriptor and pathname state before propagating the
+failure. If that restoration or its validation also fails, automatic recovery
+is not claimed: the update fails with the durable recovery bundle retained.
+Recovery artifacts persist original bytes and modes before live mutation and
+remain usable when a path is missing or truncated.

@@ -604,22 +604,28 @@ class UpdateGoVersionTest(unittest.TestCase):
 
     def test_concurrent_edit_at_publication_is_not_overwritten(self):
         root = self.repo_root / 'go.mod'
-        concurrent_contents = self.files[Path('go.mod')] + \
-            '// concurrent publication edit\n'
-        real_exchange = update_go_version._atomic_exchange
+        concurrent_contents = b'// concurrent open-descriptor edit\n'
+        external_descriptor = os.open(root, os.O_WRONLY)
+        self.addCleanup(os.close, external_descriptor)
+        real_snapshot = update_go_version._snapshot_open_descriptor
+        snapshots = 0
         edited = False
 
-        def edit_immediately_before_exchange(left, right):
-            nonlocal edited
-            if Path(left) == root and not edited:
-                root.write_text(concurrent_contents, encoding='utf-8')
+        def edit_before_final_descriptor_validation(descriptor, display_path):
+            nonlocal edited, snapshots
+            snapshots += 1
+            if display_path == Path('go.mod') and snapshots == 2:
+                os.lseek(external_descriptor, 0, os.SEEK_SET)
+                os.write(external_descriptor, concurrent_contents)
+                os.ftruncate(external_descriptor, len(concurrent_contents))
+                os.fsync(external_descriptor)
                 edited = True
-            return real_exchange(left, right)
+            return real_snapshot(descriptor, display_path)
 
         with mock.patch.object(
                 update_go_version,
-                '_atomic_exchange',
-                side_effect=edit_immediately_before_exchange,
+                '_snapshot_open_descriptor',
+                side_effect=edit_before_final_descriptor_validation,
         ):
             with self.assertRaisesRegex(
                     RuntimeError,
@@ -632,7 +638,129 @@ class UpdateGoVersionTest(unittest.TestCase):
                 )
 
         self.assertTrue(edited)
-        self.assertEqual(root.read_text(encoding='utf-8'), concurrent_contents)
+        self.assertEqual(root.read_bytes(), concurrent_contents)
+        self.assertFalse(
+            list(root.parent.glob(f'.{root.name}.go-update-*')))
+
+    def test_live_publication_does_not_require_directory_fsync(self):
+        real_fsync_directory = update_go_version._fsync_directory
+
+        def reject_live_directory_fsync(path):
+            if Path(path) == self.repo_root:
+                raise OSError('simulated live directory fsync failure')
+            return real_fsync_directory(path)
+
+        with mock.patch.object(
+                update_go_version,
+                '_fsync_directory',
+                side_effect=reject_live_directory_fsync,
+        ):
+            changed = update_go_version.sync(
+                self.repo_root,
+                '1.28.3',
+                digest_resolver=lambda tag: DIGESTS[tag],
+                repository_paths=self.files,
+            )
+
+        self.assertEqual(set(changed), set(self.files))
+        self.assertFalse(list(self.repo_root.glob('.*.go-update-*')))
+
+    def test_partial_descriptor_write_failure_restores_original_bytes(self):
+        real_write = os.write
+        real_overwrite = update_go_version._overwrite_open_descriptor
+        overwrite_calls = 0
+
+        def partially_overwrite_then_fail(descriptor, contents):
+            nonlocal overwrite_calls
+            overwrite_calls += 1
+            if overwrite_calls == 1:
+                partial_length = max(1, len(contents) // 2)
+                real_write(descriptor, contents[:partial_length])
+                raise OSError('simulated partial descriptor write failure')
+            return real_overwrite(descriptor, contents)
+
+        with mock.patch.object(
+                update_go_version,
+                '_overwrite_open_descriptor',
+                side_effect=partially_overwrite_then_fail,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'simulated partial descriptor write failure.*recovery '
+                    'bundle retained'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertEqual(overwrite_calls, 2)
+        for relative_path, contents in self.files.items():
+            self.assertEqual(
+                (self.repo_root / relative_path).read_text(encoding='utf-8'),
+                contents,
+            )
+        self.assertEqual(len(self._recovery_bundles()), 1)
+
+    def test_partial_write_and_partial_restore_retain_recovery_bundle(self):
+        root_path = Path('go.mod')
+        root = self.repo_root / root_path
+        original = root.read_bytes()
+        original_mode = stat.S_IMODE(root.stat().st_mode)
+        planned = update_go_version.synchronized_contents(
+            self.repo_root,
+            '1.28.3',
+            digest_resolver=lambda tag: DIGESTS[tag],
+            repository_paths=self.files,
+        )[root_path].encode('utf-8')
+        real_write = os.write
+        overwrite_calls = 0
+
+        def fail_candidate_and_restore(descriptor, contents):
+            nonlocal overwrite_calls
+            overwrite_calls += 1
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            if overwrite_calls == 1:
+                real_write(descriptor, b'CANDIDATE-PARTIAL-BYTES')
+                raise OSError('simulated candidate partial write')
+            real_write(descriptor, b'RESTORE-FAILED')
+            raise OSError('simulated restoration partial write')
+
+        with mock.patch.object(
+                update_go_version,
+                '_overwrite_open_descriptor',
+                side_effect=fail_candidate_and_restore,
+        ):
+            with self.assertRaises(RuntimeError) as context:
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        message = str(context.exception)
+        self.assertEqual(overwrite_calls, 2)
+        self.assertIn('could not restore its original bytes', message)
+        self.assertIn('managed paths left unchanged', message)
+        self.assertIn('original restore patch', message)
+        self.assertIn('recovery bundle retained', message)
+        live = root.read_bytes()
+        self.assertNotEqual(live, original)
+        self.assertNotEqual(live, planned)
+        self.assertFalse(
+            list(root.parent.glob(f'.{root.name}.go-update-*')))
+
+        bundles = self._recovery_bundles()
+        self.assertEqual(len(bundles), 1)
+        manifest_path = bundles[0] / 'manifest.json'
+        self.assertTrue(manifest_path.is_file())
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        artifact = manifest['originalFiles'][str(root_path)]
+        self.assertEqual((bundles[0] / artifact['contents']).read_bytes(),
+                         original)
+        self.assertEqual(artifact['mode'], f'{original_mode:04o}')
 
     def test_managed_hardlink_outside_repository_is_rejected(self):
         root = self.repo_root / 'go.mod'
@@ -1345,7 +1473,7 @@ updater.sync(
                 contents,
             )
 
-    def test_unconfirmed_partial_write_is_not_rolled_back(self):
+    def test_enrolled_partial_write_is_conditionally_rolled_back(self):
         real_apply = update_go_version._apply_managed_contents
 
         def partially_apply_then_fail(*arguments):
@@ -1368,13 +1496,10 @@ updater.sync(
                 )
 
         self.assertEqual(len(self._recovery_patches()), len(self.files) + 1)
-        self.assertIn('toolchain go1.28.3',
-                      (self.repo_root / 'go.mod').read_text(encoding='utf-8'))
         for relative_path, contents in self.files.items():
-            if relative_path != Path('go.mod'):
-                self.assertEqual((self.repo_root /
-                                  relative_path).read_text(encoding='utf-8'),
-                                 contents)
+            self.assertEqual((self.repo_root /
+                              relative_path).read_text(encoding='utf-8'),
+                             contents)
 
     def test_partial_apply_recovery_preserves_unresolved_paths(self):
         real_apply = update_go_version._apply_managed_contents
@@ -1670,6 +1795,52 @@ updater.sync(
             root.read_text(encoding='utf-8'), self.files[Path('go.mod')])
         self.assertTrue(concurrent.is_symlink())
 
+    def test_dangling_symlink_installed_at_rollback_open_is_retained(self):
+        root = self.repo_root / 'go.mod'
+        real_open = update_go_version._open_managed_descriptor
+        recovering = False
+        replaced = False
+
+        def fail_current_repository(repo_root):
+            nonlocal recovering
+            if Path(repo_root) == self.repo_root:
+                recovering = True
+                raise RuntimeError('simulated verification failure')
+
+        def replace_immediately_before_rollback_open(path):
+            nonlocal replaced
+            if recovering and Path(path) == root and not replaced:
+                root.unlink()
+                root.symlink_to('concurrent-missing-go.mod')
+                replaced = True
+            return real_open(path)
+
+        with mock.patch.object(
+                update_go_version,
+                '_verify_repository_consistency',
+                side_effect=fail_current_repository,
+        ), mock.patch.object(
+                update_go_version,
+                '_open_managed_descriptor',
+                side_effect=replace_immediately_before_rollback_open,
+        ):
+            with self.assertRaisesRegex(
+                    RuntimeError,
+                    'automatic rollback failed.*go.mod.*recovery bundle'):
+                update_go_version.sync(
+                    self.repo_root,
+                    '1.28.3',
+                    digest_resolver=lambda tag: DIGESTS[tag],
+                    repository_paths=self.files,
+                )
+
+        self.assertTrue(replaced)
+        self.assertTrue(root.is_symlink())
+        self.assertEqual(root.readlink(), Path('concurrent-missing-go.mod'))
+        self.assertFalse(
+            list(root.parent.glob(f'.{root.name}.go-update-*')))
+        self.assertTrue(self._restore_patch(Path('go.mod')).exists())
+
     def test_path_recovery_continues_after_one_path_fails(self):
         real_restore = update_go_version._restore_managed_contents
         failed = False
@@ -1872,10 +2043,7 @@ updater.sync(
         for relative_path, contents in self.files.items():
             actual = (self.repo_root /
                       relative_path).read_text(encoding='utf-8')
-            if relative_path == Path('go.mod'):
-                self.assertIn('toolchain go1.28.3', actual)
-            else:
-                self.assertEqual(actual, contents)
+            self.assertEqual(actual, contents)
 
     def test_invalid_utf8_concurrent_edit_does_not_mask_recovery_error(self):
         root = self.repo_root / 'go.mod'

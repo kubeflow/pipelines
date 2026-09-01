@@ -19,6 +19,7 @@ import (
 	"io"
 	"os/exec"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -893,6 +894,93 @@ func TestDockerSymbolicBranchesPreserveNestedStateAndDelimiters(t *testing.T) {
 	}
 }
 
+func TestRepeatedDockerVariableCanIntroducePathDelimiter(t *testing.T) {
+	for name, instruction := range map[string]string{
+		"docker word": "ARG IMAGE=g${X}l${X}ng:latest",
+		"runtime":     "RUN echo g${X}l${X}ng:latest",
+	} {
+		t.Run(name, func(t *testing.T) {
+			// X=/gola yields g/golal/golang:latest, whose final repository
+			// component is exactly golang.
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\n" + instruction + "\n"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported; error=%q", metadata.DockerClassification, metadata.DockerError)
+			}
+		})
+	}
+}
+
+func TestLiteralControlBytesAreNotSymbolicMarkers(t *testing.T) {
+	for marker := byte(1); marker <= maxDockerWordVariables; marker++ {
+		contents := "FROM alpine\nARG IMAGE=go" + string([]byte{marker}) + "ang:latest\n"
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "irrelevant" {
+			t.Fatalf("byte 0x%02x classification = %q, want irrelevant; error=%q", marker, metadata.DockerClassification, metadata.DockerError)
+		}
+	}
+}
+
+func TestRuntimeShellNULIsInvalidAcrossForms(t *testing.T) {
+	for name, instruction := range map[string]string{
+		"shell":         "RUN echo \x00\n",
+		"unknown shell": `SHELL ["fish","-c"]` + "\nRUN echo \x00\n",
+		"exec sh":       `RUN ["sh","-c","echo \u0000"]` + "\n",
+		"heredoc":       "RUN <<EOF\necho \x00\nEOF\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\n" + instruction})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "invalid" || !strings.Contains(metadata.DockerError, "NUL") {
+				t.Fatalf("classification = %q, error=%q, want invalid NUL rejection", metadata.DockerClassification, metadata.DockerError)
+			}
+		})
+	}
+}
+
+func TestDockerOperatorPolicyUsesExpressionProvenance(t *testing.T) {
+	for _, value := range []string{`${X}\${X#?}`, `${X}'${X#?}'`} {
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: "FROM alpine\nARG DOC=" + value + "\n"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "irrelevant" {
+			t.Fatalf("value %q classification = %q, want irrelevant; candidates=%#v error=%q", value, metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+		}
+	}
+}
+
+func TestIdenticalRuntimePatternExpressionsShareIdentity(t *testing.T) {
+	words, wordErr := parseRuntimeShellWords(`echo https://g${X#?}.dev/dl/${X#?}o1.tar.gz`, nil)
+	if wordErr != nil {
+		t.Fatal(wordErr)
+	}
+	var symbolic *symbolicValue
+	for _, word := range words {
+		if word.symbolic != nil {
+			symbolic = word.symbolic
+		}
+	}
+	identities := []string{}
+	if symbolic != nil {
+		for _, segment := range symbolic.segments {
+			if segment.variable != "" {
+				identities = append(identities, segment.variable)
+			}
+		}
+	}
+	if !slices.Equal(identities, []string{"R0", "R0"}) {
+		t.Fatalf("identical pattern results do not share one identity: %q", identities)
+	}
+}
+
 func TestDockerWordValidationAndClassificationShareAccounting(t *testing.T) {
 	first := `g\olang:latest-` + strings.Repeat("a", 15000)
 	second := `go"lang":latest-` + strings.Repeat("b", 15000)
@@ -1095,6 +1183,10 @@ func TestBuildKitStageGraphValidity(t *testing.T) {
 			name:     "expanded COPY source",
 			contents: "FROM alpine\nCOPY --from=${SOURCE} /x /x\n",
 		},
+		{
+			name:     "negative COPY stage index",
+			contents: "FROM alpine\nCOPY --from=-1 /x /x\n",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
@@ -1103,6 +1195,45 @@ func TestBuildKitStageGraphValidity(t *testing.T) {
 			}
 			if metadata.DockerClassification != "invalid" {
 				t.Fatalf("classification = %q, want invalid; error=%q", metadata.DockerClassification, metadata.DockerError)
+			}
+		})
+	}
+}
+
+func TestBuildKitStageAliasCaseDomains(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		contents       string
+		classification string
+	}{
+		{
+			name: "lowercase FROM resolves normalized alias",
+			contents: "FROM alpine AS Base\n" +
+				`SHELL ["fish","-c"]` + "\n" +
+				"FROM base\nRUN echo alpine\n",
+			classification: "unsupported",
+		},
+		{
+			name: "uppercase FROM is external",
+			contents: "FROM alpine AS Base\n" +
+				`SHELL ["fish","-c"]` + "\n" +
+				"FROM Base\nRUN echo alpine\n",
+			classification: "irrelevant",
+		},
+		{
+			name: "COPY alias is case insensitive",
+			contents: "FROM alpine AS Base\n" +
+				"FROM alpine\nCOPY --from=base /x /x\n",
+			classification: "irrelevant",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v error=%q", metadata.DockerClassification, test.classification, metadata.DockerCandidates, metadata.DockerError)
 			}
 		})
 	}
@@ -1224,8 +1355,8 @@ func TestDockerWordNormalizationMatchesBuildKit(t *testing.T) {
 			t.Errorf("BuildKit ProcessWord(%q): %v", input, err)
 		} else if words, runtimeErr := discovery.runtimeWords(input, nil); runtimeErr != nil {
 			t.Errorf("runtimeWords(%q): %v", input, runtimeErr)
-		} else if len(words) != 1 || words[0] != buildKit {
-			t.Errorf("runtimeWords(%q) = %q, BuildKit = %q", input, words, buildKit)
+		} else if len(words) != 1 || words[0].value != buildKit {
+			t.Errorf("runtimeWords(%q) = %v, BuildKit = %q", input, words, buildKit)
 		}
 	}
 }
@@ -1262,7 +1393,7 @@ func TestPOSIXRuntimeDiscoveryMatchesBinSh(t *testing.T) {
 			}
 			literal, _ := scanRuntimeWords(words)
 			if literal != test.wantGo {
-				t.Fatalf("Go discovery = %t, want %t; words=%q", literal, test.wantGo, words)
+				t.Fatalf("Go discovery = %t, want %t; words=%v", literal, test.wantGo, words)
 			}
 		})
 	}

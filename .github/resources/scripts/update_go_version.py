@@ -16,7 +16,6 @@
 
 import argparse
 from contextlib import contextmanager
-import ctypes
 from dataclasses import dataclass
 import fcntl
 import json
@@ -525,6 +524,15 @@ def sync(
     digest_resolver: Callable[[str], str] = resolve_docker_hub_digest,
     repository_paths: Optional[Iterable[Path]] = None,
 ) -> List[Path]:
+    """Update managed files as a cooperative single-writer transaction.
+
+    Every cooperating updater is serialized by the repository lock.
+    Publication preserves each managed file's inode and never follows,
+    replaces, or removes another pathname. Processes that modify managed
+    inodes without acquiring the lock are outside the transaction guarantee;
+    observed interference is rejected, but arbitrary descriptor writes cannot
+    be serialized or detected after the final validation.
+    """
     with _exclusive_transaction_lock(repo_root):
         return _sync_locked(repo_root, target_version, digest_resolver,
                             repository_paths)
@@ -682,13 +690,15 @@ def _sync_locked(
         live_contents = dict(original_contents)
         for relative_path in changed_paths:
             _validate_all_managed_paths(repo_root, snapshot, live_contents)
+            # Enroll the path before its first write. A failed or partial
+            # publication must still pass through conservative recovery.
+            owned_paths.append(relative_path)
             _apply_managed_contents(
                 repo_root,
                 relative_path,
                 expected_contents[relative_path],
                 snapshot,
             )
-            owned_paths.append(relative_path)
             live_contents[relative_path] = expected_contents[relative_path]
         _validate_all_managed_paths(repo_root, snapshot, expected_contents)
         _verify_repository_consistency(repo_root)
@@ -922,8 +932,11 @@ def _snapshot_regular_path(
     path: Path,
     display_path: Path,
 ) -> WorktreePathSnapshot:
+    if not hasattr(os, 'O_NOFOLLOW'):
+        raise RuntimeError(
+            'managed Go update path validation requires O_NOFOLLOW')
     try:
-        descriptor = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     except FileNotFoundError as error:
         raise RuntimeError(f'{display_path} disappeared during Go update') \
             from error
@@ -1329,36 +1342,69 @@ def _same_worktree_path(left: WorktreePathSnapshot,
             left.link_count == right.link_count)
 
 
-def _atomic_exchange(left: Path, right: Path) -> None:
-    """Atomically exchange two same-filesystem paths or fail explicitly."""
-    library = ctypes.CDLL(None, use_errno=True)
-    left_bytes = os.fsencode(left)
-    right_bytes = os.fsencode(right)
-    if sys.platform == 'darwin':
-        rename = library.renamex_np
-        rename.argtypes = (ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint)
-        rename.restype = ctypes.c_int
-        result = rename(left_bytes, right_bytes, 0x00000002)  # RENAME_SWAP
-    elif sys.platform.startswith('linux'):
-        try:
-            rename = library.renameat2
-        except AttributeError as error:
-            raise RuntimeError(
-                'conditional Go update publication requires renameat2') \
-                from error
-        rename.argtypes = (ctypes.c_int, ctypes.c_char_p, ctypes.c_int,
-                           ctypes.c_char_p, ctypes.c_uint)
-        rename.restype = ctypes.c_int
-        result = rename(-100, left_bytes, -100, right_bytes,
-                        0x00000002)  # AT_FDCWD, RENAME_EXCHANGE
-    else:
+def _snapshot_open_descriptor(
+    descriptor: int,
+    display_path: Path,
+) -> WorktreePathSnapshot:
+    """Read one descriptor while requiring stable regular-file identity."""
+    before = os.fstat(descriptor)
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError(
+            f'{display_path} must be a regular file; symlinks and other '
+            'special files are not supported')
+    if before.st_nlink != 1:
+        raise ValueError(
+            f'{display_path} must not have hardlinks outside the managed '
+            'path set')
+    offset = os.lseek(descriptor, 0, os.SEEK_CUR)
+    try:
+        os.lseek(descriptor, 0, os.SEEK_SET)
+        chunks = []
+        while True:
+            chunk = os.read(descriptor, 1024 * 1024)
+            if not chunk:
+                break
+            chunks.append(chunk)
+    finally:
+        os.lseek(descriptor, offset, os.SEEK_SET)
+    after = os.fstat(descriptor)
+    if ((after.st_dev, after.st_ino) != (before.st_dev, before.st_ino) or
+            after.st_mode != before.st_mode or
+            after.st_nlink != before.st_nlink or
+            after.st_size != before.st_size or
+            after.st_mtime_ns != before.st_mtime_ns):
         raise RuntimeError(
-            f'conditional Go update publication is not supported on '
-            f'{sys.platform}')
-    if result != 0:
-        error_number = ctypes.get_errno()
-        raise OSError(error_number, os.strerror(error_number),
-                      f'{left} <-> {right}')
+            f'{display_path} changed while validating Go update state')
+    return WorktreePathSnapshot(
+        path=display_path,
+        contents=b''.join(chunks),
+        file_type=stat.S_IFMT(before.st_mode),
+        mode=stat.S_IMODE(before.st_mode),
+        device=before.st_dev,
+        inode=before.st_ino,
+        link_count=before.st_nlink,
+    )
+
+
+def _open_managed_descriptor(path: Path) -> int:
+    if not hasattr(os, 'O_NOFOLLOW'):
+        raise RuntimeError(
+            'conditional Go update publication requires O_NOFOLLOW')
+    flags = os.O_RDWR | os.O_NOFOLLOW
+    flags |= getattr(os, 'O_CLOEXEC', 0)
+    return os.open(path, flags)
+
+
+def _overwrite_open_descriptor(descriptor: int, contents: bytes) -> None:
+    os.lseek(descriptor, 0, os.SEEK_SET)
+    remaining = memoryview(contents)
+    while remaining:
+        written = os.write(descriptor, remaining)
+        if written <= 0:
+            raise OSError('could not write managed Go update contents')
+        remaining = remaining[written:]
+    os.ftruncate(descriptor, len(contents))
+    os.fsync(descriptor)
 
 
 def _write_managed_contents(
@@ -1368,67 +1414,78 @@ def _write_managed_contents(
     snapshot: RepositorySnapshot,
     expected_live_contents: bytes,
 ) -> None:
+    """Compare-and-write an existing inode without path publication.
+
+    Avoiding rename and unlink is deliberate: pathname replacements are never
+    adopted or deleted. The repository lock supplies the single-writer
+    guarantee; descriptor and pathname checks reject observed non-cooperating
+    changes without claiming to serialize arbitrary external file descriptors.
+    """
     path = repo_root / relative_path
     expected_path = next(state for state in snapshot.worktree_paths
                          if state.path == relative_path)
     live_before = _snapshot_worktree_path(repo_root, relative_path)
-    if (live_before.contents != expected_live_contents or
-            live_before.file_type != expected_path.file_type or
-            live_before.mode != expected_path.mode):
+    expected_identity = WorktreePathSnapshot(
+        path=relative_path,
+        contents=expected_live_contents,
+        file_type=expected_path.file_type,
+        mode=expected_path.mode,
+        device=expected_path.device,
+        inode=expected_path.inode,
+        link_count=expected_path.link_count,
+    )
+    if not _same_worktree_path(live_before, expected_identity):
         raise RuntimeError(
             f'{relative_path} changed before conditional Go update '
             'publication')
-    descriptor, temporary_name = tempfile.mkstemp(
-        dir=path.parent, prefix=f'.{path.name}.go-update-')
-    temporary = Path(temporary_name)
-    exchanged = False
-    candidate = None
+    descriptor = _open_managed_descriptor(path)
     try:
-        with os.fdopen(descriptor, 'wb') as destination:
-            descriptor = -1
-            os.fchmod(destination.fileno(), expected_path.mode)
-            destination.write(contents.encode('utf-8'))
-            destination.flush()
-            os.fsync(destination.fileno())
-        candidate = _snapshot_regular_path(temporary, relative_path)
-        _fsync_directory(path.parent)
-        _atomic_exchange(path, temporary)
-        exchanged = True
-        displaced = _snapshot_regular_path(temporary, relative_path)
-        if not _same_worktree_path(displaced, live_before):
-            current = _snapshot_worktree_path(repo_root, relative_path)
-            if _same_worktree_path(current, candidate):
-                _atomic_exchange(path, temporary)
-                exchanged = False
-                _fsync_directory(path.parent)
+        opened = _snapshot_open_descriptor(descriptor, relative_path)
+        if not _same_worktree_path(opened, live_before):
             raise RuntimeError(
                 f'{relative_path} changed during conditional Go update '
                 'publication')
-        temporary.unlink()
-        exchanged = False
-        _fsync_directory(path.parent)
-    except BaseException:
-        if descriptor >= 0:
-            os.close(descriptor)
-        if exchanged and candidate is not None and temporary.exists():
+        candidate_contents = contents.encode('utf-8')
+        try:
+            _overwrite_open_descriptor(descriptor, candidate_contents)
+        except BaseException as write_error:
             try:
+                _overwrite_open_descriptor(descriptor, live_before.contents)
+                restored = _snapshot_open_descriptor(descriptor,
+                                                     relative_path)
                 current = _snapshot_worktree_path(repo_root, relative_path)
-                if _same_worktree_path(current, candidate):
-                    _atomic_exchange(path, temporary)
-                    exchanged = False
-                    _fsync_directory(path.parent)
-            except Exception:
-                pass
-        if temporary.exists() and not exchanged:
-            temporary.unlink()
-        raise
-    current = _snapshot_worktree_path(repo_root, relative_path)
-    if (current.contents != contents.encode('utf-8') or
-            current.file_type != expected_path.file_type or
-            current.mode != expected_path.mode):
-        raise RuntimeError(
-            f'{relative_path} changed after conditional Go update '
-            'publication')
+                if (not _same_worktree_path(restored, live_before) or
+                        not _same_worktree_path(current, live_before)):
+                    raise RuntimeError(
+                        f'{relative_path} could not confirm restoration after '
+                        'a failed conditional Go update write')
+            except BaseException as restore_error:
+                raise RuntimeError(
+                    f'{relative_path} failed conditional Go update write and '
+                    f'could not restore its original bytes: {restore_error}') \
+                    from write_error
+            raise
+        written_state = _snapshot_open_descriptor(descriptor, relative_path)
+        candidate = WorktreePathSnapshot(
+            path=relative_path,
+            contents=candidate_contents,
+            file_type=expected_path.file_type,
+            mode=expected_path.mode,
+            device=expected_path.device,
+            inode=expected_path.inode,
+            link_count=expected_path.link_count,
+        )
+        if not _same_worktree_path(written_state, candidate):
+            raise RuntimeError(
+                f'{relative_path} changed during conditional Go update '
+                'publication')
+        current = _snapshot_worktree_path(repo_root, relative_path)
+        if not _same_worktree_path(current, candidate):
+            raise RuntimeError(
+                f'{relative_path} changed after conditional Go update '
+                'publication')
+    finally:
+        os.close(descriptor)
 
 
 def _apply_managed_contents(repo_root: Path, relative_path: Path, contents: str,

@@ -133,7 +133,159 @@ func readDockerContract(t *testing.T) dockerContract {
 	if contract.SchemaVersion != 1 {
 		t.Fatalf("unsupported Docker contract schema %d", contract.SchemaVersion)
 	}
+	validateDockerContractCoverage(t, contract)
 	return contract
+}
+
+func validateDockerContractCoverage(t *testing.T, contract dockerContract) {
+	t.Helper()
+	if len(contract.Cases) == 0 {
+		t.Error("classification cases must not be empty")
+	}
+	caseIDs := make([]string, 0, len(contract.Cases))
+	for _, testCase := range contract.Cases {
+		caseIDs = append(caseIDs, testCase.ID)
+		if testCase.Want.Classification == "" || (testCase.Dockerfile == "") == (testCase.Generator == nil) {
+			t.Errorf("classification case %q has an empty required field", testCase.ID)
+		}
+	}
+	requireNonemptyUniqueIDs(t, "classification case", caseIDs)
+	if len(contract.DockerConformance) == 0 {
+		t.Error("Docker conformance cases must not be empty")
+	}
+	conformanceIDs := make([]string, 0, len(contract.DockerConformance))
+	for _, testCase := range contract.DockerConformance {
+		conformanceIDs = append(conformanceIDs, testCase.ID)
+		if testCase.Domain == "" || testCase.Want.Classification == "" || (testCase.Dockerfile == "") == (testCase.Generator == nil) {
+			t.Errorf("Docker conformance case %q has an empty required field", testCase.ID)
+		}
+	}
+	requireNonemptyUniqueIDs(t, "Docker conformance case", conformanceIDs)
+	requireExactIDs(t, "BuildKit word oracle", []string{
+		"docker-backslash-concat",
+		"docker-double-quote-concat",
+		"docker-single-quote-concat",
+		"docker-unicode-parameter-default",
+		"docker-parameter-value",
+		"alternate-docker-escape-does-not-make-backslash-a-shell-escape",
+	}, slices.Collect(func(yield func(string) bool) {
+		for _, oracle := range contract.BuildKitWordOracles {
+			if oracle.Word == "" || oracle.Escape == "" || oracle.Want == "" {
+				t.Errorf("BuildKit word oracle %q has an empty required field", oracle.ID)
+			}
+			yield(oracle.ID)
+		}
+	}))
+	requireExactIDs(t, "shell oracle", []string{
+		"sh-backslash-concat",
+		"sh-double-quote-concat",
+		"sh-single-quote-concat",
+		"sh-backslash-newline",
+		"sh-comment-to-newline",
+		"sh-parameter-name",
+		"sh-parameter-operand",
+		"sh-parameter-set",
+	}, slices.Collect(func(yield func(string) bool) {
+		for _, oracle := range contract.ShellOracles {
+			if oracle.Script == "" || oracle.WantArgv == nil {
+				t.Errorf("shell oracle %q has an empty required field", oracle.ID)
+			}
+			yield(oracle.ID)
+		}
+	}))
+
+	if len(contract.ExecutableCrossProducts) != 1 {
+		t.Errorf("executable cross products = %d, want exactly 1", len(contract.ExecutableCrossProducts))
+	} else {
+		matrix := contract.ExecutableCrossProducts[0]
+		if matrix.ID != "runtime-source" {
+			t.Errorf("executable cross-product ID = %q, want runtime-source", matrix.ID)
+		}
+		requireExactIDs(t, "executable source", []string{"image", "download"}, executableSourceIDs(matrix.Sources))
+		requireExactIDs(t, "executable instruction", []string{"RUN", "CMD", "ENTRYPOINT", "HEALTHCHECK"}, matrix.Instructions)
+		requireExactIDs(t, "executable form", []string{"shell", "exec", "heredoc"}, matrix.Forms)
+		requireExactIDs(t, "executable context", []string{"top-level", "onbuild"}, matrix.Contexts)
+		if got, want := len(matrix.Sources)*len(matrix.Instructions)*len(matrix.Forms)*len(matrix.Contexts), 48; got != want {
+			t.Errorf("executable cross-product cardinality = %d, want %d", got, want)
+		}
+		for _, source := range matrix.Sources {
+			if source.Value == "" || source.CandidateKind == "" {
+				t.Errorf("executable source %q has an empty required field", source.ID)
+			}
+		}
+	}
+
+	if len(contract.WordExpansionProducts) != 1 {
+		t.Errorf("word-expansion cross products = %d, want exactly 1", len(contract.WordExpansionProducts))
+	} else {
+		product := contract.WordExpansionProducts[0]
+		if product.ID != "conditional-source-branch" || product.Variable != "VALUE" {
+			t.Errorf("word-expansion identity = %q/%q, want conditional-source-branch/VALUE", product.ID, product.Variable)
+		}
+		requireExactIDs(t, "word-expansion source", []string{"image", "download"}, executableSourceIDs(product.Sources))
+		for _, source := range product.Sources {
+			if source.Value == "" || source.CandidateKind == "" {
+				t.Errorf("word-expansion source %q has an empty required field", source.ID)
+			}
+		}
+		requireExactIDs(t, "word-expansion field", []string{"arg", "env"}, slices.Collect(func(yield func(string) bool) {
+			for _, field := range product.Fields {
+				if field.Template == "" || field.CandidateKind == "" {
+					t.Errorf("word-expansion field %q has an empty required field", field.ID)
+				}
+				yield(field.ID)
+			}
+		}))
+		requireExactIDs(t, "word-expansion operator", []string{":-", "-", ":+", "+"}, slices.Collect(func(yield func(string) bool) {
+			for _, operator := range product.Operators {
+				requireExactIDs(t, "operator "+operator.Token+" state", []string{"unset", "empty", "nonempty"}, slices.Collect(func(yieldState func(string) bool) {
+					for state := range operator.Want {
+						yieldState(state)
+					}
+				}))
+				yield(operator.Token)
+			}
+		}))
+		if got, want := len(product.Sources)*len(product.Fields)*len(product.Operators)*3, 48; got != want {
+			t.Errorf("word-expansion cross-product cardinality = %d, want %d", got, want)
+		}
+	}
+}
+
+func requireNonemptyUniqueIDs(t *testing.T, domain string, ids []string) {
+	t.Helper()
+	if len(ids) == 0 {
+		t.Errorf("%s IDs must not be empty", domain)
+		return
+	}
+	seen := map[string]bool{}
+	for _, id := range ids {
+		if id == "" || seen[id] {
+			t.Errorf("%s ID %q is empty or duplicated", domain, id)
+		}
+		seen[id] = true
+	}
+}
+
+func executableSourceIDs(sources []dockerExecutableSource) []string {
+	ids := make([]string, 0, len(sources))
+	for _, source := range sources {
+		ids = append(ids, source.ID)
+	}
+	return ids
+}
+
+func requireExactIDs(t *testing.T, domain string, want, got []string) {
+	t.Helper()
+	slices.Sort(want)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Errorf("%s IDs/tokens = %q, want exactly %q", domain, got, want)
+	}
+}
+
+func TestDockerContractStructuralCoverage(t *testing.T) {
+	readDockerContract(t)
 }
 
 func TestDockerContractClassificationMatrix(t *testing.T) {
@@ -223,6 +375,31 @@ func TestDockerContractWordExpansionCrossProducts(t *testing.T) {
 		for _, source := range product.Sources {
 			for _, operator := range product.Operators {
 				word := "${" + product.Variable + operator.Token + source.Value + "}"
+				t.Run(strings.Join([]string{product.ID, source.ID, operator.Token, "exact-alternatives"}, "/"), func(t *testing.T) {
+					lexer := buildkitshell.NewLex('\\')
+					wantSet := map[string]bool{}
+					for _, state := range []string{"unset", "empty", "nonempty"} {
+						normalized, _, err := lexer.ProcessWord(word, buildkitshell.EnvsFromSlice(states[state]))
+						if err != nil {
+							t.Fatal(err)
+						}
+						wantSet[normalized] = true
+					}
+					want := make([]string, 0, len(wantSet))
+					for value := range wantSet {
+						want = append(want, value)
+					}
+					slices.Sort(want)
+					discovery := newDockerDiscovery('\\')
+					got, err := discovery.dockerWordAlternatives(word)
+					if err != nil {
+						t.Fatal(err)
+					}
+					slices.Sort(got)
+					if !slices.Equal(got, want) {
+						t.Fatalf("alternatives = %q, want exact BuildKit alternatives %q", got, want)
+					}
+				})
 				for state, environment := range states {
 					state, environment := state, environment
 					t.Run(strings.Join([]string{product.ID, source.ID, operator.Token, state}, "/"), func(t *testing.T) {
@@ -304,6 +481,7 @@ func TestDockerContractAgainstDocker(t *testing.T) {
 
 func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 	seen := map[string]bool{}
+	domains := map[string]int{}
 	for _, testCase := range readDockerContract(t).DockerConformance {
 		if testCase.ID == "" || seen[testCase.ID] {
 			t.Errorf("Docker conformance case ID %q is empty or duplicated", testCase.ID)
@@ -312,6 +490,7 @@ func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 		if testCase.Domain == "" {
 			t.Errorf("%s: semantic domain must not be empty", testCase.ID)
 		}
+		domains[testCase.Domain]++
 		if testCase.Want.Classification == "" {
 			t.Errorf("%s: executable classification oracle is required", testCase.ID)
 		}
@@ -323,6 +502,18 @@ func TestDockerContractExecutableOracleCoverage(t *testing.T) {
 			contents = generateDockerContractInput(t, *testCase.Generator)
 		}
 		assertDockerClassification(t, contents, testCase.Want)
+	}
+	for _, domain := range []string{
+		"numeric-from-external",
+		"numeric-run-mount-external",
+		"negative-copy-index",
+		"from-alias-normalized-local",
+		"from-alias-raw-external",
+		"copy-alias-case-insensitive",
+	} {
+		if domains[domain] != 1 {
+			t.Errorf("required Docker conformance domain %q has %d cases, want exactly 1", domain, domains[domain])
+		}
 	}
 }
 
