@@ -34,7 +34,8 @@ export interface V2beta1ListRunsResponse {
    */
   runs?: Array<V2beta1Run>;
   /**
-   * The total number of runs for the given query.
+   * The total number of runs for the given query. If the request set
+   * skip_count to true, this is -1 rather than a real count.
    * @type {number}
    * @memberof V2beta1ListRunsResponse
    */

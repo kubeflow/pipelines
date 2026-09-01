@@ -81,6 +81,13 @@
             "in": "query",
             "required": false,
             "type": "string"
+          },
+          {
+            "name": "skip_count",
+            "description": "Optional input field. If true, the server skips computing total_size in\nthe response, avoiding an extra count query. Defaults to false, which\npreserves the existing behavior of always computing total_size.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
           }
         ],
         "tags": [
@@ -459,7 +466,7 @@
         "total_size": {
           "type": "integer",
           "format": "int32",
-          "description": "The total number of runs for the given query."
+          "description": "The total number of runs for the given query. If the request set\nskip_count to true, this is -1 rather than a real count."
         },
         "next_page_token": {
           "type": "string",
