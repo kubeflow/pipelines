@@ -366,21 +366,26 @@ jobs:
             const headSha = context.payload.workflow_run.head_sha;
             const conclusion = context.payload.workflow_run.conclusion;
 
-            // A non-success completion must re-poll to re-derive the aggregate
-            // from current check state. A success completion only re-polls when
-            // the current ci-passed status is failure, so a successful re-run
-            // can clear a stale red (a green or absent status needs nothing).
+            // Only genuine check failures (failure/timed_out) force a re-poll
+            // to re-derive the aggregate from current check state. Cancelled,
+            // skipped, neutral, and action_required completions are not check
+            // failures and must not redden a green gate. A success completion
+            // re-polls when the current ci-passed status is failure, pending,
+            // or absent, so a successful re-run can clear a stale red or a
+            // stuck pending.
             let needsRepoll = "false";
-            if (conclusion !== "success") {
+            if (conclusion === "failure" || conclusion === "timed_out") {
               needsRepoll = "true";
-            } else {
+            } else if (conclusion === "success") {
               const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 ref: headSha,
               });
               const ciPassed = statuses.find((s) => s.context === "ci-passed");
-              needsRepoll = ciPassed && ciPassed.state === "failure" ? "true" : "false";
+              needsRepoll = !ciPassed ||
+                ciPassed.state === "failure" ||
+                ciPassed.state === "pending" ? "true" : "false";
             }
 
             core.setOutput("needs_repoll", needsRepoll);
@@ -436,12 +441,25 @@ jobs:
               return;
             }
 
+            // Only an eligible PR can earn the gate. needs-ok-to-test rejects
+            // unconditionally; otherwise eligible iff ok-to-test, a Dependabot
+            // PR, or a trusted (MEMBER/OWNER/COLLABORATOR) author.
+            const labels = new Set(pullRequest.labels.map((label) => label.name));
+            const association = pullRequest.author_association;
+            const eligible = !labels.has("needs-ok-to-test") && (
+              labels.has("ok-to-test") ||
+              pullRequest.user.login === "dependabot[bot]" ||
+              association === "MEMBER" ||
+              association === "OWNER" ||
+              association === "COLLABORATOR"
+            );
+
             // Honor the P1#2 base-retarget revalidation marker. A base
             // change does not re-run pull_request CI, so the marker must
             // persist on the head SHA and block any re-derivation back to
             // success until the head is updated and revalidated.
             let baseRevalidationRequired = false;
-            let currentStatusIsFailure = false;
+            let currentStatusIsSuccess = false;
             {
               const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
                 owner: context.repo.owner,
@@ -452,7 +470,7 @@ jobs:
               baseRevalidationRequired = Boolean(ciPassed &&
                 ciPassed.state === "failure" &&
                 (ciPassed.description || "").startsWith("Base branch retargeted"));
-              currentStatusIsFailure = Boolean(ciPassed && ciPassed.state === "failure");
+              currentStatusIsSuccess = Boolean(ciPassed && ciPassed.state === "success");
             }
 
             if (baseRevalidationRequired) {
@@ -478,17 +496,56 @@ jobs:
               return;
             }
 
-            // A success conclusion only re-polls when the current
-            // ci-passed status is failure. If it is already green (or absent),
-            // there is nothing to re-derive and this is a no-op.
-            if (conclusion === "success" && !currentStatusIsFailure) {
-              core.info(`Current ci-passed status is not failure (conclusion=${conclusion}); no reconcile needed.`);
+            // An ineligible PR can never hold a green gate. Publish failure
+            // and drop the label even when the re-poll is green, so a
+            // needs-ok-to-test added after a green cannot survive a
+            // workflow_run completion.
+            if (!eligible) {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: headSha,
+                context: "ci-passed",
+                state: "failure",
+                description: "CI checks did not pass or the PR requires revalidation.",
+              });
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  name: "ci-passed",
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+              core.info(`PR #${prNumber} is ineligible; published failure for ${headSha}.`);
+              return;
+            }
+
+            // Only genuine check conclusions (failure, timed_out, success)
+            // re-derive the aggregate. Cancelled, skipped, neutral, and
+            // action_required completions are not check results and must not
+            // redden a green gate.
+            if (conclusion !== "failure" &&
+                conclusion !== "timed_out" &&
+                conclusion !== "success") {
+              core.info(`Workflow run conclusion ${conclusion} is not a check result; not reconciling.`);
+              return;
+            }
+
+            // A success conclusion re-polls when the current ci-passed status
+            // is failure, pending, or absent. Only an already-green status is
+            // a no-op; anything else re-derives from the re-poll.
+            if (conclusion === "success" && currentStatusIsSuccess) {
+              core.info(`Current ci-passed status is already success; no reconcile needed.`);
               return;
             }
 
             const pollPassed = "${{ steps.repoll.outcome }}" === "success";
-            const state = pollPassed ? "success" : "failure";
-            const description = pollPassed
+            const passed = eligible && pollPassed;
+            const state = passed ? "success" : "failure";
+            const description = passed
               ? "All CI checks passed on this exact commit."
               : "CI checks did not pass or the PR requires revalidation.";
 
