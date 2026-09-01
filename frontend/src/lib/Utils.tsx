@@ -500,11 +500,14 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
         .map((char) => char.charCodeAt(0)),
     );
     try {
-      const result = pako.ungzip(compressedBuffer, { to: 'string' });
+      const result = pako.ungzip(compressedBuffer, { toText: true });
       const nodes = JSON.parse(result);
       resolve(nodes);
     } catch (error) {
-      const gz_error_msg = `failed to ungzip data: ${error}`;
+      // pako 3 rejects with an Error object where pako 2 threw a bare string.
+      // Unwrap it so the reported message stays the same across the upgrade.
+      const reason = error instanceof Error ? error.message : error;
+      const gz_error_msg = `failed to ungzip data: ${reason}`;
       logger.error(gz_error_msg);
       reject(gz_error_msg);
     }
