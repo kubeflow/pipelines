@@ -404,7 +404,7 @@ class CiPassEligibilityTest(unittest.TestCase):
         self.assertIn("label.name == 'needs-ok-to-test'", condition)
         self.assertIn("label.name == 'ok-to-test'", condition)
         self.assertIn('github.event.changes.base.ref.from', condition)
-        self.assertIn('types: [opened, synchronize, reopened, edited, labeled, unlabeled]',
+        self.assertIn('types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]',
                       self.workflow)
 
     def test_workflow_run_trigger_declared_without_check_run_suite(self):

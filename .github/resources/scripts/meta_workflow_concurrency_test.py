@@ -153,17 +153,18 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
 
         self.assertEqual(
             condition,
-            "(github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') || "
+            "github.event_name == 'pull_request_target' && "
+            "( (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') || "
             "(github.event.action == 'edited' && github.event.changes.base.ref.from != '') || "
             "(github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) || "
-            "(github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test'))",
+            "(github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test')) )",
         )
 
         self.assertFalse(_has_mapping(workflow, 'concurrency', 0))
-        self.assertIn('github.event.pull_request.number', concurrency_group)
+        self.assertIn('github.event.workflow_run.head_sha', concurrency_group)
         self.assertIn('github.event.pull_request.head.sha', concurrency_group)
         self.assertEqual(
-            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'true')
+            _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
 
     def test_approval_runs_on_open_but_skips_unrelated_labels(self):
         workflow = self._read_workflow('gh-workflow-approve.yml')
