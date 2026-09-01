@@ -98,6 +98,7 @@ const (
 	maxDockerAlternativeWork    = 1 << 20
 	maxReferenceMachineStates   = 128
 	maxReferenceTransformations = 2048
+	maxSymbolicReferenceWork    = 1 << 20
 )
 
 type resourceLimitError struct {
@@ -591,12 +592,13 @@ type dockerWordKey struct {
 }
 
 type dockerWordResult struct {
-	validation string
-	values     []symbolicValue
-	symbolic   []symbolicValue
-	variables  map[string]bool
-	unknown    bool
-	err        error
+	validation      string
+	values          []symbolicValue
+	symbolic        []symbolicValue
+	variables       map[string]bool
+	fixedParameters []string
+	unknown         bool
+	err             error
 }
 
 type runtimeWordsKey struct {
@@ -607,6 +609,14 @@ type runtimeWordsKey struct {
 type runtimeWordsResult struct {
 	values []runtimeWord
 	err    error
+}
+
+type symbolicSourceResult struct {
+	image         bool
+	imageKnown    bool
+	download      bool
+	downloadKnown bool
+	err           error
 }
 
 type symbolicSegment struct {
@@ -652,11 +662,13 @@ type dockerDiscovery struct {
 	wordLexer        *shell.Lex
 	wordMemo         map[dockerWordKey]dockerWordResult
 	runtimeWordsMemo map[runtimeWordsKey]runtimeWordsResult
+	symbolicMemo     map[string]symbolicSourceResult
 	instructions     int
 	candidates       int
 	normalizedBytes  int
 	wordWorkBytes    int
 	alternativeWork  int
+	symbolicWork     int
 	stageReferences  map[string]*dockerStageState
 	baseReferences   map[string]*dockerStageState
 	allStages        []*dockerStageState
@@ -672,6 +684,7 @@ func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 		wordLexer:        wordLexer,
 		wordMemo:         map[dockerWordKey]dockerWordResult{},
 		runtimeWordsMemo: map[runtimeWordsKey]runtimeWordsResult{},
+		symbolicMemo:     map[string]symbolicSourceResult{},
 		stageReferences:  map[string]*dockerStageState{},
 		baseReferences:   map[string]*dockerStageState{},
 	}
@@ -757,6 +770,10 @@ func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line 
 			return "", err
 		}
 		result := discovery.wordMemo[dockerWordKey{value: word}]
+		if len(result.fixedParameters) > 0 {
+			return "", unsupportedDockerPolicyf("unsupported-parameter-reference", word, line,
+				"line %d: Docker special/positional parameter reference %q is outside the bounded word-expansion contract", line, result.fixedParameters[0])
+		}
 		if operator, found := unsupportedDockerWordOperator(word, result.variables, discovery.escapeToken); found {
 			return "", unsupportedDockerPolicyf("unsupported-word", word, line,
 				"line %d: Docker parameter operator %q is outside the bounded word-expansion contract", line, operator)
@@ -873,7 +890,15 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 		if allLocal && !discovery.dockerWordHasUnknown(value) {
 			return nil
 		}
-		if matched || discovery.dockerWordUnknownMayContainSource(value, false) {
+		possible := false
+		if !matched {
+			var possibleErr error
+			possible, possibleErr = discovery.dockerWordUnknownMayContainSource(value, false)
+			if possibleErr != nil {
+				return possibleErr
+			}
+		}
+		if matched || possible {
 			candidates = append(candidates, dockerCandidate{Kind: kind, Value: value, Line: node.StartLine})
 		}
 		return nil
@@ -903,13 +928,29 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(*argument.Value, false) {
+			possible := false
+			if !matched {
+				var possibleErr error
+				possible, possibleErr = discovery.dockerWordUnknownMayContainSource(*argument.Value, false)
+				if possibleErr != nil {
+					return nil, possibleErr
+				}
+			}
+			if matched || possible {
 				candidates = append(candidates, dockerCandidate{Kind: "arg-default", Value: *argument.Value, Line: node.StartLine})
 			}
 		}
 	case *instructions.EnvCommand:
 		for _, environment := range command.Env {
-			if isDockerWordFixedUnsetParameter(environment.Key) {
+			keyAlternatives, err := discovery.dockerWordAlternatives(environment.Key)
+			if err != nil {
+				return nil, err
+			}
+			unsupportedKey := discovery.dockerWordHasUnknown(environment.Key)
+			for _, key := range keyAlternatives {
+				unsupportedKey = unsupportedKey || isDockerWordFixedUnsetParameter(key)
+			}
+			if unsupportedKey {
 				candidates = append(candidates, dockerCandidate{Kind: "unsupported-parameter-name", Value: environment.Key, Line: node.StartLine})
 			}
 			alternatives, err := discovery.dockerWordAlternatives(environment.Value)
@@ -923,7 +964,15 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(environment.Value, false) {
+			possible := false
+			if !matched {
+				var possibleErr error
+				possible, possibleErr = discovery.dockerWordUnknownMayContainSource(environment.Value, false)
+				if possibleErr != nil {
+					return nil, possibleErr
+				}
+			}
+			if matched || possible {
 				candidates = append(candidates, dockerCandidate{Kind: "env-value", Value: environment.Value, Line: node.StartLine})
 			}
 		}
@@ -940,7 +989,15 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 					break
 				}
 			}
-			if matched || discovery.dockerWordUnknownMayContainSource(source, true) {
+			possible := false
+			if !matched {
+				var possibleErr error
+				possible, possibleErr = discovery.dockerWordUnknownMayContainSource(source, true)
+				if possibleErr != nil {
+					return nil, possibleErr
+				}
+			}
+			if matched || possible {
 				candidates = append(candidates, dockerCandidate{Kind: "add-download", Value: source, Line: node.StartLine})
 			}
 		}
@@ -1188,7 +1245,7 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		return nil, err
 	}
 	variables := make([]string, 0, len(probe.Unmatched))
-	hasFixedUnsetParameter := false
+	fixedParameters := []string{}
 	for name := range probe.Unmatched {
 		// Docker's word lexer recognizes shell special and positional parameter
 		// syntax, but Docker's ARG/ENV state cannot supply those parameters while
@@ -1196,12 +1253,13 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		// deterministic unset value. Do not project the ordinary variable domain
 		// (unset, empty, arbitrary) onto values that cannot occur.
 		if isDockerWordFixedUnsetParameter(name) {
-			hasFixedUnsetParameter = true
+			fixedParameters = append(fixedParameters, name)
 		} else {
 			variables = append(variables, name)
 		}
 	}
 	sort.Strings(variables)
+	sort.Strings(fixedParameters)
 	validation := probe.Result
 	if len(variables) > maxDockerWordVariables {
 		err := resourceLimitf("Docker word references more than %d variables", maxDockerWordVariables)
@@ -1224,10 +1282,11 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		}
 		concrete := symbolicValue{segments: []symbolicSegment{{literal: validation}}}
 		discovery.wordMemo[key] = dockerWordResult{
-			validation: validation,
-			values:     []symbolicValue{concrete},
-			variables:  unknownNames,
-			unknown:    len(variables) > 0,
+			validation:      validation,
+			values:          []symbolicValue{concrete},
+			variables:       unknownNames,
+			fixedParameters: fixedParameters,
+			unknown:         len(variables) > 0,
 		}
 		return []string{validation}, nil
 	}
@@ -1284,7 +1343,7 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 			discovery.wordMemo[key] = dockerWordResult{err: err}
 			return nil, err
 		}
-		if hasFixedUnsetParameter && !fixedValidationSet {
+		if len(fixedParameters) > 0 && !fixedValidationSet {
 			// This is an exact BuildKit expansion with special/positional
 			// parameters absent. Never model them as set-empty: the non-colon -
 			// and + operators distinguish those states.
@@ -1311,11 +1370,12 @@ func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string
 		return nil, err
 	}
 	discovery.wordMemo[key] = dockerWordResult{
-		validation: validation,
-		values:     typedLiteralValues(alternatives),
-		symbolic:   symbolic,
-		variables:  unknownNames,
-		unknown:    len(variables) > 0,
+		validation:      validation,
+		values:          typedLiteralValues(alternatives),
+		symbolic:        symbolic,
+		variables:       unknownNames,
+		fixedParameters: fixedParameters,
+		unknown:         len(variables) > 0,
 	}
 	return alternatives, nil
 }
@@ -1429,6 +1489,16 @@ func (value symbolicValue) onlyVariables() bool {
 	return true
 }
 
+func (value symbolicValue) variableCount() int {
+	variables := map[string]bool{}
+	for _, segment := range value.segments {
+		if segment.variable != "" {
+			variables[segment.variable] = true
+		}
+	}
+	return len(variables)
+}
+
 type symbolicAtom struct {
 	literal  byte
 	variable string
@@ -1448,16 +1518,60 @@ func (value symbolicValue) atoms() []symbolicAtom {
 	return atoms
 }
 
-func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string, downloadOnly bool) bool {
+func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string, downloadOnly bool) (bool, error) {
 	if !discovery.dockerWordHasUnknown(value) {
-		return false
+		return false, nil
 	}
 	for _, symbolic := range discovery.wordMemo[dockerWordKey{value: value}].symbolic {
-		if symbolicDownloadPrefixPossible(symbolic) || !downloadOnly && symbolicGolangImagePossible(symbolic) {
-			return true
+		result := discovery.symbolicSource(symbolic, !downloadOnly)
+		if result.err != nil {
+			return false, result.err
+		}
+		if result.download || !downloadOnly && result.image {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
+}
+
+func symbolicValueKey(value symbolicValue) string {
+	var key strings.Builder
+	for _, segment := range value.segments {
+		kind, contents := byte('L'), segment.literal
+		if segment.variable != "" {
+			kind, contents = 'V', segment.variable
+		}
+		key.WriteByte(kind)
+		key.WriteString(strconv.Itoa(len(contents)))
+		key.WriteByte(':')
+		key.WriteString(contents)
+	}
+	return key.String()
+}
+
+func (discovery *dockerDiscovery) symbolicSource(value symbolicValue, includeImage bool) symbolicSourceResult {
+	key := symbolicValueKey(value)
+	result := discovery.symbolicMemo[key]
+	if value.variableCount() > maxDockerWordVariables {
+		if result.err == nil {
+			result.err = resourceLimitf("Docker metadata symbolic value references more than %d variable identities", maxDockerWordVariables)
+			discovery.symbolicMemo[key] = result
+		}
+		return result
+	}
+	if !result.downloadKnown {
+		result.download = symbolicDownloadPrefixPossible(value)
+		result.downloadKnown = true
+	}
+	if includeImage && !result.imageKnown && result.err == nil {
+		remaining := maxSymbolicReferenceWork - discovery.symbolicWork
+		var work int
+		result.image, work, result.err = symbolicGolangImagePossible(value, remaining)
+		result.imageKnown = true
+		discovery.symbolicWork += work
+	}
+	discovery.symbolicMemo[key] = result
+	return result
 }
 
 func symbolicDownloadPrefixPossible(symbolic symbolicValue) bool {
@@ -1506,9 +1620,9 @@ func symbolicGlobCanStartWith(pattern symbolicValue, prefix string) bool {
 	return visit(0, 0, false, map[string]string{})
 }
 
-func symbolicGolangImagePossible(symbolic symbolicValue) bool {
+func symbolicGolangImagePossible(symbolic symbolicValue, workLimit int) (bool, int, error) {
 	if len(symbolic.segments) == 0 || symbolic.onlyVariables() {
-		return false
+		return false, 0, nil
 	}
 	anchored := false
 	for _, segment := range symbolic.segments {
@@ -1517,9 +1631,9 @@ func symbolicGolangImagePossible(symbolic symbolicValue) bool {
 		}
 	}
 	if !anchored {
-		return false
+		return false, 0, nil
 	}
-	return golangReferenceMachine().matches(symbolic)
+	return golangReferenceMachine().matches(symbolic, workLimit)
 }
 
 type symbolicReferenceMachine struct {
@@ -1747,7 +1861,7 @@ func (machine *symbolicReferenceMachine) transitionMonoid() [][]int {
 	return transformations
 }
 
-func (machine *symbolicReferenceMachine) matches(value symbolicValue) bool {
+func (machine *symbolicReferenceMachine) matches(value symbolicValue, workLimit int) (bool, int, error) {
 	variableIndexes := map[string]int{}
 	variableOccurrences := map[string]int{}
 	for _, segment := range value.segments {
@@ -1758,19 +1872,38 @@ func (machine *symbolicReferenceMachine) matches(value symbolicValue) bool {
 			}
 		}
 	}
+	if len(variableIndexes) > maxDockerWordVariables {
+		return false, 0, resourceLimitf("Docker metadata symbolic value references more than %d variable identities", maxDockerWordVariables)
+	}
 	assignments := make([]int, len(variableIndexes))
 	for index := range assignments {
 		assignments[index] = -1
 	}
+	type searchState struct {
+		segment     int
+		state       int
+		assignments [maxDockerWordVariables]int
+	}
+	failed := map[searchState]bool{}
 	work := 0
+	exhausted := false
 	var visit func(int, int) bool
-	visit = func(segmentIndex, state int) bool {
-		work++
-		// Exhausting the bounded proof budget fails closed: the caller will
-		// classify the word as a possible unmanaged source.
-		if work > maxDockerAlternativeWork {
-			return true
+	visit = func(segmentIndex, state int) (matched bool) {
+		memoKey := searchState{segment: segmentIndex, state: state}
+		copy(memoKey.assignments[:], assignments)
+		if failed[memoKey] {
+			return false
 		}
+		defer func() {
+			if !matched && !exhausted {
+				failed[memoKey] = true
+			}
+		}()
+		if work >= workLimit {
+			exhausted = true
+			return false
+		}
+		work++
 		if segmentIndex == len(value.segments) {
 			return machine.accepting[state]
 		}
@@ -1813,23 +1946,11 @@ func (machine *symbolicReferenceMachine) matches(value symbolicValue) bool {
 		assignments[variableIndex] = -1
 		return false
 	}
-	return visit(0, 0)
-}
-
-func symbolicValueFromAtoms(atoms []symbolicAtom) symbolicValue {
-	segments := []symbolicSegment{}
-	for _, atom := range atoms {
-		if atom.variable != "" {
-			segments = append(segments, symbolicSegment{variable: atom.variable})
-			continue
-		}
-		if len(segments) > 0 && segments[len(segments)-1].variable == "" {
-			segments[len(segments)-1].literal += string(atom.literal)
-		} else {
-			segments = append(segments, symbolicSegment{literal: string(atom.literal)})
-		}
+	matched := visit(0, 0)
+	if exhausted {
+		return false, work, resourceLimitf("Docker metadata exceeds the %d-step symbolic-reference search limit", maxSymbolicReferenceWork)
 	}
-	return symbolicValue{segments: segments}
+	return matched, work, nil
 }
 
 func symbolicGlobCanEqual(pattern symbolicValue, target string) bool {
@@ -1933,7 +2054,10 @@ func (discovery *dockerDiscovery) commandCandidates(node *parser.Node, command i
 			}
 		}
 	}
-	literal, download := scanRuntimeWords(analyzed)
+	literal, download, scanErr := discovery.scanRuntimeWords(analyzed)
+	if scanErr != nil {
+		return nil, scanErr
+	}
 	candidates := []dockerCandidate{}
 	if download {
 		candidates = append(candidates, dockerCandidate{Kind: "download", Value: node.Original, Line: node.StartLine})
@@ -1969,19 +2093,23 @@ func (discovery *dockerDiscovery) runtimeWords(value string, parameters []string
 	return words, err
 }
 
-func scanRuntimeWords(words []runtimeWord) (bool, bool) {
+func (discovery *dockerDiscovery) scanRuntimeWords(words []runtimeWord) (bool, bool, error) {
 	literal := false
 	download := false
 	for _, word := range words {
 		if word.symbolic != nil {
-			literal = literal || symbolicGolangImagePossible(*word.symbolic)
-			download = download || symbolicDownloadPrefixPossible(*word.symbolic)
+			result := discovery.symbolicSource(*word.symbolic, true)
+			if result.err != nil {
+				return false, false, result.err
+			}
+			literal = literal || result.image
+			download = download || result.download
 		} else {
 			literal = literal || containsDockerGoToken(word.value)
 			download = download || goDownloadPattern.MatchString(word.value)
 		}
 	}
-	return literal, download
+	return literal, download, nil
 }
 
 func parseRuntimeShellWords(value string, parameters []string) ([]runtimeWord, error) {

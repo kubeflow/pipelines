@@ -70,7 +70,7 @@ instruction text are not substituted for typed values.
 | `CMD`, `ENTRYPOINT` | Shell command or exec argv | Executable content. |
 | `HEALTHCHECK CMD` | Shell command or exec argv | Executable content. `NONE` and options are excluded. |
 | `ARG` | Default values only | Reserved propagation values; arbitrary ARG dataflow is not evaluated. |
-| `ENV` | Values only | Reserved propagation values; arbitrary ENV dataflow is not evaluated. |
+| `ENV` | Values and key-policy validation | Reserved propagation values; arbitrary ENV dataflow is not evaluated. |
 | `ONBUILD` | The same included fields in its recursively parsed payload | Deferred execution does not exempt a source. |
 
 Go-bearing `ARG` and `ENV` values are reserved even when unused. This is the
@@ -78,10 +78,12 @@ explicit alternative to partially evaluating Docker variable flow. Their names
 are identifiers and are permitted, including the name `golang`, except for
 names that collide with POSIX special parameters or ASCII positional digit
 parameters. Docker permits declarations such as `ARG 0=go` and then expands
-`$0`, which would make the otherwise fixed-unset special-parameter model
-state-dependent. Such ARG and ENV names, including valueless ARG declarations,
-are therefore explicitly `unsupported` by this bounded policy. Unicode digits
-are ordinary Docker identifiers and do not fall under this restriction.
+`$0`. Literal ARG names in that set are `unsupported`. ENV keys are first
+normalized with the pinned BuildKit lexer, so quoted and escaped spellings
+cannot bypass the same restriction; ENV keys containing variable expansion are
+also `unsupported` rather than partially evaluated. This includes valueless ARG
+declarations. Unicode digits are ordinary Docker identifiers and do not fall
+under this restriction.
 
 `LABEL`, `MAINTAINER`, `WORKDIR`, `EXPOSE`, `USER`, `VOLUME`, `STOPSIGNAL`,
 ordinary `COPY` operands, local `ADD` operands, destinations, option values not
@@ -166,11 +168,11 @@ operators, including prefix/suffix pattern removal, are classified
 single-quoted spellings remain literals. Unknown values use non-textual typed
 identities rather than forgeable sentinel strings. Repeated occurrences of one
 variable share one assignment, including partial suffix constraints at every
-occurrence. Docker special parameters (`$`, `?`, `#`, `!`, `-`, `@`, and `*`)
-and ASCII positional digit parameters are deterministically unset in Dockerfile
-metadata expansion after the declaration restriction above is enforced. They
-remain absent from every ordinary-variable branch; they never receive the
-ordinary unset/empty/arbitrary symbolic domain.
+occurrence. Active Docker special parameters (`$`, `?`, `#`, `!`, `-`, `@`,
+and `*`) and ASCII positional digit parameters are always `unsupported` by the
+bounded policy. Parent-image environment metadata is unavailable to offline
+analysis and can supply those names even when the current Dockerfile has no
+declaration. Escaped or single-quoted dollar text remains literal.
 Symbolic image values are matched as complete references using a
 bounded automaton derived from the `distribution/reference` grammar. The
 automaton distinguishes bracketed IPv6 authorities, registry ports, repository
@@ -204,7 +206,8 @@ helper enforces these deterministic limits:
 - discovered candidates: 10,000;
 - one Docker word passed to BuildKit normalization: 16 KiB;
 - total distinct Docker words passed to BuildKit normalization: 32 KiB;
-- distinct variables in one Docker word: 6;
+- distinct variables in one Docker word or normalized runtime-shell symbolic
+  value: 6;
 - branch alternatives for one Docker word: 729 (all unset, empty, and
   nonempty states for up to six variables);
 - total Docker alternative-expansion input work: 1 MiB;
@@ -215,8 +218,11 @@ helper enforces these deterministic limits:
 - POSIX shell AST depth: 256; and
 - total visited or normalized semantic literal bytes: 16 MiB.
 
-Repeated alias/word objects are memoized and charged once. Limits for shell
-depth and work are computed from lexer-visible or AST-visible structures, not
+Repeated alias/word objects and normalized symbolic values are memoized and
+charged once across Docker and runtime-shell fields. Exhausting symbolic search
+work is an explicit `invalid` resource error, never evidence that a source was
+found. Limits for shell depth and work are computed from lexer-visible or
+AST-visible structures, not
 from raw character patterns such as counting `${`. Exceeding a deterministic
 limit is `invalid`; exceeding the external deadline is a helper failure. Fuzz
 tests must assert bounded completion and no panic for inputs within the public

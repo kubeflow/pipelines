@@ -58,6 +58,10 @@ GO_VERSION_HELPER = Path('tools/go-version-metadata/main.go')
 API_TOOLS_MODULE = Path('backend/api/tools/go.mod')
 API_TOOLS_DOCKERFILE = Path('backend/api/Dockerfile')
 API_TOOLS_PINS = ('github.com/go-swagger/go-swagger',)
+API_TOOLS_CONTAINER_MODULE = '/tmp/api-generator-tools'
+API_TOOLS_VERSION_VARIABLES = {
+    'github.com/go-swagger/go-swagger': 'go_swagger_version',
+}
 
 DECIMAL_PATTERN = r'(?:0|[1-9][0-9]*)'
 
@@ -89,6 +93,89 @@ def _parse_version(version):
 
 def _read(relative_path):
     return (REPOSITORY_ROOT / relative_path).read_text(encoding='utf-8')
+
+
+def _docker_run_blocks(contents):
+    """Return normalized logical RUN instructions without parsing shell."""
+    lines = contents.splitlines()
+    blocks = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not re.match(r'^[ \t]*RUN(?:[ \t]|$)', line, re.IGNORECASE):
+            index += 1
+            continue
+        physical_lines = [line]
+        while physical_lines[-1].rstrip().endswith('\\'):
+            index += 1
+            if index >= len(lines):
+                break
+            physical_lines.append(lines[index])
+        blocks.append(' '.join(
+            physical_line.rstrip().removesuffix('\\').strip()
+            for physical_line in physical_lines))
+        index += 1
+    return blocks
+
+
+def _api_tool_pin_dataflow_errors(contents, module_path):
+    """Validate manifest -> query -> version-variable consumer dataflow."""
+    variable = API_TOOLS_VERSION_VARIABLES[module_path]
+    copy_pattern = re.compile(
+        rf'(?mi)^[ \t]*COPY[ \t]+{re.escape(str(API_TOOLS_MODULE))}'
+        rf'[ \t]+{re.escape(API_TOOLS_CONTAINER_MODULE)}/go\.mod[ \t]*$')
+    errors = []
+    if not copy_pattern.search(contents):
+        errors.append(
+            f'{API_TOOLS_MODULE} is not copied to '
+            f'{API_TOOLS_CONTAINER_MODULE}/go.mod')
+
+    query_pattern = re.compile(
+        rf'(?:^|;)[ \t]*(?P<variable>{re.escape(variable)})="\$\([ \t]*'
+        rf'cd[ \t]+(?P<module_dir>[^ \t;&|]+)[ \t]*&&[ \t]*'
+        rf'go[ \t]+mod[ \t]+edit[ \t]+-json[ \t]*\|[ \t]*'
+        rf'jq[ \t]+-er[ \t]+'
+        rf"'\.Require\[\][ \t]*\|[ \t]*select\(\.Path[ \t]*==[ \t]*"
+        rf'"(?P<module_path>[^"]+)"\)[ \t]*\|[ \t]*\.Version'
+        rf"'\)\"(?=[ \t]*;)")
+    consumer_pattern = re.compile(
+        rf'(?:^|;)[ \t]*curl\b[^;]*'
+        rf'https://github\.com/go-swagger/go-swagger/releases/download/'
+        rf'\$\{{{re.escape(variable)}\}}/swagger_linux_amd64')
+    reassignment_pattern = re.compile(
+        rf'(?:^|;)[ \t]*{re.escape(variable)}=')
+    coupled = False
+    for block in _docker_run_blocks(contents):
+        query = query_pattern.search(block)
+        if query is None:
+            continue
+        if query.group('module_dir') != API_TOOLS_CONTAINER_MODULE:
+            errors.append(
+                f'{variable} reads {query.group("module_dir")}, want '
+                f'{API_TOOLS_CONTAINER_MODULE}')
+            continue
+        if query.group('module_path') != module_path:
+            errors.append(
+                f'{variable} selects {query.group("module_path")}, want '
+                f'{module_path}')
+            continue
+        tail = block[query.end():]
+        consumer = consumer_pattern.search(tail)
+        if consumer is None:
+            errors.append(
+                f'{variable} is not consumed by the go-swagger download in '
+                'the same RUN instruction')
+            continue
+        if reassignment_pattern.search(tail[:consumer.start()]):
+            errors.append(
+                f'{variable} is overwritten between the module query and '
+                'the go-swagger download')
+            continue
+        coupled = True
+    if not coupled and not errors:
+        errors.append(
+            f'no coupled {module_path} query and go-swagger download found')
+    return errors
 
 
 def _repository_paths():
@@ -461,17 +548,54 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 )
 
     def test_api_tools_pins_are_read_by_the_generator_image(self):
-        """Guard the other half of the coupling: the Dockerfile query."""
+        """Guard manifest -> query -> download dataflow in one RUN."""
         contents = _read(API_TOOLS_DOCKERFILE)
-        self.assertIn(str(API_TOOLS_MODULE.parent), contents)
         for module_path in API_TOOLS_PINS:
             with self.subTest(module_path=module_path):
-                self.assertIn(
-                    module_path,
-                    contents,
-                    f'{API_TOOLS_DOCKERFILE} no longer reads {module_path} '
-                    f'from {API_TOOLS_MODULE}; if the pin moved, update '
-                    'API_TOOLS_PINS so the guard tracks its new home.',
+                self.assertEqual(
+                    _api_tool_pin_dataflow_errors(contents, module_path),
+                    [],
+                    f'{API_TOOLS_DOCKERFILE} must copy {API_TOOLS_MODULE}, '
+                    f'query {module_path} from that copy, and pass the '
+                    'resulting variable to the matching download',
+                )
+
+    def test_api_tools_pin_dataflow_rejects_decoupled_mutations(self):
+        """Shared path strings must not satisfy the coupling invariant."""
+        contents = _read(API_TOOLS_DOCKERFILE)
+        module_path = API_TOOLS_PINS[0]
+        mutations = {
+            'hard-coded version': contents.replace(
+                'go_swagger_version="$(cd /tmp/api-generator-tools && go mod '
+                'edit -json | jq -er \'.Require[] | select(.Path == '
+                '"github.com/go-swagger/go-swagger") | .Version\')";',
+                'go_swagger_version="v0.31.0";',
+            ),
+            'different manifest': contents.replace(
+                'cd /tmp/api-generator-tools && go mod edit -json',
+                'cd /tmp/kfp-module && go mod edit -json',
+            ),
+            'different selected module': contents.replace(
+                'select(.Path == "github.com/go-swagger/go-swagger")',
+                'select(.Path == "google.golang.org/protobuf")',
+            ),
+            'hard-coded download': contents.replace(
+                'releases/download/${go_swagger_version}/swagger_linux_amd64',
+                'releases/download/v0.31.0/swagger_linux_amd64',
+            ),
+            'queried version overwritten': contents.replace(
+                'curl -fL -o /usr/bin/swagger',
+                'go_swagger_version="v0.31.0"; \\\n'
+                '    curl -fL -o /usr/bin/swagger',
+            ),
+        }
+        for name, mutated in mutations.items():
+            with self.subTest(name=name):
+                self.assertNotEqual(mutated, contents,
+                                    f'{name} mutation did not alter fixture')
+                self.assertTrue(
+                    _api_tool_pin_dataflow_errors(mutated, module_path),
+                    f'{name} must break the API tool pin dataflow guard',
                 )
 
 

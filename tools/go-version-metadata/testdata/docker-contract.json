@@ -259,7 +259,7 @@
       "id": "ascii-positional-arg-declaration",
       "finding": 2,
       "domain": "docker-special-parameter-declaration",
-      "dockerfile": "ARG 0=go\nFROM $0lang:latest\n",
+      "dockerfile": "ARG 0=go\nFROM scratch\n",
       "accepted": true,
       "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
     },
@@ -267,7 +267,7 @@
       "id": "special-arg-declaration",
       "finding": 2,
       "domain": "docker-special-parameter-declaration",
-      "dockerfile": "ARG ?=go\nFROM $?lang:latest\n",
+      "dockerfile": "ARG ?=go\nFROM scratch\n",
       "accepted": true,
       "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
     },
@@ -275,7 +275,7 @@
       "id": "special-env-declaration",
       "finding": 2,
       "domain": "docker-special-parameter-declaration",
-      "dockerfile": "FROM scratch\nENV ?=go\nENV V=$?lang\n",
+      "dockerfile": "FROM scratch\nENV ?=go\n",
       "accepted": true,
       "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
     },
@@ -296,12 +296,44 @@
       "want": {"classification": "unsupported", "candidateKinds": ["from"]}
     },
     {
-      "id": "absent-special-parameter-is-fixed-unset",
-      "finding": 2,
-      "domain": "docker-special-parameter-declaration",
+      "id": "active-special-parameter-reference",
+      "finding": 1,
+      "domain": "docker-special-parameter-provenance",
       "dockerfile": "FROM scratch\nARG V=$$olang\n",
       "accepted": true,
-      "want": {"classification": "irrelevant"}
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-reference"]}
+    },
+    {
+      "id": "quoted-special-env-key",
+      "finding": 1,
+      "domain": "docker-special-parameter-provenance",
+      "dockerfile": "FROM scratch\nENV \"?\"=go\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "escaped-special-env-key",
+      "finding": 1,
+      "domain": "docker-special-parameter-provenance",
+      "dockerfile": "FROM scratch\nENV \\?=go\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "expanded-env-key",
+      "finding": 1,
+      "domain": "docker-special-parameter-provenance",
+      "dockerfile": "ARG KEY=?\nFROM scratch\nENV ${KEY}=go\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "inherited-special-environment",
+      "finding": 1,
+      "domain": "docker-special-parameter-provenance",
+      "dockerfile": "FROM scratch AS parent\nENV \"?\"=go\nFROM parent\nARG V=$?lang\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-reference"]}
     },
     {
       "id": "ipv6-registry-symbolic-port-path",

@@ -16,6 +16,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os/exec"
 	"reflect"
@@ -896,6 +897,12 @@ func TestDockerWordSpecialParametersUseBuildKitUnsetDomain(t *testing.T) {
 			classification: "irrelevant",
 		},
 	}
+	for index := range forms {
+		// Exact normalization remains an oracle below, but the bounded policy
+		// rejects every active Docker special/positional parameter reference:
+		// inherited image environments are unavailable to offline analysis.
+		forms[index].classification = "unsupported"
+	}
 	for _, parameter := range []string{"$", "?", "#", "!", "-", "0", "1", "@", "*"} {
 		for _, form := range forms {
 			t.Run(parameter+"/"+form.name, func(t *testing.T) {
@@ -952,7 +959,7 @@ func TestDockerWordSpecialParametersUseBuildKitUnsetDomain(t *testing.T) {
 		{
 			name:           "ordinary branch cannot assign special parameter",
 			value:          `${X:+$?olang}`,
-			classification: "irrelevant",
+			classification: "unsupported",
 			outputs:        []string{"", "", "olang"},
 		},
 		{
@@ -998,10 +1005,74 @@ func TestDockerWordSpecialParametersUseBuildKitUnsetDomain(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if metadata.DockerClassification != "irrelevant" {
-				t.Fatalf("%s classification = %q, want irrelevant; candidates=%#v error=%q", instruction, metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("%s classification = %q, want unsupported; candidates=%#v error=%q", instruction, metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
 			}
 		})
+	}
+}
+
+func TestDockerSpecialParameterNamesFailClosedAcrossProvenance(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		contents       string
+		candidateKind  string
+		candidateValue string
+	}{
+		{
+			name:           "quoted ENV key",
+			contents:       "FROM scratch\nENV \"?\"=go\n",
+			candidateKind:  "unsupported-parameter-name",
+			candidateValue: `"?"`,
+		},
+		{
+			name:           "escaped ENV key",
+			contents:       "FROM scratch\nENV \\?=go\n",
+			candidateKind:  "unsupported-parameter-name",
+			candidateValue: `\?`,
+		},
+		{
+			name:           "expanded ENV key",
+			contents:       "ARG KEY=?\nFROM scratch\nENV ${KEY}=go\n",
+			candidateKind:  "unsupported-parameter-name",
+			candidateValue: "${KEY}",
+		},
+		{
+			name:           "potential inherited environment",
+			contents:       "FROM example.invalid/parent\nARG V=$?lang\n",
+			candidateKind:  "unsupported-parameter-reference",
+			candidateValue: "$?lang",
+		},
+		{
+			name:           "local parent environment",
+			contents:       "FROM scratch AS parent\nENV \"?\"=go\nFROM parent\nARG V=$?lang\n",
+			candidateKind:  "unsupported-parameter-reference",
+			candidateValue: "$?lang",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+			}
+			if len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != test.candidateKind || metadata.DockerCandidates[0].Value != test.candidateValue {
+				t.Fatalf("candidates = %#v, want one %q candidate with value %q", metadata.DockerCandidates, test.candidateKind, test.candidateValue)
+			}
+		})
+	}
+
+	for _, value := range []string{`"?"`, `\?`} {
+		discovery := newDockerDiscovery('\\')
+		alternatives, err := discovery.dockerWordAlternatives(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Equal(alternatives, []string{"?"}) {
+			t.Fatalf("dockerWordAlternatives(%q) = %q, want [?]", value, alternatives)
+		}
 	}
 }
 
@@ -1100,6 +1171,123 @@ func TestSymbolicReferenceMachineBounds(t *testing.T) {
 	}
 }
 
+func TestSymbolicReferenceMemoizesRepeatedImpossibleWords(t *testing.T) {
+	const value = `g${A}o${B}l${C}a${D}n${E}/alpine`
+	discovery := newDockerDiscovery('\\')
+	if _, err := discovery.dockerWordAlternatives(value); err != nil {
+		t.Fatal(err)
+	}
+	possible, err := discovery.dockerWordUnknownMayContainSource(value, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if possible {
+		t.Fatal("impossible suffix was classified as a possible Go reference")
+	}
+	firstWork := discovery.symbolicWork
+	if firstWork == 0 || len(discovery.symbolicMemo) == 0 {
+		t.Fatalf("symbolic search was not accounted or memoized: work=%d memo=%d", firstWork, len(discovery.symbolicMemo))
+	}
+	for range 40 {
+		possible, err = discovery.dockerWordUnknownMayContainSource(value, false)
+		if err != nil || possible {
+			t.Fatalf("cached result = %t, %v; want false, nil", possible, err)
+		}
+	}
+	if discovery.symbolicWork != firstWork {
+		t.Fatalf("cached words increased symbolic work from %d to %d", firstWork, discovery.symbolicWork)
+	}
+
+	contents := "FROM scratch\n"
+	for index := range 40 {
+		contents += fmt.Sprintf("ARG VALUE%d=%s\n", index, value)
+	}
+	metadata, inspectErr := inspect(request{Path: "Dockerfile", Contents: contents})
+	if inspectErr != nil {
+		t.Fatal(inspectErr)
+	}
+	if metadata.DockerClassification != "irrelevant" {
+		t.Fatalf("classification = %q, want irrelevant; error=%q candidates=%#v", metadata.DockerClassification, metadata.DockerError, metadata.DockerCandidates)
+	}
+}
+
+func TestSymbolicReferenceCachePreservesCorrelationAndErrors(t *testing.T) {
+	discovery := newDockerDiscovery('\\')
+	correlated := symbolicValue{segments: []symbolicSegment{
+		{literal: "p"}, {variable: "X"}, {literal: "olan"}, {variable: "X"}, {literal: "x:latest"},
+	}}
+	if result := discovery.symbolicSource(correlated, true); result.err != nil || result.image {
+		t.Fatalf("correlated negative = %#v, want no image or error", result)
+	}
+	positive := symbolicValue{segments: []symbolicSegment{
+		{literal: "[::1]:"}, {variable: "X"}, {literal: "ang:latest"},
+	}}
+	if result := discovery.symbolicSource(positive, true); result.err != nil || !result.image {
+		t.Fatalf("IPv6 positive = %#v, want image without error", result)
+	}
+	if got := len(discovery.symbolicMemo); got != 2 {
+		t.Fatalf("symbolic memo entries = %d, want 2 distinct correlated values", got)
+	}
+	lazy := newDockerDiscovery('\\')
+	downloadOnly := lazy.symbolicSource(positive, false)
+	if !downloadOnly.downloadKnown || downloadOnly.imageKnown || lazy.symbolicWork != 0 {
+		t.Fatalf("download-only cache eagerly searched images: %#v work=%d", downloadOnly, lazy.symbolicWork)
+	}
+	withImage := lazy.symbolicSource(positive, true)
+	if !withImage.imageKnown || !withImage.image || lazy.symbolicWork == 0 {
+		t.Fatalf("lazy image cache was not completed: %#v work=%d", withImage, lazy.symbolicWork)
+	}
+
+	exhausted := newDockerDiscovery('\\')
+	exhausted.symbolicWork = maxSymbolicReferenceWork - 1
+	result := exhausted.symbolicSource(positive, true)
+	var limitErr *resourceLimitError
+	if !errors.As(result.err, &limitErr) || result.image {
+		t.Fatalf("exhausted search = %#v, want explicit resource error", result)
+	}
+	work := exhausted.symbolicWork
+	if cached := exhausted.symbolicSource(positive, true); cached.err != result.err || exhausted.symbolicWork != work {
+		t.Fatalf("cached exhaustion = %#v work=%d, want same error and work=%d", cached, exhausted.symbolicWork, work)
+	}
+}
+
+func TestRuntimeSymbolicIdentityLimit(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		word           string
+		classification string
+		errorContains  string
+	}{
+		{
+			name:           "six identities including repeated sixth",
+			word:           `g${A#?}o${B#?}l${C#?}a${D#?}n${E#?}${F#?}${F#?}/alpine`,
+			classification: "irrelevant",
+		},
+		{
+			name:           "seventh identity repeated",
+			word:           `g${A#?}o${B#?}l${C#?}a${D#?}n${E#?}${F#?}${G#?}${G#?}/alpine`,
+			classification: "invalid",
+			errorContains:  "more than 6 variable identities",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{
+				Path:     "Dockerfile",
+				Contents: "FROM alpine\nRUN echo " + test.word + "\n",
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; error=%q candidates=%#v", metadata.DockerClassification, test.classification, metadata.DockerError, metadata.DockerCandidates)
+			}
+			if !strings.Contains(metadata.DockerError, test.errorContains) {
+				t.Fatalf("error = %q, want substring %q", metadata.DockerError, test.errorContains)
+			}
+		})
+	}
+}
+
 func TestRepositorySymbolicNonGoValues(t *testing.T) {
 	for _, test := range []struct {
 		name     string
@@ -1155,7 +1343,7 @@ func TestRepositorySymbolicNonGoValues(t *testing.T) {
 	}
 }
 
-func TestEscapedDollarDoesNotActivateDockerPatternOperator(t *testing.T) {
+func TestDoubleDollarFailsClosedWithoutActivatingPatternOperator(t *testing.T) {
 	metadata, err := inspect(request{
 		Path:     "Dockerfile",
 		Contents: "FROM alpine\nARG VALUE=$${X#?}${X}\n",
@@ -1163,8 +1351,8 @@ func TestEscapedDollarDoesNotActivateDockerPatternOperator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if metadata.DockerClassification != "irrelevant" {
-		t.Fatalf("classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+	if metadata.DockerClassification != "unsupported" || len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != "unsupported-parameter-reference" {
+		t.Fatalf("classification = %q, want unsupported parameter reference; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
 	}
 }
 
@@ -1628,8 +1816,6 @@ func TestDockerGoTokenShellParameterNames(t *testing.T) {
 				switch operator {
 				case "?", ":?":
 					want = "invalid"
-				case "+", ":+", "#", "%":
-					want = "irrelevant"
 				}
 			}
 			if metadata.DockerClassification != want {
@@ -1730,7 +1916,10 @@ func TestPOSIXRuntimeDiscoveryMatchesBinSh(t *testing.T) {
 			if err != nil {
 				t.Fatalf("POSIX parser rejected /bin/sh input: %v", err)
 			}
-			literal, _ := scanRuntimeWords(words)
+			literal, _, scanErr := newDockerDiscovery('\\').scanRuntimeWords(words)
+			if scanErr != nil {
+				t.Fatal(scanErr)
+			}
 			if literal != test.wantGo {
 				t.Fatalf("Go discovery = %t, want %t; words=%v", literal, test.wantGo, words)
 			}
