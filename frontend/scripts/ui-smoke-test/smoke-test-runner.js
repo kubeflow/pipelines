@@ -46,6 +46,18 @@ const STACK_PORTS = Object.freeze({
   base: Object.freeze({ api: 3102, frontendServer: 3101, metadata: 9190, objectStore: 9100 }),
   head: Object.freeze({ api: 3202, frontendServer: 3201, metadata: 9290, objectStore: 9200 }),
 });
+const FULL_STACK_CAPTURE_VALIDITIES = Object.freeze([
+  'valid',
+  'ui_rendering_failure',
+  'api_incompatibility',
+  'seed_failure',
+  'missing_fixture',
+  'selector_drift',
+  'expected_product_removal',
+  'infrastructure_failure',
+]);
+const FULL_STACK_FAILURE_CATEGORIES = Object.freeze(FULL_STACK_CAPTURE_VALIDITIES.slice(1));
+const FULL_STACK_DIAGNOSTIC_SCHEMA_VERSION = 'ui-smoke-full-stack-diagnostics/v1';
 const CURRENT_ONLY_PAGES = [
   'pipelines',
   'experiments',
@@ -102,6 +114,7 @@ Supported options:
   --viewports <WxH,...>           Capture viewports (default: 1280x800)
   --fail-threshold <percent>      Fail above this visual-difference percentage (default: 0)
   --diff-threshold <percent>      Draw diff markers above this percentage (default: 0)
+  --scenario-policy <path>       Optional reviewed per-scenario thresholds and masks
   --current-only                  Capture one existing UI instead of comparing refs
   --use-existing                 Required with --current-only
   --url <http(s)://...>           Full URL used by --current-only
@@ -193,6 +206,10 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
           type: 'string',
           default: env.UI_SMOKE_DIFF_THRESHOLD || '0',
         },
+        'scenario-policy': {
+          type: 'string',
+          default: env.UI_SMOKE_SCENARIO_POLICY,
+        },
         'current-only': { type: 'boolean', default: false },
         'use-existing': { type: 'boolean', default: false },
         url: { type: 'string' },
@@ -219,6 +236,7 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
     prNumber: validatePullRequestNumber(values.pr, '--pr'),
     displayPrNumber: validatePullRequestNumber(values['pr-number'], '--pr-number'),
     repository: validateRepository(values.repo),
+    scenarioPolicyPath: values['scenario-policy'] ? path.resolve(values['scenario-policy']) : null,
     teardown: values.teardown,
     trustLocalHead: values['trust-local-head'],
     trustPrCode: values['trust-pr-code'],
@@ -267,6 +285,9 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
   }
   if (options.browserOnly && !options.compareRef) {
     throw new Error('--browser-only is only valid with --compare.');
+  }
+  if (options.scenarioPolicyPath && !options.compareRef) {
+    throw new Error('--scenario-policy is only valid with --compare.');
   }
   if ((options.fullStack || options.upgrade) && !options.compareRef) {
     throw new Error('--full-stack and --upgrade are only valid with --compare.');
@@ -1256,6 +1277,269 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function categorizedFullStackError(category, message, details = null) {
+  if (!FULL_STACK_FAILURE_CATEGORIES.includes(category)) {
+    throw new Error(`Invalid full-stack failure category: ${category}`);
+  }
+  const error = new Error(message);
+  error.failureCategory = category;
+  if (details) error.failureDetails = details;
+  return error;
+}
+
+function seedFailureCategory(seedResult) {
+  switch (String(seedResult?.failureType || '').toUpperCase()) {
+    case 'API_INCOMPATIBILITY':
+      return 'api_incompatibility';
+    case 'MISSING_FIXTURE':
+      return 'missing_fixture';
+    default:
+      break;
+  }
+  const detail = String(seedResult?.error || '').toLowerCase();
+  if (/api not healthy|inventory api|detail route|http|status|endpoint/.test(detail)) {
+    return 'api_incompatibility';
+  }
+  if (/missing required|semantic binding|missing fixture/.test(detail)) return 'missing_fixture';
+  return 'seed_failure';
+}
+
+function classifyCaptureResult(result) {
+  if (FULL_STACK_CAPTURE_VALIDITIES.includes(result?.captureValidity)) {
+    if (result.captureValidity === 'valid') return null;
+    if (result.captureValidity !== 'expected_product_removal') {
+      return result.captureValidity;
+    }
+    if (result.status === 'success') return 'expected_product_removal';
+  }
+  if (FULL_STACK_FAILURE_CATEGORIES.includes(result?.failureCategory)) {
+    return result.failureCategory;
+  }
+  if (
+    result?.status === 'success' &&
+    (result?.expectedProductRemoval === true || result?.expectation === 'expected_product_removal')
+  ) {
+    return 'expected_product_removal';
+  }
+  const detail = `${result?.error || ''} ${result?.reason || ''}`.toLowerCase();
+  if (/missing seed|missing fixture|semantic fixture/.test(detail)) return 'missing_fixture';
+  if (result?.status === 'degraded') return 'selector_drift';
+  if (
+    result?.status === 'failed' &&
+    /\bhttp\b|status(?: code)? [45]\d\d|api|network|request|response|fetch|err_connection/.test(
+      detail,
+    )
+  ) {
+    return 'api_incompatibility';
+  }
+  if (result?.status === 'failed') return 'ui_rendering_failure';
+  return null;
+}
+
+function redactFullStackDiagnosticText(value) {
+  return String(value || '')
+    .replace(/:\/\/([^\s/:@]+):([^\s/@]+)@/g, '://<redacted>:<redacted>@')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer <redacted>')
+    .replace(
+      /([?&](?:access_token|api_key|auth|authorization|cookie|credential|password|secret|token)=)[^&\s]*/gi,
+      '$1<redacted>',
+    );
+}
+
+function boundedCaptureDiagnostic(value, maxBytes = 256 * 1024) {
+  if (value === null || value === undefined) return null;
+  let serialized;
+  try {
+    serialized = JSON.stringify(value, (key, nestedValue) => {
+      if (/auth|cookie|credential|password|secret|token|api.?key/i.test(key)) {
+        return '<redacted>';
+      }
+      return typeof nestedValue === 'string'
+        ? redactFullStackDiagnosticText(nestedValue)
+        : nestedValue;
+    });
+  } catch (error) {
+    return { error: `Diagnostic value could not be serialized: ${error.message}` };
+  }
+  const bytes = Buffer.byteLength(serialized);
+  if (bytes <= maxBytes) return JSON.parse(serialized);
+  return {
+    bytes,
+    preview: Buffer.from(serialized).subarray(0, maxBytes).toString('utf8'),
+    truncated: true,
+  };
+}
+
+function captureDiagnostic(runDir, role) {
+  const manifestPath = path.join(runDir, 'screenshots', role, 'manifest.json');
+  const relativeManifestPath = path.relative(runDir, manifestPath).split(path.sep).join('/');
+  if (!fs.existsSync(manifestPath)) return { available: false, role };
+  try {
+    const stat = fs.lstatSync(manifestPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error('capture manifest is not a non-symlink regular file');
+    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const captureResults = Array.isArray(manifest.results) ? manifest.results : [];
+    const summarizeResult = (result) => ({
+      category: classifyCaptureResult(result),
+      diagnostics: boundedCaptureDiagnostic(result.diagnostics || null),
+      error: result.error ? redactFullStackDiagnosticText(result.error).slice(0, 4096) : null,
+      filename: result.filename || null,
+      page: result.page || null,
+      reason: result.reason ? redactFullStackDiagnosticText(result.reason).slice(0, 4096) : null,
+      required: result.required === true,
+      expectedProductRemoval: classifyCaptureResult(result) === 'expected_product_removal',
+      status: result.status || 'unknown',
+      viewport: result.viewport || null,
+    });
+    const incomplete = captureResults
+      .filter(
+        (result) =>
+          result.status !== 'success' ||
+          !['valid', 'expected_product_removal'].includes(result.captureValidity),
+      )
+      .map(summarizeResult);
+    const expectedChanges = captureResults
+      .filter(
+        (result) =>
+          result.status === 'success' && result.captureValidity === 'expected_product_removal',
+      )
+      .map(summarizeResult);
+    const browserDiagnostics = boundedCaptureDiagnostic(
+      manifest.browserDiagnostics || manifest.diagnostics?.browser || manifest.diagnostics || null,
+    );
+    return {
+      available: true,
+      browserDiagnostics,
+      complete: manifest.complete === true,
+      expectedChanges,
+      fatalErrors: Array.isArray(manifest.fatalErrors)
+        ? manifest.fatalErrors
+            .slice(0, 100)
+            .map((error) => redactFullStackDiagnosticText(error).slice(0, 4096))
+        : [],
+      incomplete,
+      manifestPath: relativeManifestPath,
+      role,
+      summary: boundedCaptureDiagnostic(manifest.summary || null),
+    };
+  } catch (error) {
+    return { available: false, error: error.message, manifestPath: relativeManifestPath, role };
+  }
+}
+
+function classifyFullStackFailure(error, state, captures) {
+  if (FULL_STACK_FAILURE_CATEGORIES.includes(error?.failureCategory)) {
+    return error.failureCategory;
+  }
+  const captureCategories = captures.flatMap((capture) =>
+    (capture.incomplete || []).map((result) => result.category).filter(Boolean),
+  );
+  for (const category of [
+    'missing_fixture',
+    'selector_drift',
+    'api_incompatibility',
+    'ui_rendering_failure',
+    'expected_product_removal',
+  ]) {
+    if (captureCategories.includes(category)) return category;
+  }
+  return 'infrastructure_failure';
+}
+
+function writeFullStackDiagnosticArtifacts({ diagnostic, runDir }) {
+  const jsonPath = path.join(runDir, 'full-stack-diagnostics.json');
+  const htmlPath = path.join(runDir, 'full-stack-diagnostics.html');
+  writeJson(jsonPath, diagnostic);
+  const title = `Full-stack diagnostics: ${diagnostic.category}`;
+  const json = escapeHtml(JSON.stringify(diagnostic, null, 2));
+  fs.writeFileSync(
+    htmlPath,
+    `<!doctype html>\n<html lang="en"><head><meta charset="utf-8">` +
+      `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">` +
+      `<meta name="viewport" content="width=device-width,initial-scale=1">` +
+      `<title>${escapeHtml(title)}</title><style>` +
+      'body{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;max-width:1200px;margin:2rem auto;padding:0 1rem;color:#17202a}' +
+      'h1{font:600 1.4rem system-ui,sans-serif}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6f7;border:1px solid #d5d8dc;padding:1rem}' +
+      '</style></head><body>' +
+      `<h1>${escapeHtml(title)}</h1><p>Phase: ${escapeHtml(diagnostic.phase)}</p>` +
+      `<p>Machine-readable artifact: <code>${escapeHtml(path.basename(jsonPath))}</code></p>` +
+      `<pre>${json}</pre></body></html>\n`,
+  );
+  return { htmlPath, jsonPath };
+}
+
+async function persistFullStackFailure({ error, run, services, state }) {
+  const captures = ['base', 'head'].map((role) => captureDiagnostic(run.runDir, role));
+  const stackDiagnostics = [];
+  for (const stack of state.stacks) {
+    if (typeof stack.collectDiagnostics !== 'function') {
+      stackDiagnostics.push({
+        clusterName: stack.clusterName,
+        collected: false,
+        reason: 'diagnostic_collection_unsupported',
+        role: stack.role,
+      });
+      continue;
+    }
+    try {
+      stackDiagnostics.push(
+        await stack.collectDiagnostics({
+          artifactRoot: run.runDir,
+          outputDir: path.join(run.runDir, 'diagnostics', stack.role),
+        }),
+      );
+    } catch (collectionError) {
+      stackDiagnostics.push({
+        clusterName: stack.clusterName,
+        collected: false,
+        error: collectionError.message,
+        reason: 'diagnostic_collection_failed',
+        role: stack.role,
+      });
+    }
+  }
+  const category = classifyFullStackFailure(error, state, captures);
+  const diagnostic = {
+    allowedCaptureValidities: FULL_STACK_CAPTURE_VALIDITIES,
+    captures,
+    category,
+    captureValidity: category,
+    complete: false,
+    error: {
+      details: boundedCaptureDiagnostic(error?.failureDetails || null),
+      message: redactFullStackDiagnosticText(
+        error instanceof Error ? error.message : String(error),
+      ).slice(0, 16 * 1024),
+      name: error instanceof Error ? error.name : 'Error',
+    },
+    mode: 'isolated-full-stack',
+    phase: state.phase,
+    runId: run.runId,
+    schemaVersion: FULL_STACK_DIAGNOSTIC_SCHEMA_VERSION,
+    stacks: stackDiagnostics,
+    status: 'failed',
+    timestamp: new Date().toISOString(),
+  };
+  const paths = await services.writeFullStackDiagnosticArtifacts({
+    diagnostic,
+    runDir: run.runDir,
+  });
+  state.diagnosticsPersisted = true;
+  log(`Full-stack diagnostics: ${paths.htmlPath}`);
+  return paths;
+}
+
 function pullRequestHeadSha(repository, prNumber) {
   const repositoryUrl = `https://github.com/${repository}.git`;
   const ref = `refs/pull/${prNumber}/head`;
@@ -1321,6 +1605,9 @@ async function capturePair({
   semanticManifestPath,
   seedManifestPath,
   sourceProvenancePath,
+  runChildImpl = runChild,
+  scenarioCatalog = null,
+  writeScenarioConfig = null,
 }) {
   const resolvedBaseSeedManifest = baseSeedManifestPath || seedManifestPath;
   const resolvedHeadSeedManifest = headSeedManifestPath || seedManifestPath;
@@ -1331,7 +1618,7 @@ async function capturePair({
   const baseDir = path.join(screenshotsDir, 'base');
   const headDir = path.join(screenshotsDir, 'head');
   const [baseCapture, headCapture] = await Promise.all([
-    runChild(
+    runChildImpl(
       process.execPath,
       captureArguments(baseUrl, baseDir, labels.base, resolvedBaseSeedManifest, {
         revisionRole: 'base',
@@ -1343,7 +1630,7 @@ async function capturePair({
         env: captureEnvironment,
       },
     ),
-    runChild(
+    runChildImpl(
       process.execPath,
       captureArguments(headUrl, headDir, labels.head, resolvedHeadSeedManifest, {
         revisionRole: 'head',
@@ -1357,8 +1644,26 @@ async function capturePair({
     ),
   ]);
 
+  const scenarioConfigPath = path.join(screenshotsDir, 'scenario-config.json');
+  const writeConfig =
+    writeScenarioConfig || require('./generate-comparison').writeBoundScenarioConfig;
+  const resolvedScenarioCatalog =
+    scenarioCatalog || require('./semantic-capture-scenarios').getSemanticScenarioCatalog();
+  writeConfig({
+    baseDir,
+    defaults: {
+      diffThreshold: options.diffThreshold,
+      failThreshold: options.failThreshold,
+      looksSameTolerance: LOOKS_SAME_TOLERANCE,
+    },
+    headDir,
+    expectedViewports: options.viewports,
+    outputPath: scenarioConfigPath,
+    policyPath: options.scenarioPolicyPath || null,
+    scenarioCatalog: resolvedScenarioCatalog,
+  });
   const comparisonDir = path.join(screenshotsDir, 'comparison');
-  const comparison = await runChild(
+  const comparison = await runChildImpl(
     process.execPath,
     [
       path.join(SCRIPT_DIR, 'generate-comparison.js'),
@@ -1376,11 +1681,13 @@ async function capturePair({
       String(LOOKS_SAME_TOLERANCE),
       '--looksame-cluster-size',
       String(LOOKS_SAME_CLUSTER_SIZE),
+      '--scenario-config',
+      scenarioConfigPath,
     ],
     { cwd: SCRIPT_DIR },
   );
 
-  return { baseCapture, comparison, comparisonDir, headCapture };
+  return { baseCapture, comparison, comparisonDir, headCapture, scenarioConfigPath };
 }
 
 async function publishReport(options, comparisonDir) {
@@ -1470,6 +1777,7 @@ function comparisonServices(overrides = {}) {
     validateUpgradeOperations,
     validateUpgradeRequest,
     writeUpgradeComparisonArtifacts,
+    writeFullStackDiagnosticArtifacts,
     writeJson,
     ...overrides,
   };
@@ -1827,7 +2135,7 @@ async function runUpgradeComparison({
   return false;
 }
 
-async function runFullStackComparison({
+async function runFullStackComparisonOrchestration({
   baseCommitSha,
   baseWorktree,
   changes,
@@ -1838,8 +2146,10 @@ async function runFullStackComparison({
   services,
   sourceProvenance,
   sourceProvenancePath,
+  state,
 }) {
   const manager = services.clusterManager;
+  state.phase = 'configuration';
   if (typeof manager.createKindStack !== 'function') {
     throw new Error('The cluster manager does not support isolated revision stacks.');
   }
@@ -1862,6 +2172,7 @@ async function runFullStackComparison({
 
   const baseStack = manager.createKindStack(baseConfiguration);
   const headStack = manager.createKindStack(headConfiguration);
+  state.stacks.push(baseStack, headStack);
   for (const stack of [baseStack, headStack]) {
     services.registerCleanup(`destroy isolated ${stack.role} cluster ${stack.clusterName}`, () =>
       requireStackDestroyed(stack),
@@ -1869,6 +2180,7 @@ async function runFullStackComparison({
     services.registerCleanup(`stop isolated ${stack.role} stack processes`, () => stack.cleanup());
   }
 
+  state.phase = 'image_preflight';
   const targetPlatform = baseStack.getDockerPlatform();
   const seedRuntimePreflight = baseStack.preflightSeedRuntimeImage({
     platform: targetPlatform,
@@ -1901,6 +2213,7 @@ async function runFullStackComparison({
   )
     ? services.revisionBuildMetadata(headRoot, expectedHeadSha)
     : undefined;
+  state.phase = 'head_image_build';
   const headImageOverrides =
     headComponents.length > 0
       ? await headStack.buildComponentImages(headComponents, headRoot, {
@@ -1911,6 +2224,7 @@ async function runFullStackComparison({
         })
       : { deployments: [], images: {}, runtimeEnvironment: {} };
 
+  state.phase = 'cluster_creation';
   await Promise.all([baseStack.createCluster(), headStack.createCluster()]);
   for (const stack of [baseStack, headStack]) {
     const actualPlatform = stack.getClusterPlatform();
@@ -1922,6 +2236,7 @@ async function runFullStackComparison({
   }
   // Establish the exact release stack before starting any head workload. All reviewed head images
   // were already built for the validated target platform while no cluster existed.
+  state.phase = 'base_deployment';
   await baseStack.deployRevision(baseWorktree, {
     expectedRelease: changes.baseRef,
     platform: targetPlatform,
@@ -1929,12 +2244,14 @@ async function runFullStackComparison({
   if (Object.keys(headImageOverrides.images).length > 0) {
     headStack.loadImageOverrides(headImageOverrides, targetPlatform);
   }
+  state.phase = 'head_deployment';
   await headStack.deployRevision(headRoot, {
     imageOverrides: headImageOverrides,
     platform: targetPlatform,
     requireLocalFirstParty: true,
     tagSuffix: `${run.runId}-head`,
   });
+  state.phase = 'ui_readiness';
   const [[baseUiForward], [headUiForward]] = await Promise.all([
     baseStack.ensureDeployedUiPortForwarding(),
     headStack.ensureDeployedUiPortForwarding(),
@@ -1946,6 +2263,7 @@ async function runFullStackComparison({
     services.waitForUrl(headUrl, headUiForward),
   ]);
 
+  state.phase = 'fixture_seeding';
   const baseSeedManifestPath = path.join(run.runDir, 'seed', 'base.json');
   const headSeedManifestPath = path.join(run.runDir, 'seed', 'head.json');
   const [baseSeed, headSeed] = await Promise.all([
@@ -1963,9 +2281,22 @@ async function runFullStackComparison({
       !baseSeed.success ? `base: ${baseSeed.error || 'unknown error'}` : null,
       !headSeed.success ? `head: ${headSeed.error || 'unknown error'}` : null,
     ].filter(Boolean);
-    throw new Error(`Revision-aware fixture seeding failed (${failures.join('; ')}).`);
+    const seedCategories = [baseSeed, headSeed]
+      .filter((seed) => !seed.success)
+      .map(seedFailureCategory);
+    const category = seedCategories.includes('api_incompatibility')
+      ? 'api_incompatibility'
+      : seedCategories.includes('missing_fixture')
+        ? 'missing_fixture'
+        : 'seed_failure';
+    throw categorizedFullStackError(
+      category,
+      `Revision-aware fixture seeding failed (${failures.join('; ')}).`,
+      { base: baseSeed, head: headSeed },
+    );
   }
 
+  state.phase = 'fixture_validation';
   const baseSeedManifest = loadJson(baseSeedManifestPath);
   const headSeedManifest = loadJson(headSeedManifestPath);
   for (const [role, manifest, configuration] of [
@@ -1974,12 +2305,16 @@ async function runFullStackComparison({
   ]) {
     if (manifest.semantic?.validation?.valid !== true) {
       const errors = manifest.semantic?.validation?.errors || ['semantic validation was absent'];
-      throw new Error(`${role} semantic fixture validation failed: ${errors.join('; ')}`);
+      throw categorizedFullStackError(
+        'missing_fixture',
+        `${role} semantic fixture validation failed: ${errors.join('; ')}`,
+      );
     }
     const expectedFlavor =
       configuration.ports.metadata === null ? 'native-task-artifact' : 'legacy-mlmd';
     if (manifest.semantic.revisionFlavor !== expectedFlavor) {
-      throw new Error(
+      throw categorizedFullStackError(
+        'missing_fixture',
         `${role} revision data model mismatch: expected ${expectedFlavor}, received ${manifest.semantic.revisionFlavor || 'unknown'}.`,
       );
     }
@@ -2011,6 +2346,7 @@ async function runFullStackComparison({
   const headLabel = displayNumber
     ? `PR #${displayNumber} (${headIdentity}) [isolated full stack]`
     : `HEAD (${headIdentity}) [isolated full stack]`;
+  state.phase = 'capture';
   const results = await services.capturePair({
     baseSeedManifestPath,
     baseUrl,
@@ -2025,15 +2361,58 @@ async function runFullStackComparison({
     semanticManifestPath,
     sourceProvenancePath,
   });
+  state.captureResults = results;
+  state.phase = 'comparison';
   const success = await finishComparison(options, services, results, headRoot, expectedHeadSha);
 
+  if (!results.baseCapture.success || !results.headCapture.success) {
+    state.phase = 'capture';
+    await persistFullStackFailure({
+      error: new Error('One or more full-stack captures were incomplete.'),
+      run,
+      services,
+      state,
+    });
+  }
+
+  state.phase = 'cleanup';
   await Promise.all([baseStack.cleanup(), headStack.cleanup()]);
   await Promise.all([requireStackDestroyed(baseStack), requireStackDestroyed(headStack)]);
 
   log(`Semantic fixture map: ${semanticManifestPath}`);
   log(`Run artifacts: ${run.runDir}`);
   log(`Comparison report: ${results.comparisonDir}`);
+  state.phase = 'complete';
   return success;
+}
+
+async function runFullStackComparison(parameters) {
+  const state = {
+    captureResults: null,
+    diagnosticsPersisted: false,
+    phase: 'configuration',
+    stacks: [],
+  };
+  try {
+    return await runFullStackComparisonOrchestration({ ...parameters, state });
+  } catch (error) {
+    if (!state.diagnosticsPersisted) {
+      try {
+        await persistFullStackFailure({
+          error,
+          run: parameters.run,
+          services: parameters.services,
+          state,
+        });
+      } catch (persistenceError) {
+        throw new AggregateError(
+          [error, persistenceError],
+          `Full-stack comparison failed and diagnostics could not be persisted: ${error.message}`,
+        );
+      }
+    }
+    throw error;
+  }
 }
 
 async function runComparison(options, run, overrides = {}) {
@@ -2342,6 +2721,9 @@ if (require.main === module) {
 
 module.exports = {
   BASE_PROXY_PORT,
+  FULL_STACK_CAPTURE_VALIDITIES,
+  FULL_STACK_DIAGNOSTIC_SCHEMA_VERSION,
+  FULL_STACK_FAILURE_CATEGORIES,
   HEAD_PROXY_PORT,
   LOOKS_SAME_CLUSTER_SIZE,
   LOOKS_SAME_TOLERANCE,
@@ -2351,6 +2733,7 @@ module.exports = {
   PROCESS_TIMEOUT,
   assertNodeVersion,
   assertNpmVersion,
+  capturePair,
   componentsForRevision,
   comparisonServices,
   createRunDirectory,
@@ -2365,6 +2748,7 @@ module.exports = {
   normalizeHttpUrl,
   parseCli,
   parsePercentage,
+  persistFullStackFailure,
   readUpgradeCapabilities,
   renderRevisionManifestSources,
   requestSuccessful,
@@ -2373,6 +2757,7 @@ module.exports = {
   revisionUsesMetadataService,
   runChild,
   runComparison,
+  seedFailureCategory,
   stackConfiguration,
   terminateChild,
   validateExternalBuildArtifact,
@@ -2381,4 +2766,5 @@ module.exports = {
   validateTrustedHeadCheckout,
   validateViewports,
   verifyPullRequestHead,
+  writeFullStackDiagnosticArtifacts,
 };

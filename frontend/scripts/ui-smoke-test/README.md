@@ -186,14 +186,69 @@ node smoke-test-runner.js \
 Each viewport is declared in the capture manifest. Comparison rejects missing pairs and dimension
 mismatches. Before each screenshot, the browser disables animations and transitions, waits for web
 fonts, and executes each configured readiness predicate rather than merely evaluating its function
-object.
+object. Full-stack semantic captures also pin Chromium through the nested lockfile, use a device
+scale factor of 2, UTC, `en-US`, a light color scheme, reduced motion, and embedded Roboto 5.3.0
+WOFF2 assets at weights 400, 500, and 700. Each font digest is attested in the capture manifest.
+They freeze the browser clock, disable long polling timers, normalize rendered timestamps and
+durations, and apply the same deterministic styles inside artifact frames. A missing pinned font is
+an infrastructure failure instead of a host-dependent screenshot.
+
+For reviewed per-scenario exceptions, pass `--scenario-policy /path/to/policy.json`. The policy is
+operator input and is not allowed for non-comparison workflows. The runner combines it with the
+trusted semantic scenario catalog only after both captures finish, writes a run-scoped
+`scenario-config.json`, and binds that config to both capture IDs and exact manifest SHA-256
+digests. A stale policy binding is rejected before image analysis. Policy rules use schema
+`ui-smoke-comparison-policy/v1` and may override `diffThreshold`, `failThreshold` (including
+`null` to disable it), `looksSameTolerance`, `expectedChange`, and rectangular `masks` for a
+semantic scenario. An optional `{ "width": 1280, "height": 800 }` viewport makes a rule specific
+to that capture size. Mask coordinates are non-negative physical PNG pixels, must stay within the
+image, and cannot cover the entire image. Viewport qualifiers use CSS pixels; masks use physical
+pixels, so the default device scale factor of 2 makes a `1280x800` screenshot `2560x1600`. A
+viewport-specific rule inherits the scenario-wide mask set when `masks` is omitted, clears it with
+`"masks": []`, and replaces it when a non-empty mask array is supplied. `expectedChange` is an
+annotation and does not waive a failure threshold; set `failThreshold` to `null` when the reviewed
+change should remain informational.
+
+```json
+{
+  "schemaVersion": "ui-smoke-comparison-policy/v1",
+  "scenarios": [
+    {
+      "semanticScenario": "run-details-task-logs",
+      "viewport": { "width": 1280, "height": 800 },
+      "diffThreshold": 0.02,
+      "failThreshold": 0.1,
+      "looksSameTolerance": 2.3,
+      "expectedChange": "Reviewed log-toolbar layout change",
+      "masks": [{ "x": 2300, "y": 40, "width": 180, "height": 60, "reason": "provider badge" }]
+    }
+  ]
+}
+```
+
+The clean-stack catalog keys are `executions-to-runs`, `artifact-list-evolution`,
+`run-details-rich-graph`, `run-details-task-panel`, `run-details-task-logs`,
+`run-details-scalar-metrics`, `run-details-html`, `run-details-markdown`, `run-details-roc`,
+`compare-runs`, `compare-roc-selection`, `compare-html`, `compare-markdown`, `artifact-details`,
+`artifact-related-tasks`, `topology-retried-task`, `topology-parallel-for`,
+`topology-nested-dag`, and the optional upgrade-only `historical-artifact-evolution`.
 
 Full-stack seeding creates the same logical pipeline, run, metrics, ROC data, artifacts, retry,
 two-item `ParallelFor`, and nested DAG in each revision through that revision's supported APIs.
+The artifact set includes deterministic scalar metrics, classification metrics, HTML, and Markdown
+contents plus producer and consumer relationships.
 Legacy runs are hydrated from their MLMD-backed run response. Native runs page through
 `/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and Artifact relationships. The
 resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
 routes and selectors do not need identical IDs.
+
+Capture scenarios are semantic journeys rather than a shared list of URLs. The base and head may
+use different routes, tabs, selectors, and actions for the same scenario. The clean-stack catalog
+covers Executions to Runs, grouped to native Artifact lists, Run Details graph/task/logs and all
+seeded visualizations, Compare selections, Artifact Details and relationships, retries,
+`ParallelFor`, and nested DAGs. Preserved historical legacy artifacts remain an optional
+upgrade-only scenario and cannot invalidate a clean-install comparison merely because migration
+support is unavailable.
 
 ## PR comments
 
@@ -235,9 +290,14 @@ screenshots:
         head.yaml
       upgrade-result.json        # upgrade mode, including fail-closed blockers
       screenshots/
+        scenario-config.json      # policy bound to both exact capture manifests
         base/manifest.json        # includes seed, semantic, and source attestations
         head/manifest.json
-        comparison/<page>-<viewport>.png
+        comparison/<scenario>-<viewport>--base.png
+        comparison/<scenario>-<viewport>--head.png
+        comparison/<scenario>-<viewport>--overlay.png
+        comparison/<scenario>-<viewport>--raw-diff.png
+        comparison/<scenario>-<viewport>.png # highlighted side-by-side diff
         comparison/summary.json
         comparison/report.html   # self-contained base/head/diff browser report
       worktrees/
@@ -249,9 +309,13 @@ failure. The runner also requests cleanup on `SIGINT` and `SIGTERM`, but an unca
 can leave run-scoped resources that must be removed by exact name. Completed screenshots and
 reports are retained. Other runs are never automatically deleted.
 
-Comparison thresholds are evaluated only for complete, cryptographically attested capture pairs.
-Missing, degraded, corrupt, or stale captures remain capture-validity failures rather than being
-reported as pixel differences.
+Comparison thresholds are evaluated only for complete, cryptographically attested semantic pairs.
+Missing, degraded, corrupt, and stale results remain distinct from pixel-diff failures. A verified,
+successfully captured expected removal is still analyzed and keeps all five image artifacts for
+review. Its trusted scenario default disables the failure threshold, while a reviewed policy may
+supply a numeric threshold that is enforced normally. Every emitted PNG is listed in the
+managed-output marker and recorded with its SHA-256 digest and byte size in the summary and
+self-contained report.
 
 Full-stack comparisons create unique `ui-smoke-base-*` and `ui-smoke-head-*` clusters. Each has its
 own kubeconfig, context, database, object store, cache, Kubernetes resources, image scope, ports,
@@ -297,6 +361,27 @@ node smoke-test-runner.js --teardown
     settings, writes the report, and applies the exit policy.
 11. If explicitly requested, posts the report even when visual differences make the run fail.
 
+### Full-stack failure diagnostics
+
+A full-stack setup, seed, fixture-validation, or capture failure writes both
+`full-stack-diagnostics.json` and a self-contained `full-stack-diagnostics.html` in the run
+directory before owned clusters are removed. Capture validity uses one explicit value:
+`valid`, `ui_rendering_failure`, `api_incompatibility`, `seed_failure`, `missing_fixture`,
+`selector_drift`, `expected_product_removal`, or `infrastructure_failure`. An asserted
+`expected_product_removal` is an expected-change outcome, not a pixel-diff failure. Missing and
+degraded captures are never converted into visual-difference percentages.
+
+For each cluster created by the run, failure collection records bounded Deployment and Pod status,
+namespace events, and tail-limited logs from known KFP service Pods. Every `kubectl` request carries
+that stack's explicit run-scoped kubeconfig and context. Diagnostics never request Secret objects
+or container environment values; common credentials, authorization headers, cookies, tokens, and
+credential-bearing URLs are redacted. Individual text artifacts live under
+`diagnostics/{base,head}` and the JSON record contains their relative paths and SHA-256 hashes.
+The JSON and HTML also embed bounded, redacted log previews, so the HTML remains a useful single
+entry point after cleanup while the full tail-limited files remain available for deeper inspection.
+When a capture manifest provides browser diagnostics, its bounded console errors and failed network
+requests are included in the same failure record.
+
 The compatibility workflow's local proxy pins API requests to the configured backend origin,
 rejects unsafe absolute-form targets and path/symlink escapes, and returns real missing-asset errors
 instead of the SPA shell. It permits read-only HTTP methods plus MLMD `Get*` RPCs, rejecting backend
@@ -314,7 +399,17 @@ node capture-screenshots.js \
   --base-url http://127.0.0.1:3000 \
   --output ./screenshots/base \
   --label base \
-  --seed-manifest ./seed-manifest.json
+  --revision-role base \
+  --seed-manifest ./seed/base.json \
+  --semantic-manifest ./semantic-fixtures.json
+
+node capture-screenshots.js \
+  --base-url http://127.0.0.1:3001 \
+  --output ./screenshots/head \
+  --label head \
+  --revision-role head \
+  --seed-manifest ./seed/head.json \
+  --semantic-manifest ./semantic-fixtures.json
 
 node generate-comparison.js \
   --main ./screenshots/base \

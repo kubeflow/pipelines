@@ -327,6 +327,9 @@ function decodeArtifactProperty(bytes) {
 function decodeArtifact(bytes) {
   const reader = new ProtoReader(bytes, 'ml_metadata.Artifact');
   let artifactId = '0';
+  let name = null;
+  let type = null;
+  let uri = null;
   const properties = {};
   const customProperties = {};
   while (!reader.done) {
@@ -334,17 +337,34 @@ function decodeArtifact(bytes) {
     if (fieldNumber === 1) {
       expectWireType(wireType, 0, 'ml_metadata.Artifact.id');
       artifactId = int64FromVarint(reader.readVarint('artifact id'), 'MLMD artifact ID').toString();
+    } else if (fieldNumber === 3) {
+      expectWireType(wireType, 2, 'ml_metadata.Artifact.uri');
+      uri = reader.readString('artifact uri');
     } else if (fieldNumber === 4 || fieldNumber === 5) {
       expectWireType(wireType, 2, `ml_metadata.Artifact field ${fieldNumber}`);
       const { key, value } = decodeArtifactProperty(reader.readBytes('property entry'));
       if (value !== undefined) {
         setOwn(fieldNumber === 4 ? properties : customProperties, key, value);
       }
+    } else if (fieldNumber === 7) {
+      expectWireType(wireType, 2, 'ml_metadata.Artifact.name');
+      name = reader.readString('artifact name');
+    } else if (fieldNumber === 8) {
+      expectWireType(wireType, 2, 'ml_metadata.Artifact.type');
+      type = reader.readString('artifact type');
     } else {
       reader.skipField(wireType);
     }
   }
-  return { artifactId, metadata: { ...properties, ...customProperties } };
+  return Object.fromEntries(
+    Object.entries({
+      artifactId,
+      metadata: { ...properties, ...customProperties },
+      name,
+      type,
+      uri,
+    }).filter(([, value]) => value !== null),
+  );
 }
 
 function decodeGetArtifactsByIdResponse(bytes) {

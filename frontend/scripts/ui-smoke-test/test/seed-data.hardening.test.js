@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const test = require('node:test');
+const { parseDocument } = require('yaml');
 
 const {
   METRICS_EXECUTOR_OUTPUT,
@@ -12,6 +13,7 @@ const {
   RESOURCE_DEFINITIONS,
   SEED_IMAGE,
   SEMANTIC_MARKER,
+  buildSeedManifest,
   fetchMlmdArtifactsByIds,
   fetchRunBindingResponse,
   resolveApiUrl,
@@ -21,6 +23,54 @@ const {
   waitForSemanticBindings,
   waitForRunsStable,
 } = require('../seed-data');
+
+test('projects revision-specific semantic IDs into capture defaults', () => {
+  const manifest = buildSeedManifest(
+    {
+      experimentIds: ['experiment-1'],
+      pipelineIds: ['pipeline-1'],
+      recurringRunIds: ['recurring-1'],
+      runIds: ['legacy-run-1'],
+    },
+    {
+      apiBase: 'http://legacy.test',
+      semantic: {
+        bindings: {
+          resources: {
+            'run.evaluation': { id: 'semantic-evaluation' },
+            'run.training-1': { id: 'semantic-training-1' },
+            'run.training-2': { id: 'semantic-training-2' },
+          },
+          runs: {
+            'run.training-1': {
+              artifacts: {
+                'artifact.scalar-metrics': {
+                  artifactIds: ['81'],
+                  members: { 'metric.accuracy': { artifactIds: ['81'] } },
+                },
+              },
+              tasks: {
+                'task.write-metrics': {
+                  mlmdExecutionId: '73',
+                  taskId: 'legacy-write-metrics',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  );
+
+  assert.equal(manifest.defaults.artifactId, '81');
+  assert.equal(
+    manifest.defaults.compareRunlist,
+    'semantic-training-1,semantic-training-2,semantic-evaluation',
+  );
+  assert.equal(manifest.defaults.executionId, '73');
+  assert.equal(manifest.defaults.runId, 'legacy-run-1');
+  assert.equal(manifest.defaults.taskId, 'legacy-write-metrics');
+});
 
 function nativeRichRunResponse(runId = 'run-created') {
   const rocMetadata = structuredClone(
@@ -50,6 +100,28 @@ function nativeRichRunResponse(runId = 'run-created') {
                   artifactId: 'roc-artifact',
                   metadata: rocMetadata,
                   name: 'roc_curve',
+                },
+              ],
+            },
+            {
+              artifactKey: 'html_report',
+              artifacts: [
+                {
+                  artifactId: 'html-artifact',
+                  name: 'html_report',
+                  type: 'HTML',
+                  uri: 's3://fixtures/report.html',
+                },
+              ],
+            },
+            {
+              artifactKey: 'markdown_report',
+              artifacts: [
+                {
+                  artifactId: 'markdown-artifact',
+                  name: 'markdown_report',
+                  type: 'Markdown',
+                  uri: 's3://fixtures/report.md',
                 },
               ],
             },
@@ -154,6 +226,28 @@ function nativeRichRunResponse(runId = 'run-created') {
   };
 }
 
+test('fixture pipeline specs are valid YAML with intact deterministic report commands', () => {
+  for (const [profile, source] of [
+    ['minimal', MINIMAL_PIPELINE_YAML],
+    ['rich-topology', RICH_PIPELINE_YAML],
+  ]) {
+    const document = parseDocument(source);
+    assert.deepEqual(
+      document.errors.map((error) => error.message),
+      [],
+      `${profile} fixture must parse as YAML`,
+    );
+    const pipeline = document.toJS();
+    const args = pipeline.deploymentSpec.executors['exec-write-metrics'].container.args;
+    assert.match(args[0], /printf '%s\\n' '<h1>UI Smoke HTML Report<\/h1>/);
+    assert.match(args[0], /printf '%s\\n' '# UI Smoke Markdown Report'/);
+    assert.deepEqual(args.slice(-2), [
+      "{{$.outputs.artifacts['html_report'].path}}",
+      "{{$.outputs.artifacts['markdown_report'].path}}",
+    ]);
+  }
+});
+
 function temporaryManifest(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'seed-data-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -185,6 +279,10 @@ test('uploads a valid v2 pipeline as multipart form data', async () => {
   assert.ok(multipart.includes(SEED_IMAGE));
   assert.match(multipart, /schemaTitle: system\.Metrics/);
   assert.match(multipart, /schemaTitle: system\.ClassificationMetrics/);
+  assert.match(multipart, /schemaTitle: system\.HTML/);
+  assert.match(multipart, /schemaTitle: system\.Markdown/);
+  assert.match(multipart, /UI Smoke HTML Report/);
+  assert.match(multipart, /UI Smoke Markdown Report/);
   assert.ok(multipart.includes(JSON.stringify(METRICS_EXECUTOR_OUTPUT)));
   assert.match(multipart, /metadata_path="\$\(dirname "\$1"\)\/output_metadata\.json"/);
   assert.doesNotMatch(multipart, /\/tmp\/kfp_outputs\/output_metadata\.json/);
@@ -197,6 +295,8 @@ test('uploads a valid v2 pipeline as multipart form data', async () => {
     METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata.confidenceMetrics.length,
     5,
   );
+  assert.deepEqual(METRICS_EXECUTOR_OUTPUT.artifacts.html_report.artifacts[0].metadata, {});
+  assert.deepEqual(METRICS_EXECUTOR_OUTPUT.artifacts.markdown_report.artifacts[0].metadata, {});
 
   await assert.rejects(
     uploadPipeline('ui-smoke-missing-id', 'description', async () => ({})),
@@ -385,22 +485,25 @@ function testMlmdValue(value) {
   );
 }
 
-function testMlmdArtifact(artifactId, metadata) {
+function testMlmdArtifact(artifactId, metadata, details = {}) {
   return Buffer.concat([
     testField(1, 0, testVarint(artifactId)),
+    ...(details.uri ? [testStringField(3, details.uri)] : []),
     ...Object.entries(metadata).map(([key, value]) =>
       testMessageField(
         5,
         Buffer.concat([testStringField(1, key), testMessageField(2, testMlmdValue(value))]),
       ),
     ),
+    ...(details.name ? [testStringField(7, details.name)] : []),
+    ...(details.type ? [testStringField(8, details.type)] : []),
   ]);
 }
 
 function testMlmdResponse(artifacts) {
   return Buffer.concat(
-    artifacts.map(({ artifactId, metadata }) =>
-      testMessageField(1, testMlmdArtifact(artifactId, metadata)),
+    artifacts.map(({ artifactId, metadata, ...details }) =>
+      testMessageField(1, testMlmdArtifact(artifactId, metadata, details)),
     ),
   );
 }
@@ -420,10 +523,17 @@ test('decodes scalar and ROC values from the MLMD gRPC-web artifact response', a
       artifactId: 82,
       metadata: METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
     },
+    {
+      artifactId: 83,
+      metadata: { display_name: 'html_report' },
+      name: 'html-output',
+      type: 'system.HTML',
+      uri: 's3://fixtures/report.html',
+    },
   ]);
 
   const artifacts = await fetchMlmdArtifactsByIds(
-    ['81', '82'],
+    ['81', '82', '83'],
     async (method, endpoint, body, options) => {
       assert.equal(method, 'POST');
       assert.equal(endpoint, '/ml_metadata.MetadataStoreService/GetArtifactsByID');
@@ -432,8 +542,8 @@ test('decodes scalar and ROC values from the MLMD gRPC-web artifact response', a
       assert.equal(options.headers['Content-Type'], 'application/grpc-web+proto');
       const requestFrame = options.rawBody;
       const requestLength = requestFrame.readUInt32BE(1);
-      assert.equal(requestLength, 4);
-      assert.equal(requestFrame.subarray(5, 5 + requestLength).toString('hex'), '08510852');
+      assert.equal(requestLength, 6);
+      assert.equal(requestFrame.subarray(5, 5 + requestLength).toString('hex'), '085108520853');
       return Buffer.concat([
         grpcFrame(0x00, responseBytes),
         grpcFrame(0x80, Buffer.from('grpc-status: 0\r\n')),
@@ -446,6 +556,13 @@ test('decodes scalar and ROC values from the MLMD gRPC-web artifact response', a
     {
       artifactId: '82',
       metadata: structuredClone(METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata),
+    },
+    {
+      artifactId: '83',
+      metadata: { display_name: 'html_report' },
+      name: 'html-output',
+      type: 'system.HTML',
+      uri: 's3://fixtures/report.html',
     },
   ]);
 });
@@ -594,6 +711,9 @@ test('fills each missing deterministic resource type instead of skipping on part
   });
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   assert.equal(manifest.defaults.runId, 'run-created');
+  assert.equal(manifest.defaults.artifactId, 'metric-accuracy');
+  assert.equal(manifest.defaults.executionId, null);
+  assert.equal(manifest.defaults.taskId, 'task-write-metrics');
   assert.deepEqual(manifest.resources.runIds, ['run-created']);
   assert.equal(manifest.semantic.revisionFlavor, 'native-task-artifact');
   assert.equal(manifest.semantic.validation.valid, true);
@@ -826,6 +946,28 @@ test('polls semantic bindings until eventually consistent task and artifact data
                         METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
                       ),
                       name: 'roc_curve',
+                    },
+                  ],
+                },
+                {
+                  artifactKey: 'html_report',
+                  artifacts: [
+                    {
+                      artifactId: 'html-1',
+                      name: 'html_report',
+                      type: 'HTML',
+                      uri: 's3://fixtures/report.html',
+                    },
+                  ],
+                },
+                {
+                  artifactKey: 'markdown_report',
+                  artifacts: [
+                    {
+                      artifactId: 'markdown-1',
+                      name: 'markdown_report',
+                      type: 'Markdown',
+                      uri: 's3://fixtures/report.md',
                     },
                   ],
                 },

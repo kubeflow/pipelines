@@ -7,6 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const {
+  FULL_STACK_CAPTURE_VALIDITIES,
   NODE_IMAGE,
   NODE_VERSION,
   NPM_VERSION,
@@ -24,6 +25,7 @@ const {
   materializeTrustedHeadSnapshot,
   normalizeHttpUrl,
   parseCli,
+  persistFullStackFailure,
   readUpgradeCapabilities,
   renderRevisionManifestSources,
   requestSuccessful,
@@ -32,6 +34,7 @@ const {
   revisionUsesMetadataService,
   runChild,
   runComparison,
+  seedFailureCategory,
   terminateChild,
   validateExternalBuildArtifact,
   validateFullStackBaseRelease,
@@ -239,6 +242,161 @@ test('default full-stack services expose revision metadata discovery', () => {
 
   assert.equal(services.revisionUsesMetadataService, revisionUsesMetadataService);
   assert.equal(services.renderRevisionManifestSources, renderRevisionManifestSources);
+});
+
+test('full-stack diagnostics use the public capture-validity vocabulary', () => {
+  assert.deepEqual(FULL_STACK_CAPTURE_VALIDITIES, [
+    'valid',
+    'ui_rendering_failure',
+    'api_incompatibility',
+    'seed_failure',
+    'missing_fixture',
+    'selector_drift',
+    'expected_product_removal',
+    'infrastructure_failure',
+  ]);
+});
+
+test('an unsuccessful full-stack path never reports an expected removal as complete', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-failure-diagnostic-'));
+  t.after(() => fs.rmSync(root, { force: true, recursive: true }));
+  const headDirectory = path.join(root, 'screenshots', 'head');
+  fs.mkdirSync(headDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.join(headDirectory, 'manifest.json'),
+    JSON.stringify({
+      complete: false,
+      fatalErrors: [],
+      results: [
+        {
+          captureValidity: 'expected_product_removal',
+          filename: 'executions-to-runs-1280x800.png',
+          page: 'executions-to-runs',
+          required: true,
+          status: 'failed',
+          viewport: { height: 800, width: 1280 },
+        },
+      ],
+      summary: { complete: false },
+    }),
+  );
+
+  let writtenDiagnostic;
+  const state = { diagnosticsPersisted: false, phase: 'capture', stacks: [] };
+  await persistFullStackFailure({
+    error: new Error('capture process failed'),
+    run: { runDir: root, runId: 'test-run' },
+    services: {
+      async writeFullStackDiagnosticArtifacts({ diagnostic }) {
+        writtenDiagnostic = diagnostic;
+        return {
+          htmlPath: path.join(root, 'full-stack-diagnostics.html'),
+          jsonPath: path.join(root, 'full-stack-diagnostics.json'),
+        };
+      },
+    },
+    state,
+  });
+
+  assert.equal(writtenDiagnostic.category, 'ui_rendering_failure');
+  assert.equal(writtenDiagnostic.captureValidity, 'ui_rendering_failure');
+  assert.equal(writtenDiagnostic.complete, false);
+  assert.equal(writtenDiagnostic.status, 'failed');
+  assert.equal(state.diagnosticsPersisted, true);
+});
+
+test('successful expected removals do not mask a later infrastructure failure', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-failure-diagnostic-'));
+  t.after(() => fs.rmSync(root, { force: true, recursive: true }));
+  const headDirectory = path.join(root, 'screenshots', 'head');
+  fs.mkdirSync(headDirectory, { recursive: true });
+  fs.writeFileSync(
+    path.join(headDirectory, 'manifest.json'),
+    JSON.stringify({
+      complete: true,
+      fatalErrors: [],
+      results: [
+        {
+          captureValidity: 'expected_product_removal',
+          filename: 'executions-to-runs-1280x800.png',
+          page: 'executions-to-runs',
+          required: true,
+          status: 'success',
+          viewport: { height: 800, width: 1280 },
+        },
+      ],
+      summary: { complete: true },
+    }),
+  );
+
+  let writtenDiagnostic;
+  await persistFullStackFailure({
+    error: new Error('cluster cleanup failed'),
+    run: { runDir: root, runId: 'test-run' },
+    services: {
+      async writeFullStackDiagnosticArtifacts({ diagnostic }) {
+        writtenDiagnostic = diagnostic;
+        return {
+          htmlPath: path.join(root, 'full-stack-diagnostics.html'),
+          jsonPath: path.join(root, 'full-stack-diagnostics.json'),
+        };
+      },
+    },
+    state: { diagnosticsPersisted: false, phase: 'cleanup', stacks: [] },
+  });
+
+  assert.equal(writtenDiagnostic.category, 'infrastructure_failure');
+  assert.deepEqual(writtenDiagnostic.captures[1].incomplete, []);
+  assert.equal(writtenDiagnostic.captures[1].expectedChanges.length, 1);
+  assert.equal(writtenDiagnostic.complete, false);
+  assert.equal(writtenDiagnostic.status, 'failed');
+});
+
+test('missing capture process artifacts are infrastructure failures', async (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-failure-diagnostic-'));
+  t.after(() => fs.rmSync(root, { force: true, recursive: true }));
+  let writtenDiagnostic;
+
+  await persistFullStackFailure({
+    error: new Error('Capture manifest was not written after the child process exited.'),
+    run: { runDir: root, runId: 'test-run' },
+    services: {
+      async writeFullStackDiagnosticArtifacts({ diagnostic }) {
+        writtenDiagnostic = diagnostic;
+        return {
+          htmlPath: path.join(root, 'full-stack-diagnostics.html'),
+          jsonPath: path.join(root, 'full-stack-diagnostics.json'),
+        };
+      },
+    },
+    state: { diagnosticsPersisted: false, phase: 'capture', stacks: [] },
+  });
+
+  assert.equal(writtenDiagnostic.category, 'infrastructure_failure');
+  assert.equal(writtenDiagnostic.captureValidity, 'infrastructure_failure');
+  assert.equal(
+    writtenDiagnostic.captures.every((capture) => capture.available === false),
+    true,
+  );
+});
+
+test('semantic seed failure codes take precedence over generic message wording', () => {
+  assert.equal(
+    seedFailureCategory({
+      error: 'Semantic binding discovery failed: Native task API request failed',
+      failureType: 'API_INCOMPATIBILITY',
+      success: false,
+    }),
+    'api_incompatibility',
+  );
+  assert.equal(
+    seedFailureCategory({
+      error: 'Semantic binding discovery failed: required task fixture was absent',
+      failureType: 'MISSING_FIXTURE',
+      success: false,
+    }),
+    'missing_fixture',
+  );
 });
 
 test('revision manifest discovery renders only the selected platform-agnostic overlay', (t) => {
@@ -1391,6 +1549,270 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
   assert.equal(calls.cleanupRegistrations.length, 4);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'cleanup').length, 2);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'destroyCluster').length, 2);
+});
+
+test('full-stack seed failures persist categorized JSON, HTML, and stack diagnostics', async (t) => {
+  const collected = [];
+  const { run, services } = orchestrationHarness(
+    t,
+    { backendChanged: true, baseRef: '2.17.1' },
+    {
+      clusterManager: {
+        createKindStack(configuration) {
+          return {
+            clusterName: configuration.clusterName,
+            deployedUiUrl: `http://127.0.0.1:${configuration.ports.frontendServer}`,
+            role: configuration.role,
+            async cleanup() {},
+            async collectDiagnostics(options) {
+              collected.push({ options, role: configuration.role });
+              return {
+                clusterName: configuration.clusterName,
+                collected: true,
+                logs: [],
+                role: configuration.role,
+                status: [],
+              };
+            },
+            async createCluster() {},
+            async deployRevision() {},
+            async destroyCluster() {
+              return true;
+            },
+            async ensureDeployedUiPortForwarding() {
+              return [{}];
+            },
+            getClusterPlatform() {
+              return 'linux/amd64';
+            },
+            getDockerPlatform() {
+              return 'linux/amd64';
+            },
+            preflightReleaseImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+            preflightSeedRuntimeImage(options) {
+              return { image: 'seed-image', platform: options.platform };
+            },
+            preflightThirdPartyImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+          };
+        },
+      },
+      componentsForRevision() {
+        return [];
+      },
+      revisionUsesMetadataService(target) {
+        return target.includes('base');
+      },
+      async seedData(options) {
+        return options.apiBase.endsWith(':3101')
+          ? { success: false, error: 'executor submission rejected' }
+          : { success: true };
+      },
+    },
+  );
+
+  await assert.rejects(
+    runComparison(
+      comparisonOptions({
+        fullStack: true,
+        headCheckout: '/reviewed/head',
+        prNumber: null,
+        trustLocalHead: true,
+        trustPrCode: false,
+      }),
+      run,
+      services,
+    ),
+    /Revision-aware fixture seeding failed/,
+  );
+
+  const jsonPath = path.join(run.runDir, 'full-stack-diagnostics.json');
+  const htmlPath = path.join(run.runDir, 'full-stack-diagnostics.html');
+  assert.equal(fs.existsSync(jsonPath), true);
+  assert.equal(fs.existsSync(htmlPath), true);
+  const diagnostic = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  assert.equal(diagnostic.schemaVersion, 'ui-smoke-full-stack-diagnostics/v1');
+  assert.equal(diagnostic.category, 'seed_failure');
+  assert.equal(diagnostic.captureValidity, 'seed_failure');
+  assert.equal(diagnostic.phase, 'fixture_seeding');
+  assert.equal(diagnostic.stacks.length, 2);
+  assert.deepEqual(
+    collected.map(({ options, role }) => ({
+      artifactRoot: options.artifactRoot,
+      outputDir: options.outputDir,
+      role,
+    })),
+    [
+      {
+        artifactRoot: run.runDir,
+        outputDir: path.join(run.runDir, 'diagnostics', 'base'),
+        role: 'base',
+      },
+      {
+        artifactRoot: run.runDir,
+        outputDir: path.join(run.runDir, 'diagnostics', 'head'),
+        role: 'head',
+      },
+    ],
+  );
+  assert.match(fs.readFileSync(htmlPath, 'utf8'), /seed_failure/);
+});
+
+test('incomplete full-stack captures retain browser diagnostics and attribute selector drift', async (t) => {
+  const { run, services } = orchestrationHarness(
+    t,
+    { backendChanged: true, baseRef: '2.17.1' },
+    {
+      async capturePair(options) {
+        for (const role of ['base', 'head']) {
+          const directory = path.join(options.screenshotsDir, role);
+          fs.mkdirSync(directory, { recursive: true });
+          const degraded = role === 'head';
+          fs.writeFileSync(
+            path.join(directory, 'manifest.json'),
+            JSON.stringify({
+              browserDiagnostics: degraded
+                ? {
+                    consoleErrors: ['render failed'],
+                    failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+                  }
+                : { consoleErrors: [], failedRequests: [] },
+              complete: !degraded,
+              fatalErrors: [],
+              results: [
+                {
+                  captureValidity: degraded ? 'selector_drift' : 'valid',
+                  diagnostics: degraded
+                    ? {
+                        consoleErrors: ['route component failed'],
+                        droppedConsoleErrors: 3,
+                        droppedFailedRequests: 2,
+                        failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+                      }
+                    : { consoleErrors: [], failedRequests: [] },
+                  filename: 'runs-1280x800.png',
+                  page: 'runs',
+                  required: true,
+                  status: degraded ? 'degraded' : 'success',
+                  viewport: { height: 800, width: 1280 },
+                },
+              ],
+              summary: { complete: !degraded },
+            }),
+          );
+        }
+        return {
+          baseCapture: { success: true },
+          comparison: { success: false },
+          comparisonDir: path.join(options.screenshotsDir, 'comparison'),
+          headCapture: { success: false },
+        };
+      },
+      clusterManager: {
+        createKindStack(configuration) {
+          return {
+            clusterName: configuration.clusterName,
+            deployedUiUrl: `http://127.0.0.1:${configuration.ports.frontendServer}`,
+            role: configuration.role,
+            async cleanup() {},
+            async collectDiagnostics() {
+              return {
+                clusterName: configuration.clusterName,
+                collected: true,
+                logs: [],
+                role: configuration.role,
+                status: [],
+              };
+            },
+            async createCluster() {},
+            async deployRevision() {},
+            async destroyCluster() {
+              return true;
+            },
+            async ensureDeployedUiPortForwarding() {
+              return [{}];
+            },
+            getClusterPlatform() {
+              return 'linux/amd64';
+            },
+            getDockerPlatform() {
+              return 'linux/amd64';
+            },
+            preflightReleaseImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+            preflightSeedRuntimeImage(options) {
+              return { image: 'seed-image', platform: options.platform };
+            },
+            preflightThirdPartyImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+          };
+        },
+      },
+      combineSemanticManifests(manifests) {
+        return { manifests, schemaVersion: 'ui-smoke-semantic/v2' };
+      },
+      componentsForRevision() {
+        return [];
+      },
+      revisionUsesMetadataService(target) {
+        return target.includes('base');
+      },
+      async seedData(options) {
+        fs.mkdirSync(path.dirname(options.manifestPath), { recursive: true });
+        fs.writeFileSync(
+          options.manifestPath,
+          JSON.stringify({
+            semantic: {
+              logical: {},
+              revisionFlavor: options.apiBase.endsWith(':3101')
+                ? 'legacy-mlmd'
+                : 'native-task-artifact',
+              validation: { valid: true },
+            },
+          }),
+        );
+        return { success: true };
+      },
+    },
+  );
+
+  assert.equal(
+    await runComparison(
+      comparisonOptions({
+        fullStack: true,
+        headCheckout: '/reviewed/head',
+        prNumber: null,
+        trustLocalHead: true,
+        trustPrCode: false,
+      }),
+      run,
+      services,
+    ),
+    false,
+  );
+
+  const diagnostic = JSON.parse(
+    fs.readFileSync(path.join(run.runDir, 'full-stack-diagnostics.json'), 'utf8'),
+  );
+  assert.equal(diagnostic.category, 'selector_drift');
+  assert.equal(diagnostic.captureValidity, 'selector_drift');
+  const headCapture = diagnostic.captures.find(({ role }) => role === 'head');
+  assert.deepEqual(headCapture.browserDiagnostics, {
+    consoleErrors: ['render failed'],
+    failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+  });
+  assert.equal(headCapture.incomplete[0].category, 'selector_drift');
+  assert.deepEqual(headCapture.incomplete[0].diagnostics, {
+    consoleErrors: ['route component failed'],
+    droppedConsoleErrors: 3,
+    droppedFailedRequests: 2,
+    failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+  });
 });
 
 test('full-stack comparison fails when an isolated cluster cannot be deleted', async (t) => {
