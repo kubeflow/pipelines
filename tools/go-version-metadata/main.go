@@ -2045,9 +2045,10 @@ func unsupportedDockerWordOperator(value string, activeVariables map[string]bool
 			continue
 		}
 		if value[index] == '\'' || value[index] == '"' {
-			if quote == 0 {
+			switch quote {
+			case 0:
 				quote = value[index]
-			} else if quote == value[index] {
+			case value[index]:
 				quote = 0
 			}
 			continue
