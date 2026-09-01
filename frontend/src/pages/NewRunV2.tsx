@@ -25,7 +25,6 @@ import {
   Checkbox,
 } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
-import * as JsYaml from 'js-yaml';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
@@ -43,6 +42,7 @@ import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { getSafeReturnPath, QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
+import { loadYaml } from 'src/lib/YamlLoad';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { useKeyedState } from 'src/hooks/useKeyedState';
 import {
@@ -421,7 +421,7 @@ function NewRunV2(props: NewRunV2Props) {
       experiment_id: selectedExperiment?.experiment_id,
       // pipeline_spec and pipeline_version_reference is exclusive.
       pipeline_spec: !(pipelineVersionRefClone || pipelineVersionRefNew)
-        ? JsYaml.load(templateString || '')
+        ? (loadYaml(templateString || '') as object)
         : undefined,
       pipeline_version_reference: useLatestVersion
         ? { pipeline_id: existingPipeline?.pipeline_id }

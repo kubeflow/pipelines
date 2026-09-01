@@ -216,6 +216,7 @@ describe('ExperimentList', () => {
           ],
         } as V2beta1Filter),
       ),
+      true,
     );
     expect(getInstance().state.displayExperiments).toEqual([
       {
