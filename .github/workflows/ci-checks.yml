@@ -247,7 +247,7 @@ jobs:
                 issue_number: prNumber,
                 labels: ["ci-passed"],
               });
-              // P1 #3: close the read-publish interleaving with a second
+              // Close the read-publish interleaving with a second
               // full-state read immediately after the mutation. Any drift
               // (head move, base change, close, or loss of eligibility)
               // publishes an explicit failure.
@@ -436,7 +436,7 @@ jobs:
               return;
             }
 
-            // N1: honor the P1#2 base-retarget revalidation marker. A base
+            // Honor the P1#2 base-retarget revalidation marker. A base
             // change does not re-run pull_request CI, so the marker must
             // persist on the head SHA and block any re-derivation back to
             // success until the head is updated and revalidated.
@@ -478,7 +478,7 @@ jobs:
               return;
             }
 
-            // N2: a success conclusion only re-polls when the current
+            // A success conclusion only re-polls when the current
             // ci-passed status is failure. If it is already green (or absent),
             // there is nothing to re-derive and this is a no-op.
             if (conclusion === "success" && !currentStatusIsFailure) {
