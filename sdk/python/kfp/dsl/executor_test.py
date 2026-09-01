@@ -2261,5 +2261,34 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
         self.execute_and_load_output_metadata(consume, input_executor_input)
 
 
+class TestTaskConfigDeserialization(unittest.TestCase):
+
+    def test_resource_claims_deserialized_from_json(self):
+        from kfp.dsl.task_config import TaskConfig
+        value = {
+            'tolerations': [{'key': 'k', 'operator': 'Exists'}],
+            'resourceClaims': [
+                {'name': 'gpu', 'resourceClaimTemplateName': 'gpu-template'},
+            ],
+        }
+        config = TaskConfig(
+            affinity=value.get('affinity'),
+            tolerations=value.get('tolerations'),
+            node_selector=value.get('nodeSelector'),
+            env=value.get('env'),
+            volumes=value.get('volumes'),
+            volume_mounts=value.get('volumeMounts'),
+            resources=value.get('resources'),
+            resource_claims=value.get('resourceClaims'),
+        )
+        self.assertIsNotNone(config.resource_claims)
+        self.assertEqual(len(config.resource_claims), 1)
+        self.assertEqual(config.resource_claims[0]['name'], 'gpu')
+        self.assertEqual(
+            config.resource_claims[0]['resourceClaimTemplateName'],
+            'gpu-template')
+        self.assertIsNotNone(config.tolerations)
+
+
 if __name__ == '__main__':
     unittest.main()

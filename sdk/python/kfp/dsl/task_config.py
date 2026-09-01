@@ -116,3 +116,4 @@ class TaskConfig:
     volumes: Optional[List[Dict[str, Any]]] = None
     volume_mounts: Optional[List[Dict[str, Any]]] = None
     resources: Optional[Dict[str, Any]] = None
+    resource_claims: Optional[List[Dict[str, Any]]] = None
