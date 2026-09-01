@@ -215,9 +215,9 @@ def _get_default_pipeline_params(
   if not study_spec_parameters_override:
     study_spec_parameters_override = []
   if not stage_1_tuner_worker_pool_specs_override:
-    stage_1_tuner_worker_pool_specs_override = []
+    stage_1_tuner_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
   if not cv_trainer_worker_pool_specs_override:
-    cv_trainer_worker_pool_specs_override = []
+    cv_trainer_worker_pool_specs_override = []  # pyrefly: ignore[bad-assignment]
   if not quantiles:
     quantiles = []
 
@@ -551,7 +551,7 @@ def get_automl_tabular_pipeline_and_parameters(
       training_fraction=training_fraction,
       validation_fraction=validation_fraction,
       test_fraction=test_fraction,
-      weight_column=weight_column,
+      weight_column=weight_column,  # pyrefly: ignore[bad-argument-type]
       study_spec_parameters_override=study_spec_parameters_override,
       optimization_objective_recall_value=optimization_objective_recall_value,
       optimization_objective_precision_value=optimization_objective_precision_value,
@@ -1023,8 +1023,8 @@ def get_default_pipeline_and_parameters(
     # All of magic number "1.3" above is because the trial doesn't always finish
     # in time_per_trial. 1.3 is an empirical safety margin here.
     distill_stage_1_deadline_hours = (
-        math.ceil(
-            float(_DISTILL_TOTAL_TRIALS)
+        math.ceil(  # pyrefly: ignore[unsupported-operation]
+            float(_DISTILL_TOTAL_TRIALS)  # pyrefly: ignore[unsupported-operation]
             / parameter_values['stage_1_num_parallel_trials']
         )
         * parameter_values['stage_1_single_run_max_secs']
@@ -1235,7 +1235,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
       evaluation_dataflow_starting_num_workers=evaluation_dataflow_starting_num_workers,
       evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
       evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
-      run_distillation=None,
+      run_distillation=None,  # pyrefly: ignore[bad-argument-type]
       distill_batch_predict_machine_type=None,
       distill_batch_predict_starting_replica_count=None,
       distill_batch_predict_max_replica_count=None,

@@ -38,7 +38,7 @@ def deploy_model(
   uri_pattern = re.compile(_ENDPOINT_NAME_TEMPLATE)
   match = uri_pattern.match(endpoint_name)
   try:
-    location = match.group('location')
+    location = match.group('location')  # pyrefly: ignore[missing-attribute]
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
     raise ValueError(

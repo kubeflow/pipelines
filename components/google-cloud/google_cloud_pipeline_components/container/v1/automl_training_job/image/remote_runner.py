@@ -99,7 +99,7 @@ def create_payload(
 
   # Input data config.
   input_data_config = training_jobs._TrainingJob._create_input_data_config(
-      dataset=dataset and datasets.ImageDataset(dataset_name=dataset),
+      dataset=dataset and datasets.ImageDataset(dataset_name=dataset),  # pyrefly: ignore[bad-argument-type]
       training_fraction_split=training_fraction_split,
       validation_fraction_split=validation_fraction_split,
       test_fraction_split=test_fraction_split,
@@ -114,7 +114,7 @@ def create_payload(
       labels=model_labels or labels,
       encryption_spec=model_encryption_spec,
       version_aliases=models.ModelRegistry._get_true_alias_list(
-          model_version_aliases, is_default_version
+          model_version_aliases, is_default_version  # pyrefly: ignore[bad-argument-type]
       ),
       version_description=model_version_description,
   )
@@ -236,7 +236,7 @@ def create_pipeline(
     # Create AutoML vision training pipeline if it does not exist
     pipeline_name = runner.check_if_pipeline_exists()
     if pipeline_name is None:
-      payload = create_payload(project, location, **kwargs)
+      payload = create_payload(project, location, **kwargs)  # pyrefly: ignore[bad-argument-type]
       logging.info(
           'AutoML Vision training payload formatted: %s',
           payload,
