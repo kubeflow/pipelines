@@ -16,6 +16,7 @@
 import contextlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
@@ -443,24 +444,11 @@ class ExecutorTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'executor_input':
-                """\
-            {
-              "inputs": {
-                "parameterValues": {
-                  "first": 0.0,
-                  "second": 1.2
-                }
-              },
-              "outputs": {
-                "parameters": {
-                  "Output": {
-                    "outputFile": "gs://some-bucket/output"
-                  }
-                },
-                "outputFile": "%(test_dir)s/output_metadata.json"
-              }
-            }
-            """,
+                """{
+                "inputs": { "parameterValues": { "first": 0.0, "second":
+                1.2 } }, "outputs": { "parameters": { "Output": { "outputFile":
+                "gs://some-bucket/output" } }, "outputFile":
+                "%(test_dir)s/output_metadata.json" } }""",
             'expected_output_metadata': {
                 'parameterValues': {
                     'Output': 1.2
@@ -2259,6 +2247,85 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
             self.assertEqual(my_data.root, 5)
 
         self.execute_and_load_output_metadata(consume, input_executor_input)
+
+
+class TestTaskConfigDeserialization(parameterized.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.maxDiff = None
+        cls._test_dir = tempfile.mkdtemp()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._test_dir)
+        super().tearDownClass()
+
+    def test_resource_claims_deserialized_from_json(self):
+        from kfp.dsl.task_config import TaskConfig
+        value = {
+            'tolerations': [{
+                'key': 'k',
+                'operator': 'Exists'
+            }],
+            'resourceClaims': [{
+                'name': 'gpu',
+                'resourceClaimTemplateName': 'gpu-template'
+            },],
+        }
+        config = TaskConfig(
+            affinity=value.get('affinity'),
+            tolerations=value.get('tolerations'),
+            node_selector=value.get('nodeSelector'),
+            env=value.get('env'),
+            volumes=value.get('volumes'),
+            volume_mounts=value.get('volumeMounts'),
+            resources=value.get('resources'),
+            resource_claims=value.get('resourceClaims'),
+        )
+        self.assertIsNotNone(config.resource_claims)
+        self.assertEqual(len(config.resource_claims), 1)
+        self.assertEqual(config.resource_claims[0]['name'], 'gpu')
+        self.assertEqual(config.resource_claims[0]['resourceClaimTemplateName'],
+                         'gpu-template')
+        self.assertIsNotNone(config.tolerations)
+
+    def test_executor_deserializes_resource_claims_via_task_config(self):
+        from kfp.dsl.task_config import TaskConfig
+
+        received = {}
+
+        def my_component(task_config: TaskConfig):
+            received['claims'] = task_config.resource_claims
+
+        executor_input = {
+            'inputs': {
+                'parameterValues': {
+                    'task_config': {
+                        'resourceClaims': [{
+                            'name': 'gpu',
+                            'resourceClaimTemplateName': 'gpu-template',
+                        }],
+                    },
+                },
+            },
+            'outputs': {
+                'outputFile':
+                    os.path.join(self._test_dir, 'output_metadata.json'),
+            },
+        }
+
+        executor.Executor(
+            executor_input=executor_input,
+            function_to_execute=my_component,
+        ).execute()
+
+        self.assertIsNotNone(received.get('claims'))
+        self.assertEqual(len(received['claims']), 1)
+        self.assertEqual(received['claims'][0]['name'], 'gpu')
+        self.assertEqual(received['claims'][0]['resourceClaimTemplateName'],
+                         'gpu-template')
 
 
 if __name__ == '__main__':

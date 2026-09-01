@@ -37,6 +37,10 @@ jobs:
           cache-scope: docs
           cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
 
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
+
       - name: Install documentation dependencies
         run: pip install -r docs/requirements.txt
 
@@ -62,6 +66,10 @@ jobs:
           python-version: "3.12"
           cache-scope: docs
           cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install protobuf dependencies & kfp-pipeline-spec
+        id: install-protobuf-deps
+        uses: ./.github/actions/protobuf
 
       - name: Install documentation dependencies
         run: pip install -r docs/requirements.txt
