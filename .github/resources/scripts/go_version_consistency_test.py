@@ -118,6 +118,82 @@ def _docker_run_blocks(contents):
     return blocks
 
 
+def _shell_commands(run_block):
+    """Split a normalized RUN and report whether its flow is linear."""
+    command = re.sub(r'^[ \t]*RUN(?:[ \t]+|$)', '', run_block,
+                     count=1, flags=re.IGNORECASE)
+    commands = []
+    start = 0
+    quote = ''
+    outer_quotes = []
+    linear = True
+    index = 0
+    while index < len(command):
+        character = command[index]
+        if quote != "'" and character == '\\':
+            index += 2
+            continue
+        if quote == "'":
+            if character == quote:
+                quote = ''
+            index += 1
+            continue
+        if (character == '$' and index + 1 < len(command)
+                and command[index + 1] == '('):
+            outer_quotes.append(quote)
+            quote = ''
+            index += 2
+            continue
+        if outer_quotes and not quote and character == ')':
+            quote = outer_quotes.pop()
+            index += 1
+            continue
+        if character in {'"', "'"}:
+            if not quote:
+                quote = character
+            elif quote == character:
+                quote = ''
+            index += 1
+            continue
+        separator_width = 0
+        if not quote and not outer_quotes:
+            if character == ';':
+                separator_width = 1
+            elif command[index:index + 2] in {'&&', '||'}:
+                separator_width = 2
+                linear = False
+            elif character in {'&', '|'}:
+                separator_width = 1
+                linear = False
+        if separator_width:
+            candidate = command[start:index].strip()
+            if candidate:
+                commands.append(candidate)
+            index += separator_width
+            start = index
+            continue
+        index += 1
+    candidate = command[start:].strip()
+    if candidate:
+        commands.append(candidate)
+    return commands, linear
+
+
+def _api_tool_install_commands(module_path):
+    """The frozen repository-specific API tool installation protocol."""
+    variable = API_TOOLS_VERSION_VARIABLES[module_path]
+    return [
+        'set -eu',
+        f'{variable}="$(cd {API_TOOLS_CONTAINER_MODULE} && go mod edit '
+        f'-json | jq -er \'.Require[] | select(.Path == "{module_path}") '
+        '| .Version\')"',
+        'curl -fL -o /usr/bin/swagger '
+        '"https://github.com/go-swagger/go-swagger/releases/download/'
+        f'${{{variable}}}/swagger_linux_amd64"',
+        'chmod +x /usr/bin/swagger',
+    ]
+
+
 def _api_tool_pin_dataflow_errors(contents, module_path):
     """Validate manifest -> query -> version-variable consumer dataflow."""
     variable = API_TOOLS_VERSION_VARIABLES[module_path]
@@ -130,51 +206,35 @@ def _api_tool_pin_dataflow_errors(contents, module_path):
             f'{API_TOOLS_MODULE} is not copied to '
             f'{API_TOOLS_CONTAINER_MODULE}/go.mod')
 
-    query_pattern = re.compile(
-        rf'(?:^|;)[ \t]*(?P<variable>{re.escape(variable)})="\$\([ \t]*'
-        rf'cd[ \t]+(?P<module_dir>[^ \t;&|]+)[ \t]*&&[ \t]*'
-        rf'go[ \t]+mod[ \t]+edit[ \t]+-json[ \t]*\|[ \t]*'
-        rf'jq[ \t]+-er[ \t]+'
-        rf"'\.Require\[\][ \t]*\|[ \t]*select\(\.Path[ \t]*==[ \t]*"
-        rf'"(?P<module_path>[^"]+)"\)[ \t]*\|[ \t]*\.Version'
-        rf"'\)\"(?=[ \t]*;)")
-    consumer_pattern = re.compile(
-        rf'(?:^|;)[ \t]*curl\b[^;]*'
-        rf'https://github\.com/go-swagger/go-swagger/releases/download/'
-        rf'\$\{{{re.escape(variable)}\}}/swagger_linux_amd64')
-    reassignment_pattern = re.compile(
-        rf'(?:^|;)[ \t]*{re.escape(variable)}=')
-    coupled = False
-    for block in _docker_run_blocks(contents):
-        query = query_pattern.search(block)
-        if query is None:
-            continue
-        if query.group('module_dir') != API_TOOLS_CONTAINER_MODULE:
-            errors.append(
-                f'{variable} reads {query.group("module_dir")}, want '
-                f'{API_TOOLS_CONTAINER_MODULE}')
-            continue
-        if query.group('module_path') != module_path:
-            errors.append(
-                f'{variable} selects {query.group("module_path")}, want '
-                f'{module_path}')
-            continue
-        tail = block[query.end():]
-        consumer = consumer_pattern.search(tail)
-        if consumer is None:
-            errors.append(
-                f'{variable} is not consumed by the go-swagger download in '
-                'the same RUN instruction')
-            continue
-        if reassignment_pattern.search(tail[:consumer.start()]):
-            errors.append(
-                f'{variable} is overwritten between the module query and '
-                'the go-swagger download')
-            continue
-        coupled = True
-    if not coupled and not errors:
+    parsed_runs = [
+        _shell_commands(block) for block in _docker_run_blocks(contents)
+    ]
+    markers = (variable, '/usr/bin/swagger', module_path)
+    relevant_runs = [
+        (commands, linear) for commands, linear in parsed_runs
+        if any(marker in command for marker in markers
+               for command in commands)
+    ]
+    if len(relevant_runs) != 1:
         errors.append(
-            f'no coupled {module_path} query and go-swagger download found')
+            'expected exactly one RUN containing the API tool query/install '
+            f'protocol, found {len(relevant_runs)}')
+    else:
+        commands, linear = relevant_runs[0]
+        expected = _api_tool_install_commands(module_path)
+        if not linear:
+            errors.append(
+                'the API tool query/install RUN must use linear semicolon '
+                'sequencing')
+        if commands != expected:
+            mismatch = next((index for index, (actual, wanted) in enumerate(
+                zip(commands, expected)) if actual != wanted),
+                            min(len(commands), len(expected)))
+            actual = commands[mismatch] if mismatch < len(commands) else '<missing>'
+            wanted = expected[mismatch] if mismatch < len(expected) else '<no extra command>'
+            errors.append(
+                f'API tool query/install command {mismatch + 1} is {actual!r}; '
+                f'want {wanted!r}')
     return errors
 
 
@@ -579,6 +639,10 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 'select(.Path == "github.com/go-swagger/go-swagger")',
                 'select(.Path == "google.golang.org/protobuf")',
             ),
+            'query is conditional': contents.replace(
+                'go_swagger_version="$(cd /tmp/api-generator-tools',
+                'false && go_swagger_version="$(cd /tmp/api-generator-tools',
+            ),
             'hard-coded download': contents.replace(
                 'releases/download/${go_swagger_version}/swagger_linux_amd64',
                 'releases/download/v0.31.0/swagger_linux_amd64',
@@ -588,6 +652,36 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 'go_swagger_version="v0.31.0"; \\\n'
                 '    curl -fL -o /usr/bin/swagger',
             ),
+            'queried version exported over': contents.replace(
+                'curl -fL -o /usr/bin/swagger',
+                'export go_swagger_version="v0.31.0"; \\\n'
+                '    curl -fL -o /usr/bin/swagger',
+            ),
+            'queried version overridden through eval': contents.replace(
+                'curl -fL -o /usr/bin/swagger',
+                'eval \'go_swagger_version="v0.31.0"\'; \\\n'
+                '    curl -fL -o /usr/bin/swagger',
+            ),
+            'exit before install': contents.replace(
+                'curl -fL -o /usr/bin/swagger',
+                'exit 0; \\\n'
+                '    curl -fL -o /usr/bin/swagger',
+            ),
+            'decoy variable download before hard-coded install':
+                contents.replace(
+                    'curl -fL -o /usr/bin/swagger '
+                    '"https://github.com/go-swagger/go-swagger/releases/'
+                    'download/${go_swagger_version}/swagger_linux_amd64";',
+                    'curl -fL -o /tmp/swagger-decoy '
+                    '"https://github.com/go-swagger/go-swagger/releases/'
+                    'download/${go_swagger_version}/swagger_linux_amd64"; \\\n'
+                    '    curl -fL -o /usr/bin/swagger '
+                    '"https://github.com/go-swagger/go-swagger/releases/'
+                    'download/v0.31.0/swagger_linux_amd64";',
+                ),
+            'later artifact overwrite':
+                contents + '\nRUN cp /tmp/hard-coded-swagger '
+                '/usr/bin/swagger\n',
         }
         for name, mutated in mutations.items():
             with self.subTest(name=name):

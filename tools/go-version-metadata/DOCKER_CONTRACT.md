@@ -89,6 +89,9 @@ under this restriction.
 ordinary `COPY` operands, local `ADD` operands, destinations, option values not
 listed above, comments, and parser directives are excluded. `SHELL` configures
 interpretation but its argv is not itself a Go source field.
+Active special/positional references in these excluded fields do not make them
+source-bearing. An unresolved `ADD` source remains included conservatively
+because its expansion can become a remote Go download; a destination does not.
 
 An instruction outside the pinned typed instruction set is `invalid`. This
 prevents an unknown instruction from silently introducing a new source-bearing
@@ -168,11 +171,15 @@ operators, including prefix/suffix pattern removal, are classified
 single-quoted spellings remain literals. Unknown values use non-textual typed
 identities rather than forgeable sentinel strings. Repeated occurrences of one
 variable share one assignment, including partial suffix constraints at every
-occurrence. Active Docker special parameters (`$`, `?`, `#`, `!`, `-`, `@`,
-and `*`) and ASCII positional digit parameters are always `unsupported` by the
-bounded policy. Parent-image environment metadata is unavailable to offline
-analysis and can supply those names even when the current Dockerfile has no
-declaration. Escaped or single-quoted dollar text remains literal.
+occurrence. Within the source-bearing fields in the table above, active Docker
+special parameters (`$`, `?`, `#`, `!`, `-`, `@`, and `*`) and ASCII positional
+digit parameters are always `unsupported` by the bounded policy. Parent-image
+environment metadata is unavailable to offline analysis and can supply those
+names even when the current Dockerfile has no declaration. The same restriction
+applies to ENV key-policy validation. Excluded fields do not inherit this
+restriction. POSIX special parameters inside shell-form executable content are
+handled by the runtime-shell model below, not this Docker-word restriction.
+Escaped or single-quoted dollar text remains literal.
 Symbolic image values are matched as complete references using a
 bounded automaton derived from the `distribution/reference` grammar. The
 automaton distinguishes bracketed IPv6 authorities, registry ports, repository
@@ -213,15 +220,17 @@ helper enforces these deterministic limits:
 - total Docker alternative-expansion input work: 1 MiB;
 - symbolic image-reference automaton states: 128;
 - symbolic variable transformations: 2,048;
-- symbolic reference match work: 1 MiB state visits;
+- symbolic reference match work: 1 MiB state visits and correlated-value bytes
+  compared across image, download-prefix, and local-stage equality searches;
 - POSIX shell AST nodes: 100,000;
 - POSIX shell AST depth: 256; and
 - total visited or normalized semantic literal bytes: 16 MiB.
 
-Repeated alias/word objects and normalized symbolic values are memoized and
-charged once across Docker and runtime-shell fields. Exhausting symbolic search
-work is an explicit `invalid` resource error, never evidence that a source was
-found. Limits for shell depth and work are computed from lexer-visible or
+Repeated alias/word objects and alpha-equivalent normalized symbolic values are
+memoized and charged once across Docker and runtime-shell fields. Variable names
+are canonicalized while repeated-identity correlation is preserved. Exhausting
+symbolic search work is an explicit `invalid` resource error, never evidence
+that a source was found. Limits for shell depth and work are computed from lexer-visible or
 AST-visible structures, not
 from raw character patterns such as counting `${`. Exceeding a deterministic
 limit is `invalid`; exceeding the external deadline is a helper failure. Fuzz

@@ -619,6 +619,19 @@ type symbolicSourceResult struct {
 	err           error
 }
 
+type symbolicSearchKey struct {
+	value        string
+	target       string
+	prefix       bool
+	requireFixed bool
+	foldCase     bool
+}
+
+type symbolicSearchResult struct {
+	matched bool
+	err     error
+}
+
 type symbolicSegment struct {
 	literal  string
 	variable string
@@ -658,35 +671,37 @@ type dockerInstructionContext struct {
 }
 
 type dockerDiscovery struct {
-	escapeToken      rune
-	wordLexer        *shell.Lex
-	wordMemo         map[dockerWordKey]dockerWordResult
-	runtimeWordsMemo map[runtimeWordsKey]runtimeWordsResult
-	symbolicMemo     map[string]symbolicSourceResult
-	instructions     int
-	candidates       int
-	normalizedBytes  int
-	wordWorkBytes    int
-	alternativeWork  int
-	symbolicWork     int
-	stageReferences  map[string]*dockerStageState
-	baseReferences   map[string]*dockerStageState
-	allStages        []*dockerStageState
-	currentStage     *dockerStageState
-	stageCount       int
+	escapeToken        rune
+	wordLexer          *shell.Lex
+	wordMemo           map[dockerWordKey]dockerWordResult
+	runtimeWordsMemo   map[runtimeWordsKey]runtimeWordsResult
+	symbolicMemo       map[string]symbolicSourceResult
+	symbolicSearchMemo map[symbolicSearchKey]symbolicSearchResult
+	instructions       int
+	candidates         int
+	normalizedBytes    int
+	wordWorkBytes      int
+	alternativeWork    int
+	symbolicWork       int
+	stageReferences    map[string]*dockerStageState
+	baseReferences     map[string]*dockerStageState
+	allStages          []*dockerStageState
+	currentStage       *dockerStageState
+	stageCount         int
 }
 
 func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 	wordLexer := shell.NewLex(escapeToken)
 	wordLexer.SkipUnsetEnv = true
 	return &dockerDiscovery{
-		escapeToken:      escapeToken,
-		wordLexer:        wordLexer,
-		wordMemo:         map[dockerWordKey]dockerWordResult{},
-		runtimeWordsMemo: map[runtimeWordsKey]runtimeWordsResult{},
-		symbolicMemo:     map[string]symbolicSourceResult{},
-		stageReferences:  map[string]*dockerStageState{},
-		baseReferences:   map[string]*dockerStageState{},
+		escapeToken:        escapeToken,
+		wordLexer:          wordLexer,
+		wordMemo:           map[dockerWordKey]dockerWordResult{},
+		runtimeWordsMemo:   map[runtimeWordsKey]runtimeWordsResult{},
+		symbolicMemo:       map[string]symbolicSourceResult{},
+		symbolicSearchMemo: map[symbolicSearchKey]symbolicSearchResult{},
+		stageReferences:    map[string]*dockerStageState{},
+		baseReferences:     map[string]*dockerStageState{},
 	}
 }
 
@@ -770,10 +785,6 @@ func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line 
 			return "", err
 		}
 		result := discovery.wordMemo[dockerWordKey{value: word}]
-		if len(result.fixedParameters) > 0 {
-			return "", unsupportedDockerPolicyf("unsupported-parameter-reference", word, line,
-				"line %d: Docker special/positional parameter reference %q is outside the bounded word-expansion contract", line, result.fixedParameters[0])
-		}
 		if operator, found := unsupportedDockerWordOperator(word, result.variables, discovery.escapeToken); found {
 			return "", unsupportedDockerPolicyf("unsupported-word", word, line,
 				"line %d: Docker parameter operator %q is outside the bounded word-expansion contract", line, operator)
@@ -859,10 +870,21 @@ func (discovery *dockerDiscovery) admitCandidates(count int) error {
 
 func dockerInstructionCandidates(node *parser.Node, typed any, context dockerInstructionContext, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
+	appendUnsupportedParameterReference := func(value string) bool {
+		result := discovery.wordMemo[dockerWordKey{value: value}]
+		if len(result.fixedParameters) == 0 {
+			return false
+		}
+		candidates = append(candidates, dockerCandidate{Kind: "unsupported-parameter-reference", Value: value, Line: node.StartLine})
+		return true
+	}
 	appendImageCandidate := func(kind, value string, rejectCurrent, numericLocal bool) error {
 		alternatives, err := discovery.dockerWordAlternatives(value)
 		if err != nil {
 			return err
+		}
+		if appendUnsupportedParameterReference(value) {
+			return nil
 		}
 		matched := false
 		allLocal := len(alternatives) > 0
@@ -921,6 +943,9 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 			if err != nil {
 				return nil, err
 			}
+			if appendUnsupportedParameterReference(*argument.Value) {
+				continue
+			}
 			matched := false
 			for _, normalized := range alternatives {
 				if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
@@ -957,6 +982,9 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 			if err != nil {
 				return nil, err
 			}
+			if appendUnsupportedParameterReference(environment.Value) {
+				continue
+			}
 			matched := false
 			for _, normalized := range alternatives {
 				if containsDockerGoToken(normalized) || goDownloadPattern.MatchString(normalized) {
@@ -981,6 +1009,9 @@ func dockerInstructionCandidates(node *parser.Node, typed any, context dockerIns
 			alternatives, err := discovery.dockerWordAlternatives(source)
 			if err != nil {
 				return nil, err
+			}
+			if appendUnsupportedParameterReference(source) {
+				continue
 			}
 			matched := false
 			for _, normalized := range alternatives {
@@ -1098,7 +1129,11 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 	for _, symbolic := range discovery.wordMemo[dockerWordKey{value: stage.BaseName}].symbolic {
 		externalPossible = true
 		for reference, base := range discovery.baseReferences {
-			if symbolicGlobCanEqual(symbolic, reference) && !seenBases[base] {
+			matched, matchErr := discovery.symbolicCanEqual(symbolic, reference)
+			if matchErr != nil {
+				return matchErr
+			}
+			if matched && !seenBases[base] {
 				seenBases[base] = true
 				baseStates = append(baseStates, base)
 			}
@@ -1536,10 +1571,21 @@ func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string
 
 func symbolicValueKey(value symbolicValue) string {
 	var key strings.Builder
+	variableIndexes := map[string]int{}
 	for _, segment := range value.segments {
 		kind, contents := byte('L'), segment.literal
 		if segment.variable != "" {
-			kind, contents = 'V', segment.variable
+			kind = 'V'
+			variableIndex, found := variableIndexes[segment.variable]
+			if !found {
+				variableIndex = len(variableIndexes)
+				variableIndexes[segment.variable] = variableIndex
+			}
+			// Symbolic identity names have no semantic meaning outside one
+			// value. Canonicalize by first occurrence so alpha-equivalent words
+			// share discovery-wide source and search results while repeated
+			// occurrences still preserve their correlation.
+			contents = strconv.Itoa(variableIndex)
 		}
 		key.WriteByte(kind)
 		key.WriteString(strconv.Itoa(len(contents)))
@@ -1559,9 +1605,16 @@ func (discovery *dockerDiscovery) symbolicSource(value symbolicValue, includeIma
 		}
 		return result
 	}
-	if !result.downloadKnown {
-		result.download = symbolicDownloadPrefixPossible(value)
-		result.downloadKnown = true
+	if !result.downloadKnown && result.err == nil {
+		for _, prefix := range []string{"https://go.dev/dl/go", "https://dl.google.com/go/go"} {
+			var matched bool
+			matched, result.err = discovery.symbolicCanStartWith(value, prefix)
+			if result.err != nil || matched {
+				result.download = matched
+				break
+			}
+		}
+		result.downloadKnown = result.err == nil
 	}
 	if includeImage && !result.imageKnown && result.err == nil {
 		remaining := maxSymbolicReferenceWork - discovery.symbolicWork
@@ -1574,50 +1627,150 @@ func (discovery *dockerDiscovery) symbolicSource(value symbolicValue, includeIma
 	return result
 }
 
-func symbolicDownloadPrefixPossible(symbolic symbolicValue) bool {
-	if symbolic.onlyVariables() {
-		return false
+func (discovery *dockerDiscovery) symbolicCanStartWith(value symbolicValue, prefix string) (bool, error) {
+	if value.onlyVariables() {
+		return false, nil
 	}
-	for _, prefix := range []string{"https://go.dev/dl/go", "https://dl.google.com/go/go"} {
-		if symbolicGlobCanStartWith(symbolic, prefix) {
-			return true
-		}
-	}
-	return false
+	return discovery.symbolicMatch(value, prefix, true, true, true)
 }
 
-func symbolicGlobCanStartWith(pattern symbolicValue, prefix string) bool {
-	atoms := pattern.atoms()
-	var visit func(int, int, bool, map[string]string) bool
-	visit = func(patternIndex, prefixIndex int, matchedFixed bool, assignments map[string]string) bool {
-		if prefixIndex == len(prefix) {
-			return matchedFixed
+func (discovery *dockerDiscovery) symbolicCanEqual(value symbolicValue, target string) (bool, error) {
+	return discovery.symbolicMatch(value, target, false, false, false)
+}
+
+func (discovery *dockerDiscovery) symbolicMatch(value symbolicValue, target string, prefix, requireFixed, foldCase bool) (bool, error) {
+	key := symbolicSearchKey{
+		value:        symbolicValueKey(value),
+		target:       target,
+		prefix:       prefix,
+		requireFixed: requireFixed,
+		foldCase:     foldCase,
+	}
+	if result, found := discovery.symbolicSearchMemo[key]; found {
+		return result.matched, result.err
+	}
+	remaining := maxSymbolicReferenceWork - discovery.symbolicWork
+	matched, work, err := matchSymbolicText(value, target, prefix, requireFixed, foldCase, remaining)
+	discovery.symbolicWork += work
+	result := symbolicSearchResult{matched: matched, err: err}
+	discovery.symbolicSearchMemo[key] = result
+	return result.matched, result.err
+}
+
+func matchSymbolicText(value symbolicValue, target string, prefix, requireFixed, foldCase bool, workLimit int) (bool, int, error) {
+	atoms := value.atoms()
+	variableIndexes := map[string]int{}
+	variableOccurrences := map[string]int{}
+	for _, atom := range atoms {
+		if atom.variable != "" {
+			variableOccurrences[atom.variable]++
+			if _, found := variableIndexes[atom.variable]; !found {
+				variableIndexes[atom.variable] = len(variableIndexes)
+			}
 		}
-		if patternIndex == len(atoms) {
+	}
+	if len(variableIndexes) > maxDockerWordVariables {
+		return false, 0, resourceLimitf("Docker metadata symbolic value references more than %d variable identities", maxDockerWordVariables)
+	}
+	type matchState struct {
+		patternIndex int
+		targetIndex  int
+		matchedFixed bool
+		assigned     [maxDockerWordVariables]bool
+		assignStarts [maxDockerWordVariables]int
+		assignEnds   [maxDockerWordVariables]int
+	}
+	failed := map[matchState]bool{}
+	work := 0
+	exhausted := false
+	var visit func(matchState) bool
+	visit = func(state matchState) (matched bool) {
+		if failed[state] {
 			return false
 		}
-		atom := atoms[patternIndex]
-		if atom.variable != "" {
-			marker := atom.variable
-			if assigned, found := assignments[marker]; found {
-				return strings.HasPrefix(prefix[prefixIndex:], assigned) &&
-					visit(patternIndex+1, prefixIndex+len(assigned), matchedFixed, assignments)
+		defer func() {
+			if !matched && !exhausted {
+				failed[state] = true
 			}
-			for end := prefixIndex; end <= len(prefix); end++ {
-				branch := make(map[string]string, len(assignments)+1)
-				for identity, value := range assignments {
-					branch[identity] = value
+		}()
+		if work >= workLimit {
+			exhausted = true
+			return false
+		}
+		work++
+		if prefix && state.targetIndex == len(target) {
+			return !requireFixed || state.matchedFixed
+		}
+		if state.patternIndex == len(atoms) {
+			return state.targetIndex == len(target) && (!requireFixed || state.matchedFixed)
+		}
+		atom := atoms[state.patternIndex]
+		state.patternIndex++
+		if atom.variable != "" {
+			// A single-use identity has no correlation to preserve. Do not retain
+			// its assignment in the memo state: all splits reaching the same next
+			// atom and target offset are semantically identical. This keeps a long
+			// local-stage name linear in its length instead of enumerating every
+			// partition among adjacent unknowns.
+			if variableOccurrences[atom.variable] == 1 {
+				if visit(state) { // The arbitrary value is empty.
+					return true
 				}
-				branch[marker] = prefix[prefixIndex:end]
-				if visit(patternIndex+1, end, matchedFixed, branch) {
+				if state.targetIndex < len(target) {
+					// Consume one byte and remain on this atom. Memoization makes
+					// this an O(atoms*target) wildcard search instead of enumerating
+					// every partition among adjacent unknowns.
+					state.targetIndex++
+					state.patternIndex--
+					return visit(state)
+				}
+				return false
+			}
+			variableIndex := variableIndexes[atom.variable]
+			if state.assigned[variableIndex] {
+				assigned := target[state.assignStarts[variableIndex]:state.assignEnds[variableIndex]]
+				if work > workLimit-len(assigned) {
+					exhausted = true
+					return false
+				}
+				work += len(assigned)
+				if !strings.HasPrefix(target[state.targetIndex:], assigned) {
+					return false
+				}
+				state.targetIndex += len(assigned)
+				return visit(state)
+			}
+			state.assigned[variableIndex] = true
+			state.assignStarts[variableIndex] = state.targetIndex
+			for end := state.targetIndex; end <= len(target); end++ {
+				state.assignEnds[variableIndex] = end
+				branch := state
+				branch.targetIndex = end
+				if visit(branch) {
 					return true
 				}
 			}
 			return false
 		}
-		return strings.EqualFold(string(atom.literal), prefix[prefixIndex:prefixIndex+1]) && visit(patternIndex+1, prefixIndex+1, true, assignments)
+		if state.targetIndex == len(target) {
+			return false
+		}
+		matches := atom.literal == target[state.targetIndex]
+		if foldCase {
+			matches = strings.EqualFold(string(atom.literal), target[state.targetIndex:state.targetIndex+1])
+		}
+		if !matches {
+			return false
+		}
+		state.targetIndex++
+		state.matchedFixed = true
+		return visit(state)
 	}
-	return visit(0, 0, false, map[string]string{})
+	matched := visit(matchState{})
+	if exhausted {
+		return false, work, resourceLimitf("Docker metadata exceeds the %d-step symbolic-reference search limit", maxSymbolicReferenceWork)
+	}
+	return matched, work, nil
 }
 
 func symbolicGolangImagePossible(symbolic symbolicValue, workLimit int) (bool, int, error) {
@@ -1951,45 +2104,6 @@ func (machine *symbolicReferenceMachine) matches(value symbolicValue, workLimit 
 		return false, work, resourceLimitf("Docker metadata exceeds the %d-step symbolic-reference search limit", maxSymbolicReferenceWork)
 	}
 	return matched, work, nil
-}
-
-func symbolicGlobCanEqual(pattern symbolicValue, target string) bool {
-	return symbolicGlobCanEqualState(pattern, target, false, false)
-}
-
-func symbolicGlobCanEqualState(pattern symbolicValue, target string, requireFixed, foldCase bool) bool {
-	atoms := pattern.atoms()
-	var visit func(int, int, bool, map[string]string) bool
-	visit = func(patternIndex, targetIndex int, matchedFixed bool, assignments map[string]string) bool {
-		if patternIndex == len(atoms) {
-			return targetIndex == len(target) && (!requireFixed || matchedFixed)
-		}
-		atom := atoms[patternIndex]
-		if atom.variable != "" {
-			marker := atom.variable
-			if assigned, found := assignments[marker]; found {
-				return strings.HasPrefix(target[targetIndex:], assigned) &&
-					visit(patternIndex+1, targetIndex+len(assigned), matchedFixed, assignments)
-			}
-			for end := targetIndex; end <= len(target); end++ {
-				branch := make(map[string]string, len(assignments)+1)
-				for identity, value := range assignments {
-					branch[identity] = value
-				}
-				branch[marker] = target[targetIndex:end]
-				if visit(patternIndex+1, end, matchedFixed, branch) {
-					return true
-				}
-			}
-			return false
-		}
-		matches := targetIndex < len(target) && atom.literal == target[targetIndex]
-		if foldCase && targetIndex < len(target) {
-			matches = strings.EqualFold(string(atom.literal), target[targetIndex:targetIndex+1])
-		}
-		return matches && visit(patternIndex+1, targetIndex+1, true, assignments)
-	}
-	return visit(0, 0, false, map[string]string{})
 }
 
 func (discovery *dockerDiscovery) accountNormalizedBytes(count int) error {

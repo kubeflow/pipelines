@@ -23,6 +23,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/moby/buildkit/frontend/dockerfile/shell"
 	"gopkg.in/yaml.v3"
@@ -1058,8 +1059,12 @@ func TestDockerSpecialParameterNamesFailClosedAcrossProvenance(t *testing.T) {
 			if metadata.DockerClassification != "unsupported" {
 				t.Fatalf("classification = %q, want unsupported; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
 			}
-			if len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != test.candidateKind || metadata.DockerCandidates[0].Value != test.candidateValue {
-				t.Fatalf("candidates = %#v, want one %q candidate with value %q", metadata.DockerCandidates, test.candidateKind, test.candidateValue)
+			found := false
+			for _, candidate := range metadata.DockerCandidates {
+				found = found || candidate.Kind == test.candidateKind && candidate.Value == test.candidateValue
+			}
+			if !found {
+				t.Fatalf("candidates = %#v, want %q candidate with value %q", metadata.DockerCandidates, test.candidateKind, test.candidateValue)
 			}
 		})
 	}
@@ -1073,6 +1078,55 @@ func TestDockerSpecialParameterNamesFailClosedAcrossProvenance(t *testing.T) {
 		if !slices.Equal(alternatives, []string{"?"}) {
 			t.Fatalf("dockerWordAlternatives(%q) = %q, want [?]", value, alternatives)
 		}
+	}
+}
+
+func TestDockerSpecialParameterReferenceFieldBoundary(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		contents string
+	}{
+		{name: "FROM image", contents: "FROM $?golang\n"},
+		{name: "ARG value", contents: "FROM scratch\nARG VALUE=$?golang\n"},
+		{name: "ENV value", contents: "FROM scratch\nENV VALUE=$?golang\n"},
+		{name: "ADD source", contents: "FROM scratch\nADD $?golang /tmp/source\n"},
+		{name: "COPY from", contents: "FROM scratch\nCOPY --from=$?golang /src /dst\n"},
+	} {
+		t.Run("source/"+test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" || len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != "unsupported-parameter-reference" {
+				t.Fatalf("classification = %q, want unsupported parameter reference; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+			}
+		})
+	}
+
+	for _, test := range []struct {
+		name     string
+		contents string
+	}{
+		{name: "LABEL", contents: "FROM scratch\nLABEL note=$?golang\n"},
+		{name: "WORKDIR", contents: "FROM scratch\nWORKDIR /$?golang\n"},
+		{name: "ordinary COPY source", contents: "FROM scratch AS source\nFROM scratch\nCOPY --from=source /$?golang /dst\n"},
+		{name: "ordinary COPY destination", contents: "FROM scratch AS source\nFROM scratch\nCOPY --from=source /src /$?golang\n"},
+		{name: "ADD destination", contents: "FROM scratch\nADD local /$?golang\n"},
+		{name: "USER", contents: "FROM scratch\nUSER $?golang\n"},
+		{name: "VOLUME", contents: "FROM scratch\nVOLUME /$?golang\n"},
+		{name: "EXPOSE", contents: "FROM scratch\nEXPOSE $?-8080\n"},
+		{name: "STOPSIGNAL", contents: "FROM scratch\nSTOPSIGNAL $?SIGTERM\n"},
+		{name: "runtime shell special", contents: "FROM scratch\nRUN echo $?golang\n"},
+	} {
+		t.Run("excluded/"+test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "irrelevant" {
+				t.Fatalf("classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+			}
+		})
 	}
 }
 
@@ -1230,11 +1284,15 @@ func TestSymbolicReferenceCachePreservesCorrelationAndErrors(t *testing.T) {
 	}
 	lazy := newDockerDiscovery('\\')
 	downloadOnly := lazy.symbolicSource(positive, false)
-	if !downloadOnly.downloadKnown || downloadOnly.imageKnown || lazy.symbolicWork != 0 {
+	if !downloadOnly.downloadKnown || downloadOnly.imageKnown || lazy.symbolicWork == 0 {
 		t.Fatalf("download-only cache eagerly searched images: %#v work=%d", downloadOnly, lazy.symbolicWork)
 	}
+	downloadWork := lazy.symbolicWork
+	if cached := lazy.symbolicSource(positive, false); cached != downloadOnly || lazy.symbolicWork != downloadWork {
+		t.Fatalf("cached download search = %#v work=%d, want %#v and work=%d", cached, lazy.symbolicWork, downloadOnly, downloadWork)
+	}
 	withImage := lazy.symbolicSource(positive, true)
-	if !withImage.imageKnown || !withImage.image || lazy.symbolicWork == 0 {
+	if !withImage.imageKnown || !withImage.image || lazy.symbolicWork <= downloadWork {
 		t.Fatalf("lazy image cache was not completed: %#v work=%d", withImage, lazy.symbolicWork)
 	}
 
@@ -1248,6 +1306,108 @@ func TestSymbolicReferenceCachePreservesCorrelationAndErrors(t *testing.T) {
 	work := exhausted.symbolicWork
 	if cached := exhausted.symbolicSource(positive, true); cached.err != result.err || exhausted.symbolicWork != work {
 		t.Fatalf("cached exhaustion = %#v work=%d, want same error and work=%d", cached, exhausted.symbolicWork, work)
+	}
+}
+
+func TestSymbolicDownloadSearchMemoizesAlphaEquivalentWords(t *testing.T) {
+	discovery := newDockerDiscovery('\\')
+	first := symbolicValue{segments: []symbolicSegment{
+		{literal: "h"}, {variable: "A0"}, {literal: "t"}, {variable: "B0"},
+		{literal: "t"}, {variable: "C0"}, {literal: "p"}, {variable: "D0"},
+		{literal: "s"}, {variable: "E0"}, {literal: ":"}, {variable: "F0"},
+		{literal: "/not-go"},
+	}}
+	if result := discovery.symbolicSource(first, false); result.err != nil {
+		t.Fatal(result.err)
+	}
+	firstWork := discovery.symbolicWork
+	if firstWork == 0 {
+		t.Fatal("symbolic download search did not charge global work")
+	}
+	renamed := symbolicValue{segments: []symbolicSegment{
+		{literal: "h"}, {variable: "A1"}, {literal: "t"}, {variable: "B1"},
+		{literal: "t"}, {variable: "C1"}, {literal: "p"}, {variable: "D1"},
+		{literal: "s"}, {variable: "E1"}, {literal: ":"}, {variable: "F1"},
+		{literal: "/not-go"},
+	}}
+	if result := discovery.symbolicSource(renamed, false); result.err != nil {
+		t.Fatal(result.err)
+	}
+	if discovery.symbolicWork != firstWork {
+		t.Fatalf("alpha-equivalent word increased symbolic work from %d to %d", firstWork, discovery.symbolicWork)
+	}
+	if got := len(discovery.symbolicMemo); got != 1 {
+		t.Fatalf("alpha-equivalent source memo entries = %d, want 1", got)
+	}
+}
+
+func TestSymbolicDownloadAndLocalAliasSearchStayBounded(t *testing.T) {
+	started := time.Now()
+	downloads := "FROM scratch\n"
+	for index := range 15 {
+		downloads += fmt.Sprintf("ARG URL%d=h${A%d}t${B%d}t${C%d}p${D%d}s${E%d}:${F%d}/not-go\n",
+			index, index, index, index, index, index, index)
+	}
+	metadata, err := inspect(request{Path: "Dockerfile", Contents: downloads})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "unsupported" || len(metadata.DockerCandidates) != 15 {
+		t.Fatalf("15 six-variable downloads = %q with %d candidates, want unsupported with 15; error=%q candidates=%#v", metadata.DockerClassification, len(metadata.DockerCandidates), metadata.DockerError, metadata.DockerCandidates)
+	}
+	if elapsed := time.Since(started); elapsed >= 8*time.Second {
+		t.Fatalf("15 six-variable download searches took %s, must stay below the public 10-second deadline", elapsed)
+	}
+
+	alias := strings.Repeat("a", 12000)
+	started = time.Now()
+	metadata, err = inspect(request{
+		Path: "Dockerfile",
+		Contents: "FROM scratch AS " + alias + "\n" +
+			"FROM ${A}${B}${C}${D}${E}${F}x\n",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metadata.DockerClassification != "irrelevant" {
+		t.Fatalf("long local-stage equality = %q, want irrelevant; error=%q candidates=%#v", metadata.DockerClassification, metadata.DockerError, metadata.DockerCandidates)
+	}
+	if elapsed := time.Since(started); elapsed >= 8*time.Second {
+		t.Fatalf("long local-stage equality took %s, must stay below the public 10-second deadline", elapsed)
+	}
+
+	discovery := newDockerDiscovery('\\')
+	symbolic := symbolicValue{segments: []symbolicSegment{
+		{variable: "A"}, {variable: "B"}, {variable: "C"},
+		{variable: "D"}, {variable: "E"}, {variable: "F"}, {literal: "x"},
+	}}
+	matched, err := discovery.symbolicCanEqual(symbolic, alias)
+	if err != nil || matched {
+		t.Fatalf("long alias match = %t, %v; want false, nil", matched, err)
+	}
+	firstWork := discovery.symbolicWork
+	if firstWork == 0 {
+		t.Fatal("long alias equality did not charge global work")
+	}
+	matched, err = discovery.symbolicCanEqual(symbolic, alias)
+	if err != nil || matched || discovery.symbolicWork != firstWork {
+		t.Fatalf("cached long alias match = %t, %v work=%d; want false, nil work=%d", matched, err, discovery.symbolicWork, firstWork)
+	}
+}
+
+func TestSymbolicTextSearchExhaustionIsCachedResourceError(t *testing.T) {
+	discovery := newDockerDiscovery('\\')
+	discovery.symbolicWork = maxSymbolicReferenceWork
+	value := symbolicValue{segments: []symbolicSegment{{literal: "h"}, {variable: "X"}}}
+	matched, err := discovery.symbolicCanStartWith(value, "https://go.dev/dl/go")
+	var limitErr *resourceLimitError
+	if matched || !errors.As(err, &limitErr) {
+		t.Fatalf("exhausted download match = %t, %v; want false resource error", matched, err)
+	}
+	work := discovery.symbolicWork
+	matched, cachedErr := discovery.symbolicCanStartWith(value, "https://go.dev/dl/go")
+	if matched || cachedErr != err || discovery.symbolicWork != work {
+		t.Fatalf("cached exhaustion = %t, %v work=%d; want false, %v work=%d", matched, cachedErr, discovery.symbolicWork, err, work)
 	}
 }
 

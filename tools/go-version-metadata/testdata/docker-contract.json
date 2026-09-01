@@ -333,6 +333,38 @@
       "domain": "docker-special-parameter-provenance",
       "dockerfile": "FROM scratch AS parent\nENV \"?\"=go\nFROM parent\nARG V=$?lang\n",
       "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name", "unsupported-parameter-reference"]}
+    },
+    {
+      "id": "excluded-label-special-reference",
+      "finding": 3,
+      "domain": "docker-special-parameter-field-boundary",
+      "dockerfile": "FROM scratch\nLABEL note=$?golang\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "excluded-workdir-special-reference",
+      "finding": 3,
+      "domain": "docker-special-parameter-field-boundary",
+      "dockerfile": "FROM scratch\nWORKDIR /$?golang\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "excluded-copy-operand-special-reference",
+      "finding": 3,
+      "domain": "docker-special-parameter-field-boundary",
+      "dockerfile": "FROM scratch AS source\nFROM scratch\nCOPY --from=source /$?golang /dst\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "source-arg-special-reference",
+      "finding": 3,
+      "domain": "docker-special-parameter-field-boundary",
+      "dockerfile": "FROM scratch\nARG VALUE=$?golang\n",
+      "accepted": true,
       "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-reference"]}
     },
     {
