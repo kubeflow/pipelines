@@ -37,7 +37,7 @@
     "react": "^19",
     "react-ace": "^15.0.0",
     "react-dom": "^19",
-    "react-dropzone": "^14.4.1",
+    "react-dropzone": "^20.1.1",
     "react-router": "^5.3.4",
     "react-router-dom": "^5.3.4",
     "react-textarea-autosize": "^8.5.9",
