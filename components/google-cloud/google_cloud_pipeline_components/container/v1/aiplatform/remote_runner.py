@@ -183,8 +183,8 @@ def cast(value: str, annotation_type: Type[T]) -> T:
       An instance of annotation_type value.
   """
   if annotation_type is bool:
-    return bool(distutil.strtobool(value))
-  return annotation_type(value)
+    return bool(distutil.strtobool(value))  # pyrefly: ignore[bad-return]
+  return annotation_type(value)  # pyrefly: ignore[bad-argument-count]
 
 
 def prepare_parameters(
@@ -313,7 +313,7 @@ def main():
       key_value = None
 
   # Update user agent header for metrics reporting
-  aiplatform.constants.USER_AGENT_PRODUCT = 'google-cloud-pipeline-components'
+  aiplatform.constants.USER_AGENT_PRODUCT = 'google-cloud-pipeline-components'  # pyrefly: ignore[missing-attribute]
 
   print(runner(args.cls_name, args.method_name, executor_input, kwargs))
 
