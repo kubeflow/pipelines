@@ -191,6 +191,33 @@ const github = {{ rest: {{
         return execute_javascript(script, setup, Path(directory))
 
 
+def execute_pending(workflow: str, prior_statuses: list | None = None,
+                    head_sha: str = 'event-sha') -> list:
+    script = extract_step_script(
+        workflow, 'Mark ci-passed pending while current head is revalidated',
+        'Wait for action_required workflow runs to be approved')
+    prior_statuses = [] if prior_statuses is None else prior_statuses
+    setup = f'''
+const context = {{
+  repo: {{ owner: "kubeflow", repo: "pipelines" }},
+  payload: {{ pull_request: {{ head: {{ sha: {json.dumps(head_sha)} }} }} }},
+}};
+const github = {{ rest: {{
+  repos: {{
+    createCommitStatus: async (options) => {{
+      calls.push(["status", options.state, options.sha]);
+      return {{ data: options }};
+    }},
+    listCommitStatusesForRef: async () => {{
+      return {{ data: {json.dumps(prior_statuses)} }};
+    }},
+  }},
+}} }};
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        return execute_javascript(script, setup, Path(directory))
+
+
 def execute_workflow_run_resolve(workflow: str, pulls: list,
                                  head_sha: str = 'head-sha',
                                  head_repo_owner: str = 'kubeflow',
@@ -216,6 +243,31 @@ const github = {{ rest: {{
     return {call[1]: call[2] for call in calls if call[0] == 'setOutput'}
 
 
+def execute_workflow_run_status(workflow: str, conclusion: str,
+                                prior_statuses: list | None = None) -> dict:
+    script = extract_step_script(
+        workflow, 'Read current ci-passed status for the workflow_run head SHA',
+        'Re-poll all CI checks for the workflow_run head SHA')
+    prior_statuses = [] if prior_statuses is None else prior_statuses
+    setup = f'''
+const context = {{
+  repo: {{ owner: "kubeflow", repo: "pipelines" }},
+  payload: {{ workflow_run: {{
+    head_sha: "head-sha",
+    conclusion: {json.dumps(conclusion)},
+  }} }},
+}};
+const github = {{ rest: {{
+  repos: {{ listCommitStatusesForRef: async () => {{
+    return {{ data: {json.dumps(prior_statuses)} }};
+  }} }},
+}} }};
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        calls = execute_javascript(script, setup, Path(directory))
+    return {call[1]: call[2] for call in calls if call[0] == 'setOutput'}
+
+
 def execute_workflow_run_reconcile(workflow: str, matched: str,
                                    pr_number: str, pr_base_ref: str,
                                    repoll_outcome: str,
@@ -223,7 +275,10 @@ def execute_workflow_run_reconcile(workflow: str, matched: str,
                                    live_state: str = 'open',
                                    live_head: str = 'head-sha',
                                    live_base: str = 'master',
-                                   prior_statuses: list | None = None) -> list:
+                                   prior_statuses: list | None = None,
+                                   labels: list[str] | None = None,
+                                   author: str = 'dependabot[bot]',
+                                   association: str = 'NONE') -> list:
     script = extract_step_script(
         workflow, 'Reconcile ci-passed for the workflow_run head SHA')
     script = script.replace('${{ steps.resolve.outputs.matched }}', matched)
@@ -231,6 +286,7 @@ def execute_workflow_run_reconcile(workflow: str, matched: str,
     script = script.replace('${{ steps.resolve.outputs.pr_base_ref }}', pr_base_ref)
     script = script.replace('${{ steps.repoll.outcome }}', repoll_outcome)
     prior_statuses = [] if prior_statuses is None else prior_statuses
+    labels = labels or []
     setup = f'''
 const context = {{
   repo: {{ owner: "kubeflow", repo: "pipelines" }},
@@ -244,7 +300,7 @@ const github = {{ rest: {{
     number: 7, state: {json.dumps(live_state)},
     head: {{ sha: {json.dumps(live_head)} }},
     base: {{ ref: {json.dumps(live_base)} }},
-    labels: [], user: {{ login: "dependabot[bot]" }}, author_association: "NONE",
+    labels: {json.dumps([{'name': label} for label in labels])}, user: {{ login: {json.dumps(author)} }}, author_association: {json.dumps(association)},
   }} }}; }} }},
   repos: {{ createCommitStatus: async (options) => {{
     calls.push(["status", options.state, options.sha]);
@@ -348,7 +404,7 @@ class CiPassEligibilityTest(unittest.TestCase):
         self.assertIn("label.name == 'needs-ok-to-test'", condition)
         self.assertIn("label.name == 'ok-to-test'", condition)
         self.assertIn('github.event.changes.base.ref.from', condition)
-        self.assertIn('types: [opened, synchronize, reopened, edited, labeled, unlabeled]',
+        self.assertIn('types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]',
                       self.workflow)
 
     def test_workflow_run_trigger_declared_without_check_run_suite(self):
@@ -400,11 +456,104 @@ class CiPassEligibilityTest(unittest.TestCase):
             repoll_outcome='skipped', conclusion='failure')
         self.assertFalse(any(call[0] == 'status' for call in calls))
 
-    def test_workflow_run_success_conclusion_is_noop(self):
+    def test_workflow_run_success_conclusion_already_green_is_noop(self):
+        # A success conclusion on an already-green head has nothing to
+        # re-derive and is a no-op.
         calls = execute_workflow_run_reconcile(
             self.workflow, matched='true', pr_number='7', pr_base_ref='master',
-            repoll_outcome='skipped', conclusion='success')
+            repoll_outcome='skipped', conclusion='success',
+            prior_statuses=[{'context': 'ci-passed', 'state': 'success'}])
         self.assertFalse(any(call[0] == 'status' for call in calls))
+        self.assertNotIn(['add-label'], calls)
+        self.assertNotIn(['remove-label'], calls)
+
+    def test_workflow_run_status_only_failures_force_repoll(self):
+        for conclusion in ('failure', 'timed_out'):
+            with self.subTest(conclusion=conclusion):
+                outputs = execute_workflow_run_status(self.workflow, conclusion)
+                self.assertEqual(outputs['needs_repoll'], 'true')
+        for conclusion in ('cancelled', 'skipped', 'neutral', 'action_required'):
+            with self.subTest(conclusion=conclusion):
+                outputs = execute_workflow_run_status(self.workflow, conclusion)
+                self.assertEqual(outputs['needs_repoll'], 'false')
+
+    def test_workflow_run_status_success_repolls_on_absent_pending(self):
+        cases = (
+            ([], 'true'),
+            ([{'context': 'ci-passed', 'state': 'pending'}], 'true'),
+            ([{'context': 'ci-passed', 'state': 'failure'}], 'true'),
+            ([{'context': 'ci-passed', 'state': 'success'}], 'false'),
+        )
+        for prior_statuses, expected in cases:
+            with self.subTest(prior_statuses=prior_statuses):
+                outputs = execute_workflow_run_status(
+                    self.workflow, 'success', prior_statuses=prior_statuses)
+                self.assertEqual(outputs['needs_repoll'], expected)
+
+    def test_workflow_run_cancelled_conclusion_does_not_redden(self):
+        # An eligible, already-green head must not be reddened by a cancelled
+        # re-run: the completion is not a check result.
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='skipped', conclusion='cancelled',
+            prior_statuses=[{'context': 'ci-passed', 'state': 'success'}],
+            labels=['ok-to-test'], author='alice', association='MEMBER')
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+        self.assertNotIn(['remove-label'], calls)
+
+    def test_workflow_run_success_conclusion_repolls_absent_or_pending(self):
+        # A success completion with an absent or pending current status must
+        # re-derive and publish, not leave the head stuck at pending.
+        for prior in ([], [{'context': 'ci-passed', 'state': 'pending'}]):
+            with self.subTest(prior=prior):
+                calls = execute_workflow_run_reconcile(
+                    self.workflow, matched='true', pr_number='7',
+                    pr_base_ref='master', repoll_outcome='success',
+                    conclusion='success', prior_statuses=prior)
+                self.assertIn(['status', 'success', 'head-sha'], calls)
+                self.assertIn(['add-label'], calls)
+
+    def test_workflow_run_ineligible_never_flips_success(self):
+        # needs-ok-to-test rejects unconditionally, even with a green re-poll.
+        for labels in (['needs-ok-to-test'], ['needs-ok-to-test', 'ok-to-test']):
+            with self.subTest(labels=labels):
+                calls = execute_workflow_run_reconcile(
+                    self.workflow, matched='true', pr_number='7',
+                    pr_base_ref='master', repoll_outcome='success',
+                    conclusion='failure', labels=labels,
+                    author='alice', association='MEMBER')
+                self.assertIn(['status', 'failure', 'head-sha'], calls)
+                self.assertNotIn(['status', 'success', 'head-sha'], calls)
+                self.assertIn(['remove-label'], calls)
+                self.assertNotIn(['add-label'], calls)
+
+        # An untrusted CONTRIBUTOR author with no ok-to-test is ineligible.
+        calls = execute_workflow_run_reconcile(
+            self.workflow, matched='true', pr_number='7', pr_base_ref='master',
+            repoll_outcome='success', conclusion='failure',
+            labels=[], author='bob', association='CONTRIBUTOR')
+        self.assertIn(['status', 'failure', 'head-sha'], calls)
+        self.assertNotIn(['status', 'success', 'head-sha'], calls)
+        self.assertIn(['remove-label'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_workflow_run_ineligible_after_green_leaves_failure(self):
+        # needs-ok-to-test added after a green: any workflow_run completion
+        # must leave the gate failure and drop the label.
+        for conclusion in ('success', 'failure'):
+            with self.subTest(conclusion=conclusion):
+                calls = execute_workflow_run_reconcile(
+                    self.workflow, matched='true', pr_number='7',
+                    pr_base_ref='master', repoll_outcome='success',
+                    conclusion=conclusion,
+                    prior_statuses=[{'context': 'ci-passed',
+                                     'state': 'success'}],
+                    labels=['needs-ok-to-test'],
+                    author='alice', association='MEMBER')
+                self.assertIn(['status', 'failure', 'head-sha'], calls)
+                self.assertNotIn(['status', 'success', 'head-sha'], calls)
+                self.assertIn(['remove-label'], calls)
+                self.assertNotIn(['add-label'], calls)
 
     def test_workflow_run_never_publishes_onto_live_head(self):
         # The event SHA no longer matches the live PR head: refuse to publish.
@@ -460,6 +609,63 @@ class CiPassEligibilityTest(unittest.TestCase):
         self.assertNotIn(['status', 'success', 'event-sha'], calls)
         self.assertIn(['remove-label'], calls)
         self.assertNotIn(['add-label'], calls)
+
+    def test_marker_pending_step_preserves_base_retarget_marker(self):
+        # The pending step must not overwrite the base-retarget revalidation
+        # marker with a pending status; otherwise a label/reopen event could
+        # re-earn success without revalidating CI against the new base (I1).
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+
+    def test_marker_pending_step_writes_pending_without_marker(self):
+        # Without a marker (fresh head), the pending step still writes pending.
+        calls = execute_pending(self.workflow, prior_statuses=[])
+        self.assertIn(['status', 'pending', 'event-sha'], calls)
+
+    def test_base_retarget_label_event_repolls_but_publishes_failure(self):
+        # After the marker is set, an ok-to-test label on the unchanged head
+        # must re-poll (should_poll=true) yet still publish failure: the
+        # pending step preserves the marker and reconcile re-publishes it.
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        pending_calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in pending_calls))
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER', action='labeled',
+            prior_statuses=marker)
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_base_retarget_reopen_repolls_but_publishes_failure(self):
+        # A trusted author reopening the retargeted PR must re-poll yet still
+        # publish failure; the marker is preserved on the unchanged head SHA.
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        pending_calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in pending_calls))
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=[], association='MEMBER', author='alice', action='reopened',
+            prior_statuses=marker)
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_base_retarget_synchronize_clears_requirement(self):
+        # A synchronize moves the head to a new SHA that carries no marker, so
+        # the pending step writes pending and CI may re-earn success on it.
+        pending_calls = execute_pending(self.workflow, prior_statuses=[])
+        self.assertIn(['status', 'pending', 'event-sha'], pending_calls)
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER', action='synchronize',
+            prior_statuses=[])
+        self.assertIn(['status', 'success', 'event-sha'], calls)
+        self.assertIn(['add-label'], calls)
 
     def test_final_publish_race_publishes_failure(self):
         # The post-mutation snapshot no longer matches (base retargeted during
