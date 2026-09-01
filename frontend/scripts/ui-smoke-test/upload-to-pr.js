@@ -14,6 +14,16 @@ const MAX_COMMENT_PAGES = 1000;
 // One API page can contain 100 full comment bodies. Allow worst-case UTF-8 and
 // JSON expansion while keeping child-process output bounded.
 const GH_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
+const CAPTURE_VALIDITIES = new Set([
+  'valid',
+  'missing_fixture',
+  'expected_product_removal',
+  'selector_drift',
+  'ui_rendering_failure',
+  'api_incompatibility',
+  'seed_failure',
+  'infrastructure_failure',
+]);
 
 function parseArgumentValues(argv, defaults = {}) {
   const values = { ...defaults };
@@ -184,6 +194,28 @@ function validateSummary(summary) {
   requireThreshold(summary.thresholds.diffThreshold, 'summary.thresholds.diffThreshold');
   requireThreshold(summary.thresholds.failThreshold, 'summary.thresholds.failThreshold', true);
 
+  if (summary.scenarioConfig !== undefined && summary.scenarioConfig !== null) {
+    requireObject(summary.scenarioConfig, 'summary.scenarioConfig');
+    const operatorPolicy = summary.scenarioConfig.operatorPolicy;
+    if (operatorPolicy !== undefined && operatorPolicy !== null) {
+      requireObject(operatorPolicy, 'summary.scenarioConfig.operatorPolicy');
+      if (typeof operatorPolicy.applied !== 'boolean') {
+        throw new Error('summary.scenarioConfig.operatorPolicy.applied must be a boolean');
+      }
+      if (operatorPolicy.applied) {
+        if (
+          operatorPolicy.schemaVersion !== 'ui-smoke-comparison-policy/v1' ||
+          typeof operatorPolicy.sha256 !== 'string' ||
+          !/^[a-f0-9]{64}$/.test(operatorPolicy.sha256) ||
+          !Number.isSafeInteger(operatorPolicy.sizeBytes) ||
+          operatorPolicy.sizeBytes < 1
+        ) {
+          throw new Error('summary.scenarioConfig.operatorPolicy attestation is invalid');
+        }
+      }
+    }
+  }
+
   requireObject(summary.stats, 'summary.stats');
   for (const name of [
     'total',
@@ -235,6 +267,75 @@ function validateSummary(summary) {
     } else if (result.diffPercent !== undefined && result.diffPercent !== null) {
       requireThreshold(result.diffPercent, `${label}.diffPercent`);
     }
+    if (result.thresholdsEvaluated !== undefined) {
+      if (typeof result.thresholdsEvaluated !== 'boolean') {
+        throw new Error(`${label}.thresholdsEvaluated must be a boolean when provided`);
+      }
+      if (result.thresholdsEvaluated !== (result.status === 'success')) {
+        throw new Error(
+          `${label}.thresholdsEvaluated must be true only for successful comparisons`,
+        );
+      }
+    }
+    if (result.scenarioThresholds !== undefined) {
+      requireObject(result.scenarioThresholds, `${label}.scenarioThresholds`);
+      requireThreshold(
+        result.scenarioThresholds.diffThreshold,
+        `${label}.scenarioThresholds.diffThreshold`,
+      );
+      requireThreshold(
+        result.scenarioThresholds.failThreshold,
+        `${label}.scenarioThresholds.failThreshold`,
+        true,
+      );
+      requireThreshold(
+        result.scenarioThresholds.looksSameTolerance,
+        `${label}.scenarioThresholds.looksSameTolerance`,
+      );
+      if (
+        typeof result.scenarioThresholds.source !== 'string' ||
+        result.scenarioThresholds.source.trim() === ''
+      ) {
+        throw new Error(`${label}.scenarioThresholds.source must be a non-empty string`);
+      }
+    }
+    for (const name of [
+      'semanticScenario',
+      'scenarioTitle',
+      'captureValidity',
+      'comparisonValidity',
+    ]) {
+      if (result[name] !== undefined && (typeof result[name] !== 'string' || result[name] === '')) {
+        throw new Error(`${label}.${name} must be a non-empty string when provided`);
+      }
+    }
+    if (result.captureValidity !== undefined && !CAPTURE_VALIDITIES.has(result.captureValidity)) {
+      throw new Error(`${label}.captureValidity is unsupported`);
+    }
+    if (result.captureValidityByRevision !== undefined) {
+      requireObject(result.captureValidityByRevision, `${label}.captureValidityByRevision`);
+      for (const role of ['base', 'head']) {
+        if (!CAPTURE_VALIDITIES.has(result.captureValidityByRevision[role])) {
+          throw new Error(`${label}.captureValidityByRevision.${role} is unsupported`);
+        }
+      }
+    }
+    if (result.captureEvidenceByRevision !== undefined) {
+      requireObject(result.captureEvidenceByRevision, `${label}.captureEvidenceByRevision`);
+      const serializedEvidence = JSON.stringify(result.captureEvidenceByRevision);
+      if (serializedEvidence.length > 256_000) {
+        throw new Error(`${label}.captureEvidenceByRevision is too large`);
+      }
+      for (const role of ['base', 'head']) {
+        const evidence = result.captureEvidenceByRevision[role];
+        if (evidence !== null) {
+          requireObject(evidence, `${label}.captureEvidenceByRevision.${role}`);
+          if (!['success', 'degraded', 'skipped', 'failed'].includes(evidence.status)) {
+            throw new Error(`${label}.captureEvidenceByRevision.${role}.status is invalid`);
+          }
+        }
+      }
+    }
     for (const name of ['mainExists', 'prExists', 'hasVisualDiff', 'exceedsFailThreshold']) {
       if (result[name] !== undefined && typeof result[name] !== 'boolean') {
         throw new Error(`${label}.${name} must be a boolean when provided`);
@@ -256,10 +357,11 @@ function validateSummary(summary) {
   const skippedCount = summary.results.filter((result) => result.status === 'skipped').length;
   const successfulResults = summary.results.filter((result) => result.status === 'success');
   for (const result of successfulResults) {
-    const expectedVisualDiff = result.diffPercent > summary.thresholds.diffThreshold;
+    const resultThresholds = result.scenarioThresholds || summary.thresholds;
+    const expectedVisualDiff = result.diffPercent > resultThresholds.diffThreshold;
     const expectedThresholdFailure =
-      summary.thresholds.failThreshold !== null &&
-      result.diffPercent > summary.thresholds.failThreshold;
+      resultThresholds.failThreshold !== null &&
+      result.diffPercent > resultThresholds.failThreshold;
     if (
       result.hasVisualDiff !== expectedVisualDiff ||
       result.exceedsFailThreshold !== expectedThresholdFailure
@@ -341,6 +443,28 @@ function formatThreshold(value) {
   return value === null ? 'disabled' : `${value}%`;
 }
 
+function replayViewports(summary) {
+  const configured = summary.scenarioConfig?.viewports;
+  const candidates =
+    Array.isArray(configured) && configured.length > 0
+      ? configured
+      : summary.results.map((result) => result.viewport).filter(Boolean);
+  const keys = new Set();
+  for (const viewport of candidates) {
+    if (
+      !viewport ||
+      !Number.isSafeInteger(viewport.width) ||
+      viewport.width < 1 ||
+      !Number.isSafeInteger(viewport.height) ||
+      viewport.height < 1
+    ) {
+      throw new Error('summary replay viewport metadata is invalid');
+    }
+    keys.add(`${viewport.width}x${viewport.height}`);
+  }
+  return [...keys].sort().join(',');
+}
+
 function generateMarkdownSummary(summary, options) {
   validateSummary(summary);
   const marker = commentMarker(options.repo, options.prNumber);
@@ -348,6 +472,26 @@ function generateMarkdownSummary(summary, options) {
   const failThreshold = summary.thresholds.failThreshold;
   const baseSha = /\(([0-9a-f]{40,64})\)/i.exec(summary.mainLabel)?.[1] || '<base-ref>';
   const browserOnlyFlag = summary.prLabel.includes('[browser-only;') ? ' --browser-only' : '';
+  const isolatedFullStack =
+    summary.mainLabel.includes('[isolated full stack]') ||
+    summary.prLabel.includes('[isolated full stack]');
+  const isolatedBaseRef =
+    /^base:\s+([^\s(]+)/.exec(summary.mainLabel)?.[1] || '<exact-release-ref>';
+  const capturedViewports = replayViewports(summary);
+  const replayViewportFlag = capturedViewports
+    ? ` --viewports ${capturedViewports}`
+    : ' --viewports CAPTURED_WIDTHxHEIGHT';
+  const replayThresholdFlags = ` --diff-threshold ${summary.thresholds.diffThreshold} --fail-threshold ${summary.thresholds.failThreshold}`;
+  const operatorPolicy = summary.scenarioConfig?.operatorPolicy;
+  const replayPolicyFlag = operatorPolicy?.applied
+    ? ' --scenario-policy /path/to/reviewed/scenario-policy.json'
+    : '';
+  const boundConfigAttestation = summary.scenarioConfig?.sha256
+    ? `\n- **Bound Scenario Config SHA-256:** \`${summary.scenarioConfig.sha256}\``
+    : '';
+  const operatorPolicyAttestation = operatorPolicy?.applied
+    ? `\n- **Reviewed Scenario Policy SHA-256:** \`${operatorPolicy.sha256}\``
+    : '';
   let markdown = `${marker}
 ## 🔍 UI Smoke Test Results
 
@@ -367,10 +511,11 @@ function generateMarkdownSummary(summary, options) {
 - **Skipped:** ${summary.stats.skipped}
 - **Pages with Visual Changes:** ${summary.stats.pagesWithDiff}
 - **Pages Above Failure Threshold:** ${summary.stats.pagesExceedingFailThreshold}
-- **Diff Marker Threshold:** ${formatThreshold(diffThreshold)}
-- **Failure Threshold:** ${formatThreshold(failThreshold)}
+- **Default Diff Marker Threshold:** ${formatThreshold(diffThreshold)}
+- **Default Failure Threshold:** ${formatThreshold(failThreshold)}
 - **Looks-same Color Tolerance (ΔE):** ${summary.analysis.looksSameTolerance}
 - **Looks-same Cluster Size:** ${summary.analysis.looksSameClusterSize}px
+- **Captured Viewports:** ${capturedViewports || 'not recorded'}${boundConfigAttestation}${operatorPolicyAttestation}
 `;
 
   if (summary.fatalErrors.length > 0) {
@@ -385,44 +530,71 @@ ${summary.fatalErrors.map((error) => `- ${escapeTableCell(error)}`).join('\n')}
   markdown += `
 ### Page Results
 
-| Page | Status | Diff % | Notes |
-|------|--------|--------|-------|
+| Scenario | Capture validity | Status | Diff % | Thresholds | Revision routes | Notes |
+|----------|------------------|--------|--------|------------|-----------------|-------|
 `;
 
   for (const result of summary.results) {
     const diffIsFinite = Number.isFinite(result.diffPercent);
     const diff = diffIsFinite ? `${result.diffPercent.toFixed(2)}%` : 'N/A';
+    const resultThresholds = result.scenarioThresholds || {
+      diffThreshold,
+      failThreshold,
+      looksSameTolerance: summary.analysis.looksSameTolerance,
+      source: 'global-defaults',
+    };
     const notes = [];
     if (result.mainExists === false) notes.push('No base screenshot');
     if (result.prExists === false) notes.push('No PR screenshot');
 
     const hasVisualDiff =
-      result.hasVisualDiff === true || (diffIsFinite && result.diffPercent > diffThreshold);
-    if (hasVisualDiff) notes.push(`Visual change above ${diffThreshold}% marker threshold`);
+      result.hasVisualDiff === true ||
+      (diffIsFinite && result.diffPercent > resultThresholds.diffThreshold);
+    if (hasVisualDiff)
+      notes.push(`Visual change above ${resultThresholds.diffThreshold}% marker threshold`);
 
     const exceedsFailThreshold =
       result.exceedsFailThreshold === true ||
-      (failThreshold !== null && diffIsFinite && result.diffPercent > failThreshold);
-    if (exceedsFailThreshold) notes.push(`Above ${failThreshold}% failure threshold`);
+      (resultThresholds.failThreshold !== null &&
+        diffIsFinite &&
+        result.diffPercent > resultThresholds.failThreshold);
+    if (exceedsFailThreshold)
+      notes.push(`Above ${resultThresholds.failThreshold}% failure threshold`);
     if (result.status === 'failed') notes.push(result.error || 'Comparison failed');
     if (result.status === 'skipped')
       notes.push(result.reason || result.error || 'Comparison skipped');
+    if (result.expectedChange) {
+      notes.push(
+        `Expected change: ${typeof result.expectedChange === 'string' ? result.expectedChange : JSON.stringify(result.expectedChange)}`,
+      );
+    }
 
     const status = result.status === 'success' ? '✅' : result.status === 'skipped' ? '⏭️' : '❌';
-    markdown += `| ${escapeTableCell(result.page)} | ${status} | ${diff} | ${escapeTableCell(notes.join(', ') || '-')} |\n`;
+    const formatRoute = (route) => `${route?.requested || 'N/A'} → ${route?.resolved || 'N/A'}`;
+    const routes = `base ${formatRoute(result.routes?.base)}; head ${formatRoute(result.routes?.head)}`;
+    const thresholds = `diff ${formatThreshold(resultThresholds.diffThreshold)}; fail ${formatThreshold(resultThresholds.failThreshold)}; ΔE ${resultThresholds.looksSameTolerance}`;
+    markdown += `| ${escapeTableCell(result.semanticScenario || result.page)} | ${escapeTableCell(result.captureValidity || (result.status === 'success' ? 'valid' : 'unknown'))} | ${status} | ${diff} | ${escapeTableCell(thresholds)} | ${escapeTableCell(routes)} | ${escapeTableCell(notes.join(', ') || '-')} |\n`;
   }
 
+  const rerunCommand = isolatedFullStack
+    ? `node smoke-test-runner.js --compare ${isolatedBaseRef} --full-stack --head-checkout /path/to/reviewed/head --trust-local-head --pr-number ${options.prNumber}${replayViewportFlag}${replayThresholdFlags}${replayPolicyFlag}`
+    : `node smoke-test-runner.js --compare ${baseSha} --pr ${options.prNumber} --repo ${options.repo} --trust-pr-code${browserOnlyFlag}${replayViewportFlag}${replayThresholdFlags}${replayPolicyFlag}`;
   markdown += `
 This comment contains the comparison summary only; images are not attached by this tool.
 
 ---
 <details>
-<summary>How to run locally</summary>
+<summary>Local replay starter (restore reviewed inputs first)</summary>
+
+The command preserves the recorded global thresholds and viewports. Replace any checkout${
+    operatorPolicy?.applied ? ' and scenario-policy' : ''
+  } placeholders with the reviewed inputs from this run. The generated bound scenario config
+is capture-pair-specific; verify it against the SHA-256 attestation above.
 
 \`\`\`bash
 cd frontend/scripts/ui-smoke-test
 npm ci
-node smoke-test-runner.js --compare ${baseSha} --pr ${options.prNumber} --repo ${options.repo} --trust-pr-code${browserOnlyFlag}
+${rerunCommand}
 \`\`\`
 
 </details>

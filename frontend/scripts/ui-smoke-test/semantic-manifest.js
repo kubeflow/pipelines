@@ -1,8 +1,13 @@
 'use strict';
 
 const SEMANTIC_SCHEMA_VERSION = 'ui-smoke-semantic/v2';
-const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v2';
+const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v3';
 const DEFAULT_RUN_PROFILE = 'metrics';
+const COMPARISON_RUN_FIXTURES = Object.freeze([
+  'run.training-1',
+  'run.training-2',
+  'run.evaluation',
+]);
 const REVISION_FLAVORS = Object.freeze({
   LEGACY: 'legacy-mlmd',
   NATIVE: 'native-task-artifact',
@@ -41,6 +46,18 @@ const TASK_FIXTURES = Object.freeze({
 });
 
 const ARTIFACT_FIXTURES = Object.freeze({
+  'artifact.html-report': Object.freeze({
+    contentMarker: 'UI Smoke HTML Report',
+    kind: 'html',
+    portKey: 'html_report',
+    producerTask: 'task.write-metrics',
+  }),
+  'artifact.markdown-report': Object.freeze({
+    contentMarker: 'UI Smoke Markdown Report',
+    kind: 'markdown',
+    portKey: 'markdown_report',
+    producerTask: 'task.write-metrics',
+  }),
   'artifact.scalar-metrics': Object.freeze({
     kind: 'metrics',
     members: Object.freeze({
@@ -68,11 +85,21 @@ const ARTIFACT_FIXTURES = Object.freeze({
 
 const RUN_PROFILES = Object.freeze({
   metrics: Object.freeze({
-    artifacts: Object.freeze(['artifact.roc-curve', 'artifact.scalar-metrics']),
+    artifacts: Object.freeze([
+      'artifact.html-report',
+      'artifact.markdown-report',
+      'artifact.roc-curve',
+      'artifact.scalar-metrics',
+    ]),
     tasks: Object.freeze({ 'task.write-metrics': 1 }),
   }),
   'rich-topology': Object.freeze({
-    artifacts: Object.freeze(['artifact.roc-curve', 'artifact.scalar-metrics']),
+    artifacts: Object.freeze([
+      'artifact.html-report',
+      'artifact.markdown-report',
+      'artifact.roc-curve',
+      'artifact.scalar-metrics',
+    ]),
     loop: Object.freeze({
       iterationIndexes: Object.freeze([0, 1]),
       iterations: 2,
@@ -300,6 +327,18 @@ function nativeArtifactId(artifact) {
   return stringValue(field(artifact, 'artifact_id', 'artifactId', 'id'));
 }
 
+function artifactFileBinding(artifact) {
+  const metadata = artifactMetadata(artifact);
+  return {
+    artifactId: nativeArtifactId(artifact),
+    name:
+      stringValue(field(artifact, 'name')) ||
+      stringValue(field(metadata, 'display_name', 'displayName')),
+    type: stringValue(field(artifact, 'type')),
+    uri: stringValue(field(artifact, 'uri')),
+  };
+}
+
 function artifactMetadata(artifact) {
   const metadata = field(artifact, 'metadata', 'custom_properties', 'customProperties');
   return metadata && typeof metadata === 'object' ? metadata : {};
@@ -376,6 +415,12 @@ function buildArtifactBinding(tasks, flavor, definition, hydratedArtifacts = [])
       portKey: definition.portKey,
       storage: REVISION_FLAVORS.LEGACY,
     };
+    const artifacts = artifactsByIds(hydratedArtifacts, artifactIds);
+    if (definition.kind === 'html' || definition.kind === 'markdown') {
+      binding.files = artifacts
+        .map(artifactFileBinding)
+        .sort((left, right) => String(left.artifactId).localeCompare(String(right.artifactId)));
+    }
     if (definition.consumerTask) {
       binding.consumers = {
         [definition.consumerTask]: {
@@ -388,7 +433,6 @@ function buildArtifactBinding(tasks, flavor, definition, hydratedArtifacts = [])
         },
       };
     }
-    const artifacts = artifactsByIds(hydratedArtifacts, artifactIds);
     if (definition.kind === 'metrics') binding.members = buildMetricMembers(artifacts);
     if (definition.kind === 'classification-metrics') binding.points = buildRocPoints(artifacts);
     return binding;
@@ -402,6 +446,11 @@ function buildArtifactBinding(tasks, flavor, definition, hydratedArtifacts = [])
       portKey: definition.portKey,
       storage: REVISION_FLAVORS.NATIVE,
     };
+    if (definition.kind === 'html' || definition.kind === 'markdown') {
+      binding.files = artifacts
+        .map(artifactFileBinding)
+        .sort((left, right) => String(left.artifactId).localeCompare(String(right.artifactId)));
+    }
     if (definition.consumerTask) {
       binding.consumers = {
         [definition.consumerTask]: {
@@ -594,6 +643,14 @@ function nativeTaskTypeMatches(actual, expectedKind) {
   return !expected || expected.has(String(actual || '').toUpperCase());
 }
 
+function nativeArtifactTypeMatches(actual, expectedKind) {
+  const expected = {
+    html: new Set(['4', 'HTML', 'SYSTEM.HTML']),
+    markdown: new Set(['5', 'MARKDOWN', 'SYSTEM.MARKDOWN']),
+  }[expectedKind];
+  return !expected || expected.has(String(actual || '').toUpperCase());
+}
+
 function validateRunBinding(runKey, binding, profile, errors) {
   if (!profile) {
     errors.push(`${runKey}: unknown fixture profile ${binding.fixtureProfile}`);
@@ -611,6 +668,9 @@ function validateRunBinding(runKey, binding, profile, errors) {
     if (binding.revisionFlavor === REVISION_FLAVORS.NATIVE) {
       const expectedKind = TASK_FIXTURES[taskKey]?.kind;
       for (const instance of instances) {
+        if (!instance.taskId) {
+          errors.push(`${runKey}: ${taskKey} is missing a native task ID`);
+        }
         if (!nativeTaskTypeMatches(instance.type, expectedKind)) {
           errors.push(`${runKey}: ${taskKey} has native type ${instance.type || 'unknown'}`);
         }
@@ -619,8 +679,39 @@ function validateRunBinding(runKey, binding, profile, errors) {
   }
 
   for (const artifactKey of profile.artifacts || []) {
-    if (!binding.artifacts[artifactKey]?.artifactIds?.length) {
+    const artifactBinding = binding.artifacts[artifactKey];
+    if (!artifactBinding?.artifactIds?.length) {
       errors.push(`${runKey}: missing ${artifactKey}`);
+      continue;
+    }
+    const definition = ARTIFACT_FIXTURES[artifactKey];
+    if (definition?.kind === 'html' || definition?.kind === 'markdown') {
+      const sourceLabel =
+        binding.revisionFlavor === REVISION_FLAVORS.NATIVE ? 'native' : 'legacy MLMD';
+      const files = artifactBinding.files || [];
+      if (files.length !== artifactBinding.artifactIds.length) {
+        errors.push(
+          `${runKey}: ${artifactKey} resolved ${artifactBinding.artifactIds.length} ID(s) but ${files.length} ${sourceLabel} file record(s)`,
+        );
+      }
+      for (const file of files) {
+        if (!file.artifactId) {
+          errors.push(`${runKey}: ${artifactKey} is missing a ${sourceLabel} artifact ID`);
+        }
+        if (normalizedName(file.name) !== normalizedName(definition.portKey)) {
+          errors.push(
+            `${runKey}: ${artifactKey} has ${sourceLabel} name ${file.name || 'unknown'}, expected ${definition.portKey}`,
+          );
+        }
+        if (!nativeArtifactTypeMatches(file.type, definition.kind)) {
+          errors.push(
+            `${runKey}: ${artifactKey} has ${sourceLabel} type ${file.type || 'unknown'}, expected ${definition.kind}`,
+          );
+        }
+        if (!file.uri) {
+          errors.push(`${runKey}: ${artifactKey} is missing a ${sourceLabel} artifact URI`);
+        }
+      }
     }
   }
 
@@ -806,6 +897,7 @@ function combineSemanticManifests(manifestsOrBase, optionalHeadOrOptions, option
 
 module.exports = {
   ARTIFACT_FIXTURES,
+  COMPARISON_RUN_FIXTURES,
   DEFAULT_RUN_PROFILE,
   REVISION_FLAVORS,
   RUN_PROFILES,

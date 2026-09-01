@@ -11,6 +11,11 @@
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const {
+  SCENARIO_CONTRACT_SCHEMA_VERSION,
+  resolveSemanticScenarios,
+} = require('./semantic-capture-scenarios.js');
+const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest.js');
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DEFAULT_SEED_MANIFEST = path.join(REPO_ROOT, '.ui-smoke-test', 'seed-manifest.json');
@@ -19,7 +24,35 @@ const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
 const CAPTURE_OWNER_FILENAME = '.ui-smoke-capture-managed.json';
 const CAPTURE_OWNER_SCHEMA_VERSION = 1;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
+const CAPTURE_VALIDITIES = new Set([
+  'valid',
+  'ui_rendering_failure',
+  'api_incompatibility',
+  'seed_failure',
+  'missing_fixture',
+  'selector_drift',
+  'expected_product_removal',
+  'infrastructure_failure',
+]);
 const DETERMINISTIC_STYLE_ID = 'ui-smoke-test-deterministic-rendering';
+const DETERMINISTIC_FONT_FAMILY = 'UI Smoke Roboto';
+const DETERMINISTIC_FONT_PACKAGE = '@fontsource/roboto@5.3.0';
+const DETERMINISTIC_FONT_ASSETS = Object.freeze(
+  [400, 500, 700].map((weight) => {
+    const filename = `roboto-latin-${weight}-normal.woff2`;
+    const bytes = fs.readFileSync(require.resolve(`@fontsource/roboto/files/${filename}`));
+    return Object.freeze({
+      dataUrl: `data:font/woff2;base64,${bytes.toString('base64')}`,
+      filename,
+      sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
+      weight,
+    });
+  }),
+);
+const DETERMINISTIC_TIME_ISO = '2030-01-02T03:04:05.000Z';
+const DETERMINISTIC_TIME_MS = Date.parse(DETERMINISTIC_TIME_ISO);
+const DIAGNOSTIC_LIMIT = 20;
+const DIAGNOSTIC_TEXT_LIMIT = 500;
 const CAPTURE_ARGUMENT_NAMES = new Set([
   'base-url',
   'label',
@@ -31,6 +64,20 @@ const CAPTURE_ARGUMENT_NAMES = new Set([
   'source-provenance',
 ]);
 const DETERMINISTIC_CSS = `
+  ${DETERMINISTIC_FONT_ASSETS.map(
+    (asset) => `
+      @font-face {
+        font-family: "${DETERMINISTIC_FONT_FAMILY}";
+        font-style: normal;
+        font-weight: ${asset.weight};
+        font-display: block;
+        src: url("${asset.dataUrl}") format("woff2");
+      }
+    `,
+  ).join('\n')}
+  :root {
+    color-scheme: light !important;
+  }
   *, *::before, *::after {
     animation-delay: 0s !important;
     animation-duration: 0s !important;
@@ -39,6 +86,14 @@ const DETERMINISTIC_CSS = `
     scroll-behavior: auto !important;
     transition-delay: 0s !important;
     transition-duration: 0s !important;
+  }
+  :where(
+    html, body, button, input, select, textarea, div, p, a, dt, dd, h1, h2, h3, h4, h5, h6,
+    label, li, table, text, span:not(.material-icons):not(.material-icons-outlined)
+  ) {
+    font-family: "${DETERMINISTIC_FONT_FAMILY}", sans-serif !important;
+    font-synthesis: none !important;
+    font-variant-ligatures: none !important;
   }
 `;
 
@@ -211,8 +266,14 @@ function attestJsonInput(filePath, description) {
   };
 }
 
-function loadSeedValues(manifestPath) {
+function loadSeedValues(manifestPath, options = {}) {
+  const required = options.required === true;
   if (!manifestPath || !fs.existsSync(manifestPath)) {
+    if (required) {
+      throw new Error(
+        `Seed manifest is required and was not found: ${manifestPath || '(missing path)'}`,
+      );
+    }
     return null;
   }
 
@@ -221,15 +282,60 @@ function loadSeedValues(manifestPath) {
     const defaults = manifest.defaults || {};
     const resources = manifest.resources || {};
     const runIds = Array.isArray(resources.runIds) ? resources.runIds : [];
+    const semanticBindings = manifest.semantic?.bindings || {};
+    const semanticResources = semanticBindings.resources || {};
+    const semanticRuns = semanticBindings.runs || {};
+    const richRun = semanticRuns['run.training-1'] || {};
+    const taskId = (semanticKey) => richRun.taskInstances?.[semanticKey]?.[0]?.taskId || null;
+    const artifactId = (semanticKey) => richRun.artifacts?.[semanticKey]?.artifactIds?.[0] || null;
+    const artifactMemberId = (semanticKey, memberKey) =>
+      richRun.artifacts?.[semanticKey]?.members?.[memberKey]?.artifactIds?.[0] || null;
+    const semanticComparisonRunIds = COMPARISON_RUN_FIXTURES.map(
+      (semanticKey) => semanticResources[semanticKey]?.id,
+    ).filter(Boolean);
+    const semanticCompareRunlist =
+      semanticComparisonRunIds.length === COMPARISON_RUN_FIXTURES.length
+        ? semanticComparisonRunIds.join(',')
+        : null;
 
     return {
-      compareRunlist: defaults.compareRunlist || runIds.slice(0, 3).join(','),
+      artifactId:
+        defaults.artifactId ||
+        artifactId('artifact.html-report') ||
+        artifactId('artifact.scalar-metrics'),
+      compareRunlist:
+        semanticCompareRunlist || defaults.compareRunlist || runIds.slice(0, 3).join(','),
+      consumeMetricsTaskId: taskId('task.consume-metrics'),
+      executionId:
+        defaults.executionId ||
+        richRun.taskInstances?.['task.write-metrics']?.[0]?.mlmdExecutionId ||
+        null,
       experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
+      htmlArtifactId: artifactId('artifact.html-report'),
+      historicalArtifactId: defaults.historicalArtifactId || null,
+      markdownArtifactId: artifactId('artifact.markdown-report'),
+      nestedDagTaskId: taskId('task.nested-dag'),
+      parallelTaskId: taskId('task.parallel-loop'),
       pipelineId: defaults.pipelineId || (resources.pipelineIds || [])[0],
       recurringRunId: defaults.recurringRunId || (resources.recurringRunIds || [])[0],
+      relatedArtifactId:
+        artifactMemberId('artifact.scalar-metrics', 'metric.accuracy') ||
+        artifactId('artifact.scalar-metrics'),
       runId: defaults.runId || runIds[0],
+      richRunId:
+        semanticResources['run.training-1']?.id || richRun.runId || defaults.runId || runIds[0],
+      retryTaskId: taskId('task.retry-once'),
+      rocArtifactId: artifactId('artifact.roc-curve'),
+      scalarArtifactId: artifactId('artifact.scalar-metrics'),
+      taskId: defaults.taskId || taskId('task.write-metrics'),
+      writeMetricsTaskId: taskId('task.write-metrics'),
     };
   } catch (error) {
+    if (required) {
+      throw new Error(`Failed to load seed manifest ${manifestPath}: ${error.message}`, {
+        cause: error,
+      });
+    }
     console.log(`Warning: failed to parse seed manifest ${manifestPath}: ${error.message}`);
     return null;
   }
@@ -254,9 +360,10 @@ function resolvePathTemplate(routePath, seedValues) {
 }
 
 class SkipCaptureError extends Error {
-  constructor(message) {
+  constructor(message, captureValidity = 'missing_fixture') {
     super(message);
     this.name = 'SkipCaptureError';
+    this.captureValidity = captureValidity;
   }
 }
 
@@ -268,11 +375,14 @@ async function executeActions(page, actions) {
   for (const action of actions) {
     const timeout = action.timeoutMs || 10000;
     const descriptor = action.selector ? `${action.type}(${action.selector})` : action.type;
+    const locator = action.selector ? page.locator(action.selector) : null;
+    const target =
+      locator && Number.isSafeInteger(action.index) ? locator.nth(action.index) : locator?.first();
 
     try {
       switch (action.type) {
         case 'click':
-          await page.locator(action.selector).first().click({ timeout });
+          await target.click({ timeout });
           break;
         case 'dispatchClick':
           await page
@@ -289,21 +399,62 @@ async function executeActions(page, actions) {
           }
           await page.waitForFunction(action.predicate, undefined, { timeout });
           break;
+        case 'waitForText':
+          await page
+            .getByText(action.text, { exact: false })
+            .nth(Math.max(0, (action.minCount || 1) - 1))
+            .waitFor({ timeout });
+          break;
+        case 'waitForFrameText':
+          {
+            const deadline = Date.now() + timeout;
+            let foundCount = 0;
+            const minCount = action.minCount || 1;
+            do {
+              foundCount = 0;
+              for (const frame of page.frames()) {
+                foundCount += await frame.getByText(action.text, { exact: false }).count();
+              }
+              if (foundCount < minCount) await page.waitForTimeout(100);
+            } while (foundCount < minCount && Date.now() < deadline);
+            if (foundCount < minCount) {
+              throw new Error(
+                `expected ${minCount} occurrence(s) in frames, found ${foundCount}: ${action.text}`,
+              );
+            }
+          }
+          break;
+        case 'assertAbsent': {
+          const count = await page.locator(action.selector).count();
+          if (count !== 0) {
+            throw new Error(`expected selector to be absent, found ${count} match(es)`);
+          }
+          break;
+        }
         case 'skipIf': {
           if (typeof action.predicate !== 'function') {
             throw new Error('skipIf requires a predicate function');
           }
           const shouldSkip = await page.evaluate(action.predicate);
           if (shouldSkip) {
-            throw new SkipCaptureError(action.reason || `Skip condition met: ${descriptor}`);
+            throw new SkipCaptureError(
+              action.reason || `Skip condition met: ${descriptor}`,
+              action.captureValidity,
+            );
           }
           break;
         }
         case 'scrollIntoView':
           await page.locator(action.selector).first().scrollIntoViewIfNeeded({ timeout });
           break;
+        case 'hover':
+          await target.hover({ timeout });
+          break;
         case 'moveMouse':
           await page.mouse.move(action.x || 0, action.y || 0);
+          break;
+        case 'press':
+          await page.keyboard.press(action.key);
           break;
         case 'waitForTimeout':
           await page.waitForTimeout(action.ms || 500);
@@ -319,7 +470,9 @@ async function executeActions(page, actions) {
         console.log(`  Warning: optional action failed: ${descriptor}: ${error.message}`);
         continue;
       }
-      throw new Error(`Action failed: ${descriptor}: ${error.message}`);
+      const actionError = new Error(`Action failed: ${descriptor}: ${error.message}`);
+      if (action.failureValidity) actionError.captureValidity = action.failureValidity;
+      throw actionError;
     }
   }
 }
@@ -552,6 +705,7 @@ const PAGES = [
       { type: 'waitForSelector', selector: '#pipelineSelectorDialog' },
       {
         type: 'skipIf',
+        captureValidity: 'expected_product_removal',
         predicate: () => !document.body.innerText.includes('Upload pipeline'),
         reason: 'Current new-run selector does not expose an upload option from this dialog.',
       },
@@ -637,6 +791,45 @@ const PAGES = [
   },
   { name: 'experiment-create', path: '/#/experiments/new', waitFor: 'input' },
 ];
+
+const SEMANTICALLY_REPLACED_PAGE_NAMES = new Set([
+  'artifact-lineage-from-list',
+  'artifacts',
+  'compare-seeded',
+  'compare-seeded-roc',
+  'executions',
+  'run-details-seeded',
+  'run-details-seeded-sidepanel',
+]);
+const REVISION_AWARE_PAGE_ALIASES = Object.freeze({
+  'artifact-lineage-from-list': 'artifact-related-tasks',
+  artifacts: 'artifact-list-evolution',
+  'compare-seeded': 'compare-runs',
+  'compare-seeded-roc': 'compare-roc-selection',
+  executions: 'executions-to-runs',
+  'run-details-seeded': 'run-details-rich-graph',
+  'run-details-seeded-sidepanel': 'run-details-task-panel',
+});
+
+function buildRevisionAwarePages(revisionRole, seedValues, legacyPages = PAGES) {
+  const semanticPages = resolveSemanticScenarios(revisionRole, seedValues);
+  const retainedPages = legacyPages.filter(
+    (page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name),
+  );
+  const names = new Set(semanticPages.map((page) => page.name));
+  for (const page of retainedPages) {
+    if (names.has(page.name)) {
+      throw new Error(`Duplicate capture page name after scenario merge: ${page.name}`);
+    }
+    names.add(page.name);
+  }
+  return [...semanticPages, ...retainedPages];
+}
+
+function revisionAwarePageNames(pageNames) {
+  if (!pageNames) return pageNames;
+  return pageNames.map((name) => REVISION_AWARE_PAGE_ALIASES[name] || name);
+}
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -754,9 +947,28 @@ function assertNavigationResponse(response, url) {
 }
 
 async function installDeterministicRendering(page) {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
   await page.addInitScript(
-    ({ css, styleId }) => {
+    ({ css, fixedTimeMs, pollingDelayMs, styleId }) => {
+      const NativeDate = Date;
+      function FrozenDate(...args) {
+        if (new.target) {
+          return new NativeDate(...(args.length > 0 ? args : [fixedTimeMs]));
+        }
+        return new NativeDate(fixedTimeMs).toString();
+      }
+      FrozenDate.prototype = NativeDate.prototype;
+      Object.setPrototypeOf(FrozenDate, NativeDate);
+      FrozenDate.now = () => fixedTimeMs;
+      FrozenDate.parse = NativeDate.parse;
+      FrozenDate.UTC = NativeDate.UTC;
+      globalThis.Date = FrozenDate;
+
+      const nativeSetTimeout = globalThis.setTimeout.bind(globalThis);
+      globalThis.setInterval = () => 0;
+      globalThis.setTimeout = (callback, delay = 0, ...args) =>
+        Number(delay) >= pollingDelayMs ? 0 : nativeSetTimeout(callback, delay, ...args);
+
       if (document.getElementById(styleId)) {
         return;
       }
@@ -775,7 +987,12 @@ async function installDeterministicRendering(page) {
         document.addEventListener('DOMContentLoaded', install, { once: true });
       }
     },
-    { css: DETERMINISTIC_CSS, styleId: DETERMINISTIC_STYLE_ID },
+    {
+      css: DETERMINISTIC_CSS,
+      fixedTimeMs: DETERMINISTIC_TIME_MS,
+      pollingDelayMs: 5000,
+      styleId: DETERMINISTIC_STYLE_ID,
+    },
   );
 }
 
@@ -799,6 +1016,64 @@ async function waitForFonts(page) {
       await document.fonts.ready;
     }
   });
+}
+
+async function assertDeterministicFont(page) {
+  const status = await page.evaluate((fontFamily) => {
+    const available = document.fonts.check(`16px "${fontFamily}"`);
+    return {
+      available,
+      computedBodyFont: getComputedStyle(document.body).fontFamily,
+      reason: available ? null : `${fontFamily} did not load from the pinned capture asset`,
+    };
+  }, DETERMINISTIC_FONT_FAMILY);
+  if (status && !status.available) {
+    const error = new Error(`Deterministic capture font check failed: ${status.reason}`);
+    error.captureValidity = 'infrastructure_failure';
+    throw error;
+  }
+  return status || null;
+}
+
+async function stabilizeChildFrames(page) {
+  if (typeof page.frames !== 'function') return [];
+  const mainFrame = typeof page.mainFrame === 'function' ? page.mainFrame() : null;
+  const statuses = [];
+  for (const frame of page.frames()) {
+    if (frame === mainFrame || typeof frame.addStyleTag !== 'function') continue;
+    await frame.addStyleTag({ content: DETERMINISTIC_CSS });
+    await waitForFonts(frame);
+    statuses.push(await assertDeterministicFont(frame));
+    await normalizeDynamicText(frame);
+  }
+  return statuses;
+}
+
+async function normalizeDynamicText(page) {
+  await page.evaluate(
+    ({ fixedDate, fixedDateTime, fixedDuration }) => {
+      const dateTimePatterns = [
+        /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g,
+        /\b\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} [AP]M\b/g,
+      ];
+      const durationPattern = /(?<![\d:])-?\d+:\d{2}:\d{2}(?![\d:])/g;
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        const parentName = node.parentElement?.tagName;
+        if (parentName === 'SCRIPT' || parentName === 'STYLE') continue;
+        let value = node.nodeValue || '';
+        value = value.replace(dateTimePatterns[0], fixedDateTime);
+        value = value.replace(dateTimePatterns[1], fixedDate);
+        value = value.replace(durationPattern, fixedDuration);
+        node.nodeValue = value;
+      }
+    },
+    {
+      fixedDate: '1/2/2030, 3:04:05 AM',
+      fixedDateTime: DETERMINISTIC_TIME_ISO,
+      fixedDuration: '00:00:42',
+    },
+  );
 }
 
 function summarizeCaptureResults(results, fatalErrors = []) {
@@ -872,11 +1147,207 @@ async function installNetworkIsolation(context, baseUrl) {
   }
 }
 
+function sanitizeDiagnosticText(value) {
+  return String(value || '')
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/:\/\/([^\s/:@]+):([^\s/@]+)@/g, '://<redacted>:<redacted>@')
+    .replace(/\bBearer\s+\S+/gi, 'Bearer <redacted>')
+    .replace(/([?&][a-zA-Z0-9_.-]+)=([^&\s]+)/g, '$1=<redacted>')
+    .replace(
+      /(["']?(?:access_token|api[_-]?key|auth|authorization|cookie|credential|password|secret|set-cookie|token|x-api-key)["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;}]+)/gi,
+      '$1<redacted>',
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, DIAGNOSTIC_TEXT_LIMIT);
+}
+
+function sanitizeDiagnosticUrl(value, baseUrl) {
+  try {
+    const url = new URL(value, baseUrl);
+    const base = new URL(baseUrl);
+    const queryKeys = [...new Set(url.searchParams.keys())].sort();
+    const query =
+      queryKeys.length > 0 ? `?${queryKeys.map((key) => `${key}=<redacted>`).join('&')}` : '';
+    let hash = url.hash;
+    if (hash.startsWith('#/')) {
+      const hashUrl = new URL(hash.slice(1), base.origin);
+      const hashQueryKeys = [...new Set(hashUrl.searchParams.keys())].sort();
+      const hashQuery =
+        hashQueryKeys.length > 0
+          ? `?${hashQueryKeys.map((key) => `${key}=<redacted>`).join('&')}`
+          : '';
+      hash = `#${hashUrl.pathname}${hashQuery}`;
+    }
+    const prefix = url.origin === base.origin ? '' : url.origin;
+    return sanitizeDiagnosticText(`${prefix}${url.pathname}${query}${hash}`);
+  } catch (_error) {
+    return '[invalid URL]';
+  }
+}
+
+function createPageDiagnostics(page, baseUrl, limit = DIAGNOSTIC_LIMIT) {
+  const consoleErrors = [];
+  const failedRequests = [];
+  const dropped = { consoleErrors: 0, failedRequests: 0 };
+  const append = (collection, key, record) => {
+    if (collection.length >= limit) {
+      dropped[key]++;
+      return;
+    }
+    collection.push(record);
+  };
+  const isSameOrigin = (urlValue) => {
+    try {
+      return new URL(urlValue, baseUrl).origin === new URL(baseUrl).origin;
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  if (typeof page.on === 'function') {
+    page.on('console', (message) => {
+      if (typeof message.type === 'function' && message.type() !== 'error') return;
+      const location = typeof message.location === 'function' ? message.location() || {} : {};
+      append(consoleErrors, 'consoleErrors', {
+        kind: 'console',
+        column: Number.isSafeInteger(location.columnNumber) ? location.columnNumber : null,
+        line: Number.isSafeInteger(location.lineNumber) ? location.lineNumber : null,
+        message: sanitizeDiagnosticText(
+          typeof message.text === 'function' ? message.text() : String(message),
+        ),
+        url: location.url ? sanitizeDiagnosticUrl(location.url, baseUrl) : null,
+      });
+    });
+    page.on('pageerror', (error) => {
+      append(consoleErrors, 'consoleErrors', {
+        kind: 'pageerror',
+        column: null,
+        line: null,
+        message: sanitizeDiagnosticText(error?.message || error),
+        url: null,
+      });
+    });
+    page.on('requestfailed', (request) => {
+      const requestUrl = request.url?.() || '';
+      append(failedRequests, 'failedRequests', {
+        error: sanitizeDiagnosticText(request.failure?.()?.errorText || 'request failed'),
+        method: sanitizeDiagnosticText(request.method?.() || 'GET'),
+        resourceType: sanitizeDiagnosticText(request.resourceType?.() || 'unknown'),
+        sameOrigin: isSameOrigin(requestUrl),
+        status: null,
+        url: sanitizeDiagnosticUrl(requestUrl, baseUrl),
+      });
+    });
+    page.on('response', (response) => {
+      const status = Number(response.status?.());
+      if (!Number.isFinite(status) || status < 400) return;
+      const request = response.request?.();
+      const responseUrl = response.url?.() || '';
+      append(failedRequests, 'failedRequests', {
+        error: sanitizeDiagnosticText(response.statusText?.() || `HTTP ${status}`),
+        method: sanitizeDiagnosticText(request?.method?.() || 'GET'),
+        resourceType: sanitizeDiagnosticText(request?.resourceType?.() || 'unknown'),
+        sameOrigin: isSameOrigin(responseUrl),
+        status,
+        url: sanitizeDiagnosticUrl(responseUrl, baseUrl),
+      });
+    });
+  }
+
+  return { consoleErrors, failedRequests, dropped };
+}
+
+function routeFromUrl(value) {
+  const parsed = new URL(value);
+  if (parsed.hash.startsWith('#/')) return parsed.hash.slice(1);
+  return `${parsed.pathname}${parsed.search}`;
+}
+
+function routeMatches(actualRoute, expectedRoute) {
+  const actual = new URL(actualRoute, 'http://ui-smoke.invalid');
+  const expected = new URL(expectedRoute, 'http://ui-smoke.invalid');
+  if (actual.pathname !== expected.pathname) return false;
+  for (const [key, value] of expected.searchParams) {
+    if (actual.searchParams.get(key) !== value) return false;
+  }
+  return true;
+}
+
+async function assertRouteExpectation(page, routeExpectation) {
+  if (!routeExpectation?.path) return null;
+  try {
+    await page.waitForFunction(
+      (expectedRoute) => {
+        const actualRoute = location.hash.startsWith('#/')
+          ? location.hash.slice(1)
+          : `${location.pathname}${location.search}`;
+        const actual = new URL(actualRoute, location.origin);
+        const expected = new URL(expectedRoute, location.origin);
+        if (actual.pathname !== expected.pathname) return false;
+        for (const [key, value] of expected.searchParams) {
+          if (actual.searchParams.get(key) !== value) return false;
+        }
+        return true;
+      },
+      routeExpectation.path,
+      { timeout: routeExpectation.timeoutMs || 10000 },
+    );
+  } catch (cause) {
+    const error = new Error(
+      `Route expectation failed: expected ${routeExpectation.path}: ${cause.message}`,
+    );
+    error.captureValidity = 'ui_rendering_failure';
+    throw error;
+  }
+  const resolvedRoute = typeof page.url === 'function' ? routeFromUrl(page.url()) : null;
+  if (resolvedRoute && !routeMatches(resolvedRoute, routeExpectation.path)) {
+    throw new Error(
+      `Route expectation failed: expected ${routeExpectation.path}, resolved ${resolvedRoute}`,
+    );
+  }
+  return resolvedRoute;
+}
+
+function classifyCaptureFailure(error, diagnostics) {
+  if (CAPTURE_VALIDITIES.has(error?.captureValidity)) return error.captureValidity;
+  const message = String(error?.message || error || '');
+  if (/missing fixture|missing seed key/i.test(message)) return 'missing_fixture';
+  if (/seed|provenance/i.test(message)) return 'seed_failure';
+  if (/Navigation .*HTTP|browser|context|page crashed/i.test(message)) {
+    return 'infrastructure_failure';
+  }
+  if (
+    diagnostics?.failedRequests?.some(
+      (request) =>
+        request.sameOrigin &&
+        (['fetch', 'xhr', 'websocket'].includes(request.resourceType) ||
+          /(?:^|\/)apis?\/|(?:^|\/)ml_metadata\//.test(request.url)) &&
+        (request.status === null || request.status >= 400),
+    )
+  ) {
+    return 'api_incompatibility';
+  }
+  if (/selector|Action failed|waitFor|locator|text/i.test(message)) return 'selector_drift';
+  return 'ui_rendering_failure';
+}
+
 async function captureScreenshots(options, dependencies = {}) {
   const chromium = dependencies.chromium || require('playwright').chromium;
-  const pages = options.pages || PAGES;
-  const { pages: filteredPages, unknownPageNames } = selectPages(options.pageNames, pages);
-  const seedValues = loadSeedValues(options.seedManifestPath);
+  const revisionAware = options.revisionRole === 'base' || options.revisionRole === 'head';
+  let seedLoadError = null;
+  let seedValues = null;
+  try {
+    seedValues = loadSeedValues(options.seedManifestPath, { required: revisionAware });
+  } catch (error) {
+    seedLoadError = error;
+  }
+  const pages =
+    options.pages ||
+    (revisionAware ? buildRevisionAwarePages(options.revisionRole, seedValues || {}) : PAGES);
+  const selectedPageNames =
+    options.pages || !revisionAware ? options.pageNames : revisionAwarePageNames(options.pageNames);
+  const { pages: filteredPages, unknownPageNames } = selectPages(selectedPageNames, pages);
   const startedAt = new Date().toISOString();
   const captureId = crypto.randomUUID();
   const fatalErrors = [];
@@ -889,9 +1360,14 @@ async function captureScreenshots(options, dependencies = {}) {
     sourceProvenance: null,
   };
   let browser;
+  let browserVersion = null;
+
+  if (seedLoadError) {
+    fatalErrors.push(`Seed manifest is invalid: ${seedLoadError.message}`);
+  }
 
   try {
-    if (seedValues) {
+    if (seedValues && !seedLoadError) {
       inputs.seedManifest = attestJsonInput(options.seedManifestPath, 'Seed manifest');
     }
     inputs.semanticManifest = attestJsonInput(
@@ -912,7 +1388,9 @@ async function captureScreenshots(options, dependencies = {}) {
   console.log(
     seedValues
       ? `Seed manifest: ${options.seedManifestPath}`
-      : 'Seed manifest: not found (seeded routes will be skipped)',
+      : revisionAware
+        ? `Seed manifest: invalid (${seedLoadError?.message || 'required input unavailable'})`
+        : 'Seed manifest: not found (seeded routes will be skipped)',
   );
   console.log(`Pages to capture: ${filteredPages.map((page) => page.name).join(', ') || '(none)'}`);
 
@@ -932,15 +1410,19 @@ async function captureScreenshots(options, dependencies = {}) {
     if (!CAPTURE_STATUSES.has(result.status)) {
       throw new Error(`Invalid capture status: ${result.status}`);
     }
+    if (!CAPTURE_VALIDITIES.has(result.captureValidity)) {
+      throw new Error(`Invalid capture validity: ${result.captureValidity}`);
+    }
     completedFilenames.add(result.filename);
     results.push(result);
   };
 
   try {
-    if (filteredPages.length > 0) {
+    if (filteredPages.length > 0 && fatalErrors.length === 0) {
       browser = await chromium.launch({
         headless: true,
       });
+      browserVersion = typeof browser.version === 'function' ? browser.version() : null;
     }
 
     for (const viewport of options.viewports) {
@@ -951,9 +1433,13 @@ async function captureScreenshots(options, dependencies = {}) {
       try {
         context = await browser.newContext({
           viewport,
+          colorScheme: 'light',
           deviceScaleFactor: 2,
           ignoreHTTPSErrors: true,
+          locale: 'en-US',
+          reducedMotion: 'reduce',
           serviceWorkers: 'block',
+          timezoneId: 'UTC',
         });
         await installNetworkIsolation(context, options.baseUrl);
 
@@ -962,17 +1448,25 @@ async function captureScreenshots(options, dependencies = {}) {
           const filename = captureFilename(pageConfig.name, viewport);
           const filepath = path.join(options.outputDir, filename);
           const { resolvedPath, missing } = resolvePathTemplate(pageConfig.path, seedValues);
+          const missingFixtures = [...new Set([...(pageConfig.missingFixtures || []), ...missing])];
 
-          if (!resolvedPath) {
-            const reason = `missing seed key(s): ${missing.join(', ')}`;
+          if (!resolvedPath || missingFixtures.length > 0) {
+            const reason = `missing fixture key(s): ${missingFixtures.join(', ')}`;
             console.log(
               `Skipping ${pageConfig.name} (${viewport.width}x${viewport.height}): ${reason}`,
             );
             addResult({
+              captureValidity: 'missing_fixture',
+              expectedChange: pageConfig.expectedChange || null,
               filename,
               page: pageConfig.name,
               reason,
+              requestedRoute: pageConfig.path,
               required,
+              revisionRole: options.revisionRole || null,
+              routeExpectation: pageConfig.routeExpectation || null,
+              scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
+              semanticScenario: pageConfig.semanticScenario || pageConfig.name,
               status: 'skipped',
               viewport,
             });
@@ -985,11 +1479,15 @@ async function captureScreenshots(options, dependencies = {}) {
           );
 
           let page;
+          let diagnostics = { consoleErrors: [], failedRequests: [], dropped: {} };
+          let fontStatus = null;
+          let resolvedRoute = null;
           try {
             // Hash-only navigation on a reused page is a same-document navigation and returns no
             // HTTP response. A fresh page guarantees that every route performs a network request
             // whose status can be validated before capture.
             page = await context.newPage();
+            diagnostics = createPageDiagnostics(page, options.baseUrl);
             await installDeterministicRendering(page);
             const response = await page.goto(url, {
               waitUntil: 'networkidle',
@@ -997,6 +1495,7 @@ async function captureScreenshots(options, dependencies = {}) {
             });
             assertNavigationResponse(response, url);
             await ensureDeterministicRendering(page);
+            resolvedRoute = await assertRouteExpectation(page, pageConfig.routeExpectation);
 
             let selectorFailed = false;
             if (pageConfig.waitFor) {
@@ -1021,7 +1520,12 @@ async function captureScreenshots(options, dependencies = {}) {
             }
 
             await waitForFonts(page);
+            fontStatus = {
+              childFrames: await stabilizeChildFrames(page),
+              main: await assertDeterministicFont(page),
+            };
             await page.waitForTimeout(pageConfig.waitForTimeoutMs || 2000);
+            await normalizeDynamicText(page);
             await page.screenshot({
               animations: 'disabled',
               fullPage: false,
@@ -1029,6 +1533,11 @@ async function captureScreenshots(options, dependencies = {}) {
             });
 
             const status = selectorFailed ? 'degraded' : 'success';
+            const captureValidity = selectorFailed
+              ? classifyCaptureFailure(new Error('selector readiness failed'), diagnostics)
+              : pageConfig.routeExpectation?.kind === 'expected-removal'
+                ? 'expected_product_removal'
+                : 'valid';
             const statusIcon = selectorFailed ? '⚠' : '✓';
             const capturedAt = fs.statSync(filepath).mtime.toISOString();
             const sha256 = crypto
@@ -1037,11 +1546,23 @@ async function captureScreenshots(options, dependencies = {}) {
               .digest('hex');
             console.log(`  ${statusIcon} Saved: ${filename}${selectorFailed ? ' (degraded)' : ''}`);
             addResult({
+              captureValidity,
               capturedAt,
+              diagnostics,
+              expectedChange: pageConfig.expectedChange || null,
               filename,
+              font: fontStatus,
               page: pageConfig.name,
               path: filepath,
+              requestedRoute: resolvedPath,
               required,
+              resolvedRoute:
+                resolvedRoute ||
+                (typeof page.url === 'function' ? routeFromUrl(page.url()) : undefined),
+              revisionRole: options.revisionRole || null,
+              routeExpectation: pageConfig.routeExpectation || null,
+              scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
+              semanticScenario: pageConfig.semanticScenario || pageConfig.name,
               sha256,
               status,
               viewport,
@@ -1050,10 +1571,21 @@ async function captureScreenshots(options, dependencies = {}) {
             if (error instanceof SkipCaptureError) {
               console.log(`  ↷ Skipped: ${error.message}`);
               addResult({
+                captureValidity: error.captureValidity || 'missing_fixture',
+                diagnostics,
+                expectedChange: pageConfig.expectedChange || null,
                 filename,
                 page: pageConfig.name,
                 reason: error.message,
+                requestedRoute: resolvedPath,
                 required,
+                resolvedRoute:
+                  resolvedRoute ||
+                  (typeof page?.url === 'function' ? routeFromUrl(page.url()) : undefined),
+                revisionRole: options.revisionRole || null,
+                routeExpectation: pageConfig.routeExpectation || null,
+                scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
+                semanticScenario: pageConfig.semanticScenario || pageConfig.name,
                 status: 'skipped',
                 viewport,
               });
@@ -1061,10 +1593,21 @@ async function captureScreenshots(options, dependencies = {}) {
             }
             console.log(`  ✗ Failed: ${error.message}`);
             addResult({
+              captureValidity: classifyCaptureFailure(error, diagnostics),
+              diagnostics,
               error: error.message,
+              expectedChange: pageConfig.expectedChange || null,
               filename,
               page: pageConfig.name,
+              requestedRoute: resolvedPath,
               required,
+              resolvedRoute:
+                resolvedRoute ||
+                (typeof page?.url === 'function' ? routeFromUrl(page.url()) : undefined),
+              revisionRole: options.revisionRole || null,
+              routeExpectation: pageConfig.routeExpectation || null,
+              scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
+              semanticScenario: pageConfig.semanticScenario || pageConfig.name,
               status: 'failed',
               viewport,
             });
@@ -1105,10 +1648,19 @@ async function captureScreenshots(options, dependencies = {}) {
       const filename = captureFilename(pageConfig.name, viewport);
       if (!completedFilenames.has(filename)) {
         addResult({
+          captureValidity: fatalErrors.some((error) => /seed|provenance/i.test(error))
+            ? 'seed_failure'
+            : 'infrastructure_failure',
           error: fatalErrors.at(-1) || 'Capture did not complete.',
+          expectedChange: pageConfig.expectedChange || null,
           filename,
           page: pageConfig.name,
+          requestedRoute: pageConfig.path,
           required: pageConfig.required !== false,
+          revisionRole: options.revisionRole || null,
+          routeExpectation: pageConfig.routeExpectation || null,
+          scenarioTitle: pageConfig.scenarioTitle || pageConfig.name,
+          semanticScenario: pageConfig.semanticScenario || pageConfig.name,
           status: 'failed',
           viewport,
         });
@@ -1126,7 +1678,31 @@ async function captureScreenshots(options, dependencies = {}) {
     completedAt,
     timestamp: completedAt,
     baseUrl: options.baseUrl,
+    browser: {
+      engine: 'chromium',
+      playwrightVersion: require('playwright/package.json').version,
+      version: browserVersion,
+    },
+    deterministicRendering: {
+      animations: 'disabled',
+      colorScheme: 'light',
+      fixedTime: DETERMINISTIC_TIME_ISO,
+      fontFamily: DETERMINISTIC_FONT_FAMILY,
+      fontPackage: DETERMINISTIC_FONT_PACKAGE,
+      fontPolicy: 'embedded WOFF2 assets required; synthesis and ligatures disabled',
+      fonts: DETERMINISTIC_FONT_ASSETS.map(({ filename, sha256, weight }) => ({
+        filename,
+        sha256,
+        weight,
+      })),
+      locale: 'en-US',
+      polling: 'timers at or above 5000ms disabled',
+      reducedMotion: 'reduce',
+      timezone: 'UTC',
+    },
     inputs,
+    scenarioContractSchemaVersion:
+      pages.some((page) => page.scenarioContractSchemaVersion) && SCENARIO_CONTRACT_SCHEMA_VERSION,
     seedManifestPath: seedValues ? options.seedManifestPath : null,
     viewports: options.viewports,
     results,
@@ -1169,23 +1745,39 @@ async function main(args = process.argv.slice(2), env = process.env) {
 module.exports = {
   CAPTURE_MANIFEST_SCHEMA_VERSION,
   CAPTURE_OWNER_FILENAME,
+  CAPTURE_VALIDITIES,
+  DETERMINISTIC_TIME_ISO,
+  DETERMINISTIC_FONT_ASSETS,
   PAGES,
+  assertDeterministicFont,
+  assertRouteExpectation,
   assertNavigationResponse,
+  buildRevisionAwarePages,
   captureFilename,
   captureScreenshots,
+  classifyCaptureFailure,
   cleanCaptureOutputs,
   comparePageReadyPredicate,
+  createPageDiagnostics,
   executeActions,
   installNetworkIsolation,
   isAllowedCaptureNetworkUrl,
+  loadSeedValues,
+  normalizeDynamicText,
   normalizeBaseUrl,
   parseCaptureOptions,
   parseViewports,
   rocCurveReadyPredicate,
   resolveCaptureUrl,
   resolvePathTemplate,
+  revisionAwarePageNames,
+  routeFromUrl,
+  routeMatches,
+  sanitizeDiagnosticText,
+  sanitizeDiagnosticUrl,
   scalarMetricsReadyPredicate,
   selectPages,
+  stabilizeChildFrames,
   summarizeCaptureResults,
 };
 

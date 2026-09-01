@@ -67,6 +67,16 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
     (result) => result.status === 'success' || result.status === 'degraded',
   );
   const complete = !requiredIncomplete && hasCapturedScreenshot;
+  const directoryName = path.basename(directory);
+  const revisionRole =
+    overrides.revisionRole ||
+    (directoryName === 'main' || directoryName === 'base' ? 'base' : 'head');
+  const inputAttestation = (name, digest) => ({
+    path: path.join(directory, `${name}.json`),
+    schemaVersion: `ui-smoke-${name}/v1`,
+    sha256: digest.repeat(64),
+    sizeBytes: 1,
+  });
   fs.writeFileSync(
     path.join(directory, 'manifest.json'),
     `${JSON.stringify(
@@ -74,9 +84,35 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
         schemaVersion: 2,
         captureId: overrides.captureId || `${label}-capture`,
         label,
+        browser: overrides.browser || {
+          engine: 'chromium',
+          playwrightVersion: '1.55.0',
+          version: 'test-chromium',
+        },
+        deterministicRendering: overrides.deterministicRendering || {
+          colorScheme: 'light',
+          locale: 'en-US',
+          timezone: 'UTC',
+        },
         startedAt,
         completedAt,
         fatalErrors: [],
+        inputs: overrides.inputs || {
+          revisionRole,
+          seedManifest: inputAttestation('seed', revisionRole === 'base' ? 'a' : 'b'),
+          semanticManifest: inputAttestation('semantic', 'c'),
+          sourceProvenance: inputAttestation('source', 'd'),
+        },
+        scenarioContractSchemaVersion:
+          overrides.scenarioContractSchemaVersion || 'ui-smoke-scenarios/v1',
+        viewports: [
+          ...new Map(
+            normalizedResults.map((result) => [
+              `${result.viewport.width}x${result.viewport.height}`,
+              result.viewport,
+            ]),
+          ).values(),
+        ],
         results: normalizedResults,
         complete,
         summary: { complete },
@@ -602,6 +638,50 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   assert.equal(failureEvents.includes('screenshot'), false);
 });
 
+test('revision-aware capture fails malformed or missing seed manifests before browser launch', async (t) => {
+  const root = fixtureDirectory(t);
+  const semanticManifestPath = path.join(root, 'semantic.json');
+  fs.writeFileSync(semanticManifestPath, JSON.stringify({ schemaVersion: 'ui-smoke-semantic/v2' }));
+  const malformedSeedPath = path.join(root, 'malformed-seed.json');
+  fs.writeFileSync(malformedSeedPath, '{not-json');
+  let launchCalls = 0;
+  const chromium = {
+    async launch() {
+      launchCalls += 1;
+      throw new Error('browser must not launch for an invalid seed manifest');
+    },
+  };
+
+  for (const [name, seedManifestPath] of [
+    ['missing', path.join(root, 'missing-seed.json')],
+    ['malformed', malformedSeedPath],
+  ]) {
+    const run = await capture.captureScreenshots(
+      {
+        baseUrl: 'https://example.test/kfp',
+        label: name,
+        outputDir: path.join(root, name),
+        pageNames: ['executions-to-runs'],
+        revisionRole: 'head',
+        seedManifestPath,
+        semanticManifestPath,
+        sourceProvenancePath: null,
+        viewports: [{ width: 10, height: 10 }],
+      },
+      { chromium },
+    );
+
+    assert.equal(run.exitCode, 1);
+    assert.equal(run.manifest.results.length, 1);
+    assert.equal(run.manifest.results[0].semanticScenario, 'executions-to-runs');
+    assert.equal(run.manifest.results[0].status, 'failed');
+    assert.equal(run.manifest.results[0].captureValidity, 'seed_failure');
+    assert.match(run.manifest.fatalErrors.join(' '), /Seed manifest is invalid/);
+    assert.equal(run.manifest.inputs.seedManifest, null);
+  }
+  assert.equal(launchCalls, 0);
+});
+
 test('comparison rejects matching PNG directories without capture manifests', async (t) => {
   const root = fixtureDirectory(t);
   const mainDir = path.join(root, 'main');
@@ -663,20 +743,26 @@ test('manifest comparison ignores stale unlisted PNGs and cleans managed outputs
   assert.equal(run.summary.results[0].diffPercent, 0);
   const mainManifest = fs.readFileSync(path.join(mainDir, 'manifest.json'));
   const prManifest = fs.readFileSync(path.join(prDir, 'manifest.json'));
-  assert.deepEqual(run.summary.captures, {
-    base: {
-      captureId: 'base-capture',
-      manifestSha256: crypto.createHash('sha256').update(mainManifest).digest('hex'),
-      manifestSizeBytes: mainManifest.length,
-      requiredFilenames: [filename],
-    },
-    head: {
-      captureId: 'head-capture',
-      manifestSha256: crypto.createHash('sha256').update(prManifest).digest('hex'),
-      manifestSizeBytes: prManifest.length,
-      requiredFilenames: [filename],
-    },
-  });
+  assert.equal(run.summary.captures.base.captureId, 'base-capture');
+  assert.equal(run.summary.captures.head.captureId, 'head-capture');
+  assert.equal(
+    run.summary.captures.base.manifestSha256,
+    crypto.createHash('sha256').update(mainManifest).digest('hex'),
+  );
+  assert.equal(
+    run.summary.captures.head.manifestSha256,
+    crypto.createHash('sha256').update(prManifest).digest('hex'),
+  );
+  assert.equal(run.summary.captures.base.manifestSizeBytes, mainManifest.length);
+  assert.equal(run.summary.captures.head.manifestSizeBytes, prManifest.length);
+  assert.deepEqual(run.summary.captures.base.requiredFilenames, [filename]);
+  assert.deepEqual(run.summary.captures.head.requiredFilenames, [filename]);
+  assert.equal(run.summary.captures.base.inputs.revisionRole, 'base');
+  assert.equal(run.summary.captures.head.inputs.revisionRole, 'head');
+  assert.deepEqual(
+    run.summary.captures.base.inputs.semanticManifest,
+    run.summary.captures.head.inputs.semanticManifest,
+  );
   assert.equal(fs.existsSync(path.join(outputDir, filename)), true);
   assert.equal(fs.existsSync(path.join(outputDir, 'old-10x10.png')), false);
   assert.equal(fs.existsSync(path.join(outputDir, 'notes-10x10.png')), true);
@@ -686,12 +772,12 @@ test('manifest comparison ignores stale unlisted PNGs and cleans managed outputs
   assert.equal(report.includes('<script>alert("base")</script>'), false);
   assert.match(report, /&lt;script&gt;alert\(&quot;base&quot;\)&lt;\/script&gt;/);
   assert.match(report, /head &amp; &quot;revision&quot;/);
-  assert.match(report, /Capture validity<\/strong>valid/);
+  assert.match(report, /Comparison validity<\/strong>valid/);
   assert.match(report, /Status: success/);
   assert.match(report, /0\.0000% visual difference/);
   assert.match(report, /Highlighted comparison/);
-  assert.equal((report.match(/<img src="data:image\/png;base64,/g) || []).length, 3);
-  assert.equal((report.match(/<a href="data:image\/png;base64,/g) || []).length, 3);
+  assert.equal((report.match(/<img src="data:image\/png;base64,/g) || []).length, 5);
+  assert.equal((report.match(/<a href="data:image\/png;base64,/g) || []).length, 5);
   assert.doesNotMatch(report, /(?:href|src)="https?:/);
 
   fs.writeFileSync(run.reportPath, '<!doctype html><p>stale managed report</p>');
@@ -706,7 +792,13 @@ test('manifest comparison ignores stale unlisted PNGs and cleans managed outputs
     {
       schemaVersion: 2,
       artifacts: ['report.html', 'summary.json'],
-      filenames: [filename],
+      filenames: [
+        'pipelines-10x10--base.png',
+        'pipelines-10x10--head.png',
+        'pipelines-10x10--overlay.png',
+        'pipelines-10x10--raw-diff.png',
+        filename,
+      ],
     },
   );
 });
@@ -929,6 +1021,9 @@ test('missing, stale, corrupt, dimension-mismatched, and null-analysis images fa
         assert.equal(run.exitCode, 1);
         assert.equal(run.summary.stats.failed, 1);
         assert.equal(run.summary.results[0].failureType, scenario.expectedType);
+        if (scenario.expectedType === 'missing') {
+          assert.equal(run.summary.results[0].captureValidity, 'infrastructure_failure');
+        }
         assert.equal(fs.existsSync(path.join(outputDir, 'summary.json')), true);
       } finally {
         fs.rmSync(root, { force: true, recursive: true });

@@ -13,6 +13,7 @@ const sharp = require('sharp');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const { SCENARIO_CONTRACT_SCHEMA_VERSION } = require('./semantic-capture-scenarios');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
@@ -22,8 +23,21 @@ const COMPARISON_REPORT_FILENAME = 'report.html';
 const MANAGED_OUTPUTS_FILENAME = '.managed-outputs.json';
 const MANAGED_OUTPUTS_SCHEMA_VERSION = 2;
 const MANAGED_STATIC_OUTPUTS = [COMPARISON_REPORT_FILENAME, COMPARISON_SUMMARY_FILENAME];
+const SCENARIO_CONFIG_SCHEMA_VERSION = 'ui-smoke-comparison/v1';
+const SCENARIO_POLICY_SCHEMA_VERSION = 'ui-smoke-comparison-policy/v1';
+const MAX_SCENARIO_CONFIG_BYTES = 1024 * 1024;
 const FRESHNESS_TOLERANCE_MS = 1000;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
+const CAPTURE_VALIDITIES = new Set([
+  'valid',
+  'missing_fixture',
+  'expected_product_removal',
+  'selector_drift',
+  'ui_rendering_failure',
+  'api_incompatibility',
+  'seed_failure',
+  'infrastructure_failure',
+]);
 const COMPARISON_ARGUMENT_NAMES = new Set([
   'diff-threshold',
   'fail-threshold',
@@ -34,6 +48,7 @@ const COMPARISON_ARGUMENT_NAMES = new Set([
   'output',
   'pr',
   'pr-label',
+  'scenario-config',
 ]);
 
 const LABEL_HEIGHT = 40;
@@ -112,6 +127,7 @@ function parseComparisonOptions(args = process.argv.slice(2), env = process.env)
     outputDir: getArg(args, 'output', './screenshots/comparison'),
     prDir: getArg(args, 'pr', './screenshots/pr'),
     prLabel: getArg(args, 'pr-label', null),
+    scenarioConfigPath: getArg(args, 'scenario-config', env.UI_SMOKE_SCENARIO_CONFIG || null),
   };
 }
 
@@ -147,6 +163,742 @@ function validateComparisonOptions(options) {
     errors.push(`Invalid looks-same cluster size: ${options.looksSameClusterSize}`);
   }
   return errors;
+}
+
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function requireBoundedString(value, label, maxLength = 2048) {
+  if (typeof value !== 'string' || value.trim() === '' || value.length > maxLength) {
+    throw new ComparisonError(
+      `${label} must be a non-empty string of at most ${maxLength} characters.`,
+      'config',
+    );
+  }
+  return value;
+}
+
+function validateThreshold(value, label, allowNull = false) {
+  if (allowNull && value === null) return value;
+  if (!Number.isFinite(value) || value < 0 || value > 100) {
+    throw new ComparisonError(
+      `${label} must be a number from 0 through 100${allowNull ? ' or null' : ''}.`,
+      'config',
+    );
+  }
+  return value;
+}
+
+function canonicalizeJson(value) {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeJson);
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalizeJson(value[key])]),
+    );
+  }
+  return value;
+}
+
+function normalizeExpectedChange(value, label) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value === 'string') {
+    return requireBoundedString(value, label, 4000);
+  }
+  if (!isPlainObject(value) && !Array.isArray(value)) {
+    throw new ComparisonError(`${label} must be a string, object, array, or null.`, 'config');
+  }
+  const normalized = canonicalizeJson(value);
+  if (JSON.stringify(normalized).length > 16_000) {
+    throw new ComparisonError(`${label} is too large.`, 'config');
+  }
+  return normalized;
+}
+
+function normalizeMask(mask, label) {
+  if (!isPlainObject(mask)) {
+    throw new ComparisonError(`${label} must be an object.`, 'config');
+  }
+  const allowedFields = new Set(['height', 'reason', 'width', 'x', 'y']);
+  for (const key of Object.keys(mask)) {
+    if (!allowedFields.has(key)) {
+      throw new ComparisonError(`${label} has unknown field ${key}.`, 'config');
+    }
+  }
+  for (const coordinate of ['x', 'y', 'width', 'height']) {
+    if (!Number.isSafeInteger(mask[coordinate]) || mask[coordinate] < 0) {
+      throw new ComparisonError(
+        `${label}.${coordinate} must be a non-negative safe integer.`,
+        'config',
+      );
+    }
+  }
+  if (mask.width === 0 || mask.height === 0) {
+    throw new ComparisonError(`${label} width and height must be greater than zero.`, 'config');
+  }
+  return {
+    x: mask.x,
+    y: mask.y,
+    width: mask.width,
+    height: mask.height,
+    ...(mask.reason === undefined
+      ? {}
+      : { reason: requireBoundedString(mask.reason, `${label}.reason`, 1000) }),
+  };
+}
+
+function normalizeScenarioRule(rule, index) {
+  const label = `Scenario config scenarios[${index}]`;
+  if (!isPlainObject(rule)) {
+    throw new ComparisonError(`${label} must be an object.`, 'config');
+  }
+  const allowedFields = new Set([
+    'diffThreshold',
+    'expectedChange',
+    'failThreshold',
+    'looksSameTolerance',
+    'masks',
+    'semanticScenario',
+    'viewport',
+  ]);
+  for (const key of Object.keys(rule)) {
+    if (!allowedFields.has(key)) {
+      throw new ComparisonError(`${label} has unknown field ${key}.`, 'config');
+    }
+  }
+  const semanticScenario = requireBoundedString(
+    rule.semanticScenario,
+    `${label}.semanticScenario`,
+    200,
+  );
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(semanticScenario)) {
+    throw new ComparisonError(
+      `${label}.semanticScenario must use lowercase letters, numbers, and hyphens.`,
+      'config',
+    );
+  }
+  let viewport = null;
+  if (rule.viewport !== undefined && rule.viewport !== null) {
+    if (
+      !isPlainObject(rule.viewport) ||
+      !Number.isSafeInteger(rule.viewport.width) ||
+      rule.viewport.width <= 0 ||
+      !Number.isSafeInteger(rule.viewport.height) ||
+      rule.viewport.height <= 0 ||
+      Object.keys(rule.viewport).some((key) => key !== 'width' && key !== 'height')
+    ) {
+      throw new ComparisonError(
+        `${label}.viewport must contain positive integer width and height.`,
+        'config',
+      );
+    }
+    viewport = { width: rule.viewport.width, height: rule.viewport.height };
+  }
+  const masksProvided = Object.hasOwn(rule, 'masks');
+  if (masksProvided && (!Array.isArray(rule.masks) || rule.masks.length > 100)) {
+    throw new ComparisonError(`${label}.masks must be an array of at most 100 masks.`, 'config');
+  }
+  const masks = (masksProvided ? rule.masks : []).map((mask, maskIndex) =>
+    normalizeMask(mask, `${label}.masks[${maskIndex}]`),
+  );
+  const maskKeys = new Set();
+  for (const mask of masks) {
+    const key = `${mask.x}:${mask.y}:${mask.width}:${mask.height}`;
+    if (maskKeys.has(key)) {
+      throw new ComparisonError(`${label} contains duplicate mask ${key}.`, 'config');
+    }
+    maskKeys.add(key);
+  }
+  masks.sort(
+    (left, right) =>
+      left.y - right.y ||
+      left.x - right.x ||
+      left.height - right.height ||
+      left.width - right.width ||
+      String(left.reason || '').localeCompare(String(right.reason || '')),
+  );
+
+  return {
+    semanticScenario,
+    viewport,
+    ...(rule.diffThreshold === undefined
+      ? {}
+      : { diffThreshold: validateThreshold(rule.diffThreshold, `${label}.diffThreshold`) }),
+    ...(rule.failThreshold === undefined
+      ? {}
+      : {
+          failThreshold: validateThreshold(rule.failThreshold, `${label}.failThreshold`, true),
+        }),
+    ...(rule.looksSameTolerance === undefined
+      ? {}
+      : {
+          looksSameTolerance: validateThreshold(
+            rule.looksSameTolerance,
+            `${label}.looksSameTolerance`,
+          ),
+        }),
+    ...(masksProvided ? { masks } : {}),
+    ...(Object.hasOwn(rule, 'expectedChange')
+      ? {
+          expectedChange: normalizeExpectedChange(rule.expectedChange, `${label}.expectedChange`),
+        }
+      : {}),
+  };
+}
+
+function validateRevisionBinding(binding, actual, label) {
+  if (!isPlainObject(binding)) {
+    throw new ComparisonError(`${label} must be an object.`, 'config');
+  }
+  const allowedFields = new Set(['captureId', 'label', 'manifestSha256']);
+  for (const key of Object.keys(binding)) {
+    if (!allowedFields.has(key)) {
+      throw new ComparisonError(`${label} has unknown field ${key}.`, 'config');
+    }
+  }
+  if (Object.keys(binding).length === 0) {
+    throw new ComparisonError(`${label} must bind at least one revision identity.`, 'config');
+  }
+  for (const key of Object.keys(binding)) {
+    const expected = requireBoundedString(binding[key], `${label}.${key}`);
+    if (key === 'manifestSha256' && !/^[a-f0-9]{64}$/.test(expected)) {
+      throw new ComparisonError(
+        `${label}.manifestSha256 must be a lowercase SHA-256 digest.`,
+        'config',
+      );
+    }
+    if (actual[key] !== expected) {
+      throw new ComparisonError(
+        `${label}.${key} does not match the ${label.endsWith('base') ? 'base' : 'head'} capture.`,
+        'config',
+      );
+    }
+  }
+}
+
+function normalizeOperatorPolicyAttestation(value) {
+  if (value === undefined) return null;
+  if (!isPlainObject(value) || typeof value.applied !== 'boolean') {
+    throw new ComparisonError('Scenario config operatorPolicy must declare applied.', 'config');
+  }
+  const allowedFields = value.applied
+    ? new Set(['applied', 'schemaVersion', 'sha256', 'sizeBytes'])
+    : new Set(['applied']);
+  if (Object.keys(value).some((key) => !allowedFields.has(key))) {
+    throw new ComparisonError('Scenario config operatorPolicy has unknown fields.', 'config');
+  }
+  if (!value.applied) return { applied: false };
+  if (
+    value.schemaVersion !== SCENARIO_POLICY_SCHEMA_VERSION ||
+    typeof value.sha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.sha256) ||
+    !Number.isSafeInteger(value.sizeBytes) ||
+    value.sizeBytes < 1 ||
+    value.sizeBytes > MAX_SCENARIO_CONFIG_BYTES
+  ) {
+    throw new ComparisonError(
+      'Applied scenario config operatorPolicy must contain a valid schema, SHA-256, and size.',
+      'config',
+    );
+  }
+  return {
+    applied: true,
+    schemaVersion: value.schemaVersion,
+    sha256: value.sha256,
+    sizeBytes: value.sizeBytes,
+  };
+}
+
+function loadScenarioConfig(configPath, captureContext) {
+  if (!configPath) {
+    return { attestation: null, rules: [] };
+  }
+  let stat;
+  try {
+    stat = fs.lstatSync(configPath);
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to read scenario config ${configPath}: ${error.message}`,
+      'config',
+    );
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_SCENARIO_CONFIG_BYTES) {
+    throw new ComparisonError(
+      `Scenario config must be a regular non-symlink file no larger than ${MAX_SCENARIO_CONFIG_BYTES} bytes.`,
+      'config',
+    );
+  }
+  const contents = fs.readFileSync(configPath);
+  let config;
+  try {
+    config = JSON.parse(contents.toString('utf8'));
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to parse scenario config ${configPath}: ${error.message}`,
+      'config',
+    );
+  }
+  if (!isPlainObject(config) || config.schemaVersion !== SCENARIO_CONFIG_SCHEMA_VERSION) {
+    throw new ComparisonError(
+      `Scenario config must use schema version ${SCENARIO_CONFIG_SCHEMA_VERSION}.`,
+      'config',
+    );
+  }
+  const allowedFields = new Set([
+    'operatorPolicy',
+    'revisionPair',
+    'scenarioContractSchemaVersion',
+    'scenarios',
+    'schemaVersion',
+    'viewports',
+  ]);
+  for (const key of Object.keys(config)) {
+    if (!allowedFields.has(key)) {
+      throw new ComparisonError(`Scenario config has unknown field ${key}.`, 'config');
+    }
+  }
+  if (!isPlainObject(config.revisionPair)) {
+    throw new ComparisonError('Scenario config revisionPair must be an object.', 'config');
+  }
+  if (Object.keys(config.revisionPair).some((key) => key !== 'base' && key !== 'head')) {
+    throw new ComparisonError(
+      'Scenario config revisionPair may contain only base and head.',
+      'config',
+    );
+  }
+  validateRevisionBinding(config.revisionPair.base, captureContext.base, 'revisionPair.base');
+  validateRevisionBinding(config.revisionPair.head, captureContext.head, 'revisionPair.head');
+  if (
+    config.scenarioContractSchemaVersion !== undefined &&
+    (config.scenarioContractSchemaVersion !== captureContext.base.scenarioContractSchemaVersion ||
+      config.scenarioContractSchemaVersion !== captureContext.head.scenarioContractSchemaVersion)
+  ) {
+    throw new ComparisonError(
+      'Scenario config semantic scenario contract does not match both captures.',
+      'config',
+    );
+  }
+  const viewports =
+    config.viewports === undefined
+      ? []
+      : normalizeExpectedViewports(
+          config.viewports,
+          { viewports: config.viewports },
+          { viewports: config.viewports },
+        );
+  const operatorPolicy = normalizeOperatorPolicyAttestation(config.operatorPolicy);
+  if (
+    !Array.isArray(config.scenarios) ||
+    config.scenarios.length === 0 ||
+    config.scenarios.length > 500
+  ) {
+    throw new ComparisonError(
+      'Scenario config scenarios must contain between 1 and 500 rules.',
+      'config',
+    );
+  }
+  const rules = config.scenarios.map(normalizeScenarioRule);
+  const ruleKeys = new Set();
+  for (const rule of rules) {
+    const key = `${rule.semanticScenario}@${rule.viewport ? `${rule.viewport.width}x${rule.viewport.height}` : '*'}`;
+    if (ruleKeys.has(key)) {
+      throw new ComparisonError(`Scenario config contains duplicate rule ${key}.`, 'config');
+    }
+    ruleKeys.add(key);
+  }
+  rules.sort((left, right) => {
+    const leftKey = `${left.semanticScenario}@${left.viewport ? `${left.viewport.width}x${left.viewport.height}` : '*'}`;
+    const rightKey = `${right.semanticScenario}@${right.viewport ? `${right.viewport.width}x${right.viewport.height}` : '*'}`;
+    return leftKey.localeCompare(rightKey);
+  });
+  return {
+    attestation: {
+      revisionPair: canonicalizeJson(config.revisionPair),
+      operatorPolicy,
+      scenarioContractSchemaVersion: config.scenarioContractSchemaVersion ?? null,
+      schemaVersion: SCENARIO_CONFIG_SCHEMA_VERSION,
+      sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+      sizeBytes: contents.length,
+      viewports,
+    },
+    rules,
+  };
+}
+
+function readCaptureIdentity(directory, role) {
+  const manifestPath = path.join(directory, CAPTURE_MANIFEST_FILENAME);
+  let stat;
+  try {
+    stat = fs.lstatSync(manifestPath);
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to read ${role} capture manifest: ${error.message}`,
+      'manifest',
+    );
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_SCENARIO_CONFIG_BYTES * 10) {
+    throw new ComparisonError(
+      `${role} capture manifest must be a bounded regular non-symlink file.`,
+      'manifest',
+    );
+  }
+  const contents = fs.readFileSync(manifestPath);
+  let manifest;
+  try {
+    manifest = JSON.parse(contents.toString('utf8'));
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to parse ${role} capture manifest: ${error.message}`,
+      'manifest',
+    );
+  }
+  if (
+    !isPlainObject(manifest) ||
+    manifest.schemaVersion !== CAPTURE_MANIFEST_SCHEMA_VERSION ||
+    typeof manifest.captureId !== 'string' ||
+    manifest.captureId === '' ||
+    !Array.isArray(manifest.results)
+  ) {
+    throw new ComparisonError(
+      `${role} capture manifest cannot bind a scenario config.`,
+      'manifest',
+    );
+  }
+  validateCaptureManifest(manifest, manifestPath);
+  return {
+    captureId: manifest.captureId,
+    contents,
+    label: typeof manifest.label === 'string' && manifest.label ? manifest.label : null,
+    manifest,
+    manifestSha256: crypto.createHash('sha256').update(contents).digest('hex'),
+  };
+}
+
+function loadScenarioPolicy(policyPath) {
+  if (!policyPath) return { attestation: { applied: false }, rules: [] };
+  let stat;
+  try {
+    stat = fs.lstatSync(policyPath);
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to read scenario policy ${policyPath}: ${error.message}`,
+      'config',
+    );
+  }
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_SCENARIO_CONFIG_BYTES) {
+    throw new ComparisonError(
+      'Scenario policy must be a bounded regular non-symlink file.',
+      'config',
+    );
+  }
+  const contents = fs.readFileSync(policyPath);
+  let policy;
+  try {
+    policy = JSON.parse(contents.toString('utf8'));
+  } catch (error) {
+    throw new ComparisonError(
+      `Unable to parse scenario policy ${policyPath}: ${error.message}`,
+      'config',
+    );
+  }
+  if (
+    !isPlainObject(policy) ||
+    policy.schemaVersion !== SCENARIO_POLICY_SCHEMA_VERSION ||
+    !Array.isArray(policy.scenarios) ||
+    Object.keys(policy).some((key) => key !== 'schemaVersion' && key !== 'scenarios')
+  ) {
+    throw new ComparisonError(
+      `Scenario policy must use schema version ${SCENARIO_POLICY_SCHEMA_VERSION} and contain scenarios.`,
+      'config',
+    );
+  }
+  const rules = policy.scenarios.map(normalizeScenarioRule);
+  const keys = new Set();
+  for (const rule of rules) {
+    const key = `${rule.semanticScenario}@${rule.viewport ? `${rule.viewport.width}x${rule.viewport.height}` : '*'}`;
+    if (keys.has(key)) {
+      throw new ComparisonError(`Scenario policy contains duplicate rule ${key}.`, 'config');
+    }
+    keys.add(key);
+  }
+  return {
+    attestation: {
+      applied: true,
+      schemaVersion: SCENARIO_POLICY_SCHEMA_VERSION,
+      sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+      sizeBytes: contents.length,
+    },
+    rules,
+  };
+}
+
+function normalizeScenarioCatalog(scenarioCatalog) {
+  const catalog = new Map();
+  for (const [index, entry] of (scenarioCatalog || []).entries()) {
+    if (!isPlainObject(entry)) {
+      throw new ComparisonError(
+        `Semantic scenario catalog entry ${index} must be an object.`,
+        'config',
+      );
+    }
+    const semanticScenario = requireBoundedString(
+      entry.semanticScenario,
+      `Semantic scenario catalog entry ${index}.semanticScenario`,
+      200,
+    );
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(semanticScenario)) {
+      throw new ComparisonError(
+        `Semantic scenario catalog entry ${index}.semanticScenario is invalid.`,
+        'config',
+      );
+    }
+    if (catalog.has(semanticScenario)) {
+      throw new ComparisonError(
+        `Semantic scenario catalog contains duplicate scenario ${semanticScenario}.`,
+        'config',
+      );
+    }
+    if (typeof entry.required !== 'boolean') {
+      throw new ComparisonError(
+        `Semantic scenario catalog entry ${index}.required must be a boolean.`,
+        'config',
+      );
+    }
+    catalog.set(semanticScenario, {
+      expectedChange: normalizeExpectedChange(
+        entry.expectedChange,
+        `Semantic scenario catalog entry ${index}.expectedChange`,
+      ),
+      required: entry.required,
+    });
+  }
+  return catalog;
+}
+
+function normalizeExpectedViewports(value, baseManifest, headManifest) {
+  const source = value || baseManifest.viewports || headManifest.viewports;
+  const entries =
+    typeof source === 'string' ? source.split(',').map((item) => item.trim()) : source;
+  if (!Array.isArray(entries) || entries.length === 0 || entries.length > 20) {
+    throw new ComparisonError(
+      'Expected viewports must contain between 1 and 20 entries.',
+      'config',
+    );
+  }
+  const viewports = entries.map((entry, index) => {
+    if (typeof entry === 'string') {
+      const match = /^([1-9]\d*)x([1-9]\d*)$/.exec(entry);
+      if (match) return { width: Number(match[1]), height: Number(match[2]) };
+    } else if (
+      isPlainObject(entry) &&
+      Number.isSafeInteger(entry.width) &&
+      entry.width > 0 &&
+      Number.isSafeInteger(entry.height) &&
+      entry.height > 0
+    ) {
+      return { width: entry.width, height: entry.height };
+    }
+    throw new ComparisonError(`Expected viewport ${index} is invalid.`, 'config');
+  });
+  const keys = new Set();
+  for (const viewport of viewports) {
+    const key = `${viewport.width}x${viewport.height}`;
+    if (keys.has(key)) {
+      throw new ComparisonError(`Expected viewports contain duplicate ${key}.`, 'config');
+    }
+    keys.add(key);
+  }
+  return viewports.sort((left, right) => left.width - right.width || left.height - right.height);
+}
+
+function validateRequiredScenarioCoverage(baseIdentity, headIdentity, catalog, viewports) {
+  const matches = (manifest, semanticScenario, viewport) =>
+    manifest.results.find(
+      (result) =>
+        (result.semanticScenario || result.page) === semanticScenario &&
+        result.viewport?.width === viewport.width &&
+        result.viewport?.height === viewport.height,
+    );
+  for (const [semanticScenario, contract] of catalog) {
+    if (!contract.required) continue;
+    for (const viewport of viewports) {
+      const key = `${viewport.width}x${viewport.height}`;
+      const base = matches(baseIdentity.manifest, semanticScenario, viewport);
+      const head = matches(headIdentity.manifest, semanticScenario, viewport);
+      if (!base || !head) {
+        throw new ComparisonError(
+          `Required semantic scenario ${semanticScenario} is missing viewport ${key} from one or both capture manifests.`,
+          'config',
+        );
+      }
+      if (base.required !== true || head.required !== true) {
+        throw new ComparisonError(
+          `Required semantic scenario ${semanticScenario} viewport ${key} must remain required in both capture manifests.`,
+          'config',
+        );
+      }
+    }
+  }
+}
+
+function manifestScenarioDefaults(baseIdentity, headIdentity, defaults, scenarioCatalog = []) {
+  const records = new Map();
+  const catalog = normalizeScenarioCatalog(scenarioCatalog);
+  for (const [role, identity] of [
+    ['base', baseIdentity],
+    ['head', headIdentity],
+  ]) {
+    for (const result of identity.manifest.results) {
+      if (!isPlainObject(result)) continue;
+      const semanticScenario = result.semanticScenario || result.page;
+      if (typeof semanticScenario !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(semanticScenario)) {
+        continue;
+      }
+      const current = records.get(semanticScenario) || { base: null, head: null };
+      current[role] = result;
+      records.set(semanticScenario, current);
+    }
+  }
+  for (const [semanticScenario, contract] of catalog) {
+    if (!contract.required) continue;
+    const record = records.get(semanticScenario);
+    if (!record?.base || !record?.head) {
+      throw new ComparisonError(
+        `Required semantic scenario ${semanticScenario} is missing from one or both capture manifests.`,
+        'config',
+      );
+    }
+    if (record.base.required !== true || record.head.required !== true) {
+      throw new ComparisonError(
+        `Required semantic scenario ${semanticScenario} must remain required in both capture manifests.`,
+        'config',
+      );
+    }
+  }
+  return [...records.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([semanticScenario, record]) => {
+      const claimProblems = [
+        expectedRemovalClaimError(record.base, 'base'),
+        expectedRemovalClaimError(record.head, 'head'),
+      ].filter(Boolean);
+      if (claimProblems.length > 0 && (record.base?.required || record.head?.required)) {
+        throw new ComparisonError(`${semanticScenario}: ${claimProblems.join('; ')}`, 'config');
+      }
+      const expectedRemoval =
+        record.head?.captureValidity === 'expected_product_removal' && claimProblems.length === 0;
+      const catalogExpected = catalog.get(semanticScenario)?.expectedChange ?? null;
+      const baseExpected = normalizeExpectedChange(
+        record.base?.expectedChange ?? catalogExpected,
+        `${semanticScenario} base expectedChange`,
+      );
+      const headExpected = normalizeExpectedChange(
+        record.head?.expectedChange ?? catalogExpected,
+        `${semanticScenario} head expectedChange`,
+      );
+      const expectedChange =
+        JSON.stringify(baseExpected) === JSON.stringify(headExpected)
+          ? baseExpected
+          : { base: baseExpected, head: headExpected };
+      return normalizeScenarioRule(
+        {
+          semanticScenario,
+          diffThreshold: defaults.diffThreshold,
+          failThreshold: expectedRemoval ? null : defaults.failThreshold,
+          looksSameTolerance: defaults.looksSameTolerance,
+          expectedChange,
+          masks: [],
+        },
+        semanticScenario,
+      );
+    });
+}
+
+function mergeScenarioPolicies(defaultRules, overrideRules) {
+  const byKey = new Map(defaultRules.map((rule) => [`${rule.semanticScenario}@*`, rule]));
+  for (const override of overrideRules) {
+    const key = `${override.semanticScenario}@${override.viewport ? `${override.viewport.width}x${override.viewport.height}` : '*'}`;
+    if (override.viewport || !byKey.has(key)) {
+      byKey.set(key, override);
+      continue;
+    }
+    const baseline = byKey.get(key);
+    byKey.set(key, {
+      ...baseline,
+      ...override,
+      expectedChange: Object.hasOwn(override, 'expectedChange')
+        ? override.expectedChange
+        : baseline.expectedChange,
+      masks: Object.hasOwn(override, 'masks') ? override.masks : baseline.masks,
+    });
+  }
+  return [...byKey.values()].sort((left, right) => {
+    const leftKey = `${left.semanticScenario}@${left.viewport ? `${left.viewport.width}x${left.viewport.height}` : '*'}`;
+    const rightKey = `${right.semanticScenario}@${right.viewport ? `${right.viewport.width}x${right.viewport.height}` : '*'}`;
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
+function writeBoundScenarioConfig({
+  baseDir,
+  defaults,
+  headDir,
+  outputPath,
+  policyPath = null,
+  scenarioCatalog = [],
+  expectedViewports = null,
+}) {
+  const base = readCaptureIdentity(baseDir, 'Base');
+  const head = readCaptureIdentity(headDir, 'Head');
+  const provenance = validateCapturePairProvenance(base.manifest, head.manifest);
+  const catalog = normalizeScenarioCatalog(scenarioCatalog);
+  const viewports = normalizeExpectedViewports(expectedViewports, base.manifest, head.manifest);
+  validateRequiredScenarioCoverage(base, head, catalog, viewports);
+  const defaultRules = manifestScenarioDefaults(base, head, defaults, scenarioCatalog);
+  if (defaultRules.length === 0) {
+    throw new ComparisonError(
+      'Capture manifests contain no semantic scenarios to configure.',
+      'config',
+    );
+  }
+  const operatorPolicy = loadScenarioPolicy(policyPath);
+  const scenarios = mergeScenarioPolicies(defaultRules, operatorPolicy.rules);
+  const binding = (identity) => ({
+    captureId: identity.captureId,
+    ...(identity.label ? { label: identity.label } : {}),
+    manifestSha256: identity.manifestSha256,
+  });
+  const config = {
+    schemaVersion: SCENARIO_CONFIG_SCHEMA_VERSION,
+    operatorPolicy: operatorPolicy.attestation,
+    revisionPair: {
+      base: binding(base),
+      head: binding(head),
+    },
+    scenarioContractSchemaVersion: provenance.scenarioContractSchemaVersion,
+    scenarios,
+    viewports,
+  };
+  const parent = path.dirname(outputPath);
+  const parentStat = fs.lstatSync(parent);
+  if (!parentStat.isDirectory() || parentStat.isSymbolicLink()) {
+    throw new ComparisonError(
+      'Scenario config output parent must be a non-symlink directory.',
+      'config',
+    );
+  }
+  const contents = Buffer.from(`${JSON.stringify(config, null, 2)}\n`);
+  fs.writeFileSync(outputPath, contents, { flag: 'wx' });
+  return {
+    config,
+    path: outputPath,
+    sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+    sizeBytes: contents.length,
+  };
 }
 
 function canonicalDirectoryPath(directory) {
@@ -299,16 +1051,89 @@ function extractDiffRegions(looksSameResult, imageWidth, imageHeight, diffPercen
     .map(({ area, ...region }) => region);
 }
 
-function deriveDiffPercent(looksSameResult, width, height) {
+function maskUnionArea(masks) {
+  if (masks.length === 0) return 0;
+  const xCoordinates = [...new Set(masks.flatMap((mask) => [mask.x, mask.x + mask.width]))].sort(
+    (left, right) => left - right,
+  );
+  let area = 0;
+  for (let index = 0; index < xCoordinates.length - 1; index += 1) {
+    const left = xCoordinates[index];
+    const right = xCoordinates[index + 1];
+    const intervals = masks
+      .filter((mask) => mask.x < right && mask.x + mask.width > left)
+      .map((mask) => [mask.y, mask.y + mask.height])
+      .sort((first, second) => first[0] - second[0] || first[1] - second[1]);
+    let coveredHeight = 0;
+    let currentStart = null;
+    let currentEnd = null;
+    for (const [start, end] of intervals) {
+      if (currentStart === null) {
+        currentStart = start;
+        currentEnd = end;
+      } else if (start <= currentEnd) {
+        currentEnd = Math.max(currentEnd, end);
+      } else {
+        coveredHeight += currentEnd - currentStart;
+        currentStart = start;
+        currentEnd = end;
+      }
+    }
+    if (currentStart !== null) coveredHeight += currentEnd - currentStart;
+    area += (right - left) * coveredHeight;
+  }
+  return area;
+}
+
+function validateMasksForImage(masks, width, height) {
+  for (const [index, mask] of masks.entries()) {
+    if (mask.x + mask.width > width || mask.y + mask.height > height) {
+      throw new ComparisonError(
+        `Scenario mask ${index} (${mask.x},${mask.y},${mask.width},${mask.height}) exceeds the ${width}x${height} viewport.`,
+        'config',
+      );
+    }
+  }
+  const maskedPixels = maskUnionArea(masks);
+  if (maskedPixels >= width * height) {
+    throw new ComparisonError('Scenario masks must leave at least one comparable pixel.', 'config');
+  }
+  return maskedPixels;
+}
+
+async function applyMasks(image, masks) {
+  if (masks.length === 0) return image;
+  return sharp(image)
+    .composite(
+      masks.map((mask) => ({
+        input: {
+          create: {
+            width: mask.width,
+            height: mask.height,
+            channels: 4,
+            background: { r: 17, g: 17, b: 17, alpha: 1 },
+          },
+        },
+        left: mask.x,
+        top: mask.y,
+      })),
+    )
+    .png()
+    .toBuffer();
+}
+
+function deriveDiffPercent(looksSameResult, width, height, maskedPixels = 0) {
+  const comparablePixels = width * height - maskedPixels;
   if (
     Number.isFinite(looksSameResult?.differentPixels) &&
     Number.isFinite(looksSameResult?.totalPixels) &&
     looksSameResult.totalPixels > 0
   ) {
-    return (looksSameResult.differentPixels / looksSameResult.totalPixels) * 100;
+    if (looksSameResult.differentPixels > comparablePixels) return null;
+    return (looksSameResult.differentPixels / comparablePixels) * 100;
   }
 
-  if (Number.isFinite(looksSameResult?.diffPercentage)) {
+  if (maskedPixels === 0 && Number.isFinite(looksSameResult?.diffPercentage)) {
     return looksSameResult.diffPercentage;
   }
 
@@ -319,22 +1144,28 @@ function deriveDiffPercent(looksSameResult, width, height) {
   if (looksSameResult?.diffBounds && width > 0 && height > 0) {
     const bounds = normalizeRegion(looksSameResult.diffBounds, width, height);
     if (bounds) {
-      return ((bounds.width * bounds.height) / (width * height)) * 100;
+      return ((bounds.width * bounds.height) / comparablePixels) * 100;
     }
   }
 
   return null;
 }
 
-async function analyzeDiff(mainPath, prPath, options, compareImages = looksSame) {
-  if (!fs.existsSync(mainPath) || !fs.existsSync(prPath)) {
+async function analyzeDiff(mainImage, prImage, options, compareImages = looksSame) {
+  if (
+    (typeof mainImage === 'string' && !fs.existsSync(mainImage)) ||
+    (typeof prImage === 'string' && !fs.existsSync(prImage))
+  ) {
     throw new ComparisonError('A required screenshot is missing.', 'missing');
   }
 
   let mainMeta;
   let prMeta;
   try {
-    [mainMeta, prMeta] = await Promise.all([sharp(mainPath).metadata(), sharp(prPath).metadata()]);
+    [mainMeta, prMeta] = await Promise.all([
+      sharp(mainImage).metadata(),
+      sharp(prImage).metadata(),
+    ]);
   } catch (error) {
     throw new ComparisonError(`Unable to read screenshot: ${error.message}`, 'corrupt');
   }
@@ -353,9 +1184,22 @@ async function analyzeDiff(mainPath, prPath, options, compareImages = looksSame)
     );
   }
 
+  const masks = Array.isArray(options.masks) ? options.masks : [];
+  const maskedPixels = validateMasksForImage(masks, mainWidth, mainHeight);
+  let maskedMainImage;
+  let maskedPrImage;
+  try {
+    [maskedMainImage, maskedPrImage] = await Promise.all([
+      applyMasks(mainImage, masks),
+      applyMasks(prImage, masks),
+    ]);
+  } catch (error) {
+    throw new ComparisonError(`Unable to apply scenario masks: ${error.message}`, 'analysis');
+  }
+
   let looksSameResult;
   try {
-    looksSameResult = await compareImages(mainPath, prPath, {
+    looksSameResult = await compareImages(maskedMainImage, maskedPrImage, {
       shouldCluster: true,
       clustersSize: options.looksSameClusterSize,
       tolerance: options.looksSameTolerance,
@@ -368,13 +1212,17 @@ async function analyzeDiff(mainPath, prPath, options, compareImages = looksSame)
     throw new ComparisonError(`Image analysis failed: ${error.message}`, 'analysis');
   }
 
-  const diffPercent = deriveDiffPercent(looksSameResult, mainWidth, mainHeight);
+  const diffPercent = deriveDiffPercent(looksSameResult, mainWidth, mainHeight, maskedPixels);
   if (!Number.isFinite(diffPercent) || diffPercent < 0 || diffPercent > 100) {
     throw new ComparisonError('Image analysis did not return a valid diff percentage.', 'analysis');
   }
 
   return {
+    comparablePixels: mainWidth * mainHeight - maskedPixels,
     diffPercent,
+    maskedMainImage,
+    maskedPixels,
+    maskedPrImage,
     regions: extractDiffRegions(looksSameResult, mainWidth, mainHeight, diffPercent),
     width: mainWidth,
     height: mainHeight,
@@ -444,7 +1292,7 @@ async function generateComparison(
     composites.push({ input: diffOverlay, top: 0, left: 0 });
   }
 
-  await sharp({
+  const contents = await sharp({
     create: {
       width: width * 2 + DIVIDER_WIDTH,
       height: totalHeight,
@@ -454,10 +1302,95 @@ async function generateComparison(
   })
     .composite(composites)
     .png()
-    .toFile(outputPath);
+    .toBuffer();
+  fs.writeFileSync(outputPath, contents, { flag: 'wx' });
 
   console.log(`  ✓ Saved: ${path.basename(outputPath)}`);
   return outputPath;
+}
+
+function comparisonArtifactFilenames(filename) {
+  if (
+    typeof filename !== 'string' ||
+    path.basename(filename) !== filename ||
+    !filename.endsWith('.png')
+  ) {
+    throw new ComparisonError(`Invalid comparison filename ${filename}.`, 'manifest');
+  }
+  const stem = filename.slice(0, -4);
+  return {
+    base: `${stem}--base.png`,
+    head: `${stem}--head.png`,
+    overlay: `${stem}--overlay.png`,
+    rawDiff: `${stem}--raw-diff.png`,
+    // Keep the historical filename for compatibility with existing upgrade/report consumers.
+    highlightedDiff: filename,
+  };
+}
+
+function artifactAttestation(outputDir, filename) {
+  const outputPath = path.join(outputDir, filename);
+  const stat = fs.statSync(outputPath);
+  return {
+    filename,
+    sha256: sha256File(outputPath),
+    sizeBytes: stat.size,
+  };
+}
+
+async function createOverlayImage(mainImage, prImage) {
+  const translucentHead = await sharp(prImage).removeAlpha().ensureAlpha(0.5).png().toBuffer();
+  return sharp(mainImage)
+    .composite([{ input: translucentHead, blend: 'over' }])
+    .png()
+    .toBuffer();
+}
+
+async function createRawDiffImage(maskedMainImage, maskedPrImage) {
+  return sharp(maskedMainImage)
+    .composite([{ input: maskedPrImage, blend: 'difference' }])
+    .png()
+    .toBuffer();
+}
+
+async function generateArtifactSet({
+  baseImage,
+  diffAnalysis,
+  filenames,
+  hasVisualDiff,
+  headImage,
+  mainLabel,
+  outputDir,
+  page,
+  prLabel,
+}) {
+  const outputPaths = Object.fromEntries(
+    Object.entries(filenames).map(([name, filename]) => [name, path.join(outputDir, filename)]),
+  );
+  const [overlay, rawDiff] = await Promise.all([
+    createOverlayImage(baseImage, headImage),
+    createRawDiffImage(diffAnalysis.maskedMainImage, diffAnalysis.maskedPrImage),
+  ]);
+  fs.writeFileSync(outputPaths.base, baseImage, { flag: 'wx' });
+  fs.writeFileSync(outputPaths.head, headImage, { flag: 'wx' });
+  fs.writeFileSync(outputPaths.overlay, overlay, { flag: 'wx' });
+  fs.writeFileSync(outputPaths.rawDiff, rawDiff, { flag: 'wx' });
+  await generateComparison(
+    page,
+    baseImage,
+    headImage,
+    outputPaths.highlightedDiff,
+    mainLabel,
+    prLabel,
+    diffAnalysis,
+    hasVisualDiff,
+  );
+  return Object.fromEntries(
+    Object.entries(filenames).map(([name, filename]) => [
+      name,
+      artifactAttestation(outputDir, filename),
+    ]),
+  );
 }
 
 function parseTimestamp(value, description) {
@@ -470,6 +1403,97 @@ function parseTimestamp(value, description) {
 
 function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function defaultCaptureValidity(status) {
+  if (status === 'success') return 'valid';
+  if (status === 'degraded') return 'selector_drift';
+  if (status === 'skipped') return 'missing_fixture';
+  return 'ui_rendering_failure';
+}
+
+function sanitizeCaptureDiagnosticText(value) {
+  return String(value || '')
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\bBearer\s+\S+/gi, 'Bearer <redacted>')
+    .replace(/([?&][a-zA-Z0-9_.-]+)=([^&\s]+)/g, '$1=<redacted>')
+    .replace(
+      /\b(authorization|cookie|token|secret|password|api[-_]?key)\s*[:=]\s*\S+/gi,
+      '$1=<redacted>',
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 2000);
+}
+
+function normalizeCaptureDiagnostics(value, label) {
+  if (value === undefined || value === null) return null;
+  if (!isPlainObject(value)) {
+    throw new ComparisonError(`${label} must be an object.`, 'manifest');
+  }
+  const normalizeRecords = (records, recordLabel) => {
+    if (!Array.isArray(records) || records.length > 50) {
+      throw new ComparisonError(
+        `${recordLabel} must be an array of at most 50 records.`,
+        'manifest',
+      );
+    }
+    return records.map((record, index) => {
+      if (!isPlainObject(record) || Object.keys(record).length > 12) {
+        throw new ComparisonError(`${recordLabel}[${index}] must be a bounded object.`, 'manifest');
+      }
+      return Object.fromEntries(
+        Object.entries(record).map(([key, entry]) => {
+          if (typeof entry === 'string') return [key, sanitizeCaptureDiagnosticText(entry)];
+          if (
+            entry === null ||
+            typeof entry === 'boolean' ||
+            (Number.isSafeInteger(entry) && Math.abs(entry) <= Number.MAX_SAFE_INTEGER)
+          ) {
+            return [key, entry];
+          }
+          throw new ComparisonError(
+            `${recordLabel}[${index}].${key} has an unsupported value.`,
+            'manifest',
+          );
+        }),
+      );
+    });
+  };
+  if (!isPlainObject(value.dropped)) {
+    throw new ComparisonError(`${label}.dropped must be an object.`, 'manifest');
+  }
+  const dropped = {};
+  for (const name of ['consoleErrors', 'failedRequests']) {
+    if (!Number.isSafeInteger(value.dropped[name]) || value.dropped[name] < 0) {
+      throw new ComparisonError(
+        `${label}.dropped.${name} must be a non-negative integer.`,
+        'manifest',
+      );
+    }
+    dropped[name] = value.dropped[name];
+  }
+  return {
+    consoleErrors: normalizeRecords(value.consoleErrors, `${label}.consoleErrors`),
+    failedRequests: normalizeRecords(value.failedRequests, `${label}.failedRequests`),
+    dropped,
+  };
+}
+
+function captureRecordEvidence(record, label) {
+  if (!record) return null;
+  return {
+    status: record.status,
+    error:
+      record.error === undefined || record.error === null
+        ? null
+        : sanitizeCaptureDiagnosticText(record.error),
+    reason:
+      record.reason === undefined || record.reason === null
+        ? null
+        : sanitizeCaptureDiagnosticText(record.reason),
+    diagnostics: normalizeCaptureDiagnostics(record.diagnostics, `${label} diagnostics`),
+  };
 }
 
 function validateCaptureManifest(manifest, manifestPath) {
@@ -530,6 +1554,50 @@ function validateCaptureManifest(manifest, manifestPath) {
         'manifest',
       );
     }
+    if (result.captureValidity !== undefined && !CAPTURE_VALIDITIES.has(result.captureValidity)) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has invalid captureValidity ${result.captureValidity}.`,
+        'manifest',
+      );
+    }
+    const captureValidity = result.captureValidity || defaultCaptureValidity(result.status);
+    if (
+      result.status === 'success' &&
+      captureValidity !== 'valid' &&
+      captureValidity !== 'expected_product_removal'
+    ) {
+      throw new ComparisonError(
+        `Successful capture result ${result.page} in ${manifestPath} must be valid or an expected product removal.`,
+        'manifest',
+      );
+    }
+    if (result.status !== 'success' && captureValidity === 'valid') {
+      throw new ComparisonError(
+        `Incomplete capture result ${result.page} in ${manifestPath} cannot declare captureValidity valid.`,
+        'manifest',
+      );
+    }
+    if (
+      result.semanticScenario !== undefined &&
+      (typeof result.semanticScenario !== 'string' ||
+        !/^[a-z0-9][a-z0-9-]*$/.test(result.semanticScenario))
+    ) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has invalid semanticScenario.`,
+        'manifest',
+      );
+    }
+    for (const routeField of ['requestedRoute', 'resolvedRoute']) {
+      if (
+        result[routeField] !== undefined &&
+        (typeof result[routeField] !== 'string' || result[routeField].length > 4096)
+      ) {
+        throw new ComparisonError(
+          `Capture result ${result.page} in ${manifestPath} has invalid ${routeField}.`,
+          'manifest',
+        );
+      }
+    }
     if (
       !result.viewport ||
       !Number.isSafeInteger(result.viewport.width) ||
@@ -583,10 +1651,18 @@ function validateCaptureManifest(manifest, manifestPath) {
       }
     }
 
+    const evidence = captureRecordEvidence(
+      result,
+      `Capture result ${result.page} in ${manifestPath}`,
+    );
     records.set(result.filename, {
       ...result,
+      captureValidity,
       capturedAtMs,
       completedAtMs,
+      diagnostics: evidence.diagnostics,
+      error: evidence.error,
+      reason: evidence.reason,
       startedAtMs,
     });
   }
@@ -615,6 +1691,138 @@ function validateCaptureManifest(manifest, manifestPath) {
     label: typeof manifest.label === 'string' && manifest.label ? manifest.label : null,
     manifest,
     records,
+  };
+}
+
+function normalizeCaptureInputAttestation(value, label, required = false) {
+  if (value === null || value === undefined) {
+    if (required) {
+      throw new ComparisonError(`${label} is required.`, 'manifest');
+    }
+    return null;
+  }
+  if (
+    !isPlainObject(value) ||
+    typeof value.path !== 'string' ||
+    value.path === '' ||
+    typeof value.sha256 !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(value.sha256) ||
+    !Number.isSafeInteger(value.sizeBytes) ||
+    value.sizeBytes <= 0 ||
+    !(
+      value.schemaVersion === null ||
+      typeof value.schemaVersion === 'string' ||
+      typeof value.schemaVersion === 'number'
+    )
+  ) {
+    throw new ComparisonError(`${label} is not a valid input attestation.`, 'manifest');
+  }
+  return {
+    schemaVersion: value.schemaVersion,
+    sha256: value.sha256,
+    sizeBytes: value.sizeBytes,
+  };
+}
+
+function captureProvenance(manifest, role) {
+  if (!isPlainObject(manifest.inputs) || manifest.inputs.revisionRole !== role) {
+    throw new ComparisonError(
+      `${role === 'base' ? 'Base' : 'Head'} capture manifest inputs.revisionRole must be ${role}.`,
+      'manifest',
+    );
+  }
+  return {
+    revisionRole: role,
+    seedManifest: normalizeCaptureInputAttestation(
+      manifest.inputs.seedManifest,
+      `${role} seedManifest`,
+      true,
+    ),
+    semanticManifest: normalizeCaptureInputAttestation(
+      manifest.inputs.semanticManifest,
+      `${role} semanticManifest`,
+    ),
+    sourceProvenance: normalizeCaptureInputAttestation(
+      manifest.inputs.sourceProvenance,
+      `${role} sourceProvenance`,
+    ),
+  };
+}
+
+function assertMatchingPairInput(base, head, name) {
+  if (Boolean(base) !== Boolean(head)) {
+    throw new ComparisonError(
+      `Base and head capture manifests must either both bind ${name} or both omit it.`,
+      'manifest',
+    );
+  }
+  if (
+    base &&
+    (base.sha256 !== head.sha256 ||
+      base.sizeBytes !== head.sizeBytes ||
+      base.schemaVersion !== head.schemaVersion)
+  ) {
+    throw new ComparisonError(
+      `Base and head capture manifests bind different ${name} inputs.`,
+      'manifest',
+    );
+  }
+}
+
+function matchingManifestContract(baseManifest, headManifest, field) {
+  const base = baseManifest[field];
+  const head = headManifest[field];
+  if (
+    !isPlainObject(base) ||
+    !isPlainObject(head) ||
+    JSON.stringify(canonicalizeJson(base)) !== JSON.stringify(canonicalizeJson(head))
+  ) {
+    throw new ComparisonError(
+      `Base and head capture manifests must use the same ${field} contract.`,
+      'manifest',
+    );
+  }
+  return canonicalizeJson(base);
+}
+
+function validateCapturePairProvenance(baseManifest, headManifest) {
+  const base = captureProvenance(baseManifest, 'base');
+  const head = captureProvenance(headManifest, 'head');
+  if (base.seedManifest.schemaVersion !== head.seedManifest.schemaVersion) {
+    throw new ComparisonError(
+      'Base and head seed manifests use different schema versions.',
+      'manifest',
+    );
+  }
+  assertMatchingPairInput(base.semanticManifest, head.semanticManifest, 'semanticManifest');
+  assertMatchingPairInput(base.sourceProvenance, head.sourceProvenance, 'sourceProvenance');
+  if (baseManifest.scenarioContractSchemaVersion !== headManifest.scenarioContractSchemaVersion) {
+    throw new ComparisonError(
+      'Base and head capture manifests use different semantic scenario contracts.',
+      'manifest',
+    );
+  }
+  if (
+    base.semanticManifest &&
+    baseManifest.scenarioContractSchemaVersion !== SCENARIO_CONTRACT_SCHEMA_VERSION
+  ) {
+    throw new ComparisonError(
+      `Semantic captures must use scenario contract ${SCENARIO_CONTRACT_SCHEMA_VERSION}.`,
+      'manifest',
+    );
+  }
+  const browser = matchingManifestContract(baseManifest, headManifest, 'browser');
+  const deterministicRendering = matchingManifestContract(
+    baseManifest,
+    headManifest,
+    'deterministicRendering',
+  );
+  return {
+    base,
+    browser,
+    deterministicRendering,
+    head,
+    scenarioContractSchemaVersion: baseManifest.scenarioContractSchemaVersion ?? null,
   };
 }
 
@@ -650,7 +1858,122 @@ function loadCaptureManifest(directory) {
   };
 }
 
-function failedPlanResult(filename, required, message, failureType = 'capture') {
+function captureAnnotation(value, label) {
+  try {
+    return normalizeExpectedChange(value, label);
+  } catch (error) {
+    throw new ComparisonError(error.message, 'manifest');
+  }
+}
+
+function scenarioMetadata(mainRecord, prRecord, filename) {
+  const fallbackPage = (mainRecord || prRecord)?.page || filename.replace(/\.png$/, '');
+  const baseScenario = mainRecord?.semanticScenario || mainRecord?.page || null;
+  const headScenario = prRecord?.semanticScenario || prRecord?.page || null;
+  const semanticScenario = baseScenario || headScenario || fallbackPage;
+  const semanticMismatch = Boolean(baseScenario && headScenario && baseScenario !== headScenario);
+  const baseTitle = mainRecord?.scenarioTitle || null;
+  const headTitle = prRecord?.scenarioTitle || null;
+  const scenarioTitle =
+    baseTitle && headTitle && baseTitle !== headTitle
+      ? `${baseTitle} → ${headTitle}`
+      : baseTitle || headTitle || semanticScenario;
+  const expectedChanges = {
+    base: captureAnnotation(mainRecord?.expectedChange, `Base ${semanticScenario} expectedChange`),
+    head: captureAnnotation(prRecord?.expectedChange, `Head ${semanticScenario} expectedChange`),
+  };
+  const expectedChange =
+    JSON.stringify(expectedChanges.base) === JSON.stringify(expectedChanges.head)
+      ? expectedChanges.base
+      : expectedChanges;
+  return {
+    semanticMismatch,
+    semanticScenario,
+    scenarioTitle,
+    expectedChange,
+    routes: {
+      base: {
+        requested: mainRecord?.requestedRoute || null,
+        resolved: mainRecord?.resolvedRoute || null,
+        expectation: captureAnnotation(
+          mainRecord?.routeExpectation,
+          `Base ${semanticScenario} routeExpectation`,
+        ),
+      },
+      head: {
+        requested: prRecord?.requestedRoute || null,
+        resolved: prRecord?.resolvedRoute || null,
+        expectation: captureAnnotation(
+          prRecord?.routeExpectation,
+          `Head ${semanticScenario} routeExpectation`,
+        ),
+      },
+    },
+    captureValidityByRevision: {
+      base: mainRecord?.captureValidity || 'missing_fixture',
+      head: prRecord?.captureValidity || 'missing_fixture',
+    },
+    captureEvidenceByRevision: {
+      base: captureRecordEvidence(mainRecord, `Base ${semanticScenario}`),
+      head: captureRecordEvidence(prRecord, `Head ${semanticScenario}`),
+    },
+    viewport: mainRecord?.viewport || prRecord?.viewport || null,
+  };
+}
+
+function aggregateCaptureValidity(captureValidityByRevision) {
+  const values = Object.values(captureValidityByRevision);
+  return (
+    values.find((value) => value !== 'valid' && value !== 'expected_product_removal') ||
+    (values.includes('expected_product_removal') ? 'expected_product_removal' : 'valid')
+  );
+}
+
+function routeMatchesExpectation(actualRoute, expectedRoute) {
+  if (typeof actualRoute !== 'string' || typeof expectedRoute !== 'string') return false;
+  try {
+    const parseRoute = (value) => {
+      const parsed = new URL(value, 'http://ui-smoke.invalid');
+      const route = parsed.hash.startsWith('#/')
+        ? parsed.hash.slice(1)
+        : `${parsed.pathname}${parsed.search}`;
+      return new URL(route, 'http://ui-smoke.invalid');
+    };
+    const actual = parseRoute(actualRoute);
+    const expected = parseRoute(expectedRoute);
+    if (actual.pathname !== expected.pathname) return false;
+    for (const [key, value] of expected.searchParams) {
+      if (actual.searchParams.get(key) !== value) return false;
+    }
+    return true;
+  } catch (_error) {
+    return false;
+  }
+}
+
+function expectedRemovalClaimError(record, role) {
+  if (record?.captureValidity !== 'expected_product_removal') return null;
+  if (role !== 'head') {
+    return 'expected_product_removal may only be asserted by the head capture';
+  }
+  if (record.status !== 'success') {
+    return 'head expected_product_removal must have a successful screenshot';
+  }
+  if (
+    !isPlainObject(record.routeExpectation) ||
+    record.routeExpectation.kind !== 'expected-removal' ||
+    typeof record.routeExpectation.path !== 'string' ||
+    record.routeExpectation.path === ''
+  ) {
+    return 'head expected_product_removal must declare routeExpectation.kind expected-removal and a path';
+  }
+  if (!routeMatchesExpectation(record.resolvedRoute, record.routeExpectation.path)) {
+    return `head expected_product_removal resolved route ${record.resolvedRoute || '(missing)'} does not match ${record.routeExpectation.path}`;
+  }
+  return null;
+}
+
+function failedPlanResult(filename, required, message, failureType = 'capture', metadata = {}) {
   return {
     filename,
     page: filename.replace(/\.png$/, ''),
@@ -658,6 +1981,10 @@ function failedPlanResult(filename, required, message, failureType = 'capture') 
     status: 'failed',
     error: message,
     failureType,
+    captureValidity: metadata.captureValidity || 'missing_fixture',
+    comparisonValidity: 'not-compared',
+    thresholdsEvaluated: false,
+    ...metadata,
   };
 }
 
@@ -672,7 +1999,45 @@ function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
     const mainRecord = mainManifest.records.get(filename);
     const prRecord = prManifest.records.get(filename);
     const required = Boolean(mainRecord?.required || prRecord?.required);
+    const metadata = scenarioMetadata(mainRecord, prRecord, filename);
     const problems = [];
+
+    if (metadata.semanticMismatch) {
+      problems.push('semantic scenario differs between captures');
+    }
+
+    if (
+      !required &&
+      (!mainRecord || !prRecord || mainRecord.status !== 'success' || prRecord.status !== 'success')
+    ) {
+      results.push({
+        filename,
+        page: filename.replace(/\.png$/, ''),
+        required: false,
+        status: 'skipped',
+        reason: 'Optional capture was not successful in both revisions.',
+        captureValidity: aggregateCaptureValidity(metadata.captureValidityByRevision),
+        comparisonValidity: 'not-compared',
+        thresholdsEvaluated: false,
+        ...metadata,
+      });
+      continue;
+    }
+
+    const expectedRemovalProblems = [
+      expectedRemovalClaimError(mainRecord, 'base'),
+      expectedRemovalClaimError(prRecord, 'head'),
+    ].filter(Boolean);
+    if (expectedRemovalProblems.length > 0) {
+      results.push(
+        failedPlanResult(filename, required, expectedRemovalProblems.join('; '), 'capture', {
+          ...metadata,
+          captureValidity: 'ui_rendering_failure',
+        }),
+      );
+      continue;
+    }
+    const expectedRemoval = prRecord?.captureValidity === 'expected_product_removal';
 
     if (required) {
       if (!mainRecord) problems.push('missing from base capture manifest');
@@ -686,24 +2051,15 @@ function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
       if (prRecord && prRecord.status !== 'success') {
         problems.push(`head capture status is ${prRecord.status}`);
       }
-    } else if (
-      !mainRecord ||
-      !prRecord ||
-      mainRecord.status !== 'success' ||
-      prRecord.status !== 'success'
-    ) {
-      results.push({
-        filename,
-        page: filename.replace(/\.png$/, ''),
-        required: false,
-        status: 'skipped',
-        reason: 'Optional capture was not successful in both revisions.',
-      });
-      continue;
     }
 
     if (problems.length > 0) {
-      results.push(failedPlanResult(filename, required, problems.join('; '), 'capture'));
+      results.push(
+        failedPlanResult(filename, required, problems.join('; '), 'capture', {
+          ...metadata,
+          captureValidity: aggregateCaptureValidity(metadata.captureValidityByRevision),
+        }),
+      );
       continue;
     }
 
@@ -715,13 +2071,15 @@ function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
       prPath: path.join(prDir, filename),
       prRecord,
       required,
+      expectedRemoval,
+      ...metadata,
     });
   }
 
   return { filenames, pairs, results };
 }
 
-function buildComparisonPlan(mainDir, prDir) {
+function buildComparisonPlan(mainDir, prDir, scenarioConfigPath = null) {
   const mainManifest = loadCaptureManifest(mainDir);
   const prManifest = loadCaptureManifest(prDir);
   if (!mainManifest && !prManifest) {
@@ -743,16 +2101,123 @@ function buildComparisonPlan(mainDir, prDir) {
     );
   }
 
+  const manifestPlan = buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir);
+  const provenance = validateCapturePairProvenance(mainManifest.manifest, prManifest.manifest);
+  mainManifest.attestation.inputs = provenance.base;
+  prManifest.attestation.inputs = provenance.head;
+  mainManifest.attestation.browser = provenance.browser;
+  prManifest.attestation.browser = provenance.browser;
+  mainManifest.attestation.deterministicRendering = provenance.deterministicRendering;
+  prManifest.attestation.deterministicRendering = provenance.deterministicRendering;
+  mainManifest.attestation.scenarioContractSchemaVersion = provenance.scenarioContractSchemaVersion;
+  prManifest.attestation.scenarioContractSchemaVersion = provenance.scenarioContractSchemaVersion;
+  const captures = {
+    base: mainManifest.attestation,
+    head: prManifest.attestation,
+  };
+  const scenarioConfig = loadScenarioConfig(scenarioConfigPath, {
+    base: { ...captures.base, label: mainManifest.label || 'main (base)' },
+    head: { ...captures.head, label: prManifest.label || 'PR (head)' },
+  });
+  const outputFilenames = [];
+  const outputFilenameOwners = new Map();
+  for (const pair of manifestPlan.pairs) {
+    pair.artifactFilenames = comparisonArtifactFilenames(pair.filename);
+    for (const filename of Object.values(pair.artifactFilenames)) {
+      const previousOwner = outputFilenameOwners.get(filename);
+      if (previousOwner) {
+        throw new ComparisonError(
+          `Comparison artifact filename ${filename} collides between ${previousOwner} and ${pair.filename}.`,
+          'manifest',
+        );
+      }
+      outputFilenameOwners.set(filename, pair.filename);
+      outputFilenames.push(filename);
+    }
+  }
+
   return {
-    ...buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir),
+    ...manifestPlan,
     captures: {
       base: mainManifest.attestation,
       head: prManifest.attestation,
     },
     mainLabel: mainManifest.label || 'main (base)',
+    outputFilenames: outputFilenames.sort(),
     prLabel: prManifest.label || 'PR (head)',
+    scenarioConfig,
     sourceMode: 'manifest',
   };
+}
+
+function ruleMatchesResult(rule, result) {
+  if (rule.semanticScenario !== result.semanticScenario) return false;
+  if (!rule.viewport) return true;
+  return (
+    result.viewport?.width === rule.viewport.width &&
+    result.viewport?.height === rule.viewport.height
+  );
+}
+
+function scenarioPolicy(result, rules, options) {
+  const matching = rules.filter((rule) => ruleMatchesResult(rule, result));
+  const exact = matching.find((rule) => rule.viewport);
+  const generic = matching.find((rule) => !rule.viewport);
+  const configured = Boolean(exact || generic);
+  const configuredValue = (name) => exact?.[name] ?? generic?.[name];
+  const configuredNullableValue = (name, fallback) => {
+    if (exact && Object.hasOwn(exact, name)) return exact[name];
+    if (generic && Object.hasOwn(generic, name)) return generic[name];
+    return fallback;
+  };
+  return {
+    diffThreshold: configuredValue('diffThreshold') ?? options.diffThreshold,
+    failThreshold: configuredNullableValue(
+      'failThreshold',
+      result.expectedRemoval ? null : options.failThreshold,
+    ),
+    looksSameTolerance: configuredValue('looksSameTolerance') ?? options.looksSameTolerance,
+    // A viewport-specific rule owns its full mask set; an empty array intentionally clears
+    // masks inherited from the scenario-wide rule.
+    masks: exact && Object.hasOwn(exact, 'masks') ? exact.masks : generic?.masks || [],
+    expectedChange: configuredNullableValue('expectedChange', result.expectedChange ?? null),
+    source: configured
+      ? 'scenario-config'
+      : result.expectedRemoval
+        ? 'expected-removal-contract'
+        : 'global-defaults',
+  };
+}
+
+function applyScenarioPolicies(plan, options) {
+  const allResults = [...plan.pairs, ...plan.results];
+  for (const rule of plan.scenarioConfig.rules) {
+    if (!allResults.some((result) => ruleMatchesResult(rule, result))) {
+      const viewport = rule.viewport ? ` at ${rule.viewport.width}x${rule.viewport.height}` : '';
+      throw new ComparisonError(
+        `Scenario config rule ${rule.semanticScenario}${viewport} did not match any capture result.`,
+        'config',
+      );
+    }
+  }
+  for (const result of allResults) {
+    result.policy = scenarioPolicy(result, plan.scenarioConfig.rules, options);
+    result.expectedChange = result.policy.expectedChange;
+  }
+  return plan;
+}
+
+function classifyPairFailure(failureType) {
+  if (failureType === 'config') {
+    return { captureValidity: 'valid', comparisonValidity: 'config-invalid' };
+  }
+  if (failureType === 'missing') {
+    return { captureValidity: 'infrastructure_failure', comparisonValidity: 'not-compared' };
+  }
+  if (['stale', 'integrity', 'corrupt'].includes(failureType)) {
+    return { captureValidity: 'infrastructure_failure', comparisonValidity: 'not-compared' };
+  }
+  return { captureValidity: 'valid', comparisonValidity: 'pixel-comparison-failure' };
 }
 
 function validateFreshCapture(record, filePath, side) {
@@ -925,16 +2390,33 @@ function summarizeComparison({
   options,
   prLabel,
   results,
+  scenarioConfig,
   sourceMode,
 }) {
-  const orderedResults = [...results].sort((left, right) => {
+  const normalizedResults = results.map((result) => {
+    const { policy, ...rest } = result;
+    return {
+      ...rest,
+      expectedChange: policy?.expectedChange ?? result.expectedChange ?? null,
+      masks: policy?.masks || result.masks || [],
+      scenarioThresholds: {
+        diffThreshold: policy?.diffThreshold ?? options.diffThreshold,
+        failThreshold:
+          policy && Object.hasOwn(policy, 'failThreshold')
+            ? policy.failThreshold
+            : options.failThreshold,
+        looksSameTolerance: policy?.looksSameTolerance ?? options.looksSameTolerance,
+        source: policy?.source || 'global-defaults',
+      },
+    };
+  });
+  const orderedResults = normalizedResults.sort((left, right) => {
     if (left.filename === right.filename) return 0;
     return left.filename < right.filename ? -1 : 1;
   });
   const failed = orderedResults.filter((result) => result.status === 'failed');
   const success = orderedResults.filter((result) => result.status === 'success');
-  const pagesExceedingFailThreshold =
-    options.failThreshold === null ? [] : success.filter((result) => result.exceedsFailThreshold);
+  const pagesExceedingFailThreshold = success.filter((result) => result.exceedsFailThreshold);
   const valid = fatalErrors.length === 0 && failed.length === 0 && success.length > 0;
   const passed = valid && pagesExceedingFailThreshold.length === 0;
 
@@ -945,6 +2427,7 @@ function summarizeComparison({
     prLabel,
     sourceMode,
     captures,
+    scenarioConfig,
     thresholds: {
       diffThreshold: options.diffThreshold,
       failThreshold: options.failThreshold,
@@ -969,6 +2452,22 @@ function summarizeComparison({
       analysisFailed: failed.filter((result) => result.failureType === 'analysis').length,
       pagesWithDiff: success.filter((result) => result.hasVisualDiff).length,
       pagesExceedingFailThreshold: pagesExceedingFailThreshold.length,
+      validSemanticPairs: success.length,
+      thresholdEvaluations: success.filter((result) => result.thresholdsEvaluated).length,
+      incompleteCaptures: orderedResults.filter(
+        (result) =>
+          result.captureValidity !== 'valid' &&
+          result.captureValidity !== 'expected_product_removal',
+      ).length,
+      degradedCaptures: orderedResults.filter(
+        (result) => result.captureValidity === 'selector_drift',
+      ).length,
+      expectedProductRemovals: orderedResults.filter(
+        (result) => result.captureValidity === 'expected_product_removal',
+      ).length,
+      pixelComparisonFailures: failed.filter(
+        (result) => result.comparisonValidity === 'pixel-comparison-failure',
+      ).length,
     },
     valid,
     passed,
@@ -986,15 +2485,41 @@ function renderCaptureAttestation(role, attestation) {
   return `<section class="capture"><h2>${escapeHtml(role)}</h2><dl><dt>Capture ID</dt><dd><code>${escapeHtml(attestation.captureId)}</code></dd><dt>Manifest SHA-256</dt><dd><code>${escapeHtml(attestation.manifestSha256)}</code></dd><dt>Manifest size</dt><dd>${attestation.manifestSizeBytes} bytes</dd><dt>Required successful screenshots</dt><dd>${attestation.requiredFilenames.length}</dd></dl></section>`;
 }
 
-function renderImageFigure(caption, alt, contents) {
+function renderImageFigure(caption, alt, contents, artifact) {
   const dataUrl = imageDataUrl(contents);
-  return `<figure><figcaption>${escapeHtml(caption)}</figcaption><a href="${dataUrl}" title="Open the full-size embedded image"><img src="${dataUrl}" alt="${escapeHtml(alt)}" loading="lazy"></a></figure>`;
+  const attestation = artifact
+    ? `<small><code>${escapeHtml(artifact.filename)}</code><br>SHA-256: <code>${escapeHtml(artifact.sha256)}</code> · ${artifact.sizeBytes} bytes</small>`
+    : '';
+  return `<figure><figcaption>${escapeHtml(caption)}</figcaption>${attestation}<a href="${dataUrl}" title="Open the full-size embedded image"><img src="${dataUrl}" alt="${escapeHtml(alt)}" loading="lazy"></a></figure>`;
+}
+
+function annotationText(value) {
+  if (value === null || value === undefined || value === '') return 'None';
+  return typeof value === 'string' ? value : JSON.stringify(canonicalizeJson(value));
+}
+
+function renderRoute(role, route) {
+  const requested = route?.requested || 'not recorded';
+  const resolved = route?.resolved || 'not recorded';
+  const expectation = annotationText(route?.expectation);
+  return `<div><strong>${escapeHtml(role)} route</strong><code>${escapeHtml(requested)}</code><br><span>Resolved: <code>${escapeHtml(resolved)}</code></span><br><span>Expectation: ${escapeHtml(expectation)}</span></div>`;
+}
+
+function renderCaptureEvidence(role, evidence) {
+  if (!evidence) {
+    return `<details><summary>${escapeHtml(role)} capture evidence</summary><p>No capture record.</p></details>`;
+  }
+  return `<details><summary>${escapeHtml(role)} capture evidence (${escapeHtml(evidence.status)})</summary><pre>${escapeHtml(JSON.stringify(evidence, null, 2))}</pre></details>`;
 }
 
 function renderComparisonResult(result, embeddedImages) {
   let statusDetail;
   if (result.status === 'success') {
-    statusDetail = `${result.diffPercent.toFixed(4)}% visual difference; ${result.diffRegionCount} highlighted region(s); ${result.exceedsFailThreshold ? 'above' : 'within'} the failure threshold.`;
+    const thresholdState =
+      result.scenarioThresholds.failThreshold === null
+        ? 'failure threshold disabled'
+        : `${result.exceedsFailThreshold ? 'above' : 'within'} the ${result.scenarioThresholds.failThreshold}% failure threshold`;
+    statusDetail = `${result.diffPercent.toFixed(4)}% visual difference across ${result.comparablePixels} unmasked pixel(s); ${result.diffRegionCount} highlighted region(s); ${thresholdState}.`;
   } else if (result.status === 'skipped') {
     statusDetail = result.reason;
   } else {
@@ -1002,15 +2527,20 @@ function renderComparisonResult(result, embeddedImages) {
   }
 
   let images = '';
-  if (result.status === 'success') {
+  if (result.artifacts) {
     const imageSet = embeddedImages.get(result.filename);
     if (!imageSet) {
       throw new Error(`Missing embedded report images for ${result.filename}.`);
     }
-    images = `<div class="images">${renderImageFigure('Base', `Base capture for ${result.page}`, imageSet.base)}${renderImageFigure('Head', `Head capture for ${result.page}`, imageSet.head)}${renderImageFigure('Highlighted comparison', `Side-by-side highlighted comparison for ${result.page}`, imageSet.comparison)}</div>`;
+    images = `<div class="images">${renderImageFigure('Base copy', `Base capture for ${result.semanticScenario}`, imageSet.base, result.artifacts.base)}${renderImageFigure('Head copy', `Head capture for ${result.semanticScenario}`, imageSet.head, result.artifacts.head)}${renderImageFigure('50/50 overlay', `Overlay for ${result.semanticScenario}`, imageSet.overlay, result.artifacts.overlay)}${renderImageFigure('Raw masked diff', `Raw masked diff for ${result.semanticScenario}`, imageSet.rawDiff, result.artifacts.rawDiff)}${renderImageFigure('Highlighted comparison', `Side-by-side highlighted comparison for ${result.semanticScenario}`, imageSet.highlightedDiff, result.artifacts.highlightedDiff)}</div>`;
   }
 
-  return `<section class="result status-${escapeHtml(result.status)}"><h2>${escapeHtml(result.page)}</h2><p class="metadata"><span>Status: ${escapeHtml(result.status)}</span><span>Capture validity: ${result.status === 'success' ? 'valid' : 'invalid'}</span><span>${result.required ? 'Required' : 'Optional'}</span></p><p>${escapeHtml(statusDetail)}</p>${images}</section>`;
+  const masks = result.masks.length
+    ? `<ol class="masks">${result.masks.map((mask) => `<li><code>x=${mask.x}, y=${mask.y}, width=${mask.width}, height=${mask.height}</code>${mask.reason ? ` — ${escapeHtml(mask.reason)}` : ''}</li>`).join('')}</ol>`
+    : '<p>No masked regions.</p>';
+  const baseCaptureValidity = result.captureValidityByRevision?.base || 'unknown';
+  const headCaptureValidity = result.captureValidityByRevision?.head || 'unknown';
+  return `<section class="result status-${escapeHtml(result.status)}"><h2>${escapeHtml(result.scenarioTitle || result.semanticScenario || result.page)}</h2><p><code>${escapeHtml(result.semanticScenario || result.page)}</code></p><p class="metadata"><span>Status: ${escapeHtml(result.status)}</span><span>Pair capture validity: ${escapeHtml(result.captureValidity || 'unknown')}</span><span>Base capture validity: ${escapeHtml(baseCaptureValidity)}</span><span>Head capture validity: ${escapeHtml(headCaptureValidity)}</span><span>Comparison validity: ${escapeHtml(result.comparisonValidity || 'unknown')}</span><span>${result.required ? 'Required' : 'Optional'}</span><span>Thresholds evaluated: ${result.thresholdsEvaluated ? 'yes' : 'no'}</span></p><div class="routes">${renderRoute('Base', result.routes?.base)}${renderRoute('Head', result.routes?.head)}</div><div class="capture-evidence">${renderCaptureEvidence('Base', result.captureEvidenceByRevision?.base)}${renderCaptureEvidence('Head', result.captureEvidenceByRevision?.head)}</div><p>${escapeHtml(statusDetail)}</p><p><strong>Expected change:</strong> ${escapeHtml(annotationText(result.expectedChange))}</p><p><strong>Scenario tolerances:</strong> diff ${result.scenarioThresholds.diffThreshold}%; fail ${result.scenarioThresholds.failThreshold === null ? 'disabled' : `${result.scenarioThresholds.failThreshold}%`}; pixel tolerance ${result.scenarioThresholds.looksSameTolerance}; source ${escapeHtml(result.scenarioThresholds.source)}.</p><div><strong>Masks (${result.masks.length})</strong>${masks}</div>${images}</section>`;
 }
 
 function createComparisonReport(summary, embeddedImages) {
@@ -1023,6 +2553,9 @@ function createComparisonReport(summary, embeddedImages) {
     : '<section class="empty"><h2>No comparison results</h2><p>No valid screenshot pairs were available.</p></section>';
   const baseCapture = renderCaptureAttestation('Base capture', summary.captures?.base);
   const headCapture = renderCaptureAttestation('Head capture', summary.captures?.head);
+  const scenarioConfig = summary.scenarioConfig
+    ? `<section class="capture"><h2>Scenario policy</h2><dl><dt>Schema</dt><dd><code>${escapeHtml(summary.scenarioConfig.schemaVersion)}</code></dd><dt>SHA-256</dt><dd><code>${escapeHtml(summary.scenarioConfig.sha256)}</code></dd><dt>Size</dt><dd>${summary.scenarioConfig.sizeBytes} bytes</dd><dt>Base binding</dt><dd><code>${escapeHtml(annotationText(summary.scenarioConfig.revisionPair?.base))}</code></dd><dt>Head binding</dt><dd><code>${escapeHtml(annotationText(summary.scenarioConfig.revisionPair?.head))}</code></dd></dl></section>`
+    : '<section class="capture"><h2>Scenario policy</h2><p>Global defaults; no external scenario config.</p></section>';
 
   return `<!doctype html>
 <html lang="en">
@@ -1032,15 +2565,15 @@ function createComparisonReport(summary, embeddedImages) {
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
   <title>UI smoke comparison: ${escapeHtml(overallStatus)}</title>
   <style>
-    :root{color-scheme:light;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6fa;color:#171821}body{max-width:1600px;margin:0 auto;padding:24px}h1,h2{line-height:1.25}code{overflow-wrap:anywhere}.overview,.captures,.metadata,.images{display:grid;gap:12px}.overview{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:20px 0}.overview div,.capture,.result,.errors,.empty{background:#fff;border:1px solid #d9dce7;border-radius:8px;padding:16px}.overview strong,.metadata span{display:block}.captures{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:20px}.capture h2,.result h2{margin-top:0}.capture dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:0}.capture dd{margin:0;min-width:0}.metadata{grid-template-columns:repeat(auto-fit,minmax(160px,max-content));color:#4b5063}.images{grid-template-columns:repeat(auto-fit,minmax(280px,1fr));align-items:start}figure{margin:0}figcaption{font-weight:650;margin-bottom:8px}img{display:block;width:100%;height:auto;border:1px solid #c8cbd7;background:#fff}a:focus{outline:3px solid #3157d5;outline-offset:3px}.status-failed{border-left:5px solid #b42318}.status-skipped{border-left:5px solid #b7791f}.status-success{border-left:5px solid #16803c}.errors{border-left:5px solid #b42318}.errors li+li{margin-top:8px}@media(max-width:700px){body{padding:12px}.capture dl{grid-template-columns:1fr}.capture dt{font-weight:650}}
+    :root{color-scheme:light;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6fa;color:#171821}body{max-width:1800px;margin:0 auto;padding:24px}h1,h2{line-height:1.25}code{overflow-wrap:anywhere}.overview,.captures,.metadata,.images,.routes,.capture-evidence{display:grid;gap:12px}.overview{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:20px 0}.overview div,.capture,.result,.errors,.empty,.routes>div{background:#fff;border:1px solid #d9dce7;border-radius:8px;padding:16px}.overview strong,.metadata span,.routes strong{display:block}.captures{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-bottom:20px}.capture h2,.result h2{margin-top:0}.capture dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:0}.capture dd{margin:0;min-width:0}.metadata{grid-template-columns:repeat(auto-fit,minmax(160px,max-content));color:#4b5063}.routes,.capture-evidence{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}.capture-evidence{margin:12px 0}.capture-evidence pre{white-space:pre-wrap;overflow-wrap:anywhere}.images{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}figure{margin:0}figcaption{font-weight:650;margin-bottom:4px}figure small{display:block;min-height:3.5em;margin-bottom:8px;color:#4b5063}img{display:block;width:100%;height:auto;border:1px solid #c8cbd7;background:#fff}a:focus{outline:3px solid #3157d5;outline-offset:3px}.status-failed{border-left:5px solid #b42318}.status-skipped{border-left:5px solid #b7791f}.status-success{border-left:5px solid #16803c}.errors{border-left:5px solid #b42318}.errors li+li{margin-top:8px}.masks{margin-top:6px}@media(max-width:700px){body{padding:12px}.capture dl{grid-template-columns:1fr}.capture dt{font-weight:650}}
   </style>
 </head>
 <body>
   <header>
     <h1>UI smoke comparison</h1>
-    <div class="overview"><div><strong>Overall status</strong>${escapeHtml(overallStatus)}</div><div><strong>Capture validity</strong>${summary.valid ? 'valid' : 'invalid'}</div><div><strong>Base revision</strong>${escapeHtml(summary.mainLabel)}</div><div><strong>Head revision</strong>${escapeHtml(summary.prLabel)}</div><div><strong>Successful pairs</strong>${summary.stats.success}</div><div><strong>Pairs with visual differences</strong>${summary.stats.pagesWithDiff}</div></div>
+    <div class="overview"><div><strong>Overall status</strong>${escapeHtml(overallStatus)}</div><div><strong>Comparison validity</strong>${summary.valid ? 'valid' : 'invalid'}</div><div><strong>Base revision</strong>${escapeHtml(summary.mainLabel)}</div><div><strong>Head revision</strong>${escapeHtml(summary.prLabel)}</div><div><strong>Valid semantic pairs</strong>${summary.stats.validSemanticPairs}</div><div><strong>Threshold evaluations</strong>${summary.stats.thresholdEvaluations}</div><div><strong>Incomplete captures</strong>${summary.stats.incompleteCaptures}</div><div><strong>Expected removals</strong>${summary.stats.expectedProductRemovals}</div><div><strong>Pairs with visual differences</strong>${summary.stats.pagesWithDiff}</div><div><strong>Pairs above failure threshold</strong>${summary.stats.pagesExceedingFailThreshold}</div></div>
   </header>
-  <div class="captures">${baseCapture}${headCapture}</div>
+  <div class="captures">${baseCapture}${headCapture}${scenarioConfig}</div>
   ${fatalErrors}
   <main>${results}</main>
 </body>
@@ -1050,9 +2583,7 @@ function createComparisonReport(summary, embeddedImages) {
 
 function logSummary(summary, summaryPath) {
   console.log('\n--- Summary ---');
-  console.log(
-    `Visual changes above ${summary.thresholds.diffThreshold}% are boxed in red (looks-same clusters).`,
-  );
+  console.log('Scenario-specific visual changes are boxed in red (looks-same clusters).');
   for (const result of summary.results) {
     if (result.status === 'success') {
       const visualMarker = result.hasVisualDiff ? ' [diff]' : '';
@@ -1081,6 +2612,7 @@ async function runComparison(options, dependencies = {}) {
   let captures = { base: null, head: null };
   let mainLabel = 'main (base)';
   let prLabel = 'PR (head)';
+  let scenarioConfig = null;
   let sourceMode = 'unknown';
 
   console.log('Generating side-by-side comparisons');
@@ -1093,12 +2625,18 @@ async function runComparison(options, dependencies = {}) {
 
   if (fatalErrors.length === 0) {
     try {
-      const plan = buildComparisonPlan(options.mainDir, options.prDir);
+      const plan = buildComparisonPlan(
+        options.mainDir,
+        options.prDir,
+        options.scenarioConfigPath || null,
+      );
       mainLabel = options.mainLabel || plan.mainLabel;
       prLabel = options.prLabel || plan.prLabel;
       sourceMode = plan.sourceMode;
       captures = plan.captures;
-      cleanComparisonOutputs(options.outputDir, plan.filenames);
+      scenarioConfig = plan.scenarioConfig.attestation;
+      applyScenarioPolicies(plan, options);
+      cleanComparisonOutputs(options.outputDir, plan.outputFilenames);
       results.push(...plan.results);
 
       if (plan.filenames.length === 0) {
@@ -1106,36 +2644,46 @@ async function runComparison(options, dependencies = {}) {
       }
 
       for (const pair of plan.pairs) {
-        const outputPath = path.join(options.outputDir, pair.filename);
+        const outputPath = path.join(options.outputDir, pair.artifactFilenames.highlightedDiff);
         try {
           const baseImage = validateFreshCapture(pair.mainRecord, pair.mainPath, 'Base');
           const headImage = validateFreshCapture(pair.prRecord, pair.prPath, 'Head');
           const diffAnalysis = await analyzeDiff(
-            pair.mainPath,
-            pair.prPath,
-            options,
+            baseImage,
+            headImage,
+            {
+              ...options,
+              looksSameTolerance: pair.policy.looksSameTolerance,
+              masks: pair.policy.masks,
+            },
             compareImages,
           );
-          const hasVisualDiff = diffAnalysis.diffPercent > options.diffThreshold;
+          const hasVisualDiff = diffAnalysis.diffPercent > pair.policy.diffThreshold;
           const exceedsFailThreshold =
-            options.failThreshold !== null && diffAnalysis.diffPercent > options.failThreshold;
-          await generateComparison(
-            pair.page,
-            pair.mainPath,
-            pair.prPath,
-            outputPath,
-            mainLabel,
-            prLabel,
+            pair.policy.failThreshold !== null &&
+            diffAnalysis.diffPercent > pair.policy.failThreshold;
+          const artifacts = await generateArtifactSet({
+            baseImage,
             diffAnalysis,
+            filenames: pair.artifactFilenames,
             hasVisualDiff,
-          );
-          const comparisonImage = fs.readFileSync(outputPath);
-          embeddedImages.set(pair.filename, {
-            base: baseImage,
-            head: headImage,
-            comparison: comparisonImage,
+            headImage,
+            mainLabel,
+            outputDir: options.outputDir,
+            page: pair.scenarioTitle,
+            prLabel,
           });
-          results.push({
+          embeddedImages.set(pair.filename, {
+            ...Object.fromEntries(
+              Object.entries(artifacts).map(([name, artifact]) => [
+                name,
+                fs.readFileSync(path.join(options.outputDir, artifact.filename)),
+              ]),
+            ),
+          });
+          const commonResult = {
+            artifacts,
+            comparablePixels: diffAnalysis.comparablePixels,
             filename: pair.filename,
             page: pair.page,
             required: pair.required,
@@ -1144,26 +2692,72 @@ async function runComparison(options, dependencies = {}) {
             prExists: true,
             diffPercent: diffAnalysis.diffPercent,
             diffRegionCount: hasVisualDiff ? diffAnalysis.regions.length : 0,
-            hasVisualDiff,
-            exceedsFailThreshold,
-            status: 'success',
-          });
+            policy: pair.policy,
+            semanticScenario: pair.semanticScenario,
+            scenarioTitle: pair.scenarioTitle,
+            captureValidityByRevision: pair.captureValidityByRevision,
+            captureEvidenceByRevision: pair.captureEvidenceByRevision,
+            routes: pair.routes,
+            viewport: pair.viewport,
+          };
+          if (pair.expectedRemoval) {
+            results.push({
+              ...commonResult,
+              captureValidity: 'expected_product_removal',
+              comparisonValidity: 'expected-change',
+              hasVisualDiff,
+              exceedsFailThreshold,
+              reason: 'Semantic scenario records an expected product removal.',
+              status: 'success',
+              thresholdsEvaluated: true,
+            });
+          } else {
+            results.push({
+              ...commonResult,
+              captureValidity: 'valid',
+              comparisonValidity: 'valid',
+              hasVisualDiff,
+              exceedsFailThreshold,
+              status: 'success',
+              thresholdsEvaluated: true,
+            });
+          }
         } catch (error) {
           console.error(`  ✗ Failed: ${error.message}`);
-          try {
-            if (fs.existsSync(outputPath)) {
-              fs.unlinkSync(outputPath);
+          for (const filename of Object.values(pair.artifactFilenames)) {
+            try {
+              const artifactPath = path.join(options.outputDir, filename);
+              if (fs.existsSync(artifactPath)) {
+                fs.unlinkSync(artifactPath);
+              }
+            } catch (cleanupError) {
+              console.error(
+                `  ✗ Failed to remove incomplete output ${filename}: ${cleanupError.message}`,
+              );
             }
-          } catch (cleanupError) {
-            console.error(`  ✗ Failed to remove incomplete output: ${cleanupError.message}`);
           }
+          const failureClassification = classifyPairFailure(error.failureType || 'comparison');
+          const pairCaptureValidity = aggregateCaptureValidity(pair.captureValidityByRevision);
           results.push({
+            ...failureClassification,
+            captureValidity:
+              failureClassification.captureValidity === 'valid'
+                ? pairCaptureValidity
+                : failureClassification.captureValidity,
             filename: pair.filename,
             page: pair.page,
             required: pair.required,
             status: 'failed',
             error: error.message,
             failureType: error.failureType || 'comparison',
+            thresholdsEvaluated: false,
+            policy: pair.policy,
+            semanticScenario: pair.semanticScenario,
+            scenarioTitle: pair.scenarioTitle,
+            captureValidityByRevision: pair.captureValidityByRevision,
+            captureEvidenceByRevision: pair.captureEvidenceByRevision,
+            routes: pair.routes,
+            viewport: pair.viewport,
           });
         }
       }
@@ -1179,6 +2773,7 @@ async function runComparison(options, dependencies = {}) {
     options,
     prLabel,
     results,
+    scenarioConfig,
     sourceMode,
   });
   const summaryPath = path.join(options.outputDir, COMPARISON_SUMMARY_FILENAME);
@@ -1190,9 +2785,13 @@ async function runComparison(options, dependencies = {}) {
   console.log(`Report saved to: ${reportPath}`);
 
   if (summary.stats.pagesExceedingFailThreshold > 0) {
-    console.error(
-      `\nVisual diff threshold exceeded: ${summary.stats.pagesExceedingFailThreshold} page(s) above ${options.failThreshold}%`,
-    );
+    const failures = summary.results
+      .filter((result) => result.status === 'success' && result.exceedsFailThreshold)
+      .map(
+        (result) =>
+          `${result.semanticScenario} (${result.diffPercent.toFixed(4)}% > ${result.scenarioThresholds.failThreshold}%)`,
+      );
+    console.error(`\nVisual diff threshold exceeded: ${failures.join(', ')}`);
   }
 
   return { exitCode: summary.passed ? 0 : 1, reportPath, summary, summaryPath };
@@ -1224,6 +2823,8 @@ module.exports = {
   COMPARISON_REPORT_FILENAME,
   COMPARISON_SUMMARY_SCHEMA_VERSION,
   ComparisonError,
+  SCENARIO_CONFIG_SCHEMA_VERSION,
+  SCENARIO_POLICY_SCHEMA_VERSION,
   analyzeDiff,
   buildComparisonPlan,
   cleanComparisonOutputs,
@@ -1239,6 +2840,7 @@ module.exports = {
   validateComparisonOptions,
   validateDistinctDirectories,
   validateFreshCapture,
+  writeBoundScenarioConfig,
 };
 
 if (require.main === module) {

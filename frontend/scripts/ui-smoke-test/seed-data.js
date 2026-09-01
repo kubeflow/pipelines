@@ -9,6 +9,7 @@ const https = require('https');
 const path = require('path');
 
 const {
+  COMPARISON_RUN_FIXTURES,
   REVISION_FLAVORS,
   buildLogicalFixtures,
   buildSemanticDeployment,
@@ -32,6 +33,12 @@ const SEED_IMAGE =
 const FAILED_RUN_STATES = new Set(['SKIPPED', 'FAILED', 'CANCELED', 'PAUSED']);
 const METRICS_EXECUTOR_OUTPUT = {
   artifacts: {
+    html_report: {
+      artifacts: [{ metadata: {} }],
+    },
+    markdown_report: {
+      artifacts: [{ metadata: {} }],
+    },
     scalar_metrics: {
       artifacts: [{ metadata: { accuracy: 0.92, loss: 0.08 } }],
     },
@@ -60,6 +67,14 @@ root:
   dag:
     outputs:
       artifacts:
+        html_report:
+          artifactSelectors:
+            - outputArtifactKey: html_report
+              producerSubtask: write-metrics
+        markdown_report:
+          artifactSelectors:
+            - outputArtifactKey: markdown_report
+              producerSubtask: write-metrics
         roc_curve:
           artifactSelectors:
             - outputArtifactKey: roc_curve
@@ -78,6 +93,14 @@ root:
           name: comp-write-metrics
   outputDefinitions:
     artifacts:
+      html_report:
+        artifactType:
+          schemaTitle: system.HTML
+          schemaVersion: 0.0.1
+      markdown_report:
+        artifactType:
+          schemaTitle: system.Markdown
+          schemaVersion: 0.0.1
       roc_curve:
         artifactType:
           schemaTitle: system.ClassificationMetrics
@@ -93,6 +116,14 @@ components:
     executorLabel: exec-write-metrics
     outputDefinitions:
       artifacts:
+        html_report:
+          artifactType:
+            schemaTitle: system.HTML
+            schemaVersion: 0.0.1
+        markdown_report:
+          artifactType:
+            schemaTitle: system.Markdown
+            schemaVersion: 0.0.1
         roc_curve:
           artifactType:
             schemaTitle: system.ClassificationMetrics
@@ -112,13 +143,17 @@ deploymentSpec:
         args:
           - |
             metadata_path="$(dirname "$1")/output_metadata.json"
-            mkdir -p "$(dirname "$1")" "$(dirname "$2")"
+            mkdir -p "$(dirname "$1")" "$(dirname "$2")" "$(dirname "$3")" "$(dirname "$4")"
             : > "$1"
             : > "$2"
+            printf '%s\\n' '<h1>UI Smoke HTML Report</h1><p>Deterministic artifact content.</p>' > "$3"
+            printf '%s\\n' '# UI Smoke Markdown Report' '' 'Deterministic artifact content.' > "$4"
             printf '%s' '${METRICS_EXECUTOR_OUTPUT_JSON}' > "$metadata_path"
           - ui-smoke-metrics
           - "{{$.outputs.artifacts['scalar_metrics'].path}}"
           - "{{$.outputs.artifacts['roc_curve'].path}}"
+          - "{{$.outputs.artifacts['html_report'].path}}"
+          - "{{$.outputs.artifacts['markdown_report'].path}}"
 `;
 
 const RICH_PIPELINE_YAML = `pipelineInfo:
@@ -127,6 +162,14 @@ root:
   dag:
     outputs:
       artifacts:
+        html_report:
+          artifactSelectors:
+            - outputArtifactKey: html_report
+              producerSubtask: write-metrics
+        markdown_report:
+          artifactSelectors:
+            - outputArtifactKey: markdown_report
+              producerSubtask: write-metrics
         roc_curve:
           artifactSelectors:
             - outputArtifactKey: roc_curve
@@ -190,6 +233,14 @@ root:
           name: comp-write-metrics
   outputDefinitions:
     artifacts:
+      html_report:
+        artifactType:
+          schemaTitle: system.HTML
+          schemaVersion: 0.0.1
+      markdown_report:
+        artifactType:
+          schemaTitle: system.Markdown
+          schemaVersion: 0.0.1
       roc_curve:
         artifactType:
           schemaTitle: system.ClassificationMetrics
@@ -251,6 +302,14 @@ components:
     executorLabel: exec-write-metrics
     outputDefinitions:
       artifacts:
+        html_report:
+          artifactType:
+            schemaTitle: system.HTML
+            schemaVersion: 0.0.1
+        markdown_report:
+          artifactType:
+            schemaTitle: system.Markdown
+            schemaVersion: 0.0.1
         roc_curve:
           artifactType:
             schemaTitle: system.ClassificationMetrics
@@ -318,13 +377,17 @@ deploymentSpec:
         args:
           - |
             metadata_path="$(dirname "$1")/output_metadata.json"
-            mkdir -p "$(dirname "$1")" "$(dirname "$2")"
+            mkdir -p "$(dirname "$1")" "$(dirname "$2")" "$(dirname "$3")" "$(dirname "$4")"
             : > "$1"
             : > "$2"
+            printf '%s\\n' '<h1>UI Smoke HTML Report</h1><p>Deterministic artifact content.</p>' > "$3"
+            printf '%s\\n' '# UI Smoke Markdown Report' '' 'Deterministic artifact content.' > "$4"
             printf '%s' '${METRICS_EXECUTOR_OUTPUT_JSON}' > "$metadata_path"
           - ui-smoke-metrics
           - "{{$.outputs.artifacts['scalar_metrics'].path}}"
           - "{{$.outputs.artifacts['roc_curve'].path}}"
+          - "{{$.outputs.artifacts['html_report'].path}}"
+          - "{{$.outputs.artifacts['markdown_report'].path}}"
 `;
 
 const PIPELINE_YAML_BY_PROFILE = Object.freeze({
@@ -671,14 +734,31 @@ async function fetchResourceIds(request = apiRequest) {
 
 function buildSeedManifest(resourceIds, options = {}) {
   const { apiBase = API_BASE, semantic } = options;
+  const primaryRunBinding =
+    semantic?.bindings?.runs?.['run.training-1'] ||
+    Object.values(semantic?.bindings?.runs || {})[0] ||
+    null;
+  const primaryTaskBinding = primaryRunBinding?.tasks?.['task.write-metrics'] || null;
+  const primaryArtifactId =
+    primaryRunBinding?.artifacts?.['artifact.scalar-metrics']?.members?.['metric.accuracy']
+      ?.artifactIds?.[0] || null;
+  const semanticComparisonRunIds = COMPARISON_RUN_FIXTURES.map(
+    (semanticKey) => semantic?.bindings?.resources?.[semanticKey]?.id,
+  ).filter(Boolean);
   const manifest = {
     apiBase,
     defaults: {
-      compareRunlist: resourceIds.runIds.slice(0, 3).join(','),
+      artifactId: primaryArtifactId,
+      compareRunlist:
+        semanticComparisonRunIds.length === COMPARISON_RUN_FIXTURES.length
+          ? semanticComparisonRunIds.join(',')
+          : resourceIds.runIds.slice(0, 3).join(','),
+      executionId: primaryTaskBinding?.mlmdExecutionId || null,
       experimentId: resourceIds.experimentIds[0] || null,
       pipelineId: resourceIds.pipelineIds[0] || null,
       recurringRunId: resourceIds.recurringRunIds[0] || null,
       runId: resourceIds.runIds[0] || null,
+      taskId: primaryTaskBinding?.taskId || null,
     },
     generatedAt: new Date().toISOString(),
     resources: resourceIds,

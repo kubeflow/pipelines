@@ -8,6 +8,7 @@
  */
 
 const { execFileSync, spawn } = require('child_process');
+const crypto = require('crypto');
 const fs = require('fs');
 const http = require('http');
 const net = require('net');
@@ -52,6 +53,11 @@ const PORT_FORWARDS = Object.freeze([
 ]);
 const SEED_RUNTIME_IMAGE =
   'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
+const DIAGNOSTIC_LIMITS = Object.freeze({
+  maxOutputBytes: 64 * 1024,
+  maxPods: 24,
+  tailLines: 200,
+});
 
 // Kept for compatibility with callers that display the historical inventory. Readiness is now
 // based on the Deployments rendered by the selected revision.
@@ -106,6 +112,33 @@ function requireSuccess(result, action) {
     throw new Error(`${action}: ${detail}`);
   }
   return result;
+}
+
+function boundedDiagnosticText(value, maxBytes) {
+  const text = typeof value === 'string' ? value : value ? String(value) : '';
+  const bytes = Buffer.byteLength(text);
+  if (bytes <= maxBytes) return { bytes, text, truncated: false };
+  const suffix = `\n... truncated to ${maxBytes} bytes ...`;
+  const suffixBytes = Buffer.byteLength(suffix);
+  const body = Buffer.from(text)
+    .subarray(0, Math.max(0, maxBytes - suffixBytes))
+    .toString('utf8');
+  return { bytes, text: `${body}${suffix}`, truncated: true };
+}
+
+function redactDiagnosticText(value) {
+  return String(value || '')
+    .replace(/:\/\/([^\s/:@]+):([^\s/@]+)@/g, '://<redacted>:<redacted>@')
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer <redacted>')
+    .replace(
+      /([?&](?:access_token|api_key|auth|authorization|cookie|credential|password|secret|token)=)[^&\s]*/gi,
+      '$1<redacted>',
+    )
+    .replace(/\b(authorization|cookie|set-cookie|x-api-key)\s*[:=]\s*[^\r\n]*/gi, '$1: <redacted>')
+    .replace(
+      /\b([A-Z0-9_]*(?:AUTH|COOKIE|CREDENTIAL|PASSWORD|SECRET|TOKEN|API_KEY)[A-Z0-9_]*)=([^\s,;]+)/g,
+      '$1=<redacted>',
+    );
 }
 
 function validateName(value, description) {
@@ -912,6 +945,150 @@ function createKindStack(config = {}) {
     }
   }
 
+  function collectDiagnostics(options = {}) {
+    const runner = stackRunner(options);
+    const maxOutputBytes = Number(options.maxOutputBytes ?? DIAGNOSTIC_LIMITS.maxOutputBytes);
+    const maxPods = Number(options.maxPods ?? DIAGNOSTIC_LIMITS.maxPods);
+    const tailLines = Number(options.tailLines ?? DIAGNOSTIC_LIMITS.tailLines);
+    if (
+      !Number.isInteger(maxOutputBytes) ||
+      maxOutputBytes < 1024 ||
+      maxOutputBytes > 1024 * 1024
+    ) {
+      throw new Error('Diagnostic maxOutputBytes must be an integer from 1024 through 1048576.');
+    }
+    if (!Number.isInteger(maxPods) || maxPods < 1 || maxPods > 100) {
+      throw new Error('Diagnostic maxPods must be an integer from 1 through 100.');
+    }
+    if (!Number.isInteger(tailLines) || tailLines < 1 || tailLines > 1000) {
+      throw new Error('Diagnostic tailLines must be an integer from 1 through 1000.');
+    }
+
+    const artifactRoot = path.resolve(options.artifactRoot || archiveDir);
+    const outputDir = path.resolve(options.outputDir || path.join(artifactRoot, 'diagnostics'));
+    const relativeOutputDir = path.relative(artifactRoot, outputDir);
+    if (
+      relativeOutputDir === '..' ||
+      relativeOutputDir.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeOutputDir)
+    ) {
+      throw new Error('Diagnostic outputDir must stay inside artifactRoot.');
+    }
+    fs.mkdirSync(outputDir, { recursive: true });
+
+    const diagnosticCommand = (name, args) => {
+      const scopedArgs = kubectlArgs(...args);
+      const result = runner(
+        'kubectl',
+        scopedArgs,
+        commandOptions({ maxBuffer: maxOutputBytes * 2, timeout: 30000 }),
+      );
+      const output = boundedDiagnosticText(redactDiagnosticText(result.output), maxOutputBytes);
+      const error = boundedDiagnosticText(
+        redactDiagnosticText(result.error),
+        Math.min(maxOutputBytes, 16 * 1024),
+      );
+      const filename = `${sanitizeImageTagPart(name)}.log`;
+      const artifactPath = path.join(outputDir, filename);
+      const artifactContents = [
+        `command: kubectl ${scopedArgs
+          .map((argument) => (argument === kubeconfigPath ? '<run-scoped-kubeconfig>' : argument))
+          .join(' ')}`,
+        `success: ${result.success === true}`,
+        '',
+        output.text,
+        error.text ? `\nstderr/error:\n${error.text}` : '',
+      ].join('\n');
+      const preview = boundedDiagnosticText(artifactContents, Math.min(maxOutputBytes, 32 * 1024));
+      fs.writeFileSync(artifactPath, artifactContents, { mode: 0o600 });
+      return {
+        artifactPath: path.relative(artifactRoot, artifactPath).split(path.sep).join('/'),
+        bytes: Buffer.byteLength(artifactContents),
+        command: [
+          'kubectl',
+          ...scopedArgs.map((argument) =>
+            argument === kubeconfigPath ? '<run-scoped-kubeconfig>' : argument,
+          ),
+        ],
+        diagnosticOutput: output.text,
+        name,
+        outputBytes: output.bytes,
+        preview: preview.text,
+        sha256: crypto.createHash('sha256').update(artifactContents).digest('hex'),
+        success: result.success === true,
+        truncated: output.truncated || error.truncated || preview.truncated,
+      };
+    };
+
+    const diagnostic = {
+      clusterName,
+      collected: ownsCluster,
+      context,
+      limits: { maxOutputBytes, maxPods, tailLines },
+      logs: [],
+      namespace,
+      owned: ownsCluster,
+      role,
+      status: [],
+    };
+    if (!ownsCluster) {
+      diagnostic.reason = 'cluster_not_owned';
+      return diagnostic;
+    }
+
+    diagnostic.status.push(
+      diagnosticCommand('deployments', ['-n', namespace, 'get', 'deployments', '-o', 'wide']),
+      diagnosticCommand('pods', ['-n', namespace, 'get', 'pods', '-o', 'wide']),
+      diagnosticCommand('events', ['-n', namespace, 'get', 'events', '--sort-by=.lastTimestamp']),
+    );
+    const podInventory = diagnosticCommand('pod-names', [
+      '-n',
+      namespace,
+      'get',
+      'pods',
+      '-o',
+      'jsonpath={range .items[*]}{.metadata.name}{"\\n"}{end}',
+    ]);
+    if (!podInventory.success) {
+      delete podInventory.diagnosticOutput;
+      diagnostic.status.push(podInventory);
+      for (const status of diagnostic.status) delete status.diagnosticOutput;
+      return diagnostic;
+    }
+    const allPodNames = [
+      ...new Set(podInventory.diagnosticOutput.split('\n').map((name) => name.trim())),
+    ]
+      .filter((name) => /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(name))
+      .sort();
+    const podNames = allPodNames
+      .filter((name) =>
+        PLATFORM_DEPLOYMENTS.some(
+          (deployment) => name === deployment || name.startsWith(`${deployment}-`),
+        ),
+      )
+      .slice(0, maxPods);
+    delete podInventory.diagnosticOutput;
+    diagnostic.status.push(podInventory);
+    diagnostic.ignoredPodCount = allPodNames.length - podNames.length;
+    diagnostic.podCount = podNames.length;
+    for (const podName of podNames) {
+      const podLog = diagnosticCommand(`pod-${podName}`, [
+        '-n',
+        namespace,
+        'logs',
+        `pod/${podName}`,
+        '--all-containers=true',
+        `--tail=${tailLines}`,
+        '--timestamps=true',
+        '--prefix=true',
+      ]);
+      delete podLog.diagnosticOutput;
+      diagnostic.logs.push(podLog);
+    }
+    for (const status of diagnostic.status) delete status.diagnosticOutput;
+    return diagnostic;
+  }
+
   function listDeployments(options = {}) {
     const runner = stackRunner(options);
     const result = runner(
@@ -1434,6 +1611,7 @@ function createKindStack(config = {}) {
     buildAndDeployComponents,
     buildComponentImages,
     cleanup,
+    collectDiagnostics,
     clusterName,
     commandEnvironment,
     context,
@@ -1573,6 +1751,7 @@ module.exports = {
   CLUSTER_NAME,
   DEFAULT_KUBECONFIG,
   DEFAULT_PORTS,
+  DIAGNOSTIC_LIMITS,
   FRONTEND_SERVER_PORT,
   KUBE_CONTEXT,
   NAMESPACE,

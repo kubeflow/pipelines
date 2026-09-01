@@ -896,6 +896,80 @@ test('deployed UI forwarding targets the isolated stack service', async (t) => {
   assert.equal(calls[0].options.env.KUBECONFIG, stack.kubeconfigPath);
 });
 
+test('stack diagnostics are bounded and always use the run-scoped kubeconfig and context', async (t) => {
+  const calls = [];
+  let clusterExists = false;
+  const stack = createTestStack(t, {
+    runner(command, args, options) {
+      calls.push({ args, command, options });
+      if (command === 'kind' && args[0] === 'get') {
+        return success(clusterExists ? 'ui-smoke-base-test' : '');
+      }
+      if (command === 'kind' && args[0] === 'create') clusterExists = true;
+      if (
+        command === 'kubectl' &&
+        args.includes('get') &&
+        args.includes('pods') &&
+        args.some((argument) => argument.startsWith('jsonpath='))
+      ) {
+        return success('workflow-task-z\nml-pipeline-a\nmysql-b\nml-pipeline-ui-z\n');
+      }
+      if (command === 'kubectl' && args.includes('logs')) {
+        return success(
+          `Authorization: Bearer secret-token\nDATABASE_PASSWORD=hunter2\n${'x'.repeat(4096)}`,
+        );
+      }
+      return success('ready');
+    },
+  });
+  await stack.createCluster();
+  calls.length = 0;
+
+  const diagnostic = stack.collectDiagnostics({
+    maxOutputBytes: 1024,
+    maxPods: 2,
+    tailLines: 5,
+  });
+
+  assert.equal(diagnostic.collected, true);
+  assert.equal(diagnostic.owned, true);
+  assert.equal(diagnostic.logs.length, 2);
+  assert.deepEqual(
+    diagnostic.logs.map((entry) => entry.name),
+    ['pod-ml-pipeline-a', 'pod-ml-pipeline-ui-z'],
+  );
+  assert.ok(diagnostic.logs.every((entry) => entry.truncated));
+  assert.ok(diagnostic.logs.every((entry) => entry.bytes < 1600));
+  assert.ok(
+    calls
+      .filter((call) => call.command === 'kubectl')
+      .every(
+        (call) =>
+          call.args[0] === '--kubeconfig' &&
+          call.args[1] === stack.kubeconfigPath &&
+          call.args[2] === '--context' &&
+          call.args[3] === stack.context &&
+          call.options.env.KUBECONFIG === stack.kubeconfigPath,
+      ),
+  );
+  assert.ok(
+    diagnostic.logs.every(
+      (entry) =>
+        entry.command.includes('<run-scoped-kubeconfig>') &&
+        !entry.command.includes(stack.kubeconfigPath),
+    ),
+  );
+  assert.ok(diagnostic.logs.every((entry) => /^[a-f0-9]{64}$/.test(entry.sha256)));
+  assert.ok(diagnostic.logs.every((entry) => entry.artifactPath.startsWith('diagnostics/')));
+  assert.ok(diagnostic.logs.every((entry) => entry.preview.includes('<redacted>')));
+  assert.ok(diagnostic.logs.every((entry) => !/secret-token|hunter2/.test(entry.preview)));
+  for (const entry of diagnostic.logs) {
+    const contents = fs.readFileSync(path.join(stack.archiveDir, entry.artifactPath), 'utf8');
+    assert.doesNotMatch(contents, /secret-token|hunter2/);
+    assert.match(contents, /<redacted>/);
+  }
+});
+
 test('process cleanup is isolated between stack instances', async (t) => {
   const base = createTestStack(t);
   const head = createTestStack(t, {

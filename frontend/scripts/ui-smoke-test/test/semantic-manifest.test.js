@@ -25,6 +25,18 @@ function legacyMetricArtifacts() {
       artifactId: '82',
       metadata: { confidenceMetrics: structuredClone(EXPECTED_ROC_POINTS) },
     },
+    {
+      artifactId: '83',
+      metadata: { display_name: 'html_report' },
+      type: 'system.HTML',
+      uri: 's3://fixtures/report.html',
+    },
+    {
+      artifactId: '84',
+      metadata: { display_name: 'markdown_report' },
+      type: 'system.Markdown',
+      uri: 's3://fixtures/report.md',
+    },
   ];
 }
 
@@ -61,6 +73,8 @@ function legacyRichRun() {
           display_name: 'write-metrics',
           execution_id: '1',
           outputs: {
+            html_report: { artifact_ids: [83] },
+            markdown_report: { artifact_ids: [84] },
             roc_curve: { artifact_ids: [82] },
             scalar_metrics: { artifact_ids: [81] },
           },
@@ -148,6 +162,28 @@ function nativeRichRun() {
             {
               artifact_key: 'roc_curve',
               artifacts: [nativeRocArtifact()],
+            },
+            {
+              artifact_key: 'html_report',
+              artifacts: [
+                {
+                  artifact_id: 'html-artifact',
+                  name: 'html_report',
+                  type: 'HTML',
+                  uri: 's3://fixtures/report.html',
+                },
+              ],
+            },
+            {
+              artifact_key: 'markdown_report',
+              artifacts: [
+                {
+                  artifact_id: 'markdown-artifact',
+                  name: 'markdown_report',
+                  type: 'Markdown',
+                  uri: 's3://fixtures/report.md',
+                },
+              ],
             },
           ],
         },
@@ -420,6 +456,92 @@ test('rejects wrong or missing deterministic ROC payloads in either revision', (
   }
 });
 
+test('requires deterministic HTML and Markdown artifacts in each revision', () => {
+  const logical = buildLogicalFixtures(RICH_RESOURCE_DEFINITIONS);
+  const legacy = legacyRichRun();
+  delete legacy.run_details.task_details[0].outputs.html_report;
+  const native = nativeRichRun();
+  native.tasks[0].outputs.artifacts = native.tasks[0].outputs.artifacts.filter(
+    (group) => group.artifact_key !== 'markdown_report',
+  );
+
+  const legacySemantic = buildSemanticDeployment({
+    logical,
+    runResponses: [{ response: legacy, semanticKey: 'run.rich' }],
+  });
+  const nativeSemantic = buildSemanticDeployment({
+    logical,
+    runResponses: [{ response: native, semanticKey: 'run.rich' }],
+  });
+
+  assert.equal(legacySemantic.validation.valid, false);
+  assert.match(legacySemantic.validation.errors.join('\n'), /missing artifact\.html-report/);
+  assert.equal(nativeSemantic.validation.valid, false);
+  assert.match(nativeSemantic.validation.errors.join('\n'), /missing artifact\.markdown-report/);
+});
+
+test('rejects native tasks without stable IDs and file artifacts with wrong metadata', () => {
+  const logical = buildLogicalFixtures(RICH_RESOURCE_DEFINITIONS);
+  const missingTaskId = nativeRichRun();
+  delete missingTaskId.tasks[0].task_id;
+  const invalidFiles = nativeRichRun();
+  const html = invalidFiles.tasks[0].outputs.artifacts.find(
+    (group) => group.artifact_key === 'html_report',
+  ).artifacts[0];
+  html.type = 'Dataset';
+  const markdown = invalidFiles.tasks[0].outputs.artifacts.find(
+    (group) => group.artifact_key === 'markdown_report',
+  ).artifacts[0];
+  markdown.uri = '';
+
+  const missingTaskIdSemantic = buildSemanticDeployment({
+    logical,
+    runResponses: [{ response: missingTaskId, semanticKey: 'run.rich' }],
+  });
+  const invalidFileSemantic = buildSemanticDeployment({
+    logical,
+    runResponses: [{ response: invalidFiles, semanticKey: 'run.rich' }],
+  });
+
+  assert.equal(missingTaskIdSemantic.validation.valid, false);
+  assert.match(missingTaskIdSemantic.validation.errors.join('\n'), /missing a native task ID/);
+  assert.equal(invalidFileSemantic.validation.valid, false);
+  assert.match(
+    invalidFileSemantic.validation.errors.join('\n'),
+    /artifact\.html-report has native type Dataset, expected html/,
+  );
+  assert.match(
+    invalidFileSemantic.validation.errors.join('\n'),
+    /artifact\.markdown-report is missing a native artifact URI/,
+  );
+});
+
+test('rejects legacy MLMD file artifacts with unusable metadata', () => {
+  const logical = buildLogicalFixtures(RICH_RESOURCE_DEFINITIONS);
+  const artifacts = legacyMetricArtifacts();
+  const html = artifacts.find((artifact) => artifact.artifactId === '83');
+  html.type = 'system.Dataset';
+  const markdown = artifacts.find((artifact) => artifact.artifactId === '84');
+  markdown.uri = '';
+
+  const semantic = buildSemanticDeployment({
+    logical,
+    runResponses: [
+      { response: { ...legacyRichRun(), semantic_artifacts: artifacts }, semanticKey: 'run.rich' },
+    ],
+  });
+
+  assert.equal(semantic.validation.valid, false);
+  assert.match(
+    semantic.validation.errors.join('\n'),
+    /artifact\.html-report has legacy MLMD type system\.Dataset, expected html/,
+  );
+  assert.match(
+    semantic.validation.errors.join('\n'),
+    /artifact\.markdown-report is missing a legacy MLMD artifact URI/,
+  );
+});
+
 test('maps rich legacy and native topology to instance groups and semantic relationships', () => {
   const logical = buildLogicalFixtures(RICH_RESOURCE_DEFINITIONS);
   const legacy = buildSemanticDeployment({
@@ -433,6 +555,13 @@ test('maps rich legacy and native topology to instance groups and semantic relat
 
   assert.equal(legacy.validation.valid, true, legacy.validation.errors.join('; '));
   assert.equal(native.validation.valid, true, native.validation.errors.join('; '));
+  assert.deepEqual(legacy.bindings.runs['run.rich'].artifacts['artifact.html-report'].artifactIds, [
+    '83',
+  ]);
+  assert.deepEqual(
+    native.bindings.runs['run.rich'].artifacts['artifact.markdown-report'].artifactIds,
+    ['markdown-artifact'],
+  );
   assert.equal(legacy.bindings.runs['run.rich'].taskInstances['task.loop-worker'].length, 2);
   assert.deepEqual(
     native.bindings.runs['run.rich'].taskInstances['task.loop-worker'].map(
@@ -552,7 +681,7 @@ test('builds and combines revision deployments by semantic key with provenance a
   assert.equal(combined.schemaVersion, SEMANTIC_SCHEMA_VERSION);
   assert.equal(combined.schemaVersion, 'ui-smoke-semantic/v2');
   assert.equal(combined.fixtureSet, SEMANTIC_FIXTURE_SET);
-  assert.equal(combined.fixtureSet, 'ui-smoke-deterministic-v2');
+  assert.equal(combined.fixtureSet, 'ui-smoke-deterministic-v3');
   assert.equal(combined.deployments.base.revision.role, 'base');
   assert.equal(combined.deployments.base.revision.ref, '2.17.1');
   assert.equal(combined.deployments.head.revision.commit, 'head-sha');
