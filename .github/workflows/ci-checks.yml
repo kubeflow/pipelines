@@ -84,6 +84,29 @@ jobs:
           retries: 3
           script: |
             const sha = context.payload.pull_request.head.sha;
+
+            // I1: a base-retarget revalidation marker (a ci-passed failure
+            // whose description starts with "Base branch retargeted") must
+            // survive label-only and reopen events on the same head SHA.
+            // Overwriting it with "pending" here would let the reconcile step
+            // re-derive success from CI results that were never revalidated
+            // against the new base. Detect the marker before writing and
+            // preserve it; only a real head update (synchronize) that re-runs
+            // CI on a new SHA clears the requirement.
+            const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+            });
+            const ciPassed = statuses.find((s) => s.context === "ci-passed");
+            const baseRevalidationRequired = Boolean(ciPassed &&
+              ciPassed.state === "failure" &&
+              (ciPassed.description || "").startsWith("Base branch retargeted"));
+            if (baseRevalidationRequired) {
+              core.info(`Preserving base-retarget revalidation marker on ${sha}; not marking pending.`);
+              return;
+            }
+
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

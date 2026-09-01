@@ -191,6 +191,33 @@ const github = {{ rest: {{
         return execute_javascript(script, setup, Path(directory))
 
 
+def execute_pending(workflow: str, prior_statuses: list | None = None,
+                    head_sha: str = 'event-sha') -> list:
+    script = extract_step_script(
+        workflow, 'Mark ci-passed pending while current head is revalidated',
+        'Wait for action_required workflow runs to be approved')
+    prior_statuses = [] if prior_statuses is None else prior_statuses
+    setup = f'''
+const context = {{
+  repo: {{ owner: "kubeflow", repo: "pipelines" }},
+  payload: {{ pull_request: {{ head: {{ sha: {json.dumps(head_sha)} }} }} }},
+}};
+const github = {{ rest: {{
+  repos: {{
+    createCommitStatus: async (options) => {{
+      calls.push(["status", options.state, options.sha]);
+      return {{ data: options }};
+    }},
+    listCommitStatusesForRef: async () => {{
+      return {{ data: {json.dumps(prior_statuses)} }};
+    }},
+  }},
+}} }};
+'''
+    with tempfile.TemporaryDirectory() as directory:
+        return execute_javascript(script, setup, Path(directory))
+
+
 def execute_workflow_run_resolve(workflow: str, pulls: list,
                                  head_sha: str = 'head-sha',
                                  head_repo_owner: str = 'kubeflow',
@@ -582,6 +609,63 @@ class CiPassEligibilityTest(unittest.TestCase):
         self.assertNotIn(['status', 'success', 'event-sha'], calls)
         self.assertIn(['remove-label'], calls)
         self.assertNotIn(['add-label'], calls)
+
+    def test_marker_pending_step_preserves_base_retarget_marker(self):
+        # The pending step must not overwrite the base-retarget revalidation
+        # marker with a pending status; otherwise a label/reopen event could
+        # re-earn success without revalidating CI against the new base (I1).
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in calls))
+
+    def test_marker_pending_step_writes_pending_without_marker(self):
+        # Without a marker (fresh head), the pending step still writes pending.
+        calls = execute_pending(self.workflow, prior_statuses=[])
+        self.assertIn(['status', 'pending', 'event-sha'], calls)
+
+    def test_base_retarget_label_event_repolls_but_publishes_failure(self):
+        # After the marker is set, an ok-to-test label on the unchanged head
+        # must re-poll (should_poll=true) yet still publish failure: the
+        # pending step preserves the marker and reconcile re-publishes it.
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        pending_calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in pending_calls))
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER', action='labeled',
+            prior_statuses=marker)
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_base_retarget_reopen_repolls_but_publishes_failure(self):
+        # A trusted author reopening the retargeted PR must re-poll yet still
+        # publish failure; the marker is preserved on the unchanged head SHA.
+        marker = [{'context': 'ci-passed', 'state': 'failure',
+                   'description': 'Base branch retargeted; CI revalidation is required.'}]
+        pending_calls = execute_pending(self.workflow, prior_statuses=marker)
+        self.assertFalse(any(call[0] == 'status' for call in pending_calls))
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=[], association='MEMBER', author='alice', action='reopened',
+            prior_statuses=marker)
+        self.assertIn(['status', 'failure', 'event-sha'], calls)
+        self.assertNotIn(['status', 'success', 'event-sha'], calls)
+        self.assertNotIn(['add-label'], calls)
+
+    def test_base_retarget_synchronize_clears_requirement(self):
+        # A synchronize moves the head to a new SHA that carries no marker, so
+        # the pending step writes pending and CI may re-earn success on it.
+        pending_calls = execute_pending(self.workflow, prior_statuses=[])
+        self.assertIn(['status', 'pending', 'event-sha'], pending_calls)
+        calls = execute_reconcile(
+            self.workflow, 'true', 'success',
+            labels=['ok-to-test'], association='MEMBER', action='synchronize',
+            prior_statuses=[])
+        self.assertIn(['status', 'success', 'event-sha'], calls)
+        self.assertIn(['add-label'], calls)
 
     def test_final_publish_race_publishes_failure(self):
         # The post-mutation snapshot no longer matches (base retargeted during
