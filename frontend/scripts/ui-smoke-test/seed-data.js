@@ -9,15 +9,25 @@ const https = require('https');
 const path = require('path');
 
 const {
+  ARTIFACT_FIXTURES,
   COMPARISON_RUN_FIXTURES,
   REVISION_FLAVORS,
+  SEMANTIC_RESOURCE_DEFINITIONS,
+  TASK_FIXTURES,
   buildLogicalFixtures,
   buildSemanticDeployment,
   detectRevisionFlavor,
 } = require('./semantic-manifest');
 const {
+  decodeGetArtifactsByContextResponse,
   decodeGetArtifactsByIdResponse,
+  decodeGetContextByTypeAndNameResponse,
+  decodeGetEventsByExecutionIdsResponse,
+  decodeGetExecutionsByContextResponse,
+  encodeContextIdRequest,
+  encodeExecutionIdsRequest,
   encodeGetArtifactsByIdRequest,
+  encodeGetContextByTypeAndNameRequest,
 } = require('./mlmd-protobuf');
 
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
@@ -28,6 +38,14 @@ const MULTIPART_BOUNDARY = '----kfp-ui-smoke-pipeline-boundary';
 const SEMANTIC_MARKER = 'ui-smoke.semantic-id';
 const GRPC_WEB_PROTO = 'application/grpc-web+proto';
 const MLMD_ARTIFACT_METHOD = '/ml_metadata.MetadataStoreService/GetArtifactsByID';
+const MLMD_ARTIFACTS_BY_CONTEXT_METHOD = '/ml_metadata.MetadataStoreService/GetArtifactsByContext';
+const MLMD_CONTEXT_BY_TYPE_AND_NAME_METHOD =
+  '/ml_metadata.MetadataStoreService/GetContextByTypeAndName';
+const MLMD_EVENTS_BY_EXECUTIONS_METHOD =
+  '/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs';
+const MLMD_EXECUTIONS_BY_CONTEXT_METHOD =
+  '/ml_metadata.MetadataStoreService/GetExecutionsByContext';
+const MLMD_RUN_CONTEXT_TYPE = 'system.PipelineRun';
 const SEED_IMAGE =
   'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
 const FAILED_RUN_STATES = new Set(['SKIPPED', 'FAILED', 'CANCELED', 'PAUSED']);
@@ -395,79 +413,7 @@ const PIPELINE_YAML_BY_PROFILE = Object.freeze({
   'rich-topology': RICH_PIPELINE_YAML,
 });
 
-const RESOURCE_DEFINITIONS = {
-  experiments: [
-    {
-      semanticKey: 'experiment.image-classification',
-      displayName: 'UI Smoke - Image Classification',
-      description: 'Deterministic UI smoke-test experiment',
-    },
-    {
-      semanticKey: 'experiment.natural-language-processing',
-      displayName: 'UI Smoke - Natural Language Processing',
-      description: 'Second deterministic UI smoke-test experiment',
-    },
-  ],
-  pipelines: [
-    {
-      semanticKey: 'pipeline.training',
-      name: 'ui-smoke-training-pipeline',
-      displayName: 'UI Smoke Training Pipeline',
-      description: 'Deterministic training pipeline for UI screenshots',
-      fixtureProfile: 'rich-topology',
-    },
-    {
-      semanticKey: 'pipeline.data-ingestion',
-      name: 'ui-smoke-data-ingestion',
-      displayName: 'UI Smoke Data Ingestion',
-      description: 'Deterministic data-ingestion pipeline for UI screenshots',
-      fixtureProfile: 'metrics',
-    },
-    {
-      semanticKey: 'pipeline.model-evaluation',
-      name: 'ui-smoke-model-evaluation',
-      displayName: 'UI Smoke Model Evaluation',
-      description: 'Deterministic evaluation pipeline for UI screenshots',
-      fixtureProfile: 'metrics',
-    },
-  ],
-  runs: [
-    {
-      semanticKey: 'run.training-1',
-      displayName: 'UI Smoke Training Run 1',
-      fixtureProfile: 'rich-topology',
-      pipelineSemanticKey: 'pipeline.training',
-    },
-    {
-      semanticKey: 'run.training-2',
-      displayName: 'UI Smoke Training Run 2',
-      fixtureProfile: 'metrics',
-      pipelineSemanticKey: 'pipeline.data-ingestion',
-    },
-    {
-      semanticKey: 'run.evaluation',
-      displayName: 'UI Smoke Evaluation Run',
-      fixtureProfile: 'metrics',
-      pipelineSemanticKey: 'pipeline.model-evaluation',
-    },
-    {
-      semanticKey: 'run.inference',
-      displayName: 'UI Smoke Inference Run',
-      fixtureProfile: 'metrics',
-      pipelineSemanticKey: 'pipeline.data-ingestion',
-    },
-    {
-      semanticKey: 'run.data-processing',
-      displayName: 'UI Smoke Data Processing Run',
-      fixtureProfile: 'metrics',
-      pipelineSemanticKey: 'pipeline.model-evaluation',
-    },
-  ],
-  recurringRuns: [
-    { semanticKey: 'recurring-run.daily-training', displayName: 'UI Smoke Daily Training' },
-    { semanticKey: 'recurring-run.hourly-data-sync', displayName: 'UI Smoke Hourly Data Sync' },
-  ],
-};
+const RESOURCE_DEFINITIONS = SEMANTIC_RESOURCE_DEFINITIONS;
 
 function semanticDescription(description, semanticKey) {
   if (!semanticKey) return description;
@@ -599,8 +545,12 @@ function encodeGrpcWebRequest(serializedMessage) {
 function decodeGrpcWebResponse(responseBody) {
   const buffer = Buffer.from(responseBody);
   const dataFrames = [];
+  let sawTrailer = false;
   let offset = 0;
   while (offset + 5 <= buffer.length) {
+    if (sawTrailer) {
+      throw new Error('MLMD gRPC-web response contains a frame after its terminal trailer.');
+    }
     const frameType = buffer[offset];
     const frameLength = buffer.readUInt32BE(offset + 1);
     const frameEnd = offset + 5 + frameLength;
@@ -614,6 +564,7 @@ function decodeGrpcWebResponse(responseBody) {
     if (frameType === 0x00) {
       dataFrames.push(payload);
     } else if (frameType === 0x80) {
+      sawTrailer = true;
       const trailers = payload.toString('utf8');
       const status = trailers.match(/grpc-status:\s*(\d+)/i);
       if (!status || status[1] !== '0') {
@@ -636,7 +587,24 @@ function decodeGrpcWebResponse(responseBody) {
       `MLMD gRPC-web response contained ${dataFrames.length} data frame(s), expected 1.`,
     );
   }
+  if (!sawTrailer) {
+    throw new Error('MLMD gRPC-web response is missing its terminal grpc-status trailer.');
+  }
   return dataFrames[0];
+}
+
+async function fetchMlmdMessage(method, encodedRequest, decodeResponse, request, options = {}) {
+  const responseBody = await request('POST', method, null, {
+    apiBase: options.apiBase || API_BASE,
+    headers: {
+      Accept: GRPC_WEB_PROTO,
+      'Content-Type': GRPC_WEB_PROTO,
+      'x-grpc-web': '1',
+    },
+    rawBody: encodeGrpcWebRequest(encodedRequest),
+    responseType: 'buffer',
+  });
+  return decodeResponse(decodeGrpcWebResponse(responseBody));
 }
 
 async function fetchMlmdArtifactsByIds(artifactIds, request = apiRequest, options = {}) {
@@ -647,17 +615,83 @@ async function fetchMlmdArtifactsByIds(artifactIds, request = apiRequest, option
     throw new Error(`MLMD artifact IDs must be positive safe integers: ${ids.join(', ')}`);
   }
 
-  const responseBody = await request('POST', MLMD_ARTIFACT_METHOD, null, {
-    apiBase: options.apiBase || API_BASE,
-    headers: {
-      Accept: GRPC_WEB_PROTO,
-      'Content-Type': GRPC_WEB_PROTO,
-      'x-grpc-web': '1',
-    },
-    rawBody: encodeGrpcWebRequest(encodeGetArtifactsByIdRequest(numericIds)),
-    responseType: 'buffer',
-  });
-  return decodeGetArtifactsByIdResponse(decodeGrpcWebResponse(responseBody));
+  return fetchMlmdMessage(
+    MLMD_ARTIFACT_METHOD,
+    encodeGetArtifactsByIdRequest(numericIds),
+    decodeGetArtifactsByIdResponse,
+    request,
+    options,
+  );
+}
+
+async function fetchMlmdRunContext(runId, request = apiRequest, options = {}) {
+  if (typeof runId !== 'string' || runId.length === 0) {
+    throw new Error('Legacy run ID must be a nonempty string before resolving its MLMD context.');
+  }
+  const context = await fetchMlmdMessage(
+    MLMD_CONTEXT_BY_TYPE_AND_NAME_METHOD,
+    encodeGetContextByTypeAndNameRequest(MLMD_RUN_CONTEXT_TYPE, runId),
+    decodeGetContextByTypeAndNameResponse,
+    request,
+    options,
+  );
+  if (!context) {
+    throw new Error(`MLMD has no ${MLMD_RUN_CONTEXT_TYPE} context named ${JSON.stringify(runId)}.`);
+  }
+  if (!positiveDecimalId(context.contextId)) {
+    throw new Error(`MLMD run context ${JSON.stringify(runId)} has no positive ID.`);
+  }
+  if (context.name !== runId || context.type !== MLMD_RUN_CONTEXT_TYPE) {
+    throw new Error(
+      `MLMD resolved the wrong run context: expected ${MLMD_RUN_CONTEXT_TYPE} ${JSON.stringify(runId)}, got ${JSON.stringify(context.type)} ${JSON.stringify(context.name)}.`,
+    );
+  }
+  return context;
+}
+
+async function fetchMlmdLineageByContext(contextId, request = apiRequest, options = {}) {
+  const [executions, artifacts] = await Promise.all([
+    fetchMlmdMessage(
+      MLMD_EXECUTIONS_BY_CONTEXT_METHOD,
+      encodeContextIdRequest(contextId),
+      decodeGetExecutionsByContextResponse,
+      request,
+      options,
+    ),
+    fetchMlmdMessage(
+      MLMD_ARTIFACTS_BY_CONTEXT_METHOD,
+      encodeContextIdRequest(contextId),
+      decodeGetArtifactsByContextResponse,
+      request,
+      options,
+    ),
+  ]);
+  const executionIds = unique(executions.map((execution) => execution.executionId));
+  const events =
+    executionIds.length === 0
+      ? []
+      : await fetchMlmdMessage(
+          MLMD_EVENTS_BY_EXECUTIONS_METHOD,
+          encodeExecutionIdsRequest(executionIds),
+          decodeGetEventsByExecutionIdsResponse,
+          request,
+          options,
+        );
+  return { artifacts, events, executions };
+}
+
+async function fetchMlmdLineageForRun(runId, request = apiRequest, options = {}) {
+  const context = await fetchMlmdRunContext(runId, request, options);
+  const expectedContextId = positiveDecimalId(options.expectedContextId);
+  if (expectedContextId && context.contextId !== expectedContextId) {
+    throw new Error(
+      `Legacy GetRun pipeline-run context ${expectedContextId} does not match MLMD context ${context.contextId} for run ${JSON.stringify(runId)}.`,
+    );
+  }
+  return {
+    ...(await fetchMlmdLineageByContext(context.contextId, request, options)),
+    context,
+  };
 }
 
 function createMultipartUpload(contents, filename = 'ui-smoke-pipeline.yaml') {
@@ -992,34 +1026,454 @@ function buildSemanticResourceBindings(selections) {
   return bindings;
 }
 
-function legacyArtifactIdsForRun(response) {
-  const run = response?.run?.run || response?.run || response || {};
-  const details = run.run_details || run.runDetails || {};
-  const tasks = details.task_details || details.taskDetails || [];
-  const artifactIds = [];
-  for (const task of tasks) {
-    for (const direction of ['inputs', 'outputs']) {
-      for (const artifactList of Object.values(task?.[direction] || {})) {
-        artifactIds.push(...(artifactList?.artifact_ids || artifactList?.artifactIds || []));
-      }
-    }
+function normalizedFixtureName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-')
+    .replace(/[^a-z0-9-]+/g, '')
+    .replace(/-+/g, '-');
+}
+
+function semanticTaskKeyFromNames(names) {
+  const candidates = names.map(normalizedFixtureName).filter(Boolean);
+  for (const [taskKey, definition] of Object.entries(TASK_FIXTURES)) {
+    const fixtureNames = definition.names.map(normalizedFixtureName);
+    if (candidates.some((candidate) => fixtureNames.includes(candidate))) return taskKey;
   }
-  return unique(artifactIds).sort((left, right) =>
-    left.localeCompare(right, 'en', { numeric: true }),
+  return null;
+}
+
+function legacyRunObject(response) {
+  if (response?.run?.run && typeof response.run.run === 'object') return response.run.run;
+  if (response?.run && typeof response.run === 'object') return response.run;
+  return response && typeof response === 'object' ? response : {};
+}
+
+function legacyTaskDetails(response) {
+  const run = legacyRunObject(response);
+  const details = run.run_details || run.runDetails || {};
+  const tasks = details.task_details || details.taskDetails;
+  return Array.isArray(tasks) ? tasks : [];
+}
+
+function legacyRunContextId(response) {
+  const run = legacyRunObject(response);
+  const details = run.run_details || run.runDetails || {};
+  return String(details.pipeline_run_context_id || details.pipelineRunContextId || '');
+}
+
+function legacyRunId(response) {
+  const run = legacyRunObject(response);
+  return String(run.run_id || run.runId || run.id || '');
+}
+
+function positiveDecimalId(value) {
+  try {
+    const number = BigInt(value);
+    return number > 0n ? number.toString() : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
+function legacyTaskSemanticKey(task) {
+  return semanticTaskKeyFromNames([task?.display_name, task?.displayName, task?.name]);
+}
+
+function legacyExecutionSemanticKey(execution) {
+  return semanticTaskKeyFromNames([
+    execution?.metadata?.display_name,
+    execution?.metadata?.task_name,
+    execution?.metadata?.component_id,
+    execution?.metadata?.task_id,
+    execution?.name,
+  ]);
+}
+
+function legacyTaskPodName(task) {
+  return String(task?.pod_name || task?.podName || '');
+}
+
+function legacyExecutionPodName(execution) {
+  return String(execution?.metadata?.pod_name || execution?.metadata?.kfp_pod_name || '');
+}
+
+function legacyExecutionIterationIndex(execution) {
+  const value = execution?.metadata?.iteration_index ?? execution?.metadata?.iterationIndex;
+  const index = Number(value);
+  return Number.isSafeInteger(index) && index >= 0 ? index : null;
+}
+
+function taskRequiresLegacyArtifactExecution(taskKey) {
+  return ['inputs', 'outputs'].some(
+    (direction) => expectedLegacyPortGroups(taskKey, direction).length > 0,
   );
 }
 
-async function hydrateLegacyRunArtifacts(response, request, options = {}) {
-  const artifactIds = legacyArtifactIdsForRun(response);
-  if (artifactIds.length === 0) return response;
-  const fetchLegacyArtifacts =
-    options.fetchLegacyArtifacts ||
-    ((ids) => fetchMlmdArtifactsByIds(ids, request, { apiBase: options.apiBase }));
-  const semanticArtifacts = await fetchLegacyArtifacts(artifactIds);
-  if (!Array.isArray(semanticArtifacts)) {
-    throw new Error('Legacy MLMD artifact discovery did not return an artifact array.');
+function mapLegacyTasksToExecutions(tasks, executions) {
+  const matches = new Map();
+  const usedExecutionIds = new Set();
+  const taskCounts = tasks.reduce((counts, task) => {
+    const taskKey = legacyTaskSemanticKey(task);
+    if (taskKey) counts.set(taskKey, (counts.get(taskKey) || 0) + 1);
+    return counts;
+  }, new Map());
+  for (const [taskIndex, task] of tasks.entries()) {
+    const taskKey = legacyTaskSemanticKey(task);
+    if (!taskKey) continue;
+    const recordedExecutionId = positiveDecimalId(task.execution_id || task.executionId);
+    if (recordedExecutionId) {
+      const recorded = executions.find(
+        (execution) => execution.executionId === recordedExecutionId,
+      );
+      const taskPodName = legacyTaskPodName(task);
+      if (
+        !recorded ||
+        usedExecutionIds.has(recordedExecutionId) ||
+        legacyExecutionSemanticKey(recorded) !== taskKey ||
+        (TASK_FIXTURES[taskKey]?.kind === 'loop' &&
+          legacyExecutionIterationIndex(recorded) !== null) ||
+        (taskPodName && legacyExecutionPodName(recorded) !== taskPodName)
+      ) {
+        throw new Error(
+          `Legacy task ${taskKey}[${taskIndex}] references unavailable MLMD execution ${recordedExecutionId}.`,
+        );
+      }
+      matches.set(task, recorded);
+      usedExecutionIds.add(recordedExecutionId);
+    }
   }
-  return { ...response, semanticArtifacts };
+
+  for (const [taskIndex, task] of tasks.entries()) {
+    if (matches.has(task)) continue;
+    const taskKey = legacyTaskSemanticKey(task);
+    const mapsLoopController = TASK_FIXTURES[taskKey]?.kind === 'loop';
+    const mapsUniqueTask = taskCounts.get(taskKey) === 1;
+    if (
+      !taskKey ||
+      (!taskRequiresLegacyArtifactExecution(taskKey) && !mapsLoopController && !mapsUniqueTask)
+    ) {
+      continue;
+    }
+    let candidates = executions.filter(
+      (execution) =>
+        !usedExecutionIds.has(execution.executionId) &&
+        legacyExecutionSemanticKey(execution) === taskKey,
+    );
+    if (mapsLoopController) {
+      candidates = candidates.filter(
+        (execution) => legacyExecutionIterationIndex(execution) === null,
+      );
+    }
+    const podName = legacyTaskPodName(task);
+    const podMatches = podName
+      ? candidates.filter((execution) => legacyExecutionPodName(execution) === podName)
+      : [];
+    if (podMatches.length > 1) {
+      throw new Error(
+        `Legacy task ${taskKey}[${taskIndex}] ambiguously matches ${podMatches.length} MLMD executions by pod ${podName}.`,
+      );
+    }
+    let selected = podMatches[0] || null;
+    if (!selected && !podName && candidates.length === 1) selected = candidates[0];
+    if (!selected) {
+      throw new Error(
+        candidates.length > 1
+          ? `Legacy task ${taskKey}[${taskIndex}] ambiguously matches ${candidates.length} MLMD executions.`
+          : `Legacy task ${taskKey}[${taskIndex}] has no matching MLMD execution.`,
+      );
+    }
+    matches.set(task, selected);
+    usedExecutionIds.add(selected.executionId);
+  }
+  return matches;
+}
+
+function expectedLegacyPortGroups(taskKey, direction) {
+  return Object.values(ARTIFACT_FIXTURES).flatMap((definition) => {
+    if (direction === 'inputs' && definition.consumerTask === taskKey) {
+      return [
+        {
+          key: definition.consumerPortKey,
+          normalizedKey: normalizedFixtureName(definition.consumerPortKey),
+        },
+      ];
+    }
+    if (direction === 'outputs' && definition.producerTask === taskKey) {
+      return [
+        { key: definition.portKey, normalizedKey: normalizedFixtureName(definition.portKey) },
+      ];
+    }
+    return [];
+  });
+}
+
+function legacyArtifactGroup(task, direction, normalizedKey) {
+  const groups = task?.[direction];
+  if (!groups || typeof groups !== 'object' || Array.isArray(groups)) return null;
+  const entry = Object.entries(groups).find(
+    ([key]) => normalizedFixtureName(key) === normalizedKey,
+  );
+  return entry ? { key: entry[0], value: entry[1] } : null;
+}
+
+function eventDirection(type) {
+  if (type === 'INPUT') return 'inputs';
+  if (type === 'OUTPUT') return 'outputs';
+  return null;
+}
+
+function executorLogAttemptIndex(uri) {
+  const match = String(uri || '').match(/(?:^|\/)executor-logs-(0|[1-9]\d*)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function legacyExecutorLogsForExecution(executionId, lineage, artifactsById) {
+  const artifactIds = unique(
+    lineage.events
+      .filter(
+        (event) =>
+          event.executionId === executionId &&
+          event.type === 'OUTPUT' &&
+          normalizedFixtureName(event.path?.[0]?.key) === 'executor-logs',
+      )
+      .map((event) => event.artifactId),
+  );
+  const records = artifactIds.map((artifactId) => {
+    const artifact = artifactsById.get(artifactId);
+    if (!artifact) {
+      throw new Error(
+        `Legacy MLMD execution ${executionId} executor-logs event references artifact ${artifactId} outside its run context.`,
+      );
+    }
+    if (!positiveDecimalId(artifactId) || !artifact.uri) {
+      throw new Error(
+        `Legacy MLMD execution ${executionId} has an executor-log artifact without a positive ID and URI.`,
+      );
+    }
+    if (artifact.type !== 'system.Artifact') {
+      throw new Error(
+        `Legacy MLMD execution ${executionId} executor-log artifact ${artifactId} has type ${JSON.stringify(artifact.type)}; expected "system.Artifact".`,
+      );
+    }
+    if (artifact?.metadata?.display_name !== 'executor-logs') {
+      throw new Error(
+        `Legacy MLMD execution ${executionId} executor-log artifact ${artifactId} has metadata.display_name ${JSON.stringify(artifact?.metadata?.display_name)}; expected "executor-logs".`,
+      );
+    }
+    return {
+      artifactId,
+      name: 'executor-logs',
+      type: 'Artifact',
+      uri: String(artifact.uri),
+    };
+  });
+  records.sort(
+    (left, right) =>
+      (executorLogAttemptIndex(left.uri) ?? Number.MAX_SAFE_INTEGER) -
+        (executorLogAttemptIndex(right.uri) ?? Number.MAX_SAFE_INTEGER) ||
+      left.artifactId.localeCompare(right.artifactId, 'en', { numeric: true }),
+  );
+  if (records.some((record) => executorLogAttemptIndex(record.uri) === null)) {
+    throw new Error(
+      `Legacy MLMD execution ${executionId} executor-log URIs must end in an attempt suffix.`,
+    );
+  }
+  return records;
+}
+
+function validateRawLegacyArtifactGroups(tasks, artifactIds) {
+  for (const [taskIndex, task] of tasks.entries()) {
+    const taskKey = legacyTaskSemanticKey(task);
+    if (!taskKey) continue;
+    for (const direction of ['inputs', 'outputs']) {
+      const groups = task?.[direction];
+      if (groups === undefined) continue;
+      if (!groups || typeof groups !== 'object' || Array.isArray(groups)) {
+        throw new Error(`Legacy task ${taskKey}[${taskIndex}] ${direction} must be an object.`);
+      }
+      const expectedKeys = new Set(
+        expectedLegacyPortGroups(taskKey, direction).map((group) => group.normalizedKey),
+      );
+      for (const [groupKey, group] of Object.entries(groups)) {
+        if (!expectedKeys.has(normalizedFixtureName(groupKey))) {
+          throw new Error(
+            `Legacy task ${taskKey}[${taskIndex}] has unexpected ${direction} artifact group ${JSON.stringify(groupKey)}.`,
+          );
+        }
+        for (const artifactId of unique(group?.artifact_ids || group?.artifactIds || [])) {
+          if (!positiveDecimalId(artifactId) || !artifactIds.has(String(artifactId))) {
+            throw new Error(
+              `Legacy task ${taskKey}[${taskIndex}] ${direction}.${groupKey} references artifact ${artifactId} outside its run context.`,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
+function validateLegacyEvents(lineage, artifactIds) {
+  const executionKeys = new Map(
+    lineage.executions.map((execution) => [
+      execution.executionId,
+      legacyExecutionSemanticKey(execution),
+    ]),
+  );
+  const observedTuples = new Set();
+  for (const [eventIndex, event] of lineage.events.entries()) {
+    const taskKey = executionKeys.get(event.executionId);
+    const direction = eventDirection(event.type);
+    const pathKey =
+      event.path?.length === 1 && typeof event.path[0]?.key === 'string'
+        ? normalizedFixtureName(event.path[0].key)
+        : null;
+    const expectedPathKeys = new Set(
+      taskKey && direction
+        ? expectedLegacyPortGroups(taskKey, direction).map((group) => group.normalizedKey)
+        : [],
+    );
+    const isExecutorLog =
+      taskKey &&
+      TASK_FIXTURES[taskKey]?.kind === 'runtime' &&
+      direction === 'outputs' &&
+      pathKey === 'executor-logs';
+    if (!taskKey || !direction || !pathKey || (!expectedPathKeys.has(pathKey) && !isExecutorLog)) {
+      throw new Error(
+        `Legacy MLMD event ${eventIndex} is not a declared fixture or runtime executor-log event.`,
+      );
+    }
+    if (!artifactIds.has(event.artifactId)) {
+      throw new Error(
+        `Legacy MLMD event ${eventIndex} references artifact ${event.artifactId} outside its run context.`,
+      );
+    }
+    const tuple = `${event.executionId}|${event.type}|${pathKey}|${event.artifactId}`;
+    if (observedTuples.has(tuple)) {
+      throw new Error(`Legacy MLMD contains duplicate event tuple ${tuple}.`);
+    }
+    observedTuples.add(tuple);
+  }
+}
+
+function hydrateLegacyRunFromLineage(response, lineage) {
+  if (
+    !lineage ||
+    !Array.isArray(lineage.executions) ||
+    !Array.isArray(lineage.artifacts) ||
+    !Array.isArray(lineage.events)
+  ) {
+    throw new Error('Legacy MLMD lineage must contain execution, artifact, and event arrays.');
+  }
+  const hydrated = structuredClone(response);
+  const tasks = legacyTaskDetails(hydrated);
+  const taskExecutions = mapLegacyTasksToExecutions(tasks, lineage.executions);
+  const artifactIds = new Set(lineage.artifacts.map((artifact) => artifact.artifactId));
+  const artifactsById = new Map(
+    lineage.artifacts.map((artifact) => [artifact.artifactId, artifact]),
+  );
+  const accountedArtifactIds = new Set();
+  validateLegacyEvents(lineage, artifactIds);
+  const semanticExecutions = lineage.executions.map((execution) => {
+    const executorLogs = legacyExecutorLogsForExecution(
+      execution.executionId,
+      lineage,
+      artifactsById,
+    );
+    for (const record of executorLogs) accountedArtifactIds.add(record.artifactId);
+    return { ...execution, executorLogs };
+  });
+  validateRawLegacyArtifactGroups(tasks, artifactIds);
+
+  for (const task of tasks) {
+    const taskKey = legacyTaskSemanticKey(task);
+    const execution = taskExecutions.get(task);
+    if (!taskKey || !execution) continue;
+    task.execution_id = execution.executionId;
+    const executionIterationIndex = legacyExecutionIterationIndex(execution);
+    if (executionIterationIndex !== null) task.iteration_index = executionIterationIndex;
+    const executionPodName = legacyExecutionPodName(execution);
+    if (!legacyTaskPodName(task) && executionPodName) task.pod_name = executionPodName;
+    for (const direction of ['inputs', 'outputs']) {
+      const expectedGroups = expectedLegacyPortGroups(taskKey, direction);
+      if (expectedGroups.length === 0) continue;
+      const groups = { ...(task[direction] || {}) };
+      for (const expected of expectedGroups) {
+        const ids = unique(
+          lineage.events
+            .filter(
+              (event) =>
+                event.executionId === execution.executionId &&
+                eventDirection(event.type) === direction &&
+                normalizedFixtureName(event.path?.[0]?.key) === expected.normalizedKey,
+            )
+            .map((event) => event.artifactId),
+        ).sort((left, right) => left.localeCompare(right, 'en', { numeric: true }));
+        for (const artifactId of ids) {
+          if (!artifactIds.has(artifactId)) {
+            throw new Error(
+              `Legacy MLMD ${taskKey} ${expected.key} event references artifact ${artifactId} outside its run context.`,
+            );
+          }
+          accountedArtifactIds.add(artifactId);
+        }
+        const existingEntry = legacyArtifactGroup(task, direction, expected.normalizedKey);
+        const existing = existingEntry?.value;
+        const existingIds = unique(existing?.artifact_ids || existing?.artifactIds || []).sort(
+          (left, right) => left.localeCompare(right, 'en', { numeric: true }),
+        );
+        if (existingIds.length > 0 && JSON.stringify(existingIds) !== JSON.stringify(ids)) {
+          throw new Error(
+            `Legacy GetRun and MLMD Event artifact IDs disagree for ${taskKey} ${direction}.${expected.key}.`,
+          );
+        }
+        if (ids.length > 0) {
+          if (existingEntry && existingEntry.key !== expected.key) delete groups[existingEntry.key];
+          groups[expected.key] = { artifact_ids: ids };
+        }
+      }
+      if (Object.keys(groups).length > 0) task[direction] = groups;
+    }
+  }
+  const unaccountedArtifactIds = [...artifactIds].filter(
+    (artifactId) => !accountedArtifactIds.has(artifactId),
+  );
+  if (unaccountedArtifactIds.length > 0) {
+    throw new Error(
+      `Legacy MLMD run context contains artifacts without a declared fixture or executor-log event: ${unaccountedArtifactIds.join(', ')}.`,
+    );
+  }
+  hydrated.semanticArtifacts = structuredClone(lineage.artifacts);
+  hydrated.semanticExecutions = structuredClone(semanticExecutions);
+  hydrated.semanticLineageComplete = true;
+  return hydrated;
+}
+
+async function hydrateLegacyRunArtifacts(response, request, options = {}) {
+  const tasks = legacyTaskDetails(response);
+  if (tasks.length === 0) return response;
+  const responseRunId = legacyRunId(response);
+  const requestedRunId = String(options.requestedRunId || '');
+  if (responseRunId && requestedRunId && responseRunId !== requestedRunId) {
+    throw new Error(
+      `Legacy GetRun returned run ${JSON.stringify(responseRunId)} for requested run ${JSON.stringify(requestedRunId)}.`,
+    );
+  }
+  const runId = responseRunId || requestedRunId;
+  if (!runId) throw new Error('Legacy GetRun response is missing its run ID.');
+  const expectedContextId = positiveDecimalId(legacyRunContextId(response));
+  const fetchLegacyLineage =
+    options.fetchLegacyLineage ||
+    ((selection) =>
+      fetchMlmdLineageForRun(selection.runId, request, {
+        apiBase: options.apiBase,
+        expectedContextId: selection.expectedContextId,
+      }));
+  return hydrateLegacyRunFromLineage(
+    response,
+    await fetchLegacyLineage({ expectedContextId, runId }),
+  );
 }
 
 async function fetchRunBindingResponse(runId, request = apiRequest, options = {}) {
@@ -1034,7 +1488,7 @@ async function fetchRunBindingResponse(runId, request = apiRequest, options = {}
   // A legacy FULL response owns its task/artifact projection, but its artifact lists contain
   // only MLMD IDs. Hydrate the actual MLMD values before semantic validation.
   if (detectRevisionFlavor(fullResponse) === REVISION_FLAVORS.LEGACY) {
-    return hydrateLegacyRunArtifacts(fullResponse, request, options);
+    return hydrateLegacyRunArtifacts(fullResponse, request, { ...options, requestedRunId: runId });
   }
   // Native run responses expose tasks through a revision-specific paginated endpoint, even when
   // task_count makes the run response itself look native.
@@ -1050,7 +1504,10 @@ async function fetchRunBindingResponse(runId, request = apiRequest, options = {}
     detailError = error;
   }
   if (detectRevisionFlavor(detailResponse) === REVISION_FLAVORS.LEGACY) {
-    return hydrateLegacyRunArtifacts(detailResponse, request, options);
+    return hydrateLegacyRunArtifacts(detailResponse, request, {
+      ...options,
+      requestedRunId: runId,
+    });
   }
 
   const runResponse = detailResponse || fullResponse;
@@ -1078,8 +1535,27 @@ async function fetchRunBindingResponse(runId, request = apiRequest, options = {}
 
 async function fetchRunBindingResponses(selections, request = apiRequest, options = {}) {
   return Promise.all(
-    Object.entries(selections.runs).map(async ([semanticKey, selection]) => ({
-      response: await fetchRunBindingResponse(
+    Object.entries(selections.runs).map(async ([semanticKey, selection]) => {
+      const pipelineSemanticKey = selection.definition?.pipelineSemanticKey;
+      const pipeline = selections.pipelines?.[pipelineSemanticKey]?.resource;
+      const pipelineVersion = selections.pipelineVersions?.[pipelineSemanticKey]?.resource;
+      const expectedPipelineId = requireResourceId(
+        pipeline,
+        ['pipeline_id', 'pipelineId', 'id'],
+        `Pipeline for semantic run ${semanticKey}`,
+      );
+      const expectedPipelineVersionId = requireResourceId(
+        pipelineVersion,
+        ['pipeline_version_id', 'pipelineVersionId', 'id'],
+        `Pipeline version for semantic run ${semanticKey}`,
+      );
+      const pipelineSpec = pipelineVersion?.pipeline_spec || pipelineVersion?.pipelineSpec;
+      if (!pipelineSpec || typeof pipelineSpec !== 'object' || Array.isArray(pipelineSpec)) {
+        throw new Error(
+          `Pipeline version for semantic run ${semanticKey} is missing pipeline_spec.`,
+        );
+      }
+      const response = await fetchRunBindingResponse(
         requireResourceId(
           selection.resource,
           ['run_id', 'runId', 'id'],
@@ -1087,9 +1563,24 @@ async function fetchRunBindingResponses(selections, request = apiRequest, option
         ),
         request,
         options,
-      ),
-      semanticKey,
-    })),
+      );
+      const run = legacyRunObject(response);
+      const reference = run.pipeline_version_reference || run.pipelineVersionReference;
+      const observedPipelineId = resourceId(reference, ['pipeline_id', 'pipelineId']);
+      const observedPipelineVersionId = resourceId(reference, [
+        'pipeline_version_id',
+        'pipelineVersionId',
+      ]);
+      if (
+        observedPipelineId !== expectedPipelineId ||
+        observedPipelineVersionId !== expectedPipelineVersionId
+      ) {
+        throw new Error(
+          `Semantic run ${semanticKey} does not reference selected pipeline version ${expectedPipelineId}/${expectedPipelineVersionId}.`,
+        );
+      }
+      return { pipelineSpec: structuredClone(pipelineSpec), response, semanticKey };
+    }),
   );
 }
 
@@ -1113,7 +1604,7 @@ async function waitForSemanticBindings(selections, request = apiRequest, options
         resourceBindings,
         runResponses: await fetchRunBindingResponses(selections, request, {
           apiBase: options.apiBase,
-          fetchLegacyArtifacts: options.fetchLegacyArtifacts,
+          fetchLegacyLineage: options.fetchLegacyLineage,
         }),
       });
       lastApiError = null;
@@ -1471,7 +1962,7 @@ async function seedData(options = {}) {
     const waitForSemanticBindingsFn = options.waitForSemanticBindingsFn || waitForSemanticBindings;
     semantic = await waitForSemanticBindingsFn(semanticSelections, request, {
       apiBase,
-      fetchLegacyArtifacts: options.fetchLegacyArtifacts,
+      fetchLegacyLineage: options.fetchLegacyLineage,
       interval: options.semanticPollInterval,
       now: options.semanticNow,
       sleep: options.semanticSleep,
@@ -1540,6 +2031,9 @@ module.exports = {
   createRun,
   fetchInventory,
   fetchMlmdArtifactsByIds,
+  fetchMlmdLineageByContext,
+  fetchMlmdLineageForRun,
+  fetchMlmdRunContext,
   fetchRunBindingResponse,
   fetchRunBindingResponses,
   fetchResourceIds,

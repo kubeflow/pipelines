@@ -9,6 +9,7 @@ const sharp = require('sharp');
 
 const capture = require('../capture-screenshots.js');
 const comparison = require('../generate-comparison.js');
+const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
 
 function fixtureDirectory(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-hardening-'));
@@ -57,6 +58,13 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
     return {
       ...result,
       capturedAt: result.capturedAt || new Date(now).toISOString(),
+      semanticIdNormalization: result.semanticIdNormalization || {
+        complete: true,
+        derivedColorScopes: [],
+        schemaVersion: 'ui-smoke-id-normalization/v1',
+        scopes: [],
+        totalReplacementCount: 0,
+      },
       sha256: result.sha256 || sha256File(path.join(directory, result.filename)),
     };
   });
@@ -71,17 +79,22 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
   const revisionRole =
     overrides.revisionRole ||
     (directoryName === 'main' || directoryName === 'base' ? 'base' : 'head');
-  const inputAttestation = (name, digest) => ({
-    path: path.join(directory, `${name}.json`),
-    schemaVersion: `ui-smoke-${name}/v1`,
-    sha256: digest.repeat(64),
-    sizeBytes: 1,
-  });
+  const inputAttestation = (name, value) => {
+    const inputPath = path.join(directory, `${name}.json`);
+    const contents = `${JSON.stringify(value)}\n`;
+    fs.writeFileSync(inputPath, contents);
+    return {
+      path: inputPath,
+      schemaVersion: value.schemaVersion ?? null,
+      sha256: crypto.createHash('sha256').update(contents).digest('hex'),
+      sizeBytes: Buffer.byteLength(contents),
+    };
+  };
   fs.writeFileSync(
     path.join(directory, 'manifest.json'),
     `${JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         captureId: overrides.captureId || `${label}-capture`,
         label,
         browser: overrides.browser || {
@@ -92,6 +105,14 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
         deterministicRendering: overrides.deterministicRendering || {
           colorScheme: 'light',
           locale: 'en-US',
+          semanticIdNormalization: {
+            derivedColorPalette: ['#4285f4', '#2b9c1e', '#e00000', '#8026c0', '#9dafff', '#82c57a'],
+            failOnReplacementCountMismatch: true,
+            mode: 'disabled-browser-compatibility',
+            rawIdentifierPolicy: 'SHA-256 attestation only',
+            schemaVersion: 'ui-smoke-id-normalization/v1',
+            tokenFormat: '[ui-id:<kind>:<semantic-path>]',
+          },
           timezone: 'UTC',
         },
         startedAt,
@@ -99,12 +120,14 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
         fatalErrors: [],
         inputs: overrides.inputs || {
           revisionRole,
-          seedManifest: inputAttestation('seed', revisionRole === 'base' ? 'a' : 'b'),
-          semanticManifest: inputAttestation('semantic', 'c'),
-          sourceProvenance: inputAttestation('source', 'd'),
+          seedManifest: inputAttestation('seed', {
+            revisionRole,
+            schemaVersion: 'ui-smoke-seed/v1',
+          }),
+          semanticManifest: null,
+          sourceProvenance: null,
         },
-        scenarioContractSchemaVersion:
-          overrides.scenarioContractSchemaVersion || 'ui-smoke-scenarios/v1',
+        scenarioContractSchemaVersion: overrides.scenarioContractSchemaVersion ?? false,
         viewports: [
           ...new Map(
             normalizedResults.map((result) => [
@@ -167,7 +190,14 @@ test('parseViewports accepts only positive integer WIDTHxHEIGHT values', () => {
 
 test('base URL handling preserves protocol, hostname, port, and path', () => {
   const options = capture.parseCaptureOptions(
-    ['--base-url', 'https://example.test:8443/kfp/?tenant=example', '--output', '/tmp/output'],
+    [
+      '--base-url',
+      'https://example.test:8443/kfp/?tenant=example',
+      '--output',
+      '/tmp/output',
+      '--normalization-mode',
+      'disabled-browser-compatibility',
+    ],
     {},
   );
   assert.equal(options.baseUrl, 'https://example.test:8443/kfp?tenant=example');
@@ -176,13 +206,18 @@ test('base URL handling preserves protocol, hostname, port, and path', () => {
     'https://example.test:8443/kfp/?tenant=example#/pipelines',
   );
 
-  const portFallback = capture.parseCaptureOptions(['--port', '4567'], {});
+  const portFallback = capture.parseCaptureOptions(
+    ['--port', '4567', '--normalization-mode', 'disabled-browser-compatibility'],
+    {},
+  );
   assert.equal(portFallback.baseUrl, 'http://localhost:4567');
 
   const provenance = capture.parseCaptureOptions(
     [
       '--revision-role',
       'head',
+      '--normalization-mode',
+      'semantic-full-stack',
       '--semantic-manifest',
       '/tmp/semantic.json',
       '--source-provenance',
@@ -207,13 +242,27 @@ test('direct-tool parsers reject unknown, duplicate, and ambiguous arguments', (
     /mutually exclusive/,
   );
   assert.throws(
-    () => capture.parseCaptureOptions(['--semantic-manifest', '/tmp/semantic.json'], {}),
+    () =>
+      capture.parseCaptureOptions(
+        [
+          '--normalization-mode',
+          'semantic-full-stack',
+          '--semantic-manifest',
+          '/tmp/semantic.json',
+        ],
+        {},
+      ),
     /revision-role is required/,
   );
   assert.throws(
-    () => capture.parseCaptureOptions(['--revision-role', 'other'], {}),
+    () =>
+      capture.parseCaptureOptions(
+        ['--normalization-mode', 'disabled-browser-compatibility', '--revision-role', 'other'],
+        {},
+      ),
     /base, head, or current/,
   );
+  assert.throws(() => capture.parseCaptureOptions([], {}), /normalization-mode is required/);
   assert.throws(
     () => comparison.parseComparisonOptions(['--main', 'one', '--main', 'two'], {}),
     /Duplicate/,
@@ -569,8 +618,14 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
                 };
               },
               evaluate: async (pageFunction) => {
-                events.push(String(pageFunction).includes('document.fonts') ? 'fonts' : 'css');
+                const source = String(pageFunction);
+                if (source.includes('querySelectorAll(scope.selector)')) {
+                  events.push('semantic-id-normalization');
+                  return [{ counts: { 'run.training-1': 1 }, rootCount: 1 }];
+                }
+                events.push(source.includes('document.fonts') ? 'fonts' : 'css');
               },
+              waitForFunction: async () => events.push('action'),
               waitForSelector: async () => events.push('selector'),
               waitForTimeout: async () => events.push('settled'),
               screenshot: async (screenshotOptions) => {
@@ -591,7 +646,7 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   const semanticManifestPath = path.join(root, 'semantic.json');
   const sourceProvenancePath = path.join(root, 'source.json');
   fs.writeFileSync(seedManifestPath, JSON.stringify({ defaults: {}, resources: {} }));
-  fs.writeFileSync(semanticManifestPath, JSON.stringify({ schemaVersion: 'ui-smoke-semantic/v2' }));
+  fs.writeFileSync(semanticManifestPath, JSON.stringify(strictSemanticFixtureManifest()));
   fs.writeFileSync(sourceProvenancePath, JSON.stringify({ schemaVersion: 'ui-smoke-source/v1' }));
   const options = {
     baseUrl: 'https://example.test/kfp',
@@ -599,10 +654,26 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
     outputDir: path.join(root, 'success'),
     pageNames: null,
     pages: [
-      { name: 'fixture-page', path: '/#/fixture', waitFor: '#ready' },
+      {
+        actions: [{ type: 'waitForFunction', predicate: () => true }],
+        name: 'fixture-page',
+        path: '/#/fixture',
+        semanticIdNormalization: {
+          scopes: [
+            {
+              match: 'exact',
+              minReplacements: 1,
+              selector: '#root',
+              semanticIds: ['run.training-1'],
+            },
+          ],
+        },
+        waitFor: '#ready',
+      },
       { name: 'second-page', path: '/#/second', waitFor: '#ready' },
     ],
     revisionRole: 'head',
+    semanticIdNormalizationMode: 'semantic-full-stack',
     seedManifestPath,
     semanticManifestPath,
     sourceProvenancePath,
@@ -618,14 +689,46 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   assert.equal(success.manifest.results[0].sha256.length, 64);
   assert.equal(success.manifest.inputs.revisionRole, 'head');
   assert.equal(success.manifest.inputs.seedManifest.sha256.length, 64);
-  assert.equal(success.manifest.inputs.semanticManifest.schemaVersion, 'ui-smoke-semantic/v2');
+  assert.equal(success.manifest.inputs.semanticManifest.schemaVersion, 'ui-smoke-semantic/v3');
   assert.equal(success.manifest.inputs.sourceProvenance.schemaVersion, 'ui-smoke-source/v1');
+  assert.equal(
+    success.manifest.deterministicRendering.semanticIdNormalization.schemaVersion,
+    'ui-smoke-id-normalization/v1',
+  );
+  assert.equal(
+    success.manifest.deterministicRendering.semanticIdNormalization.mode,
+    'semantic-full-stack',
+  );
+  assert.equal(success.manifest.results[0].semanticIdNormalization.complete, true);
+  assert.equal(success.manifest.results[0].semanticIdNormalization.scopes.length, 1);
+  assert.equal(success.manifest.results[0].semanticIdNormalization.totalReplacementCount, 1);
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/fixture'));
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/second'));
   assert.equal(successEvents.filter((event) => event === 'new-page').length, 2);
   assert.equal(successEvents.filter((event) => event === 'page-close').length, 2);
   assert.ok(successEvents.indexOf('init-css') < successEvents.indexOf('screenshot'));
+  assert.ok(successEvents.indexOf('action') < successEvents.indexOf('semantic-id-normalization'));
+  assert.ok(
+    successEvents.indexOf('semantic-id-normalization') < successEvents.indexOf('screenshot'),
+  );
   assert.ok(successEvents.indexOf('fonts') < successEvents.indexOf('screenshot'));
+
+  const browserOnly = await capture.captureScreenshots(
+    {
+      ...options,
+      outputDir: path.join(root, 'browser-only'),
+      semanticIdNormalizationMode: 'disabled-browser-compatibility',
+      semanticManifestPath: null,
+      sourceProvenancePath: null,
+    },
+    { chromium: makeChromium(200, []) },
+  );
+  assert.equal(browserOnly.exitCode, 0);
+  assert.equal(
+    browserOnly.manifest.deterministicRendering.semanticIdNormalization.mode,
+    'disabled-browser-compatibility',
+  );
+  assert.deepEqual(browserOnly.manifest.results[0].semanticIdNormalization.scopes, []);
 
   const failureEvents = [];
   const failure = await capture.captureScreenshots(
@@ -641,7 +744,9 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
 test('revision-aware capture fails malformed or missing seed manifests before browser launch', async (t) => {
   const root = fixtureDirectory(t);
   const semanticManifestPath = path.join(root, 'semantic.json');
-  fs.writeFileSync(semanticManifestPath, JSON.stringify({ schemaVersion: 'ui-smoke-semantic/v2' }));
+  fs.writeFileSync(semanticManifestPath, JSON.stringify({ schemaVersion: 'ui-smoke-semantic/v3' }));
+  const sourceProvenancePath = path.join(root, 'source.json');
+  fs.writeFileSync(sourceProvenancePath, JSON.stringify({ schemaVersion: 'ui-smoke-source/v1' }));
   const malformedSeedPath = path.join(root, 'malformed-seed.json');
   fs.writeFileSync(malformedSeedPath, '{not-json');
   let launchCalls = 0;
@@ -664,8 +769,9 @@ test('revision-aware capture fails malformed or missing seed manifests before br
         pageNames: ['executions-to-runs'],
         revisionRole: 'head',
         seedManifestPath,
+        semanticIdNormalizationMode: 'semantic-full-stack',
         semanticManifestPath,
-        sourceProvenancePath: null,
+        sourceProvenancePath,
         viewports: [{ width: 10, height: 10 }],
       },
       { chromium },

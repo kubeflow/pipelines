@@ -4,7 +4,14 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const { buildSemanticIdentifierCatalog } = require('../capture-screenshots');
 const { summarizeComparison } = require('../generate-comparison');
+const { getSemanticIdNormalizationContract } = require('../semantic-capture-scenarios');
+const {
+  SEMANTIC_COLOR_PALETTE,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+} = require('../semantic-id-normalization');
+const { strictSemanticFixtureManifest } = require('./semantic-fixture');
 
 const {
   CAPTURE_VALIDITY,
@@ -33,10 +40,7 @@ function sha256(contents) {
   return crypto.createHash('sha256').update(contents).digest('hex');
 }
 
-const semanticManifestFixture = {
-  fixtures: ['historical-run', 'historical-artifact'],
-  schemaVersion: 'ui-smoke-semantic/v2',
-};
+const semanticManifestFixture = strictSemanticFixtureManifest();
 const sourceProvenanceFixture = {
   fingerprint: `sha256:${'c'.repeat(64)}`,
   revision: {
@@ -65,7 +69,7 @@ function writeCaptureInput(directory, filename, value) {
 function createCaptureFixture(role, captureId = `${role}-capture`, options = {}) {
   const directory = path.join(artifactRoot, role);
   fs.mkdirSync(directory, { recursive: true });
-  const page = options.page || 'runs';
+  const page = options.page || 'run-details-rich-graph';
   const filename = `${page}-1280x800.png`;
   const screenshotPath = path.join(directory, filename);
   const screenshot = Buffer.concat([
@@ -89,13 +93,29 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
     ),
   };
   const manifest = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     captureId,
     startedAt: new Date(capturedAtMs - 2000).toISOString(),
     completedAt: new Date(capturedAtMs + 2000).toISOString(),
     complete: true,
+    deterministicRendering: {
+      animations: 'disabled',
+      colorScheme: 'light',
+      fixedTime: '2025-01-15T12:00:00.000Z',
+      locale: 'en-US',
+      semanticIdNormalization: {
+        derivedColorPalette: SEMANTIC_COLOR_PALETTE,
+        failOnReplacementCountMismatch: true,
+        mode: 'semantic-full-stack',
+        rawIdentifierPolicy: 'SHA-256 attestation only',
+        schemaVersion: SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+        tokenFormat: '[ui-id:<kind>:<semantic-path>]',
+      },
+      timezone: 'UTC',
+    },
     fatalErrors: [],
     inputs,
+    scenarioContractSchemaVersion: 'ui-smoke-scenarios/v2',
     results: [
       {
         capturedAt,
@@ -106,6 +126,13 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
         sha256: sha256(screenshot),
         sizeBytes: screenshot.length,
         status: 'success',
+        semanticIdNormalization: options.semanticIdNormalization || {
+          complete: true,
+          derivedColorScopes: [],
+          schemaVersion: SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+          scopes: [],
+          totalReplacementCount: 0,
+        },
         viewport: { height: 800, width: 1280 },
       },
     ],
@@ -131,6 +158,43 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
   };
 }
 
+function canonicalSemanticIdNormalization(role, page = 'artifact-details') {
+  const contract = getSemanticIdNormalizationContract(role, page);
+  assert.ok(contract, `missing ${role} normalization contract for ${page}`);
+  const catalog = buildSemanticIdentifierCatalog(semanticManifestFixture, role);
+  const scopes = contract.scopes.map((scope) => {
+    assert.ok(Array.isArray(scope.semanticIds), `${page} test contract must select semantic IDs`);
+    const entries = scope.semanticIds.map((semanticId) => {
+      const identifier = catalog.find((candidate) => candidate.semanticId === semanticId);
+      assert.ok(identifier, `missing ${role} catalog identifier ${semanticId}`);
+      return {
+        ...(identifier.equivalenceClass ? { equivalenceClass: identifier.equivalenceClass } : {}),
+        kind: identifier.kind,
+        replacementCount: scope.minReplacementsPerIdentifier,
+        semanticId: identifier.semanticId,
+        sourceIdSha256: sha256(identifier.value),
+        token: identifier.token,
+        tokenKind: identifier.tokenKind,
+        tokenSemanticId: identifier.tokenSemanticId,
+      };
+    });
+    const replacementCount = entries.reduce((total, entry) => total + entry.replacementCount, 0);
+    return {
+      ...scope,
+      entries,
+      replacementCount,
+      rootCount: replacementCount > 0 ? 1 : 0,
+    };
+  });
+  return {
+    complete: true,
+    derivedColorScopes: [],
+    schemaVersion: SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+    scopes,
+    totalReplacementCount: scopes.reduce((total, scope) => total + scope.replacementCount, 0),
+  };
+}
+
 const baseCaptureFixture = createCaptureFixture('base');
 const headCaptureFixture = createCaptureFixture('head');
 
@@ -151,7 +215,13 @@ function comparisonSummary(overrides = {}) {
     },
     fatalErrors: [],
     passed: true,
-    results: [{ filename: baseCaptureFixture.filename, page: 'runs', status: 'success' }],
+    results: [
+      {
+        filename: baseCaptureFixture.filename,
+        page: 'run-details-rich-graph',
+        status: 'success',
+      },
+    ],
     valid: true,
     ...overrides,
   };
@@ -526,6 +596,153 @@ test('capture artifact validation binds every successful PNG to its manifest', a
     assert.match(result.error.message, /unsupported schema version/);
   });
 
+  await t.test('missing deterministic semantic normalization contract', async () => {
+    const fixture = createCaptureFixture('missing-normalization-contract', undefined, {
+      revisionRole: 'base',
+    });
+    const invalidManifest = { ...fixture.manifest };
+    delete invalidManifest.deterministicRendering;
+    const manifestPath = writeJsonArtifact(
+      'missing-normalization-contract/invalid-manifest.json',
+      invalidManifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /no deterministic rendering contract/);
+  });
+
+  await t.test('wrong deterministic semantic normalization palette', async () => {
+    const fixture = createCaptureFixture('wrong-normalization-palette', undefined, {
+      revisionRole: 'base',
+    });
+    const invalidManifest = {
+      ...fixture.manifest,
+      deterministicRendering: {
+        ...fixture.manifest.deterministicRendering,
+        semanticIdNormalization: {
+          ...fixture.manifest.deterministicRendering.semanticIdNormalization,
+          derivedColorPalette: ['#000000'],
+        },
+      },
+    };
+    const manifestPath = writeJsonArtifact(
+      'wrong-normalization-palette/invalid-manifest.json',
+      invalidManifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /must use semantic ID normalization contract/);
+  });
+
+  await t.test('browser-compatibility normalization mode', async () => {
+    const fixture = createCaptureFixture('wrong-normalization-mode', undefined, {
+      revisionRole: 'base',
+    });
+    fixture.manifest.deterministicRendering.semanticIdNormalization.mode =
+      'disabled-browser-compatibility';
+    const manifestPath = writeJsonArtifact(
+      'wrong-normalization-mode/invalid-manifest.json',
+      fixture.manifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /must use semantic ID normalization contract/);
+  });
+
+  await t.test('weakened deterministic normalization contract', async () => {
+    const fixture = createCaptureFixture('weakened-normalization-contract', undefined, {
+      revisionRole: 'base',
+    });
+    fixture.manifest.deterministicRendering.semanticIdNormalization.failOnReplacementCountMismatch = false;
+    const manifestPath = writeJsonArtifact(
+      'weakened-normalization-contract/invalid-manifest.json',
+      fixture.manifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /must use semantic ID normalization contract/);
+  });
+
+  await t.test('stale semantic scenario contract', async () => {
+    const fixture = createCaptureFixture('wrong-scenario-contract', undefined, {
+      revisionRole: 'base',
+    });
+    fixture.manifest.scenarioContractSchemaVersion = 'ui-smoke-scenarios/v1';
+    const manifestPath = writeJsonArtifact(
+      'wrong-scenario-contract/invalid-manifest.json',
+      fixture.manifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /must use scenario contract ui-smoke-scenarios\/v2/);
+  });
+
+  await t.test('empty canonical scenario normalization evidence', async () => {
+    const fixture = createCaptureFixture('empty-canonical-normalization', undefined, {
+      page: 'artifact-details',
+      revisionRole: 'base',
+    });
+    const result = await runWithBaseCapture(fixture.manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(
+      result.error.message,
+      /does not attest the base semantic ID normalization contract/,
+    );
+  });
+
+  await t.test('unknown semantic scenario with empty normalization evidence', async () => {
+    const fixture = createCaptureFixture('unknown-semantic-scenario', undefined, {
+      page: 'runs',
+      revisionRole: 'base',
+    });
+    const result = await runWithBaseCapture(fixture.manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /does not bind canonical semantic scenario runs/);
+  });
+
+  await t.test('missing semantic normalization attestation', async () => {
+    const fixture = createCaptureFixture('missing-normalization-evidence', undefined, {
+      revisionRole: 'base',
+    });
+    const [capture] = fixture.manifest.results;
+    const invalidCapture = { ...capture };
+    delete invalidCapture.semanticIdNormalization;
+    const invalidManifest = { ...fixture.manifest, results: [invalidCapture] };
+    const manifestPath = writeJsonArtifact(
+      'missing-normalization-evidence/invalid-manifest.json',
+      invalidManifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /invalid semantic ID normalization evidence/);
+  });
+
+  await t.test('inconsistent semantic normalization attestation', async () => {
+    const fixture = createCaptureFixture('bad-normalization-evidence', undefined, {
+      revisionRole: 'base',
+    });
+    const [capture] = fixture.manifest.results;
+    const invalidManifest = {
+      ...fixture.manifest,
+      results: [
+        {
+          ...capture,
+          semanticIdNormalization: {
+            ...capture.semanticIdNormalization,
+            totalReplacementCount: 1,
+          },
+        },
+      ],
+    };
+    const manifestPath = writeJsonArtifact(
+      'bad-normalization-evidence/invalid-manifest.json',
+      invalidManifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.match(result.error.message, /inconsistent total replacement count/);
+  });
+
   await t.test('missing screenshot', async () => {
     const fixture = createCaptureFixture('missing-png', undefined, { revisionRole: 'base' });
     fs.unlinkSync(path.join(path.dirname(fixture.manifestPath), fixture.filename));
@@ -551,6 +768,126 @@ test('capture artifact validation binds every successful PNG to its manifest', a
     const result = await runWithBaseCapture(fixture.manifestPath);
     assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
     assert.match(result.error.message, /non-symlink regular file/);
+  });
+});
+
+test('upgrade capture validation binds normalization evidence to the semantic catalog', async (t) => {
+  const canonicalBase = createCaptureFixture('catalog-canonical-base', undefined, {
+    page: 'artifact-details',
+    revisionRole: 'base',
+    semanticIdNormalization: canonicalSemanticIdNormalization('base'),
+  });
+  const runWithBaseCapture = async (manifestPath) => {
+    const { operations } = harness({
+      captureBase: async () => ({
+        captureValidity: CAPTURE_VALIDITY.VALID,
+        manifestPath,
+        success: true,
+      }),
+    });
+    return orchestrateUpgrade({
+      capabilities: capabilities(),
+      operations,
+      request: request(),
+    });
+  };
+
+  await t.test('accepts canonical catalog-backed normalization evidence', async () => {
+    const canonicalHead = createCaptureFixture('catalog-canonical-head', undefined, {
+      page: 'artifact-details',
+      revisionRole: 'head',
+      semanticIdNormalization: canonicalSemanticIdNormalization('head'),
+    });
+    const summaryPath = writeJsonArtifact('catalog-canonical-summary.json', {
+      captures: {
+        base: {
+          captureId: canonicalBase.captureId,
+          manifestSha256: canonicalBase.manifestSha256,
+          requiredFilenames: [canonicalBase.filename],
+        },
+        head: {
+          captureId: canonicalHead.captureId,
+          manifestSha256: canonicalHead.manifestSha256,
+          requiredFilenames: [canonicalHead.filename],
+        },
+      },
+      fatalErrors: [],
+      passed: true,
+      results: [
+        {
+          filename: canonicalBase.filename,
+          page: 'artifact-details',
+          status: 'success',
+        },
+      ],
+      schemaVersion: 2,
+      valid: true,
+    });
+    const { operations } = harness({
+      captureBase: async () => ({
+        captureValidity: CAPTURE_VALIDITY.VALID,
+        manifestPath: canonicalBase.manifestPath,
+        success: true,
+      }),
+      captureHead: async () => ({
+        captureValidity: CAPTURE_VALIDITY.VALID,
+        manifestPath: canonicalHead.manifestPath,
+        success: true,
+      }),
+      compareCaptures: async () => ({
+        captureValidity: CAPTURE_VALIDITY.VALID,
+        reportPath: comparisonReportPath,
+        success: true,
+        summaryPath,
+      }),
+    });
+
+    const result = await orchestrateUpgrade({
+      capabilities: capabilities(),
+      operations,
+      request: request(),
+    });
+
+    assert.equal(result.complete, true);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.VALID);
+    assert.equal(result.phase, PHASES.COMPLETE);
+  });
+
+  await t.test('rejects a shape-valid source hash that is absent from the catalog', async () => {
+    const manifest = structuredClone(canonicalBase.manifest);
+    manifest.results[0].semanticIdNormalization.scopes[0].entries[0].sourceIdSha256 = '0'.repeat(
+      64,
+    );
+    const manifestPath = writeJsonArtifact(
+      'catalog-canonical-base/tampered-hash-manifest.json',
+      manifest,
+    );
+
+    const result = await runWithBaseCapture(manifestPath);
+
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.equal(result.phase, PHASES.CAPTURE_BASE);
+    assert.match(result.error.message, /does not match its attested semantic fixture manifest/);
+  });
+
+  await t.test('rejects a shape-valid token identity that is absent from the catalog', async () => {
+    const manifest = structuredClone(canonicalBase.manifest);
+    const [artifactScope, uriScope] = manifest.results[0].semanticIdNormalization.scopes;
+    const [artifactEntry] = artifactScope.entries;
+    const [uriEntry] = uriScope.entries;
+    artifactEntry.token = uriEntry.token;
+    artifactEntry.tokenKind = uriEntry.tokenKind;
+    artifactEntry.tokenSemanticId = uriEntry.tokenSemanticId;
+    const manifestPath = writeJsonArtifact(
+      'catalog-canonical-base/tampered-token-manifest.json',
+      manifest,
+    );
+
+    const result = await runWithBaseCapture(manifestPath);
+
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.equal(result.phase, PHASES.CAPTURE_BASE);
+    assert.match(result.error.message, /does not match its attested semantic fixture manifest/);
   });
 });
 
@@ -670,7 +1007,7 @@ test('comparison artifacts are cryptographically bound to the exact capture pair
 
   await t.test('different required filename sets', async () => {
     const differentHead = createCaptureFixture('different-head', 'different-head-capture', {
-      page: 'pipelines',
+      page: 'run-details-task-logs',
       revisionRole: 'head',
     });
     const result = await runWithOverrides({

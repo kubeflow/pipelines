@@ -1,6 +1,101 @@
 'use strict';
 
-const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v1';
+const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest');
+
+const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v2';
+
+const exactScope = (options = {}) => ({
+  match: 'exact',
+  maxReplacements: options.maxReplacements ?? null,
+  maxReplacementsPerIdentifier: options.maxReplacementsPerIdentifier ?? null,
+  minReplacements: options.minReplacements ?? 0,
+  minReplacementsPerIdentifier: options.minReplacementsPerIdentifier ?? 0,
+  selector: options.selector || '#root',
+  ...(options.kinds ? { kinds: options.kinds } : {}),
+  ...(options.semanticIds ? { semanticIds: options.semanticIds } : {}),
+});
+
+const exactSemanticIds = (options = {}) => ({ scopes: [exactScope(options)] });
+
+const primaryArtifact = (artifactKey) => `run.training-1/${artifactKey}[0]`;
+const primaryTask = (taskKey) => `run.training-1/${taskKey}[0]`;
+const taskArtifactUriScope = (taskKey) => ({
+  match: 'exact',
+  maxReplacements: null,
+  maxReplacementsPerIdentifier: null,
+  minReplacements: 0,
+  minReplacementsPerIdentifier: 0,
+  selector: '#root',
+  semanticIdPrefixes: [`${primaryTask(taskKey)}/`],
+});
+const taskPodScope = (taskKey, minReplacements = 0) => ({
+  match: 'substring',
+  maxReplacements: null,
+  maxReplacementsPerIdentifier: null,
+  minReplacements,
+  minReplacementsPerIdentifier: 0,
+  selector: '#root',
+  semanticIdPrefixes: [`${primaryTask(taskKey)}/pod.`],
+});
+
+const TABLE_ROW_SELECTOR = '#root [data-testid="table-row"]';
+const ARTIFACT_URI_NORMALIZATION = exactSemanticIds({
+  kinds: ['artifact-uri'],
+  minReplacements: 1,
+});
+const ARTIFACT_LIST_BASE_NORMALIZATION = {
+  scopes: [
+    exactScope({ kinds: ['artifact'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+    exactScope({ kinds: ['artifact-uri'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+  ],
+};
+const ARTIFACT_LIST_HEAD_NORMALIZATION = {
+  scopes: [
+    exactScope({ kinds: ['artifact'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+    exactScope({ kinds: ['artifact-uri'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+  ],
+};
+const EXECUTION_LIST_ID_NORMALIZATION = {
+  scopes: [
+    exactScope({ kinds: ['execution'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+    {
+      ...exactScope({ kinds: ['run'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+      match: 'substring',
+    },
+  ],
+};
+const COMPARISON_RUN_ID_SCOPES = [
+  {
+    match: 'substring',
+    maxReplacements: null,
+    maxReplacementsPerIdentifier: null,
+    minReplacements: 0,
+    minReplacementsPerIdentifier: 0,
+    selector: '#root',
+    semanticIds: COMPARISON_RUN_FIXTURES,
+  },
+];
+const COMPARISON_RUN_ID_NORMALIZATION = { scopes: COMPARISON_RUN_ID_SCOPES };
+const rocComparisonColorNormalization = ({
+  containerSelector = '#root',
+  labelItemSelector,
+  mappingStrategy,
+  selector = '.recharts-line .recharts-line-curve',
+}) => ({
+  derivedColorScopes: [
+    {
+      containerSelector,
+      key: 'compare-roc-series',
+      labelItemSelector,
+      mappingStrategy,
+      maxElements: 3,
+      minElements: 3,
+      selector,
+      semanticIds: COMPARISON_RUN_FIXTURES,
+    },
+  ],
+  scopes: COMPARISON_RUN_ID_SCOPES,
+});
 
 const EXPECTED_CHANGES = Object.freeze({
   artifactList:
@@ -149,6 +244,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/executions',
         routeExpectation: { kind: 'direct', path: '/executions' },
+        semanticIdNormalization: EXECUTION_LIST_ID_NORMALIZATION,
         waitFor: '#root',
         actions: waitForList,
       },
@@ -175,12 +271,14 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/artifacts',
         routeExpectation: { kind: 'direct', path: '/artifacts' },
+        semanticIdNormalization: ARTIFACT_LIST_BASE_NORMALIZATION,
         waitFor: '#root',
         actions: waitForList,
       },
       head: {
         path: '/#/artifacts',
         routeExpectation: { kind: 'direct', path: '/artifacts' },
+        semanticIdNormalization: ARTIFACT_LIST_HEAD_NORMALIZATION,
         waitFor: '#root',
         actions: waitForList,
       },
@@ -215,6 +313,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/runs/details/{seed.richRunId}',
         routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
+        semanticIdNormalization: ARTIFACT_URI_NORMALIZATION,
         waitFor: '#root',
         actions: taskPanelActions('write-metrics', 'Input/Output'),
       },
@@ -224,6 +323,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           kind: 'direct',
           path: '/runs/details/{seed.richRunId}?task={seed.writeMetricsTaskId}',
         },
+        semanticIdNormalization: ARTIFACT_URI_NORMALIZATION,
         waitFor: '#root',
         actions: headTaskPanelActions('write-metrics', 'Input/Output'),
       },
@@ -368,6 +468,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
@@ -377,6 +478,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
@@ -394,6 +496,14 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: rocComparisonColorNormalization({
+          containerSelector: '#root .plotCard:has([title="Aggregated view"])',
+          labelItemSelector:
+            '#root .plotCard:has(.recharts-line-curve):not(:has([title="Aggregated view"]))',
+          mappingStrategy: 'ordered-label-cards',
+          selector:
+            '#root .plotCard:has([title="Aggregated view"]) .recharts-line .recharts-line-curve',
+        }),
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
@@ -404,12 +514,17 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: rocComparisonColorNormalization({
+          labelItemSelector: '#root [aria-label="Selected ROC curve provenance"] > li',
+          mappingStrategy: 'color-backed-labels',
+        }),
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
           { type: 'click', selector: tabSelector('Classification Metrics') },
           { type: 'waitForSelector', selector: '[aria-label="ROC curves"]' },
           { type: 'click', selector: '[aria-label="ROC curves"]' },
+          { type: 'click', selector: '[role="option"]' },
           { type: 'click', selector: '[role="option"]' },
           { type: 'press', key: 'Escape' },
           { type: 'waitForFunction', predicate: rocReady },
@@ -425,6 +540,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: baseFileComparisonActions('HTML', {
           type: 'waitForFrameText',
@@ -434,6 +550,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: headFileComparisonActions('HTML', {
           type: 'waitForFrameText',
@@ -450,6 +567,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: baseFileComparisonActions('Markdown', {
           type: 'waitForText',
@@ -459,6 +577,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+        semanticIdNormalization: COMPARISON_RUN_ID_NORMALIZATION,
         waitFor: '#root',
         actions: headFileComparisonActions('Markdown', {
           type: 'waitForText',
@@ -476,6 +595,22 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/artifacts/{seed.htmlArtifactId}',
         routeExpectation: { kind: 'direct', path: '/artifacts/{seed.htmlArtifactId}' },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 0,
+              maxReplacementsPerIdentifier: 0,
+              semanticIds: [primaryArtifact('artifact.html-report')],
+            }),
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [`${primaryArtifact('artifact.html-report')}/uri`],
+            }),
+          ],
+        },
         waitFor: '#root',
         actions: [
           { type: 'waitForText', text: 'Overview' },
@@ -486,6 +621,24 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/artifacts/{seed.htmlArtifactId}',
         routeExpectation: { kind: 'direct', path: '/artifacts/{seed.htmlArtifactId}' },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [primaryArtifact('artifact.html-report')],
+            }),
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [`${primaryArtifact('artifact.html-report')}/uri`],
+            }),
+          ],
+        },
         waitFor: '#root',
         actions: [
           { type: 'waitForText', text: 'Artifact details' },
@@ -503,6 +656,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/artifacts/{seed.relatedArtifactId}',
         routeExpectation: { kind: 'direct', path: '/artifacts/{seed.relatedArtifactId}' },
+        semanticIdNormalization: { scopes: [] },
         waitFor: '#root',
         actions: [
           { type: 'click', selector: tabSelector('Lineage Explorer') },
@@ -514,6 +668,23 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       head: {
         path: '/#/artifacts/{seed.relatedArtifactId}/lineage',
         routeExpectation: { kind: 'direct', path: '/artifacts/{seed.relatedArtifactId}/lineage' },
+        semanticIdNormalization: {
+          scopes: [
+            {
+              match: 'substring',
+              maxReplacements: 4,
+              maxReplacementsPerIdentifier: 2,
+              minReplacements: 4,
+              minReplacementsPerIdentifier: 1,
+              selector: '#root [data-testid="table-row"]',
+              semanticIds: [
+                'run.training-1',
+                primaryTask('task.write-metrics'),
+                primaryTask('task.consume-metrics'),
+              ],
+            },
+          ],
+        },
         waitFor: '#root',
         actions: [
           { type: 'waitForText', text: 'Related tasks' },
@@ -536,6 +707,16 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/runs/details/{seed.richRunId}',
         routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 0,
+              maxReplacementsPerIdentifier: 0,
+              semanticIds: [primaryTask('task.retry-once')],
+            }),
+            taskArtifactUriScope('task.retry-once'),
+          ],
+        },
         waitFor: '#root',
         actions: taskPanelActions('retry-once', 'Input/Output'),
       },
@@ -544,6 +725,18 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: {
           kind: 'direct',
           path: '/runs/details/{seed.richRunId}?task={seed.retryTaskId}',
+        },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [primaryTask('task.retry-once')],
+            }),
+            taskPodScope('task.retry-once', 4),
+          ],
         },
         waitFor: '#root',
         actions: headTaskPanelActions('retry-once', 'Task Details'),
@@ -559,6 +752,19 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/runs/details/{seed.richRunId}',
         routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 0,
+              maxReplacementsPerIdentifier: 0,
+              semanticIds: [primaryTask('task.parallel-loop')],
+            }),
+            exactScope({
+              semanticIds: [primaryTask('task.loop-worker'), 'run.training-1/task.loop-worker[1]'],
+            }),
+            taskArtifactUriScope('task.parallel-loop'),
+          ],
+        },
         waitFor: '#root',
         actions: taskPanelActions('parallel-loop', null),
       },
@@ -567,6 +773,21 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: {
           kind: 'direct',
           path: '/runs/details/{seed.richRunId}?task={seed.parallelTaskId}',
+        },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [primaryTask('task.parallel-loop')],
+            }),
+            exactScope({
+              semanticIds: [primaryTask('task.loop-worker'), 'run.training-1/task.loop-worker[1]'],
+            }),
+            taskPodScope('task.parallel-loop'),
+          ],
         },
         waitFor: '#root',
         actions: headTaskPanelActions('parallel-loop', 'Task Details'),
@@ -582,6 +803,16 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       base: {
         path: '/#/runs/details/{seed.richRunId}',
         routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 0,
+              maxReplacementsPerIdentifier: 0,
+              semanticIds: [primaryTask('task.nested-dag')],
+            }),
+            taskArtifactUriScope('task.nested-dag'),
+          ],
+        },
         waitFor: '#root',
         actions: taskPanelActions('nested-dag', null),
       },
@@ -590,6 +821,18 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: {
           kind: 'direct',
           path: '/runs/details/{seed.richRunId}?task={seed.nestedDagTaskId}',
+        },
+        semanticIdNormalization: {
+          scopes: [
+            exactScope({
+              maxReplacements: 1,
+              maxReplacementsPerIdentifier: 1,
+              minReplacements: 1,
+              minReplacementsPerIdentifier: 1,
+              semanticIds: [primaryTask('task.nested-dag')],
+            }),
+            taskPodScope('task.nested-dag'),
+          ],
         },
         waitFor: '#root',
         actions: headTaskPanelActions('nested-dag', 'Task Details'),
@@ -672,10 +915,28 @@ function getSemanticScenarioCatalog(scenarios = SEMANTIC_SCENARIOS) {
   }));
 }
 
+function getSemanticIdNormalizationContract(
+  revisionRole,
+  semanticScenario,
+  scenarios = SEMANTIC_SCENARIOS,
+) {
+  if (revisionRole !== 'base' && revisionRole !== 'head') {
+    throw new Error('Semantic ID normalization contracts require revisionRole base or head.');
+  }
+  const scenario = scenarios.find((candidate) => candidate.key === semanticScenario);
+  if (!scenario) return null;
+  const variant = scenario.revisions?.[revisionRole];
+  if (!variant) {
+    throw new Error(`Scenario ${semanticScenario} has no ${revisionRole} definition.`);
+  }
+  return resolveTemplates(variant.semanticIdNormalization || { scopes: [] }, {});
+}
+
 module.exports = {
   EXPECTED_CHANGES,
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   SEMANTIC_SCENARIOS,
+  getSemanticIdNormalizationContract,
   getSemanticScenarioCatalog,
   resolveSemanticScenarios,
 };

@@ -11,8 +11,19 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const {
+  normalizeSemanticIdNormalizationAttestation,
+  validateSemanticNormalizationAgainstCatalog,
+  validateSemanticIdNormalizationScenarioContracts,
+} = require('./generate-comparison');
+const { SCENARIO_CONTRACT_SCHEMA_VERSION } = require('./semantic-capture-scenarios');
+const {
+  SEMANTIC_ID_NORMALIZATION_MODES,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+  semanticIdNormalizationRenderingContract,
+} = require('./semantic-id-normalization');
 
-const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
+const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
 const COMPARISON_SUMMARY_SCHEMA_VERSION = 2;
 const CAPTURE_STATUSES = new Set(['success', 'degraded', 'skipped', 'failed']);
 const PNG_SIGNATURE = Buffer.from('89504e470d0a1a0a', 'hex');
@@ -385,10 +396,13 @@ function requireCaptureInputAttestation(attestation, expectedValue, artifactRoot
     throw new Error(`${description} does not match the expected provenance input.`);
   }
   return {
-    path: artifact.path,
-    schemaVersion,
-    sha256: artifact.sha256,
-    sizeBytes: artifact.sizeBytes,
+    attestation: {
+      path: artifact.path,
+      schemaVersion,
+      sha256: artifact.sha256,
+      sizeBytes: artifact.sizeBytes,
+    },
+    value: artifact.value,
   };
 }
 
@@ -406,21 +420,66 @@ function requireCaptureInputs(manifest, expectedInputs, artifactRoot, operation)
   if (manifest.inputs.revisionRole !== expectedRevisionRole) {
     throw new Error(`${operation} capture manifest revisionRole must be ${expectedRevisionRole}.`);
   }
+  const semanticManifest = requireCaptureInputAttestation(
+    manifest.inputs.semanticManifest,
+    expectedInputs.semanticManifest,
+    artifactRoot,
+    `${operation} semanticManifest`,
+  );
+  const sourceProvenance = requireCaptureInputAttestation(
+    manifest.inputs.sourceProvenance,
+    expectedInputs.sourceProvenance,
+    artifactRoot,
+    `${operation} sourceProvenance`,
+  );
   return {
+    inputs: {
+      revisionRole: expectedRevisionRole,
+      semanticManifest: semanticManifest.attestation,
+      sourceProvenance: sourceProvenance.attestation,
+    },
     revisionRole: expectedRevisionRole,
-    semanticManifest: requireCaptureInputAttestation(
-      manifest.inputs.semanticManifest,
-      expectedInputs.semanticManifest,
-      artifactRoot,
-      `${operation} semanticManifest`,
-    ),
-    sourceProvenance: requireCaptureInputAttestation(
-      manifest.inputs.sourceProvenance,
-      expectedInputs.sourceProvenance,
-      artifactRoot,
-      `${operation} sourceProvenance`,
-    ),
+    semanticManifest: semanticManifest.value,
   };
+}
+
+function requireSemanticIdNormalizationContract(manifest, operation) {
+  if (!isRecord(manifest.deterministicRendering)) {
+    throw new Error(`${operation} capture manifest has no deterministic rendering contract.`);
+  }
+  const contract = manifest.deterministicRendering.semanticIdNormalization;
+  const expectedContract = semanticIdNormalizationRenderingContract(
+    SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK,
+  );
+  if (
+    !isRecord(contract) ||
+    canonicalJson(contract, `${operation} semantic ID normalization contract`) !==
+      canonicalJson(expectedContract, `${operation} expected semantic ID normalization contract`)
+  ) {
+    throw new Error(
+      `${operation} capture manifest must use semantic ID normalization contract ${SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION}.`,
+    );
+  }
+  if (manifest.scenarioContractSchemaVersion !== SCENARIO_CONTRACT_SCHEMA_VERSION) {
+    throw new Error(
+      `${operation} capture manifest must use scenario contract ${SCENARIO_CONTRACT_SCHEMA_VERSION}.`,
+    );
+  }
+}
+
+function requireSemanticIdNormalizationAttestation(attestation, operation, filename) {
+  try {
+    return normalizeSemanticIdNormalizationAttestation(
+      attestation,
+      `${operation} capture result ${filename} semanticIdNormalization`,
+    );
+  } catch (error) {
+    throw new Error(
+      `${operation} capture result ${filename} has invalid semantic ID normalization evidence: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
 }
 
 function requireValidCaptureArtifact(result, operation, artifactRoot, expectedInputs) {
@@ -439,7 +498,9 @@ function requireValidCaptureArtifact(result, operation, artifactRoot, expectedIn
       `${operation} capture manifest uses unsupported schema version ${manifest.schemaVersion}.`,
     );
   }
-  const inputs = requireCaptureInputs(manifest, expectedInputs, artifactRoot, operation);
+  requireSemanticIdNormalizationContract(manifest, operation);
+  const captureInputs = requireCaptureInputs(manifest, expectedInputs, artifactRoot, operation);
+  const inputs = captureInputs.inputs;
   const captureId = requireNonEmptyString(manifest.captureId, `${operation} captureId`);
   const startedAt = parseArtifactTimestamp(manifest.startedAt, `${operation} startedAt`);
   const completedAt = parseArtifactTimestamp(manifest.completedAt, `${operation} completedAt`);
@@ -488,6 +549,13 @@ function requireValidCaptureArtifact(result, operation, artifactRoot, expectedIn
       throw new Error(`${operation} capture manifest contains incomplete or degraded scenarios.`);
     }
     if (capture.status !== 'success') {
+      if (capture.semanticIdNormalization !== undefined) {
+        requireSemanticIdNormalizationAttestation(
+          capture.semanticIdNormalization,
+          operation,
+          capture.filename,
+        );
+      }
       records.push({
         filename: capture.filename,
         required: capture.required,
@@ -495,6 +563,12 @@ function requireValidCaptureArtifact(result, operation, artifactRoot, expectedIn
       });
       continue;
     }
+
+    requireSemanticIdNormalizationAttestation(
+      capture.semanticIdNormalization,
+      operation,
+      capture.filename,
+    );
 
     const capturedAt = parseArtifactTimestamp(
       capture.capturedAt,
@@ -564,6 +638,29 @@ function requireValidCaptureArtifact(result, operation, artifactRoot, expectedIn
       sizeBytes: screenshot.sizeBytes,
       status: capture.status,
     });
+  }
+
+  try {
+    validateSemanticIdNormalizationScenarioContracts(manifest, expectedInputs.revisionRole);
+  } catch (error) {
+    throw new Error(
+      `${operation} capture manifest has invalid semantic scenario normalization evidence: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  try {
+    validateSemanticNormalizationAgainstCatalog(
+      manifest,
+      captureInputs.revisionRole,
+      captureInputs.semanticManifest,
+    );
+  } catch (error) {
+    throw new Error(
+      `${operation} capture manifest has semantic ID normalization evidence that does not match its attested semantic fixture manifest: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 
   const requiredFilenames = records

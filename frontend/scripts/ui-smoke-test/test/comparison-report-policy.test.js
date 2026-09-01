@@ -7,9 +7,17 @@ const path = require('node:path');
 
 const sharp = require('sharp');
 
+const capture = require('../capture-screenshots');
 const comparison = require('../generate-comparison');
+const { getSemanticIdNormalizationContract } = require('../semantic-capture-scenarios');
+const {
+  SEMANTIC_COLOR_PALETTE,
+  semanticIdNormalizationRenderingContract,
+  semanticIdToken,
+} = require('../semantic-id-normalization');
 const { capturePair, parseCli } = require('../smoke-test-runner');
 const { generateMarkdownSummary, validateSummary } = require('../upload-to-pr');
+const { strictSemanticFixtureManifest } = require('./semantic-fixture');
 
 function fixtureRoot(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-policy-'));
@@ -50,14 +58,161 @@ function captureResult(filename, overrides = {}) {
   };
 }
 
+function semanticIdNormalizationEvidence() {
+  const semanticId = 'run.training-1/artifact.html-report[0]';
+  const identifier = capture
+    .buildSemanticIdentifierCatalog(strictSemanticFixtureManifest(), 'head')
+    .find((entry) => entry.kind === 'artifact' && entry.semanticId === semanticId);
+  assert.ok(identifier);
+  return {
+    complete: true,
+    derivedColorScopes: [],
+    schemaVersion: 'ui-smoke-id-normalization/v1',
+    scopes: [
+      {
+        entries: [
+          {
+            kind: 'artifact',
+            replacementCount: 1,
+            semanticId,
+            sourceIdSha256: sha256(identifier.value),
+            token: identifier.token,
+            tokenKind: identifier.tokenKind,
+            tokenSemanticId: identifier.tokenSemanticId,
+          },
+        ],
+        match: 'exact',
+        maxReplacements: 1,
+        maxReplacementsPerIdentifier: 1,
+        minReplacements: 1,
+        minReplacementsPerIdentifier: 1,
+        replacementCount: 1,
+        rootCount: 1,
+        selector: '#root',
+        semanticIds: [semanticId],
+      },
+    ],
+    totalReplacementCount: 1,
+  };
+}
+
+function semanticKind(semanticId) {
+  if (semanticId.endsWith('/uri')) return 'artifact-uri';
+  if (semanticId.endsWith('/execution')) return 'execution';
+  if (semanticId.includes('/pod[')) return 'pod';
+  if (/\/(?:artifact|metric)\./.test(semanticId)) return 'artifact';
+  if (semanticId.includes('/task.')) return 'task';
+  return 'run';
+}
+
+function semanticIdNormalizationEvidenceFor(role, page) {
+  const catalog = capture.buildSemanticIdentifierCatalog(strictSemanticFixtureManifest(), role);
+  const contract = getSemanticIdNormalizationContract(role, page) || {
+    derivedColorScopes: [],
+    scopes: [],
+  };
+  const scopes = (contract.scopes || []).map((scope, scopeIndex) => {
+    const explicitSemanticIds = Array.isArray(scope.semanticIds) ? scope.semanticIds : null;
+    let selected = [];
+    if (explicitSemanticIds) {
+      selected = explicitSemanticIds.map((semanticId) => {
+        const kind = semanticKind(semanticId);
+        const identifier = catalog.find(
+          (candidate) => candidate.kind === kind && candidate.semanticId === semanticId,
+        );
+        assert.ok(identifier, `missing ${role} fixture identifier ${kind}:${semanticId}`);
+        return identifier;
+      });
+    } else if (Array.isArray(scope.kinds) && (scope.minReplacements || 0) > 0) {
+      const kind = scope.kinds[0];
+      const identifier = catalog.find((candidate) => candidate.kind === kind);
+      assert.ok(identifier, `missing ${role} fixture identifier kind ${kind}`);
+      selected = [identifier];
+    }
+
+    const minPerIdentifier = scope.minReplacementsPerIdentifier ?? 0;
+    const maxPerIdentifier = scope.maxReplacementsPerIdentifier ?? null;
+    const counts = selected.map(() => minPerIdentifier);
+    const countSum = counts.reduce((sum, count) => sum + count, 0);
+    let remaining = Math.max(scope.minReplacements ?? 0, countSum) - countSum;
+    for (let index = 0; remaining > 0 && index < counts.length; index++) {
+      const capacity =
+        maxPerIdentifier === null ? remaining : Math.max(0, maxPerIdentifier - counts[index]);
+      const added = Math.min(remaining, capacity);
+      counts[index] += added;
+      remaining -= added;
+    }
+    assert.equal(remaining, 0, `test fixture could not satisfy normalization scope ${scopeIndex}`);
+    const entries = selected
+      .map(
+        (
+          { equivalenceClass, kind, semanticId, token, tokenKind, tokenSemanticId, value },
+          index,
+        ) => ({
+          ...(equivalenceClass ? { equivalenceClass } : {}),
+          kind,
+          replacementCount: counts[index],
+          semanticId,
+          sourceIdSha256: sha256(value),
+          token,
+          tokenKind,
+          tokenSemanticId,
+        }),
+      )
+      .filter((entry) => entry.replacementCount > 0 || explicitSemanticIds);
+    const replacementCount = entries.reduce((sum, entry) => sum + entry.replacementCount, 0);
+    return {
+      ...scope,
+      entries,
+      maxReplacements: scope.maxReplacements ?? null,
+      maxReplacementsPerIdentifier: scope.maxReplacementsPerIdentifier ?? null,
+      minReplacements: scope.minReplacements ?? 0,
+      minReplacementsPerIdentifier: scope.minReplacementsPerIdentifier ?? 0,
+      replacementCount,
+      rootCount: replacementCount > 0 ? 1 : 0,
+    };
+  });
+  const derivedColorScopes = (contract.derivedColorScopes || []).map((scope) => {
+    const semanticIds = [...scope.semanticIds].sort();
+    const elementCount = semanticIds.length;
+    return {
+      ...scope,
+      companionCount: elementCount,
+      elementCount,
+      maxElements: scope.maxElements ?? null,
+      minElements: scope.minElements ?? 1,
+      mappings: semanticIds.map((semanticId, index) => ({
+        paletteColor: SEMANTIC_COLOR_PALETTE[index % SEMANTIC_COLOR_PALETTE.length],
+        semanticId,
+        sourceColorSha256: String((index % 6) + 1).repeat(64),
+      })),
+      semanticIds,
+    };
+  });
+  return {
+    complete: true,
+    derivedColorScopes,
+    schemaVersion: 'ui-smoke-id-normalization/v1',
+    scopes,
+    totalReplacementCount: scopes.reduce((sum, scope) => sum + scope.replacementCount, 0),
+  };
+}
+
 function writeCaptureManifest(directory, label, captureId, results, overrides = {}) {
   const now = Date.now();
+  const revisionRole = path.basename(directory) === 'base' ? 'base' : 'head';
+  const semanticFullStack = results
+    .filter((result) => result.status === 'success' || result.status === 'degraded')
+    .every((result) => Boolean(getSemanticIdNormalizationContract(revisionRole, result.page)));
   const normalized = results.map((result) => {
     if (result.status !== 'success' && result.status !== 'degraded') return result;
     const contents = fs.readFileSync(path.join(directory, result.filename));
     return {
       ...result,
       capturedAt: new Date(now).toISOString(),
+      semanticIdNormalization:
+        result.semanticIdNormalization ||
+        semanticIdNormalizationEvidenceFor(revisionRole, result.page),
       sha256: sha256(contents),
     };
   });
@@ -68,18 +223,22 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
     (result) => result.status === 'success' || result.status === 'degraded',
   );
   const complete = !requiredIncomplete && hasCaptured;
-  const revisionRole = path.basename(directory) === 'base' ? 'base' : 'head';
-  const inputAttestation = (name, digest) => ({
-    path: path.join(directory, `${name}.json`),
-    schemaVersion: `ui-smoke-${name}/v1`,
-    sha256: digest.repeat(64),
-    sizeBytes: 1,
-  });
+  const inputAttestation = (name, value) => {
+    const inputPath = path.join(directory, `${name}.json`);
+    const contents = `${JSON.stringify(value)}\n`;
+    fs.writeFileSync(inputPath, contents);
+    return {
+      path: inputPath,
+      schemaVersion: value.schemaVersion ?? null,
+      sha256: sha256(contents),
+      sizeBytes: Buffer.byteLength(contents),
+    };
+  };
   fs.writeFileSync(
     path.join(directory, 'manifest.json'),
     `${JSON.stringify(
       {
-        schemaVersion: 2,
+        schemaVersion: 3,
         captureId,
         label,
         browser: {
@@ -90,6 +249,9 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
         deterministicRendering: {
           colorScheme: 'light',
           locale: 'en-US',
+          semanticIdNormalization: semanticIdNormalizationRenderingContract(
+            semanticFullStack ? 'semantic-full-stack' : 'disabled-browser-compatibility',
+          ),
           timezone: 'UTC',
         },
         startedAt: new Date(now - 2000).toISOString(),
@@ -97,12 +259,23 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
         fatalErrors: [],
         inputs: overrides.inputs || {
           revisionRole,
-          seedManifest: inputAttestation('seed', revisionRole === 'base' ? 'a' : 'b'),
-          semanticManifest: inputAttestation('semantic', 'c'),
-          sourceProvenance: inputAttestation('source', 'd'),
+          seedManifest: inputAttestation('seed', {
+            revisionRole,
+            schemaVersion: 'ui-smoke-seed/v1',
+          }),
+          semanticManifest: semanticFullStack
+            ? inputAttestation('semantic', strictSemanticFixtureManifest())
+            : null,
+          sourceProvenance: semanticFullStack
+            ? inputAttestation('source', {
+                schemaVersion: 'ui-smoke-source/v1',
+                source: 'fixture',
+              })
+            : null,
         },
         scenarioContractSchemaVersion:
-          overrides.scenarioContractSchemaVersion || 'ui-smoke-scenarios/v1',
+          overrides.scenarioContractSchemaVersion ||
+          (semanticFullStack ? 'ui-smoke-scenarios/v2' : false),
         viewports: [
           ...new Map(
             normalized.map((result) => [
@@ -311,6 +484,34 @@ test('scenario policy binds revisions and emits five attested managed artifacts'
   assert.doesNotMatch(isolatedMarkdown, /--pr 13986 --repo/);
 });
 
+test('comparison accepts attested shared visual equivalence for unjoinable loop task IDs', async (t) => {
+  const filename = 'topology-parallel-for-10x10.png';
+  const root = await createPair(t, [
+    { base: captureResult(filename), head: captureResult(filename) },
+  ]);
+
+  for (const role of ['base', 'head']) {
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, role, 'manifest.json'), 'utf8'));
+    const entries = manifest.results[0].semanticIdNormalization.scopes.flatMap(
+      (scope) => scope.entries,
+    );
+    const workers = entries.filter((entry) => entry.equivalenceClass);
+    assert.equal(workers.length, 2, role);
+    assert.equal(new Set(workers.map((entry) => entry.token)).size, 1);
+    assert.equal(
+      workers.every(
+        (entry) => entry.equivalenceClass === 'run.training-1/task.loop-worker/equivalent',
+      ),
+      true,
+    );
+  }
+
+  const run = await comparison.runComparison(options(root));
+  assert.deepEqual(run.summary.fatalErrors, []);
+  assert.equal(run.summary.stats.validSemanticPairs, 1);
+  assert.equal(run.summary.stats.pagesExceedingFailThreshold, 1);
+});
+
 test('scenario policy refuses a stale revision binding before comparison', async (t) => {
   const filename = 'runs-10x10.png';
   const root = await createPair(t, [
@@ -333,7 +534,7 @@ test('scenario policy refuses a stale revision binding before comparison', async
 });
 
 test('comparison rejects swapped roles, provenance drift, and browser instability', async (t) => {
-  const filename = 'runs-10x10.png';
+  const filename = 'run-details-rich-graph-10x10.png';
   for (const scenario of [
     {
       name: 'swapped role',
@@ -363,6 +564,14 @@ test('comparison rejects swapped roles, provenance drift, and browser instabilit
       },
       expected: /same deterministicRendering contract/,
     },
+    {
+      name: 'semantic ID normalization contract drift',
+      mutate: (manifest) => {
+        manifest.deterministicRendering.semanticIdNormalization.tokenFormat =
+          '[different-token-format]';
+      },
+      expected: /same deterministicRendering contract/,
+    },
   ]) {
     await t.test(scenario.name, async () => {
       const root = await createPair(t, [
@@ -382,6 +591,253 @@ test('comparison rejects swapped roles, provenance drift, and browser instabilit
       assert.equal(run.summary.stats.thresholdEvaluations, 0);
     });
   }
+});
+
+test('comparison rejects identically weakened semantic normalization contracts', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  const root = await createPair(t, [
+    { base: captureResult(filename), head: captureResult(filename) },
+  ]);
+  for (const role of ['base', 'head']) {
+    const manifestPath = path.join(root, role, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.deterministicRendering.semanticIdNormalization.failOnReplacementCountMismatch = false;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+
+  const run = await comparison.runComparison(options(root));
+  assert.equal(run.exitCode, 1);
+  assert.match(run.summary.fatalErrors[0], /must use the exact semantic-full-stack/);
+  assert.equal(run.summary.stats.thresholdEvaluations, 0);
+});
+
+test('comparison rejects missing or malformed semantic ID normalization evidence', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  for (const scenario of [
+    {
+      name: 'missing evidence',
+      mutate: (result) => delete result.semanticIdNormalization,
+      expected: /must use semantic ID normalization schema/,
+    },
+    {
+      name: 'incomplete evidence',
+      mutate: (result) => {
+        result.semanticIdNormalization.complete = false;
+      },
+      expected: /incomplete or has invalid scopes/,
+    },
+    {
+      name: 'inconsistent replacement count',
+      mutate: (result) => {
+        result.semanticIdNormalization.totalReplacementCount = 2;
+      },
+      expected: /inconsistent total replacement count/,
+    },
+    {
+      name: 'raw identifier field injection',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].entries[0].rawValue = 'generated-artifact-id';
+      },
+      expected: /unknown field/,
+    },
+    {
+      name: 'invalid source hash',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].entries[0].sourceIdSha256 = 'raw-id';
+      },
+      expected: /entry 0 is invalid/,
+    },
+    {
+      name: 'well-formed but forged source hash',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].entries[0].sourceIdSha256 = 'b'.repeat(64);
+      },
+      expected: /does not match the attested semantic fixture manifest/,
+    },
+    {
+      name: 'token does not match semantic identity',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].entries[0].token = '[ui-id:artifact:wrong-token]';
+      },
+      expected: /entry 0 is invalid/,
+    },
+    {
+      name: 'duplicate semantic identity',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].entries.push({
+          ...result.semanticIdNormalization.scopes[0].entries[0],
+        });
+      },
+      expected: /duplicate semantic ID/,
+    },
+    {
+      name: 'omitted selected semantic identity',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].semanticIds.push(
+          'run.training-1/artifact.markdown-report[0]',
+        );
+      },
+      expected: /omits an explicitly selected semantic ID/,
+    },
+    {
+      name: 'inconsistent scope replacement count',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].replacementCount = 2;
+      },
+      expected: /inconsistent replacement counts/,
+    },
+    {
+      name: 'replacement without matching root',
+      mutate: (result) => {
+        result.semanticIdNormalization.scopes[0].rootCount = 0;
+      },
+      expected: /inconsistent replacement counts/,
+    },
+    {
+      name: 'entry kind outside declared selection',
+      mutate: (result) => {
+        const scope = result.semanticIdNormalization.scopes[0];
+        delete scope.semanticIds;
+        scope.kinds = ['run'];
+        scope.maxReplacementsPerIdentifier = null;
+        scope.minReplacementsPerIdentifier = 0;
+      },
+      expected: /outside its declared selection/,
+    },
+    {
+      name: 'extra unselected semantic identity',
+      mutate: (result) => {
+        const scope = result.semanticIdNormalization.scopes[0];
+        scope.entries.push({
+          kind: 'run',
+          replacementCount: 1,
+          semanticId: 'run.training-1',
+          sourceIdSha256: 'b'.repeat(64),
+          token: '[ui-id:run:training-1]',
+          tokenKind: 'run',
+          tokenSemanticId: 'run.training-1',
+        });
+      },
+      expected: /outside its declared selection/,
+    },
+    {
+      name: 'invalid derived-color palette mapping',
+      mutate: (result) => {
+        result.semanticIdNormalization.derivedColorScopes = [
+          {
+            companionCount: 1,
+            containerSelector: '#root',
+            elementCount: 1,
+            key: 'fixture-colors',
+            labelItemSelector: '.fixture-label',
+            mappingStrategy: 'color-backed-labels',
+            maxElements: 1,
+            mappings: [
+              {
+                paletteColor: '#ffffff',
+                semanticId: 'run.fixture',
+                sourceColorSha256: 'c'.repeat(64),
+              },
+            ],
+            minElements: 1,
+            selector: '.fixture-curve',
+            semanticIds: ['run.fixture'],
+          },
+        ];
+      },
+      expected: /mapping 0 is invalid/,
+    },
+  ]) {
+    await t.test(scenario.name, async () => {
+      const root = await createPair(t, [
+        { base: captureResult(filename), head: captureResult(filename) },
+      ]);
+      const manifestPath = path.join(root, 'head', 'manifest.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest.results[0].semanticIdNormalization = semanticIdNormalizationEvidence();
+      scenario.mutate(manifest.results[0]);
+      fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      const run = await comparison.runComparison(options(root));
+      assert.equal(run.exitCode, 1);
+      assert.match(run.summary.fatalErrors[0], scenario.expected);
+      assert.equal(run.summary.stats.thresholdEvaluations, 0);
+    });
+  }
+});
+
+test('comparison binds normalization evidence to the canonical scenario and revision', async (t) => {
+  const filename = 'artifact-details-10x10.png';
+  const root = await createPair(t, [
+    {
+      base: captureResult(filename, {
+        semanticScenario: 'artifact-details',
+      }),
+      head: captureResult(filename, {
+        semanticScenario: 'artifact-details',
+      }),
+    },
+  ]);
+  const manifestPath = path.join(root, 'head', 'manifest.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  manifest.results[0].semanticIdNormalization = {
+    complete: true,
+    derivedColorScopes: [],
+    schemaVersion: 'ui-smoke-id-normalization/v1',
+    scopes: [],
+    totalReplacementCount: 0,
+  };
+  fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const run = await comparison.runComparison(options(root));
+  assert.equal(run.exitCode, 1);
+  assert.match(
+    run.summary.fatalErrors[0],
+    /does not attest the head semantic ID normalization contract/,
+  );
+  assert.equal(run.summary.stats.thresholdEvaluations, 0);
+
+  const renamedRoot = await createPair(t, [
+    {
+      base: captureResult(filename, { semanticScenario: 'artifact-details' }),
+      head: captureResult(filename, { semanticScenario: 'artifact-details' }),
+    },
+  ]);
+  const renamedManifestPath = path.join(renamedRoot, 'head', 'manifest.json');
+  const renamedManifest = JSON.parse(fs.readFileSync(renamedManifestPath, 'utf8'));
+  const renamedResult = renamedManifest.results[0];
+  fs.renameSync(
+    path.join(renamedRoot, 'head', renamedResult.filename),
+    path.join(renamedRoot, 'head', 'forged-page-10x10.png'),
+  );
+  renamedResult.filename = 'forged-page-10x10.png';
+  renamedResult.page = 'forged-page';
+  delete renamedResult.semanticScenario;
+  fs.writeFileSync(renamedManifestPath, `${JSON.stringify(renamedManifest, null, 2)}\n`);
+  const renamedRun = await comparison.runComparison(options(renamedRoot));
+  assert.equal(renamedRun.exitCode, 1);
+  assert.match(
+    renamedRun.summary.fatalErrors[0],
+    /does not bind canonical semantic scenario forged-page/,
+  );
+  assert.equal(renamedRun.summary.stats.thresholdEvaluations, 0);
+});
+
+test('comparison distinguishes semantic full-stack normalization from browser compatibility', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  const root = await createPair(t, [
+    { base: captureResult(filename), head: captureResult(filename) },
+  ]);
+  for (const role of ['base', 'head']) {
+    const manifestPath = path.join(root, role, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    manifest.inputs.semanticManifest = null;
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+  const run = await comparison.runComparison(options(root));
+  assert.equal(run.exitCode, 1);
+  assert.match(run.summary.fatalErrors[0], /require both semanticManifest and sourceProvenance/);
+  assert.equal(run.summary.stats.thresholdEvaluations, 0);
 });
 
 test('incomplete capture records cannot claim valid capture validity', async (t) => {
@@ -407,7 +863,7 @@ test('incomplete capture records cannot claim valid capture validity', async (t)
 });
 
 test('semantic captures require the current semantic scenario contract', async (t) => {
-  const filename = 'runs-10x10.png';
+  const filename = 'run-details-rich-graph-10x10.png';
   for (const contract of [null, 'ui-smoke-scenarios/obsolete']) {
     const root = await createPair(t, [
       { base: captureResult(filename), head: captureResult(filename) },
@@ -422,7 +878,7 @@ test('semantic captures require the current semantic scenario contract', async (
     assert.equal(run.exitCode, 1);
     assert.match(
       run.summary.fatalErrors[0],
-      /Semantic captures must use scenario contract ui-smoke-scenarios\/v1/,
+      /Semantic captures must use scenario contract ui-smoke-scenarios\/v2/,
     );
   }
 });
@@ -546,7 +1002,7 @@ test('bound policy enforces required semantic catalog completeness and classific
 
 test('expected removals are successful analyzed pairs with an explicitly disabled fail threshold', async (t) => {
   const removalFilename = 'executions-to-runs-10x10.png';
-  const normalFilename = 'runs-10x10.png';
+  const normalFilename = 'run-details-rich-graph-10x10.png';
   const root = await createPair(t, [
     {
       base: captureResult(removalFilename, {
@@ -624,7 +1080,7 @@ test('expected removals are successful analyzed pairs with an explicitly disable
       masks: [],
     },
     {
-      semanticScenario: 'runs',
+      semanticScenario: 'run-details-rich-graph',
       diffThreshold: 0,
       failThreshold: 1,
       looksSameTolerance: 2.3,
@@ -884,6 +1340,7 @@ test('capturePair binds reviewed policy and viewport rules to the exact capture 
     },
     baseSeedManifestPath: path.join(root, 'base-seed.json'),
     headSeedManifestPath: path.join(root, 'head-seed.json'),
+    normalizationMode: 'disabled-browser-compatibility',
     runChildImpl,
     scenarioCatalog: [
       {

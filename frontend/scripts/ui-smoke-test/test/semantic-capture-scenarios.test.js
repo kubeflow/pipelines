@@ -7,6 +7,9 @@ const os = require('node:os');
 const path = require('node:path');
 
 const capture = require('../capture-screenshots.js');
+const comparison = require('../generate-comparison.js');
+const { validateCombinedSemanticManifest } = require('../semantic-manifest.js');
+const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   SEMANTIC_SCENARIOS,
@@ -34,6 +37,154 @@ function byKey(scenarios, key) {
   const scenario = scenarios.find((candidate) => candidate.semanticScenario === key);
   assert.ok(scenario, `missing scenario ${key}`);
   return scenario;
+}
+
+function semanticIdentifierManifest(role, suffix, overrides = {}) {
+  const runId = overrides.runId || `${suffix}-run-00000000`;
+  const writeTaskId = overrides.writeTaskId || `${suffix}-write-task-0000`;
+  const consumeTaskId = overrides.consumeTaskId || `${suffix}-consume-task-00`;
+  const htmlArtifactId = overrides.htmlArtifactId || `${suffix}-html-artifact-0`;
+  return {
+    deployments: {
+      [role]: {
+        bindings: {
+          resources: {
+            'run.training-1': {
+              displayName: 'UI Smoke Training Run 1',
+              id: overrides.resourceRunId || runId,
+              kind: 'run',
+            },
+          },
+          runs: {
+            'run.training-1': {
+              artifacts: {
+                'artifact.html-report': { artifactIds: [htmlArtifactId] },
+              },
+              displayName: 'UI Smoke Training Run 1',
+              runId,
+              taskInstances: {
+                'task.consume-metrics': [{ taskId: consumeTaskId }],
+                'task.write-metrics': [
+                  { mlmdExecutionId: overrides.executionId || '73', taskId: writeTaskId },
+                ],
+              },
+            },
+          },
+        },
+        revisionFlavor: role === 'base' ? 'legacy-mlmd' : 'native-task-artifact',
+        validation: { errors: [], valid: true },
+      },
+    },
+    fixtureSet: 'ui-smoke-deterministic-v3',
+    logical: {
+      resources: {
+        'run.training-1': { displayName: 'UI Smoke Training Run 1' },
+      },
+    },
+    schemaVersion: 'ui-smoke-semantic/v3',
+  };
+}
+
+function fakeTextPage(textValues, selector = '#root') {
+  const nodes = textValues.map((nodeValue) => ({
+    nodeValue,
+    parentElement: { tagName: 'SPAN' },
+  }));
+  const root = { nodes };
+  return {
+    nodes,
+    page: {
+      evaluate: async (pageFunction, argument) => {
+        const previousDocument = global.document;
+        const previousNodeFilter = global.NodeFilter;
+        global.NodeFilter = { SHOW_TEXT: 4 };
+        global.document = {
+          createTreeWalker: (selectedRoot) => {
+            let index = 0;
+            return { nextNode: () => selectedRoot.nodes[index++] || null };
+          },
+          querySelectorAll: (candidate) => (candidate === selector ? [root] : []),
+        };
+        try {
+          return await pageFunction(argument);
+        } finally {
+          global.document = previousDocument;
+          global.NodeFilter = previousNodeFilter;
+        }
+      },
+    },
+  };
+}
+
+function fakeDerivedColorPage(series, { orderedLabels = false } = {}) {
+  const styledElement = (sourceColor, parentText = '') => {
+    const properties = new Map();
+    return {
+      parentElement: { textContent: parentText },
+      properties,
+      querySelectorAll: () => [],
+      sourceColor,
+      style: {
+        setProperty: (name, value) => properties.set(name, value),
+      },
+    };
+  };
+  const curves = series.map(({ color, label }) => {
+    const curve = styledElement(color);
+    curve.label = label;
+    curve.stroke = color;
+    curve.getAttribute = (name) => (name === 'stroke' ? curve.stroke : null);
+    curve.setAttribute = (name, value) => {
+      if (name === 'stroke') curve.stroke = value;
+    };
+    return curve;
+  });
+  const labelSwatches = series.map(({ color }) => styledElement(color));
+  const labelItems = series.map(({ label }, index) => ({
+    matches: () => false,
+    querySelector: (selector) =>
+      orderedLabels && selector === '[title]'
+        ? { getAttribute: (name) => (name === 'title' ? label : null) }
+        : null,
+    querySelectorAll: (selector) =>
+      !orderedLabels && selector === '[style]' ? [labelSwatches[index]] : [],
+    textContent: orderedLabels ? '' : label,
+  }));
+  const internalSwatches = series.map(({ color }, index) =>
+    styledElement(color, `Series #${index + 1}`),
+  );
+  const container = {
+    querySelectorAll: (selector) => (selector === 'span[style]' ? internalSwatches : []),
+  };
+  return {
+    curves,
+    internalSwatches,
+    labelSwatches,
+    page: {
+      evaluate: async (pageFunction, argument) => {
+        const previousDocument = global.document;
+        const previousGetComputedStyle = global.getComputedStyle;
+        global.document = {
+          querySelectorAll: (selector) => {
+            if (selector === '.fixture-curve') return curves;
+            if (selector === '.fixture-label') return labelItems;
+            if (selector === '#fixture-root') return [container];
+            return [];
+          },
+        };
+        global.getComputedStyle = (element) => ({
+          backgroundColor: element.properties?.get('background-color') || element.sourceColor || '',
+          stroke: element.properties?.get('stroke') || element.stroke || '',
+        });
+        try {
+          return await pageFunction(argument);
+        } finally {
+          global.document = previousDocument;
+          global.getComputedStyle = previousGetComputedStyle;
+        }
+      },
+    },
+  };
 }
 
 test('semantic scenario contract has unique paired base and head definitions', () => {
@@ -99,6 +250,833 @@ test('scenario resolution binds canonical pair keys to revision-specific journey
   ]) {
     assert.ok(graph.actions.some((action) => action.selector?.includes('execution-icon-active')));
     assert.ok(graph.actions.some((action) => action.selector?.includes('artifact-icon-live')));
+  }
+});
+
+test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
+  const base = resolveSemanticScenarios('base', SEED_VALUES);
+  const head = resolveSemanticScenarios('head', SEED_VALUES);
+
+  assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v2');
+  assert.deepEqual(byKey(base, 'executions-to-runs').semanticIdNormalization.scopes[0].kinds, [
+    'execution',
+  ]);
+  assert.deepEqual(byKey(base, 'executions-to-runs').semanticIdNormalization.scopes[1].kinds, [
+    'run',
+  ]);
+  const baseArtifactList = byKey(base, 'artifact-list-evolution');
+  const headArtifactList = byKey(head, 'artifact-list-evolution');
+  assert.deepEqual(
+    baseArtifactList.semanticIdNormalization.scopes.map((scope) => scope.kinds),
+    [['artifact'], ['artifact-uri']],
+  );
+  assert.deepEqual(
+    headArtifactList.semanticIdNormalization.scopes.map((scope) => scope.kinds),
+    [['artifact'], ['artifact-uri']],
+  );
+  for (const artifactList of [baseArtifactList, headArtifactList]) {
+    assert.equal(
+      artifactList.semanticIdNormalization.scopes.every(
+        (scope) => scope.match === 'exact' && scope.selector === '#root [data-testid="table-row"]',
+      ),
+      true,
+    );
+  }
+
+  const baseArtifactDetails = byKey(base, 'artifact-details').semanticIdNormalization.scopes;
+  assert.equal(baseArtifactDetails.length, 2);
+  assert.deepEqual(baseArtifactDetails[0].semanticIds, ['run.training-1/artifact.html-report[0]']);
+  assert.equal(baseArtifactDetails[0].maxReplacements, 0);
+  assert.deepEqual(baseArtifactDetails[1].semanticIds, [
+    'run.training-1/artifact.html-report[0]/uri',
+  ]);
+
+  const baseRelationships = byKey(base, 'artifact-related-tasks').semanticIdNormalization.scopes;
+  const headRelationships = byKey(head, 'artifact-related-tasks').semanticIdNormalization.scopes[0];
+  assert.deepEqual(baseRelationships, []);
+  assert.deepEqual(headRelationships.semanticIds, [
+    'run.training-1',
+    'run.training-1/task.write-metrics[0]',
+    'run.training-1/task.consume-metrics[0]',
+  ]);
+  assert.equal(headRelationships.minReplacements, 4);
+  assert.equal(headRelationships.match, 'substring');
+  assert.match(headRelationships.selector, /table-row/);
+
+  const baseRoc = byKey(base, 'compare-roc-selection');
+  const headRoc = byKey(head, 'compare-roc-selection');
+  assert.equal(
+    baseRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
+    'ordered-label-cards',
+  );
+  assert.match(baseRoc.semanticIdNormalization.derivedColorScopes[0].selector, /Aggregated view/);
+  assert.equal(
+    headRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
+    'color-backed-labels',
+  );
+  assert.equal(headRoc.actions.filter((action) => action.selector === '[role="option"]').length, 2);
+
+  for (const roleScenarios of [base, head]) {
+    for (const scenario of roleScenarios) {
+      for (const scope of scenario.semanticIdNormalization?.scopes || []) {
+        assert.equal(typeof scope.selector, 'string');
+        assert.equal(scope.selector.length > 0, true);
+        assert.equal(Object.hasOwn(scope, 'regex'), false);
+      }
+    }
+  }
+});
+
+test('different generated run, task, and Artifact IDs normalize to identical semantic tokens', async () => {
+  const baseCatalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('base', 'base'),
+    'base',
+  );
+  const headCatalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('head', 'head'),
+    'head',
+  );
+  const config = {
+    scopes: [
+      {
+        match: 'substring',
+        maxReplacements: 2,
+        minReplacements: 2,
+        selector: '#root',
+        semanticIds: ['run.training-1', 'run.training-1/task.write-metrics[0]'],
+      },
+      {
+        match: 'exact',
+        maxReplacements: 1,
+        minReplacements: 1,
+        selector: '#root',
+        semanticIds: ['run.training-1/artifact.html-report[0]'],
+      },
+    ],
+  };
+  const basePage = fakeTextPage([
+    'Run base-run-00000000 · Task base-write-task-0000',
+    'base-html-artifact-0',
+    'unrelated-uuid-99999999',
+  ]);
+  const headPage = fakeTextPage([
+    'Run head-run-00000000 · Task head-write-task-0000',
+    'head-html-artifact-0',
+    'unrelated-uuid-99999999',
+  ]);
+
+  const base = await capture.normalizeSemanticIds(basePage.page, config, baseCatalog);
+  const head = await capture.normalizeSemanticIds(headPage.page, config, headCatalog);
+
+  assert.deepEqual(
+    comparison.normalizeSemanticIdNormalizationAttestation(base, 'base normalization'),
+    base,
+  );
+
+  assert.deepEqual(
+    basePage.nodes.map((node) => node.nodeValue),
+    headPage.nodes.map((node) => node.nodeValue),
+  );
+  assert.equal(basePage.nodes[2].nodeValue, 'unrelated-uuid-99999999');
+  assert.equal(base.totalReplacementCount, 3);
+  assert.equal(head.totalReplacementCount, 3);
+  assert.deepEqual(
+    base.scopes.flatMap((scope) =>
+      scope.entries.map(({ semanticId, token }) => ({ semanticId, token })),
+    ),
+    head.scopes.flatMap((scope) =>
+      scope.entries.map(({ semanticId, token }) => ({ semanticId, token })),
+    ),
+  );
+  assert.notEqual(
+    base.scopes[0].entries[0].sourceIdSha256,
+    head.scopes[0].entries[0].sourceIdSha256,
+  );
+  assert.equal(JSON.stringify(base).includes('base-run-00000000'), false);
+  assert.equal(JSON.stringify(base).includes('base-write-task-0000'), false);
+  assert.equal(JSON.stringify(base).includes('base-html-artifact-0'), false);
+});
+
+test('legacy catalogs cover every MLMD execution and pair executor-log attempts with native tokens', async () => {
+  const manifest = strictSemanticFixtureManifest();
+  const baseRun = manifest.deployments.base.bindings.runs['run.training-1'];
+  baseRun.executionInstances['execution.unclassified'] = [
+    {
+      executionId: '991',
+      executionRole: 'run-root',
+      executorLogs: [],
+      name: `run/${baseRun.runId}`,
+      state: 'COMPLETE',
+    },
+  ];
+  const baseCatalog = capture.buildSemanticIdentifierCatalog(manifest, 'base');
+  const headCatalog = capture.buildSemanticIdentifierCatalog(manifest, 'head');
+  const expectedExecutionIds = Object.values(manifest.deployments.base.bindings.runs)
+    .flatMap((run) => Object.values(run.executionInstances).flat())
+    .map((execution) => execution.executionId)
+    .sort();
+  assert.deepEqual(
+    baseCatalog
+      .filter((identifier) => identifier.kind === 'execution')
+      .map((identifier) => identifier.value)
+      .sort(),
+    expectedExecutionIds,
+  );
+
+  const workerTasks = (catalog) =>
+    catalog.filter(
+      (identifier) =>
+        identifier.kind === 'task' &&
+        identifier.semanticId.startsWith('run.training-1/task.loop-worker['),
+    );
+  const baseWorkers = workerTasks(baseCatalog);
+  const headWorkers = workerTasks(headCatalog);
+  assert.equal(baseWorkers.length, 2);
+  assert.equal(headWorkers.length, 2);
+  assert.equal(new Set(baseWorkers.map((identifier) => identifier.token)).size, 1);
+  assert.equal(new Set(headWorkers.map((identifier) => identifier.token)).size, 1);
+  assert.deepEqual(
+    baseWorkers.map((identifier) => identifier.equivalenceClass),
+    ['run.training-1/task.loop-worker/equivalent', 'run.training-1/task.loop-worker/equivalent'],
+  );
+  assert.deepEqual(
+    headWorkers.map((identifier) => identifier.equivalenceClass),
+    baseWorkers.map((identifier) => identifier.equivalenceClass),
+  );
+  assert.deepEqual(
+    new Set(baseWorkers.map((identifier) => identifier.token)),
+    new Set(headWorkers.map((identifier) => identifier.token)),
+  );
+
+  const baseWorkerExecutions = baseCatalog.filter(
+    (identifier) =>
+      identifier.kind === 'execution' &&
+      identifier.semanticId.startsWith('run.training-1/task.loop-worker['),
+  );
+  assert.equal(baseWorkerExecutions.length, 2);
+  assert.equal(new Set(baseWorkerExecutions.map((identifier) => identifier.token)).size, 2);
+
+  const baseLoopIterations = baseCatalog.filter(
+    (identifier) =>
+      identifier.kind === 'execution' &&
+      identifier.semanticId.startsWith('run.training-1/task.parallel-loop/iteration['),
+  );
+  const headLoopIterations = headCatalog.filter(
+    (identifier) =>
+      identifier.kind === 'task' &&
+      identifier.semanticId.startsWith('run.training-1/task.parallel-loop/iteration['),
+  );
+  assert.equal(baseLoopIterations.length, 2);
+  assert.equal(headLoopIterations.length, 2);
+  assert.deepEqual(
+    baseLoopIterations.map((identifier) => identifier.token).sort(),
+    headLoopIterations.map((identifier) => identifier.token).sort(),
+  );
+
+  const workerNormalization = (semanticIds) => ({
+    scopes: [
+      {
+        match: 'exact',
+        maxReplacements: 2,
+        maxReplacementsPerIdentifier: 1,
+        minReplacements: 2,
+        minReplacementsPerIdentifier: 1,
+        selector: '#root',
+        semanticIds,
+      },
+    ],
+  });
+  const baseWorkerPage = fakeTextPage(baseWorkers.map((identifier) => identifier.value));
+  const headWorkerPage = fakeTextPage(headWorkers.map((identifier) => identifier.value));
+  await capture.normalizeSemanticIds(
+    baseWorkerPage.page,
+    workerNormalization(baseWorkers.map((identifier) => identifier.semanticId)),
+    baseCatalog,
+  );
+  await capture.normalizeSemanticIds(
+    headWorkerPage.page,
+    workerNormalization(headWorkers.map((identifier) => identifier.semanticId)),
+    headCatalog,
+  );
+  assert.deepEqual(
+    new Set(baseWorkerPage.nodes.map((node) => node.nodeValue)),
+    new Set(headWorkerPage.nodes.map((node) => node.nodeValue)),
+  );
+
+  const reorderedManifest = strictSemanticFixtureManifest();
+  reorderedManifest.deployments.base.bindings.runs['run.training-1'].taskInstances[
+    'task.loop-worker'
+  ].reverse();
+  const reorderedWorkers = workerTasks(
+    capture.buildSemanticIdentifierCatalog(reorderedManifest, 'base'),
+  );
+  assert.deepEqual(
+    new Map(baseWorkers.map((identifier) => [identifier.value, identifier.token])),
+    new Map(reorderedWorkers.map((identifier) => [identifier.value, identifier.token])),
+  );
+
+  const joinableManifest = strictSemanticFixtureManifest();
+  const joinableRun = joinableManifest.deployments.base.bindings.runs['run.training-1'];
+  for (const [index, task] of joinableRun.taskInstances['task.loop-worker'].entries()) {
+    task.mlmdExecutionId = joinableRun.executionInstances['task.loop-worker'][index].executionId;
+  }
+  assert.equal(validateCombinedSemanticManifest(joinableManifest), joinableManifest);
+  for (const role of ['base', 'head']) {
+    const joinableWorkers = workerTasks(
+      capture.buildSemanticIdentifierCatalog(joinableManifest, role),
+    );
+    assert.equal(new Set(joinableWorkers.map((identifier) => identifier.token)).size, 2);
+    assert.equal(
+      joinableWorkers.every((identifier) => !identifier.equivalenceClass),
+      true,
+    );
+  }
+
+  const logProjection = (catalog) =>
+    new Map(
+      catalog
+        .filter(
+          (identifier) =>
+            identifier.semanticId.startsWith(
+              'run.training-1/task.retry-once[0]/artifact.executor-logs[',
+            ) && ['artifact', 'artifact-uri'].includes(identifier.kind),
+        )
+        .map((identifier) => [`${identifier.kind}|${identifier.semanticId}`, identifier]),
+    );
+  const baseLogs = logProjection(baseCatalog);
+  const headLogs = logProjection(headCatalog);
+  assert.equal(baseLogs.size, 4);
+  assert.deepEqual([...baseLogs.keys()].sort(), [...headLogs.keys()].sort());
+  for (const [semanticKey, baseIdentifier] of baseLogs) {
+    assert.equal(baseIdentifier.token, headLogs.get(semanticKey).token);
+    assert.notEqual(baseIdentifier.value, headLogs.get(semanticKey).value);
+  }
+
+  const executionScenario = byKey(
+    resolveSemanticScenarios('base', SEED_VALUES),
+    'executions-to-runs',
+  );
+  const rootName = fakeTextPage(['991', `run/${baseRun.runId}`], '#root [data-testid="table-row"]');
+  const evidence = await capture.normalizeSemanticIds(
+    rootName.page,
+    executionScenario.semanticIdNormalization,
+    baseCatalog,
+  );
+  assert.match(rootName.nodes[1].nodeValue, /^run\/\[ui-id:run:/);
+  assert.equal(evidence.totalReplacementCount, 2);
+});
+
+test('semantic identifier catalog rejects task references outside declared artifact bindings', () => {
+  const manifest = semanticIdentifierManifest('head', 'head');
+  manifest.deployments.head.bindings.runs['run.training-1'].taskInstances[
+    'task.write-metrics'
+  ][0].artifactReferences = {
+    outputs: [
+      {
+        artifacts: [{ artifactId: 'undeclared-artifact', uri: 's3://fixtures/undeclared' }],
+        key: 'undeclared',
+      },
+    ],
+  };
+
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(manifest, 'head'),
+    /is not bound to a declared semantic artifact/,
+  );
+});
+
+test('semantic identifier catalog binds native executor-log attempts without weakening artifact closure', () => {
+  const manifest = semanticIdentifierManifest('head', 'head');
+  manifest.deployments.head.bindings.runs['run.training-1'].taskInstances['task.retry-once'] = [
+    {
+      artifactReferences: {
+        inputs: [],
+        outputs: [
+          {
+            artifacts: [
+              {
+                artifactId: 'head-retry-executor-log-1',
+                name: 'executor-logs',
+                type: 'Artifact',
+                uri: 's3://ui-smoke/head/retry/executor-logs-1',
+              },
+              {
+                artifactId: 'head-retry-executor-log-0',
+                name: 'executor-logs',
+                type: 'Artifact',
+                uri: 's3://ui-smoke/head/retry/executor-logs-0',
+              },
+            ],
+            key: 'executor-logs',
+          },
+        ],
+      },
+      taskId: 'head-retry-task-generated',
+    },
+  ];
+
+  const catalog = capture.buildSemanticIdentifierCatalog(manifest, 'head');
+  const executorLogs = catalog.filter((entry) => entry.semanticId.includes('executor-logs'));
+  assert.deepEqual(
+    executorLogs.map(({ kind, semanticId, value }) => ({ kind, semanticId, value })),
+    [
+      {
+        kind: 'artifact',
+        semanticId: 'run.training-1/task.retry-once[0]/artifact.executor-logs[0]',
+        value: 'head-retry-executor-log-0',
+      },
+      {
+        kind: 'artifact',
+        semanticId: 'run.training-1/task.retry-once[0]/artifact.executor-logs[1]',
+        value: 'head-retry-executor-log-1',
+      },
+      {
+        kind: 'artifact-uri',
+        semanticId: 'run.training-1/task.retry-once[0]/artifact.executor-logs[0]/uri',
+        value: 's3://ui-smoke/head/retry/executor-logs-0',
+      },
+      {
+        kind: 'artifact-uri',
+        semanticId: 'run.training-1/task.retry-once[0]/artifact.executor-logs[1]/uri',
+        value: 's3://ui-smoke/head/retry/executor-logs-1',
+      },
+    ],
+  );
+
+  manifest.deployments.head.bindings.runs['run.training-1'].taskInstances[
+    'task.retry-once'
+  ][0].artifactReferences.outputs[0].artifacts[0].uri = 's3://ui-smoke/head/retry/executor-logs';
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(manifest, 'head'),
+    /contiguous executor-log attempt URIs/,
+  );
+});
+
+test('revision-specific Artifact URIs and pod identities normalize to stable semantic tokens', async () => {
+  const uriSemanticId = 'run.training-1/artifact.html-report[0]/uri';
+  const manifests = {
+    base: semanticIdentifierManifest('base', 'base'),
+    head: semanticIdentifierManifest('head', 'head'),
+  };
+  for (const [role, manifest] of Object.entries(manifests)) {
+    const artifact =
+      manifest.deployments[role].bindings.runs['run.training-1'].artifacts['artifact.html-report'];
+    artifact.records = [
+      {
+        artifactId: artifact.artifactIds[0],
+        uri: `s3://ui-smoke/${role}/generated-object-key/report.html`,
+      },
+    ];
+  }
+  const baseUri =
+    manifests.base.deployments.base.bindings.runs['run.training-1'].artifacts[
+      'artifact.html-report'
+    ].records[0].uri;
+  const headUri =
+    manifests.head.deployments.head.bindings.runs['run.training-1'].artifacts[
+      'artifact.html-report'
+    ].records[0].uri;
+  const config = {
+    scopes: [
+      {
+        match: 'exact',
+        maxReplacements: 1,
+        maxReplacementsPerIdentifier: 1,
+        minReplacements: 1,
+        minReplacementsPerIdentifier: 1,
+        selector: '#root',
+        semanticIds: [uriSemanticId],
+      },
+    ],
+  };
+  const basePage = fakeTextPage([baseUri]);
+  const headPage = fakeTextPage([headUri]);
+  const baseEvidence = await capture.normalizeSemanticIds(
+    basePage.page,
+    config,
+    capture.buildSemanticIdentifierCatalog(manifests.base, 'base'),
+  );
+  const headEvidence = await capture.normalizeSemanticIds(
+    headPage.page,
+    config,
+    capture.buildSemanticIdentifierCatalog(manifests.head, 'head'),
+  );
+  assert.equal(basePage.nodes[0].nodeValue, headPage.nodes[0].nodeValue);
+  assert.equal(basePage.nodes[0].nodeValue, `[ui-id:artifact-uri:training-1:html-report:0:uri]`);
+  assert.equal(JSON.stringify(baseEvidence).includes(baseUri), false);
+  assert.equal(JSON.stringify(headEvidence).includes(headUri), false);
+
+  const podManifest = semanticIdentifierManifest('head', 'head');
+  podManifest.deployments.head.bindings.runs['run.training-1'].taskInstances['task.retry-once'] = [
+    {
+      podBindings: [
+        {
+          name: 'retry-attempt-0-generated',
+          type: 'EXECUTOR',
+          uid: '11111111-aaaa-bbbb-cccc-111111111111',
+        },
+        {
+          name: 'retry-attempt-1-generated',
+          type: 'EXECUTOR',
+          uid: '22222222-aaaa-bbbb-cccc-222222222222',
+        },
+      ],
+      taskId: 'head-retry-task-generated',
+    },
+  ];
+  const podText = podManifest.deployments.head.bindings.runs['run.training-1'].taskInstances[
+    'task.retry-once'
+  ][0].podBindings
+    .flatMap((pod) => [pod.name, pod.uid])
+    .join(' | ');
+  const podPage = fakeTextPage([podText]);
+  const podEvidence = await capture.normalizeSemanticIds(
+    podPage.page,
+    {
+      scopes: [
+        {
+          match: 'substring',
+          maxReplacements: 4,
+          minReplacements: 4,
+          selector: '#root',
+          semanticIdPrefixes: ['run.training-1/task.retry-once[0]/pod.executor['],
+        },
+      ],
+    },
+    capture.buildSemanticIdentifierCatalog(podManifest, 'head'),
+  );
+  assert.equal(podEvidence.totalReplacementCount, 4);
+  assert.equal(podPage.nodes[0].nodeValue.includes('generated'), false);
+  assert.equal(podPage.nodes[0].nodeValue.includes('11111111-aaaa'), false);
+  assert.equal(
+    podEvidence.scopes[0].entries.every((entry) => entry.kind === 'pod'),
+    true,
+  );
+});
+
+test('ROC series colors normalize by visible semantic label instead of generated ID order', async () => {
+  const config = {
+    derivedColorScopes: [
+      {
+        containerSelector: '#fixture-root',
+        key: 'fixture-roc',
+        labelItemSelector: '.fixture-label',
+        mappingStrategy: 'color-backed-labels',
+        maxElements: 2,
+        minElements: 2,
+        selector: '.fixture-curve',
+        semanticIds: ['run.training-a', 'run.training-z'],
+      },
+    ],
+    scopes: [],
+  };
+  const basePage = fakeDerivedColorPage([
+    { color: 'rgb(220,0,0)', label: 'Training Run Z' },
+    { color: 'rgb(0,0,220)', label: 'Training Run A' },
+  ]);
+  const headPage = fakeDerivedColorPage([
+    { color: 'rgb(160,0,160)', label: 'Training Run A' },
+    { color: 'rgb(255,140,0)', label: 'Training Run Z' },
+  ]);
+  const catalog = [
+    { displayLabel: 'Training Run A', kind: 'run', semanticId: 'run.training-a' },
+    { displayLabel: 'Training Run Z', kind: 'run', semanticId: 'run.training-z' },
+  ];
+  const base = await capture.normalizeSemanticDerivedColors(basePage.page, config, catalog);
+  const head = await capture.normalizeSemanticDerivedColors(headPage.page, config, catalog);
+  const projection = (evidence) =>
+    evidence[0].mappings.map(({ semanticId, paletteColor }) => ({
+      paletteColor,
+      semanticId,
+    }));
+  assert.deepEqual(projection(base), projection(head));
+  assert.deepEqual(projection(base), [
+    { paletteColor: '#4285f4', semanticId: 'run.training-a' },
+    { paletteColor: '#2b9c1e', semanticId: 'run.training-z' },
+  ]);
+  for (const fixture of [basePage, headPage]) {
+    const colorByLabel = Object.fromEntries(
+      fixture.curves.map((curve) => [curve.label, curve.properties.get('stroke')]),
+    );
+    assert.deepEqual(colorByLabel, {
+      'Training Run A': '#4285f4',
+      'Training Run Z': '#2b9c1e',
+    });
+    assert.equal(
+      fixture.labelSwatches.every((swatch) => swatch.properties.has('background-color')),
+      true,
+    );
+    assert.equal(
+      fixture.internalSwatches.every((swatch) => swatch.properties.has('background-color')),
+      true,
+    );
+  }
+  assert.notDeepEqual(
+    base[0].mappings.map((mapping) => mapping.sourceColorSha256),
+    head[0].mappings.map((mapping) => mapping.sourceColorSha256),
+  );
+
+  const orderedConfig = structuredClone(config);
+  orderedConfig.derivedColorScopes[0].mappingStrategy = 'ordered-label-cards';
+  const legacyPage = fakeDerivedColorPage(
+    [
+      { color: 'rgb(220,0,0)', label: 'Training Run Z' },
+      { color: 'rgb(0,0,220)', label: 'Training Run A' },
+    ],
+    { orderedLabels: true },
+  );
+  const legacy = await capture.normalizeSemanticDerivedColors(
+    legacyPage.page,
+    orderedConfig,
+    catalog,
+  );
+  assert.deepEqual(projection(legacy), projection(base));
+  assert.equal(
+    legacyPage.internalSwatches.every((swatch) => swatch.properties.has('background-color')),
+    true,
+  );
+
+  await assert.rejects(
+    capture.normalizeSemanticDerivedColors(
+      fakeDerivedColorPage([
+        { color: 'rgb(220,0,0)', label: 'Training Run A' },
+        { color: 'rgb(0,0,220)', label: '' },
+      ]).page,
+      config,
+      catalog,
+    ),
+    (error) => error.captureValidity === 'selector_drift',
+  );
+});
+
+test('exact normalization does not corrupt short numeric MLMD IDs or unrelated text', async () => {
+  const catalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('base', 'base', { executionId: '73' }),
+    'base',
+  );
+  const fixture = fakeTextPage(['73', '173', '73.0', '00:00:73', 'unrelated-uuid']);
+  const result = await capture.normalizeSemanticIds(
+    fixture.page,
+    {
+      scopes: [
+        {
+          match: 'exact',
+          maxReplacements: 1,
+          minReplacements: 1,
+          selector: '#root',
+          semanticIds: ['run.training-1/task.write-metrics[0]/execution'],
+        },
+      ],
+    },
+    catalog,
+  );
+
+  assert.match(fixture.nodes[0].nodeValue, /^\[ui-id:task:/);
+  assert.deepEqual(
+    fixture.nodes.slice(1).map((node) => node.nodeValue),
+    ['173', '73.0', '00:00:73', 'unrelated-uuid'],
+  );
+  assert.equal(result.totalReplacementCount, 1);
+});
+
+test('semantic ID normalization fails closed on missing, excess, and ambiguous bindings', async (t) => {
+  const catalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('head', 'head'),
+    'head',
+  );
+  const config = {
+    scopes: [
+      {
+        match: 'exact',
+        maxReplacements: 1,
+        minReplacements: 1,
+        selector: '#root',
+        semanticIds: ['run.training-1/artifact.html-report[0]'],
+      },
+    ],
+  };
+  for (const [name, values] of [
+    ['missing', ['not-the-artifact']],
+    ['excess', ['head-html-artifact-0', 'head-html-artifact-0']],
+  ]) {
+    await t.test(name, async () => {
+      await assert.rejects(
+        capture.normalizeSemanticIds(fakeTextPage(values).page, config, catalog),
+        (error) => error.captureValidity === 'selector_drift',
+      );
+    });
+  }
+
+  assert.throws(
+    () =>
+      capture.buildSemanticIdentifierCatalog(
+        semanticIdentifierManifest('head', 'head', {
+          consumeTaskId: 'shared-generated-task',
+          writeTaskId: 'shared-generated-task',
+        }),
+        'head',
+      ),
+    /ambiguously bound/,
+  );
+
+  assert.throws(
+    () =>
+      capture.buildSemanticIdentifierCatalog(
+        semanticIdentifierManifest('head', 'head', {
+          resourceRunId: 'resource-run-binding-id',
+          runId: 'detail-run-binding-id',
+        }),
+        'head',
+      ),
+    /bound to multiple generated values/,
+  );
+
+  const tokenCollisionManifest = semanticIdentifierManifest('head', 'head');
+  tokenCollisionManifest.deployments.head.bindings.runs['run.training-1'].taskInstances[
+    'write-metrics'
+  ] = [{ taskId: 'head-token-collision-task' }];
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(tokenCollisionManifest, 'head'),
+    /produce the same visual token/,
+  );
+
+  for (const [name, mutate, expected] of [
+    [
+      'schema',
+      (manifest) => {
+        manifest.schemaVersion = 'ui-smoke-semantic/v2';
+      },
+      /must use schema ui-smoke-semantic\/v3/,
+    ],
+    [
+      'fixture set',
+      (manifest) => {
+        manifest.fixtureSet = 'partial-fixtures';
+      },
+      /must use fixture set ui-smoke-deterministic-v3/,
+    ],
+    [
+      'validation',
+      (manifest) => {
+        manifest.deployments.head.validation = { errors: ['missing fixture'], valid: false };
+      },
+      /has not passed fixture validation/,
+    ],
+    [
+      'revision flavor',
+      (manifest) => {
+        manifest.deployments.head.revisionFlavor = 'legacy-mlmd';
+      },
+      /must use native-task-artifact/,
+    ],
+  ]) {
+    const manifest = semanticIdentifierManifest('head', `invalid-${name}`);
+    mutate(manifest);
+    assert.throws(() => capture.buildSemanticIdentifierCatalog(manifest, 'head'), expected);
+  }
+});
+
+test('substring normalization is one-pass and never rewrites generated semantic tokens', async () => {
+  const catalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('head', 'head', {
+      runId: 'head-run-00000000',
+      writeTaskId: 'training-1',
+    }),
+    'head',
+  );
+  const fixture = fakeTextPage(['head-run-00000000']);
+  const result = await capture.normalizeSemanticIds(
+    fixture.page,
+    {
+      scopes: [
+        {
+          match: 'substring',
+          maxReplacements: 1,
+          minReplacements: 1,
+          selector: '#root',
+          semanticIds: ['run.training-1', 'run.training-1/task.write-metrics[0]'],
+        },
+      ],
+    },
+    catalog,
+  );
+
+  assert.equal(fixture.nodes[0].nodeValue, '[ui-id:run:training-1]');
+  assert.equal(result.totalReplacementCount, 1);
+  assert.equal(
+    result.scopes[0].entries.find(
+      (entry) => entry.semanticId === 'run.training-1/task.write-metrics[0]',
+    ).replacementCount,
+    0,
+  );
+});
+
+test('per-identifier bounds reject the wrong replacement distribution', async () => {
+  const catalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('head', 'head'),
+    'head',
+  );
+  const fixture = fakeTextPage([
+    'head-run-00000000 head-run-00000000',
+    'head-write-task-0000 head-write-task-0000',
+  ]);
+
+  await assert.rejects(
+    capture.normalizeSemanticIds(
+      fixture.page,
+      {
+        scopes: [
+          {
+            match: 'substring',
+            maxReplacements: 4,
+            maxReplacementsPerIdentifier: 2,
+            minReplacements: 4,
+            minReplacementsPerIdentifier: 1,
+            selector: '#root',
+            semanticIds: [
+              'run.training-1',
+              'run.training-1/task.write-metrics[0]',
+              'run.training-1/task.consume-metrics[0]',
+            ],
+          },
+        ],
+      },
+      catalog,
+    ),
+    (error) =>
+      error.captureValidity === 'selector_drift' &&
+      /task\.consume-metrics\[0\] 0 time/.test(error.message),
+  );
+});
+
+test('substring normalization rejects numeric and short generated identifiers', () => {
+  const catalog = capture.buildSemanticIdentifierCatalog(
+    semanticIdentifierManifest('base', 'base', {
+      executionId: '73',
+      writeTaskId: 'shortid',
+    }),
+    'base',
+  );
+  for (const semanticId of [
+    'run.training-1/task.write-metrics[0]/execution',
+    'run.training-1/task.write-metrics[0]',
+  ]) {
+    assert.throws(
+      () =>
+        capture.prepareSemanticIdNormalization(
+          {
+            scopes: [
+              {
+                match: 'substring',
+                selector: '#root',
+                semanticIds: [semanticId],
+              },
+            ],
+          },
+          catalog,
+        ),
+      /cannot substring-match short or numeric identifiers/,
+    );
   }
 });
 

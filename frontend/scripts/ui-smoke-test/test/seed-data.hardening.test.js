@@ -6,6 +6,14 @@ const { spawnSync } = require('node:child_process');
 const test = require('node:test');
 const { parseDocument } = require('yaml');
 
+const { buildLogicalFixtures, buildSemanticDeployment } = require('../semantic-manifest');
+const {
+  decodeGetArtifactsByIdResponse,
+  decodeGetContextByTypeAndNameResponse,
+  decodeGetEventsByExecutionIdsResponse,
+  decodeGetExecutionsByContextResponse,
+} = require('../mlmd-protobuf');
+
 const {
   METRICS_EXECUTOR_OUTPUT,
   MINIMAL_PIPELINE_YAML,
@@ -15,7 +23,10 @@ const {
   SEMANTIC_MARKER,
   buildSeedManifest,
   fetchMlmdArtifactsByIds,
+  fetchMlmdLineageByContext,
+  fetchMlmdLineageForRun,
   fetchRunBindingResponse,
+  fetchRunBindingResponses,
   resolveApiUrl,
   seedData,
   uploadPipeline,
@@ -23,6 +34,9 @@ const {
   waitForSemanticBindings,
   waitForRunsStable,
 } = require('../seed-data');
+
+const MINIMAL_PIPELINE_SPEC = parseDocument(MINIMAL_PIPELINE_YAML).toJS();
+const RICH_PIPELINE_SPEC = parseDocument(RICH_PIPELINE_YAML).toJS();
 
 test('projects revision-specific semantic IDs into capture defaults', () => {
   const manifest = buildSeedManifest(
@@ -72,12 +86,20 @@ test('projects revision-specific semantic IDs into capture defaults', () => {
   assert.equal(manifest.defaults.taskId, 'legacy-write-metrics');
 });
 
-function nativeRichRunResponse(runId = 'run-created') {
+function nativeRichRunResponse(
+  runId = 'run-created',
+  pipelineId = 'pipeline-existing',
+  pipelineVersionId = 'version-existing',
+) {
   const rocMetadata = structuredClone(
     METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
   );
-  return {
+  const response = {
     displayName: RESOURCE_DEFINITIONS.runs[0].displayName,
+    pipelineVersionReference: {
+      pipelineId,
+      pipelineVersionId,
+    },
     runId,
     taskCount: 8,
     tasks: [
@@ -89,8 +111,18 @@ function nativeRichRunResponse(runId = 'run-created') {
             {
               artifactKey: 'scalar_metrics',
               artifacts: [
-                { artifactId: 'metric-loss', name: 'loss', numberValue: 0.08 },
-                { artifactId: 'metric-accuracy', name: 'accuracy', numberValue: 0.92 },
+                {
+                  artifactId: 'metric-loss',
+                  name: 'loss',
+                  numberValue: 0.08,
+                  uri: 's3://fixtures/scalar-metrics/loss',
+                },
+                {
+                  artifactId: 'metric-accuracy',
+                  name: 'accuracy',
+                  numberValue: 0.92,
+                  uri: 's3://fixtures/scalar-metrics/accuracy',
+                },
               ],
             },
             {
@@ -100,6 +132,7 @@ function nativeRichRunResponse(runId = 'run-created') {
                   artifactId: 'roc-artifact',
                   metadata: rocMetadata,
                   name: 'roc_curve',
+                  uri: 's3://fixtures/roc-curve',
                 },
               ],
             },
@@ -133,13 +166,24 @@ function nativeRichRunResponse(runId = 'run-created') {
         type: 'RUNTIME',
       },
       {
+        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
         inputs: {
           artifacts: [
             {
               artifactKey: 'metrics',
               artifacts: [
-                { artifactId: 'metric-loss', name: 'loss', numberValue: 0.08 },
-                { artifactId: 'metric-accuracy', name: 'accuracy', numberValue: 0.92 },
+                {
+                  artifactId: 'metric-loss',
+                  name: 'loss',
+                  numberValue: 0.08,
+                  uri: 's3://fixtures/scalar-metrics/loss',
+                },
+                {
+                  artifactId: 'metric-accuracy',
+                  name: 'accuracy',
+                  numberValue: 0.92,
+                  uri: 's3://fixtures/scalar-metrics/accuracy',
+                },
               ],
             },
           ],
@@ -151,10 +195,11 @@ function nativeRichRunResponse(runId = 'run-created') {
         type: 'RUNTIME',
       },
       {
+        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
         name: 'retry-once',
         pods: [
-          { name: 'retry-0', type: 'EXECUTOR' },
-          { name: 'retry-1', type: 'EXECUTOR' },
+          { name: 'retry-0', type: 'EXECUTOR', uid: 'retry-0-uid' },
+          { name: 'retry-1', type: 'EXECUTOR', uid: 'retry-1-uid' },
         ],
         scopePath: 'root.retry-once',
         state: 'SUCCEEDED',
@@ -162,6 +207,7 @@ function nativeRichRunResponse(runId = 'run-created') {
         type: 'RUNTIME',
       },
       {
+        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
         name: 'parallel-loop',
         scopePath: 'root.parallel-loop',
         state: 'SUCCEEDED',
@@ -224,6 +270,21 @@ function nativeRichRunResponse(runId = 'run-created') {
       },
     ],
   };
+  for (const task of response.tasks.filter((task) => task.type === 'RUNTIME')) {
+    const attemptCount = task.name === 'retry-once' ? 2 : 1;
+    task.outputs ||= {};
+    task.outputs.artifacts ||= [];
+    task.outputs.artifacts.push({
+      artifactKey: 'executor-logs',
+      artifacts: Array.from({ length: attemptCount }, (_, attemptIndex) => ({
+        artifactId: `${task.taskId}-executor-log-${attemptIndex}`,
+        name: 'executor-logs',
+        type: 'Artifact',
+        uri: `s3://fixtures/${task.taskId}/executor-logs-${attemptIndex}`,
+      })),
+    });
+  }
+  return response;
 }
 
 test('fixture pipeline specs are valid YAML with intact deterministic report commands', () => {
@@ -377,8 +438,8 @@ test('falls back from an unsupported FULL query to the legacy detail response', 
   assert.equal(response.run_id, 'legacy/run');
 });
 
-test('hydrates legacy run artifact IDs with actual MLMD metric and ROC values', async () => {
-  const requestedArtifactIds = [];
+test('hydrates complete legacy GetRun projections with full MLMD lineage', async () => {
+  const lineageSelections = [];
   const response = await fetchRunBindingResponse(
     'legacy-run',
     async (_method, endpoint) => {
@@ -389,7 +450,10 @@ test('hydrates legacy run artifact IDs with actual MLMD metric and ROC values', 
           task_details: [
             {
               display_name: 'write-metrics',
+              execution_id: '73',
               outputs: {
+                html_report: { artifact_ids: ['83'] },
+                markdown_report: { artifact_ids: ['84'] },
                 roc_curve: { artifact_ids: ['82'] },
                 scalar_metrics: { artifact_ids: ['81'] },
               },
@@ -400,9 +464,752 @@ test('hydrates legacy run artifact IDs with actual MLMD metric and ROC values', 
       };
     },
     {
-      fetchLegacyArtifacts: async (artifactIds) => {
-        requestedArtifactIds.push(...artifactIds);
-        return [
+      fetchLegacyLineage: async (selection) => {
+        lineageSelections.push(selection);
+        return {
+          artifacts: [
+            { artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } },
+            {
+              artifactId: '82',
+              metadata: structuredClone(
+                METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+              ),
+            },
+            {
+              artifactId: '83',
+              metadata: { display_name: 'html_report' },
+              type: 'system.HTML',
+              uri: 's3://fixtures/report.html',
+            },
+            {
+              artifactId: '84',
+              metadata: { display_name: 'markdown_report' },
+              type: 'system.Markdown',
+              uri: 's3://fixtures/report.md',
+            },
+            {
+              artifactId: '85',
+              metadata: { display_name: 'executor-logs' },
+              type: 'system.Artifact',
+              uri: 's3://fixtures/executor-logs-0',
+            },
+          ],
+          events: [
+            ['81', 'scalar_metrics'],
+            ['82', 'roc_curve'],
+            ['83', 'html_report'],
+            ['84', 'markdown_report'],
+            ['85', 'executor-logs'],
+          ].map(([artifactId, key]) => ({
+            artifactId,
+            executionId: '73',
+            path: [{ key }],
+            type: 'OUTPUT',
+          })),
+          executions: [
+            {
+              executionId: '73',
+              metadata: { display_name: 'write-metrics' },
+              state: 'COMPLETE',
+            },
+          ],
+        };
+      },
+    },
+  );
+
+  assert.deepEqual(lineageSelections, [{ expectedContextId: null, runId: 'legacy-run' }]);
+  assert.deepEqual(response.semanticArtifacts[0].metadata, { accuracy: 0.92, loss: 0.08 });
+  assert.equal(response.semanticArtifacts[1].metadata.confidenceMetrics.length, 5);
+  assert.deepEqual(response.semanticExecutions[0].executorLogs, [
+    {
+      artifactId: '85',
+      name: 'executor-logs',
+      type: 'Artifact',
+      uri: 's3://fixtures/executor-logs-0',
+    },
+  ]);
+});
+
+test('rejects executor-log Events whose MLMD Artifact identity is not exact', async () => {
+  const cases = [
+    {
+      artifact: { metadata: { display_name: 'executor-logs' } },
+      label: 'missing type',
+      pattern: /has type undefined; expected "system\.Artifact"/,
+    },
+    {
+      artifact: { metadata: { display_name: 'executor-logs' }, type: 'system.HTML' },
+      label: 'wrong type',
+      pattern: /has type "system\.HTML"; expected "system\.Artifact"/,
+    },
+    {
+      artifact: { metadata: {}, type: 'system.Artifact' },
+      label: 'missing display name',
+      pattern: /metadata\.display_name undefined; expected "executor-logs"/,
+    },
+    {
+      artifact: { metadata: { displayName: 'executor-logs' }, type: 'system.Artifact' },
+      label: 'camel-case display name alias',
+      pattern: /metadata\.display_name undefined; expected "executor-logs"/,
+    },
+  ];
+
+  for (const { artifact, label, pattern } of cases) {
+    await assert.rejects(
+      fetchRunBindingResponse(
+        'legacy-run',
+        async () => ({
+          run_details: {
+            task_details: [
+              { display_name: 'write-metrics', execution_id: '73', task_id: 'legacy-write' },
+            ],
+          },
+          run_id: 'legacy-run',
+        }),
+        {
+          fetchLegacyLineage: async () => ({
+            artifacts: [
+              {
+                artifactId: '85',
+                uri: 's3://fixtures/executor-logs-0',
+                ...artifact,
+              },
+            ],
+            events: [
+              {
+                artifactId: '85',
+                executionId: '73',
+                path: [{ key: 'executor-logs' }],
+                type: 'OUTPUT',
+              },
+            ],
+            executions: [
+              {
+                executionId: '73',
+                metadata: { display_name: 'write-metrics' },
+                state: 'COMPLETE',
+              },
+            ],
+          }),
+        },
+      ),
+      pattern,
+      label,
+    );
+  }
+});
+
+test('hydrates real 2.17.1 task artifacts and execution IDs from MLMD Events', async () => {
+  const lineageSelections = [];
+  const response = await fetchRunBindingResponse(
+    'legacy-run',
+    async (_method, endpoint) => {
+      assert.equal(endpoint, '/apis/v2beta1/runs/legacy-run?view=FULL');
+      return {
+        run_details: {
+          task_details: [
+            {
+              display_name: 'write-metrics',
+              task_id: 'legacy-write',
+            },
+            {
+              display_name: 'consume-metrics',
+              task_id: 'legacy-consume',
+            },
+          ],
+        },
+        run_id: 'legacy-run',
+      };
+    },
+    {
+      fetchLegacyLineage: async (selection) => {
+        lineageSelections.push(selection);
+        return {
+          artifacts: [
+            {
+              artifactId: '81',
+              metadata: { accuracy: 0.92, loss: 0.08 },
+              uri: 's3://fixtures/scalar-metrics',
+            },
+            {
+              artifactId: '82',
+              metadata: structuredClone(
+                METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+              ),
+              uri: 's3://fixtures/roc-curve',
+            },
+            {
+              artifactId: '83',
+              metadata: { display_name: 'html_report' },
+              type: 'system.HTML',
+              uri: 's3://fixtures/report.html',
+            },
+            {
+              artifactId: '84',
+              metadata: { display_name: 'markdown_report' },
+              type: 'system.Markdown',
+              uri: 's3://fixtures/report.md',
+            },
+          ],
+          events: [
+            {
+              artifactId: '81',
+              executionId: '73',
+              path: [{ key: 'scalar_metrics' }],
+              type: 'OUTPUT',
+            },
+            { artifactId: '82', executionId: '73', path: [{ key: 'roc_curve' }], type: 'OUTPUT' },
+            { artifactId: '83', executionId: '73', path: [{ key: 'html_report' }], type: 'OUTPUT' },
+            {
+              artifactId: '84',
+              executionId: '73',
+              path: [{ key: 'markdown_report' }],
+              type: 'OUTPUT',
+            },
+            { artifactId: '81', executionId: '74', path: [{ key: 'metrics' }], type: 'INPUT' },
+          ],
+          executions: [
+            {
+              executionId: '73',
+              metadata: { display_name: 'write-metrics', pod_name: 'write-pod' },
+              state: 'COMPLETE',
+            },
+            {
+              executionId: '74',
+              metadata: { display_name: 'consume-metrics', pod_name: 'consume-pod' },
+              state: 'COMPLETE',
+            },
+          ],
+        };
+      },
+    },
+  );
+
+  assert.deepEqual(lineageSelections, [{ expectedContextId: null, runId: 'legacy-run' }]);
+  const [write, consume] = response.run_details.task_details;
+  assert.equal(write.execution_id, '73');
+  assert.equal(consume.execution_id, '74');
+  assert.deepEqual(write.outputs, {
+    html_report: { artifact_ids: ['83'] },
+    markdown_report: { artifact_ids: ['84'] },
+    roc_curve: { artifact_ids: ['82'] },
+    scalar_metrics: { artifact_ids: ['81'] },
+  });
+  assert.deepEqual(consume.inputs, { metrics: { artifact_ids: ['81'] } });
+  assert.deepEqual(
+    response.semanticArtifacts.map((artifact) => artifact.artifactId),
+    ['81', '82', '83', '84'],
+  );
+});
+
+test('builds a production-shaped rich legacy binding from MLMD execution lineage', async () => {
+  const definition = RESOURCE_DEFINITIONS.runs.find(
+    (candidate) => candidate.semanticKey === 'run.training-1',
+  );
+  const task = (displayName, taskId, children = []) => ({
+    child_tasks: children.map((podName) => ({ pod_name: podName })),
+    display_name: displayName,
+    state: 'SUCCEEDED',
+    task_id: taskId,
+  });
+  const response = await fetchRunBindingResponse(
+    'legacy-run',
+    async () => ({
+      display_name: definition.displayName,
+      run_details: {
+        task_details: [
+          task('write-metrics', 'task-uuid-write', ['argo-node-consume']),
+          task('consume-metrics', 'task-uuid-consume', ['argo-node-nested']),
+          task('nested-dag', 'task-uuid-nested', ['argo-node-nested-worker']),
+          task('nested-worker', 'task-uuid-nested-worker'),
+          task('retry-once', 'task-uuid-retry', ['argo-node-nested']),
+          task('parallel-loop', 'task-uuid-parallel', [
+            'argo-node-nested',
+            'argo-node-loop-0',
+            'argo-node-loop-1',
+          ]),
+          task('loop-worker', 'task-uuid-loop-1'),
+          task('loop-worker', 'task-uuid-loop-0'),
+        ],
+      },
+      run_id: 'legacy-run',
+    }),
+    {
+      fetchLegacyLineage: async () => {
+        const regularArtifacts = [
+          {
+            artifactId: '81',
+            metadata: { accuracy: 0.92, loss: 0.08 },
+            uri: 's3://fixtures/scalar-metrics',
+          },
+          {
+            artifactId: '82',
+            metadata: structuredClone(
+              METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
+            ),
+            uri: 's3://fixtures/roc-curve',
+          },
+          {
+            artifactId: '83',
+            metadata: { display_name: 'html_report' },
+            type: 'system.HTML',
+            uri: 's3://fixtures/report.html',
+          },
+          {
+            artifactId: '84',
+            metadata: { display_name: 'markdown_report' },
+            type: 'system.Markdown',
+            uri: 's3://fixtures/report.md',
+          },
+        ];
+        const logArtifacts = [
+          ['91', 'write', 0],
+          ['92', 'consume', 0],
+          ['93', 'retry', 0],
+          ['94', 'retry', 1],
+          ['95', 'loop-0', 0],
+          ['96', 'loop-1', 0],
+          ['97', 'nested-worker', 0],
+        ].map(([artifactId, owner, attempt]) => ({
+          artifactId,
+          metadata: { display_name: 'executor-logs' },
+          type: 'system.Artifact',
+          uri: `s3://fixtures/${owner}/executor-logs-${attempt}`,
+        }));
+        const executions = [
+          {
+            executionId: '70',
+            metadata: {},
+            name: 'run/legacy-run',
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '71',
+            metadata: { display_name: 'nested-dag', parent_dag_id: 70 },
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '72',
+            metadata: { display_name: 'parallel-loop', parent_dag_id: 70 },
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '80',
+            metadata: {
+              display_name: 'parallel-loop',
+              iteration_index: 1,
+              parent_dag_id: 72,
+            },
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '79',
+            metadata: {
+              display_name: 'parallel-loop',
+              iteration_index: 0,
+              parent_dag_id: 72,
+            },
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '73',
+            metadata: { display_name: 'write-metrics', parent_dag_id: 70, pod_name: 'write-pod' },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+          {
+            executionId: '74',
+            metadata: {
+              display_name: 'consume-metrics',
+              parent_dag_id: 70,
+              pod_name: 'consume-pod',
+            },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+          {
+            executionId: '75',
+            metadata: { display_name: 'retry-once', parent_dag_id: 70 },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+          {
+            executionId: '77',
+            metadata: { display_name: 'loop-worker', parent_dag_id: 80 },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+          {
+            executionId: '76',
+            metadata: { display_name: 'loop-worker', parent_dag_id: 79 },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+          {
+            executionId: '78',
+            metadata: { display_name: 'nested-worker', parent_dag_id: 71 },
+            state: 'COMPLETE',
+            type: 'system.ContainerExecution',
+          },
+        ];
+        const outputEvents = [
+          ['81', '73', 'scalar_metrics'],
+          ['82', '73', 'roc_curve'],
+          ['83', '73', 'html_report'],
+          ['84', '73', 'markdown_report'],
+          ['91', '73', 'executor-logs'],
+          ['92', '74', 'executor-logs'],
+          ['93', '75', 'executor-logs'],
+          ['94', '75', 'executor-logs'],
+          ['95', '76', 'executor-logs'],
+          ['96', '77', 'executor-logs'],
+          ['97', '78', 'executor-logs'],
+        ].map(([artifactId, executionId, key]) => ({
+          artifactId,
+          executionId,
+          path: [{ key }],
+          type: 'OUTPUT',
+        }));
+        return {
+          artifacts: [...regularArtifacts, ...logArtifacts],
+          events: [
+            ...outputEvents,
+            {
+              artifactId: '81',
+              executionId: '74',
+              path: [{ key: 'metrics' }],
+              type: 'INPUT',
+            },
+          ],
+          executions,
+        };
+      },
+    },
+  );
+
+  const semantic = buildSemanticDeployment({
+    logical: buildLogicalFixtures(RESOURCE_DEFINITIONS),
+    runResponses: [
+      {
+        pipelineSpec: RICH_PIPELINE_SPEC,
+        response,
+        semanticKey: definition.semanticKey,
+      },
+    ],
+  });
+  assert.equal(semantic.validation.valid, true, semantic.validation.errors.join('; '));
+  const binding = semantic.bindings.runs[definition.semanticKey];
+  assert.deepEqual(
+    Object.values(binding.executionInstances)
+      .flat()
+      .map((execution) => execution.executionId)
+      .sort((left, right) => left.localeCompare(right, 'en', { numeric: true })),
+    ['70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80'],
+  );
+  assert.deepEqual(
+    binding.executionInstances['task.parallel-loop'].map((execution) => ({
+      executionId: execution.executionId,
+      executionRole: execution.executionRole,
+      iterationIndex: execution.iterationIndex,
+    })),
+    [
+      { executionId: '72', executionRole: 'loop-controller', iterationIndex: undefined },
+      { executionId: '79', executionRole: 'loop-iteration', iterationIndex: 0 },
+      { executionId: '80', executionRole: 'loop-iteration', iterationIndex: 1 },
+    ],
+  );
+  assert.equal(binding.taskInstances['task.parallel-loop'][0].mlmdExecutionId, '72');
+  assert.equal(
+    binding.taskInstances['task.loop-worker'].every(
+      (taskBinding) => !Object.hasOwn(taskBinding, 'mlmdExecutionId'),
+    ),
+    true,
+  );
+  assert.deepEqual(
+    binding.executionInstances['task.loop-worker'].map((execution) => ({
+      iterationIndex: execution.iterationIndex,
+      iterationIndexEvidence: execution.iterationIndexEvidence,
+    })),
+    [
+      { iterationIndex: 0, iterationIndexEvidence: 'mlmd-parent-dag' },
+      { iterationIndex: 1, iterationIndexEvidence: 'mlmd-parent-dag' },
+    ],
+  );
+  assert.deepEqual(
+    binding.executionInstances['task.retry-once'][0].executorLogs.map((record) => record.uri),
+    ['s3://fixtures/retry/executor-logs-0', 's3://fixtures/retry/executor-logs-1'],
+  );
+  assert.equal(binding.taskInstances['task.retry-once'][0].failedMainJobs.length, 0);
+  assert.deepEqual(
+    binding.relationships.map(({ kind, source, target }) => ({ kind, source, target })),
+    structuredClone(require('../semantic-manifest').RUN_PROFILES['rich-topology'].relationships),
+  );
+});
+
+test('builds a valid legacy semantic run from an empty GetRun artifact projection', async () => {
+  const definition = RESOURCE_DEFINITIONS.runs.find(
+    (candidate) => candidate.semanticKey === 'run.training-2',
+  );
+  const artifacts = [
+    {
+      artifactId: '81',
+      metadata: { accuracy: 0.92, loss: 0.08 },
+      uri: 's3://fixtures/scalar-metrics',
+    },
+    {
+      artifactId: '82',
+      metadata: structuredClone(METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata),
+      uri: 's3://fixtures/roc-curve',
+    },
+    {
+      artifactId: '83',
+      metadata: { display_name: 'html_report' },
+      type: 'system.HTML',
+      uri: 's3://fixtures/report.html',
+    },
+    {
+      artifactId: '84',
+      metadata: { display_name: 'markdown_report' },
+      type: 'system.Markdown',
+      uri: 's3://fixtures/report.md',
+    },
+    {
+      artifactId: '85',
+      metadata: { display_name: 'executor-logs' },
+      type: 'system.Artifact',
+      uri: 's3://fixtures/executor-logs-0',
+    },
+  ];
+  const events = [
+    ['81', 'scalar_metrics'],
+    ['82', 'roc_curve'],
+    ['83', 'html_report'],
+    ['84', 'markdown_report'],
+  ].map(([artifactId, key]) => ({
+    artifactId,
+    executionId: '73',
+    path: [{ key }],
+    type: 'OUTPUT',
+  }));
+  events.push({
+    artifactId: '85',
+    executionId: '73',
+    path: [{ key: 'executor-logs' }],
+    type: 'OUTPUT',
+  });
+  const response = await fetchRunBindingResponse(
+    'legacy-run',
+    async () => ({
+      display_name: definition.displayName,
+      run_details: {
+        task_details: [
+          {
+            display_name: 'write-metrics',
+            state: 'SUCCEEDED',
+            task_id: 'legacy-write',
+          },
+        ],
+      },
+      run_id: 'legacy-run',
+    }),
+    {
+      fetchLegacyLineage: async () => ({
+        artifacts,
+        events,
+        executions: [
+          {
+            executionId: '70',
+            metadata: {},
+            name: 'run/legacy-run',
+            state: 'COMPLETE',
+            type: 'system.DAGExecution',
+          },
+          {
+            executionId: '73',
+            metadata: { display_name: 'write-metrics', pod_name: 'write-pod' },
+            state: 'COMPLETE',
+          },
+        ],
+      }),
+    },
+  );
+  const semantic = buildSemanticDeployment({
+    logical: buildLogicalFixtures(RESOURCE_DEFINITIONS),
+    runResponses: [{ response, semanticKey: definition.semanticKey }],
+  });
+
+  assert.equal(semantic.validation.valid, true, semantic.validation.errors.join('; '));
+  const run = semantic.bindings.runs[definition.semanticKey];
+  assert.equal(run.tasks['task.write-metrics'].mlmdExecutionId, '73');
+  assert.deepEqual(
+    run.tasks['task.write-metrics'].artifactReferences.outputs.map((group) => group.key),
+    ['html_report', 'markdown_report', 'roc_curve', 'scalar_metrics'],
+  );
+
+  await assert.rejects(
+    fetchRunBindingResponse(
+      'legacy-run',
+      async () => {
+        const raw = structuredClone(response);
+        delete raw.semanticArtifacts;
+        delete raw.semanticExecutions;
+        delete raw.run_details.task_details[0].execution_id;
+        delete raw.run_details.task_details[0].outputs;
+        return raw;
+      },
+      {
+        fetchLegacyLineage: async () => ({
+          artifacts,
+          events: events.map((event) => ({ ...event, type: 'DECLARED_OUTPUT' })),
+          executions: [
+            {
+              executionId: '73',
+              metadata: { display_name: 'write-metrics', pod_name: 'write-pod' },
+              state: 'COMPLETE',
+            },
+          ],
+        }),
+      },
+    ),
+    /event 0 is not a declared fixture or runtime executor-log event/,
+  );
+});
+
+test('fails closed on ambiguous legacy execution mappings and incomplete context artifacts', async () => {
+  const runResponse = {
+    run_details: {
+      pipeline_run_context_id: '17',
+      task_details: [{ display_name: 'write-metrics', task_id: 'legacy-write' }],
+    },
+    run_id: 'legacy-run',
+  };
+  const executions = [73, 74].map((executionId) => ({
+    executionId: String(executionId),
+    metadata: { display_name: 'write-metrics' },
+    state: 'COMPLETE',
+  }));
+  const getRun = async () => structuredClone(runResponse);
+
+  let queriedLineageForWrongRun = false;
+  const wrongRun = structuredClone(runResponse);
+  wrongRun.run_id = 'different-run';
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', async () => wrongRun, {
+      fetchLegacyLineage: async () => {
+        queriedLineageForWrongRun = true;
+        return { artifacts: [], events: [], executions: [] };
+      },
+    }),
+    /returned run "different-run" for requested run "legacy-run"/,
+  );
+  assert.equal(queriedLineageForWrongRun, false);
+
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', getRun, {
+      fetchLegacyLineage: async () => ({ artifacts: [], events: [], executions }),
+    }),
+    /ambiguously matches 2 MLMD executions/,
+  );
+
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', getRun, {
+      fetchLegacyLineage: async () => ({
+        artifacts: [],
+        events: [
+          {
+            artifactId: '81',
+            executionId: '73',
+            path: [{ key: 'scalar_metrics' }],
+            type: 'OUTPUT',
+          },
+        ],
+        executions: [executions[0]],
+      }),
+    }),
+    /event 0 references artifact 81 outside its run context/,
+  );
+
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', getRun, {
+      fetchLegacyLineage: async () => ({
+        artifacts: [{ artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } }],
+        events: [
+          {
+            artifactId: '81',
+            executionId: '73',
+            path: [{ key: 'scalar_metrics' }],
+            type: 'OUTPUT',
+          },
+          {
+            artifactId: '81',
+            executionId: '73',
+            path: [{ key: 'invented_alias' }],
+            type: 'OUTPUT',
+          },
+        ],
+        executions: [executions[0]],
+      }),
+    }),
+    /event 1 is not a declared fixture or runtime executor-log event/,
+  );
+
+  const podMismatch = structuredClone(runResponse);
+  podMismatch.run_details.task_details[0].pod_name = 'getrun-pod';
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', async () => podMismatch, {
+      fetchLegacyLineage: async () => ({
+        artifacts: [],
+        events: [],
+        executions: [
+          {
+            executionId: '73',
+            metadata: { display_name: 'write-metrics', pod_name: 'different-mlmd-pod' },
+            state: 'COMPLETE',
+          },
+        ],
+      }),
+    }),
+    /has no matching MLMD execution/,
+  );
+
+  const unexpectedGroup = structuredClone(runResponse);
+  unexpectedGroup.run_details.task_details[0].outputs = {
+    invented_alias: { artifact_ids: ['999'] },
+  };
+  await assert.rejects(
+    fetchRunBindingResponse('legacy-run', async () => unexpectedGroup, {
+      fetchLegacyLineage: async () => ({
+        artifacts: [],
+        events: [],
+        executions: [executions[0]],
+      }),
+    }),
+    /unexpected outputs artifact group "invented_alias"/,
+  );
+});
+
+test('does not guess execution IDs for repeated non-artifact legacy tasks', async () => {
+  const response = await fetchRunBindingResponse(
+    'legacy-run',
+    async () => ({
+      run_details: {
+        task_details: [
+          { display_name: 'write-metrics', task_id: 'legacy-write' },
+          { display_name: 'loop-worker', task_id: 'legacy-loop-0' },
+          { display_name: 'loop-worker', task_id: 'legacy-loop-1' },
+        ],
+      },
+      run_id: 'legacy-run',
+    }),
+    {
+      fetchLegacyLineage: async () => ({
+        artifacts: [
           { artifactId: '81', metadata: { accuracy: 0.92, loss: 0.08 } },
           {
             artifactId: '82',
@@ -410,14 +1217,37 @@ test('hydrates legacy run artifact IDs with actual MLMD metric and ROC values', 
               METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
             ),
           },
-        ];
-      },
+          { artifactId: '83', metadata: {}, type: 'system.HTML', uri: 's3://report.html' },
+          {
+            artifactId: '84',
+            metadata: {},
+            type: 'system.Markdown',
+            uri: 's3://report.md',
+          },
+        ],
+        events: [
+          ['81', 'scalar_metrics'],
+          ['82', 'roc_curve'],
+          ['83', 'html_report'],
+          ['84', 'markdown_report'],
+        ].map(([artifactId, key]) => ({
+          artifactId,
+          executionId: '73',
+          path: [{ key }],
+          type: 'OUTPUT',
+        })),
+        executions: [
+          { executionId: '73', metadata: { display_name: 'write-metrics' }, state: 'COMPLETE' },
+          { executionId: '74', metadata: { display_name: 'loop-worker' }, state: 'COMPLETE' },
+          { executionId: '75', metadata: { display_name: 'loop-worker' }, state: 'FAILED' },
+        ],
+      }),
     },
   );
 
-  assert.deepEqual(requestedArtifactIds, ['81', '82']);
-  assert.deepEqual(response.semanticArtifacts[0].metadata, { accuracy: 0.92, loss: 0.08 });
-  assert.equal(response.semanticArtifacts[1].metadata.confidenceMetrics.length, 5);
+  assert.equal(response.run_details.task_details[0].execution_id, '73');
+  assert.equal(response.run_details.task_details[1].execution_id, undefined);
+  assert.equal(response.run_details.task_details[2].execution_id, undefined);
 });
 
 function testVarint(value) {
@@ -500,6 +1330,39 @@ function testMlmdArtifact(artifactId, metadata, details = {}) {
   ]);
 }
 
+function testMlmdExecution(executionId, metadata, details = {}) {
+  return Buffer.concat([
+    testField(1, 0, testVarint(executionId)),
+    testField(3, 0, testVarint(details.state || 3)),
+    ...Object.entries(metadata).map(([key, value]) =>
+      testMessageField(
+        5,
+        Buffer.concat([testStringField(1, key), testMessageField(2, testStringField(3, value))]),
+      ),
+    ),
+    ...(details.name ? [testStringField(6, details.name)] : []),
+    ...(details.type ? [testStringField(7, details.type)] : []),
+  ]);
+}
+
+function testMlmdContext(contextId, name, type) {
+  return Buffer.concat([
+    testField(1, 0, testVarint(contextId)),
+    testStringField(3, name),
+    testStringField(6, type),
+  ]);
+}
+
+function testMlmdEvent(artifactId, executionId, key, type) {
+  const path = testMessageField(1, testStringField(2, key));
+  return Buffer.concat([
+    testField(1, 0, testVarint(artifactId)),
+    testField(2, 0, testVarint(executionId)),
+    testMessageField(3, path),
+    testField(4, 0, testVarint(type)),
+  ]);
+}
+
 function testMlmdResponse(artifacts) {
   return Buffer.concat(
     artifacts.map(({ artifactId, metadata, ...details }) =>
@@ -563,6 +1426,159 @@ test('decodes scalar and ROC values from the MLMD gRPC-web artifact response', a
       name: 'html-output',
       type: 'system.HTML',
       uri: 's3://fixtures/report.html',
+    },
+  ]);
+});
+
+test('rejects incomplete gRPC-web responses and MLMD records without positive IDs', async () => {
+  const artifactResponse = testMlmdResponse([{ artifactId: 81, metadata: {} }]);
+  await assert.rejects(
+    fetchMlmdArtifactsByIds(['81'], async () => grpcFrame(0x00, artifactResponse)),
+    /missing its terminal grpc-status trailer/,
+  );
+  await assert.rejects(
+    fetchMlmdArtifactsByIds(['81'], async () =>
+      Buffer.concat([
+        grpcFrame(0x00, artifactResponse),
+        grpcFrame(0x80, Buffer.from('grpc-status: 0\r\n')),
+        grpcFrame(0x00, artifactResponse),
+      ]),
+    ),
+    /frame after its terminal trailer/,
+  );
+
+  assert.throws(
+    () => decodeGetArtifactsByIdResponse(testMessageField(1, Buffer.alloc(0))),
+    /Artifact is missing its required positive ID/,
+  );
+  assert.throws(
+    () => decodeGetExecutionsByContextResponse(testMessageField(1, Buffer.alloc(0))),
+    /Execution is missing its required positive ID/,
+  );
+  assert.throws(
+    () => decodeGetEventsByExecutionIdsResponse(testMessageField(1, Buffer.alloc(0))),
+    /Event is missing a required positive artifact or execution ID/,
+  );
+  assert.throws(
+    () => decodeGetContextByTypeAndNameResponse(testMessageField(1, Buffer.alloc(0))),
+    /Context is missing its required positive ID/,
+  );
+  assert.throws(
+    () => decodeGetArtifactsByIdResponse(testMlmdResponse([{ artifactId: 0, metadata: {} }])),
+    /MLMD artifact ID must be a positive int64/,
+  );
+});
+
+test('queries and decodes complete MLMD context lineage without generated protobufs', async () => {
+  const contextResponse = testMessageField(
+    1,
+    testMlmdContext(17, 'legacy-run', 'system.PipelineRun'),
+  );
+  const executionResponse = Buffer.concat([
+    testMessageField(
+      1,
+      testMlmdExecution(
+        73,
+        { display_name: 'write-metrics', pod_name: 'write-pod' },
+        {
+          type: 'system.ContainerExecution',
+        },
+      ),
+    ),
+    testMessageField(
+      1,
+      testMlmdExecution(74, { display_name: 'consume-metrics', pod_name: 'consume-pod' }),
+    ),
+  ]);
+  const artifactResponse = testMlmdResponse([
+    {
+      artifactId: 81,
+      metadata: { accuracy: 0.92, loss: 0.08 },
+      uri: 's3://fixtures/scalar-metrics',
+    },
+  ]);
+  const eventResponse = Buffer.concat([
+    testMessageField(1, testMlmdEvent(81, 73, 'scalar_metrics', 4)),
+    testMessageField(1, testMlmdEvent(81, 74, 'metrics', 3)),
+  ]);
+  const calls = [];
+  const lineage = await fetchMlmdLineageForRun(
+    'legacy-run',
+    async (method, endpoint, body, options) => {
+      assert.equal(method, 'POST');
+      assert.equal(body, null);
+      assert.equal(options.responseType, 'buffer');
+      const payloadLength = options.rawBody.readUInt32BE(1);
+      const payload = options.rawBody.subarray(5, 5 + payloadLength);
+      calls.push({ endpoint, payload: payload.toString('hex') });
+      const message = {
+        '/ml_metadata.MetadataStoreService/GetArtifactsByContext': artifactResponse,
+        '/ml_metadata.MetadataStoreService/GetContextByTypeAndName': contextResponse,
+        '/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs': eventResponse,
+        '/ml_metadata.MetadataStoreService/GetExecutionsByContext': executionResponse,
+      }[endpoint];
+      assert.ok(message, `Unexpected MLMD endpoint: ${endpoint}`);
+      return Buffer.concat([
+        grpcFrame(0x00, message),
+        grpcFrame(0x80, Buffer.from('grpc-status: 0\r\n')),
+      ]);
+    },
+    { expectedContextId: '17' },
+  );
+
+  assert.deepEqual(
+    calls.sort((left, right) => left.endpoint.localeCompare(right.endpoint)),
+    [
+      {
+        endpoint: '/ml_metadata.MetadataStoreService/GetArtifactsByContext',
+        payload: '0811',
+      },
+      {
+        endpoint: '/ml_metadata.MetadataStoreService/GetContextByTypeAndName',
+        payload: '0a1273797374656d2e506970656c696e6552756e120a6c65676163792d72756e',
+      },
+      {
+        endpoint: '/ml_metadata.MetadataStoreService/GetEventsByExecutionIDs',
+        payload: '0849084a',
+      },
+      {
+        endpoint: '/ml_metadata.MetadataStoreService/GetExecutionsByContext',
+        payload: '0811',
+      },
+    ],
+  );
+  assert.deepEqual(lineage.executions, [
+    {
+      executionId: '73',
+      metadata: { display_name: 'write-metrics', pod_name: 'write-pod' },
+      state: 'COMPLETE',
+      type: 'system.ContainerExecution',
+    },
+    {
+      executionId: '74',
+      metadata: { display_name: 'consume-metrics', pod_name: 'consume-pod' },
+      state: 'COMPLETE',
+    },
+  ]);
+  assert.deepEqual(lineage.artifacts, [
+    {
+      artifactId: '81',
+      metadata: { accuracy: 0.92, loss: 0.08 },
+      uri: 's3://fixtures/scalar-metrics',
+    },
+  ]);
+  assert.deepEqual(lineage.events, [
+    {
+      artifactId: '81',
+      executionId: '73',
+      path: [{ key: 'scalar_metrics' }],
+      type: 'OUTPUT',
+    },
+    {
+      artifactId: '81',
+      executionId: '74',
+      path: [{ key: 'metrics' }],
+      type: 'INPUT',
     },
   ]);
 });
@@ -633,6 +1649,100 @@ test('hydrates native semantic bindings through the paginated Task/Artifact API'
   ]);
 });
 
+test('binds run observations to the selected pipeline spec and rejects missing provenance', async () => {
+  const pipelineSemanticKey = 'pipeline.data-ingestion';
+  const selections = {
+    pipelines: {
+      [pipelineSemanticKey]: {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: { pipeline_id: 'pipeline-1' },
+      },
+    },
+    pipelineVersions: {
+      [pipelineSemanticKey]: {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: {
+          pipeline_id: 'pipeline-1',
+          pipeline_spec: structuredClone(MINIMAL_PIPELINE_SPEC),
+          pipeline_version_id: 'version-1',
+        },
+      },
+    },
+    runs: {
+      'run.training-2': {
+        definition: RESOURCE_DEFINITIONS.runs[1],
+        resource: { run_id: 'run-1' },
+      },
+    },
+  };
+  const runResponse = {
+    pipeline_version_reference: {
+      pipeline_id: 'pipeline-1',
+      pipeline_version_id: 'version-1',
+    },
+    run_id: 'run-1',
+    task_count: 1,
+    tasks: [{ name: 'write-metrics', task_id: 'task-1', type: 'RUNTIME' }],
+  };
+  const request = async (_method, endpoint) => {
+    assert.equal(endpoint, '/apis/v2beta1/runs/run-1?view=FULL');
+    return structuredClone(runResponse);
+  };
+
+  const observations = await fetchRunBindingResponses(selections, request);
+  assert.deepEqual(observations, [
+    {
+      pipelineSpec: MINIMAL_PIPELINE_SPEC,
+      response: runResponse,
+      semanticKey: 'run.training-2',
+    },
+  ]);
+
+  for (const [name, mutate, pattern] of [
+    [
+      'missing pipeline spec',
+      ({ selected }) =>
+        delete selected.pipelineVersions[pipelineSemanticKey].resource.pipeline_spec,
+      /missing pipeline_spec/,
+    ],
+    [
+      'malformed pipeline spec',
+      ({ selected }) => {
+        selected.pipelineVersions[pipelineSemanticKey].resource.pipeline_spec = [];
+      },
+      /missing pipeline_spec/,
+    ],
+    [
+      'missing run reference',
+      ({ response }) => delete response.pipeline_version_reference,
+      /does not reference selected pipeline version pipeline-1\/version-1/,
+    ],
+    [
+      'mismatched pipeline reference',
+      ({ response }) => {
+        response.pipeline_version_reference.pipeline_id = 'other-pipeline';
+      },
+      /does not reference selected pipeline version pipeline-1\/version-1/,
+    ],
+    [
+      'mismatched version reference',
+      ({ response }) => {
+        response.pipeline_version_reference.pipeline_version_id = 'other-version';
+      },
+      /does not reference selected pipeline version pipeline-1\/version-1/,
+    ],
+  ]) {
+    const selected = structuredClone(selections);
+    const response = structuredClone(runResponse);
+    mutate({ response, selected });
+    await assert.rejects(
+      fetchRunBindingResponses(selected, async () => response),
+      pattern,
+      name,
+    );
+  }
+});
+
 test('fills each missing deterministic resource type instead of skipping on partial data', async (t) => {
   const manifestPath = temporaryManifest(t);
   const calls = [];
@@ -656,7 +1766,11 @@ test('fills each missing deterministic resource type instead of skipping on part
     if (endpoint.startsWith('/apis/v2beta1/pipelines/pipeline-existing/versions?')) {
       return {
         pipeline_versions: [
-          { pipeline_id: 'pipeline-existing', pipeline_version_id: 'version-existing' },
+          {
+            pipeline_id: 'pipeline-existing',
+            pipeline_spec: structuredClone(RICH_PIPELINE_SPEC),
+            pipeline_version_id: 'version-existing',
+          },
         ],
       };
     }
@@ -684,10 +1798,11 @@ test('fills each missing deterministic resource type instead of skipping on part
     request,
     manifestPath,
     apiBase: 'http://seed.test',
+    semanticTimeout: 0,
     waitForRunsFn: async () => true,
   });
 
-  assert.equal(result.success, true);
+  assert.equal(result.success, true, result.error);
   assert.equal(result.skipped, false);
   assert.deepEqual(result.resources.pipelineIds, ['pipeline-existing']);
   assert.deepEqual(result.resources.experimentIds, ['experiment-created']);
@@ -903,8 +2018,22 @@ test('polls semantic bindings until eventually consistent task and artifact data
   let taskRequests = 0;
   const selections = {
     experiments: {},
-    pipelines: {},
-    pipelineVersions: {},
+    pipelines: {
+      'pipeline.data-ingestion': {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: { pipeline_id: 'pipeline-1' },
+      },
+    },
+    pipelineVersions: {
+      'pipeline.data-ingestion': {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: {
+          pipeline_id: 'pipeline-1',
+          pipeline_spec: structuredClone(MINIMAL_PIPELINE_SPEC),
+          pipeline_version_id: 'version-1',
+        },
+      },
+    },
     recurringRuns: {},
     runs: {
       'run.training-2': {
@@ -919,7 +2048,14 @@ test('polls semantic bindings until eventually consistent task and artifact data
     async (_method, endpoint) => {
       if (endpoint === '/apis/v2beta1/runs/run-1?view=FULL') {
         detailRequests++;
-        return { runId: 'run-1', taskCount: taskRequests > 0 ? 1 : 0 };
+        return {
+          pipelineVersionReference: {
+            pipelineId: 'pipeline-1',
+            pipelineVersionId: 'version-1',
+          },
+          runId: 'run-1',
+          taskCount: taskRequests > 0 ? 1 : 0,
+        };
       }
       assert.equal(endpoint, '/apis/v2beta1/runs/run-1/tasks?page_size=100');
       taskRequests++;
@@ -933,8 +2069,18 @@ test('polls semantic bindings until eventually consistent task and artifact data
                 {
                   artifactKey: 'scalar_metrics',
                   artifacts: [
-                    { artifactId: 'accuracy-1', name: 'accuracy', numberValue: 0.92 },
-                    { artifactId: 'loss-1', name: 'loss', numberValue: 0.08 },
+                    {
+                      artifactId: 'accuracy-1',
+                      name: 'accuracy',
+                      numberValue: 0.92,
+                      uri: 's3://fixtures/scalar-metrics/accuracy',
+                    },
+                    {
+                      artifactId: 'loss-1',
+                      name: 'loss',
+                      numberValue: 0.08,
+                      uri: 's3://fixtures/scalar-metrics/loss',
+                    },
                   ],
                 },
                 {
@@ -946,6 +2092,7 @@ test('polls semantic bindings until eventually consistent task and artifact data
                         METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
                       ),
                       name: 'roc_curve',
+                      uri: 's3://fixtures/roc-curve',
                     },
                   ],
                 },
@@ -968,6 +2115,17 @@ test('polls semantic bindings until eventually consistent task and artifact data
                       name: 'markdown_report',
                       type: 'Markdown',
                       uri: 's3://fixtures/report.md',
+                    },
+                  ],
+                },
+                {
+                  artifactKey: 'executor-logs',
+                  artifacts: [
+                    {
+                      artifactId: 'task-1-executor-log-0',
+                      name: 'executor-logs',
+                      type: 'Artifact',
+                      uri: 's3://fixtures/task-1/executor-logs-0',
                     },
                   ],
                 },
@@ -997,8 +2155,22 @@ test('polls semantic bindings until eventually consistent task and artifact data
 test('attributes semantic discovery timeouts to missing fixtures or API incompatibility', async () => {
   const selections = {
     experiments: {},
-    pipelines: {},
-    pipelineVersions: {},
+    pipelines: {
+      'pipeline.data-ingestion': {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: { pipeline_id: 'pipeline-1' },
+      },
+    },
+    pipelineVersions: {
+      'pipeline.data-ingestion': {
+        definition: RESOURCE_DEFINITIONS.pipelines[1],
+        resource: {
+          pipeline_id: 'pipeline-1',
+          pipeline_spec: structuredClone(MINIMAL_PIPELINE_SPEC),
+          pipeline_version_id: 'version-1',
+        },
+      },
+    },
     recurringRuns: {},
     runs: {
       'run.training-2': {
@@ -1009,9 +2181,19 @@ test('attributes semantic discovery timeouts to missing fixtures or API incompat
   };
 
   await assert.rejects(
-    waitForSemanticBindings(selections, async () => ({ runId: 'run-1', taskCount: 0, tasks: [] }), {
-      timeout: 0,
-    }),
+    waitForSemanticBindings(
+      selections,
+      async () => ({
+        pipelineVersionReference: {
+          pipelineId: 'pipeline-1',
+          pipelineVersionId: 'version-1',
+        },
+        runId: 'run-1',
+        taskCount: 0,
+        tasks: [],
+      }),
+      { timeout: 0 },
+    ),
     (error) =>
       error.code === 'MISSING_FIXTURE' &&
       /expected 1 task\.write-metrics instance/.test(error.message),

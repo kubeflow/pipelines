@@ -11,6 +11,7 @@ const { parseArgs } = require('util');
 const clusterManager = require('./cluster-manager');
 const { COMPONENTS, detectChanges } = require('./detect-changes');
 const { seedData } = require('./seed-data');
+const { SEMANTIC_ID_NORMALIZATION_MODES } = require('./semantic-id-normalization');
 const { combineSemanticManifests } = require('./semantic-manifest');
 const {
   CAPTURE_VALIDITY,
@@ -1562,6 +1563,9 @@ function verifyPullRequestHead(repository, prNumber, expectedSha) {
 }
 
 function captureArguments(baseUrl, outputDir, label, seedManifestPath, provenance = {}) {
+  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(provenance.normalizationMode)) {
+    throw new Error('Capture arguments require an explicit semantic ID normalization mode.');
+  }
   const args = [
     path.join(SCRIPT_DIR, 'capture-screenshots.js'),
     '--base-url',
@@ -1570,6 +1574,8 @@ function captureArguments(baseUrl, outputDir, label, seedManifestPath, provenanc
     outputDir,
     '--label',
     label,
+    '--normalization-mode',
+    provenance.normalizationMode,
     '--seed-manifest',
     seedManifestPath,
   ];
@@ -1603,6 +1609,7 @@ async function capturePair({
   baseSeedManifestPath,
   headSeedManifestPath,
   semanticManifestPath,
+  normalizationMode,
   seedManifestPath,
   sourceProvenancePath,
   runChildImpl = runChild,
@@ -1614,6 +1621,21 @@ async function capturePair({
   if (!resolvedBaseSeedManifest || !resolvedHeadSeedManifest) {
     throw new Error('Both base and head seed manifests are required for paired capture.');
   }
+  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(normalizationMode)) {
+    throw new Error('Paired capture requires an explicit semantic ID normalization mode.');
+  }
+  if (
+    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK &&
+    (!semanticManifestPath || !sourceProvenancePath)
+  ) {
+    throw new Error('Semantic full-stack capture requires semantic and source provenance.');
+  }
+  if (
+    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY &&
+    (semanticManifestPath || sourceProvenancePath)
+  ) {
+    throw new Error('Browser-compatibility capture cannot accept semantic or source provenance.');
+  }
   const captureEnvironment = fullCaptureEnvironment(options);
   const baseDir = path.join(screenshotsDir, 'base');
   const headDir = path.join(screenshotsDir, 'head');
@@ -1621,6 +1643,7 @@ async function capturePair({
     runChildImpl(
       process.execPath,
       captureArguments(baseUrl, baseDir, labels.base, resolvedBaseSeedManifest, {
+        normalizationMode,
         revisionRole: 'base',
         semanticManifestPath,
         sourceProvenancePath,
@@ -1633,6 +1656,7 @@ async function capturePair({
     runChildImpl(
       process.execPath,
       captureArguments(headUrl, headDir, labels.head, resolvedHeadSeedManifest, {
+        normalizationMode,
         revisionRole: 'head',
         semanticManifestPath,
         sourceProvenancePath,
@@ -2359,6 +2383,7 @@ async function runFullStackComparisonOrchestration({
     options,
     screenshotsDir: path.join(run.runDir, 'screenshots'),
     semanticManifestPath,
+    normalizationMode: SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK,
     sourceProvenancePath,
   });
   state.captureResults = results;
@@ -2629,6 +2654,7 @@ async function runComparison(options, run, overrides = {}) {
     options,
     screenshotsDir,
     seedManifestPath,
+    normalizationMode: SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY,
   });
   const success = await finishComparison(options, services, results, headRoot, expectedHeadSha);
 
@@ -2650,6 +2676,7 @@ async function runCurrentOnly(options, run) {
       outputDir,
       options.displayPrNumber ? `PR #${options.displayPrNumber}` : 'current',
       path.join(run.runDir, 'seed-manifest.json'),
+      { normalizationMode: SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY },
     ),
     {
       cwd: SCRIPT_DIR,

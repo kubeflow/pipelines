@@ -1403,7 +1403,7 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
         },
       },
       combineSemanticManifests(manifests, options) {
-        return { manifests, options, schemaVersion: 'ui-smoke-semantic/v2' };
+        return { manifests, options, schemaVersion: 'ui-smoke-semantic/v3' };
       },
       componentsForRevision() {
         return [{ name: 'apiserver' }];
@@ -1754,7 +1754,7 @@ test('incomplete full-stack captures retain browser diagnostics and attribute se
         },
       },
       combineSemanticManifests(manifests) {
-        return { manifests, schemaVersion: 'ui-smoke-semantic/v2' };
+        return { manifests, schemaVersion: 'ui-smoke-semantic/v3' };
       },
       componentsForRevision() {
         return [];

@@ -13,10 +13,24 @@ const sharp = require('sharp');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
-const { SCENARIO_CONTRACT_SCHEMA_VERSION } = require('./semantic-capture-scenarios');
+const {
+  SCENARIO_CONTRACT_SCHEMA_VERSION,
+  getSemanticIdNormalizationContract,
+} = require('./semantic-capture-scenarios');
+const {
+  SEMANTIC_COLOR_PALETTE,
+  SEMANTIC_ID_KINDS,
+  SEMANTIC_ID_NORMALIZATION_MODES,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
+  SEMANTIC_ID_PATH_PATTERN,
+  SEMANTIC_ID_TOKEN_PATTERN,
+  semanticIdNormalizationRenderingContract,
+  semanticIdToken,
+} = require('./semantic-id-normalization');
+const { validateCombinedSemanticManifest } = require('./semantic-manifest');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
-const CAPTURE_MANIFEST_SCHEMA_VERSION = 2;
+const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
 const COMPARISON_SUMMARY_FILENAME = 'summary.json';
 const COMPARISON_SUMMARY_SCHEMA_VERSION = 2;
 const COMPARISON_REPORT_FILENAME = 'report.html';
@@ -1480,6 +1494,405 @@ function normalizeCaptureDiagnostics(value, label) {
   };
 }
 
+function normalizeSemanticIdNormalizationAttestation(value, label) {
+  if (!isPlainObject(value) || value.schemaVersion !== SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION) {
+    throw new ComparisonError(
+      `${label} must use semantic ID normalization schema ${SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION}.`,
+      'manifest',
+    );
+  }
+  if (value.complete !== true || !Array.isArray(value.scopes)) {
+    throw new ComparisonError(`${label} is incomplete or has invalid scopes.`, 'manifest');
+  }
+  const allowedTopFields = new Set([
+    'complete',
+    'derivedColorScopes',
+    'schemaVersion',
+    'scopes',
+    'totalReplacementCount',
+  ]);
+  if (Object.keys(value).some((field) => !allowedTopFields.has(field))) {
+    throw new ComparisonError(`${label} has an unknown field.`, 'manifest');
+  }
+  if (!Array.isArray(value.derivedColorScopes)) {
+    throw new ComparisonError(`${label} has invalid derivedColorScopes.`, 'manifest');
+  }
+  const derivedColorKeys = new Set();
+  const derivedColorScopes = value.derivedColorScopes.map((scope, scopeIndex) => {
+    if (!isPlainObject(scope)) {
+      throw new ComparisonError(
+        `${label} derived-color scope ${scopeIndex} is invalid.`,
+        'manifest',
+      );
+    }
+    const allowedFields = new Set([
+      'companionCount',
+      'containerSelector',
+      'elementCount',
+      'key',
+      'labelItemSelector',
+      'mappingStrategy',
+      'maxElements',
+      'mappings',
+      'minElements',
+      'selector',
+      'semanticIds',
+    ]);
+    if (Object.keys(scope).some((field) => !allowedFields.has(field))) {
+      throw new ComparisonError(
+        `${label} derived-color scope ${scopeIndex} has an unknown field.`,
+        'manifest',
+      );
+    }
+    if (
+      typeof scope.key !== 'string' ||
+      !/^[a-z0-9][a-z0-9-]*$/.test(scope.key) ||
+      derivedColorKeys.has(scope.key) ||
+      typeof scope.selector !== 'string' ||
+      !scope.selector ||
+      scope.selector.length > 1024 ||
+      typeof scope.containerSelector !== 'string' ||
+      !scope.containerSelector ||
+      scope.containerSelector.length > 1024 ||
+      typeof scope.labelItemSelector !== 'string' ||
+      !scope.labelItemSelector ||
+      scope.labelItemSelector.length > 1024 ||
+      !['color-backed-labels', 'ordered-label-cards'].includes(scope.mappingStrategy) ||
+      !Number.isSafeInteger(scope.minElements) ||
+      scope.minElements < 1 ||
+      !(
+        scope.maxElements === null ||
+        (Number.isSafeInteger(scope.maxElements) && scope.maxElements >= scope.minElements)
+      ) ||
+      !Number.isSafeInteger(scope.elementCount) ||
+      scope.elementCount < scope.minElements ||
+      (scope.maxElements !== null && scope.elementCount > scope.maxElements) ||
+      !Number.isSafeInteger(scope.companionCount) ||
+      scope.companionCount < scope.elementCount ||
+      !Array.isArray(scope.semanticIds) ||
+      scope.semanticIds.length === 0 ||
+      new Set(scope.semanticIds).size !== scope.semanticIds.length ||
+      scope.semanticIds.some(
+        (semanticId) =>
+          typeof semanticId !== 'string' || !SEMANTIC_ID_PATH_PATTERN.test(semanticId),
+      ) ||
+      scope.semanticIds.length !== scope.elementCount ||
+      !Array.isArray(scope.mappings) ||
+      scope.mappings.length !== scope.elementCount
+    ) {
+      throw new ComparisonError(
+        `${label} derived-color scope ${scopeIndex} is malformed.`,
+        'manifest',
+      );
+    }
+    const semanticIds = new Set();
+    const mappings = scope.mappings.map((mapping, mappingIndex) => {
+      if (
+        !isPlainObject(mapping) ||
+        Object.keys(mapping).some(
+          (field) =>
+            field !== 'semanticId' && field !== 'paletteColor' && field !== 'sourceColorSha256',
+        ) ||
+        typeof mapping.semanticId !== 'string' ||
+        !SEMANTIC_ID_PATH_PATTERN.test(mapping.semanticId) ||
+        !scope.semanticIds.includes(mapping.semanticId) ||
+        semanticIds.has(mapping.semanticId) ||
+        mapping.paletteColor !==
+          SEMANTIC_COLOR_PALETTE[
+            scope.semanticIds.indexOf(mapping.semanticId) % SEMANTIC_COLOR_PALETTE.length
+          ] ||
+        typeof mapping.sourceColorSha256 !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(mapping.sourceColorSha256)
+      ) {
+        throw new ComparisonError(
+          `${label} derived-color scope ${scopeIndex} mapping ${mappingIndex} is invalid.`,
+          'manifest',
+        );
+      }
+      semanticIds.add(mapping.semanticId);
+      return canonicalizeJson(mapping);
+    });
+    if (
+      mappings.some(
+        (mapping, index) =>
+          index > 0 && mappings[index - 1].semanticId.localeCompare(mapping.semanticId) >= 0,
+      )
+    ) {
+      throw new ComparisonError(
+        `${label} derived-color scope ${scopeIndex} mappings are not ordered by semantic ID.`,
+        'manifest',
+      );
+    }
+    derivedColorKeys.add(scope.key);
+    return canonicalizeJson({ ...scope, mappings });
+  });
+  const supportedKinds = new Set(SEMANTIC_ID_KINDS);
+  const scopes = value.scopes.map((scope, scopeIndex) => {
+    if (!isPlainObject(scope)) {
+      throw new ComparisonError(`${label} scope ${scopeIndex} is invalid.`, 'manifest');
+    }
+    const allowedScopeFields = new Set([
+      'entries',
+      'kinds',
+      'match',
+      'maxReplacementsPerIdentifier',
+      'maxReplacements',
+      'minReplacementsPerIdentifier',
+      'minReplacements',
+      'replacementCount',
+      'rootCount',
+      'selector',
+      'semanticIdPrefixes',
+      'semanticIds',
+    ]);
+    if (Object.keys(scope).some((field) => !allowedScopeFields.has(field))) {
+      throw new ComparisonError(`${label} scope ${scopeIndex} has an unknown field.`, 'manifest');
+    }
+    if (
+      typeof scope.selector !== 'string' ||
+      !scope.selector ||
+      scope.selector.length > 1024 ||
+      (scope.match !== 'exact' && scope.match !== 'substring') ||
+      !Array.isArray(scope.entries)
+    ) {
+      throw new ComparisonError(`${label} scope ${scopeIndex} is malformed.`, 'manifest');
+    }
+    const hasKinds = Array.isArray(scope.kinds) && scope.kinds.length > 0;
+    const hasSemanticIds = Array.isArray(scope.semanticIds) && scope.semanticIds.length > 0;
+    const hasSemanticIdPrefixes =
+      Array.isArray(scope.semanticIdPrefixes) && scope.semanticIdPrefixes.length > 0;
+    if (Number(hasKinds) + Number(hasSemanticIds) + Number(hasSemanticIdPrefixes) !== 1) {
+      throw new ComparisonError(
+        `${label} scope ${scopeIndex} must select kinds, semanticIds, or semanticIdPrefixes.`,
+        'manifest',
+      );
+    }
+    if (
+      hasKinds &&
+      (new Set(scope.kinds).size !== scope.kinds.length ||
+        scope.kinds.some((kind) => !supportedKinds.has(kind)))
+    ) {
+      throw new ComparisonError(`${label} scope ${scopeIndex} has invalid kinds.`, 'manifest');
+    }
+    if (
+      hasSemanticIds &&
+      (new Set(scope.semanticIds).size !== scope.semanticIds.length ||
+        scope.semanticIds.some(
+          (semanticId) =>
+            typeof semanticId !== 'string' || !SEMANTIC_ID_PATH_PATTERN.test(semanticId),
+        ))
+    ) {
+      throw new ComparisonError(
+        `${label} scope ${scopeIndex} has invalid semanticIds.`,
+        'manifest',
+      );
+    }
+    if (
+      hasSemanticIdPrefixes &&
+      (new Set(scope.semanticIdPrefixes).size !== scope.semanticIdPrefixes.length ||
+        scope.semanticIdPrefixes.some(
+          (prefix) => typeof prefix !== 'string' || !SEMANTIC_ID_PATH_PATTERN.test(prefix),
+        ))
+    ) {
+      throw new ComparisonError(
+        `${label} scope ${scopeIndex} has invalid semanticIdPrefixes.`,
+        'manifest',
+      );
+    }
+    if (
+      !Number.isSafeInteger(scope.minReplacements) ||
+      scope.minReplacements < 0 ||
+      !(
+        scope.maxReplacements === null ||
+        (Number.isSafeInteger(scope.maxReplacements) &&
+          scope.maxReplacements >= scope.minReplacements)
+      ) ||
+      !Number.isSafeInteger(scope.replacementCount) ||
+      scope.replacementCount < 0 ||
+      !Number.isSafeInteger(scope.rootCount) ||
+      scope.rootCount < 0 ||
+      !Number.isSafeInteger(scope.minReplacementsPerIdentifier) ||
+      scope.minReplacementsPerIdentifier < 0 ||
+      !(
+        scope.maxReplacementsPerIdentifier === null ||
+        (Number.isSafeInteger(scope.maxReplacementsPerIdentifier) &&
+          scope.maxReplacementsPerIdentifier >= scope.minReplacementsPerIdentifier)
+      ) ||
+      ((hasKinds || hasSemanticIdPrefixes) &&
+        (scope.minReplacementsPerIdentifier > 0 || scope.maxReplacementsPerIdentifier !== null))
+    ) {
+      throw new ComparisonError(`${label} scope ${scopeIndex} has invalid counts.`, 'manifest');
+    }
+
+    const semanticIds = new Set();
+    const entries = scope.entries.map((entry, entryIndex) => {
+      const equivalenceClass = entry?.equivalenceClass;
+      const hasEquivalenceClass = equivalenceClass !== undefined;
+      if (
+        !isPlainObject(entry) ||
+        !supportedKinds.has(entry.kind) ||
+        typeof entry.semanticId !== 'string' ||
+        !SEMANTIC_ID_PATH_PATTERN.test(entry.semanticId) ||
+        typeof entry.token !== 'string' ||
+        !SEMANTIC_ID_TOKEN_PATTERN.test(entry.token) ||
+        !SEMANTIC_ID_KINDS.includes(entry.tokenKind) ||
+        typeof entry.tokenSemanticId !== 'string' ||
+        !SEMANTIC_ID_PATH_PATTERN.test(entry.tokenSemanticId) ||
+        entry.token !== semanticIdToken(entry.tokenKind, entry.tokenSemanticId) ||
+        (hasEquivalenceClass &&
+          (entry.kind !== 'task' ||
+            typeof equivalenceClass !== 'string' ||
+            !SEMANTIC_ID_PATH_PATTERN.test(equivalenceClass) ||
+            entry.tokenSemanticId !== equivalenceClass)) ||
+        typeof entry.sourceIdSha256 !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(entry.sourceIdSha256) ||
+        !Number.isSafeInteger(entry.replacementCount) ||
+        entry.replacementCount < 0
+      ) {
+        throw new ComparisonError(
+          `${label} scope ${scopeIndex} entry ${entryIndex} is invalid.`,
+          'manifest',
+        );
+      }
+      const allowedEntryFields = new Set([
+        'equivalenceClass',
+        'kind',
+        'replacementCount',
+        'semanticId',
+        'sourceIdSha256',
+        'token',
+        'tokenKind',
+        'tokenSemanticId',
+      ]);
+      if (Object.keys(entry).some((field) => !allowedEntryFields.has(field))) {
+        throw new ComparisonError(
+          `${label} scope ${scopeIndex} entry ${entryIndex} has an unknown field.`,
+          'manifest',
+        );
+      }
+      if (semanticIds.has(entry.semanticId)) {
+        throw new ComparisonError(
+          `${label} scope ${scopeIndex} contains duplicate semantic ID ${entry.semanticId}.`,
+          'manifest',
+        );
+      }
+      semanticIds.add(entry.semanticId);
+      if (
+        (hasKinds && !scope.kinds.includes(entry.kind)) ||
+        (hasSemanticIds && !scope.semanticIds.includes(entry.semanticId)) ||
+        (hasSemanticIdPrefixes &&
+          !scope.semanticIdPrefixes.some((prefix) => entry.semanticId.startsWith(prefix)))
+      ) {
+        throw new ComparisonError(
+          `${label} scope ${scopeIndex} entry ${entryIndex} is outside its declared selection.`,
+          'manifest',
+        );
+      }
+      if (
+        entry.replacementCount < scope.minReplacementsPerIdentifier ||
+        (scope.maxReplacementsPerIdentifier !== null &&
+          entry.replacementCount > scope.maxReplacementsPerIdentifier)
+      ) {
+        throw new ComparisonError(
+          `${label} scope ${scopeIndex} entry ${entryIndex} violates its per-identifier replacement bounds.`,
+          'manifest',
+        );
+      }
+      return canonicalizeJson(entry);
+    });
+    if (hasSemanticIds && scope.semanticIds.some((semanticId) => !semanticIds.has(semanticId))) {
+      throw new ComparisonError(
+        `${label} scope ${scopeIndex} omits an explicitly selected semantic ID.`,
+        'manifest',
+      );
+    }
+    const replacementCount = entries.reduce((sum, entry) => sum + entry.replacementCount, 0);
+    if (
+      replacementCount !== scope.replacementCount ||
+      (replacementCount > 0 && scope.rootCount === 0) ||
+      replacementCount < scope.minReplacements ||
+      (scope.maxReplacements !== null && replacementCount > scope.maxReplacements)
+    ) {
+      throw new ComparisonError(
+        `${label} scope ${scopeIndex} has inconsistent replacement counts.`,
+        'manifest',
+      );
+    }
+    return canonicalizeJson({ ...scope, entries });
+  });
+  const totalReplacementCount = scopes.reduce((sum, scope) => sum + scope.replacementCount, 0);
+  if (
+    !Number.isSafeInteger(value.totalReplacementCount) ||
+    value.totalReplacementCount < 0 ||
+    value.totalReplacementCount !== totalReplacementCount
+  ) {
+    throw new ComparisonError(`${label} has an inconsistent total replacement count.`, 'manifest');
+  }
+  return canonicalizeJson({ ...value, derivedColorScopes, scopes });
+}
+
+function semanticIdNormalizationScopeContract(scope) {
+  return canonicalizeJson({
+    match: scope.match,
+    maxReplacements: scope.maxReplacements ?? null,
+    maxReplacementsPerIdentifier: scope.maxReplacementsPerIdentifier ?? null,
+    minReplacements: scope.minReplacements ?? 0,
+    minReplacementsPerIdentifier: scope.minReplacementsPerIdentifier ?? 0,
+    selector: scope.selector,
+    ...(Array.isArray(scope.kinds) ? { kinds: [...scope.kinds].sort() } : {}),
+    ...(Array.isArray(scope.semanticIds) ? { semanticIds: [...scope.semanticIds].sort() } : {}),
+    ...(Array.isArray(scope.semanticIdPrefixes)
+      ? { semanticIdPrefixes: [...scope.semanticIdPrefixes].sort() }
+      : {}),
+  });
+}
+
+function semanticDerivedColorScopeContract(scope) {
+  return canonicalizeJson({
+    containerSelector: scope.containerSelector,
+    key: scope.key,
+    labelItemSelector: scope.labelItemSelector,
+    mappingStrategy: scope.mappingStrategy,
+    maxElements: scope.maxElements ?? null,
+    minElements: scope.minElements ?? 1,
+    selector: scope.selector,
+    semanticIds: [...scope.semanticIds].sort(),
+  });
+}
+
+function semanticIdNormalizationContractProjection(value) {
+  return canonicalizeJson({
+    derivedColorScopes: (value.derivedColorScopes || []).map(semanticDerivedColorScopeContract),
+    scopes: (value.scopes || []).map(semanticIdNormalizationScopeContract),
+  });
+}
+
+function validateSemanticIdNormalizationScenarioContracts(manifest, role) {
+  if (!manifest.inputs?.semanticManifest) return;
+  for (const result of manifest.results) {
+    if (result.status !== 'success' && result.status !== 'degraded') continue;
+    const pageContract = getSemanticIdNormalizationContract(role, result.page);
+    const semanticScenario = result.semanticScenario || result.page;
+    const semanticContract = getSemanticIdNormalizationContract(role, semanticScenario);
+    if (!pageContract || !semanticContract || semanticScenario !== result.page) {
+      throw new ComparisonError(
+        `Capture result ${result.filename} does not bind canonical semantic scenario ${result.page}.`,
+        'manifest',
+      );
+    }
+    const actualContract = semanticIdNormalizationContractProjection(
+      result.semanticIdNormalization,
+    );
+    const expectedContract = semanticIdNormalizationContractProjection(pageContract);
+    if (JSON.stringify(actualContract) !== JSON.stringify(expectedContract)) {
+      throw new ComparisonError(
+        `Capture result ${result.filename} does not attest the ${role} semantic ID normalization contract for ${result.page}.`,
+        'manifest',
+      );
+    }
+  }
+}
+
 function captureRecordEvidence(record, label) {
   if (!record) return null;
   return {
@@ -1493,6 +1906,7 @@ function captureRecordEvidence(record, label) {
         ? null
         : sanitizeCaptureDiagnosticText(record.reason),
     diagnostics: normalizeCaptureDiagnostics(record.diagnostics, `${label} diagnostics`),
+    semanticIdNormalization: record.semanticIdNormalization || null,
   };
 }
 
@@ -1629,6 +2043,7 @@ function validateCaptureManifest(manifest, manifestPath) {
     }
 
     let capturedAtMs = null;
+    let semanticIdNormalization = null;
     if (result.status === 'success' || result.status === 'degraded') {
       capturedAtMs = parseTimestamp(
         result.capturedAt,
@@ -1649,10 +2064,19 @@ function validateCaptureManifest(manifest, manifestPath) {
           'manifest',
         );
       }
+      semanticIdNormalization = normalizeSemanticIdNormalizationAttestation(
+        result.semanticIdNormalization,
+        `Capture result ${result.filename} in ${manifestPath} semanticIdNormalization`,
+      );
+    } else if (result.semanticIdNormalization !== undefined) {
+      semanticIdNormalization = normalizeSemanticIdNormalizationAttestation(
+        result.semanticIdNormalization,
+        `Capture result ${result.filename} in ${manifestPath} semanticIdNormalization`,
+      );
     }
 
     const evidence = captureRecordEvidence(
-      result,
+      { ...result, semanticIdNormalization },
       `Capture result ${result.page} in ${manifestPath}`,
     );
     records.set(result.filename, {
@@ -1663,6 +2087,7 @@ function validateCaptureManifest(manifest, manifestPath) {
       diagnostics: evidence.diagnostics,
       error: evidence.error,
       reason: evidence.reason,
+      semanticIdNormalization,
       startedAtMs,
     });
   }
@@ -1769,6 +2194,102 @@ function assertMatchingPairInput(base, head, name) {
   }
 }
 
+function loadAttestedJsonArtifact(attestation, description) {
+  const resolvedPath = path.resolve(attestation.path);
+  let stat;
+  let contents;
+  try {
+    stat = fs.lstatSync(resolvedPath);
+    if (!stat.isFile() || stat.isSymbolicLink()) {
+      throw new Error('path is not a non-symlink regular file');
+    }
+    contents = fs.readFileSync(resolvedPath);
+  } catch (error) {
+    throw new ComparisonError(`${description} cannot be read: ${error.message}.`, 'manifest');
+  }
+  let value;
+  try {
+    value = JSON.parse(contents.toString('utf8'));
+  } catch (error) {
+    throw new ComparisonError(`${description} is not valid JSON: ${error.message}.`, 'manifest');
+  }
+  const schemaVersion =
+    typeof value?.schemaVersion === 'string' || typeof value?.schemaVersion === 'number'
+      ? value.schemaVersion
+      : null;
+  if (
+    contents.length !== attestation.sizeBytes ||
+    crypto.createHash('sha256').update(contents).digest('hex') !== attestation.sha256 ||
+    schemaVersion !== attestation.schemaVersion
+  ) {
+    throw new ComparisonError(`${description} does not match its capture attestation.`, 'manifest');
+  }
+  return value;
+}
+
+function validateSemanticNormalizationAgainstCatalog(manifest, role, semanticManifest) {
+  let catalog;
+  try {
+    validateCombinedSemanticManifest(semanticManifest);
+    catalog = require('./capture-screenshots').buildSemanticIdentifierCatalog(
+      semanticManifest,
+      role,
+    );
+  } catch (error) {
+    throw new ComparisonError(
+      `Attested semantic fixture manifest is invalid: ${error.message}`,
+      'manifest',
+    );
+  }
+  const expectedByIdentity = new Map(
+    catalog.map((entry) => [`${entry.kind}\u0000${entry.semanticId}`, entry]),
+  );
+  const observedHashes = new Map();
+  for (const result of manifest.results) {
+    if (result.status !== 'success' && result.status !== 'degraded') continue;
+    for (const scope of result.semanticIdNormalization.scopes) {
+      for (const entry of scope.entries) {
+        const identityKey = `${entry.kind}\u0000${entry.semanticId}`;
+        const expected = expectedByIdentity.get(identityKey);
+        const expectedHash = expected
+          ? crypto.createHash('sha256').update(expected.value).digest('hex')
+          : null;
+        if (
+          !expected ||
+          expected.token !== entry.token ||
+          expected.tokenKind !== entry.tokenKind ||
+          expected.tokenSemanticId !== entry.tokenSemanticId ||
+          (expected.equivalenceClass || undefined) !== entry.equivalenceClass ||
+          expectedHash !== entry.sourceIdSha256
+        ) {
+          throw new ComparisonError(
+            `${role} capture result ${result.filename} normalization entry ${entry.semanticId} does not match the attested semantic fixture manifest.`,
+            'manifest',
+          );
+        }
+        const observed = observedHashes.get(identityKey);
+        if (observed && observed !== entry.sourceIdSha256) {
+          throw new ComparisonError(
+            `${role} capture binds inconsistent source hashes for ${entry.semanticId}.`,
+            'manifest',
+          );
+        }
+        observedHashes.set(identityKey, entry.sourceIdSha256);
+      }
+    }
+    for (const scope of result.semanticIdNormalization.derivedColorScopes) {
+      for (const semanticId of scope.semanticIds) {
+        if (!expectedByIdentity.has(`run\u0000${semanticId}`)) {
+          throw new ComparisonError(
+            `${role} capture result ${result.filename} derived-color identity ${semanticId} is absent from the attested semantic fixture manifest.`,
+            'manifest',
+          );
+        }
+      }
+    }
+  }
+}
+
 function matchingManifestContract(baseManifest, headManifest, field) {
   const base = baseManifest[field];
   const head = headManifest[field];
@@ -1796,6 +2317,33 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
   }
   assertMatchingPairInput(base.semanticManifest, head.semanticManifest, 'semanticManifest');
   assertMatchingPairInput(base.sourceProvenance, head.sourceProvenance, 'sourceProvenance');
+  if (Boolean(base.semanticManifest) !== Boolean(base.sourceProvenance)) {
+    throw new ComparisonError(
+      'Semantic full-stack captures require both semanticManifest and sourceProvenance; browser compatibility captures require neither.',
+      'manifest',
+    );
+  }
+  if (base.semanticManifest) {
+    const baseSemanticManifest = loadAttestedJsonArtifact(
+      baseManifest.inputs.semanticManifest,
+      'Base semanticManifest',
+    );
+    const headSemanticManifest = loadAttestedJsonArtifact(
+      headManifest.inputs.semanticManifest,
+      'Head semanticManifest',
+    );
+    if (
+      JSON.stringify(canonicalizeJson(baseSemanticManifest)) !==
+      JSON.stringify(canonicalizeJson(headSemanticManifest))
+    ) {
+      throw new ComparisonError(
+        'Base and head semanticManifest artifacts do not contain the same fixture mapping.',
+        'manifest',
+      );
+    }
+    validateSemanticNormalizationAgainstCatalog(baseManifest, 'base', baseSemanticManifest);
+    validateSemanticNormalizationAgainstCatalog(headManifest, 'head', headSemanticManifest);
+  }
   if (baseManifest.scenarioContractSchemaVersion !== headManifest.scenarioContractSchemaVersion) {
     throw new ComparisonError(
       'Base and head capture manifests use different semantic scenario contracts.',
@@ -1811,12 +2359,49 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       'manifest',
     );
   }
+  validateSemanticIdNormalizationScenarioContracts(baseManifest, 'base');
+  validateSemanticIdNormalizationScenarioContracts(headManifest, 'head');
   const browser = matchingManifestContract(baseManifest, headManifest, 'browser');
   const deterministicRendering = matchingManifestContract(
     baseManifest,
     headManifest,
     'deterministicRendering',
   );
+  const expectedNormalizationMode = base.semanticManifest
+    ? SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK
+    : SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY;
+  const expectedNormalizationContract =
+    semanticIdNormalizationRenderingContract(expectedNormalizationMode);
+  if (
+    !isPlainObject(deterministicRendering.semanticIdNormalization) ||
+    JSON.stringify(canonicalizeJson(deterministicRendering.semanticIdNormalization)) !==
+      JSON.stringify(canonicalizeJson(expectedNormalizationContract))
+  ) {
+    throw new ComparisonError(
+      `Capture manifests must use the exact ${expectedNormalizationMode} semantic ID normalization contract ${SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION}.`,
+      'manifest',
+    );
+  }
+  if (!base.semanticManifest) {
+    for (const [role, manifest] of [
+      ['base', baseManifest],
+      ['head', headManifest],
+    ]) {
+      for (const result of manifest.results) {
+        if (result.status !== 'success' && result.status !== 'degraded') continue;
+        if (
+          result.semanticIdNormalization.totalReplacementCount !== 0 ||
+          result.semanticIdNormalization.scopes.length !== 0 ||
+          result.semanticIdNormalization.derivedColorScopes.length !== 0
+        ) {
+          throw new ComparisonError(
+            `${role} browser-compatibility capture ${result.filename} cannot contain semantic normalization evidence.`,
+            'manifest',
+          );
+        }
+      }
+    }
+  }
   return {
     base,
     browser,
@@ -2820,6 +3405,7 @@ async function main(args = process.argv.slice(2), env = process.env) {
 
 module.exports = {
   CAPTURE_MANIFEST_SCHEMA_VERSION,
+  SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
   COMPARISON_REPORT_FILENAME,
   COMPARISON_SUMMARY_SCHEMA_VERSION,
   ComparisonError,
@@ -2837,6 +3423,9 @@ module.exports = {
   runComparison,
   summarizeComparison,
   validateCaptureManifest,
+  normalizeSemanticIdNormalizationAttestation,
+  validateSemanticNormalizationAgainstCatalog,
+  validateSemanticIdNormalizationScenarioContracts,
   validateComparisonOptions,
   validateDistinctDirectories,
   validateFreshCapture,
