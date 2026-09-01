@@ -8,7 +8,7 @@ name: CI Check
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
   workflow_run:
     types: [completed]
 
@@ -17,6 +17,9 @@ jobs:
     # GitHub Actions cannot filter pull_request_target events by label name.
     # Skip unrelated labels before entering concurrency so Dependabot/Prow label
     # bursts cannot leave cancelled checks on the current head SHA.
+    # The first clause admits opened/synchronize/reopened/closed (any action
+    # other than labeled/unlabeled/edited). A closed event must reach the
+    # close-handling step below to remove the informational ci-passed label.
     if: >-
       github.event_name == 'pull_request_target' &&
       (
@@ -35,6 +38,7 @@ jobs:
     permissions:
       actions: read
       checks: read
+      contents: read
       issues: write
       pull-requests: read
       statuses: write
@@ -77,9 +81,32 @@ jobs:
           echo "reason=${reason}" >> "$GITHUB_OUTPUT"
           echo "${reason}"
 
+      - name: Remove informational ci-passed label on close
+        if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          retries: 3
+          script: |
+            // A closed PR cannot be merged, so the informational ci-passed
+            // label must not linger on an unmergeable head. The SHA-bound
+            // ci-passed commit status needs no action here: reconcile never
+            // publishes success to a closed head, and any prior status is
+            // historical (bound to a specific commit).
+            const prNumber = context.payload.pull_request.number;
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: "ci-passed",
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+
       - name: Mark ci-passed pending while current head is revalidated
-        if: steps.eligibility.outputs.should_poll == 'true'
-        uses: actions/github-script@v9
+        if: steps.eligibility.outputs.should_poll == 'true' && github.event.action != 'closed'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
@@ -118,8 +145,8 @@ jobs:
 
       - name: Wait for action_required workflow runs to be approved
         id: approval_gate
-        if: steps.eligibility.outputs.should_poll == 'true'
-        uses: actions/github-script@v9
+        if: steps.eligibility.outputs.should_poll == 'true' && github.event.action != 'closed'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
@@ -165,19 +192,28 @@ jobs:
 
       - name: Check if all CI checks passed
         id: poll
-        if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success'
+        if: steps.eligibility.outputs.should_poll == 'true' && steps.approval_gate.outcome == 'success' && github.event.action != 'closed'
         uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
         with:
           delay: '5'
           retries: '10'
           polling_interval: '5'
-          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
-          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
-          # causing false negatives in the status gate. If the Copilot reviewer adds or
-          # renames checks, update this list accordingly.
+          # Exclude check runs created by the GitHub Copilot code review. Each
+          # entry is an anchored regex matched against the check name by
+          # allcheckspassed (app_id unset, so any app). Mapping (Copilot code
+          # review job/check names): "Cleanup artifacts", "Upload results",
+          # "Agent", "Prepare". Only "Cleanup artifacts" and "Upload results"
+          # are confirmed from public Copilot code review runs; "Agent" and
+          # "Prepare" follow the same naming scheme but are not independently
+          # verifiable from this repo's source. RISK: app_id is unset, so an
+          # anchored exact match also masks a genuinely required check of the
+          # same name from any other app (single-word patterns are the widest).
+          # Re-check names if Copilot renames its checks.
           checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # allcheckspassed authenticates via its `token` input (defaults to
+          # github.token); a GITHUB_TOKEN env var is not read. The token is
+          # scoped by this job's permissions above (checks: read, contents: read).
+          token: ${{ github.token }}
 
       - name: Skip CI polling with success
         if: steps.eligibility.outputs.should_poll != 'true'
@@ -185,7 +221,7 @@ jobs:
 
       - name: Reconcile ci-passed status and informational label
         if: always()
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
@@ -337,13 +373,14 @@ jobs:
     permissions:
       actions: read
       checks: read
+      contents: read
       issues: write
       pull-requests: read
       statuses: write
     steps:
       - name: Resolve pull request for workflow_run head SHA
         id: resolve
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
@@ -382,7 +419,7 @@ jobs:
       - name: Read current ci-passed status for the workflow_run head SHA
         id: status
         if: steps.resolve.outputs.matched == 'true'
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
@@ -423,17 +460,26 @@ jobs:
           delay: '5'
           retries: '10'
           polling_interval: '5'
-          # Exclude checks dynamically created by the GitHub Copilot pull request reviewer.
-          # These checks fail with HTTP 403 on fork PRs due to permission limitations,
-          # causing false negatives in the status gate. If the Copilot reviewer adds or
-          # renames checks, update this list accordingly.
+          # Exclude check runs created by the GitHub Copilot code review. Each
+          # entry is an anchored regex matched against the check name by
+          # allcheckspassed (app_id unset, so any app). Mapping (Copilot code
+          # review job/check names): "Cleanup artifacts", "Upload results",
+          # "Agent", "Prepare". Only "Cleanup artifacts" and "Upload results"
+          # are confirmed from public Copilot code review runs; "Agent" and
+          # "Prepare" follow the same naming scheme but are not independently
+          # verifiable from this repo's source. RISK: app_id is unset, so an
+          # anchored exact match also masks a genuinely required check of the
+          # same name from any other app (single-word patterns are the widest).
+          # Re-check names if Copilot renames its checks.
           checks_exclude: '^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # allcheckspassed authenticates via its `token` input (defaults to
+          # github.token); a GITHUB_TOKEN env var is not read. The token is
+          # scoped by this job's permissions above (checks: read, contents: read).
+          token: ${{ github.token }}
 
       - name: Reconcile ci-passed for the workflow_run head SHA
         if: always()
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           retries: 3
           script: |
