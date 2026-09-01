@@ -46,6 +46,18 @@ describe('PipelineSpecTabContent', () => {
     expect(editor.textContent).toContain('nested:');
   });
 
+  it('renders an empty editor when no template is provided', () => {
+    // js-yaml 5 throws on input holding no document, so an absent template
+    // would otherwise fail during render rather than showing an empty editor.
+    const { getByTestId } = render(<PipelineSpecTabContent templateString={undefined as any} />);
+    expect(getByTestId('editor-mock').textContent).toBe('');
+  });
+
+  it('renders an empty editor for an empty template string', () => {
+    const { getByTestId } = render(<PipelineSpecTabContent templateString='' />);
+    expect(getByTestId('editor-mock').textContent).toBe('');
+  });
+
   it('passes yaml mode and readOnly to the editor', () => {
     const { getByTestId } = render(<PipelineSpecTabContent templateString='name: test' />);
     const editor = getByTestId('editor-mock');

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"time"
@@ -32,9 +33,10 @@ import (
 
 // ReadArtifactRequest represents a request to read artifact content
 type ReadArtifactRequest struct {
-	RunID        string
-	NodeID       string
-	ArtifactName string
+	RunID            string
+	NodeID           string
+	ArtifactName     string
+	MaxResponseBytes int64
 }
 
 // String returns a string representation for use as a map key
@@ -148,10 +150,35 @@ func (a *client) ReadArtifact(request *ReadArtifactRequest) (*ReadArtifactRespon
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, NewError(ErrorCodePermanent, err,
-				"Failed to read response body: %v", err.Error())
+		var body []byte
+		var err error
+
+		if request.MaxResponseBytes > 0 {
+			// Enforce a cap on the encoded response before buffering it.
+			// A malicious pipeline step can publish an arbitrarily large
+			// artifact; without this limit the persistence agent OOMs before
+			// the parser's per-entry size check is ever reached.
+			limit := request.MaxResponseBytes
+			if limit < math.MaxInt64 {
+				limit++
+			}
+			limitedBody := io.LimitReader(resp.Body, limit)
+			body, err = io.ReadAll(limitedBody)
+			if err != nil {
+				return nil, NewError(ErrorCodePermanent, err,
+					"Failed to read response body: %v", err.Error())
+			}
+			if int64(len(body)) > request.MaxResponseBytes {
+				return nil, NewError(ErrorCodePermanent,
+					fmt.Errorf("response body exceeds %d bytes", request.MaxResponseBytes),
+					"Artifact response too large: %d bytes", len(body))
+			}
+		} else {
+			body, err = io.ReadAll(resp.Body)
+			if err != nil {
+				return nil, NewError(ErrorCodePermanent, err,
+					"Failed to read response body: %v", err.Error())
+			}
 		}
 
 		var jsonResponse struct {

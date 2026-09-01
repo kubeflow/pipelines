@@ -327,7 +327,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **run_service_list_runs**
-> V2beta1ListRunsResponse run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+> V2beta1ListRunsResponse run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, skip_count=skip_count)
 
 Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
 
@@ -371,10 +371,11 @@ page_token = 'page_token_example' # str | A page token to request the next page 
 page_size = 56 # int | The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" (Example, \"name asc\" or \"id desc\"). Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). (optional)
+skip_count = True # bool | Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. (optional)
 
     try:
         # Finds all runs in an experiment given by experiment ID. If experiment id is not specified, finds all runs across all experiments.
-        api_response = api_instance.run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+        api_response = api_instance.run_service_list_runs(namespace=namespace, experiment_id=experiment_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, skip_count=skip_count)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RunServiceApi->run_service_list_runs: %s\n" % e)
@@ -390,6 +391,7 @@ Name | Type | Description  | Notes
  **page_size** | **int**| The number of runs to be listed per page. If there are more runs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
+ **skip_count** | **bool**| Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size. | [optional] 
 
 ### Return type
 

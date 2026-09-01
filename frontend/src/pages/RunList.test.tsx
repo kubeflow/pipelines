@@ -19,7 +19,7 @@ import * as Utils from 'src/lib/Utils';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import RunList, { RunListProps } from './RunList';
 import TestUtils, { flushPromisesInAct } from 'src/TestUtils';
-import produce from 'immer';
+import { produce } from 'immer';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import { V2beta1Run, V2beta1RunStorageState, V2beta1RuntimeState } from 'src/apisv2beta1/run';
 import { Apis, RunSortKeys, ListRequest } from 'src/lib/Apis';
@@ -41,6 +41,7 @@ describe('RunList', () => {
   let listRunsSpy: ReturnType<typeof vi.spyOn>;
   let getRunSpy: ReturnType<typeof vi.spyOn>;
   let getPipelineVersionSpy: ReturnType<typeof vi.spyOn>;
+  let listPipelineVersionsSpy: ReturnType<typeof vi.spyOn>;
   let listExperimentsSpy: ReturnType<typeof vi.spyOn>;
   let formatDateStringSpy: ReturnType<typeof vi.spyOn>;
 
@@ -167,6 +168,9 @@ describe('RunList', () => {
         pipeline_id: 'pipeline-id',
         pipeline_version_id: 'pipeline-version-id',
       } as any);
+    listPipelineVersionsSpy = vi
+      .spyOn(Apis.pipelineServiceApiV2, 'listPipelineVersions')
+      .mockRejectedValue(new Error('not mocked for this test'));
     listExperimentsSpy = vi
       .spyOn(Apis.experimentServiceApiV2, 'listExperiments')
       .mockResolvedValue({ experiments: [] } as any);
@@ -222,6 +226,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
 
@@ -252,6 +257,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
 
@@ -292,6 +298,7 @@ describe('RunList', () => {
             ],
           } as V2beta1Filter),
         ),
+        true,
       );
     });
   });
@@ -327,6 +334,7 @@ describe('RunList', () => {
       10,
       RunSortKeys.CREATED_AT + ' desc',
       '',
+      true,
     );
     expect(props.onError).not.toHaveBeenCalled();
   });
@@ -424,6 +432,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       undefined,
+      true,
     );
   });
 
@@ -445,6 +454,7 @@ describe('RunList', () => {
       undefined,
       undefined,
       undefined,
+      true,
     );
   });
 
@@ -549,6 +559,83 @@ describe('RunList', () => {
     });
 
     await screen.findByText('some pipeline version');
+  });
+
+  it('dedupes pipeline version lookups by unique pipeline/version id instead of one call per run', async () => {
+    const sharedPipelineId = 'shared-pipeline';
+    const sharedVersionId = 'shared-version';
+    listRunsSpy.mockResolvedValue({
+      runs: [
+        {
+          run_id: 'run1',
+          display_name: 'run with id: run1',
+          pipeline_version_reference: {
+            pipeline_id: sharedPipelineId,
+            pipeline_version_id: sharedVersionId,
+          },
+          state: V2beta1RuntimeState.SUCCEEDED,
+        },
+        {
+          run_id: 'run2',
+          display_name: 'run with id: run2',
+          pipeline_version_reference: {
+            pipeline_id: sharedPipelineId,
+            pipeline_version_id: sharedVersionId,
+          },
+          state: V2beta1RuntimeState.SUCCEEDED,
+        },
+      ] as V2beta1Run[],
+    });
+    getPipelineVersionSpy.mockResolvedValue({
+      pipeline_id: sharedPipelineId,
+      pipeline_version_id: sharedVersionId,
+      display_name: 'shared pipeline version',
+    } as any);
+
+    const props = generateProps();
+    await renderRunList(props);
+    await waitForRunListLoad();
+
+    expect(screen.getAllByText('shared pipeline version')).toHaveLength(2);
+
+    // CustomTable's reload() overlaps under React Strict Mode in tests (see the
+    // isBusy comment in CustomTable.tsx), so the list loads twice here, one
+    // getPipelineVersion call per load. The property under test is that it's one
+    // call per load per unique (pipeline, version), not one call per run: two runs
+    // referencing the same version never produce more calls than two loads' worth
+    // of unique versions.
+    expect(getPipelineVersionSpy).toHaveBeenCalledTimes(2);
+    expect(getPipelineVersionSpy).toHaveBeenCalledWith(sharedPipelineId, sharedVersionId);
+    expect(listPipelineVersionsSpy).not.toHaveBeenCalled();
+  });
+
+  it('surfaces the original error when the pipeline version lookup fails', async () => {
+    listRunsSpy.mockResolvedValue({
+      runs: [
+        {
+          run_id: 'run1',
+          display_name: 'run with id: run1',
+          pipeline_version_reference: {
+            pipeline_id: 'test-pipeline-id',
+            pipeline_version_id: 'test-version-id',
+          },
+          state: V2beta1RuntimeState.SUCCEEDED,
+        },
+      ] as V2beta1Run[],
+    });
+    TestUtils.makeErrorResponse(getPipelineVersionSpy as any, 'User not authorized');
+
+    const props = generateProps();
+    await renderRunList(props);
+    await waitFor(() => {
+      expect(getPipelineVersionSpy).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(getRunListState()?.runs[0].error).toEqual(
+        'Failed to get associated pipeline version: User not authorized',
+      );
+    });
   });
 
   // TODO(jlyaoyuli): add back this test (show recurring run config)
