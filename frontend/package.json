@@ -29,7 +29,7 @@
     "lodash.flatten": "^4.4.0",
     "lodash.groupby": "^4.6.0",
     "lodash.isfunction": "^3.0.9",
-    "markdown-to-jsx": "^7.0.0",
+    "markdown-to-jsx": "^9.10.2",
     "pako": "^3.0.1",
     "proto3-json-serializer": "^4.0.2",
     "protobufjs": "~8.8.0",
