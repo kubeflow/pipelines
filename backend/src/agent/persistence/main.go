@@ -15,8 +15,11 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
+	"errors"
 	"flag"
+	"net/http"
 	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
@@ -25,7 +28,6 @@ import (
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
 	swfinformers "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/informers/externalversions"
 	log "github.com/sirupsen/logrus"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -82,7 +84,8 @@ func main() {
 	flag.Parse()
 
 	// set up signals so we handle the first shutdown signal gracefully
-	stopCh := signals.SetupSignalHandler().Done()
+	shutdownContext := signals.SetupSignalHandler()
+	stopCh := shutdownContext.Done()
 
 	// Use the util to store the ExecutionType
 	util.SetExecutionType(util.ExecutionType(executionType))
@@ -158,8 +161,52 @@ func main() {
 	go swfInformerFactory.Start(stopCh)
 	go execInformer.InformerFactoryStart(stopCh)
 
+	go startHealthProbeServer(shutdownContext, controller)
+
 	if err = controller.Run(numWorker, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())
+	}
+}
+
+const healthProbePort = ":9090"
+
+func startHealthProbeServer(shutdownContext context.Context, controller *PersistenceAgent) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if controller.HasSynced() {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("ok"))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte("not ready"))
+		}
+	})
+	srv := &http.Server{
+		Addr:              healthProbePort,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
+	}
+
+	log.Infof("Starting health probe server at %s...", healthProbePort)
+
+	// Graceful shutdown: when the shutdown signal is received, give the HTTP
+	// server a bounded window to finish in-flight requests before closing.
+	go func() {
+		<-shutdownContext.Done()
+		log.Info("Shutting down health probe server...")
+		shutdownTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownTimeout); err != nil {
+			log.Errorf("Health probe server graceful shutdown failed: %v", err)
+		}
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Health probe server failed: %v", err)
 	}
 }
 
