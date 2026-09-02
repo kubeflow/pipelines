@@ -15,16 +15,69 @@
 package driver
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestHandleInputTaskArtifactsCreation_OmitsLinkPersistedByPriorAttempt(t *testing.T) {
+	ctx := context.Background()
+	mockAPI := kfpapi.NewMockAPI()
+	runID := "run-id"
+	task, err := mockAPI.CreateTask(ctx, &apiv2beta1.CreateTaskRequest{
+		RunId: runID,
+		Task: &apiv2beta1.PipelineTask{
+			RunId:     runID,
+			Name:      "consumer",
+			ScopePath: "root.consumer",
+			Type:      apiv2beta1.PipelineTask_RUNTIME,
+		},
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateArtifact(ctx, &apiv2beta1.CreateArtifactRequest{
+		Artifact: &apiv2beta1.Artifact{ArtifactId: "artifact-id"},
+	})
+	require.NoError(t, err)
+	artifactMetadata := []resolver.ArtifactMetadata{{
+		ArtifactIO: &apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+			Artifacts:   []*apiv2beta1.Artifact{{ArtifactId: "artifact-id"}},
+			Type:        apiv2beta1.IOType_TASK_OUTPUT_INPUT,
+			ArtifactKey: "metrics",
+			Producer:    &apiv2beta1.IOProducer{TaskName: "producer"},
+		},
+	}}
+	opts := common.Options{Run: &apiv2beta1.Run{RunId: runID}}
+
+	require.NoError(t, handleInputTaskArtifactsCreation(ctx, opts, artifactMetadata, task, mockAPI))
+	require.NoError(t, handleInputTaskArtifactsCreation(ctx, opts, artifactMetadata, task, mockAPI))
+
+	artifactTasks, err := mockAPI.ListArtifactTasks(ctx, &apiv2beta1.ListArtifactTasksRequest{
+		TaskIds: []string{task.GetTaskId()},
+		RunIds:  []string{runID},
+	})
+	require.NoError(t, err)
+	matchingLinks := 0
+	for _, artifactTask := range artifactTasks.GetArtifactTasks() {
+		if artifactTask.GetTaskId() == task.GetTaskId() &&
+			artifactTask.GetArtifactId() == "artifact-id" &&
+			artifactTask.GetType() == apiv2beta1.IOType_TASK_OUTPUT_INPUT &&
+			artifactTask.GetKey() == "metrics" {
+			matchingLinks++
+		}
+	}
+	require.Equal(t, 1, matchingLinks)
+}
 
 func Test_isInputParameterChannel(t *testing.T) {
 	tests := []struct {

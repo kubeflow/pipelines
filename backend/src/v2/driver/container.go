@@ -405,10 +405,12 @@ func Container(ctx context.Context, opts common.Options, clientManager client_ma
 				}
 			}
 			if len(artifactTasks) > 0 {
-				_, err := clientManager.KFPAPIClient().CreateArtifactTasks(ctx, &apiV2beta1.CreateArtifactTasksBulkRequest{
-					ArtifactTasks: artifactTasks,
-				})
-				if err != nil {
+				if err := createArtifactTasksWithRetryReconciliation(
+					ctx,
+					createdTask.GetRunId(),
+					artifactTasks,
+					clientManager.KFPAPIClient(),
+				); err != nil {
 					return execution, fmt.Errorf("failed to create artifact tasks: %w", err)
 				}
 			}

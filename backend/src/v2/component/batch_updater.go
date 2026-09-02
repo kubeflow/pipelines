@@ -179,11 +179,10 @@ func (b *BatchUpdater) QueueArtifact(request *apiV2beta1.CreateArtifactRequest) 
 	b.queuedArtifacts++
 }
 
-// OmitArtifactTasksAlreadyPresentOnTasks drops queued OUTPUT artifact-task
-// links whose full UniqueLink identity already exists on the target task's
-// hydrated outputs. Identity includes artifact ID, I/O type, iteration, and
-// key so multi-artifact outputs and iterator iterations are not incorrectly
-// treated as duplicates of a single same-key link.
+// OmitArtifactTasksAlreadyPresentOnTasks drops queued artifact-task links whose
+// full UniqueLink identity already exists on the target task's hydrated inputs
+// or outputs. Identity includes artifact ID, I/O type, iteration, and key so
+// multi-artifact groups and iterator iterations remain distinct.
 func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 	ctx context.Context,
 	apiClient kfpapi.API,
@@ -214,8 +213,11 @@ func (b *BatchUpdater) OmitArtifactTasksAlreadyPresentOnTasks(
 			return fmt.Errorf("failed to refresh task %s before omitting existing artifact links: %w", taskID, err)
 		}
 		links := make(map[string]struct{})
-		if outputs := task.GetOutputs(); outputs != nil {
-			for _, artifactIO := range outputs.GetArtifacts() {
+		for _, inputOutputs := range []*apiV2beta1.PipelineTask_InputOutputs{
+			task.GetInputs(),
+			task.GetOutputs(),
+		} {
+			for _, artifactIO := range inputOutputs.GetArtifacts() {
 				for _, artifact := range artifactIO.GetArtifacts() {
 					linkKey := fmt.Sprintf(
 						"%s|%s|%d|%d|%s",
