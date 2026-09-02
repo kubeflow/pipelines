@@ -240,6 +240,99 @@ class TestCreateJobConfigCachingWithPipelineReference(parameterized.TestCase):
         self.assertEqual(job_config.pipeline_version_reference.pipeline_id,
                          'pipeline-1')
 
+    def test_enable_caching_is_applied_when_pipeline_has_platform_spec(self):
+        # The API server returns a {'pipeline_spec': ..., 'platform_spec':
+        # ...} wrapper (not a flat PipelineSpec) whenever the pipeline was
+        # compiled with platform-specific configuration, e.g. anything using
+        # the kfp-kubernetes extension (PVCs, secrets, node selectors...).
+        # This is a very common shape in real pipelines, and must not crash.
+        wrapped_spec_dict = {
+            'pipeline_spec': self.pipeline_spec_dict,
+            'platform_spec': {
+                'platforms': {
+                    'kubernetes': {}
+                }
+            },
+        }
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_get_pipeline_version',
+                return_value=Mock(
+                    pipeline_spec=wrapped_spec_dict)) as mock_get_version:
+            job_config = self.client._create_job_config(
+                params=None,
+                pipeline_package_path=None,
+                pipeline_id='pipeline-1',
+                version_id='version-1',
+                enable_caching=True,
+                cache_key=None,
+                pipeline_root=None,
+            )
+
+        mock_get_version.assert_called_once_with(
+            pipeline_id='pipeline-1', pipeline_version_id='version-1')
+        self.assertIsNotNone(job_config.pipeline_spec)
+        # The wrapped shape is preserved: the caching override lands inside
+        # the nested pipeline_spec, and platform_spec survives untouched.
+        tasks = job_config.pipeline_spec['pipeline_spec']['root']['dag'][
+            'tasks']
+        self.assertTrue(tasks['hello-word']['cachingOptions']['enableCache'])
+        self.assertTrue(tasks['to-lower']['cachingOptions']['enableCache'])
+        self.assertIn('kubernetes',
+                      job_config.pipeline_spec['platform_spec']['platforms'])
+
+    def test_run_pipeline_end_to_end_applies_caching_override(self):
+        # Exercises the public entry point, not just the private helper:
+        # proves run_pipeline() actually wires enable_caching through to
+        # _create_job_config() and on to the request sent to the server.
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_get_pipeline_version',
+                return_value=Mock(pipeline_spec=self.pipeline_spec_dict)):
+            with patch.object(
+                    self.client._run_api,
+                    'run_service_create_run',
+                    return_value=Mock(run_id='run-1')) as mock_create_run:
+                self.client.run_pipeline(
+                    experiment_id='experiment-1',
+                    job_name='caching-repro',
+                    pipeline_id='pipeline-1',
+                    version_id='version-1',
+                    enable_caching=True,
+                )
+
+        sent_run = mock_create_run.call_args.kwargs['run']
+        tasks = sent_run.pipeline_spec['root']['dag']['tasks']
+        self.assertTrue(tasks['hello-word']['cachingOptions']['enableCache'])
+        self.assertTrue(tasks['to-lower']['cachingOptions']['enableCache'])
+        self.assertEqual(sent_run.pipeline_version_reference.pipeline_id,
+                         'pipeline-1')
+
+    def test_create_recurring_run_end_to_end_applies_caching_override(self):
+        # Same wiring proof as above, for create_recurring_run().
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_get_pipeline_version',
+                return_value=Mock(pipeline_spec=self.pipeline_spec_dict)):
+            with patch.object(
+                    self.client._recurring_run_api,
+                    'recurring_run_service_create_recurring_run',
+                    return_value=Mock()) as mock_create_recurring_run:
+                self.client.create_recurring_run(
+                    experiment_id='experiment-1',
+                    job_name='caching-repro',
+                    pipeline_id='pipeline-1',
+                    version_id='version-1',
+                    interval_second=60,
+                    enable_caching=True,
+                )
+
+        sent_recurring_run = mock_create_recurring_run.call_args.kwargs[
+            'recurring_run']
+        tasks = sent_recurring_run.pipeline_spec['root']['dag']['tasks']
+        self.assertTrue(tasks['hello-word']['cachingOptions']['enableCache'])
+        self.assertTrue(tasks['to-lower']['cachingOptions']['enableCache'])
+
 
 class TestExtractPipelineYAML(parameterized.TestCase):
 
