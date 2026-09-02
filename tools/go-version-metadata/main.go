@@ -66,6 +66,12 @@ type dockerInstructionMetadata struct {
 	Run     *dockerRunMetadata   `json:"run,omitempty"`
 }
 
+type dockerParserDirectiveMetadata struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+	Line  int    `json:"line"`
+}
+
 type dockerStageMetadata struct {
 	BaseName string `json:"baseName"`
 	Name     string `json:"name"`
@@ -96,13 +102,14 @@ type dockerCandidate struct {
 }
 
 type response struct {
-	YAMLValues           map[string][]string         `json:"yamlValues,omitempty"`
-	HasGoDownload        bool                        `json:"hasGoDownload,omitempty"`
-	DockerClassification string                      `json:"dockerClassification,omitempty"`
-	DockerCandidates     []dockerCandidate           `json:"dockerCandidates,omitempty"`
-	DockerError          string                      `json:"dockerError,omitempty"`
-	DockerInstructions   []dockerInstructionMetadata `json:"dockerInstructions,omitempty"`
-	Module               *moduleMetadata             `json:"module,omitempty"`
+	YAMLValues           map[string][]string             `json:"yamlValues,omitempty"`
+	HasGoDownload        bool                            `json:"hasGoDownload,omitempty"`
+	DockerClassification string                          `json:"dockerClassification,omitempty"`
+	DockerCandidates     []dockerCandidate               `json:"dockerCandidates,omitempty"`
+	DockerError          string                          `json:"dockerError,omitempty"`
+	DockerInstructions   []dockerInstructionMetadata     `json:"dockerInstructions,omitempty"`
+	DockerDirectives     []dockerParserDirectiveMetadata `json:"dockerDirectives,omitempty"`
+	Module               *moduleMetadata                 `json:"module,omitempty"`
 }
 
 var goDownloadPattern = regexp.MustCompile(`(?i)^https://(?:dl\.google\.com/go/|go\.dev/dl/)go`)
@@ -253,14 +260,50 @@ func inspect(input request) (response, error) {
 		metadata.DockerCandidates = candidates
 		metadata.DockerError = parseError
 		if classification != "invalid" {
+			directives, err := projectDockerParserDirectives(input.Contents)
+			if err != nil {
+				return response{}, fmt.Errorf("%s: project Docker parser directives: %w", input.Path, err)
+			}
 			projected, err := projectDockerInstructions(input.Contents)
 			if err != nil {
 				return response{}, fmt.Errorf("%s: project Docker instructions: %w", input.Path, err)
 			}
 			metadata.DockerInstructions = projected
+			metadata.DockerDirectives = directives
 		}
 	}
 	return metadata, nil
+}
+
+func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMetadata, error) {
+	projected := []dockerParserDirectiveMetadata{}
+	if _, commandLine, locations, found := parser.DetectSyntax([]byte(contents)); found {
+		line := 0
+		if len(locations) > 0 {
+			line = locations[0].Start.Line
+		}
+		projected = append(projected, dockerParserDirectiveMetadata{
+			Name: "syntax", Value: commandLine, Line: line,
+		})
+	}
+	directiveParser := parser.DirectiveParser{}
+	directives, err := directiveParser.ParseAll([]byte(contents))
+	if err != nil {
+		return nil, err
+	}
+	for _, directive := range directives {
+		if directive.Name == "syntax" {
+			continue
+		}
+		line := 0
+		if len(directive.Location) > 0 {
+			line = directive.Location[0].Start.Line
+		}
+		projected = append(projected, dockerParserDirectiveMetadata{
+			Name: directive.Name, Value: directive.Value, Line: line,
+		})
+	}
+	return projected, nil
 }
 
 func isContainerRecipe(name string) bool {
@@ -411,11 +454,20 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	if err := discovery.completeCurrentStage(); err != nil {
 		return "invalid", nil, err.Error()
 	}
-	deferred, err := discovery.unconsumedDeferredCandidates()
+	deferred, err := discovery.exportedDeferredCandidates()
 	if err != nil {
 		return dockerValidationFailure(err)
 	}
-	unsupported = append(unsupported, deferred...)
+	seenUnsupported := make(map[dockerCandidate]bool, len(unsupported))
+	for _, candidate := range unsupported {
+		seenUnsupported[candidate] = true
+	}
+	for _, candidate := range deferred {
+		if !seenUnsupported[candidate] {
+			seenUnsupported[candidate] = true
+			unsupported = append(unsupported, candidate)
+		}
+	}
 	sort.SliceStable(unsupported, func(left, right int) bool {
 		return unsupported[left].Line < unsupported[right].Line
 	})
@@ -751,7 +803,6 @@ type runtimeShell struct {
 type deferredDockerInstruction struct {
 	expression string
 	line       int
-	consumed   bool
 }
 
 type dockerStageState struct {
@@ -1335,9 +1386,6 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 		}
 		current.shell.known = current.shell.known && resultingShell.known
 		*unsupported = append(*unsupported, found...)
-		for _, trigger := range base.triggers {
-			trigger.consumed = true
-		}
 	}
 	return nil
 }
@@ -1390,17 +1438,11 @@ func (discovery *dockerDiscovery) currentContext() dockerInstructionContext {
 	}
 }
 
-func (discovery *dockerDiscovery) unconsumedDeferredCandidates() ([]dockerCandidate, error) {
+func (discovery *dockerDiscovery) exportedDeferredCandidates() ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
 	seen := map[dockerCandidate]bool{}
 	for _, stage := range discovery.allStages {
-		unconsumed := []*deferredDockerInstruction{}
-		for _, trigger := range stage.triggers {
-			if !trigger.consumed {
-				unconsumed = append(unconsumed, trigger)
-			}
-		}
-		if len(unconsumed) == 0 {
+		if len(stage.triggers) == 0 {
 			continue
 		}
 		context := dockerInstructionContext{
@@ -1411,7 +1453,7 @@ func (discovery *dockerDiscovery) unconsumedDeferredCandidates() ([]dockerCandid
 		for _, escapeToken := range []rune{'\\', '`'} {
 			var evaluated []dockerCandidate
 			err := discovery.withEscapeToken(escapeToken, func() error {
-				found, _, err := discovery.evaluateDeferred(unconsumed, context)
+				found, _, err := discovery.evaluateDeferred(stage.triggers, context)
 				evaluated = found
 				return err
 			})

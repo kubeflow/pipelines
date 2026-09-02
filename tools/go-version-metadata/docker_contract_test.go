@@ -178,6 +178,8 @@ func authoritativeDockerConformanceScenarios() []dockerConformanceCase {
 		{ID: "exported-onbuild-copy-custom-parent-default-child", Finding: 1, Domain: "onbuild-child-escape-stage-source", Dockerfile: "# escape=`\nFROM scratch\nONBUILD COPY --from=\\\\alpine /x /x\n", Accepted: true, Want: dockerContractWant{Classification: "invalid", ErrorContains: "expanded stage source"}},
 		{ID: "exported-onbuild-run-mount-default-parent-custom-child", Finding: 1, Domain: "onbuild-child-escape-stage-source", Dockerfile: "FROM scratch\nONBUILD RUN --mount=type=bind,from=`alpine,target=/x true\n", Accepted: true, Want: dockerContractWant{Classification: "invalid", ErrorContains: "expanded stage source"}},
 		{ID: "exported-onbuild-run-mount-custom-parent-default-child", Finding: 1, Domain: "onbuild-child-escape-stage-source", Dockerfile: "# escape=`\nFROM scratch\nONBUILD RUN --mount=type=bind,from=\\\\alpine,target=/x true\n", Accepted: true, Want: dockerContractWant{Classification: "invalid", ErrorContains: "expanded stage source"}},
+		{ID: "locally-consumed-onbuild-remains-exportable-default-parent", Finding: 1, Domain: "onbuild-exportable-stage", Dockerfile: "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM parent\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"env-value"}}},
+		{ID: "locally-consumed-onbuild-remains-exportable-custom-parent", Finding: 1, Domain: "onbuild-exportable-stage", Dockerfile: "# escape=`\nFROM scratch AS parent\nONBUILD ENV IMAGE=go\\lang:latest\nFROM parent\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"env-value"}}},
 		{ID: "inherited-special-environment", Finding: 1, Domain: "docker-special-parameter-provenance", Dockerfile: "FROM scratch AS parent\nENV \"?\"=go\nFROM parent\nARG V=$?lang\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name", "unsupported-parameter-reference"}}},
 		{ID: "excluded-label-special-reference", Finding: 3, Domain: "docker-special-parameter-field-boundary", Dockerfile: "FROM scratch\nLABEL note=$?golang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
 		{ID: "excluded-workdir-special-reference", Finding: 3, Domain: "docker-special-parameter-field-boundary", Dockerfile: "FROM scratch\nWORKDIR /$?golang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
@@ -661,10 +663,11 @@ func TestExportedOnbuildUsesChildEscapeToken(t *testing.T) {
 		t.Skip("docker is not available")
 	}
 	for index, testCase := range []struct {
-		name       string
-		parent     string
-		child      string
-		wantEnvVar string
+		name         string
+		parent       string
+		parentTarget string
+		child        string
+		wantEnvVar   string
 	}{
 		{
 			name:       "default parent custom child",
@@ -678,6 +681,13 @@ func TestExportedOnbuildUsesChildEscapeToken(t *testing.T) {
 			child:      "FROM %s\n",
 			wantEnvVar: "IMAGE=golang:latest",
 		},
+		{
+			name:         "locally consumed parent remains exportable",
+			parent:       "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM parent AS local-child\n",
+			parentTarget: "parent",
+			child:        "# escape=`\nFROM %s\n",
+			wantEnvVar:   "IMAGE=golang:latest",
+		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			tag := fmt.Sprintf("kfp-go-version-onbuild-escape-%d-%d", os.Getpid(), index)
@@ -686,8 +696,8 @@ func TestExportedOnbuildUsesChildEscapeToken(t *testing.T) {
 				defer cancel()
 				_ = exec.CommandContext(cleanupContext, "docker", "image", "rm", "-f", tag, tag+"-child").Run()
 			})
-			buildDockerfile(t, tag, testCase.parent)
-			buildDockerfile(t, tag+"-child", fmt.Sprintf(testCase.child, tag))
+			buildDockerfile(t, tag, testCase.parent, testCase.parentTarget)
+			buildDockerfile(t, tag+"-child", fmt.Sprintf(testCase.child, tag), "")
 
 			inspectContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
@@ -702,11 +712,16 @@ func TestExportedOnbuildUsesChildEscapeToken(t *testing.T) {
 	}
 }
 
-func buildDockerfile(t *testing.T, tag, dockerfile string) {
+func buildDockerfile(t *testing.T, tag, dockerfile, target string) {
 	t.Helper()
 	commandContext, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	command := exec.CommandContext(commandContext, "docker", "build", "--quiet", "--tag", tag, "-f", "-", t.TempDir())
+	arguments := []string{"build", "--quiet", "--tag", tag}
+	if target != "" {
+		arguments = append(arguments, "--target", target)
+	}
+	arguments = append(arguments, "-f", "-", t.TempDir())
+	command := exec.CommandContext(commandContext, "docker", arguments...)
 	command.Stdin = strings.NewReader(dockerfile)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("build %s: %v\n%s", tag, err, boundedDockerOutput(output))

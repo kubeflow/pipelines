@@ -464,6 +464,22 @@
       "want": {"classification": "invalid", "errorContains": "expanded stage source"}
     },
     {
+      "id": "locally-consumed-onbuild-remains-exportable-default-parent",
+      "finding": 1,
+      "domain": "onbuild-exportable-stage",
+      "dockerfile": "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM parent\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
+      "id": "locally-consumed-onbuild-remains-exportable-custom-parent",
+      "finding": 1,
+      "domain": "onbuild-exportable-stage",
+      "dockerfile": "# escape=`\nFROM scratch AS parent\nONBUILD ENV IMAGE=go\\lang:latest\nFROM parent\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
       "id": "inherited-special-environment",
       "finding": 1,
       "domain": "docker-special-parameter-provenance",

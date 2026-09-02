@@ -162,10 +162,18 @@ def docker_runtime_classification(contents: str) -> Dict:
     }
 
 
+def docker_buildkit_metadata(contents: str) -> Dict:
+    """Return pinned BuildKit parser directives and semantic instructions."""
+    metadata = inspect_metadata(Path('Dockerfile'), contents)
+    return {
+        'directives': list(metadata.get('dockerDirectives', [])),
+        'instructions': list(metadata.get('dockerInstructions', [])),
+    }
+
+
 def docker_instruction_metadata(contents: str) -> List[Dict]:
     """Return the pinned BuildKit parser's semantic instruction projection."""
-    metadata = inspect_metadata(Path('Dockerfile'), contents)
-    return list(metadata.get('dockerInstructions', []))
+    return docker_buildkit_metadata(contents)['instructions']
 
 
 def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:

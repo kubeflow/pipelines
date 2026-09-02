@@ -114,6 +114,45 @@ func TestProjectDockerInstructionsUsesBuildKitSemantics(t *testing.T) {
 	}
 }
 
+func TestProjectDockerParserDirectivesUsesBuildKitSemantics(t *testing.T) {
+	contents := "# syntax=docker/dockerfile:1.19\n# escape=`\nFROM scratch\n"
+	projected, err := projectDockerParserDirectives(contents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []dockerParserDirectiveMetadata{
+		{Name: "syntax", Value: "docker/dockerfile:1.19", Line: 1},
+		{Name: "escape", Value: "`", Line: 2},
+	}
+	if !reflect.DeepEqual(projected, want) {
+		t.Fatalf("parser directive projection = %#v, want %#v", projected, want)
+	}
+
+	for _, test := range []struct {
+		name   string
+		prefix string
+		line   int
+	}{
+		{name: "UTF-8 BOM", prefix: "\ufeff", line: 1},
+		{name: "shebang", prefix: "#!/usr/bin/env dockerfile\n", line: 2},
+		{name: "UTF-8 BOM and shebang", prefix: "\ufeff#!/usr/bin/env dockerfile\n", line: 2},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			directives, err := projectDockerParserDirectives(
+				test.prefix + "# syntax=docker/dockerfile:1.19\nFROM scratch\n")
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := []dockerParserDirectiveMetadata{{
+				Name: "syntax", Value: "docker/dockerfile:1.19", Line: test.line,
+			}}
+			if !reflect.DeepEqual(directives, want) {
+				t.Fatalf("parser directive projection = %#v, want %#v", directives, want)
+			}
+		})
+	}
+}
+
 func TestDockerClassification(t *testing.T) {
 	digest := strings.Repeat("a", 64)
 	tests := []struct {
@@ -1919,12 +1958,13 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 			candidateKinds: []string{"unsupported-shell"},
 		},
 		{
-			name: "consumed ONBUILD resolves in child namespace",
+			name: "consumed ONBUILD also remains exportable",
 			contents: "FROM alpine AS golang\n" +
 				"FROM alpine AS parent\n" +
 				"ONBUILD COPY --from=golang /x /x\n" +
 				"FROM parent AS child\n",
-			classification: "irrelevant",
+			classification: "unsupported",
+			candidateKinds: []string{"copy-from"},
 		},
 		{
 			name: "ordered ONBUILD shell persists in child",
@@ -1966,7 +2006,7 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 	}
 }
 
-func TestUnconsumedOnbuildUsesEveryChildEscapeToken(t *testing.T) {
+func TestExportableOnbuildUsesEveryChildEscapeToken(t *testing.T) {
 	for _, test := range []struct {
 		name           string
 		contents       string
@@ -2036,8 +2076,11 @@ func TestUnconsumedOnbuildUsesEveryChildEscapeToken(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if metadata.DockerClassification != "irrelevant" {
-			t.Fatalf("locally consumed classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+		if metadata.DockerClassification != "unsupported" {
+			t.Fatalf("locally consumed but exportable classification = %q, want unsupported; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+		}
+		if len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != "env-value" {
+			t.Fatalf("locally consumed but exportable candidates = %#v, want one env-value", metadata.DockerCandidates)
 		}
 	}
 }

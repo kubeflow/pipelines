@@ -20,7 +20,7 @@ import shlex
 import subprocess
 import unittest
 
-from go_version_metadata import docker_instruction_metadata
+from go_version_metadata import docker_buildkit_metadata
 from go_version_metadata import docker_runtime_classification
 from go_version_metadata import has_go_runtime_reference
 from go_version_metadata import has_setup_go_use
@@ -207,7 +207,18 @@ def _api_tool_pin_dataflow_errors(contents, module_path):
         },
     }
     errors = []
-    instructions = docker_instruction_metadata(contents)
+    projection = docker_buildkit_metadata(contents)
+    directives = projection['directives']
+    syntax_directives = [
+        directive for directive in directives
+        if directive.get('name') == 'syntax'
+    ]
+    if syntax_directives:
+        return [
+            'API tools Dockerfile must not select a custom Docker frontend; '
+            f'found active syntax directive {syntax_directives[0]!r}'
+        ]
+    instructions = projection['instructions']
     if len(instructions) < 6:
         errors.append(
             'API tools Dockerfile must contain the isolated installer and '
@@ -720,6 +731,16 @@ class GoVersionConsistencyTest(unittest.TestCase):
             )
 
         mutations = {
+            'custom Docker frontend': '# syntax=docker/dockerfile:1.19\n' +
+                contents,
+            'BOM-prefixed custom Docker frontend':
+                '\ufeff# syntax=docker/dockerfile:1.19\n' + contents,
+            'shebang-prefixed custom Docker frontend':
+                '#!/usr/bin/env dockerfile\n'
+                '# syntax=docker/dockerfile:1.19\n' + contents,
+            'BOM-and-shebang-prefixed custom Docker frontend':
+                '\ufeff#!/usr/bin/env dockerfile\n'
+                '# syntax=docker/dockerfile:1.19\n' + contents,
             'hard-coded version': replace_script(
                 'go_swagger_version="$(cd /tmp/api-generator-tools',
                 'go_swagger_version="v0.31.0"; ignored="$(cd '
