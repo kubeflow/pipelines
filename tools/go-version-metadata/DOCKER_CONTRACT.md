@@ -36,14 +36,14 @@ Every Dockerfile produces exactly one result:
   parsing/resource contract is exceeded.
 
 A canonical source does not hide another source: one canonical source plus any
-unsupported source is `unsupported`. A managed Dockerfile must not select a
-custom Docker frontend. Frontend selection is detected with the pinned parser
-and a bounded initial-preamble compatibility scanner for syntax-directive forms
+unsupported source is `unsupported`. Any active custom Docker frontend is also
+`unsupported`, independently of `FROM` contents, because the frontend selector
+is itself a mutable executable image reference and can replace the pinned
+Dockerfile semantics. Frontend selection is detected with the pinned parser and
+a bounded initial-preamble compatibility scanner for syntax-directive forms
 accepted by newer supported builders; this keeps checker and updater behavior
-stable when the CI executor changes. Dockerfiles without a canonical Go source
-keep parser directives outside the source policy. An `ONBUILD` payload is never
-managed; payloads that BuildKit forbids, including `ONBUILD FROM`, are
-`invalid`.
+stable when the CI executor changes. An `ONBUILD` payload is never managed;
+payloads that BuildKit forbids, including `ONBUILD FROM`, are `invalid`.
 
 ## What is a Go source
 
@@ -99,8 +99,8 @@ under this restriction.
 
 `LABEL`, `MAINTAINER`, `WORKDIR`, `EXPOSE`, `USER`, `VOLUME`, `STOPSIGNAL`,
 ordinary `COPY` operands, local `ADD` operands, destinations, option values not
-listed above, comments, and parser directives in files without a canonical Go
-source are excluded. `SHELL` configures
+listed above, comments, and non-frontend parser directives are excluded.
+`SHELL` configures
 interpretation but its argv is not itself a Go source field.
 Active special/positional references in these excluded fields do not make them
 source-bearing. An unresolved `ADD` source remains included conservatively

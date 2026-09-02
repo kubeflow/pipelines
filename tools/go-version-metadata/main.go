@@ -328,15 +328,12 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 		}
 		body := strings.TrimLeftFunc(line[1:], unicode.IsSpace)
 		nameEnd := 0
-		if len(body) == 0 || !((body[0] >= 'a' && body[0] <= 'z') ||
-			(body[0] >= 'A' && body[0] <= 'Z')) {
+		if len(body) == 0 || !isASCIILetter(body[0]) {
 			return dockerParserDirectiveMetadata{}, false
 		}
 		for nameEnd < len(body) {
 			character := body[nameEnd]
-			if !((character >= 'a' && character <= 'z') ||
-				(character >= 'A' && character <= 'Z') ||
-				(character >= '0' && character <= '9')) {
+			if !isASCIILetter(character) && !isASCIIDigit(character) {
 				break
 			}
 			nameEnd++
@@ -366,6 +363,15 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 
 func trimDockerDirectiveSpace(value string) string {
 	return strings.Trim(value, " \t\r\f")
+}
+
+func isASCIILetter(character byte) bool {
+	return (character >= 'a' && character <= 'z') ||
+		(character >= 'A' && character <= 'Z')
+}
+
+func isASCIIDigit(character byte) bool {
+	return character >= '0' && character <= '9'
 }
 
 func isContainerRecipe(name string) bool {
@@ -530,22 +536,20 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 			unsupported = append(unsupported, candidate)
 		}
 	}
-	if len(managed) > 0 {
-		directives, err := projectDockerParserDirectives(contents)
-		if err != nil {
-			return "invalid", nil, err.Error()
+	directives, err := projectDockerParserDirectives(contents)
+	if err != nil {
+		return "invalid", nil, err.Error()
+	}
+	for _, directive := range directives {
+		if directive.Name != "syntax" {
+			continue
 		}
-		for _, directive := range directives {
-			if directive.Name != "syntax" {
-				continue
-			}
-			candidate := dockerCandidate{
-				Kind: "unsupported-frontend", Value: directive.Value, Line: directive.Line,
-			}
-			if !seenUnsupported[candidate] {
-				seenUnsupported[candidate] = true
-				unsupported = append(unsupported, candidate)
-			}
+		candidate := dockerCandidate{
+			Kind: "unsupported-frontend", Value: directive.Value, Line: directive.Line,
+		}
+		if !seenUnsupported[candidate] {
+			seenUnsupported[candidate] = true
+			unsupported = append(unsupported, candidate)
 		}
 	}
 	sort.SliceStable(unsupported, func(left, right int) bool {

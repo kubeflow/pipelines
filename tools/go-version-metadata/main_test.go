@@ -240,10 +240,17 @@ func TestDockerClassification(t *testing.T) {
 			candidateKinds: []string{"from", "unsupported-frontend"},
 		},
 		{
+			name:           "frontend Go image is unsupported without a Go FROM",
+			contents:       "# syntax=example.com/golang:latest\nFROM scratch\n",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-frontend"},
+		},
+		{
 			name: "unrelated modern syntax",
 			contents: "# syntax=docker/dockerfile:1.19\n" +
 				"FROM alpine\nCOPY --exclude=ignored source /source\n",
-			classification: "irrelevant",
+			classification: "unsupported",
+			candidateKinds: []string{"unsupported-frontend"},
 		},
 		{
 			name:           "full-line comments are irrelevant",

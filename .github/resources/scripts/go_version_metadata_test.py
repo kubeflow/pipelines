@@ -50,6 +50,17 @@ class GoVersionMetadataTest(unittest.TestCase):
                     expected,
                 )
 
+    def test_frontend_selector_is_always_runtime_metadata(self):
+        contents = '# syntax=example.com/golang:latest\nFROM scratch\n'
+        result = docker_runtime_classification(contents)
+        self.assertEqual(result['classification'], 'unsupported')
+        self.assertEqual(
+            [candidate['kind'] for candidate in result['candidates']],
+            ['unsupported-frontend'],
+        )
+        self.assertTrue(
+            has_go_runtime_reference(Path('Dockerfile'), contents))
+
     def test_yaml_block_scalars_are_structural(self):
         contents = ('steps:\n'
                     '  - uses: >-\n'
