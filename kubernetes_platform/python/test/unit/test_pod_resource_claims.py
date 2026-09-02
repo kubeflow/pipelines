@@ -281,6 +281,23 @@ class TestResourceClaimJSON:
             }
         }
 
+    def test_list_with_invalid_element_raises_error(self):
+
+        with pytest.raises(ValueError, match='ResourceClaimConfig'):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = comp()
+                kubernetes.add_resource_claim_json(
+                    task,
+                    resource_claim_json=[
+                        kubernetes.ResourceClaimConfig(
+                            resource_claim_template_name='gpu-claim-template',
+                        ),
+                        {'resourceClaimTemplateName': 'bad'},
+                    ],
+                )
+
     def test_invalid_type_raises_error(self):
 
         with pytest.raises(ValueError):

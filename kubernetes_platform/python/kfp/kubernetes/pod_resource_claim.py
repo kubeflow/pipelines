@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union
+from typing import List, Union
 
 from google.protobuf import json_format
 from kfp.dsl import PipelineTask, pipeline_channel
@@ -72,7 +72,7 @@ def add_resource_claim_json(
     task: PipelineTask,
     resource_claim_json: Union[pipeline_channel.PipelineParameterChannel,
                                'ResourceClaimConfig',
-                               list],
+                               List['ResourceClaimConfig']],
 ) -> PipelineTask:
     """Add a DRA resource claim in JSON form to a task.
 
@@ -94,6 +94,10 @@ def add_resource_claim_json(
         task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
     elif isinstance(resource_claim_json, list):
         for config in resource_claim_json:
+            if not isinstance(config, ResourceClaimConfig):
+                raise ValueError(
+                    'Each element in resource_claim_json list must be a '
+                    'ResourceClaimConfig instance.')
             _add_resource_claim_config(task, config)
     elif isinstance(resource_claim_json, ResourceClaimConfig):
         _add_resource_claim_config(task, resource_claim_json)

@@ -324,7 +324,7 @@ func extendPodSpecPatch(
 					if structVal != nil && len(structVal.Fields) > 0 {
 						paramJSON, err := structVal.MarshalJSON()
 						if err != nil {
-							return err
+							return fmt.Errorf("failed to marshal single resource claim to json: %w", err)
 						}
 						var resolved k8score.PodResourceClaim
 						if err = json.Unmarshal(paramJSON, &resolved); err != nil {
@@ -343,7 +343,7 @@ func extendPodSpecPatch(
 					if listVal != nil && len(listVal.Values) > 0 {
 						paramJSON, err := listVal.MarshalJSON()
 						if err != nil {
-							return err
+							return fmt.Errorf("failed to marshal list resource claims to json: %w", err)
 						}
 						var resolvedList []k8score.PodResourceClaim
 						if err = json.Unmarshal(paramJSON, &resolvedList); err != nil {
@@ -370,6 +370,14 @@ func extendPodSpecPatch(
 					ResourceClaimTemplateName: &templateName,
 				})
 			}
+		}
+
+		seen := make(map[string]bool, len(k8sClaims))
+		for _, rc := range k8sClaims {
+			if seen[rc.Name] {
+				return fmt.Errorf("duplicate resource claim name %q", rc.Name)
+			}
+			seen[rc.Name] = true
 		}
 
 		if setOnTaskConfig[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {

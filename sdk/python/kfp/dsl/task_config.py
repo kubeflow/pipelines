@@ -33,6 +33,7 @@ class TaskConfig:
                 dsl.TaskConfigField.KUBERNETES_AFFINITY,
                 dsl.TaskConfigPassthrough(field=dsl.TaskConfigField.ENV, apply_to_task=True),
                 dsl.TaskConfigPassthrough(field=dsl.TaskConfigField.KUBERNETES_VOLUMES, apply_to_task=True),
+                dsl.TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,
             ],
         )
         def train(num_nodes: int, workspace_path: str, output_model: dsl.Output[dsl.Model], task_config: dsl.TaskConfig):
@@ -76,6 +77,7 @@ class TaskConfig:
                                 ],
                                 "nodeSelector": task_config.node_selector,
                                 "tolerations": task_config.tolerations,
+                                "resourceClaims": task_config.resource_claims,
                             }
                         ],
                     },

@@ -4516,6 +4516,17 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 			wantErr:    true,
 			wantErrMsg: "resourceClaimTemplateName must be non-empty",
 		},
+		{
+			name: "Duplicate resource claim names - error",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				PodResourceClaims: []*kubernetesplatform.PodResourceClaim{
+					{ResourceClaimTemplateName: "gpu-claim-template"},
+					{ResourceClaimTemplateName: "gpu-claim-template"},
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "duplicate resource claim name",
+		},
 	}
 
 	for _, tt := range tests {
