@@ -12,9 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineScalarTag, JSON_SCHEMA, load, mergeTag, NOT_RESOLVED, nullYaml11Tag } from 'js-yaml';
 import { getConfigMap, K8sError } from '../k8s-helper.js';
 import { parseGoBoolean } from './provider-options.js';
+import {
+  formatGoFloat32,
+  formatGoStringScalar,
+  normalizeRecognizedKeys,
+  parseGoYaml,
+  LauncherConfigError,
+  LauncherConfigParseError,
+} from './go-yaml-compat.js';
 import {
   ArtifactCoordinates,
   normalizeArtifactStorageCoordinates,
@@ -30,119 +37,6 @@ const LAUNCHER_CONFIG_MAP = 'kfp-launcher';
 const DEFAULT_PIPELINE_ROOT = 'minio://mlpipeline/v2/artifacts';
 const LAUNCHER_CONFIG_CACHE_TTL_MS = 30_000;
 const LAUNCHER_CONFIG_CACHE_MAX_ENTRIES = 1_000;
-const YAML_1_1_INTEGER = /^[-+]?(?:0[bB][01]+|0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[0-7]*|[1-9][0-9]*)$/;
-const YAML_1_1_FLOAT = /^[-+]?(?:\.[0-9]+|[0-9]+(?:\.[0-9]*)?)(?:[eE][-+]?[0-9]+)?$/;
-const YAML_BINARY = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const YAML_TRUE_VALUES = new Set([
-  'y',
-  'Y',
-  'yes',
-  'Yes',
-  'YES',
-  'true',
-  'True',
-  'TRUE',
-  'on',
-  'On',
-  'ON',
-]);
-const YAML_FALSE_VALUES = new Set([
-  'n',
-  'N',
-  'no',
-  'No',
-  'NO',
-  'false',
-  'False',
-  'FALSE',
-  'off',
-  'Off',
-  'OFF',
-]);
-const YAML_POSITIVE_INFINITY_VALUES = new Set(['.inf', '.Inf', '.INF', '+.inf', '+.Inf', '+.INF']);
-const YAML_NEGATIVE_INFINITY_VALUES = new Set(['-.inf', '-.Inf', '-.INF']);
-const YAML_NAN_VALUES = new Set(['.nan', '.NaN', '.NAN']);
-const YAML_UINT64_MAX = 18_446_744_073_709_551_615n;
-const YAML_INT64_MIN_MAGNITUDE = 9_223_372_036_854_775_808n;
-const LAUNCHER_YAML_SCHEMA = JSON_SCHEMA.withTags(
-  mergeTag,
-  nullYaml11Tag,
-  defineScalarTag('tag:yaml.org,2002:bool', {
-    implicit: true,
-    implicitFirstChars: [...'yYnNtTfFoO'],
-    resolve: (value) => {
-      if (YAML_TRUE_VALUES.has(value)) return true;
-      if (YAML_FALSE_VALUES.has(value)) return false;
-      return NOT_RESOLVED;
-    },
-    identify: () => false,
-  }),
-  defineScalarTag('tag:yaml.org,2002:int', {
-    implicit: true,
-    implicitFirstChars: [...'+-0123456789'],
-    resolve: (value) => parseYamlInteger(value) ?? NOT_RESOLVED,
-    identify: () => false,
-  }),
-  defineScalarTag('tag:yaml.org,2002:float', {
-    implicit: true,
-    implicitFirstChars: [...'+-.0123456789'],
-    resolve: (value) => {
-      const normalized = value.replaceAll('_', '');
-      if (YAML_POSITIVE_INFINITY_VALUES.has(normalized)) return Number.POSITIVE_INFINITY;
-      if (YAML_NEGATIVE_INFINITY_VALUES.has(normalized)) return Number.NEGATIVE_INFINITY;
-      if (YAML_NAN_VALUES.has(normalized)) return Number.NaN;
-      if (
-        isYamlNumericCandidate(value) &&
-        YAML_1_1_FLOAT.test(normalized) &&
-        Number.isFinite(Number(normalized))
-      ) {
-        return Number(normalized);
-      }
-      return NOT_RESOLVED;
-    },
-    identify: () => false,
-  }),
-  defineScalarTag('tag:yaml.org,2002:binary', {
-    resolve: (value) => {
-      const normalized = value.replaceAll(/\s/g, '');
-      return YAML_BINARY.test(normalized)
-        ? Uint8Array.from(Buffer.from(normalized, 'base64'))
-        : NOT_RESOLVED;
-    },
-    identify: () => false,
-  }),
-);
-
-function parseYamlInteger(value: string): bigint | undefined {
-  if (!isYamlNumericCandidate(value)) return undefined;
-  const normalized = value.replaceAll('_', '');
-  if (!YAML_1_1_INTEGER.test(normalized)) return undefined;
-  const negative = normalized.startsWith('-');
-  const unsigned = /^[+-]/.test(normalized) ? normalized.slice(1) : normalized;
-  const radix = /^0[bB]/.test(unsigned)
-    ? 2
-    : /^0[xX]/.test(unsigned)
-      ? 16
-      : /^0[oO]/.test(unsigned) || /^0[0-7]+$/.test(unsigned)
-        ? 8
-        : 10;
-  const digits = radix === 10 ? unsigned : unsigned.replace(/^0[bBoOxX]?/, '');
-  const significantDigits = (digits || '0').replace(/^0+/, '') || '0';
-  const maximumDigits = radix === 2 ? 64 : radix === 8 ? 22 : radix === 16 ? 16 : 20;
-  if (significantDigits.length > maximumDigits) return undefined;
-  let parsed = 0n;
-  for (const digit of significantDigits) {
-    parsed = parsed * BigInt(radix) + BigInt(Number.parseInt(digit, radix));
-  }
-  const limit = negative ? YAML_INT64_MIN_MAGNITUDE : YAML_UINT64_MAX;
-  if (parsed > limit) return undefined;
-  if (negative) parsed = -parsed;
-  return parsed;
-}
-
-function isYamlNumericCandidate(value: string): boolean {
-  return /^[+\-0-9.]/.test(value);
-}
 
 interface SecretRef {
   secretName?: string;
@@ -197,14 +91,7 @@ interface StoreSessionInfo {
   Params: Record<string, string>;
 }
 
-export class LauncherConfigError extends Error {}
-
-export class LauncherConfigParseError extends LauncherConfigError {
-  constructor(message: string) {
-    super(message);
-    this.name = 'LauncherConfigParseError';
-  }
-}
+export { LauncherConfigError, LauncherConfigParseError } from './go-yaml-compat.js';
 
 export class LauncherConfigReadError extends LauncherConfigError {
   constructor(message: string) {
@@ -339,7 +226,7 @@ async function loadLauncherConfiguration(namespace: string): Promise<LauncherCon
   if (providersYaml) {
     let parsed: unknown;
     try {
-      parsed = load(providersYaml, { schema: LAUNCHER_YAML_SCHEMA });
+      parsed = parseGoYaml(providersYaml);
     } catch (error) {
       throw new LauncherConfigParseError(
         `kfp-launcher providers contains invalid YAML. Correct the providers entry and retry: ${error}`,
@@ -482,157 +369,10 @@ function validateOptionalProviderField(
   ) {
     // sigs.k8s.io/yaml performs target-aware scalar conversion when unmarshalling into Go string
     // fields. Apply it only to recognized string destinations so bool/number policy stays typed.
-    value[key] = formatLauncherStringScalar(value[key] as number | bigint | boolean);
+    value[key] = formatGoStringScalar(value[key] as number | bigint | boolean);
   } else if (value[key] !== undefined && typeof value[key] !== expectedType) {
     throwInvalidProviderShape(`${path}.${key}`, `a ${expectedType}`);
   }
-}
-
-function formatLauncherStringScalar(value: number | bigint | boolean): string {
-  if (value === Number.POSITIVE_INFINITY) return '+Inf';
-  if (value === Number.NEGATIVE_INFINITY) return '-Inf';
-  if (typeof value === 'number' && Number.isNaN(value)) return 'NaN';
-  if (typeof value === 'number') return formatFloat32(value);
-  return String(value);
-}
-
-// sigs.k8s.io/yaml converts a float64 YAML scalar into a Go string field with
-// strconv.FormatFloat(value, 'g', -1, 32). Find the shortest decimal that round-trips to the
-// corresponding float32, then apply Go's fixed/scientific threshold and exponent spelling.
-function formatFloat32(value: number): string {
-  const float32 = Math.fround(value);
-  if (Object.is(float32, -0)) return '-0';
-  if (float32 === 0) return '0';
-  if (float32 === Number.POSITIVE_INFINITY) return '+Inf';
-  if (float32 === Number.NEGATIVE_INFINITY) return '-Inf';
-
-  const negative = float32 < 0;
-  const magnitude = Math.abs(float32);
-  let precision = 9;
-  for (let candidatePrecision = 1; candidatePrecision <= 9; candidatePrecision++) {
-    if (Math.fround(Number(magnitude.toPrecision(candidatePrecision))) === magnitude) {
-      precision = candidatePrecision;
-      break;
-    }
-  }
-
-  const [rawCoefficient, rawExponent] = magnitude.toExponential(precision - 1).split('e');
-  const decimalExponent = Number(rawExponent) - precision + 1;
-  const roundedCoefficient = BigInt(rawCoefficient.replace('.', ''));
-  const floatParts = getFloat32Parts(magnitude);
-  let shortestCoefficient: bigint | undefined;
-  let shortestDistance: bigint | undefined;
-  for (const candidate of [roundedCoefficient - 1n, roundedCoefficient, roundedCoefficient + 1n]) {
-    if (candidate <= 0n || Math.fround(Number(`${candidate}e${decimalExponent}`)) !== magnitude) {
-      continue;
-    }
-    const distance = getFloat32DecimalDistance(candidate, decimalExponent, floatParts);
-    if (
-      shortestDistance === undefined ||
-      distance < shortestDistance ||
-      (distance === shortestDistance && candidate % 2n === 0n)
-    ) {
-      shortestCoefficient = candidate;
-      shortestDistance = distance;
-    }
-  }
-
-  let coefficient = shortestCoefficient!;
-  let exponentAdjustment = decimalExponent;
-  while (coefficient % 10n === 0n) {
-    coefficient /= 10n;
-    exponentAdjustment += 1;
-  }
-
-  const digits = String(coefficient);
-  const exponent = digits.length - 1 + exponentAdjustment;
-  const sign = negative ? '-' : '';
-  // Go's shortest-mode %g switches to scientific notation outside [-4, 6).
-  if (exponent < -4 || exponent >= 6) {
-    const scientificCoefficient = digits.length === 1 ? digits : `${digits[0]}.${digits.slice(1)}`;
-    const exponentSign = exponent >= 0 ? '+' : '-';
-    return `${sign}${scientificCoefficient}e${exponentSign}${String(Math.abs(exponent)).padStart(2, '0')}`;
-  }
-
-  const decimalPosition = digits.length + exponentAdjustment;
-  if (decimalPosition <= 0) {
-    return `${sign}0.${'0'.repeat(-decimalPosition)}${digits}`;
-  }
-  if (decimalPosition >= digits.length) {
-    return sign + digits + '0'.repeat(decimalPosition - digits.length);
-  }
-  return `${sign}${digits.slice(0, decimalPosition)}.${digits.slice(decimalPosition)}`;
-}
-
-interface Float32Parts {
-  binaryExponent: number;
-  significand: bigint;
-}
-
-function getFloat32Parts(value: number): Float32Parts {
-  const bytes = new ArrayBuffer(4);
-  const view = new DataView(bytes);
-  view.setFloat32(0, value);
-  const bits = view.getUint32(0);
-  const exponentBits = (bits >>> 23) & 0xff;
-  const fractionBits = bits & 0x7fffff;
-  return exponentBits === 0
-    ? { binaryExponent: -149, significand: BigInt(fractionBits) }
-    : {
-        binaryExponent: exponentBits - 127 - 23,
-        significand: BigInt(fractionBits + 0x800000),
-      };
-}
-
-function getFloat32DecimalDistance(
-  coefficient: bigint,
-  decimalExponent: number,
-  floatParts: Float32Parts,
-): bigint {
-  const { binaryExponent, significand } = floatParts;
-  if (decimalExponent >= 0) {
-    const integerCandidate = coefficient * 10n ** BigInt(decimalExponent);
-    return binaryExponent >= 0
-      ? absoluteBigInt(integerCandidate - (significand << BigInt(binaryExponent)))
-      : absoluteBigInt((integerCandidate << BigInt(-binaryExponent)) - significand);
-  }
-
-  const decimalScale = 10n ** BigInt(-decimalExponent);
-  return binaryExponent >= 0
-    ? absoluteBigInt(coefficient - (significand << BigInt(binaryExponent)) * decimalScale)
-    : absoluteBigInt((coefficient << BigInt(-binaryExponent)) - significand * decimalScale);
-}
-
-function absoluteBigInt(value: bigint): bigint {
-  return value < 0n ? -value : value;
-}
-
-function normalizeRecognizedKeys(
-  value: Record<string, unknown>,
-  recognizedKeys: readonly string[],
-  path: string,
-): Record<string, unknown> {
-  const canonicalByLowerCase = new Map(
-    recognizedKeys.map((key) => [key.toLowerCase(), key] as const),
-  );
-  const normalized: Record<string, unknown> = Object.create(null);
-  const sourceKeyByCanonical = new Map<string, string>();
-  for (const [sourceKey, entry] of Object.entries(value)) {
-    const canonicalKey = canonicalByLowerCase.get(sourceKey.toLowerCase());
-    if (canonicalKey === undefined) {
-      continue;
-    }
-    const previousSourceKey = sourceKeyByCanonical.get(canonicalKey);
-    if (previousSourceKey !== undefined) {
-      throw new LauncherConfigParseError(
-        `kfp-launcher ${path} contains case-colliding keys ${previousSourceKey} and ${sourceKey}. ` +
-          'Keep only one spelling and retry.',
-      );
-    }
-    sourceKeyByCanonical.set(canonicalKey, sourceKey);
-    normalized[canonicalKey] = entry;
-  }
-  return normalized;
 }
 
 function throwInvalidProviderShape(path: string, expected: string): never {
@@ -958,7 +698,7 @@ function isNotFoundError(error: K8sError): boolean {
 
 export const TEST_ONLY = {
   clearLauncherConfigurationCache: () => launcherConfigurationCache.clear(),
-  formatFloat32,
+  formatFloat32: formatGoFloat32,
   getLauncherConfigurationCacheKeys: () => [...launcherConfigurationCache.keys()],
   launcherConfigurationCacheMaxEntries: LAUNCHER_CONFIG_CACHE_MAX_ENTRIES,
 };

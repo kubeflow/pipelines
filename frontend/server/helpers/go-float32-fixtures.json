@@ -1,0 +1,1282 @@
+[
+  {
+    "bits": "00000000",
+    "expected": "0"
+  },
+  {
+    "bits": "80000000",
+    "expected": "-0"
+  },
+  {
+    "bits": "00000001",
+    "expected": "1e-45"
+  },
+  {
+    "bits": "007fffff",
+    "expected": "1.1754942e-38"
+  },
+  {
+    "bits": "00800000",
+    "expected": "1.1754944e-38"
+  },
+  {
+    "bits": "3f7fffff",
+    "expected": "0.99999994"
+  },
+  {
+    "bits": "3f800000",
+    "expected": "1"
+  },
+  {
+    "bits": "3f800001",
+    "expected": "1.0000001"
+  },
+  {
+    "bits": "40000000",
+    "expected": "2"
+  },
+  {
+    "bits": "4b7fffff",
+    "expected": "1.6777215e+07"
+  },
+  {
+    "bits": "4b800000",
+    "expected": "1.6777216e+07"
+  },
+  {
+    "bits": "4b800001",
+    "expected": "1.6777218e+07"
+  },
+  {
+    "bits": "497423f0",
+    "expected": "999999"
+  },
+  {
+    "bits": "3eaaaaab",
+    "expected": "0.33333334"
+  },
+  {
+    "bits": "3727c5ac",
+    "expected": "1e-05"
+  },
+  {
+    "bits": "7f7fffff",
+    "expected": "3.4028235e+38"
+  },
+  {
+    "bits": "ff7fffff",
+    "expected": "-3.4028235e+38"
+  },
+  {
+    "bits": "7f800000",
+    "expected": "+Inf"
+  },
+  {
+    "bits": "ff800000",
+    "expected": "-Inf"
+  },
+  {
+    "bits": "7fc00000",
+    "expected": "NaN"
+  },
+  {
+    "bits": "42d0d7c4",
+    "expected": "104.42142"
+  },
+  {
+    "bits": "e9260053",
+    "expected": "-1.2542701e+25"
+  },
+  {
+    "bits": "3f990996",
+    "expected": "1.195605"
+  },
+  {
+    "bits": "60ac33fd",
+    "expected": "9.926832e+19"
+  },
+  {
+    "bits": "d5996538",
+    "expected": "-2.1082501e+13"
+  },
+  {
+    "bits": "16056737",
+    "expected": "1.0776223e-25"
+  },
+  {
+    "bits": "96341b2a",
+    "expected": "-1.4548856e-25"
+  },
+  {
+    "bits": "47011081",
+    "expected": "33040.504"
+  },
+  {
+    "bits": "e0a92fec",
+    "expected": "-9.752978e+19"
+  },
+  {
+    "bits": "bc2a6a5b",
+    "expected": "-0.010401334"
+  },
+  {
+    "bits": "13d99bfe",
+    "expected": "5.493232e-27"
+  },
+  {
+    "bits": "2e711345",
+    "expected": "5.481417e-11"
+  },
+  {
+    "bits": "87976be0",
+    "expected": "-2.2783358e-34"
+  },
+  {
+    "bits": "fcfaadbf",
+    "expected": "-1.04127856e+37"
+  },
+  {
+    "bits": "ee0ae012",
+    "expected": "-1.0744954e+28"
+  },
+  {
+    "bits": "8a058049",
+    "expected": "-6.427845e-33"
+  },
+  {
+    "bits": "f6f48d14",
+    "expected": "-2.4800427e+33"
+  },
+  {
+    "bits": "fe041563",
+    "expected": "-4.3892285e+37"
+  },
+  {
+    "bits": "d9d47b66",
+    "expected": "-7.4760466e+15"
+  },
+  {
+    "bits": "0259db8d",
+    "expected": "1.600565e-37"
+  },
+  {
+    "bits": "993e4788",
+    "expected": "-9.8372154e-24"
+  },
+  {
+    "bits": "d160c547",
+    "expected": "-6.0336402e+10"
+  },
+  {
+    "bits": "b0e241fa",
+    "expected": "-1.6462416e-09"
+  },
+  {
+    "bits": "cf9fe911",
+    "expected": "-5.365703e+09"
+  },
+  {
+    "bits": "41138f3c",
+    "expected": "9.222469"
+  },
+  {
+    "bits": "525b216b",
+    "expected": "2.3528962e+11"
+  },
+  {
+    "bits": "fdd347ce",
+    "expected": "-3.5104992e+37"
+  },
+  {
+    "bits": "51e3acd5",
+    "expected": "1.2223215e+11"
+  },
+  {
+    "bits": "fca89830",
+    "expected": "-7.003141e+36"
+  },
+  {
+    "bits": "1a51cdcf",
+    "expected": "4.3386438e-23"
+  },
+  {
+    "bits": "43cde0e2",
+    "expected": "411.7569"
+  },
+  {
+    "bits": "ab8f6ad9",
+    "expected": "-1.0190417e-12"
+  },
+  {
+    "bits": "867ad664",
+    "expected": "-4.7177283e-35"
+  },
+  {
+    "bits": "f1dbae73",
+    "expected": "-2.1756196e+30"
+  },
+  {
+    "bits": "1553a136",
+    "expected": "4.2738284e-26"
+  },
+  {
+    "bits": "622fa71d",
+    "expected": "8.100555e+20"
+  },
+  {
+    "bits": "8744fdd8",
+    "expected": "-1.4819999e-34"
+  },
+  {
+    "bits": "622be757",
+    "expected": "7.9276576e+20"
+  },
+  {
+    "bits": "4e555cca",
+    "expected": "8.94907e+08"
+  },
+  {
+    "bits": "497725a1",
+    "expected": "1.01231406e+06"
+  },
+  {
+    "bits": "1d33028c",
+    "expected": "2.369177e-21"
+  },
+  {
+    "bits": "4ab5dc7b",
+    "expected": "5.9592295e+06"
+  },
+  {
+    "bits": "0587279e",
+    "expected": "1.2709892e-35"
+  },
+  {
+    "bits": "3c82ea65",
+    "expected": "0.015980909"
+  },
+  {
+    "bits": "5c561880",
+    "expected": "2.4105033e+17"
+  },
+  {
+    "bits": "9f1131df",
+    "expected": "-3.0746197e-20"
+  },
+  {
+    "bits": "08f455b2",
+    "expected": "1.4705363e-33"
+  },
+  {
+    "bits": "695e3969",
+    "expected": "1.679079e+25"
+  },
+  {
+    "bits": "bc58b3b4",
+    "expected": "-0.013226438"
+  },
+  {
+    "bits": "b11dcb83",
+    "expected": "-2.296219e-09"
+  },
+  {
+    "bits": "f9d37b06",
+    "expected": "-1.3725873e+35"
+  },
+  {
+    "bits": "32c696ad",
+    "expected": "2.3118753e-08"
+  },
+  {
+    "bits": "a7728828",
+    "expected": "-3.3658057e-15"
+  },
+  {
+    "bits": "ab67cd67",
+    "expected": "-8.235274e-13"
+  },
+  {
+    "bits": "5b9a6b9a",
+    "expected": "8.693091e+16"
+  },
+  {
+    "bits": "ec2fc631",
+    "expected": "-8.499918e+26"
+  },
+  {
+    "bits": "9e9c89dc",
+    "expected": "-1.657416e-20"
+  },
+  {
+    "bits": "1fcb9b8b",
+    "expected": "8.623117e-20"
+  },
+  {
+    "bits": "2a523b6e",
+    "expected": "1.8672366e-13"
+  },
+  {
+    "bits": "f407cbf5",
+    "expected": "-4.3035694e+31"
+  },
+  {
+    "bits": "a704ecd0",
+    "expected": "-1.8447056e-15"
+  },
+  {
+    "bits": "ce59d9ef",
+    "expected": "-9.137346e+08"
+  },
+  {
+    "bits": "cc2b3e82",
+    "expected": "-4.489063e+07"
+  },
+  {
+    "bits": "f03aebf9",
+    "expected": "-2.3139794e+29"
+  },
+  {
+    "bits": "f4c32504",
+    "expected": "-1.2368758e+32"
+  },
+  {
+    "bits": "087b6c93",
+    "expected": "7.5660193e-34"
+  },
+  {
+    "bits": "725108d6",
+    "expected": "4.140355e+30"
+  },
+  {
+    "bits": "30f7aa3d",
+    "expected": "1.802e-09"
+  },
+  {
+    "bits": "06cbe678",
+    "expected": "7.6698756e-35"
+  },
+  {
+    "bits": "54557777",
+    "expected": "3.6673293e+12"
+  },
+  {
+    "bits": "3cfe6e6a",
+    "expected": "0.031058509"
+  },
+  {
+    "bits": "7db2cac1",
+    "expected": "2.9706918e+37"
+  },
+  {
+    "bits": "a825252c",
+    "expected": "-9.1674e-15"
+  },
+  {
+    "bits": "346d5e9b",
+    "expected": "2.2106762e-07"
+  },
+  {
+    "bits": "b6d1833e",
+    "expected": "-6.243964e-06"
+  },
+  {
+    "bits": "d06b5185",
+    "expected": "-1.5791953e+10"
+  },
+  {
+    "bits": "8a5a1520",
+    "expected": "-1.05002914e-32"
+  },
+  {
+    "bits": "378cc5ff",
+    "expected": "1.67815e-05"
+  },
+  {
+    "bits": "7b5f9b52",
+    "expected": "1.1610325e+36"
+  },
+  {
+    "bits": "c32e8289",
+    "expected": "-174.5099"
+  },
+  {
+    "bits": "6d2f2a54",
+    "expected": "3.3881905e+27"
+  },
+  {
+    "bits": "b4e591a3",
+    "expected": "-4.2760539e-07"
+  },
+  {
+    "bits": "1d094aa6",
+    "expected": "1.8170391e-21"
+  },
+  {
+    "bits": "b3dbe1cd",
+    "expected": "-1.0239055e-07"
+  },
+  {
+    "bits": "079618c8",
+    "expected": "2.2584057e-34"
+  },
+  {
+    "bits": "d875e587",
+    "expected": "-1.08146464e+15"
+  },
+  {
+    "bits": "9e0e653a",
+    "expected": "-7.5383506e-21"
+  },
+  {
+    "bits": "e2293351",
+    "expected": "-7.802994e+20"
+  },
+  {
+    "bits": "25e1d47c",
+    "expected": "3.9175263e-16"
+  },
+  {
+    "bits": "e3ac25ab",
+    "expected": "-6.3511085e+21"
+  },
+  {
+    "bits": "10e1ff0e",
+    "expected": "8.9139826e-29"
+  },
+  {
+    "bits": "0be67b15",
+    "expected": "8.877797e-32"
+  },
+  {
+    "bits": "b13a9170",
+    "expected": "-2.7149234e-09"
+  },
+  {
+    "bits": "c64af60f",
+    "expected": "-12989.515"
+  },
+  {
+    "bits": "33be6c22",
+    "expected": "8.867234e-08"
+  },
+  {
+    "bits": "4b81fd19",
+    "expected": "1.7037874e+07"
+  },
+  {
+    "bits": "9451c3a4",
+    "expected": "-1.0590387e-26"
+  },
+  {
+    "bits": "738d3ab3",
+    "expected": "2.2378675e+31"
+  },
+  {
+    "bits": "1b794076",
+    "expected": "2.0617626e-22"
+  },
+  {
+    "bits": "3ccc3d5d",
+    "expected": "0.024931604"
+  },
+  {
+    "bits": "b1561f18",
+    "expected": "-3.1158773e-09"
+  },
+  {
+    "bits": "978a1797",
+    "expected": "-8.923996e-25"
+  },
+  {
+    "bits": "4197500a",
+    "expected": "18.914082"
+  },
+  {
+    "bits": "abfbffe1",
+    "expected": "-1.7905643e-12"
+  },
+  {
+    "bits": "5d2797cc",
+    "expected": "7.547716e+17"
+  },
+  {
+    "bits": "90d8f0bb",
+    "expected": "-8.556788e-29"
+  },
+  {
+    "bits": "89a0aede",
+    "expected": "-3.8683043e-33"
+  },
+  {
+    "bits": "52f248a5",
+    "expected": "5.2030043e+11"
+  },
+  {
+    "bits": "13cb61c0",
+    "expected": "5.1340793e-27"
+  },
+  {
+    "bits": "d2756a1f",
+    "expected": "-2.6351185e+11"
+  },
+  {
+    "bits": "11b4b0f2",
+    "expected": "2.8508044e-28"
+  },
+  {
+    "bits": "68be5ba9",
+    "expected": "7.1915237e+24"
+  },
+  {
+    "bits": "5a1ff0f4",
+    "expected": "1.1254863e+16"
+  },
+  {
+    "bits": "11e367c3",
+    "expected": "3.5878233e-28"
+  },
+  {
+    "bits": "e25dea46",
+    "expected": "-1.0234029e+21"
+  },
+  {
+    "bits": "0761bced",
+    "expected": "1.6982639e-34"
+  },
+  {
+    "bits": "00d0f968",
+    "expected": "1.9191253e-38"
+  },
+  {
+    "bits": "e5930da7",
+    "expected": "-8.680496e+22"
+  },
+  {
+    "bits": "d1a62eda",
+    "expected": "-8.921883e+10"
+  },
+  {
+    "bits": "abd43071",
+    "expected": "-1.5076951e-12"
+  },
+  {
+    "bits": "3c8b6f1c",
+    "expected": "0.017020755"
+  },
+  {
+    "bits": "b784bfcb",
+    "expected": "-1.5824937e-05"
+  },
+  {
+    "bits": "2d6a92ae",
+    "expected": "1.33339294e-11"
+  },
+  {
+    "bits": "5447ba35",
+    "expected": "3.43129e+12"
+  },
+  {
+    "bits": "47718610",
+    "expected": "61830.062"
+  },
+  {
+    "bits": "302d222f",
+    "expected": "6.298561e-10"
+  },
+  {
+    "bits": "00ef69c2",
+    "expected": "2.1986622e-38"
+  },
+  {
+    "bits": "00ac9e39",
+    "expected": "1.5852465e-38"
+  },
+  {
+    "bits": "7fceb244",
+    "expected": "NaN"
+  },
+  {
+    "bits": "7d9918d3",
+    "expected": "2.5437597e+37"
+  },
+  {
+    "bits": "09b44816",
+    "expected": "4.3401213e-33"
+  },
+  {
+    "bits": "9975607d",
+    "expected": "-1.2685689e-23"
+  },
+  {
+    "bits": "380ba7b8",
+    "expected": "3.3296383e-05"
+  },
+  {
+    "bits": "1ad1c7b7",
+    "expected": "8.676303e-23"
+  },
+  {
+    "bits": "af8801aa",
+    "expected": "-2.4739438e-10"
+  },
+  {
+    "bits": "809ac501",
+    "expected": "-1.4213338e-38"
+  },
+  {
+    "bits": "abe25a6c",
+    "expected": "-1.6083363e-12"
+  },
+  {
+    "bits": "fb8092db",
+    "expected": "-1.3351852e+36"
+  },
+  {
+    "bits": "93dcaa7e",
+    "expected": "-5.5703926e-27"
+  },
+  {
+    "bits": "50dfcfc5",
+    "expected": "3.0039484e+10"
+  },
+  {
+    "bits": "ced1fe60",
+    "expected": "-1.7615544e+09"
+  },
+  {
+    "bits": "3fd31e3f",
+    "expected": "1.6493605"
+  },
+  {
+    "bits": "8c5b9692",
+    "expected": "-1.6916457e-31"
+  },
+  {
+    "bits": "8f55c4c9",
+    "expected": "-1.053961e-29"
+  },
+  {
+    "bits": "e7d30794",
+    "expected": "-1.9931182e+24"
+  },
+  {
+    "bits": "d49f4de3",
+    "expected": "-5.473652e+12"
+  },
+  {
+    "bits": "1cb959e6",
+    "expected": "1.2265511e-21"
+  },
+  {
+    "bits": "5320280d",
+    "expected": "6.878667e+11"
+  },
+  {
+    "bits": "2e4b2a08",
+    "expected": "4.6194187e-11"
+  },
+  {
+    "bits": "a3c745c7",
+    "expected": "-2.1605175e-17"
+  },
+  {
+    "bits": "c3c9c87a",
+    "expected": "-403.56622"
+  },
+  {
+    "bits": "2778bd91",
+    "expected": "3.4519678e-15"
+  },
+  {
+    "bits": "dc4159bc",
+    "expected": "-2.1769334e+17"
+  },
+  {
+    "bits": "38dd69eb",
+    "expected": "0.0001055783"
+  },
+  {
+    "bits": "afd3f64e",
+    "expected": "-3.8555686e-10"
+  },
+  {
+    "bits": "abf38955",
+    "expected": "-1.7304306e-12"
+  },
+  {
+    "bits": "69d1cab0",
+    "expected": "3.1702833e+25"
+  },
+  {
+    "bits": "fe085e4f",
+    "expected": "-4.531617e+37"
+  },
+  {
+    "bits": "ae263762",
+    "expected": "-3.779322e-11"
+  },
+  {
+    "bits": "b702cf59",
+    "expected": "-7.796881e-06"
+  },
+  {
+    "bits": "e5e1f0e4",
+    "expected": "-1.3337201e+23"
+  },
+  {
+    "bits": "752706f3",
+    "expected": "2.1173206e+32"
+  },
+  {
+    "bits": "69ea1fb6",
+    "expected": "3.53798e+25"
+  },
+  {
+    "bits": "febb139d",
+    "expected": "-1.2433374e+38"
+  },
+  {
+    "bits": "a0148058",
+    "expected": "-1.2578553e-19"
+  },
+  {
+    "bits": "113487d7",
+    "expected": "1.4241355e-28"
+  },
+  {
+    "bits": "4e38834a",
+    "expected": "7.73903e+08"
+  },
+  {
+    "bits": "8bd71a21",
+    "expected": "-8.28543e-32"
+  },
+  {
+    "bits": "97fd6d0c",
+    "expected": "-1.6377269e-24"
+  },
+  {
+    "bits": "93ec44fb",
+    "expected": "-5.9642796e-27"
+  },
+  {
+    "bits": "9f6d761e",
+    "expected": "-5.0284406e-20"
+  },
+  {
+    "bits": "7afbe6e5",
+    "expected": "6.539748e+35"
+  },
+  {
+    "bits": "6595eb00",
+    "expected": "8.849595e+22"
+  },
+  {
+    "bits": "13ade25f",
+    "expected": "4.389456e-27"
+  },
+  {
+    "bits": "9fbc4c32",
+    "expected": "-7.974715e-20"
+  },
+  {
+    "bits": "d03cbde9",
+    "expected": "-1.266625e+10"
+  },
+  {
+    "bits": "8ef06e34",
+    "expected": "-5.927069e-30"
+  },
+  {
+    "bits": "0da14403",
+    "expected": "9.938764e-31"
+  },
+  {
+    "bits": "d3039986",
+    "expected": "-5.652164e+11"
+  },
+  {
+    "bits": "60df232d",
+    "expected": "1.2862996e+20"
+  },
+  {
+    "bits": "7f2caaa8",
+    "expected": "2.2951331e+38"
+  },
+  {
+    "bits": "281a8de7",
+    "expected": "8.5794875e-15"
+  },
+  {
+    "bits": "b5e1321a",
+    "expected": "-1.6778388e-06"
+  },
+  {
+    "bits": "175edab1",
+    "expected": "7.2008096e-25"
+  },
+  {
+    "bits": "92ab945c",
+    "expected": "-1.0828191e-27"
+  },
+  {
+    "bits": "893e240b",
+    "expected": "-2.2887365e-33"
+  },
+  {
+    "bits": "7c0629ee",
+    "expected": "2.786473e+36"
+  },
+  {
+    "bits": "15b1e875",
+    "expected": "7.1856483e-26"
+  },
+  {
+    "bits": "ec835f50",
+    "expected": "-1.270555e+27"
+  },
+  {
+    "bits": "e5e4aa6f",
+    "expected": "-1.3498044e+23"
+  },
+  {
+    "bits": "a9cad502",
+    "expected": "-9.007553e-14"
+  },
+  {
+    "bits": "79cc9079",
+    "expected": "1.3276985e+35"
+  },
+  {
+    "bits": "09337f84",
+    "expected": "2.1606299e-33"
+  },
+  {
+    "bits": "acbf0513",
+    "expected": "-5.42911e-12"
+  },
+  {
+    "bits": "9d02c756",
+    "expected": "-1.730841e-21"
+  },
+  {
+    "bits": "c86556bd",
+    "expected": "-234842.95"
+  },
+  {
+    "bits": "4298a8f8",
+    "expected": "76.33002"
+  },
+  {
+    "bits": "f1ba57f7",
+    "expected": "-1.8454578e+30"
+  },
+  {
+    "bits": "5910d4ea",
+    "expected": "2.547906e+15"
+  },
+  {
+    "bits": "41f8ff41",
+    "expected": "31.124636"
+  },
+  {
+    "bits": "b920cfac",
+    "expected": "-0.00015336153"
+  },
+  {
+    "bits": "fda4071b",
+    "expected": "-2.7253786e+37"
+  },
+  {
+    "bits": "2a3b11be",
+    "expected": "1.6615092e-13"
+  },
+  {
+    "bits": "a60e8e05",
+    "expected": "-4.945862e-16"
+  },
+  {
+    "bits": "563f27a0",
+    "expected": "5.2544227e+13"
+  },
+  {
+    "bits": "a60db67f",
+    "expected": "-4.916653e-16"
+  },
+  {
+    "bits": "f43ed1d2",
+    "expected": "-6.047315e+31"
+  },
+  {
+    "bits": "28bb4709",
+    "expected": "2.0791977e-14"
+  },
+  {
+    "bits": "dc2024d4",
+    "expected": "-1.8030596e+17"
+  },
+  {
+    "bits": "d1714a23",
+    "expected": "-6.4770683e+10"
+  },
+  {
+    "bits": "4024a926",
+    "expected": "2.572824"
+  },
+  {
+    "bits": "9e66ae4d",
+    "expected": "-1.2212143e-20"
+  },
+  {
+    "bits": "369d7b48",
+    "expected": "4.6933164e-06"
+  },
+  {
+    "bits": "cb94e607",
+    "expected": "-1.951643e+07"
+  },
+  {
+    "bits": "5d546bba",
+    "expected": "9.566583e+17"
+  },
+  {
+    "bits": "21ce87d1",
+    "expected": "1.3995053e-18"
+  },
+  {
+    "bits": "81721efc",
+    "expected": "-4.447061e-38"
+  },
+  {
+    "bits": "4e2eee2b",
+    "expected": "7.3371104e+08"
+  },
+  {
+    "bits": "29e92d8e",
+    "expected": "1.0355181e-13"
+  },
+  {
+    "bits": "b84ad795",
+    "expected": "-4.836133e-05"
+  },
+  {
+    "bits": "77ae43f0",
+    "expected": "7.0690437e+33"
+  },
+  {
+    "bits": "61ca068f",
+    "expected": "4.6583936e+20"
+  },
+  {
+    "bits": "564542a2",
+    "expected": "5.4222494e+13"
+  },
+  {
+    "bits": "b851e199",
+    "expected": "-5.0039587e-05"
+  },
+  {
+    "bits": "406b5e24",
+    "expected": "3.677621"
+  },
+  {
+    "bits": "7ae91333",
+    "expected": "6.050973e+35"
+  },
+  {
+    "bits": "37e63ef6",
+    "expected": "2.7447455e-05"
+  },
+  {
+    "bits": "f63c29dd",
+    "expected": "-9.5410244e+32"
+  },
+  {
+    "bits": "ccc02198",
+    "expected": "-1.007321e+08"
+  },
+  {
+    "bits": "776b3817",
+    "expected": "4.77081e+33"
+  },
+  {
+    "bits": "7f78f68a",
+    "expected": "3.3092865e+38"
+  },
+  {
+    "bits": "fb487461",
+    "expected": "-1.0408198e+36"
+  },
+  {
+    "bits": "3af4824c",
+    "expected": "0.0018654554"
+  },
+  {
+    "bits": "602fd93b",
+    "expected": "5.0684896e+19"
+  },
+  {
+    "bits": "662d7d5e",
+    "expected": "2.048205e+23"
+  },
+  {
+    "bits": "cadfc525",
+    "expected": "-7.3324985e+06"
+  },
+  {
+    "bits": "f2f5b440",
+    "expected": "-9.733342e+30"
+  },
+  {
+    "bits": "12fa9a9f",
+    "expected": "1.5815335e-27"
+  },
+  {
+    "bits": "264b2772",
+    "expected": "7.048323e-16"
+  },
+  {
+    "bits": "fa196029",
+    "expected": "-1.9909294e+35"
+  },
+  {
+    "bits": "700a2b74",
+    "expected": "1.7104585e+29"
+  },
+  {
+    "bits": "38976043",
+    "expected": "7.218171e-05"
+  },
+  {
+    "bits": "d30488c6",
+    "expected": "-5.6923036e+11"
+  },
+  {
+    "bits": "1d7ec96d",
+    "expected": "3.3720755e-21"
+  },
+  {
+    "bits": "ebc59be8",
+    "expected": "-4.7778927e+26"
+  },
+  {
+    "bits": "2b3e4e27",
+    "expected": "6.761002e-13"
+  },
+  {
+    "bits": "e38b755a",
+    "expected": "-5.145107e+21"
+  },
+  {
+    "bits": "d10fc4f1",
+    "expected": "-3.859278e+10"
+  },
+  {
+    "bits": "5e3cf99c",
+    "expected": "3.4042716e+18"
+  },
+  {
+    "bits": "b137c84b",
+    "expected": "-2.6743858e-09"
+  },
+  {
+    "bits": "0565012e",
+    "expected": "1.0767745e-35"
+  },
+  {
+    "bits": "de8656b5",
+    "expected": "-4.840062e+18"
+  },
+  {
+    "bits": "877a7890",
+    "expected": "-1.884334e-34"
+  },
+  {
+    "bits": "afc072af",
+    "expected": "-3.5006084e-10"
+  },
+  {
+    "bits": "09fd8042",
+    "expected": "6.1028148e-33"
+  },
+  {
+    "bits": "45dac2b9",
+    "expected": "7000.3403"
+  },
+  {
+    "bits": "f6318cc4",
+    "expected": "-9.002848e+32"
+  },
+  {
+    "bits": "3a2d3153",
+    "expected": "0.0006606776"
+  },
+  {
+    "bits": "037c8696",
+    "expected": "7.421064e-37"
+  },
+  {
+    "bits": "2c078cfd",
+    "expected": "1.9262918e-12"
+  },
+  {
+    "bits": "3fb2ea38",
+    "expected": "1.3977728"
+  },
+  {
+    "bits": "a14f2837",
+    "expected": "-7.018755e-19"
+  },
+  {
+    "bits": "e4d8e82a",
+    "expected": "-3.2009807e+22"
+  },
+  {
+    "bits": "f40d7981",
+    "expected": "-4.48351e+31"
+  },
+  {
+    "bits": "dd2084ec",
+    "expected": "-7.229143e+17"
+  },
+  {
+    "bits": "6717bb5b",
+    "expected": "7.1653344e+23"
+  },
+  {
+    "bits": "392cb8fe",
+    "expected": "0.00016472113"
+  },
+  {
+    "bits": "06378c45",
+    "expected": "3.4521528e-35"
+  },
+  {
+    "bits": "61e190e0",
+    "expected": "5.201196e+20"
+  },
+  {
+    "bits": "3a7c8ebf",
+    "expected": "0.0009634308"
+  },
+  {
+    "bits": "c6494d12",
+    "expected": "-12883.268"
+  },
+  {
+    "bits": "099f0949",
+    "expected": "3.828659e-33"
+  },
+  {
+    "bits": "ff568214",
+    "expected": "-2.851302e+38"
+  },
+  {
+    "bits": "5f9b8663",
+    "expected": "2.2413507e+19"
+  },
+  {
+    "bits": "2e8b3866",
+    "expected": "6.3310066e-11"
+  },
+  {
+    "bits": "93ef748d",
+    "expected": "-6.044701e-27"
+  },
+  {
+    "bits": "89cd0c88",
+    "expected": "-4.936374e-33"
+  },
+  {
+    "bits": "281ec647",
+    "expected": "8.8137564e-15"
+  },
+  {
+    "bits": "e5ee4efa",
+    "expected": "-1.4067251e+23"
+  },
+  {
+    "bits": "936a9211",
+    "expected": "-2.9606969e-27"
+  },
+  {
+    "bits": "72b4243c",
+    "expected": "7.1361416e+30"
+  },
+  {
+    "bits": "5fe0b26b",
+    "expected": "3.2382243e+19"
+  },
+  {
+    "bits": "0e61a4ce",
+    "expected": "2.7812742e-30"
+  },
+  {
+    "bits": "f72c65d5",
+    "expected": "-3.4966424e+33"
+  },
+  {
+    "bits": "6c0ffd30",
+    "expected": "6.9628815e+26"
+  },
+  {
+    "bits": "d1cfeecf",
+    "expected": "-1.116331e+11"
+  },
+  {
+    "bits": "0f5b8de2",
+    "expected": "1.0824859e-29"
+  },
+  {
+    "bits": "59af33d9",
+    "expected": "6.164391e+15"
+  },
+  {
+    "bits": "a92e0b64",
+    "expected": "-3.864564e-14"
+  },
+  {
+    "bits": "49135f73",
+    "expected": "603639.2"
+  },
+  {
+    "bits": "fcad9e36",
+    "expected": "-7.21181e+36"
+  },
+  {
+    "bits": "b18f801d",
+    "expected": "-4.1764125e-09"
+  },
+  {
+    "bits": "f09902d8",
+    "expected": "-3.7883716e+29"
+  },
+  {
+    "bits": "b26e2857",
+    "expected": "-1.38625955e-08"
+  },
+  {
+    "bits": "2098a9ca",
+    "expected": "2.5862159e-19"
+  },
+  {
+    "bits": "4c900ea1",
+    "expected": "7.552743e+07"
+  },
+  {
+    "bits": "f34cd78c",
+    "expected": "-1.6229254e+31"
+  },
+  {
+    "bits": "41e3ad7b",
+    "expected": "28.459707"
+  },
+  {
+    "bits": "3d20c49e",
+    "expected": "0.03925001"
+  },
+  {
+    "bits": "98dde365",
+    "expected": "-5.735677e-24"
+  }
+]
