@@ -23,8 +23,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       && mkdir -p /tmp/rules_java/tools/jdk \
       && printf '%s\n' 'package(default_visibility = ["//visibility:public"])' 'alias(name = "bootstrap_runtime_toolchain_type", actual = "//toolchains:bootstrap_runtime_toolchain_type")' > /tmp/rules_java/tools/jdk/BUILD \
       && cd /tmp/ml-metadata \
-      && python3 -c 'from pathlib import Path; import re; p=Path("WORKSPACE"); s=p.read_text(); s,n=re.subn(r"http_archive\\(\\s*name = \\"rules_java\\",.*?\\n\\)\\n", "local_repository(name = \\"rules_java\\", path = \\"/tmp/rules_java\\")\\n", s, count=1, flags=re.S); assert n == 1, "rules_java WORKSPACE block not found"; p.write_text(s)' \
-      && BAZELFLAGS="--copt=-march=armv8.3-a --host_copt=-march=armv8.3-a --experimental_google_legacy_api" python3 setup.py bdist_wheel --dist-dir /tmp/mlmd-wheel \
+      && BAZELFLAGS="--copt=-march=armv8.3-a --host_copt=-march=armv8.3-a --experimental_google_legacy_api --override_repository=rules_java=/tmp/rules_java" python3 setup.py bdist_wheel --dist-dir /tmp/mlmd-wheel \
       && python3 -m pip install --no-cache-dir /tmp/mlmd-wheel/ml_metadata-1.21.0-*.whl \
       && cd / \
       && rm -rf /tmp/ml-metadata /tmp/rules_java /tmp/mlmd-wheel \
