@@ -10,7 +10,7 @@ const { parseArgs } = require('util');
 
 const clusterManager = require('./cluster-manager');
 const { COMPONENTS, detectChanges } = require('./detect-changes');
-const { seedData } = require('./seed-data');
+const { SEED_FIXTURE_RUNTIME_REQUIREMENTS, seedData } = require('./seed-data');
 const { SEMANTIC_ID_NORMALIZATION_MODES } = require('./semantic-id-normalization');
 const { combineSemanticManifests } = require('./semantic-manifest');
 const {
@@ -112,6 +112,7 @@ Supported options:
   --upgrade                       Upgrade a populated base stack in place before head capture
   --head-checkout <path>          Reviewed local checkout used by --full-stack or --upgrade
   --trust-local-head              Confirm that the selected local runtime may execute
+  --trust-base-code               Confirm that a non-release --full-stack base ref may execute
   --viewports <WxH,...>           Capture viewports (default: 1280x800)
   --fail-threshold <percent>      Fail above this visual-difference percentage (default: 0)
   --diff-threshold <percent>      Draw diff markers above this percentage (default: 0)
@@ -195,6 +196,7 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
         upgrade: { type: 'boolean', default: false },
         'head-checkout': { type: 'string' },
         'trust-local-head': { type: 'boolean', default: false },
+        'trust-base-code': { type: 'boolean', default: false },
         viewports: {
           type: 'string',
           default: env.UI_SMOKE_VIEWPORTS || env.UI_SMOKE_VIEWPORT || '1280x800',
@@ -239,6 +241,7 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
     repository: validateRepository(values.repo),
     scenarioPolicyPath: values['scenario-policy'] ? path.resolve(values['scenario-policy']) : null,
     teardown: values.teardown,
+    trustBaseCode: values['trust-base-code'],
     trustLocalHead: values['trust-local-head'],
     trustPrCode: values['trust-pr-code'],
     upgrade: values.upgrade,
@@ -314,6 +317,14 @@ function parseCli(argv = process.argv.slice(2), env = process.env) {
   }
   if (options.trustLocalHead && !(options.fullStack || options.upgrade)) {
     throw new Error('--trust-local-head is only valid with --full-stack or --upgrade.');
+  }
+  if (options.trustBaseCode && !options.fullStack) {
+    throw new Error('--trust-base-code is only valid with --full-stack.');
+  }
+  if (options.fullStack && !/^\d+\.\d+\.\d+$/.test(options.compareRef) && !options.trustBaseCode) {
+    throw new Error(
+      'A non-release --full-stack base requires --trust-base-code because that ref is built and executed.',
+    );
   }
 
   return options;
@@ -740,8 +751,12 @@ function shortSha(gitRef, cwd = REPO_ROOT) {
   return gitOutput(['rev-parse', '--short=12', `${gitRef}^{commit}`], cwd);
 }
 
-function fullSha(gitRef, cwd = REPO_ROOT) {
-  const sha = gitOutput(['rev-parse', `${gitRef}^{commit}`], cwd);
+function fullSha(gitRef, cwd = REPO_ROOT, options = {}) {
+  if (typeof gitRef !== 'string' || gitRef.length === 0 || gitRef.startsWith('-')) {
+    throw new Error(`Could not resolve an invalid Git ref: ${JSON.stringify(gitRef)}.`);
+  }
+  const git = options.git || gitOutput;
+  const sha = git(['rev-parse', '--verify', '--end-of-options', `${gitRef}^{commit}`], cwd);
   if (!/^[0-9a-f]{40,64}$/i.test(sha)) {
     throw new Error(`Could not resolve a full commit SHA for ${gitRef}.`);
   }
@@ -1127,12 +1142,16 @@ function stackConfiguration(run, role, revision, options = {}) {
 }
 
 function validateFullStackBaseRelease(baseRef) {
-  if (!/^\d+\.\d+\.\d+$/.test(baseRef)) {
+  if (!isExactReleaseVersion(baseRef)) {
     throw new Error(
-      `--full-stack and --upgrade require an exact release base such as 2.17.1; received ${baseRef}.`,
+      `Published-release and --upgrade bases require an exact version such as 2.17.1; received ${baseRef}.`,
     );
   }
   return baseRef;
+}
+
+function isExactReleaseVersion(value) {
+  return typeof value === 'string' && /^\d+\.\d+\.\d+$/.test(value);
 }
 
 function resolvePublishedReleaseCommit(version, options = {}) {
@@ -2161,6 +2180,7 @@ async function runUpgradeComparison({
 
 async function runFullStackComparisonOrchestration({
   baseCommitSha,
+  baseRelease,
   baseWorktree,
   changes,
   expectedHeadSha,
@@ -2212,12 +2232,16 @@ async function runFullStackComparisonOrchestration({
   if (seedRuntimePreflight.platform !== targetPlatform) {
     throw new Error('Seed runtime preflight did not preserve the selected Kind target platform.');
   }
-  const releasePreflight = baseStack.preflightReleaseImages(baseWorktree, {
-    expectedRelease: changes.baseRef,
-    platform: targetPlatform,
-  });
-  if (releasePreflight.platform !== targetPlatform) {
-    throw new Error('Release image preflight did not preserve the selected Kind target platform.');
+  const baseDependencyPreflight = baseRelease
+    ? baseStack.preflightReleaseImages(baseWorktree, {
+        expectedRelease: baseRelease.version,
+        platform: targetPlatform,
+      })
+    : baseStack.preflightThirdPartyImages(baseWorktree, {
+        platform: targetPlatform,
+      });
+  if (baseDependencyPreflight.platform !== targetPlatform) {
+    throw new Error('Base image preflight did not preserve the selected Kind target platform.');
   }
 
   const headDependencyPreflight = headStack.preflightThirdPartyImages(headRoot, {
@@ -2227,16 +2251,35 @@ async function runFullStackComparisonOrchestration({
     throw new Error('Head image preflight did not preserve the selected Kind target platform.');
   }
 
+  const baseComponents = baseRelease
+    ? []
+    : services.componentsForRevision(baseWorktree, services.components, baseManifestSources);
   const headComponents = services.componentsForRevision(
     headRoot,
     services.components,
     headManifestSources,
   );
+  const baseBuildMetadata = baseComponents.some(
+    (component) => Object.keys(component.buildArgs || {}).length > 0,
+  )
+    ? services.revisionBuildMetadata(baseWorktree, baseCommitSha)
+    : undefined;
   const headBuildMetadata = headComponents.some(
     (component) => Object.keys(component.buildArgs || {}).length > 0,
   )
     ? services.revisionBuildMetadata(headRoot, expectedHeadSha)
     : undefined;
+  state.phase = 'base_image_build';
+  const baseImageOverrides =
+    baseComponents.length > 0
+      ? await baseStack.buildComponentImages(baseComponents, baseWorktree, {
+          buildMetadata: baseBuildMetadata,
+          load: false,
+          platform: targetPlatform,
+          tagSuffix: `${run.runId}-base`,
+        })
+      : { deployments: [], images: {}, runtimeEnvironment: {} };
+
   state.phase = 'head_image_build';
   const headImageOverrides =
     headComponents.length > 0
@@ -2258,18 +2301,25 @@ async function runFullStackComparisonOrchestration({
       );
     }
   }
-  // Establish the exact release stack before starting any head workload. All reviewed head images
+  // Establish the pinned base stack before starting any head workload. All reviewed local images
   // were already built for the validated target platform while no cluster existed.
   state.phase = 'base_deployment';
+  if (Object.keys(baseImageOverrides.images).length > 0) {
+    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform);
+  }
   await baseStack.deployRevision(baseWorktree, {
-    expectedRelease: changes.baseRef,
+    ...(baseRelease ? { expectedRelease: baseRelease.version } : {}),
+    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
+    imageOverrides: baseImageOverrides,
     platform: targetPlatform,
+    requireLocalFirstParty: !baseRelease,
   });
   if (Object.keys(headImageOverrides.images).length > 0) {
     headStack.loadImageOverrides(headImageOverrides, targetPlatform);
   }
   state.phase = 'head_deployment';
   await headStack.deployRevision(headRoot, {
+    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
     imageOverrides: headImageOverrides,
     platform: targetPlatform,
     requireLocalFirstParty: true,
@@ -2442,6 +2492,15 @@ async function runFullStackComparison(parameters) {
 
 async function runComparison(options, run, overrides = {}) {
   const services = comparisonServices(overrides);
+  if (
+    options.fullStack &&
+    !isExactReleaseVersion(options.compareRef) &&
+    options.trustBaseCode !== true
+  ) {
+    throw new Error(
+      'A non-release --full-stack base requires --trust-base-code because that ref is built and executed.',
+    );
+  }
   const managedCluster = services.clusterManager;
   const screenshotsDir = path.join(run.runDir, 'screenshots');
   const baseWorktree = path.join(run.runDir, 'worktrees', 'base');
@@ -2464,15 +2523,24 @@ async function runComparison(options, run, overrides = {}) {
     comparisonRoot = headRoot;
   }
 
-  const exactBaseRelease =
-    options.fullStack || options.upgrade
-      ? services.resolveExactBaseRelease(options.compareRef, {
-          cwd: comparisonRoot,
-          git: services.gitOutput,
-          resolveCommit: services.fullSha,
-          resolvePublishedCommit: services.resolvePublishedReleaseCommit,
-        })
-      : null;
+  let exactBaseRelease = null;
+  let pinnedBaseCommit = null;
+  if (options.fullStack || options.upgrade) {
+    if (options.upgrade || isExactReleaseVersion(options.compareRef)) {
+      exactBaseRelease = services.resolveExactBaseRelease(options.compareRef, {
+        cwd: comparisonRoot,
+        git: services.gitOutput,
+        resolveCommit: services.fullSha,
+        resolvePublishedCommit: services.resolvePublishedReleaseCommit,
+      });
+      pinnedBaseCommit = exactBaseRelease.commit;
+    } else {
+      // A non-release base is executable input. parseCli requires the explicit trust opt-in, and
+      // resolving it before source materialization prevents a moving branch from changing what is
+      // built after change detection.
+      pinnedBaseCommit = services.fullSha(options.compareRef, comparisonRoot);
+    }
+  }
 
   if (options.headCheckout) {
     const selectedHeadRoot = headRoot;
@@ -2487,24 +2555,25 @@ async function runComparison(options, run, overrides = {}) {
     log(`Trusted head snapshot: ${sourceFingerprintLabel(sourceProvenance)}`);
   }
 
-  const detectedChanges = services.detectChanges(
-    exactBaseRelease ? exactBaseRelease.commit : options.compareRef,
-    headRef,
-    {
-      cwd: comparisonRoot,
-      includeWorkingTree: !options.prNumber,
-    },
-  );
-  const baseCommitSha = exactBaseRelease
-    ? exactBaseRelease.commit
-    : services.fullSha(detectedChanges.baseRef, comparisonRoot);
+  const detectedChanges = services.detectChanges(pinnedBaseCommit || options.compareRef, headRef, {
+    cwd: comparisonRoot,
+    includeWorkingTree: !options.prNumber,
+  });
+  const baseCommitSha =
+    pinnedBaseCommit || services.fullSha(detectedChanges.baseRef, comparisonRoot);
   const changes = exactBaseRelease
     ? {
         ...detectedChanges,
         baseDisplayRef: exactBaseRelease.tagRef,
         baseRef: exactBaseRelease.version,
       }
-    : detectedChanges;
+    : pinnedBaseCommit
+      ? {
+          ...detectedChanges,
+          baseDisplayRef: options.compareRef,
+          baseRef: options.compareRef,
+        }
+      : detectedChanges;
   logChanges(changes);
   const expectedHeadSha = services.fullSha(headRef, comparisonRoot);
   if (sourceProvenance && sourceProvenance.revision.commit !== expectedHeadSha) {
@@ -2564,13 +2633,14 @@ async function runComparison(options, run, overrides = {}) {
   }
   services.addDetachedWorktree(
     baseWorktree,
-    exactBaseRelease ? baseCommitSha : changes.baseRef,
+    options.fullStack || options.upgrade ? baseCommitSha : changes.baseRef,
     comparisonRoot,
   );
 
   if (options.fullStack) {
     return runFullStackComparison({
       baseCommitSha,
+      baseRelease: exactBaseRelease,
       baseWorktree,
       changes,
       expectedHeadSha,
@@ -2605,7 +2675,9 @@ async function runComparison(options, run, overrides = {}) {
   ]);
   if (conflicts.length > 0) throw portConflictError(conflicts);
 
-  await managedCluster.ensureCluster(baseWorktree);
+  await managedCluster.ensureCluster(baseWorktree, {
+    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
+  });
   services.registerCleanup('stop cluster-managed local processes', () => managedCluster.cleanup());
 
   await managedCluster.ensurePortForwarding();
@@ -2768,6 +2840,7 @@ module.exports = {
   externalBuildArguments,
   externalInstallArguments,
   fetchedDependencyInputs,
+  fullSha,
   fullCaptureEnvironment,
   helpText,
   loadUpgradeAdapter,

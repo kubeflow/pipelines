@@ -9,7 +9,10 @@ const sharp = require('sharp');
 
 const capture = require('../capture-screenshots');
 const comparison = require('../generate-comparison');
-const { getSemanticIdNormalizationContract } = require('../semantic-capture-scenarios');
+const {
+  getGlobalVisualNormalizationContract,
+  getSemanticIdNormalizationContract,
+} = require('../semantic-capture-scenarios');
 const {
   SEMANTIC_COLOR_PALETTE,
   semanticIdNormalizationRenderingContract,
@@ -198,6 +201,24 @@ function semanticIdNormalizationEvidenceFor(role, page) {
   };
 }
 
+function globalVisualNormalizationEvidenceFor(role) {
+  const contract = getGlobalVisualNormalizationContract(role);
+  return {
+    complete: true,
+    rules: contract.rules.map((rule) => ({
+      actualMatches: rule.expectedMatches,
+      applied: rule.operation === 'hide',
+      expectedChange: rule.expectedChange,
+      expectedMatches: rule.expectedMatches,
+      hiddenMatches: rule.operation === 'hide' ? rule.expectedMatches : 0,
+      key: rule.key,
+      operation: rule.operation,
+      selector: rule.selector,
+    })),
+    schemaVersion: contract.schemaVersion,
+  };
+}
+
 function writeCaptureManifest(directory, label, captureId, results, overrides = {}) {
   const now = Date.now();
   const revisionRole = path.basename(directory) === 'base' ? 'base' : 'head';
@@ -210,6 +231,13 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
     return {
       ...result,
       capturedAt: new Date(now).toISOString(),
+      ...(semanticFullStack
+        ? {
+            globalVisualNormalization:
+              result.globalVisualNormalization ||
+              globalVisualNormalizationEvidenceFor(revisionRole),
+          }
+        : {}),
       semanticIdNormalization:
         result.semanticIdNormalization ||
         semanticIdNormalizationEvidenceFor(revisionRole, result.page),
@@ -427,6 +455,14 @@ test('scenario policy binds revisions and emits five attested managed artifacts'
   });
   assert.deepEqual(result.masks, [{ x: 0, y: 0, width: 5, height: 10, reason: 'clock' }]);
   assert.equal(result.expectedChange, '<removed> redirects to Runs');
+  assert.equal(
+    result.captureEvidenceByRevision.base.globalVisualNormalization.rules[0].actualMatches,
+    1,
+  );
+  assert.equal(
+    result.captureEvidenceByRevision.head.globalVisualNormalization.rules[0].actualMatches,
+    0,
+  );
   assert.equal(run.summary.stats.thresholdEvaluations, 1);
   assert.equal(run.summary.stats.incompleteCaptures, 0);
   assert.equal(run.summary.scenarioConfig.sha256, sha256(fs.readFileSync(configPath)));
@@ -450,6 +486,8 @@ test('scenario policy binds revisions and emits five attested managed artifacts'
   assert.match(report, /#\/executions/);
   assert.match(report, /#\/runs/);
   assert.match(report, /&lt;removed&gt; redirects to Runs/);
+  assert.match(report, /executions-navigation-removal/);
+  assert.match(report, /remaining navigation stays visually comparable/);
   assert.match(report, /x=0, y=0, width=5, height=10/);
   assert.match(report, /20\.0000% visual difference/);
   assert.doesNotMatch(report, /(?:href|src)="https?:/);
@@ -755,6 +793,54 @@ test('comparison rejects missing or malformed semantic ID normalization evidence
       const manifestPath = path.join(root, 'head', 'manifest.json');
       const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       manifest.results[0].semanticIdNormalization = semanticIdNormalizationEvidence();
+      scenario.mutate(manifest.results[0]);
+      fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      const run = await comparison.runComparison(options(root));
+      assert.equal(run.exitCode, 1);
+      assert.match(run.summary.fatalErrors[0], scenario.expected);
+      assert.equal(run.summary.stats.thresholdEvaluations, 0);
+    });
+  }
+});
+
+test('comparison requires exact attested global visual normalization evidence', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  for (const scenario of [
+    {
+      name: 'missing evidence',
+      mutate: (result) => delete result.globalVisualNormalization,
+      expected: /globalVisualNormalization is missing or invalid/,
+    },
+    {
+      name: 'wrong selector count',
+      mutate: (result) => {
+        result.globalVisualNormalization.rules[0].actualMatches = 1;
+      },
+      expected: /globalVisualNormalization\.rules\[0\] does not match/,
+    },
+    {
+      name: 'normalization not applied',
+      role: 'base',
+      mutate: (result) => {
+        result.globalVisualNormalization.rules[0].applied = false;
+      },
+      expected: /globalVisualNormalization\.rules\[0\] does not match/,
+    },
+    {
+      name: 'unknown evidence field',
+      mutate: (result) => {
+        result.globalVisualNormalization.rules[0].rawSelectorValue = '#executionsBtn';
+      },
+      expected: /globalVisualNormalization\.rules\[0\] does not match/,
+    },
+  ]) {
+    await t.test(scenario.name, async () => {
+      const root = await createPair(t, [
+        { base: captureResult(filename), head: captureResult(filename) },
+      ]);
+      const manifestPath = path.join(root, scenario.role || 'head', 'manifest.json');
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
       scenario.mutate(manifest.results[0]);
       fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 

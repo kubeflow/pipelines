@@ -6,7 +6,10 @@ const path = require('node:path');
 const test = require('node:test');
 const { buildSemanticIdentifierCatalog } = require('../capture-screenshots');
 const { summarizeComparison } = require('../generate-comparison');
-const { getSemanticIdNormalizationContract } = require('../semantic-capture-scenarios');
+const {
+  getGlobalVisualNormalizationContract,
+  getSemanticIdNormalizationContract,
+} = require('../semantic-capture-scenarios');
 const {
   SEMANTIC_COLOR_PALETTE,
   SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
@@ -38,6 +41,24 @@ function writeJsonArtifact(name, value) {
 
 function sha256(contents) {
   return crypto.createHash('sha256').update(contents).digest('hex');
+}
+
+function canonicalGlobalVisualNormalization(role) {
+  const contract = getGlobalVisualNormalizationContract(role);
+  return {
+    complete: true,
+    rules: contract.rules.map((rule) => ({
+      actualMatches: rule.expectedMatches,
+      applied: rule.operation === 'hide',
+      expectedChange: rule.expectedChange,
+      expectedMatches: rule.expectedMatches,
+      hiddenMatches: rule.operation === 'hide' ? rule.expectedMatches : 0,
+      key: rule.key,
+      operation: rule.operation,
+      selector: rule.selector,
+    })),
+    schemaVersion: contract.schemaVersion,
+  };
 }
 
 const semanticManifestFixture = strictSemanticFixtureManifest();
@@ -79,8 +100,9 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
   fs.writeFileSync(screenshotPath, screenshot);
   const capturedAtMs = fs.statSync(screenshotPath).mtimeMs;
   const capturedAt = new Date(capturedAtMs).toISOString();
+  const revisionRole = options.revisionRole || role;
   const inputs = {
-    revisionRole: options.revisionRole || role,
+    revisionRole,
     semanticManifest: writeCaptureInput(
       directory,
       'semantic-manifest.json',
@@ -126,6 +148,8 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
         sha256: sha256(screenshot),
         sizeBytes: screenshot.length,
         status: 'success',
+        globalVisualNormalization:
+          options.globalVisualNormalization || canonicalGlobalVisualNormalization(revisionRole),
         semanticIdNormalization: options.semanticIdNormalization || {
           complete: true,
           derivedColorScopes: [],
@@ -675,6 +699,39 @@ test('capture artifact validation binds every successful PNG to its manifest', a
     const result = await runWithBaseCapture(manifestPath);
     assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
     assert.match(result.error.message, /must use scenario contract ui-smoke-scenarios\/v2/);
+  });
+
+  await t.test('missing global visual normalization evidence', async () => {
+    const fixture = createCaptureFixture('missing-global-normalization', undefined, {
+      revisionRole: 'base',
+    });
+    delete fixture.manifest.results[0].globalVisualNormalization;
+    const manifestPath = writeJsonArtifact(
+      'missing-global-normalization/invalid-manifest.json',
+      fixture.manifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.equal(result.phase, PHASES.CAPTURE_BASE);
+    assert.match(result.error.message, /invalid global visual normalization evidence.*missing/);
+  });
+
+  await t.test('wrong global visual normalization evidence', async () => {
+    const fixture = createCaptureFixture('wrong-global-normalization', undefined, {
+      revisionRole: 'base',
+    });
+    fixture.manifest.results[0].globalVisualNormalization.rules[0].actualMatches = 0;
+    const manifestPath = writeJsonArtifact(
+      'wrong-global-normalization/invalid-manifest.json',
+      fixture.manifest,
+    );
+    const result = await runWithBaseCapture(manifestPath);
+    assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
+    assert.equal(result.phase, PHASES.CAPTURE_BASE);
+    assert.match(
+      result.error.message,
+      /invalid global visual normalization evidence.*does not match its contract/,
+    );
   });
 
   await t.test('empty canonical scenario normalization evidence', async () => {

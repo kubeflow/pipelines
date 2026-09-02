@@ -48,6 +48,12 @@ const MLMD_EXECUTIONS_BY_CONTEXT_METHOD =
 const MLMD_RUN_CONTEXT_TYPE = 'system.PipelineRun';
 const SEED_IMAGE =
   'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
+// PipelineTaskSpec retryPolicy controls retry count and backoff, but it cannot select the Argo
+// retry predicate. Managed fixture stacks apply this requirement to their rendered manifests so
+// the intentional first-attempt container failure is retried consistently across revisions.
+const SEED_FIXTURE_RUNTIME_REQUIREMENTS = Object.freeze({
+  argoRetryPolicy: 'OnFailure',
+});
 const FAILED_RUN_STATES = new Set(['SKIPPED', 'FAILED', 'CANCELED', 'PAUSED']);
 const METRICS_EXECUTOR_OUTPUT = {
   artifacts: {
@@ -2017,6 +2023,7 @@ module.exports = {
   PIPELINE_YAML_BY_PROFILE,
   RICH_PIPELINE_YAML,
   RESOURCE_DEFINITIONS,
+  SEED_FIXTURE_RUNTIME_REQUIREMENTS,
   SEED_IMAGE,
   SEED_MANIFEST_PATH,
   SEMANTIC_MARKER,

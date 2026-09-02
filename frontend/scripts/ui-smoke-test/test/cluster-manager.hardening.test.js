@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const vm = require('node:vm');
+const { parseAllDocuments, parseDocument } = require('yaml');
 
 const cluster = require('../cluster-manager');
 const { COMPONENTS } = require('../detect-changes');
@@ -55,6 +56,14 @@ function createTestStack(t, overrides = {}) {
   });
 }
 
+function createRevisionRoot(stack, name = 'revision') {
+  const repoRoot = path.join(path.dirname(stack.archiveDir), name);
+  fs.mkdirSync(path.join(repoRoot, 'manifests', 'kustomize', 'env', 'platform-agnostic'), {
+    recursive: true,
+  });
+  return repoRoot;
+}
+
 function renderedManifest(images = ['docker.io/library/alpine:3.23']) {
   return [
     'apiVersion: apps/v1',
@@ -77,6 +86,85 @@ function renderedManifest(images = ['docker.io/library/alpine:3.23']) {
     '  env: |',
     '    - name: V2_DRIVER_IMAGE',
     '      value: ghcr.io/kubeflow/kfp-driver:2.17.1',
+  ].join('\n');
+}
+
+function renderedManifestWithWorkflowDefaults() {
+  return [
+    renderedManifest(),
+    '---',
+    'apiVersion: v1',
+    'kind: ConfigMap',
+    'metadata:',
+    '  name: workflow-controller-configmap',
+    'data:',
+    '  workflowDefaults: |',
+    '    spec:',
+    '      ttlStrategy:',
+    '        secondsAfterCompletion: 3600',
+    '      templateDefaults:',
+    '        retryStrategy:',
+    "          limit: '2'",
+    '          retryPolicy: OnError',
+  ].join('\n');
+}
+
+function mixedPlatformManifest(options = {}) {
+  const pullPolicy = options.pullPolicy ? `\n          imagePullPolicy: ${options.pullPolicy}` : '';
+  const metadataWriterDeployment = options.metadataWriterDeployment || 'metadata-writer';
+  return [
+    'apiVersion: apps/v1',
+    'kind: Deployment',
+    'metadata:',
+    `  name: ${metadataWriterDeployment}`,
+    'spec:',
+    '  template:',
+    '    spec:',
+    '      containers:',
+    '        - name: main',
+    `          image: ghcr.io/kubeflow/kfp-metadata-writer:2.17.1${pullPolicy}`,
+    '---',
+    'apiVersion: apps/v1',
+    'kind: Deployment',
+    'metadata:',
+    '  name: metadata-grpc-deployment',
+    'spec:',
+    '  template:',
+    '    spec:',
+    '      containers:',
+    '        - name: container',
+    `          image: gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0${pullPolicy}`,
+    '---',
+    'apiVersion: apps/v1',
+    'kind: Deployment',
+    'metadata:',
+    '  name: mysql',
+    'spec:',
+    '  template:',
+    '    spec:',
+    '      containers:',
+    '        - name: mysql',
+    '          image: mysql:8.4',
+  ].join('\n');
+}
+
+function mixedPlatformManifestWithWorkflowDefaults(options = {}) {
+  return [
+    mixedPlatformManifest(options),
+    '---',
+    'apiVersion: v1',
+    'kind: ConfigMap',
+    'metadata:',
+    '  name: workflow-controller-configmap',
+    'data:',
+    '  workflowDefaults: |',
+    '    spec:',
+    '      ttlStrategy:',
+    '        secondsAfterCompletion: 3600',
+    '      templateDefaults:',
+    '        retryStrategy:',
+    "          limit: '2'",
+    '          retryPolicy: OnError',
   ].join('\n');
 }
 
@@ -340,6 +428,46 @@ test('deployRevision loads single-platform archives before applying revision man
   );
 });
 
+test('deployRevision applies fixture runtime requirements only to its rendered manifest', async (t) => {
+  const calls = [];
+  let appliedManifest = null;
+  const delegate = deploymentRunner(calls, { manifest: renderedManifestWithWorkflowDefaults() });
+  const runner = (command, args, options) => {
+    if (command === 'kubectl' && args.includes('apply') && args.includes('-f')) {
+      appliedManifest = fs.readFileSync(args.at(-1), 'utf8');
+    }
+    return delegate(command, args, options);
+  };
+  const stack = createTestStack(t, { runner });
+
+  await stack.deployRevision('/revision', {
+    fixtureRequirements: { argoRetryPolicy: 'OnFailure' },
+    platform: 'linux/amd64',
+  });
+
+  assert.match(appliedManifest, /retryPolicy: OnFailure/);
+  assert.match(appliedManifest, /secondsAfterCompletion: 3600/);
+  assert.match(appliedManifest, /limit: '2'/);
+  assert.doesNotMatch(renderedManifestWithWorkflowDefaults(), /retryPolicy: OnFailure/);
+});
+
+test('fixture runtime requirements fail before any Kubernetes resource is applied', async (t) => {
+  const calls = [];
+  const stack = createTestStack(t, { runner: deploymentRunner(calls) });
+
+  await assert.rejects(
+    stack.deployRevision('/revision', {
+      fixtureRequirements: { argoRetryPolicy: 'OnFailure' },
+      platform: 'linux/amd64',
+    }),
+    /exactly one workflow-controller-configmap; found 0/,
+  );
+  assert.equal(
+    calls.some(({ args, command }) => command === 'kubectl' && args.includes('apply')),
+    false,
+  );
+});
+
 test('seed runtime architecture is preflighted without creating or loading a cluster', (t) => {
   const calls = [];
   const stack = createTestStack(t, { runner: deploymentRunner(calls) });
@@ -391,7 +519,7 @@ test('preflight fails clearly when a rendered release image lacks the node archi
 
   assert.throws(
     () => checked.preflightReleaseImages('/revision', { platform: 'linux/arm64' }),
-    /cannot be pulled.*linux\/arm64.*amd64 Kind node with emulation/,
+    /cannot be pulled.*linux\/arm64.*never fall back to a different architecture/,
   );
 });
 
@@ -420,8 +548,347 @@ test('preflight also attributes a platform mismatch discovered while exporting',
 
   assert.throws(
     () => stack.preflightReleaseImages('/revision', { platform: 'linux/arm64' }),
-    /cannot be exported.*linux\/arm64.*amd64 Kind node with emulation/,
+    /cannot be exported.*linux\/arm64.*never fall back to a different architecture/,
   );
+});
+
+test('mixed-platform deploy export failures retain the native Kind node platform', (t) => {
+  const calls = [];
+  const image = 'ghcr.io/kubeflow/kfp-metadata-writer:2.17.1';
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (command === 'docker' && args[0] === 'save' && args.at(-1) === image) {
+      return { success: false, error: 'export failed', output: '' };
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const manifestPath = path.join(stack.archiveDir, 'mixed-platform.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, mixedPlatformManifest({ pullPolicy: 'IfNotPresent' }));
+
+  assert.throws(
+    () => stack.preloadManifestImages(manifestPath, 'linux/arm64'),
+    /cannot be exported for workload platform linux\/amd64 \(Kind node platform linux\/arm64\)/,
+  );
+});
+
+test('arm64 preflight uses exact amd64 workload exceptions and leaves other images native', (t) => {
+  const calls = [];
+  const overlays = [];
+  let overlayResourceTarget = null;
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (command === 'kubectl' && args[0] === 'kustomize') {
+      const outputPath = args[args.indexOf('--output') + 1];
+      let manifest = mixedPlatformManifest();
+      const kustomizationPath = path.join(args[1], 'kustomization.yaml');
+      if (fs.existsSync(kustomizationPath)) {
+        assert.equal(fs.existsSync(path.join(args[1], 'kustomization.json')), false);
+        const overlay = JSON.parse(fs.readFileSync(kustomizationPath, 'utf8'));
+        overlays.push(overlay);
+        overlayResourceTarget = path.resolve(fs.realpathSync(args[1]), overlay.resources[0]);
+        manifest = mixedPlatformManifest({ pullPolicy: 'IfNotPresent' });
+      }
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, manifest);
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const revisionRoot = createRevisionRoot(stack);
+
+  const result = stack.preflightReleaseImages(revisionRoot, {
+    expectedRelease: '2.17.1',
+    platform: 'linux/arm64',
+  });
+
+  assert.deepEqual(result.imagePlatforms, {
+    'gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0': 'linux/amd64',
+    'ghcr.io/kubeflow/kfp-metadata-writer:2.17.1': 'linux/amd64',
+    'mysql:8.4': 'linux/arm64',
+  });
+  const pullPlatform = (image) =>
+    calls.find(
+      ({ args, command }) => command === 'docker' && args[0] === 'pull' && args.at(-1) === image,
+    )?.args[2];
+  assert.equal(pullPlatform('ghcr.io/kubeflow/kfp-metadata-writer:2.17.1'), 'linux/amd64');
+  assert.equal(
+    pullPlatform('gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0'),
+    'linux/amd64',
+  );
+  assert.equal(pullPlatform('mysql:8.4'), 'linux/arm64');
+  assert.equal(
+    calls.some(({ args }) => args.includes('mysql:8.0.3')),
+    false,
+  );
+
+  assert.equal(overlays.length, 1);
+  const [platformAgnosticResource] = overlays[0].resources;
+  assert.equal(path.isAbsolute(platformAgnosticResource), false);
+  assert.equal(
+    overlayResourceTarget,
+    fs.realpathSync(path.join(revisionRoot, 'manifests', 'kustomize', 'env', 'platform-agnostic')),
+  );
+  const pullPolicyPatches = overlays[0].patches.map(({ patch, target }) => ({
+    container: JSON.parse(patch).spec.template.spec.containers[0],
+    target,
+  }));
+  assert.deepEqual(
+    pullPolicyPatches.map(({ container, target }) => ({
+      container: container.name,
+      deployment: target.name,
+      imagePullPolicy: container.imagePullPolicy,
+    })),
+    [
+      {
+        container: 'main',
+        deployment: 'metadata-writer',
+        imagePullPolicy: 'IfNotPresent',
+      },
+      {
+        container: 'container',
+        deployment: 'metadata-grpc-deployment',
+        imagePullPolicy: 'IfNotPresent',
+      },
+    ],
+  );
+});
+
+test('manifest overlays resolve resources from canonical paths across directory aliases', (t) => {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-overlay-alias-'));
+  t.after(() => fs.rmSync(fixtureRoot, { force: true, recursive: true }));
+  const canonicalWorkspace = path.join(fixtureRoot, 'real', 'workspace');
+  const workspaceAlias = path.join(fixtureRoot, 'workspace-alias');
+  fs.mkdirSync(canonicalWorkspace, { recursive: true });
+  fs.symlinkSync(
+    canonicalWorkspace,
+    workspaceAlias,
+    process.platform === 'win32' ? 'junction' : 'dir',
+  );
+  const revisionRoot = path.join(fixtureRoot, 'revision');
+  const platformAgnostic = path.join(
+    revisionRoot,
+    'manifests',
+    'kustomize',
+    'env',
+    'platform-agnostic',
+  );
+  fs.mkdirSync(platformAgnostic, { recursive: true });
+
+  let overlayResource = null;
+  let resolvedOverlayResource = null;
+  const runner = (command, args) => {
+    if (command === 'kubectl' && args[0] === 'kustomize') {
+      const outputPath = args[args.indexOf('--output') + 1];
+      const kustomizationPath = path.join(args[1], 'kustomization.yaml');
+      let manifest = mixedPlatformManifest();
+      if (fs.existsSync(kustomizationPath)) {
+        const overlay = JSON.parse(fs.readFileSync(kustomizationPath, 'utf8'));
+        [overlayResource] = overlay.resources;
+        resolvedOverlayResource = path.resolve(fs.realpathSync(args[1]), overlayResource);
+        manifest = mixedPlatformManifest({ pullPolicy: 'IfNotPresent' });
+      }
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, manifest);
+    }
+    return success();
+  };
+  const stack = createTestStack(t, {
+    archiveDir: path.join(workspaceAlias, 'archives'),
+    runner,
+  });
+
+  stack.preflightReleaseImages(revisionRoot, {
+    expectedRelease: '2.17.1',
+    platform: 'linux/arm64',
+  });
+
+  assert.equal(path.isAbsolute(overlayResource), false);
+  assert.equal(resolvedOverlayResource, fs.realpathSync(platformAgnostic));
+});
+
+test('mixed-platform manifest validation rejects stale workload placement and pull policy', (t) => {
+  const calls = [];
+  const stack = createTestStack(t, { runner: deploymentRunner(calls) });
+  const missingPolicyPath = path.join(stack.archiveDir, 'missing-policy.yaml');
+  const stalePlacementPath = path.join(stack.archiveDir, 'stale-placement.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(missingPolicyPath, mixedPlatformManifest());
+  fs.writeFileSync(
+    stalePlacementPath,
+    mixedPlatformManifest({
+      metadataWriterDeployment: 'renamed-metadata-writer',
+      pullPolicy: 'IfNotPresent',
+    }),
+  );
+
+  assert.throws(
+    () => stack.preloadManifestImages(missingPolicyPath, 'linux/arm64'),
+    /must use imagePullPolicy IfNotPresent/,
+  );
+  assert.throws(
+    () => stack.preloadManifestImages(stalePlacementPath, 'linux/arm64'),
+    /only approved for Deployment metadata-writer, container main.*renamed-metadata-writer/,
+  );
+  assert.equal(
+    calls.some(({ command }) => command === 'docker'),
+    false,
+  );
+});
+
+test('arm64 preload runs one Kubernetes amd64 emulation canary from a pinned image', (t) => {
+  const calls = [];
+  let canary;
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (
+      command === 'kubectl' &&
+      args.includes('apply') &&
+      args.at(-1).endsWith('ui-smoke-amd64-canary.json')
+    ) {
+      canary = JSON.parse(fs.readFileSync(args.at(-1), 'utf8'));
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const manifestPath = path.join(stack.archiveDir, 'mixed-platform.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, mixedPlatformManifest({ pullPolicy: 'IfNotPresent' }));
+
+  stack.preloadManifestImages(manifestPath, 'linux/arm64');
+
+  assert.ok(canary);
+  const container = canary.spec.template.spec.containers[0];
+  assert.equal(container.image, cluster.AMD64_EMULATION_CANARY_IMAGE);
+  assert.equal(container.imagePullPolicy, 'Never');
+  assert.deepEqual(container.command, ['/bin/sh', '-c', 'exit 0']);
+  assert.equal(container.securityContext.runAsNonRoot, true);
+  const canaryPull = calls.find(
+    ({ args, command }) =>
+      command === 'docker' &&
+      args[0] === 'pull' &&
+      args.at(-1) === cluster.AMD64_EMULATION_CANARY_IMAGE,
+  );
+  assert.deepEqual(canaryPull.args.slice(0, 3), ['pull', '--platform', 'linux/amd64']);
+  assert.ok(
+    calls.some(
+      ({ args, command }) =>
+        command === 'kubectl' &&
+        args.includes('delete') &&
+        args.includes('job/ui-smoke-amd64-canary'),
+    ),
+  );
+  assert.equal(fs.existsSync(path.join(stack.archiveDir, 'ui-smoke-amd64-canary.json')), false);
+
+  const callCount = calls.length;
+  stack.preloadManifestImages(manifestPath, 'linux/arm64');
+  assert.equal(calls.length, callCount);
+});
+
+test('arm64 deployment composes mixed-platform patches with fixture retry requirements', async (t) => {
+  const calls = [];
+  let appliedManifest = null;
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (command === 'kubectl' && args[0] === 'kustomize') {
+      const outputPath = args[args.indexOf('--output') + 1];
+      const kustomizationPath = path.join(args[1], 'kustomization.yaml');
+      const manifest = fs.existsSync(kustomizationPath)
+        ? mixedPlatformManifestWithWorkflowDefaults({ pullPolicy: 'IfNotPresent' })
+        : mixedPlatformManifestWithWorkflowDefaults();
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, manifest);
+    }
+    if (
+      command === 'kubectl' &&
+      args.includes('apply') &&
+      args.includes('-f') &&
+      args.at(-1).endsWith('platform-agnostic.yaml')
+    ) {
+      appliedManifest = fs.readFileSync(args.at(-1), 'utf8');
+    }
+    if (
+      command === 'kubectl' &&
+      args.includes('get') &&
+      args.includes('deployments') &&
+      args.some((argument) => argument.startsWith('jsonpath='))
+    ) {
+      return success('metadata-grpc-deployment\nmetadata-writer\nmysql');
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const revisionRoot = createRevisionRoot(stack);
+
+  await stack.deployRevision(revisionRoot, {
+    fixtureRequirements: { argoRetryPolicy: 'OnFailure' },
+    platform: 'linux/arm64',
+  });
+
+  assert.ok(appliedManifest);
+  const resources = parseAllDocuments(appliedManifest).map((document) => document.toJS());
+  const container = (deployment, name) =>
+    resources
+      .find((resource) => resource.kind === 'Deployment' && resource.metadata.name === deployment)
+      .spec.template.spec.containers.find((candidate) => candidate.name === name);
+  assert.equal(container('metadata-writer', 'main').imagePullPolicy, 'IfNotPresent');
+  assert.equal(container('metadata-grpc-deployment', 'container').imagePullPolicy, 'IfNotPresent');
+  const workflowConfig = resources.find(
+    (resource) =>
+      resource.kind === 'ConfigMap' && resource.metadata.name === 'workflow-controller-configmap',
+  );
+  const workflowDefaults = parseDocument(workflowConfig.data.workflowDefaults);
+  assert.equal(
+    workflowDefaults.getIn(['spec', 'templateDefaults', 'retryStrategy', 'retryPolicy']),
+    'OnFailure',
+  );
+  assert.equal(workflowDefaults.getIn(['spec', 'templateDefaults', 'retryStrategy', 'limit']), '2');
+
+  const canaryCompletion = calls.findIndex(
+    ({ args, command }) =>
+      command === 'kubectl' && args.includes('wait') && args.includes('job/ui-smoke-amd64-canary'),
+  );
+  const manifestApply = calls.findIndex(
+    ({ args, command }) =>
+      command === 'kubectl' &&
+      args.includes('apply') &&
+      args.at(-1).endsWith('platform-agnostic.yaml'),
+  );
+  assert.ok(canaryCompletion >= 0 && canaryCompletion < manifestApply);
+});
+
+test('amd64 emulation failure is actionable and always removes the Kubernetes canary', (t) => {
+  const calls = [];
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (
+      command === 'kubectl' &&
+      args.includes('wait') &&
+      args.includes('job/ui-smoke-amd64-canary')
+    ) {
+      return { success: false, error: 'exec format error', output: '' };
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const manifestPath = path.join(stack.archiveDir, 'mixed-platform.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, mixedPlatformManifest({ pullPolicy: 'IfNotPresent' }));
+
+  assert.throws(
+    () => stack.preloadManifestImages(manifestPath, 'linux/arm64'),
+    /cannot execute a preloaded amd64 workload.*exec format error.*QEMU or Rosetta/,
+  );
+  assert.ok(
+    calls.some(
+      ({ args, command }) =>
+        command === 'kubectl' &&
+        args.includes('delete') &&
+        args.includes('job/ui-smoke-amd64-canary'),
+    ),
+  );
+  assert.equal(fs.existsSync(path.join(stack.archiveDir, 'ui-smoke-amd64-canary.json')), false);
 });
 
 test('release deployments reject rendered Kubeflow images from another revision', (t) => {
@@ -454,10 +921,11 @@ test('head deployment rejects an unbuilt first-party image before workload apply
     manifest: renderedManifest([localApi, 'ghcr.io/kubeflow/kfp-new-component:master']),
   });
   const stack = createTestStack(t, { runner });
+  const headRoot = createRevisionRoot(stack, 'head');
 
   assert.throws(
     () =>
-      stack.applyKfpManifests('/head', {
+      stack.applyKfpManifests(headRoot, {
         imageOverrides: {
           deployments: [
             {
@@ -476,6 +944,155 @@ test('head deployment rejects an unbuilt first-party image before workload apply
   );
   assert.equal(
     calls.some((call) => call.command === 'kubectl' && call.args.includes('apply')),
+    false,
+  );
+});
+
+test('local deployment rejects retained legacy first-party images before workload apply', (t) => {
+  const calls = [];
+  const localApi = 'kfp-ui-smoke/apiserver:head-sha';
+  const legacyFrontend = 'gcr.io/ml-pipeline/frontend:master';
+  const runner = deploymentRunner(calls, {
+    manifest: renderedManifest([localApi, legacyFrontend]),
+  });
+  const stack = createTestStack(t, { runner });
+  const headRoot = createRevisionRoot(stack, 'head');
+
+  assert.throws(
+    () =>
+      stack.applyKfpManifests(headRoot, {
+        imageOverrides: {
+          deployments: [
+            {
+              container: 'ml-pipeline-api-server',
+              deployment: 'ml-pipeline',
+              image: localApi,
+            },
+          ],
+          images: { apiserver: localApi },
+          runtimeEnvironment: {},
+        },
+        platform: 'linux/amd64',
+        requireLocalFirstParty: true,
+      }),
+    /retain non-local Kubeflow images.*gcr\.io\/ml-pipeline\/frontend:master/,
+  );
+  assert.equal(
+    calls.some((call) => call.command === 'kubectl' && call.args.includes('apply')),
+    false,
+  );
+});
+
+test('local deployment validates the exact workload container for every image override', (t) => {
+  const calls = [];
+  const localApi = 'kfp-ui-smoke/apiserver:head-sha';
+  const manifest = renderedManifest(['docker.io/library/alpine:3.23', localApi]).replace(
+    'ghcr.io/kubeflow/kfp-driver:2.17.1',
+    'docker.io/library/busybox:1.37',
+  );
+  const stack = createTestStack(t, {
+    runner: deploymentRunner(calls, { manifest }),
+  });
+  const headRoot = createRevisionRoot(stack, 'head');
+
+  assert.throws(
+    () =>
+      stack.applyKfpManifests(headRoot, {
+        imageOverrides: {
+          deployments: [
+            {
+              container: 'ml-pipeline-api-server',
+              deployment: 'ml-pipeline',
+              image: localApi,
+            },
+          ],
+          images: { apiserver: localApi },
+          runtimeEnvironment: {},
+        },
+        platform: 'linux/amd64',
+        requireLocalFirstParty: true,
+      }),
+    /did not set Deployment ml-pipeline, container ml-pipeline-api-server.*head-sha/,
+  );
+  assert.equal(
+    calls.some((call) => call.command === 'kubectl' && call.args.includes('apply')),
+    false,
+  );
+});
+
+test('local deployment validates runtime images on the exact API server environment', (t) => {
+  const calls = [];
+  const localApi = 'kfp-ui-smoke/apiserver:head-sha';
+  const localDriver = 'kfp-ui-smoke/driver:head-sha';
+  const manifest = [
+    'apiVersion: apps/v1',
+    'kind: Deployment',
+    'metadata:',
+    '  name: ml-pipeline',
+    'spec:',
+    '  template:',
+    '    spec:',
+    '      containers:',
+    '        - name: ml-pipeline-api-server',
+    `          image: ${localApi}`,
+    '          env:',
+    '            - name: V2_DRIVER_IMAGE',
+    '              value: docker.io/library/alpine:3.23',
+    '---',
+    'apiVersion: v1',
+    'kind: ConfigMap',
+    'metadata:',
+    '  name: unrelated-runtime-images',
+    'data:',
+    '  values: |',
+    '    - name: V2_DRIVER_IMAGE',
+    `      value: ${localDriver}`,
+  ].join('\n');
+  const stack = createTestStack(t, {
+    runner: deploymentRunner(calls, { manifest }),
+  });
+  const headRoot = createRevisionRoot(stack, 'head');
+
+  assert.throws(
+    () =>
+      stack.applyKfpManifests(headRoot, {
+        imageOverrides: {
+          deployments: [
+            {
+              container: 'ml-pipeline-api-server',
+              deployment: 'ml-pipeline',
+              image: localApi,
+            },
+          ],
+          images: { apiserver: localApi, driver: localDriver },
+          runtimeEnvironment: { V2_DRIVER_IMAGE: localDriver },
+        },
+        platform: 'linux/amd64',
+        requireLocalFirstParty: true,
+      }),
+    /did not set ml-pipeline\/ml-pipeline-api-server V2_DRIVER_IMAGE.*driver:head-sha/,
+  );
+  assert.equal(
+    calls.some((call) => call.command === 'kubectl' && call.args.includes('apply')),
+    false,
+  );
+});
+
+test('third-party preflight excludes legacy Kubeflow images reserved for local builds', (t) => {
+  const calls = [];
+  const legacyApi = 'gcr.io/ml-pipeline/api-server:master';
+  const dependency = 'docker.io/library/alpine:3.23';
+  const stack = createTestStack(t, {
+    runner: deploymentRunner(calls, { manifest: renderedManifest([legacyApi, dependency]) }),
+  });
+
+  const result = stack.preflightThirdPartyImages('/head', { platform: 'linux/amd64' });
+
+  assert.deepEqual(result.images, [dependency]);
+  assert.equal(
+    calls.some(
+      ({ args, command }) => command === 'docker' && args[0] === 'pull' && args.includes(legacyApi),
+    ),
     false,
   );
 });
@@ -642,6 +1259,11 @@ test('component tags and image archives are scoped to the stack', async (t) => {
     ),
   );
   assert.ok(
+    calls
+      .filter((call) => call.command === 'docker' && call.args[0] === 'build')
+      .every((call) => call.args.includes('linux/arm64')),
+  );
+  assert.ok(
     calls.some(
       (call) =>
         call.command === 'kind' &&
@@ -681,7 +1303,7 @@ test('deployRevision patches exact component images before the first workload ap
       calls.push({ args, command, options });
       if (command === 'kubectl' && args.includes('nodes')) return success('amd64');
       if (command === 'kubectl' && args[0] === 'kustomize') {
-        const kustomizationPath = path.join(args[1], 'kustomization.json');
+        const kustomizationPath = path.join(args[1], 'kustomization.yaml');
         overlay = JSON.parse(fs.readFileSync(kustomizationPath, 'utf8'));
         const image = JSON.parse(overlay.patches[0].patch).spec.template.spec.containers[0].image;
         const outputPath = args[args.indexOf('--output') + 1];
@@ -693,8 +1315,9 @@ test('deployRevision patches exact component images before the first workload ap
       return success();
     },
   });
+  const headRoot = createRevisionRoot(stack, 'head');
 
-  const result = await stack.deployRevision('/head', {
+  const result = await stack.deployRevision(headRoot, {
     buildMetadata: BUILD_METADATA,
     components: [apiserver],
     platform: 'linux/amd64',

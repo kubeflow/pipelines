@@ -20,6 +20,7 @@ const {
   externalBuildArguments,
   externalInstallArguments,
   fetchedDependencyInputs,
+  fullSha,
   fullCaptureEnvironment,
   loadUpgradeAdapter,
   materializeTrustedHeadSnapshot,
@@ -53,6 +54,7 @@ function comparisonOptions(overrides = {}) {
     headCheckout: null,
     prNumber: '123',
     repository: 'kubeflow/pipelines',
+    trustBaseCode: false,
     trustLocalHead: false,
     trustPrCode: true,
     upgrade: false,
@@ -120,8 +122,8 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
     async cleanup() {
       calls.cleanup += 1;
     },
-    async ensureCluster(repoRoot) {
-      calls.clusterSources.push(repoRoot);
+    async ensureCluster(repoRoot, options) {
+      calls.clusterSources.push({ options, repoRoot });
     },
     async ensurePortForwarding() {},
     async reapplyManifests(repoRoot) {
@@ -495,6 +497,7 @@ test('full-stack and upgrade modes require an explicitly trusted local checkout'
   assert.equal(fullStack.fullStack, true);
   assert.equal(fullStack.headCheckout, path.resolve('/tmp/reviewed-head'));
   assert.equal(fullStack.trustLocalHead, true);
+  assert.equal(fullStack.trustBaseCode, false);
 
   const upgrade = parseCli([
     '--compare',
@@ -517,6 +520,42 @@ test('full-stack and upgrade modes require an explicitly trusted local checkout'
         '--trust-local-head',
       ]),
     /mutually exclusive/,
+  );
+
+  assert.throws(
+    () =>
+      parseCli([
+        '--compare',
+        'origin/master',
+        '--full-stack',
+        '--head-checkout',
+        '/tmp/reviewed-head',
+        '--trust-local-head',
+      ]),
+    /requires --trust-base-code/,
+  );
+  const trustedBase = parseCli([
+    '--compare',
+    'origin/master',
+    '--full-stack',
+    '--head-checkout',
+    '/tmp/reviewed-head',
+    '--trust-local-head',
+    '--trust-base-code',
+  ]);
+  assert.equal(trustedBase.trustBaseCode, true);
+  assert.throws(
+    () =>
+      parseCli([
+        '--compare',
+        '2.17.1',
+        '--upgrade',
+        '--head-checkout',
+        '/tmp/reviewed-head',
+        '--trust-local-head',
+        '--trust-base-code',
+      ]),
+    /--trust-base-code is only valid with --full-stack/,
   );
 });
 
@@ -674,11 +713,41 @@ test('full comparisons discard ambient page subsets', () => {
   assert.equal(environment.UI_SMOKE_PAGES, undefined);
 });
 
-test('full-stack bases must be exact published release refs', () => {
+test('release base validation accepts only exact published-release version syntax', () => {
   assert.equal(validateFullStackBaseRelease('2.17.1'), '2.17.1');
   assert.throws(
     () => validateFullStackBaseRelease('origin/master'),
-    /require an exact release base.*origin\/master/,
+    /require an exact version.*origin\/master/,
+  );
+});
+
+test('full commit resolution uses an option-safe verified Git ref', () => {
+  const calls = [];
+  const commit = 'a'.repeat(40);
+
+  assert.equal(
+    fullSha('origin/master', '/repo', {
+      git(args, cwd) {
+        calls.push({ args, cwd });
+        return commit;
+      },
+    }),
+    commit,
+  );
+  assert.deepEqual(calls, [
+    {
+      args: ['rev-parse', '--verify', '--end-of-options', 'origin/master^{commit}'],
+      cwd: '/repo',
+    },
+  ]);
+  assert.throws(
+    () =>
+      fullSha('--help', '/repo', {
+        git() {
+          throw new Error('must not execute');
+        },
+      }),
+    /invalid Git ref/,
   );
 });
 
@@ -1177,7 +1246,12 @@ test('fetched browser-only comparison uses the trusted base runtime for both bun
     { options: undefined, target: baseWorktree },
     { options: undefined, target: headWorktree },
   ]);
-  assert.deepEqual(calls.clusterSources, [baseWorktree]);
+  assert.deepEqual(calls.clusterSources, [
+    {
+      options: { fixtureRequirements: { argoRetryPolicy: 'OnFailure' } },
+      repoRoot: baseWorktree,
+    },
+  ]);
   assert.deepEqual(calls.hostServers, [{ options: { skipBuild: false }, repoRoot: baseWorktree }]);
   assert.deepEqual(calls.manifests, []);
   assert.deepEqual(calls.deployments, []);
@@ -1303,7 +1377,12 @@ test('local browser-only comparison also uses the base runtime', async (t) => {
     ),
     true,
   );
-  assert.deepEqual(calls.clusterSources, [baseWorktree]);
+  assert.deepEqual(calls.clusterSources, [
+    {
+      options: { fixtureRequirements: { argoRetryPolicy: 'OnFailure' } },
+      repoRoot: baseWorktree,
+    },
+  ]);
   assert.deepEqual(calls.manifests, []);
   assert.deepEqual(calls.deployments, []);
   assert.deepEqual(calls.buildTrusted, [baseWorktree, repoRoot]);
@@ -1507,6 +1586,13 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
     ).options.requireLocalFirstParty,
     true,
   );
+  for (const deployment of stackOperations.filter(
+    ({ operation }) => operation === 'deployRevision:start',
+  )) {
+    assert.deepEqual(deployment.options.fixtureRequirements, {
+      argoRetryPolicy: 'OnFailure',
+    });
+  }
   assert.equal(calls.seed.length, 2);
   assert.notEqual(calls.seed[0].apiBase, calls.seed[1].apiBase);
   assert.notEqual(calls.seed[0].manifestPath, calls.seed[1].manifestPath);
@@ -1549,6 +1635,237 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
   assert.equal(calls.cleanupRegistrations.length, 4);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'cleanup').length, 2);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'destroyCluster').length, 2);
+});
+
+test('untrusted arbitrary full-stack bases fail before source or runtime side effects', async (t) => {
+  const { calls, run, services } = orchestrationHarness(t);
+  services.fullSha = () => {
+    throw new Error('Git resolution must not run before the base trust gate.');
+  };
+
+  await assert.rejects(
+    runComparison(
+      comparisonOptions({
+        compareRef: 'origin/master',
+        fullStack: true,
+        headCheckout: '/reviewed/head',
+        prNumber: null,
+        trustBaseCode: false,
+        trustLocalHead: true,
+        trustPrCode: false,
+      }),
+      run,
+      services,
+    ),
+    /requires --trust-base-code/,
+  );
+
+  assert.deepEqual(calls.detect, []);
+  assert.deepEqual(calls.runtimePrerequisites, []);
+  assert.deepEqual(calls.snapshots, []);
+  assert.deepEqual(calls.worktrees, []);
+  assert.deepEqual(calls.portChecks, []);
+});
+
+test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated local stacks', async (t) => {
+  const baseSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const headSha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+  const stackOperations = [];
+  const { calls, repoRoot, run, services } = orchestrationHarness(
+    t,
+    {
+      backendChanged: true,
+      baseRef: baseSha,
+      manifestsChanged: true,
+      serverChanged: true,
+    },
+    {
+      clusterManager: {
+        createKindStack(configuration) {
+          const { role } = configuration;
+          const record = (operation, detail = {}) =>
+            stackOperations.push({ operation, role, ...detail });
+          return {
+            clusterName: configuration.clusterName,
+            deployedUiUrl: `http://127.0.0.1:${configuration.ports.frontendServer}`,
+            role,
+            async buildComponentImages(components, target, options) {
+              record('buildComponentImages', { components, options, target });
+              return {
+                deployments: [
+                  {
+                    container: 'ml-pipeline-api-server',
+                    deployment: 'ml-pipeline',
+                    image: `kfp-ui-smoke/${role}:test`,
+                  },
+                ],
+                images: { apiserver: `kfp-ui-smoke/${role}:test` },
+                runtimeEnvironment: {},
+              };
+            },
+            async cleanup() {
+              record('cleanup');
+            },
+            async createCluster() {
+              record('createCluster');
+            },
+            async deployRevision(target, options) {
+              record('deployRevision', { options, target });
+            },
+            async destroyCluster() {
+              record('destroyCluster');
+              return true;
+            },
+            async ensureDeployedUiPortForwarding() {
+              return [{ role }];
+            },
+            getClusterPlatform() {
+              return 'linux/amd64';
+            },
+            getDockerPlatform() {
+              return 'linux/amd64';
+            },
+            loadImageOverrides(imageOverrides, platform) {
+              record('loadImageOverrides', { imageOverrides, platform });
+            },
+            preflightReleaseImages() {
+              throw new Error('arbitrary bases must not use published release images');
+            },
+            preflightSeedRuntimeImage(options) {
+              return { image: 'seed-image', platform: options.platform };
+            },
+            preflightThirdPartyImages(target, options) {
+              record('preflightThirdPartyImages', { options, target });
+              return { images: ['dependency'], platform: options.platform };
+            },
+          };
+        },
+      },
+      combineSemanticManifests(manifests, options) {
+        return { manifests, options, schemaVersion: 'ui-smoke-semantic/v3' };
+      },
+      componentsForRevision(target) {
+        return [{ name: target.includes('base') ? 'base-apiserver' : 'head-apiserver' }];
+      },
+      fullSha(gitRef) {
+        if (gitRef === 'origin/master' || gitRef === baseSha) return baseSha;
+        return headSha;
+      },
+      resolveExactBaseRelease() {
+        throw new Error('non-release bases must not use release resolution');
+      },
+      revisionUsesMetadataService(target) {
+        return target.includes('base');
+      },
+      async seedData(options) {
+        calls.seed.push(options);
+        const revisionFlavor = options.apiBase.endsWith(':3101')
+          ? 'legacy-mlmd'
+          : 'native-task-artifact';
+        fs.mkdirSync(path.dirname(options.manifestPath), { recursive: true });
+        fs.writeFileSync(
+          options.manifestPath,
+          JSON.stringify({
+            defaults: {},
+            resources: {},
+            semantic: {
+              logical: { runs: {} },
+              revisionFlavor,
+              validation: { valid: true },
+            },
+          }),
+        );
+        return { success: true };
+      },
+    },
+  );
+  const baseWorktree = path.join(run.runDir, 'worktrees', 'base');
+  const headWorktree = path.join(run.runDir, 'worktrees', 'head');
+
+  assert.equal(
+    await runComparison(
+      comparisonOptions({
+        compareRef: 'origin/master',
+        fullStack: true,
+        headCheckout: '/reviewed/head',
+        prNumber: null,
+        trustBaseCode: true,
+        trustLocalHead: true,
+        trustPrCode: false,
+      }),
+      run,
+      services,
+    ),
+    true,
+  );
+
+  assert.equal(calls.detect[0].baseRef, baseSha);
+  assert.deepEqual(calls.worktrees, [{ gitRef: baseSha, target: baseWorktree }]);
+  assert.deepEqual(calls.snapshots, [{ sourceRoot: repoRoot, targetRoot: headWorktree }]);
+  assert.deepEqual(
+    stackOperations
+      .filter(({ operation }) => operation === 'preflightThirdPartyImages')
+      .map(({ role, target }) => ({ role, target })),
+    [
+      { role: 'base', target: baseWorktree },
+      { role: 'head', target: headWorktree },
+    ],
+  );
+  assert.deepEqual(
+    stackOperations
+      .filter(({ operation }) => operation === 'buildComponentImages')
+      .map(({ role, target }) => ({ role, target })),
+    [
+      { role: 'base', target: baseWorktree },
+      { role: 'head', target: headWorktree },
+    ],
+  );
+  const firstCluster = stackOperations.findIndex(({ operation }) => operation === 'createCluster');
+  const lastBuild = stackOperations.reduce(
+    (index, entry, current) => (entry.operation === 'buildComponentImages' ? current : index),
+    -1,
+  );
+  assert.ok(lastBuild >= 0 && lastBuild < firstCluster);
+  assert.deepEqual(
+    stackOperations
+      .filter(({ operation }) => operation === 'deployRevision')
+      .map(({ options, role, target }) => ({
+        expectedRelease: options.expectedRelease,
+        fixtureRequirements: options.fixtureRequirements,
+        requireLocalFirstParty: options.requireLocalFirstParty,
+        role,
+        target,
+      })),
+    [
+      {
+        expectedRelease: undefined,
+        fixtureRequirements: { argoRetryPolicy: 'OnFailure' },
+        requireLocalFirstParty: true,
+        role: 'base',
+        target: baseWorktree,
+      },
+      {
+        expectedRelease: undefined,
+        fixtureRequirements: { argoRetryPolicy: 'OnFailure' },
+        requireLocalFirstParty: true,
+        role: 'head',
+        target: headWorktree,
+      },
+    ],
+  );
+  assert.deepEqual(
+    stackOperations
+      .filter(({ operation }) => operation === 'loadImageOverrides')
+      .map(({ role }) => role),
+    ['base', 'head'],
+  );
+  const semanticManifest = JSON.parse(
+    fs.readFileSync(path.join(run.runDir, 'semantic-fixtures.json'), 'utf8'),
+  );
+  assert.deepEqual(semanticManifest.options.revisions.base, {
+    commit: baseSha,
+    ref: 'origin/master',
+  });
 });
 
 test('full-stack seed failures persist categorized JSON, HTML, and stack diagnostics', async (t) => {

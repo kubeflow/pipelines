@@ -14,9 +14,12 @@ missing, degraded, stale, corrupt, or different beyond the configured threshold.
 - `gh`, authenticated to the target repository, only when `--comment` is used
 
 Before creating a cluster, the runner renders both revision overlays, verifies and exports every
-dependency image for the Kind node's explicit platform, and builds every reviewed first-party head
-image for that platform. An amd64-only release image on an arm64 Kind node therefore fails before
-cluster creation with instructions to use a matching image or an amd64 node with emulation.
+dependency image for an explicit platform, and builds every reviewed first-party image required by
+a locally built revision for the Kind node's native platform. On arm64, the two known amd64-only
+workloads in the 2.17.1 manifest are pulled and loaded explicitly as amd64 without changing the
+Kind node architecture. A Kubernetes canary verifies workload emulation before either revision is
+deployed. Any other missing-platform image fails closed instead of silently falling back to a
+foreign architecture.
 
 Install the utility's pinned dependencies and browser once:
 
@@ -69,6 +72,25 @@ from the canonical `kubeflow/pipelines` repository, verifies that the local tag 
 commit, and pins all base work to that verified commit SHA. A moved or counterfeit local release
 tag is rejected.
 
+To compare the MLMD-removal checkout against a non-release base such as current `main`, explicitly
+trust both local revision inputs:
+
+```bash
+node smoke-test-runner.js \
+  --compare origin/master \
+  --full-stack \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --trust-base-code \
+  --pr-number 13986
+```
+
+The runner resolves the base ref to an immutable SHA before snapshotting the head, creates a
+separate detached base worktree, and builds all first-party components used by each revision. The
+extra base trust flag is required because a branch or arbitrary commit is executable input rather
+than a verified published release. Each resulting UI is served by its own matching
+frontend-server, backend, manifests, and isolated state.
+
 To make an explicitly scoped browser-only comparison that ignores changed runtime surfaces:
 
 ```bash
@@ -77,6 +99,8 @@ node smoke-test-runner.js --compare origin/master --browser-only
 
 The head label and report record every ignored surface. This result is a browser compatibility
 signal only; it says nothing about the changed server, backend, deployment, or migration behavior.
+In particular, it cannot validate pages that require #13986's native Task or Artifact endpoints;
+use the revision-matched full-stack mode for those scenarios.
 
 To label local screenshots for an existing pull request:
 
@@ -190,7 +214,11 @@ object. Full-stack semantic captures also pin Chromium through the nested lockfi
 scale factor of 2, UTC, `en-US`, a light color scheme, reduced motion, and embedded Roboto 5.3.0
 WOFF2 assets at weights 400, 500, and 700. Each font digest is attested in the capture manifest.
 They freeze the browser clock, disable long polling timers, normalize rendered timestamps and
-durations, and apply the same deterministic styles inside artifact frames. Scenario-declared run,
+durations, and apply the same deterministic styles inside artifact frames. Semantic full-stack
+captures also hide exactly the base revision's `#executionsBtn` and assert that the head revision
+has no such element. This removes the reviewed sidebar/footer displacement without masking any
+other navigation pixels; selector counts, the applied rule, and its expected-change annotation are
+attested in every capture record. Scenario-declared run,
 task, execution, Artifact, Artifact URI, pod-name, and pod-UID values are first validated at their
 real generated values, then replaced inside narrowly scoped text nodes with stable semantic tokens
 immediately before the screenshot. When 2.17.1 exposes repeated uncached `ParallelFor` task rows
@@ -205,6 +233,7 @@ cross-revision visual-token identity, plus replacement counts and SHA-256 digest
 values and source colors without recording raw generated identities. It never applies a page-wide
 UUID or numeric regex, and a missing, ambiguous, or unexpectedly repeated required replacement is
 a capture failure.
+
 Full-stack captures must explicitly request and attest `semantic-full-stack`; browser-only captures
 must explicitly request `disabled-browser-compatibility` and cannot provide semantic or source
 provenance. Comparison re-reads the attested semantic manifest, recomputes its fixture validation,
@@ -249,12 +278,16 @@ The clean-stack catalog keys are `executions-to-runs`, `artifact-list-evolution`
 `run-details-scalar-metrics`, `run-details-html`, `run-details-markdown`, `run-details-roc`,
 `compare-runs`, `compare-roc-selection`, `compare-html`, `compare-markdown`, `artifact-details`,
 `artifact-related-tasks`, `topology-retried-task`, `topology-parallel-for`,
-`topology-nested-dag`, and the optional upgrade-only `historical-artifact-evolution`.
+and `topology-nested-dag`.
 
 Full-stack seeding creates the same logical pipeline, run, metrics, ROC data, artifacts, retry,
 two-item `ParallelFor`, and nested DAG in each revision through that revision's supported APIs.
 The artifact set includes deterministic scalar metrics, classification metrics, HTML, and Markdown
-contents plus producer and consumer relationships.
+contents plus producer and consumer relationships. The retry fixture declares that it requires
+Argo `retryPolicy: OnFailure`; the runner applies that requirement only to each rendered disposable
+stack and verifies the target ConfigMap shape before deployment. Repository manifests are not
+modified.
+
 The 2.17.1 Argo reporter does not populate a complete task/Artifact projection. Legacy hydration
 therefore resolves the exact `system.PipelineRun` MLMD context by the KFP run ID, loads every
 execution, Artifact, and Event in that context, and reconstructs only the fixture's declared
@@ -273,6 +306,7 @@ through `/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and A
 relationships. Both revisions retain launcher-managed `executor-logs-N` Artifacts, order retry logs
 by their URI suffix rather than API response order, and map their IDs and URIs to the same semantic
 attempt identities without admitting other undeclared Artifacts.
+
 The resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
 routes and selectors do not need identical IDs.
 
@@ -280,9 +314,9 @@ Capture scenarios are semantic journeys rather than a shared list of URLs. The b
 use different routes, tabs, selectors, and actions for the same scenario. The clean-stack catalog
 covers Executions to Runs, grouped to native Artifact lists, Run Details graph/task/logs and all
 seeded visualizations, Compare selections, Artifact Details and relationships, retries,
-`ParallelFor`, and nested DAGs. Preserved historical legacy artifacts remain an optional
-upgrade-only scenario and cannot invalidate a clean-install comparison merely because migration
-support is unavailable.
+`ParallelFor`, and nested DAGs. The clean-stack catalog deliberately omits the former historical
+Artifact scenario because no historical identity exists there; it belongs in upgrade mode once an
+adapter can discover and attest the migrated native Artifact identity.
 
 ## PR comments
 
@@ -367,17 +401,20 @@ node smoke-test-runner.js --teardown
 
 ## What a full-stack comparison does
 
-1. Validates the reviewed checkout, dependencies, tools, an exact release-tag base such as
-   `2.17.1`, and both non-overlapping port sets. The rendered first-party base images must carry
-   that exact release tag.
+1. Validates the reviewed checkout, dependencies, tools, both non-overlapping port sets, and either
+   an exact release-tag base such as `2.17.1` or an explicitly trusted non-release base ref. A
+   release base must use first-party images carrying that exact tag; a non-release base is pinned
+   and built locally.
 2. Creates unique run state and a detached base worktree, then renders only each revision's actual
    platform-agnostic overlay. Workload and optional-service discovery never scans unrelated YAML.
-3. Verifies and exports every rendered dependency image and builds the selected head's
-   revision-compatible frontend, frontend-server, backend, and runtime images for the explicit Kind
-   node platform. Any architecture or build failure occurs before cluster creation.
+3. Verifies and exports every rendered dependency image and builds the selected head's—and, when
+   applicable, the non-release base's—revision-compatible frontend, frontend-server, backend, and
+   runtime images for the explicit Kind node platform. The known 2.17.1 amd64-only workloads use
+   narrow workload-level overrides on arm64; unknown architecture or build failures occur before
+   deployment.
 4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
    preflighted for that revision. Exact local image overrides and runtime-image variables are
-   applied to the rendered head before any workload starts.
+   applied to each locally built revision before any workload starts.
 5. Applies the manifests and waits for the deployments actually rendered by that revision.
 6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
    readiness checks, and screenshots all use that deployed UI and its matching in-cluster

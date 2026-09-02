@@ -19,6 +19,7 @@ const {
   MINIMAL_PIPELINE_YAML,
   RICH_PIPELINE_YAML,
   RESOURCE_DEFINITIONS,
+  SEED_FIXTURE_RUNTIME_REQUIREMENTS,
   SEED_IMAGE,
   SEMANTIC_MARKER,
   buildSeedManifest,
@@ -386,6 +387,13 @@ test('rich fixture uses pinned revision-compatible topology without runtime inst
   assert.match(multipart, /taskOutputArtifact:[\s\S]*producerTask: write-metrics/);
   assert.equal((multipart.match(new RegExp(SEED_IMAGE, 'g')) || []).length, 5);
   assert.doesNotMatch(multipart, /pip install|kfp\.dsl\.executor_main|python:/);
+});
+
+test('rich retry fixture declares its required Argo failure predicate', () => {
+  assert.deepEqual(SEED_FIXTURE_RUNTIME_REQUIREMENTS, {
+    argoRetryPolicy: 'OnFailure',
+  });
+  assert.equal(Object.isFrozen(SEED_FIXTURE_RUNTIME_REQUIREMENTS), true);
 });
 
 test('API URLs preserve a configured path prefix', () => {
