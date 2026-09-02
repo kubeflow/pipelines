@@ -516,7 +516,6 @@ class TestTaskConfigPassthroughValidation(unittest.TestCase):
                 t = comp()
                 kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
 
-
     def test_resource_claims_without_passthrough_raises(self):
 
         @dsl.component(task_config_passthroughs=[TaskConfigField.RESOURCES])
@@ -568,8 +567,7 @@ class TestTaskConfigPassthroughValidationPositive(unittest.TestCase):
                     'values': ['ssd']
                 }])
             kubernetes.mount_pvc(t, pvc_name='my-pvc', mount_path='/mnt')
-            kubernetes.add_resource_claim(
-                t, resource_claim_template_name='gpu')
+            kubernetes.add_resource_claim(t, resource_claim_template_name='gpu')
 
         with tempfile.TemporaryDirectory() as tmpdir:
             package_path = os.path.join(tmpdir, 'pipeline.yaml')

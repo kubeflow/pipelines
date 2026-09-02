@@ -2266,10 +2266,14 @@ class TestTaskConfigDeserialization(unittest.TestCase):
     def test_resource_claims_deserialized_from_json(self):
         from kfp.dsl.task_config import TaskConfig
         value = {
-            'tolerations': [{'key': 'k', 'operator': 'Exists'}],
-            'resourceClaims': [
-                {'name': 'gpu', 'resourceClaimTemplateName': 'gpu-template'},
-            ],
+            'tolerations': [{
+                'key': 'k',
+                'operator': 'Exists'
+            }],
+            'resourceClaims': [{
+                'name': 'gpu',
+                'resourceClaimTemplateName': 'gpu-template'
+            },],
         }
         config = TaskConfig(
             affinity=value.get('affinity'),
@@ -2284,9 +2288,8 @@ class TestTaskConfigDeserialization(unittest.TestCase):
         self.assertIsNotNone(config.resource_claims)
         self.assertEqual(len(config.resource_claims), 1)
         self.assertEqual(config.resource_claims[0]['name'], 'gpu')
-        self.assertEqual(
-            config.resource_claims[0]['resourceClaimTemplateName'],
-            'gpu-template')
+        self.assertEqual(config.resource_claims[0]['resourceClaimTemplateName'],
+                         'gpu-template')
         self.assertIsNotNone(config.tolerations)
 
 
