@@ -114,6 +114,40 @@ export function checkIfTerminated(status?: NodePhase, nodeMessage?: string): Nod
   return status;
 }
 
+// Substrings that indicate a Kubernetes pod lifecycle failure (the platform
+// couldn't run the step) rather than a failure in the user's own pipeline code.
+// Mirrors podFailurePatterns in backend/src/common/util/pod_failure_classifier.go;
+// keep the two in sync.
+const POD_LIFECYCLE_FAILURE_PATTERNS = [
+  'ImagePullBackOff',
+  'ErrImagePull',
+  'ErrImageNeverPull',
+  'InvalidImageName',
+  'Unschedulable',
+  'CrashLoopBackOff',
+  'OOMKilled',
+  'DeadlineExceeded',
+  'ContainerCannotRun',
+  'CreateContainerConfigError',
+  'CreateContainerError',
+  'RunContainerError',
+  'NodeLost',
+  'Preempted',
+  'PreemptionByScheduler',
+  'Evicted',
+  'TerminationByKubelet',
+];
+
+// isPodLifecycleFailure returns true if nodeMessage looks like it was caused by
+// a Kubernetes pod lifecycle issue rather than an error in the user's own
+// pipeline code.
+export function isPodLifecycleFailure(nodeMessage?: string): boolean {
+  if (!nodeMessage) {
+    return false;
+  }
+  return POD_LIFECYCLE_FAILURE_PATTERNS.some((pattern) => nodeMessage.includes(pattern));
+}
+
 export function parseNodePhase(node: NodeStatus): NodePhase {
   if (node.phase !== 'Succeeded') {
     return node.phase as NodePhase; // HACK: NodePhase is a string enum that has the same items as node.phase.
