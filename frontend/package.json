@@ -137,7 +137,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.8",
     "autoprefixer": "^10.4.1",
-    "browserslist": "4.16.5",
+    "browserslist": "4.28.8",
     "eslint": "^10.8.0",
     "eslint-plugin-import-x": "^4.17.1",
     "eslint-plugin-react-hooks": "^7.1.1",
