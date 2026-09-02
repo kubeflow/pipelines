@@ -205,7 +205,9 @@ def _api_tool_install_commands(module_path):
 
 def _api_tool_version_query(module_path, module_file):
     """Query one module version without inherited Go environment redirects."""
+    module_file = Path(module_file)
     return (
+        f'cd {shlex.quote(str(module_file.parent))} && '
         'GOFLAGS= GOWORK=off go mod edit '
         f'-modfile={shlex.quote(str(module_file))} -json | '
         f'jq -er \'.Require[] | select(.Path == "{module_path}") '
@@ -665,6 +667,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
             workspace = temporary / 'go.work'
             workspace.write_text(
                 'go 1.27.0\n\nuse ./workspace-module\n', encoding='utf-8')
+            ambient_free_directory = temporary / 'no-main-module'
+            ambient_free_directory.mkdir()
             environment = os.environ.copy()
             environment.update({
                 'GOFLAGS': f'-modfile={decoy_module}',
@@ -675,6 +679,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
                  _api_tool_version_query(module_path, module_file)),
                 check=True,
                 capture_output=True,
+                cwd=ambient_free_directory,
                 encoding='utf-8',
                 env=environment,
             )
@@ -725,8 +730,12 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 'select(.Path == "google.golang.org/protobuf")',
             ),
             'query is conditional': contents.replace(
-                'go_swagger_version="$(GOFLAGS=',
-                'false && go_swagger_version="$(GOFLAGS=',
+                'go_swagger_version="$(cd /tmp/api-generator-tools',
+                'false && go_swagger_version="$(cd /tmp/api-generator-tools',
+            ),
+            'module directory change is omitted': contents.replace(
+                'cd /tmp/api-generator-tools && GOFLAGS=',
+                'GOFLAGS=',
             ),
             'inherited GOFLAGS is not cleared': contents.replace(
                 'GOFLAGS= GOWORK=off go mod edit',

@@ -74,6 +74,6 @@ RUN chmod -R 777 /go
 # Docker state change or a later overwrite.
 COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
 RUN set -eu; \
-    go_swagger_version="$(GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
+    go_swagger_version="$(cd /tmp/api-generator-tools && GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
     curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
     chmod +x /usr/bin/swagger
