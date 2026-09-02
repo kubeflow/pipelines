@@ -13,6 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const {
   normalizeSemanticIdNormalizationAttestation,
+  validateGlobalVisualNormalizationEvidence,
   validateSemanticNormalizationAgainstCatalog,
   validateSemanticIdNormalizationScenarioContracts,
 } = require('./generate-comparison');
@@ -512,6 +513,15 @@ function requireValidCaptureArtifact(result, operation, artifactRoot, expectedIn
   }
   if (!Array.isArray(manifest.results) || manifest.results.length === 0) {
     throw new Error(`${operation} capture manifest has no captured scenarios.`);
+  }
+  try {
+    validateGlobalVisualNormalizationEvidence(manifest, expectedInputs.revisionRole, true);
+  } catch (error) {
+    throw new Error(
+      `${operation} capture manifest has invalid global visual normalization evidence: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
   const records = [];
   const filenames = new Set();

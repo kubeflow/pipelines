@@ -13,6 +13,7 @@ const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   SEMANTIC_SCENARIOS,
+  getGlobalVisualNormalizationContract,
   getSemanticScenarioCatalog,
   resolveSemanticScenarios,
 } = require('../semantic-capture-scenarios.js');
@@ -206,6 +207,33 @@ test('semantic scenario contract has unique paired base and head definitions', (
     keys,
   );
   assert.doesNotThrow(() => JSON.stringify(catalog));
+  assert.equal(
+    catalog.every(
+      (entry) =>
+        entry.expectedChange.global[0].key === 'executions-navigation-removal' &&
+        entry.expectedChange.global[0].expectedChange.includes('sidebar entry'),
+    ),
+    true,
+  );
+
+  const baseNavigation = getGlobalVisualNormalizationContract('base').rules[0];
+  const headNavigation = getGlobalVisualNormalizationContract('head').rules[0];
+  assert.deepEqual(
+    {
+      expectedMatches: baseNavigation.expectedMatches,
+      operation: baseNavigation.operation,
+      selector: baseNavigation.selector,
+    },
+    { expectedMatches: 1, operation: 'hide', selector: '#executionsBtn' },
+  );
+  assert.deepEqual(
+    {
+      expectedMatches: headNavigation.expectedMatches,
+      operation: headNavigation.operation,
+      selector: headNavigation.selector,
+    },
+    { expectedMatches: 0, operation: 'assert-absent', selector: '#executionsBtn' },
+  );
 });
 
 test('scenario resolution binds canonical pair keys to revision-specific journeys', () => {
@@ -1244,6 +1272,10 @@ test('revision-aware capture retains non-overlapping generic coverage', () => {
     'experiment-create',
   ]) {
     assert.equal(names.has(retained), true, `${retained} should be retained`);
+    assert.equal(
+      pages.find((page) => page.name === retained).expectedChange.global[0].key,
+      'executions-navigation-removal',
+    );
   }
   for (const superseded of [
     'executions',
@@ -1263,7 +1295,7 @@ test('revision-aware capture retains non-overlapping generic coverage', () => {
   );
 });
 
-test('legacy lineage readiness is data-specific and clean mode skips upgrade-only history', () => {
+test('legacy lineage readiness is data-specific', () => {
   const base = resolveSemanticScenarios('base', SEED_VALUES);
   const related = byKey(base, 'artifact-related-tasks');
   assert.ok(related.actions.some((action) => action.type === 'waitForFunction'));
@@ -1271,11 +1303,6 @@ test('legacy lineage readiness is data-specific and clean mode skips upgrade-onl
     related.actions.some((action) => action.selector === 'svg'),
     false,
   );
-
-  const historical = byKey(base, 'historical-artifact-evolution');
-  assert.equal(historical.required, false);
-  assert.deepEqual(historical.missingFixtures, ['historicalArtifactId']);
-  assert.match(historical.expectedChange, /upgrade mode/);
 });
 
 test('seed binding extraction supplies revision-specific run, task, and Artifact IDs', (t) => {
@@ -1288,7 +1315,6 @@ test('seed binding extraction supplies revision-specific run, task, and Artifact
       defaults: {
         artifactId: 'scalar-legacy-default',
         compareRunlist: 'rich,metrics',
-        historicalArtifactId: 'history-1',
       },
       resources: { runIds: ['fallback'] },
       semantic: {
@@ -1330,7 +1356,6 @@ test('seed binding extraction supplies revision-specific run, task, and Artifact
     consumeMetricsTaskId: 'consume-1',
     executionId: 'execution-1',
     experimentId: undefined,
-    historicalArtifactId: 'history-1',
     htmlArtifactId: 'html-1',
     markdownArtifactId: 'markdown-1',
     nestedDagTaskId: 'nested-1',

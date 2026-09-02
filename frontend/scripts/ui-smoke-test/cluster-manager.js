@@ -14,6 +14,7 @@ const http = require('http');
 const net = require('net');
 const os = require('os');
 const path = require('path');
+const { applyFixtureRuntimeRequirements } = require('./fixture-runtime-requirements');
 
 const CLUSTER_NAME = 'ui-smoke-test';
 const KUBE_CONTEXT = `kind-${CLUSTER_NAME}`;
@@ -53,6 +54,32 @@ const PORT_FORWARDS = Object.freeze([
 ]);
 const SEED_RUNTIME_IMAGE =
   'docker.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662';
+const KUBEFLOW_FIRST_PARTY_IMAGE_PREFIXES = Object.freeze([
+  'ghcr.io/kubeflow/',
+  'gcr.io/ml-pipeline/',
+]);
+// The platform-specific child of SEED_RUNTIME_IMAGE. Using the child manifest here is important:
+// a multi-platform index would resolve to arm64 inside an arm64 Kind node and would not prove that
+// the node can execute an amd64 workload.
+const AMD64_EMULATION_CANARY_IMAGE =
+  'docker.io/library/busybox@sha256:b7f3d86d6e84fc17718c48bcde1450807faa2d56704205c697b4bd5df7b9e29f';
+// These are the two amd64-only images in the 2.17.1 platform-agnostic manifests. Keep this list
+// exact and fail closed for other image references: executing a newly encountered foreign-
+// architecture image is a trust decision, not a registry-error fallback.
+const MIXED_PLATFORM_WORKLOADS = Object.freeze([
+  Object.freeze({
+    container: 'main',
+    deployment: 'metadata-writer',
+    image: 'ghcr.io/kubeflow/kfp-metadata-writer:2.17.1',
+    platform: 'linux/amd64',
+  }),
+  Object.freeze({
+    container: 'container',
+    deployment: 'metadata-grpc-deployment',
+    image: 'gcr.io/tfx-oss-public/ml_metadata_store_server:1.14.0',
+    platform: 'linux/amd64',
+  }),
+]);
 const DIAGNOSTIC_LIMITS = Object.freeze({
   maxOutputBytes: 64 * 1024,
   maxPods: 24,
@@ -398,6 +425,37 @@ function mergeImageOverrides(...overrides) {
   return merged;
 }
 
+function validatePlatform(value, description) {
+  if (typeof value !== 'string' || !/^linux\/[a-z0-9_]+$/.test(value)) {
+    throw new Error(`${description} must use linux/<architecture>.`);
+  }
+  return value;
+}
+
+function mixedPlatformWorkloadForImage(image) {
+  return MIXED_PLATFORM_WORKLOADS.find((workload) => workload.image === image) || null;
+}
+
+function imagePlatformForNode(image, nodePlatform) {
+  validatePlatform(nodePlatform, 'Kind node platform');
+  if (nodePlatform !== 'linux/arm64') return nodePlatform;
+  return mixedPlatformWorkloadForImage(image)?.platform || nodePlatform;
+}
+
+function manifestImagePlan(images, nodePlatform) {
+  validatePlatform(nodePlatform, 'Kind node platform');
+  return images.map((image) =>
+    Object.freeze({
+      image,
+      platform: imagePlatformForNode(image, nodePlatform),
+    }),
+  );
+}
+
+function isKubeflowFirstPartyImage(image) {
+  return KUBEFLOW_FIRST_PARTY_IMAGE_PREFIXES.some((prefix) => image.startsWith(prefix));
+}
+
 function createKindStack(config = {}) {
   const clusterName = validateName(config.clusterName || CLUSTER_NAME, 'clusterName');
   const context = validateName(config.context || `kind-${clusterName}`, 'context');
@@ -414,6 +472,7 @@ function createKindStack(config = {}) {
   const defaultSpawn = config.spawn || spawn;
   const processes = [];
   const loadedImages = new Set();
+  const verifiedEmulationPlatforms = new Set();
   let frontendServerProcess = null;
   let seedRuntimeLoaded = false;
   let createdThisRun = false;
@@ -576,12 +635,19 @@ function createKindStack(config = {}) {
     );
   }
 
+  function loadedImageKey(image, platform) {
+    return `${validatePlatform(platform, 'Image platform')}\0${image}`;
+  }
+
   function saveAndLoadImage(image, stem, platform, options = {}) {
     const runner = stackRunner(options);
     const imageArchive = imageArchivePath(stem, platform);
     fs.mkdirSync(archiveDir, { recursive: true });
     try {
-      exportImageForPlatform(image, imageArchive, platform, { runner });
+      exportImageForPlatform(image, imageArchive, platform, {
+        nodePlatform: options.nodePlatform || platform,
+        runner,
+      });
       requireSuccess(
         runner(
           'kind',
@@ -590,17 +656,19 @@ function createKindStack(config = {}) {
         ),
         `Failed to load ${image} into Kind cluster ${clusterName}`,
       );
-      loadedImages.add(image);
+      loadedImages.add(loadedImageKey(image, platform));
     } finally {
       fs.rmSync(imageArchive, { force: true });
     }
   }
 
-  function platformImageError(image, platform, action, result) {
+  function platformImageError(image, platform, action, result, nodePlatform = platform) {
     const detail = result.error || result.output || 'unknown error';
     return new Error(
-      `Image ${image} cannot be ${action} for the Kind node platform ${platform}: ${detail}. ` +
-        `Use a ${platform} image, an amd64 Kind node with emulation, or provide a local image override.`,
+      `Image ${image} cannot be ${action} for workload platform ${platform} ` +
+        `(Kind node platform ${nodePlatform}): ${detail}. Use an image for ${nodePlatform}, or add ` +
+        'an exact reviewed workload-platform override and enable container emulation. ' +
+        'Unreviewed images never fall back to a different architecture automatically.',
     );
   }
 
@@ -611,7 +679,9 @@ function createKindStack(config = {}) {
       ['pull', '--platform', platform, image],
       commandOptions({ timeout: 300000, stdio: 'inherit' }),
     );
-    if (!result.success) throw platformImageError(image, platform, 'pulled', result);
+    if (!result.success) {
+      throw platformImageError(image, platform, 'pulled', result, options.nodePlatform || platform);
+    }
   }
 
   function exportImageForPlatform(image, imageArchive, platform, options = {}) {
@@ -621,7 +691,15 @@ function createKindStack(config = {}) {
       ['save', '--platform', platform, '--output', imageArchive, image],
       commandOptions({ timeout: 300000, stdio: 'inherit' }),
     );
-    if (!result.success) throw platformImageError(image, platform, 'exported', result);
+    if (!result.success) {
+      throw platformImageError(
+        image,
+        platform,
+        'exported',
+        result,
+        options.nodePlatform || platform,
+      );
+    }
   }
 
   function verifyImageForPlatform(image, stem, platform, options = {}) {
@@ -629,8 +707,14 @@ function createKindStack(config = {}) {
     const imageArchive = imageArchivePath(`preflight-${stem}`, platform);
     fs.mkdirSync(archiveDir, { recursive: true });
     try {
-      pullImageForPlatform(image, platform, { runner });
-      exportImageForPlatform(image, imageArchive, platform, { runner });
+      pullImageForPlatform(image, platform, {
+        nodePlatform: options.nodePlatform || platform,
+        runner,
+      });
+      exportImageForPlatform(image, imageArchive, platform, {
+        nodePlatform: options.nodePlatform || platform,
+        runner,
+      });
     } finally {
       fs.rmSync(imageArchive, { force: true });
     }
@@ -640,9 +724,7 @@ function createKindStack(config = {}) {
     if (seedRuntimeLoaded && options.force !== true) return;
     const runner = stackRunner(options);
     const platform = options.platform || getClusterPlatform({ runner });
-    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
-      throw new Error(`Invalid seed image platform: ${JSON.stringify(platform)}`);
-    }
+    validatePlatform(platform, 'Seed image platform');
     pullImageForPlatform(SEED_RUNTIME_IMAGE, platform, { runner });
     saveAndLoadImage(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
     seedRuntimeLoaded = true;
@@ -651,9 +733,7 @@ function createKindStack(config = {}) {
   function preflightSeedRuntimeImage(options = {}) {
     const runner = stackRunner(options);
     const platform = options.platform || getDockerPlatform({ runner });
-    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
-      throw new Error(`Invalid seed image platform: ${JSON.stringify(platform)}`);
-    }
+    validatePlatform(platform, 'Seed image platform');
     verifyImageForPlatform(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
     return { image: SEED_RUNTIME_IMAGE, platform };
   }
@@ -667,9 +747,7 @@ function createKindStack(config = {}) {
     const overrides = { deployments: [], images: {}, runtimeEnvironment: {} };
     if (components.length === 0) return overrides;
     const platform = options.platform || getClusterPlatform({ runner });
-    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
-      throw new Error(`Invalid backend image platform: ${JSON.stringify(platform)}`);
-    }
+    validatePlatform(platform, 'Backend image platform');
     const tagSuffix = sanitizeImageTagPart(options.tagSuffix || imageScope);
     for (const component of components) {
       if (!component.dockerfile || !component.imageTag) {
@@ -714,6 +792,7 @@ function createKindStack(config = {}) {
 
   function loadImageOverrides(imageOverrides, platform, options = {}) {
     const runner = stackRunner(options);
+    validatePlatform(platform, 'Local image platform');
     const images = [
       ...new Set([
         ...Object.values(imageOverrides?.images || {}),
@@ -724,38 +803,46 @@ function createKindStack(config = {}) {
       if (typeof image !== 'string' || image.length === 0) {
         throw new Error('Local image overrides must contain non-empty image references.');
       }
-      if (loadedImages.has(image)) continue;
+      if (loadedImages.has(loadedImageKey(image, platform))) continue;
       saveAndLoadImage(image, `local-image-${index}`, platform, { runner });
     }
     return images;
   }
 
-  function deploymentPatches(imageOverrides) {
+  function deploymentPatches(imageOverrides, pullPolicyOverrides = []) {
     const byDeployment = new Map();
+    const containerPatch = (deployment, container) => {
+      if (!byDeployment.has(deployment)) byDeployment.set(deployment, new Map());
+      const containers = byDeployment.get(deployment);
+      if (!containers.has(container)) containers.set(container, { name: container });
+      return containers.get(container);
+    };
     for (const override of imageOverrides.deployments || []) {
       if (!override.deployment || !override.container || !override.image) {
         throw new Error('Deployment image overrides require deployment, container, and image.');
       }
-      if (!byDeployment.has(override.deployment)) {
-        byDeployment.set(override.deployment, []);
-      }
-      byDeployment.get(override.deployment).push({
+      Object.assign(containerPatch(override.deployment, override.container), {
         image: override.image,
         imagePullPolicy: 'IfNotPresent',
-        name: override.container,
       });
+    }
+    for (const override of pullPolicyOverrides) {
+      if (
+        !override?.deployment ||
+        !override.container ||
+        override.imagePullPolicy !== 'IfNotPresent'
+      ) {
+        throw new Error(
+          'Deployment pull-policy overrides require deployment, container, and IfNotPresent.',
+        );
+      }
+      containerPatch(override.deployment, override.container).imagePullPolicy = 'IfNotPresent';
     }
 
     const runtimeEntries = Object.entries(imageOverrides.runtimeEnvironment || {});
     if (runtimeEntries.length > 0) {
-      const containers = byDeployment.get('ml-pipeline') || [];
-      let apiServer = containers.find((container) => container.name === 'ml-pipeline-api-server');
-      if (!apiServer) {
-        apiServer = { name: 'ml-pipeline-api-server' };
-        containers.push(apiServer);
-      }
+      const apiServer = containerPatch('ml-pipeline', 'ml-pipeline-api-server');
       apiServer.env = runtimeEntries.map(([name, value]) => ({ name, value }));
-      byDeployment.set('ml-pipeline', containers);
     }
 
     return [...byDeployment.entries()].map(([deployment, containers]) => ({
@@ -763,7 +850,7 @@ function createKindStack(config = {}) {
         apiVersion: 'apps/v1',
         kind: 'Deployment',
         metadata: { name: deployment },
-        spec: { template: { spec: { containers } } },
+        spec: { template: { spec: { containers: [...containers.values()] } } },
       }),
       target: { group: 'apps', kind: 'Deployment', name: deployment, version: 'v1' },
     }));
@@ -780,7 +867,7 @@ function createKindStack(config = {}) {
       'env',
       'platform-agnostic',
     );
-    const patches = deploymentPatches(imageOverrides);
+    const patches = deploymentPatches(imageOverrides, options.pullPolicyOverrides || []);
     const needsOverlay = patches.length > 0;
     fs.mkdirSync(archiveDir, { recursive: true });
     fs.rmSync(renderedPath, { force: true });
@@ -789,14 +876,30 @@ function createKindStack(config = {}) {
     const renderArguments = [];
     if (needsOverlay) {
       fs.mkdirSync(overlayDir, { recursive: true });
+      const canonicalOverlayDir = fs.realpathSync(overlayDir);
+      const canonicalPlatformAgnostic = fs.realpathSync(platformAgnostic);
+      const platformAgnosticResource = path.relative(
+        canonicalOverlayDir,
+        canonicalPlatformAgnostic,
+      );
+      if (!platformAgnosticResource || path.isAbsolute(platformAgnosticResource)) {
+        throw new Error(
+          'Could not express the platform-agnostic manifests relative to their overlay.',
+        );
+      }
+      if (
+        path.resolve(canonicalOverlayDir, platformAgnosticResource) !== canonicalPlatformAgnostic
+      ) {
+        throw new Error('The platform-agnostic overlay resource resolved to an unexpected path.');
+      }
       fs.writeFileSync(
-        path.join(overlayDir, 'kustomization.json'),
+        path.join(overlayDir, 'kustomization.yaml'),
         JSON.stringify(
           {
             apiVersion: 'kustomize.config.k8s.io/v1beta1',
             kind: 'Kustomization',
             patches,
-            resources: [platformAgnostic],
+            resources: [platformAgnosticResource],
           },
           null,
           2,
@@ -849,11 +952,273 @@ function createKindStack(config = {}) {
     return [...new Set(images)];
   }
 
+  function mixedPlatformPullPolicyOverrides(images, nodePlatform) {
+    if (nodePlatform !== 'linux/arm64') return [];
+    const renderedImages = new Set(images);
+    return MIXED_PLATFORM_WORKLOADS.filter((workload) => renderedImages.has(workload.image)).map(
+      (workload) => ({
+        container: workload.container,
+        deployment: workload.deployment,
+        imagePullPolicy: 'IfNotPresent',
+      }),
+    );
+  }
+
+  function manifestContainerImages(manifestContents) {
+    // Keep YAML out of the module's startup path so help and teardown remain usable before the
+    // smoke-test dependencies are restored.
+    const { parseAllDocuments } = require('yaml');
+    const documents = parseAllDocuments(manifestContents, { maxAliasCount: 100 });
+    const errors = documents.flatMap((document) => document.errors || []);
+    if (errors.length > 0) {
+      throw new Error(`Rendered revision manifests are invalid YAML: ${errors[0].message}`);
+    }
+    const containers = [];
+    for (const document of documents) {
+      const resource = document.toJS({ maxAliasCount: 100 });
+      if (!resource || typeof resource !== 'object') continue;
+      const seen = new WeakSet();
+      const visit = (value) => {
+        if (!value || typeof value !== 'object' || seen.has(value)) return;
+        seen.add(value);
+        for (const containerType of ['containers', 'initContainers']) {
+          if (!Array.isArray(value[containerType])) continue;
+          for (const container of value[containerType]) {
+            if (!container || typeof container.image !== 'string') continue;
+            containers.push({
+              container: typeof container.name === 'string' ? container.name : null,
+              containerType,
+              deployment: resource.kind === 'Deployment' ? resource.metadata?.name || null : null,
+              environment: Array.isArray(container.env)
+                ? container.env.map((entry) => ({
+                    name: typeof entry?.name === 'string' ? entry.name : null,
+                    value: typeof entry?.value === 'string' ? entry.value : null,
+                  }))
+                : [],
+              image: container.image,
+              imagePullPolicy:
+                typeof container.imagePullPolicy === 'string' ? container.imagePullPolicy : null,
+              kind: typeof resource.kind === 'string' ? resource.kind : null,
+              resource: resource.metadata?.name || null,
+            });
+          }
+        }
+        for (const nested of Array.isArray(value) ? value : Object.values(value)) visit(nested);
+      };
+      visit(resource);
+    }
+    return containers;
+  }
+
+  function validateMixedPlatformPullPolicies(manifestContents, imagePlan, nodePlatform) {
+    const mixedPlatformImages = imagePlan.filter(({ platform }) => platform !== nodePlatform);
+    if (mixedPlatformImages.length === 0) return;
+    const containerImages = manifestContainerImages(manifestContents);
+    for (const { image } of mixedPlatformImages) {
+      const workload = mixedPlatformWorkloadForImage(image);
+      if (!workload) {
+        throw new Error(`Mixed-platform image ${image} does not have an exact reviewed workload.`);
+      }
+      const occurrences = containerImages.filter((entry) => entry.image === image);
+      if (occurrences.length === 0) {
+        throw new Error(
+          `Mixed-platform image ${image} was discovered outside a supported workload container.`,
+        );
+      }
+      const unexpectedPlacement = occurrences.find(
+        (entry) =>
+          entry.kind !== 'Deployment' ||
+          entry.deployment !== workload.deployment ||
+          entry.containerType !== 'containers' ||
+          entry.container !== workload.container,
+      );
+      if (unexpectedPlacement) {
+        throw new Error(
+          `Mixed-platform image ${image} is only approved for Deployment ` +
+            `${workload.deployment}, container ${workload.container}; rendered placement was ` +
+            `${unexpectedPlacement.kind || 'unknown kind'} ` +
+            `${unexpectedPlacement.resource || 'unknown resource'}, ` +
+            `${unexpectedPlacement.containerType}/${unexpectedPlacement.container || 'unnamed'}.`,
+        );
+      }
+      if (occurrences.some(({ imagePullPolicy }) => imagePullPolicy !== 'IfNotPresent')) {
+        throw new Error(
+          `Mixed-platform image ${image} must use imagePullPolicy IfNotPresent after it is preloaded.`,
+        );
+      }
+    }
+  }
+
+  function renderRevisionManifestsForPlatform(
+    repoRoot,
+    imageOverrides,
+    nodePlatform,
+    options = {},
+  ) {
+    const runner = stackRunner(options);
+    validatePlatform(nodePlatform, 'Kind node platform');
+    let rendered = renderRevisionManifests(repoRoot, imageOverrides, { runner });
+    try {
+      let manifestContents = fs.readFileSync(rendered.renderedPath, 'utf8');
+      let images = extractManifestImages(manifestContents);
+      const pullPolicyOverrides = mixedPlatformPullPolicyOverrides(images, nodePlatform);
+      if (pullPolicyOverrides.length > 0) {
+        cleanRenderedManifests(rendered);
+        rendered = renderRevisionManifests(repoRoot, imageOverrides, {
+          pullPolicyOverrides,
+          runner,
+        });
+        manifestContents = fs.readFileSync(rendered.renderedPath, 'utf8');
+        const patchedImages = extractManifestImages(manifestContents);
+        if (JSON.stringify(patchedImages) !== JSON.stringify(images)) {
+          throw new Error('Pull-policy patches unexpectedly changed the rendered image inventory.');
+        }
+        images = patchedImages;
+      }
+      const configuredManifest = applyFixtureRuntimeRequirements(
+        manifestContents,
+        options.fixtureRequirements,
+      );
+      if (configuredManifest !== manifestContents) {
+        fs.writeFileSync(rendered.renderedPath, configuredManifest);
+        manifestContents = configuredManifest;
+      }
+      const imagePlan = manifestImagePlan(images, nodePlatform);
+      validateMixedPlatformPullPolicies(manifestContents, imagePlan, nodePlatform);
+      return { ...rendered, imagePlan, images, manifestContents };
+    } catch (error) {
+      cleanRenderedManifests(rendered);
+      throw error;
+    }
+  }
+
+  function verifyAmd64WorkloadEmulation(imagePlan, nodePlatform, options = {}) {
+    const runner = stackRunner(options);
+    if (
+      nodePlatform !== 'linux/arm64' ||
+      !imagePlan.some(({ platform }) => platform === 'linux/amd64') ||
+      verifiedEmulationPlatforms.has('linux/amd64')
+    ) {
+      return { required: false, verified: true };
+    }
+
+    const image = AMD64_EMULATION_CANARY_IMAGE;
+    const canaryImageKey = loadedImageKey(image, 'linux/amd64');
+    if (!loadedImages.has(canaryImageKey)) {
+      pullImageForPlatform(image, 'linux/amd64', { nodePlatform, runner });
+      saveAndLoadImage(image, 'amd64-emulation-canary', 'linux/amd64', {
+        nodePlatform,
+        runner,
+      });
+    }
+
+    const jobName = 'ui-smoke-amd64-canary';
+    const canaryPath = path.join(archiveDir, `${jobName}.json`);
+    fs.mkdirSync(archiveDir, { recursive: true });
+    fs.writeFileSync(
+      canaryPath,
+      JSON.stringify({
+        apiVersion: 'batch/v1',
+        kind: 'Job',
+        metadata: { name: jobName, namespace: 'default' },
+        spec: {
+          backoffLimit: 0,
+          template: {
+            metadata: { labels: { 'ui-smoke-test': 'amd64-emulation-canary' } },
+            spec: {
+              containers: [
+                {
+                  command: ['/bin/sh', '-c', 'exit 0'],
+                  image,
+                  imagePullPolicy: 'Never',
+                  name: 'canary',
+                  securityContext: {
+                    allowPrivilegeEscalation: false,
+                    capabilities: { drop: ['ALL'] },
+                    runAsNonRoot: true,
+                    runAsUser: 65534,
+                  },
+                },
+              ],
+              restartPolicy: 'Never',
+              securityContext: { seccompProfile: { type: 'RuntimeDefault' } },
+            },
+          },
+        },
+      }),
+      { mode: 0o600 },
+    );
+
+    let canaryError = null;
+    try {
+      const applyResult = runner(
+        'kubectl',
+        kubectlArgs('apply', '-f', canaryPath),
+        commandOptions({ timeout: 30000 }),
+      );
+      if (!applyResult.success) {
+        throw new Error(applyResult.error || applyResult.output || 'could not create canary Job');
+      }
+      const waitResult = runner(
+        'kubectl',
+        kubectlArgs(
+          '-n',
+          'default',
+          'wait',
+          '--for=condition=complete',
+          '--timeout=60s',
+          `job/${jobName}`,
+        ),
+        commandOptions({ timeout: 70000 }),
+      );
+      if (!waitResult.success) {
+        throw new Error(waitResult.error || waitResult.output || 'canary Job did not complete');
+      }
+    } catch (error) {
+      canaryError = new Error(
+        `The arm64 Kind cluster ${clusterName} cannot execute a preloaded amd64 workload: ` +
+          `${error.message}. Enable Docker workload emulation (QEMU or Rosetta) and ` +
+          'keep the Kind node on arm64.',
+        { cause: error },
+      );
+    }
+
+    const deleteResult = runner(
+      'kubectl',
+      kubectlArgs(
+        '-n',
+        'default',
+        'delete',
+        `job/${jobName}`,
+        '--ignore-not-found=true',
+        '--wait=true',
+      ),
+      commandOptions({ timeout: 30000 }),
+    );
+    fs.rmSync(canaryPath, { force: true });
+    const cleanupError = deleteResult.success
+      ? null
+      : new Error(
+          `Failed to remove amd64 emulation canary from ${clusterName}: ${deleteResult.error || deleteResult.output || 'unknown error'}`,
+        );
+    if (canaryError && cleanupError) {
+      throw new AggregateError(
+        [canaryError, cleanupError],
+        `amd64 workload emulation failed and its canary could not be removed from ${clusterName}.`,
+      );
+    }
+    if (canaryError) throw canaryError;
+    if (cleanupError) throw cleanupError;
+
+    verifiedEmulationPlatforms.add('linux/amd64');
+    return { image, required: true, verified: true };
+  }
+
   function validateReleaseManifestImages(images, release) {
     if (!/^\d+\.\d+\.\d+$/.test(release)) {
       throw new Error(`Expected release must be an exact semantic version, received ${release}.`);
     }
-    const firstPartyImages = images.filter((image) => image.startsWith('ghcr.io/kubeflow/'));
+    const firstPartyImages = images.filter(isKubeflowFirstPartyImage);
     if (firstPartyImages.length === 0) {
       throw new Error(
         `Rendered manifests did not contain any Kubeflow release images for ${release}.`,
@@ -868,12 +1233,12 @@ function createKindStack(config = {}) {
     return firstPartyImages;
   }
 
-  function validateLocalManifestImages(images, imageOverrides) {
-    const firstPartyImages = images.filter((image) => image.startsWith('ghcr.io/kubeflow/'));
+  function validateLocalManifestImages(images, imageOverrides, manifestContents) {
+    const firstPartyImages = images.filter(isKubeflowFirstPartyImage);
     if (firstPartyImages.length > 0) {
       throw new Error(
         `Rendered revision manifests retain non-local Kubeflow images: ${firstPartyImages.join(', ')}. ` +
-          'Add an exact component build and manifest override before applying the head stack.',
+          'Add an exact component build and manifest override before applying the local stack.',
       );
     }
     const expectedImages = new Set([
@@ -886,20 +1251,64 @@ function createKindStack(config = {}) {
         `Rendered revision manifests omitted locally built images: ${missing.join(', ')}.`,
       );
     }
+
+    const deploymentOverrides = imageOverrides.deployments || [];
+    const runtimeEnvironment = Object.entries(imageOverrides.runtimeEnvironment || {});
+    if (deploymentOverrides.length > 0 || runtimeEnvironment.length > 0) {
+      const containers = manifestContainerImages(manifestContents);
+      for (const override of deploymentOverrides) {
+        const matches = containers.filter(
+          (entry) =>
+            entry.kind === 'Deployment' &&
+            entry.deployment === override.deployment &&
+            entry.containerType === 'containers' &&
+            entry.container === override.container,
+        );
+        if (matches.length !== 1 || matches[0].image !== override.image) {
+          throw new Error(
+            `Rendered revision manifests did not set Deployment ${override.deployment}, ` +
+              `container ${override.container} to locally built image ${override.image}.`,
+          );
+        }
+      }
+
+      const apiServerContainers = containers.filter(
+        (entry) =>
+          entry.kind === 'Deployment' &&
+          entry.deployment === 'ml-pipeline' &&
+          entry.containerType === 'containers' &&
+          entry.container === 'ml-pipeline-api-server',
+      );
+      for (const [name, value] of runtimeEnvironment) {
+        const matchingEnvironment = apiServerContainers.flatMap((container) =>
+          container.environment.filter((entry) => entry.name === name),
+        );
+        if (matchingEnvironment.length !== 1 || matchingEnvironment[0].value !== value) {
+          throw new Error(
+            `Rendered revision manifests did not set ml-pipeline/ml-pipeline-api-server ` +
+              `${name} to locally built image ${value}.`,
+          );
+        }
+      }
+    }
     return [...expectedImages];
   }
 
   function preloadManifestImages(manifestPath, platform, options = {}) {
     const runner = stackRunner(options);
-    if (!/^linux\/[a-z0-9_]+$/.test(platform)) {
-      throw new Error(`Invalid manifest image platform: ${JSON.stringify(platform)}`);
-    }
+    validatePlatform(platform, 'Manifest node platform');
     const images = extractManifestImages(fs.readFileSync(manifestPath, 'utf8'));
-    for (const [index, image] of images.entries()) {
-      if (loadedImages.has(image)) continue;
-      pullImageForPlatform(image, platform, { runner });
-      saveAndLoadImage(image, `manifest-image-${index}`, platform, { runner });
+    const imagePlan = manifestImagePlan(images, platform);
+    validateMixedPlatformPullPolicies(fs.readFileSync(manifestPath, 'utf8'), imagePlan, platform);
+    for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
+      if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;
+      pullImageForPlatform(image, imagePlatform, { nodePlatform: platform, runner });
+      saveAndLoadImage(image, `manifest-image-${index}`, imagePlatform, {
+        nodePlatform: platform,
+        runner,
+      });
     }
+    verifyAmd64WorkloadEmulation(imagePlan, platform, { runner });
     return images;
   }
 
@@ -911,18 +1320,28 @@ function createKindStack(config = {}) {
   function preflightReleaseImages(repoRoot, options = {}) {
     const runner = stackRunner(options);
     const platform = options.platform || getDockerPlatform({ runner });
-    const rendered = renderRevisionManifests(
+    const rendered = renderRevisionManifestsForPlatform(
       repoRoot,
       mergeImageOverrides(options.imageOverrides),
+      platform,
       { runner },
     );
     try {
-      const images = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8'));
+      const { imagePlan, images } = rendered;
       if (options.expectedRelease) validateReleaseManifestImages(images, options.expectedRelease);
-      for (const [index, image] of images.entries()) {
-        verifyImageForPlatform(image, `release-image-${index}`, platform, { runner });
+      for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
+        verifyImageForPlatform(image, `release-image-${index}`, imagePlatform, {
+          nodePlatform: platform,
+          runner,
+        });
       }
-      return { images, platform };
+      return {
+        imagePlatforms: Object.fromEntries(
+          imagePlan.map(({ image, platform }) => [image, platform]),
+        ),
+        images,
+        platform,
+      };
     } finally {
       cleanRenderedManifests(rendered);
     }
@@ -931,15 +1350,27 @@ function createKindStack(config = {}) {
   function preflightThirdPartyImages(repoRoot, options = {}) {
     const runner = stackRunner(options);
     const platform = options.platform || getDockerPlatform({ runner });
-    const rendered = renderRevisionManifests(repoRoot, mergeImageOverrides(), { runner });
+    const rendered = renderRevisionManifestsForPlatform(
+      repoRoot,
+      mergeImageOverrides(options.imageOverrides),
+      platform,
+      { runner },
+    );
     try {
-      const images = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8')).filter(
-        (image) => !image.startsWith('ghcr.io/kubeflow/'),
-      );
-      for (const [index, image] of images.entries()) {
-        verifyImageForPlatform(image, `third-party-image-${index}`, platform, { runner });
+      const imagePlan = rendered.imagePlan.filter(({ image }) => !isKubeflowFirstPartyImage(image));
+      for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
+        verifyImageForPlatform(image, `third-party-image-${index}`, imagePlatform, {
+          nodePlatform: platform,
+          runner,
+        });
       }
-      return { images, platform };
+      return {
+        imagePlatforms: Object.fromEntries(
+          imagePlan.map(({ image, platform }) => [image, platform]),
+        ),
+        images: imagePlan.map(({ image }) => image),
+        platform,
+      };
     } finally {
       cleanRenderedManifests(rendered);
     }
@@ -1123,15 +1554,18 @@ function createKindStack(config = {}) {
     const clusterScoped = path.join(repoRoot, 'manifests', 'kustomize', 'cluster-scoped-resources');
     const imageOverrides = mergeImageOverrides(options.imageOverrides);
     const platform = options.platform || getClusterPlatform({ runner });
-    const rendered = renderRevisionManifests(repoRoot, imageOverrides, { runner });
+    const rendered = renderRevisionManifestsForPlatform(repoRoot, imageOverrides, platform, {
+      fixtureRequirements: options.fixtureRequirements,
+      runner,
+    });
 
     try {
-      const renderedImages = extractManifestImages(fs.readFileSync(rendered.renderedPath, 'utf8'));
+      const renderedImages = rendered.images;
       if (options.expectedRelease) {
         validateReleaseManifestImages(renderedImages, options.expectedRelease);
       }
       if (options.requireLocalFirstParty) {
-        validateLocalManifestImages(renderedImages, imageOverrides);
+        validateLocalManifestImages(renderedImages, imageOverrides, rendered.manifestContents);
       }
       // Pull and archive every rendered runtime image before any workload is created. A missing
       // architecture therefore fails explicitly instead of surfacing as an opaque ImagePullBackOff.
@@ -1201,6 +1635,7 @@ function createKindStack(config = {}) {
       ownsCluster = false;
       seedRuntimeLoaded = false;
       loadedImages.clear();
+      verifiedEmulationPlatforms.clear();
     }
     return result;
   }
@@ -1295,6 +1730,7 @@ function createKindStack(config = {}) {
     const imageOverrides = mergeImageOverrides(options.imageOverrides, builtOverrides);
     const result = applyKfpManifests(repoRoot, {
       expectedRelease: options.expectedRelease,
+      fixtureRequirements: options.fixtureRequirements,
       imageOverrides,
       platform,
       requireLocalFirstParty: options.requireLocalFirstParty,
@@ -1748,12 +2184,14 @@ function spawnProcess(command, args, options = {}) {
 }
 
 module.exports = {
+  AMD64_EMULATION_CANARY_IMAGE,
   CLUSTER_NAME,
   DEFAULT_KUBECONFIG,
   DEFAULT_PORTS,
   DIAGNOSTIC_LIMITS,
   FRONTEND_SERVER_PORT,
   KUBE_CONTEXT,
+  MIXED_PLATFORM_WORKLOADS,
   NAMESPACE,
   PLATFORM_DEPLOYMENTS,
   PORT_FORWARDS,

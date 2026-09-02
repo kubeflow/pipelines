@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
+  getGlobalVisualNormalizationContract,
   getSemanticIdNormalizationContract,
 } = require('./semantic-capture-scenarios');
 const {
@@ -1893,6 +1894,77 @@ function validateSemanticIdNormalizationScenarioContracts(manifest, role) {
   }
 }
 
+function validateGlobalVisualNormalizationEvidence(manifest, role, required) {
+  const capturedResults = manifest.results.filter(
+    (result) => result.status === 'success' || result.status === 'degraded',
+  );
+  if (!required) {
+    for (const result of capturedResults) {
+      if (
+        result.globalVisualNormalization !== undefined &&
+        result.globalVisualNormalization !== null
+      ) {
+        throw new ComparisonError(
+          `Browser-compatibility capture result ${result.filename} cannot contain global visual normalization evidence.`,
+          'manifest',
+        );
+      }
+    }
+    return;
+  }
+  if (role !== 'base' && role !== 'head') {
+    throw new ComparisonError(
+      'Semantic capture global visual normalization evidence requires revisionRole base or head.',
+      'manifest',
+    );
+  }
+  const contract = getGlobalVisualNormalizationContract(role);
+  for (const result of capturedResults) {
+    const label = `Capture result ${result.filename} globalVisualNormalization`;
+    const evidence = result.globalVisualNormalization;
+    if (
+      !isPlainObject(evidence) ||
+      evidence.schemaVersion !== contract.schemaVersion ||
+      evidence.complete !== true ||
+      !Array.isArray(evidence.rules) ||
+      evidence.rules.length !== contract.rules.length ||
+      Object.keys(evidence).some((field) => !['complete', 'rules', 'schemaVersion'].includes(field))
+    ) {
+      throw new ComparisonError(`${label} is missing or invalid.`, 'manifest');
+    }
+    for (const [index, expected] of contract.rules.entries()) {
+      const actual = evidence.rules[index];
+      const allowedFields = new Set([
+        'actualMatches',
+        'applied',
+        'expectedChange',
+        'expectedMatches',
+        'hiddenMatches',
+        'key',
+        'operation',
+        'selector',
+      ]);
+      if (
+        !isPlainObject(actual) ||
+        Object.keys(actual).some((field) => !allowedFields.has(field)) ||
+        actual.actualMatches !== expected.expectedMatches ||
+        actual.applied !== (expected.operation === 'hide') ||
+        actual.expectedChange !== expected.expectedChange ||
+        actual.expectedMatches !== expected.expectedMatches ||
+        actual.hiddenMatches !== (expected.operation === 'hide' ? expected.expectedMatches : 0) ||
+        actual.key !== expected.key ||
+        actual.operation !== expected.operation ||
+        actual.selector !== expected.selector
+      ) {
+        throw new ComparisonError(
+          `${label}.rules[${index}] does not match its contract.`,
+          'manifest',
+        );
+      }
+    }
+  }
+}
+
 function captureRecordEvidence(record, label) {
   if (!record) return null;
   return {
@@ -1906,6 +1978,7 @@ function captureRecordEvidence(record, label) {
         ? null
         : sanitizeCaptureDiagnosticText(record.reason),
     diagnostics: normalizeCaptureDiagnostics(record.diagnostics, `${label} diagnostics`),
+    globalVisualNormalization: record.globalVisualNormalization || null,
     semanticIdNormalization: record.semanticIdNormalization || null,
   };
 }
@@ -2111,7 +2184,6 @@ function validateCaptureManifest(manifest, manifestPath) {
       'manifest',
     );
   }
-
   return {
     label: typeof manifest.label === 'string' && manifest.label ? manifest.label : null,
     manifest,
@@ -2323,6 +2395,8 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       'manifest',
     );
   }
+  validateGlobalVisualNormalizationEvidence(baseManifest, 'base', Boolean(base.semanticManifest));
+  validateGlobalVisualNormalizationEvidence(headManifest, 'head', Boolean(head.semanticManifest));
   if (base.semanticManifest) {
     const baseSemanticManifest = loadAttestedJsonArtifact(
       baseManifest.inputs.semanticManifest,
@@ -3429,6 +3503,7 @@ module.exports = {
   validateComparisonOptions,
   validateDistinctDirectories,
   validateFreshCapture,
+  validateGlobalVisualNormalizationEvidence,
   writeBoundScenarioConfig,
 };
 

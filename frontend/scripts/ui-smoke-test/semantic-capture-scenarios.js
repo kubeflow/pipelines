@@ -3,6 +3,7 @@
 const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest');
 
 const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v2';
+const GLOBAL_VISUAL_NORMALIZATION_SCHEMA_VERSION = 'ui-smoke-global-visual-normalization/v1';
 
 const exactScope = (options = {}) => ({
   match: 'exact',
@@ -103,9 +104,49 @@ const EXPECTED_CHANGES = Object.freeze({
   artifactRelationships:
     'The MLMD Lineage Explorer is replaced by native producing and consuming task relationships.',
   executions: 'The removed Executions surface redirects to the replacement Runs experience.',
+  navigation:
+    'The Executions sidebar entry is intentionally removed; semantic full-stack base captures hide only that entry so the remaining navigation stays visually comparable.',
   nativeRuntime:
     'MLMD-backed runtime presentation is replaced by native Task and Artifact API presentation.',
 });
+
+const GLOBAL_VISUAL_NORMALIZATIONS = Object.freeze([
+  Object.freeze({
+    expectedChange: EXPECTED_CHANGES.navigation,
+    key: 'executions-navigation-removal',
+    revisions: Object.freeze({
+      base: Object.freeze({ expectedMatches: 1, operation: 'hide' }),
+      head: Object.freeze({ expectedMatches: 0, operation: 'assert-absent' }),
+    }),
+    selector: '#executionsBtn',
+  }),
+]);
+
+function globalExpectedChangeAnnotation(scenarioExpectedChange = null) {
+  return {
+    global: GLOBAL_VISUAL_NORMALIZATIONS.map(({ expectedChange, key }) => ({
+      expectedChange,
+      key,
+    })),
+    ...(scenarioExpectedChange ? { scenario: scenarioExpectedChange } : {}),
+  };
+}
+
+function getGlobalVisualNormalizationContract(revisionRole) {
+  if (revisionRole !== 'base' && revisionRole !== 'head') {
+    throw new Error('Global visual normalization requires revisionRole base or head.');
+  }
+  return {
+    rules: GLOBAL_VISUAL_NORMALIZATIONS.map((rule) => ({
+      expectedChange: rule.expectedChange,
+      expectedMatches: rule.revisions[revisionRole].expectedMatches,
+      key: rule.key,
+      operation: rule.revisions[revisionRole].operation,
+      selector: rule.selector,
+    })),
+    schemaVersion: GLOBAL_VISUAL_NORMALIZATION_SCHEMA_VERSION,
+  };
+}
 
 function seededListReady() {
   const hasError = !!document.querySelector('[role="alert"]');
@@ -839,31 +880,6 @@ const SEMANTIC_SCENARIOS = Object.freeze([
       },
     },
   },
-  {
-    key: 'historical-artifact-evolution',
-    title: 'Historical legacy Artifact to native Artifact',
-    required: false,
-    requires: ['historicalArtifactId'],
-    expectedChange:
-      'Clean-stack mode compares equivalent legacy and native artifacts; preserved historical legacy artifacts require upgrade mode.',
-    revisions: {
-      base: {
-        path: '/#/artifacts/{seed.historicalArtifactId}',
-        routeExpectation: { kind: 'direct', path: '/artifacts/{seed.historicalArtifactId}' },
-        waitFor: '#root',
-        actions: [
-          { type: 'waitForText', text: 'Overview' },
-          { type: 'waitForText', text: 'URI' },
-        ],
-      },
-      head: {
-        path: '/#/artifacts/{seed.historicalArtifactId}',
-        routeExpectation: { kind: 'direct', path: '/artifacts/{seed.historicalArtifactId}' },
-        waitFor: '#root',
-        actions: [{ type: 'waitForText', text: 'Artifact details' }],
-      },
-    },
-  },
 ]);
 
 function resolveTemplates(value, seedValues) {
@@ -893,7 +909,7 @@ function resolveSemanticScenarios(revisionRole, seedValues, scenarios = SEMANTIC
     return resolveTemplates(
       {
         ...variant,
-        expectedChange: scenario.expectedChange || null,
+        expectedChange: globalExpectedChangeAnnotation(scenario.expectedChange || null),
         missingFixtures,
         name: scenario.key,
         required: scenario.required !== false,
@@ -908,7 +924,7 @@ function resolveSemanticScenarios(revisionRole, seedValues, scenarios = SEMANTIC
 
 function getSemanticScenarioCatalog(scenarios = SEMANTIC_SCENARIOS) {
   return scenarios.map((scenario) => ({
-    expectedChange: scenario.expectedChange || null,
+    expectedChange: globalExpectedChangeAnnotation(scenario.expectedChange || null),
     required: scenario.required !== false,
     scenarioTitle: scenario.title,
     semanticScenario: scenario.key,
@@ -934,9 +950,12 @@ function getSemanticIdNormalizationContract(
 
 module.exports = {
   EXPECTED_CHANGES,
+  GLOBAL_VISUAL_NORMALIZATION_SCHEMA_VERSION,
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   SEMANTIC_SCENARIOS,
+  getGlobalVisualNormalizationContract,
   getSemanticIdNormalizationContract,
   getSemanticScenarioCatalog,
+  globalExpectedChangeAnnotation,
   resolveSemanticScenarios,
 };

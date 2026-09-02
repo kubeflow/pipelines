@@ -13,6 +13,8 @@ const path = require('path');
 const fs = require('fs');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
+  getGlobalVisualNormalizationContract,
+  globalExpectedChangeAnnotation,
   resolveSemanticScenarios,
 } = require('./semantic-capture-scenarios.js');
 const {
@@ -347,7 +349,6 @@ function seedValuesFromManifest(manifest) {
       null,
     experimentId: defaults.experimentId || (resources.experimentIds || [])[0],
     htmlArtifactId: artifactId('artifact.html-report'),
-    historicalArtifactId: defaults.historicalArtifactId || null,
     markdownArtifactId: artifactId('artifact.markdown-report'),
     nestedDagTaskId: taskId('task.nested-dag'),
     parallelTaskId: taskId('task.parallel-loop'),
@@ -1828,6 +1829,34 @@ function rocCurveReadyPredicate() {
   );
 }
 
+const PIPELINE_DETAILS_ROOT_SELECTOR =
+  '[data-testid="pipeline-detail-v1"], [data-testid="pipeline-detail-v2"]';
+const PIPELINE_DETAILS_GRAPH_SELECTOR =
+  '[data-testid="pipeline-detail-v1"] .graphNode, ' +
+  '[data-testid="pipeline-detail-v2"] [data-testid="DagCanvas"] .react-flow__node';
+const PIPELINE_DETAILS_WRITE_METRICS_SELECTOR =
+  '[data-testid="pipeline-detail-v1"] .graphNode:has-text("write-metrics"), ' +
+  '[data-testid="pipeline-detail-v2"] [data-testid="DagCanvas"] ' +
+  '.react-flow__node:has-text("write-metrics")';
+
+function pipelineDetailsGraphReadyPredicate() {
+  if (document.querySelector('[role="alert"]')) return false;
+  const root = document.querySelector(
+    '[data-testid="pipeline-detail-v1"], [data-testid="pipeline-detail-v2"]',
+  );
+  if (!root) return false;
+  const nodes = Array.from(
+    root.querySelectorAll('.graphNode, [data-testid="DagCanvas"] .react-flow__node'),
+  );
+  return (
+    nodes.length > 0 &&
+    nodes.every((node) => {
+      const style = getComputedStyle(node);
+      return style.display !== 'none' && style.visibility !== 'hidden';
+    })
+  );
+}
+
 // Pages to capture - these are the main UI routes (using hash-based routing)
 // waitFor: selector to wait for before capturing (indicates page is loaded)
 // waitForData: additional selector that indicates data has loaded (optional)
@@ -1851,20 +1880,16 @@ const PAGES = [
   {
     name: 'pipeline-details-seeded',
     path: '/#/pipelines/details/{seed.pipelineId}',
-    waitFor: '#root',
-    waitForData: '[role="tab"], .ace_editor',
+    waitFor: PIPELINE_DETAILS_ROOT_SELECTOR,
+    actions: [{ type: 'waitForFunction', predicate: pipelineDetailsGraphReadyPredicate }],
   },
   {
     name: 'pipeline-details-seeded-sidepanel',
     path: '/#/pipelines/details/{seed.pipelineId}',
-    waitFor: '#root',
-    waitForData: '[role="tab"], .ace_editor',
+    waitFor: PIPELINE_DETAILS_ROOT_SELECTOR,
     actions: [
-      {
-        type: 'waitForFunction',
-        predicate: () => document.querySelectorAll('.react-flow__node, .graphNode').length > 0,
-      },
-      { type: 'click', selector: '.react-flow__node:visible, .graphNode:visible' },
+      { type: 'waitForFunction', predicate: pipelineDetailsGraphReadyPredicate },
+      { type: 'click', selector: PIPELINE_DETAILS_WRITE_METRICS_SELECTOR },
       { type: 'waitForSelector', selector: '[aria-label="close"]' },
     ],
   },
@@ -2110,9 +2135,12 @@ const REVISION_AWARE_PAGE_ALIASES = Object.freeze({
 
 function buildRevisionAwarePages(revisionRole, seedValues, legacyPages = PAGES) {
   const semanticPages = resolveSemanticScenarios(revisionRole, seedValues);
-  const retainedPages = legacyPages.filter(
-    (page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name),
-  );
+  const retainedPages = legacyPages
+    .filter((page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name))
+    .map((page) => ({
+      ...page,
+      expectedChange: globalExpectedChangeAnnotation(page.expectedChange || null),
+    }));
   const names = new Set(semanticPages.map((page) => page.name));
   for (const page of retainedPages) {
     if (names.has(page.name)) {
@@ -2629,6 +2657,66 @@ function classifyCaptureFailure(error, diagnostics) {
   return 'ui_rendering_failure';
 }
 
+async function applyGlobalVisualNormalizations(page, semanticIdNormalizationMode, revisionRole) {
+  if (semanticIdNormalizationMode !== SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK) {
+    return null;
+  }
+  const contract = getGlobalVisualNormalizationContract(revisionRole);
+  const evidence = {
+    complete: false,
+    rules: [],
+    schemaVersion: contract.schemaVersion,
+  };
+  try {
+    for (const rule of contract.rules) {
+      const locator = page.locator(rule.selector);
+      const actualMatches = await locator.count();
+      const ruleEvidence = {
+        actualMatches,
+        applied: false,
+        expectedChange: rule.expectedChange,
+        expectedMatches: rule.expectedMatches,
+        hiddenMatches: 0,
+        key: rule.key,
+        operation: rule.operation,
+        selector: rule.selector,
+      };
+      evidence.rules.push(ruleEvidence);
+      if (actualMatches !== rule.expectedMatches) {
+        const error = new Error(
+          `Global visual normalization selector ${rule.selector} matched ${actualMatches} element(s); expected ${rule.expectedMatches} for ${revisionRole}.`,
+        );
+        error.captureValidity = 'selector_drift';
+        throw error;
+      }
+      if (rule.operation === 'hide') {
+        await page.addStyleTag({
+          content: `${rule.selector} { display: none !important; }`,
+        });
+        ruleEvidence.hiddenMatches = await locator.evaluateAll(
+          (elements) =>
+            elements.filter((element) => getComputedStyle(element).display === 'none').length,
+        );
+        if (ruleEvidence.hiddenMatches !== rule.expectedMatches) {
+          const error = new Error(
+            `Global visual normalization selector ${rule.selector} hid ${ruleEvidence.hiddenMatches} element(s); expected ${rule.expectedMatches} for ${revisionRole}.`,
+          );
+          error.captureValidity = 'selector_drift';
+          throw error;
+        }
+        ruleEvidence.applied = true;
+      } else if (rule.operation !== 'assert-absent') {
+        throw new Error(`Unsupported global visual normalization operation ${rule.operation}.`);
+      }
+    }
+    evidence.complete = true;
+    return evidence;
+  } catch (error) {
+    error.globalVisualNormalization = evidence;
+    throw error;
+  }
+}
+
 async function captureScreenshots(options, dependencies = {}) {
   const semanticIdNormalizationMode = validateSemanticIdNormalizationMode(options);
   const chromium = dependencies.chromium || require('playwright').chromium;
@@ -2807,6 +2895,7 @@ async function captureScreenshots(options, dependencies = {}) {
           let page;
           let diagnostics = { consoleErrors: [], failedRequests: [], dropped: {} };
           let fontStatus = null;
+          let globalVisualNormalization = null;
           let resolvedRoute = null;
           let semanticIdNormalization = null;
           try {
@@ -2846,6 +2935,12 @@ async function captureScreenshots(options, dependencies = {}) {
               }
             }
 
+            globalVisualNormalization = await applyGlobalVisualNormalizations(
+              page,
+              semanticIdNormalizationMode,
+              options.revisionRole,
+            );
+
             await waitForFonts(page);
             fontStatus = {
               childFrames: await stabilizeChildFrames(page),
@@ -2884,6 +2979,7 @@ async function captureScreenshots(options, dependencies = {}) {
               expectedChange: pageConfig.expectedChange || null,
               filename,
               font: fontStatus,
+              globalVisualNormalization,
               page: pageConfig.name,
               path: filepath,
               requestedRoute: resolvedPath,
@@ -2901,6 +2997,8 @@ async function captureScreenshots(options, dependencies = {}) {
               viewport,
             });
           } catch (error) {
+            globalVisualNormalization =
+              error.globalVisualNormalization || globalVisualNormalization;
             if (error instanceof SkipCaptureError) {
               console.log(`  ↷ Skipped: ${error.message}`);
               addResult({
@@ -2908,6 +3006,7 @@ async function captureScreenshots(options, dependencies = {}) {
                 diagnostics,
                 expectedChange: pageConfig.expectedChange || null,
                 filename,
+                globalVisualNormalization,
                 page: pageConfig.name,
                 reason: error.message,
                 requestedRoute: resolvedPath,
@@ -2931,6 +3030,7 @@ async function captureScreenshots(options, dependencies = {}) {
               error: error.message,
               expectedChange: pageConfig.expectedChange || null,
               filename,
+              globalVisualNormalization,
               page: pageConfig.name,
               requestedRoute: resolvedPath,
               required,
@@ -3086,8 +3186,12 @@ module.exports = {
   CAPTURE_VALIDITIES,
   DETERMINISTIC_TIME_ISO,
   DETERMINISTIC_FONT_ASSETS,
+  PIPELINE_DETAILS_GRAPH_SELECTOR,
+  PIPELINE_DETAILS_ROOT_SELECTOR,
+  PIPELINE_DETAILS_WRITE_METRICS_SELECTOR,
   SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
   PAGES,
+  applyGlobalVisualNormalizations,
   assertDeterministicFont,
   assertRouteExpectation,
   assertNavigationResponse,
@@ -3110,6 +3214,7 @@ module.exports = {
   normalizeBaseUrl,
   parseCaptureOptions,
   parseViewports,
+  pipelineDetailsGraphReadyPredicate,
   prepareSemanticIdNormalization,
   prepareSemanticDerivedColorNormalization,
   rocCurveReadyPredicate,

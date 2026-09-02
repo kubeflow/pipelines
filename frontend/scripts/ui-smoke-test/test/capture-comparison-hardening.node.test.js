@@ -490,6 +490,128 @@ test('pipeline capture uses the current route and page-specific readiness', () =
   assert.equal(pipelinePage.waitFor, '#dropZone');
 });
 
+test('pipeline details use revision-stable graph and semantic node selectors', (t) => {
+  const originalDocument = global.document;
+  const originalGetComputedStyle = global.getComputedStyle;
+  t.after(() => {
+    global.document = originalDocument;
+    global.getComputedStyle = originalGetComputedStyle;
+  });
+  for (const pageName of ['pipeline-details-seeded', 'pipeline-details-seeded-sidepanel']) {
+    const page = capture.PAGES.find((candidate) => candidate.name === pageName);
+    assert.equal(page.waitFor, capture.PIPELINE_DETAILS_ROOT_SELECTOR);
+    assert.equal(page.waitForData, undefined);
+    assert.equal(
+      page.actions.some(
+        (action) =>
+          action.type === 'waitForFunction' &&
+          action.predicate === capture.pipelineDetailsGraphReadyPredicate,
+      ),
+      true,
+    );
+  }
+  const sidePanel = capture.PAGES.find(
+    (candidate) => candidate.name === 'pipeline-details-seeded-sidepanel',
+  );
+  assert.equal(
+    sidePanel.actions.find((action) => action.type === 'click').selector,
+    capture.PIPELINE_DETAILS_WRITE_METRICS_SELECTOR,
+  );
+  assert.match(capture.PIPELINE_DETAILS_GRAPH_SELECTOR, /pipeline-detail-v1/);
+  assert.match(capture.PIPELINE_DETAILS_GRAPH_SELECTOR, /pipeline-detail-v2/);
+
+  const node = {};
+  const root = { querySelectorAll: () => [node] };
+  global.document = {
+    querySelector: (selector) => (selector === '[role="alert"]' ? null : root),
+  };
+  global.getComputedStyle = () => ({ display: 'block', visibility: 'visible' });
+  assert.equal(capture.pipelineDetailsGraphReadyPredicate(), true);
+  global.getComputedStyle = () => ({ display: 'none', visibility: 'visible' });
+  assert.equal(capture.pipelineDetailsGraphReadyPredicate(), false);
+  root.querySelectorAll = () => [];
+  assert.equal(capture.pipelineDetailsGraphReadyPredicate(), false);
+  global.document.querySelector = (selector) =>
+    selector === '[role="alert"]' ? { textContent: 'failed' } : root;
+  assert.equal(capture.pipelineDetailsGraphReadyPredicate(), false);
+});
+
+test('semantic full-stack capture precisely normalizes the removed Executions nav row', async () => {
+  let baseCss = null;
+  const basePage = {
+    addStyleTag: async ({ content }) => {
+      baseCss = content;
+    },
+    locator: (selector) => {
+      assert.equal(selector, '#executionsBtn');
+      return {
+        count: async () => 1,
+        evaluateAll: async () => (baseCss?.includes('display: none !important') ? 1 : 0),
+      };
+    },
+  };
+  const baseEvidence = await capture.applyGlobalVisualNormalizations(
+    basePage,
+    'semantic-full-stack',
+    'base',
+  );
+  assert.equal(baseEvidence.complete, true);
+  assert.deepEqual(baseEvidence.rules[0], {
+    actualMatches: 1,
+    applied: true,
+    expectedChange:
+      'The Executions sidebar entry is intentionally removed; semantic full-stack base captures hide only that entry so the remaining navigation stays visually comparable.',
+    expectedMatches: 1,
+    hiddenMatches: 1,
+    key: 'executions-navigation-removal',
+    operation: 'hide',
+    selector: '#executionsBtn',
+  });
+  assert.equal(baseCss, '#executionsBtn { display: none !important; }');
+
+  let headStyleCalls = 0;
+  const headEvidence = await capture.applyGlobalVisualNormalizations(
+    {
+      addStyleTag: async () => {
+        headStyleCalls += 1;
+      },
+      locator: () => ({ count: async () => 0 }),
+    },
+    'semantic-full-stack',
+    'head',
+  );
+  assert.equal(headEvidence.complete, true);
+  assert.equal(headEvidence.rules[0].applied, false);
+  assert.equal(headStyleCalls, 0);
+  assert.equal(
+    await capture.applyGlobalVisualNormalizations(
+      basePage,
+      'disabled-browser-compatibility',
+      'base',
+    ),
+    null,
+  );
+
+  for (const [role, count] of [
+    ['base', 0],
+    ['head', 1],
+  ]) {
+    await assert.rejects(
+      capture.applyGlobalVisualNormalizations(
+        { locator: () => ({ count: async () => count }) },
+        'semantic-full-stack',
+        role,
+      ),
+      (error) => {
+        assert.equal(error.captureValidity, 'selector_drift');
+        assert.equal(error.globalVisualNormalization.complete, false);
+        assert.equal(error.globalVisualNormalization.rules[0].actualMatches, count);
+        return true;
+      },
+    );
+  }
+});
+
 test('list-page readiness accepts exact empty states without accepting loading or errors', (t) => {
   const originalDocument = global.document;
   t.after(() => {
@@ -625,6 +747,7 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
                 }
                 events.push(source.includes('document.fonts') ? 'fonts' : 'css');
               },
+              locator: () => ({ count: async () => 0 }),
               waitForFunction: async () => events.push('action'),
               waitForSelector: async () => events.push('selector'),
               waitForTimeout: async () => events.push('settled'),
