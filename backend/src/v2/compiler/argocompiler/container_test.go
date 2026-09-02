@@ -215,7 +215,7 @@ func TestProjectedTokenAudience_UsesCustomAudienceAcrossTemplates(t *testing.T) 
 
 	t.Run("importer", func(t *testing.T) {
 		c := newCompilerWithCustomTokenAudience(customAudience)
-		name := c.addImporterTemplate(false)
+		name := c.addImporterTemplate(false, nil)
 		assertProjectedTokenAudience(t, c.templates[name], expectedAudience)
 	})
 	t.Run("container-driver", func(t *testing.T) {

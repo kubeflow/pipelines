@@ -1,0 +1,48 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer-retry
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        typeSchema:
+          schemaTitle: system.Dataset
+          schemaVersion: 0.0.1
+pipelineInfo:
+  name: pipeline-with-importer-retry
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        retryPolicy:
+          backoffDuration: 10s
+          backoffFactor: 2.0
+          backoffMaxDuration: 60s
+          maxRetryCount: 3
+        taskInfo:
+          name: importer
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.14.3

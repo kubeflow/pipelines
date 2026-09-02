@@ -1,0 +1,326 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  annotations:
+    workflows.argoproj.io/pod-name-format: v1
+  generateName: pipeline-with-importer-retry-
+spec:
+  arguments:
+    parameters:
+    - name: implementations-comp-importer
+      value: '{"artifactUri":{"constant":"gs://ml-pipeline-playground/shakespeare1.txt"},"typeSchema":{"schemaTitle":"system.Dataset","schemaVersion":"0.0.1"}}'
+  entrypoint: entrypoint
+  podMetadata:
+    annotations:
+      pipelines.kubeflow.org/v2_component: "true"
+    labels:
+      pipelines.kubeflow.org/v2_component: "true"
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccountName: pipeline-runner
+  templates:
+  - container:
+      args:
+      - --executor_type
+      - importer
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --importer_spec
+      - '{{inputs.parameters.importer}}'
+      - --pipeline_name
+      - pipeline-with-importer-retry
+      - --run_id
+      - '{{workflow.uid}}'
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --namespace
+      - $(NAMESPACE)
+      - --pod_name
+      - $(KFP_POD_NAME)
+      - --pod_uid
+      - $(KFP_POD_UID)
+      - --cache_disabled=false
+      - --ml_pipeline_tls_enabled=false
+      - --ca_cert_path
+      - ""
+      - --log_level
+      - "1"
+      - --publish_logs
+      - "true"
+      command:
+      - launcher-v2
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      envFrom:
+      - configMapRef:
+          name: metadata-grpc-configmap
+          optional: true
+      image: ghcr.io/kubeflow/kfp-launcher:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
+    inputs:
+      parameters:
+      - name: task-name
+      - name: importer
+      - name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - name: retry-max-count
+      - name: retry-backoff-duration
+      - name: retry-backoff-factor
+      - name: retry-backoff-max-duration
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: launcher
+        pipelines.kubeflow.org/template-name: retry-system-importer
+      labels:
+        pipelines.kubeflow.org/pod-role: importer
+    name: retry-system-importer
+    outputs: {}
+    retryStrategy:
+      backoff:
+        duration: '{{inputs.parameters.retry-backoff-duration}}'
+        factor: '{{inputs.parameters.retry-backoff-factor}}'
+        maxDuration: '{{inputs.parameters.retry-backoff-max-duration}}'
+      limit: '{{inputs.parameters.retry-max-count}}'
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+            expirationSeconds: 7200
+            path: token
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: task-name
+            value: importer
+          - name: importer
+            value: '{{workflow.parameters.implementations-comp-importer}}'
+          - name: parent-dag-task-id
+            value: '{{inputs.parameters.parent-dag-task-id}}'
+          - name: retry-max-count
+            value: "3"
+          - name: retry-backoff-duration
+            value: "10"
+          - name: retry-backoff-factor
+            value: "2"
+          - name: retry-backoff-max-duration
+            value: "60"
+        name: importer
+        template: retry-system-importer
+    inputs:
+      parameters:
+      - name: parent-dag-task-id
+    metadata: {}
+    name: root
+    outputs: {}
+  - container:
+      args:
+      - --type
+      - '{{inputs.parameters.driver-type}}'
+      - --pipeline_name
+      - pipeline-with-importer-retry
+      - --run_id
+      - '{{workflow.uid}}'
+      - --run_name
+      - '{{workflow.name}}'
+      - --run_display_name
+      - ""
+      - --parent_task_id
+      - '{{inputs.parameters.parent-dag-task-id}}'
+      - --task_name
+      - '{{inputs.parameters.task-name}}'
+      - --runtime_config
+      - '{{inputs.parameters.runtime-config}}'
+      - --iteration_index
+      - '{{inputs.parameters.iteration-index}}'
+      - --parent_task_id_path
+      - '{{outputs.parameters.parent-dag-task-id-path.path}}'
+      - --iteration_count_path
+      - '{{outputs.parameters.iteration-count.path}}'
+      - --condition_path
+      - '{{outputs.parameters.condition.path}}'
+      - --namespace
+      - $(NAMESPACE)
+      - --http_proxy
+      - ""
+      - --https_proxy
+      - ""
+      - --no_proxy
+      - ""
+      - --ml_pipeline_server_address
+      - ml-pipeline.kubeflow.svc.cluster.local
+      - --ml_pipeline_server_port
+      - "8887"
+      - --cache_disabled=false
+      - --log_level
+      - "1"
+      - --publish_logs
+      - "true"
+      - --ml_pipeline_tls_enabled=false
+      - --ca_cert_path
+      - ""
+      command:
+      - driver
+      env:
+      - name: KFP_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: KFP_POD_UID
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.uid
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      image: ghcr.io/kubeflow/kfp-driver:latest
+      name: ""
+      resources:
+        limits:
+          cpu: 500m
+          memory: 512Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+          - ALL
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      volumeMounts:
+      - mountPath: /var/run/secrets/kfp
+        name: kfp-launcher-token
+        readOnly: true
+      - mountPath: /etc/kfp/launcher-config
+        name: kfp-launcher-config
+        readOnly: true
+    inputs:
+      parameters:
+      - default: ""
+        name: runtime-config
+      - default: ""
+        name: task-name
+      - default: ""
+        name: parent-dag-task-id
+      - default: "-1"
+        name: iteration-index
+      - default: DAG
+        name: driver-type
+    metadata:
+      annotations:
+        pipelines.kubeflow.org/runtime-role: driver
+        pipelines.kubeflow.org/template-name: system-dag-driver
+      labels:
+        pipelines.kubeflow.org/pod-role: dag-driver
+    name: system-dag-driver
+    outputs:
+      parameters:
+      - name: parent-dag-task-id-path
+        valueFrom:
+          path: /tmp/outputs/task-id
+      - name: iteration-count
+        valueFrom:
+          default: "0"
+          path: /tmp/outputs/iteration-count
+      - name: condition
+        valueFrom:
+          default: "true"
+          path: /tmp/outputs/condition
+    securityContext:
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+    volumes:
+    - name: kfp-launcher-token
+      projected:
+        sources:
+        - serviceAccountToken:
+            audience: pipelines.kubeflow.org/runs/{{workflow.uid}}
+            expirationSeconds: 7200
+            path: token
+    - configMap:
+        name: kfp-launcher
+        optional: true
+      name: kfp-launcher-config
+  - dag:
+      tasks:
+      - arguments:
+          parameters:
+          - name: runtime-config
+            value: '{}'
+          - name: driver-type
+            value: ROOT_DAG
+        name: root-driver
+        template: system-dag-driver
+      - arguments:
+          parameters:
+          - name: parent-dag-task-id
+            value: '{{tasks.root-driver.outputs.parameters.parent-dag-task-id-path}}'
+          - name: condition
+            value: ""
+        depends: root-driver.Succeeded
+        name: root
+        template: root
+    inputs: {}
+    metadata: {}
+    name: entrypoint
+    outputs: {}
+status:
+  finishedAt: null
+  startedAt: null
