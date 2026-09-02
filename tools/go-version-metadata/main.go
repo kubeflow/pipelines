@@ -441,10 +441,15 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 		return index, found
 	}
 	validateLiteralSource := func(value string) error {
-		if _, err := discovery.dockerWordAlternatives(value); err != nil {
+		normalized, err := discovery.normalizeDockerWord(value)
+		if err != nil {
 			return err
 		}
-		if discovery.dockerWordHasExpansion(value) {
+		// BuildKit rejects COPY --from whenever its word lexer changes the
+		// parsed flag value. This includes parameter expansion and escape
+		// normalization: the Dockerfile parser retains one escape from a
+		// doubled pair, then the word lexer removes the other one.
+		if normalized != value || discovery.dockerWordHasExpansion(value) {
 			return fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
 		}
 		return nil

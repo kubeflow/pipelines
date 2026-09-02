@@ -102,18 +102,59 @@ def _docker_instruction_blocks(contents):
     """Return line-numbered logical Docker instructions."""
     lines = contents.splitlines()
     blocks = []
+    escape_token = '\\'
+    directives_allowed = True
     index = 0
     while index < len(lines):
         start_line = index + 1
         line = lines[index]
-        physical_lines = [line]
-        while physical_lines[-1].rstrip().endswith('\\'):
+        if line.lstrip().startswith('#'):
+            # Docker comments and parser directives are complete physical
+            # lines. A trailing escape never continues them into an active
+            # instruction.
+            blocks.append((start_line, line.strip()))
+            directive = re.fullmatch(
+                r'[ \t]*#[ \t]*([a-zA-Z][a-zA-Z0-9]*)[ \t]*='
+                r'[ \t]*(.+?)[ \t]*',
+                line,
+            )
+            directive_name = directive.group(1).lower() if directive else ''
+            if (directives_allowed and directive_name
+                    in {'syntax', 'escape', 'check'}):
+                if directive_name == 'escape' and directive.group(2) in {'\\', '`'}:
+                    escape_token = directive.group(2)
+            else:
+                directives_allowed = False
+            index += 1
+            continue
+        directives_allowed = False
+        physical_lines = []
+        while True:
+            stripped = line.rstrip(' \t')
+            continues = (
+                stripped.endswith(escape_token)
+                and (len(stripped) == 1
+                     or stripped[-2] != escape_token)
+            )
+            physical_lines.append(stripped[:-1] if continues else line)
+            if not continues:
+                break
             index += 1
             if index >= len(lines):
                 break
-            physical_lines.append(lines[index])
+            line = lines[index]
+            while (not line.strip() or line.lstrip().startswith('#')):
+                # Empty lines and full-line comments inside an instruction
+                # continuation are ignored by Docker and do not terminate
+                # the continuation.
+                index += 1
+                if index >= len(lines):
+                    break
+                line = lines[index]
+            if index >= len(lines):
+                break
         blocks.append((start_line, ' '.join(
-            physical_line.rstrip().removesuffix('\\').strip()
+            physical_line.strip()
             for physical_line in physical_lines)))
         index += 1
     return blocks
@@ -627,6 +668,42 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     f'tidy` prunes it because no Go source imports it.',
                 )
 
+    def test_docker_comments_do_not_continue_into_instructions(self):
+        """A trailing escape on a Docker comment has no lexical effect."""
+        self.assertEqual(
+            _docker_instructions(
+                '# ordinary comment \\\n'
+                'COPY source destination\n'
+            ),
+            [(2, 'COPY source destination')],
+        )
+        self.assertEqual(
+            _docker_instructions(
+                'RUN echo one\\\n'
+                '\n'
+                '   \n'
+                '    two\n'
+            ),
+            [(1, 'RUN echo one two')],
+        )
+        self.assertEqual(
+            _docker_instructions(
+                '# escape=`\n'
+                '# ordinary comment `\n'
+                'RUN echo one`\n'
+                '# continued comment `\n'
+                '\n'
+                '    two\n'
+                'RUN echo ``\n'
+                'COPY second destination\n'
+            ),
+            [
+                (3, 'RUN echo one two'),
+                (7, 'RUN echo ``'),
+                (8, 'COPY second destination'),
+            ],
+        )
+
     def test_api_tools_pins_are_read_by_the_generator_image(self):
         """Guard manifest -> query -> download dataflow in one RUN."""
         contents = _read(API_TOOLS_DOCKERFILE)
@@ -704,6 +781,17 @@ class GoVersionConsistencyTest(unittest.TestCase):
         self.assertNotEqual(redirected, contents)
         self.assertEqual(
             _api_tool_pin_dataflow_errors(redirected, module_path), [])
+
+    def test_api_tool_protocol_tolerates_empty_continuation_lines(self):
+        """Docker ignores empty physical lines inside a continuation."""
+        contents = _read(API_TOOLS_DOCKERFILE)
+        continued = contents.replace('RUN set -eu; \\\n',
+                                     'RUN set -eu; \\\n\n')
+        self.assertNotEqual(continued, contents)
+        for module_path in API_TOOLS_PINS:
+            with self.subTest(module_path=module_path):
+                self.assertEqual(
+                    _api_tool_pin_dataflow_errors(continued, module_path), [])
 
     def test_api_tools_pin_dataflow_rejects_decoupled_mutations(self):
         """Shared path strings must not satisfy the coupling invariant."""
@@ -807,11 +895,21 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     'COPY ["decoy.mod", '
                     '"/tmp/api-generator-tools/go.mod"]\nRUN set -eu;',
                 ),
+            'comment-hidden manifest COPY inserted between copy and query':
+                contents.replace(
+                    copy_then_run,
+                    canonical_copy + '\n# ordinary comment \\\n'
+                    'COPY ["decoy.mod", '
+                    '"/tmp/api-generator-tools/go.mod"]\nRUN set -eu;',
+                ),
             'normalized artifact alias written after install':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
                 '/usr/bin/../bin/swagger\n',
             'JSON artifact COPY after install':
                 contents + '\nCOPY ["swagger", "/usr/bin/swagger"]\n',
+            'comment-hidden artifact COPY after install':
+                contents + '\n# ordinary comment \\\n'
+                'COPY ["swagger", "/usr/bin/swagger"]\n',
             'unrelated instruction after install':
                 contents + '\nENV API_INSTALL_COMPLETE=true\n',
         }

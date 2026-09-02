@@ -1167,9 +1167,13 @@ func TestDockerSpecialParameterReferenceFieldBoundary(t *testing.T) {
 		{name: "ordinary COPY expansion", contents: "FROM scratch\nCOPY --from=${SOURCE} /src /dst\n"},
 		{name: "special COPY expansion", contents: "FROM scratch\nCOPY --from=${?} /src /dst\n"},
 		{name: "positional COPY expansion", contents: "FROM scratch\nCOPY --from=${0} /src /dst\n"},
+		{name: "doubled escape COPY expansion", contents: "FROM scratch\nCOPY --from=\\\\${?} /src /dst\n"},
 		{name: "ordinary ONBUILD COPY expansion", contents: "FROM scratch AS base\nONBUILD COPY --from=${SOURCE} /src /dst\nFROM base\n"},
 		{name: "special ONBUILD COPY expansion", contents: "FROM scratch AS base\nONBUILD COPY --from=${?} /src /dst\nFROM base\n"},
 		{name: "positional ONBUILD COPY expansion", contents: "FROM scratch AS base\nONBUILD COPY --from=${0} /src /dst\nFROM base\n"},
+		{name: "doubled escape ONBUILD COPY expansion", contents: "FROM scratch AS base\nONBUILD COPY --from=\\\\${?} /src /dst\nFROM base\n"},
+		{name: "custom doubled escape COPY expansion", contents: "# escape=`\nFROM scratch\nCOPY --from=``${?} /src /dst\n"},
+		{name: "custom doubled escape ONBUILD COPY expansion", contents: "# escape=`\nFROM scratch AS base\nONBUILD COPY --from=``${?} /src /dst\nFROM base\n"},
 	} {
 		t.Run("invalid/"+test.name, func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})

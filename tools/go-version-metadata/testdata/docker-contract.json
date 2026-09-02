@@ -362,6 +362,42 @@
       "want": {"classification": "invalid", "errorContains": "expanded stage source"}
     },
     {
+      "id": "copy-doubled-escape-expansion-invalid",
+      "finding": 3,
+      "domain": "copy-stage-escape-normalization",
+      "dockerfile": "FROM scratch\nCOPY --from=\\\\${?} /src /dst\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "onbuild-copy-doubled-escape-expansion-invalid",
+      "finding": 3,
+      "domain": "onbuild-stage-escape-normalization",
+      "dockerfile": "FROM scratch AS base\nONBUILD COPY --from=\\\\${?} /src /dst\nFROM base\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "copy-custom-doubled-escape-expansion-invalid",
+      "finding": 3,
+      "domain": "copy-stage-custom-escape-normalization",
+      "dockerfile": "# escape=`\nFROM scratch\nCOPY --from=``${?} /src /dst\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "onbuild-copy-custom-doubled-escape-expansion-invalid",
+      "finding": 3,
+      "domain": "onbuild-stage-custom-escape-normalization",
+      "dockerfile": "# escape=`\nFROM scratch AS base\nONBUILD COPY --from=``${?} /src /dst\nFROM base\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
       "id": "inherited-special-environment",
       "finding": 1,
       "domain": "docker-special-parameter-provenance",
