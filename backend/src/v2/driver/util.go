@@ -24,6 +24,7 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/apiclient/kfpapi"
+	"github.com/kubeflow/pipelines/backend/src/v2/component"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/kubeflow/pipelines/backend/src/v2/driver/resolver"
 	"google.golang.org/grpc/codes"
@@ -470,14 +471,28 @@ func handleInputTaskArtifactsCreation(
 			})
 		}
 	}
-	if len(artifactTasks) > 0 {
-		request := apiV2beta1.CreateArtifactTasksBulkRequest{ArtifactTasks: artifactTasks}
-		_, err := kfpAPI.CreateArtifactTasks(ctx, &request)
-		if err != nil {
-			return err
-		}
+	return createArtifactTasksWithRetryReconciliation(ctx, opts.Run.GetRunId(), artifactTasks, kfpAPI)
+}
+
+// createArtifactTasksWithRetryReconciliation keeps driver-side relationship
+// writes idempotent when Argo replays a driver for the same logical task.
+func createArtifactTasksWithRetryReconciliation(
+	ctx context.Context,
+	runID string,
+	artifactTasks []*apiV2beta1.ArtifactTask,
+	kfpAPI kfpapi.API,
+) error {
+	if len(artifactTasks) == 0 {
+		return nil
 	}
-	return nil
+	batchUpdater := component.NewBatchUpdater()
+	for _, artifactTask := range artifactTasks {
+		batchUpdater.QueueArtifactTask(artifactTask)
+	}
+	if err := batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(ctx, kfpAPI, runID); err != nil {
+		return err
+	}
+	return batchUpdater.Flush(ctx, kfpAPI)
 }
 
 func parameterValuesToInterfaces(parameterValues map[string]*structpb.Value) map[string]interface{} {
