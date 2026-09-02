@@ -162,6 +162,12 @@ def docker_runtime_classification(contents: str) -> Dict:
     }
 
 
+def docker_instruction_metadata(contents: str) -> List[Dict]:
+    """Return the pinned BuildKit parser's semantic instruction projection."""
+    metadata = inspect_metadata(Path('Dockerfile'), contents)
+    return list(metadata.get('dockerInstructions', []))
+
+
 def has_go_runtime_reference(relative_path: Path, contents: str) -> bool:
     if is_yaml_metadata_path(relative_path):
         if relative_path in INTENTIONALLY_INVALID_YAML_PATHS:

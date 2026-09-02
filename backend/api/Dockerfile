@@ -69,11 +69,8 @@ RUN chmod -R 777 /go
 
 # Standalone generator tools use the dedicated tools module so Dependabot can
 # update them without adding build-only dependencies to KFP. Keep this COPY and
-# install RUN as the final two instructions: their adjacency guarantees that
-# the queried manifest produces the installed artifact without an intervening
-# Docker state change or a later overwrite.
+# install RUN as the final two instructions. Their adjacency prevents an
+# intervening manifest change or later artifact overwrite, while explicit
+# exec-form /bin/sh makes the install independent of inherited SHELL state.
 COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
-RUN set -eu; \
-    go_swagger_version="$(cd /tmp/api-generator-tools && GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
-    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
-    chmod +x /usr/bin/swagger
+RUN ["/bin/sh", "-c", "set -eu; go_swagger_version=\"$(cd /tmp/api-generator-tools && GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == \"github.com/go-swagger/go-swagger\") | .Version')\"; curl -fL -o /usr/bin/swagger \"https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64\"; chmod +x /usr/bin/swagger"]

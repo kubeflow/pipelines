@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"regexp/syntax"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,6 +54,30 @@ type moduleMetadata struct {
 	Toolchain string `json:"toolchain,omitempty"`
 }
 
+// dockerInstructionMetadata is a bounded semantic projection of the pinned
+// BuildKit AST. Policy callers use it instead of reimplementing Docker's
+// physical-line, continuation, heredoc, and JSON parsing rules.
+type dockerInstructionMetadata struct {
+	Command string              `json:"command"`
+	Line    int                 `json:"line"`
+	Flags   []string            `json:"flags"`
+	Copy    *dockerCopyMetadata `json:"copy,omitempty"`
+	Run     *dockerRunMetadata  `json:"run,omitempty"`
+}
+
+type dockerCopyMetadata struct {
+	From          string   `json:"from"`
+	Sources       []string `json:"sources"`
+	Destination   string   `json:"destination"`
+	InlineSources int      `json:"inlineSources"`
+}
+
+type dockerRunMetadata struct {
+	Arguments    []string `json:"arguments"`
+	PrependShell bool     `json:"prependShell"`
+	HeredocFiles int      `json:"heredocFiles"`
+}
+
 type dockerCandidate struct {
 	Kind    string `json:"kind"`
 	Value   string `json:"value"`
@@ -64,12 +89,13 @@ type dockerCandidate struct {
 }
 
 type response struct {
-	YAMLValues           map[string][]string `json:"yamlValues,omitempty"`
-	HasGoDownload        bool                `json:"hasGoDownload,omitempty"`
-	DockerClassification string              `json:"dockerClassification,omitempty"`
-	DockerCandidates     []dockerCandidate   `json:"dockerCandidates,omitempty"`
-	DockerError          string              `json:"dockerError,omitempty"`
-	Module               *moduleMetadata     `json:"module,omitempty"`
+	YAMLValues           map[string][]string         `json:"yamlValues,omitempty"`
+	HasGoDownload        bool                        `json:"hasGoDownload,omitempty"`
+	DockerClassification string                      `json:"dockerClassification,omitempty"`
+	DockerCandidates     []dockerCandidate           `json:"dockerCandidates,omitempty"`
+	DockerError          string                      `json:"dockerError,omitempty"`
+	DockerInstructions   []dockerInstructionMetadata `json:"dockerInstructions,omitempty"`
+	Module               *moduleMetadata             `json:"module,omitempty"`
 }
 
 var goDownloadPattern = regexp.MustCompile(`(?i)^https://(?:dl\.google\.com/go/|go\.dev/dl/)go`)
@@ -219,6 +245,13 @@ func inspect(input request) (response, error) {
 		metadata.DockerClassification = classification
 		metadata.DockerCandidates = candidates
 		metadata.DockerError = parseError
+		if classification != "invalid" {
+			projected, err := projectDockerInstructions(input.Contents)
+			if err != nil {
+				return response{}, fmt.Errorf("%s: project Docker instructions: %w", input.Path, err)
+			}
+			metadata.DockerInstructions = projected
+		}
 	}
 	return metadata, nil
 }
@@ -384,6 +417,51 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	return "irrelevant", nil, ""
 }
 
+func projectDockerInstructions(contents string) ([]dockerInstructionMetadata, error) {
+	parsed, err := parser.Parse(strings.NewReader(contents))
+	if err != nil {
+		return nil, err
+	}
+	projected := make([]dockerInstructionMetadata, 0, len(parsed.AST.Children))
+	for _, node := range parsed.AST.Children {
+		typed, err := instructions.ParseInstruction(node)
+		if err != nil {
+			return nil, err
+		}
+		record := dockerInstructionMetadata{
+			Command: strings.ToLower(node.Value),
+			Line:    node.StartLine,
+			Flags:   slices.Clone(node.Flags),
+		}
+		if record.Flags == nil {
+			record.Flags = []string{}
+		}
+		switch command := typed.(type) {
+		case *instructions.CopyCommand:
+			record.Copy = &dockerCopyMetadata{
+				From:          command.From,
+				Sources:       slices.Clone(command.SourcePaths),
+				Destination:   command.DestPath,
+				InlineSources: len(command.SourceContents),
+			}
+			if record.Copy.Sources == nil {
+				record.Copy.Sources = []string{}
+			}
+		case *instructions.RunCommand:
+			record.Run = &dockerRunMetadata{
+				Arguments:    slices.Clone(command.CmdLine),
+				PrependShell: command.PrependShell,
+				HeredocFiles: len(command.Files),
+			}
+			if record.Run.Arguments == nil {
+				record.Run.Arguments = []string{}
+			}
+		}
+		projected = append(projected, record)
+	}
+	return projected, nil
+}
+
 func dockerValidationFailure(err error) (string, []dockerCandidate, string) {
 	var unsupported *unsupportedDockerPolicyError
 	if errors.As(err, &unsupported) {
@@ -521,12 +599,7 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				}
 			}
 		case *instructions.OnbuildCommand:
-			contents := fmt.Sprintf("# escape=%c\n%s", discovery.escapeToken, command.Expression)
-			parsed, err := parser.Parse(strings.NewReader(contents))
-			if err != nil || len(parsed.AST.Children) != 1 {
-				continue
-			}
-			deferred, err := parseDockerInstruction(parsed.AST.Children[0], discovery)
+			_, deferred, err := parseDeferredDockerInstruction(command.Expression, node.StartLine, discovery)
 			if err != nil {
 				return err
 			}
@@ -802,6 +875,27 @@ func parseDockerInstruction(node *parser.Node, discovery *dockerDiscovery) (any,
 	return typed, nil
 }
 
+func parseDeferredDockerInstruction(expression string, line int, discovery *dockerDiscovery) (*parser.Node, any, error) {
+	// BuildKit stores ONBUILD expressions and reparses them as standalone
+	// Dockerfiles with the default backslash parser. Typed word normalization
+	// still uses the enclosing Dockerfile's lexer and escape token.
+	parsed, err := parser.Parse(strings.NewReader(expression))
+	if err != nil {
+		return nil, nil, fmt.Errorf("line %d: parse ONBUILD trigger: %w", line, err)
+	}
+	if len(parsed.AST.Children) != 1 {
+		return nil, nil, fmt.Errorf("line %d: ONBUILD must contain exactly one instruction", line)
+	}
+	node := parsed.AST.Children[0]
+	node.StartLine = line
+	node.EndLine = line
+	typed, err := parseDockerInstruction(node, discovery)
+	if err != nil {
+		return nil, nil, fmt.Errorf("line %d: ONBUILD trigger: %w", line, err)
+	}
+	return node, typed, nil
+}
+
 func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line int) error {
 	validate := func(word string) (string, error) {
 		if _, err := discovery.dockerWordAlternatives(word); err != nil {
@@ -840,19 +934,9 @@ func (discovery *dockerDiscovery) evaluateDeferred(triggers []*deferredDockerIns
 		if err := discovery.admitInstructions(1); err != nil {
 			return nil, context.shell, err
 		}
-		contents := fmt.Sprintf("# escape=%c\n%s", discovery.escapeToken, trigger.expression)
-		parsed, err := parser.Parse(strings.NewReader(contents))
+		node, typed, err := parseDeferredDockerInstruction(trigger.expression, trigger.line, discovery)
 		if err != nil {
-			return nil, context.shell, fmt.Errorf("line %d: parse ONBUILD trigger: %w", trigger.line, err)
-		}
-		if len(parsed.AST.Children) != 1 {
-			return nil, context.shell, fmt.Errorf("line %d: ONBUILD must contain exactly one instruction", trigger.line)
-		}
-		node := parsed.AST.Children[0]
-		node.StartLine = trigger.line
-		typed, err := parseDockerInstruction(node, discovery)
-		if err != nil {
-			return nil, context.shell, fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
+			return nil, context.shell, err
 		}
 		if _, forbidden := typed.(*instructions.Stage); forbidden {
 			return nil, context.shell, fmt.Errorf("line %d: FROM is not permitted in ONBUILD", trigger.line)

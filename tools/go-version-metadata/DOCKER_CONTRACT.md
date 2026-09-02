@@ -129,11 +129,19 @@ named stages. Deferred `ONBUILD COPY --from` and
 numeric references and names that denote the defining/current or a later local
 stage are therefore `unsupported`, not guessed. Any active variable-expansion
 syntax in top-level or deferred `COPY --from` and `RUN --mount=from` fields is
-`invalid`, matching BuildKit's field restriction. This syntax check is
-independent of the parameter's semantic value domain, so ordinary
+`invalid`, matching BuildKit's field restriction. The field is also invalid
+when BuildKit word normalization changes its parsed value, including when a
+parser-consumed escape exposes another escape or parameter expression. This
+check is independent of the parameter's semantic value domain, so ordinary
 (`${SOURCE}`), special (`${?}`), and positional (`${0}`) references are all
-invalid; escaped or single-quoted dollar text is literal rather than an
-expansion.
+invalid; quoting or escaping is accepted only when BuildKit leaves the parsed
+stage-source value byte-for-byte unchanged.
+
+Stored `ONBUILD` expressions have two deliberate parsing phases. BuildKit
+reparses the stored expression as a standalone Dockerfile with the default
+backslash parser, then normalizes stage-source words with the enclosing
+Dockerfile's lexer and escape token. The helper follows those same phases;
+it does not inject the parent's parser directive into the stored expression.
 This is not a claim to perform
 complete Dockerfile2LLB validation: filesystem/context checks, build-argument
 dependent graphs, deferred child-build graphs, and other solver-time checks are

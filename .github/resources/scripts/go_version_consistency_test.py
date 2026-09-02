@@ -14,6 +14,7 @@
 """Repository-level consistency checks for pinned Go versions."""
 
 from pathlib import Path
+import json
 import os
 import re
 import shlex
@@ -21,6 +22,7 @@ import subprocess
 import tempfile
 import unittest
 
+from go_version_metadata import docker_instruction_metadata
 from go_version_metadata import docker_runtime_classification
 from go_version_metadata import has_go_runtime_reference
 from go_version_metadata import has_setup_go_use
@@ -98,138 +100,6 @@ def _read(relative_path):
     return (REPOSITORY_ROOT / relative_path).read_text(encoding='utf-8')
 
 
-def _docker_instruction_blocks(contents):
-    """Return line-numbered logical Docker instructions."""
-    lines = contents.splitlines()
-    blocks = []
-    escape_token = '\\'
-    directives_allowed = True
-    index = 0
-    while index < len(lines):
-        start_line = index + 1
-        line = lines[index]
-        if line.lstrip().startswith('#'):
-            # Docker comments and parser directives are complete physical
-            # lines. A trailing escape never continues them into an active
-            # instruction.
-            blocks.append((start_line, line.strip()))
-            directive = re.fullmatch(
-                r'[ \t]*#[ \t]*([a-zA-Z][a-zA-Z0-9]*)[ \t]*='
-                r'[ \t]*(.+?)[ \t]*',
-                line,
-            )
-            directive_name = directive.group(1).lower() if directive else ''
-            if (directives_allowed and directive_name
-                    in {'syntax', 'escape', 'check'}):
-                if directive_name == 'escape' and directive.group(2) in {'\\', '`'}:
-                    escape_token = directive.group(2)
-            else:
-                directives_allowed = False
-            index += 1
-            continue
-        directives_allowed = False
-        physical_lines = []
-        while True:
-            stripped = line.rstrip(' \t')
-            continues = (
-                stripped.endswith(escape_token)
-                and (len(stripped) == 1
-                     or stripped[-2] != escape_token)
-            )
-            physical_lines.append(stripped[:-1] if continues else line)
-            if not continues:
-                break
-            index += 1
-            if index >= len(lines):
-                break
-            line = lines[index]
-            while (not line.strip() or line.lstrip().startswith('#')):
-                # Empty lines and full-line comments inside an instruction
-                # continuation are ignored by Docker and do not terminate
-                # the continuation.
-                index += 1
-                if index >= len(lines):
-                    break
-                line = lines[index]
-            if index >= len(lines):
-                break
-        blocks.append((start_line, ' '.join(
-            physical_line.strip()
-            for physical_line in physical_lines)))
-        index += 1
-    return blocks
-
-
-def _docker_instructions(contents):
-    """Return non-comment logical Docker instructions in source order."""
-    return [
-        (line_number, block)
-        for line_number, block in _docker_instruction_blocks(contents)
-        if block and not block.lstrip().startswith('#')
-    ]
-
-
-def _shell_commands(run_block):
-    """Split a normalized RUN and report whether its flow is linear."""
-    command = re.sub(r'^[ \t]*RUN(?:[ \t]+|$)', '', run_block,
-                     count=1, flags=re.IGNORECASE)
-    commands = []
-    start = 0
-    quote = ''
-    outer_quotes = []
-    linear = True
-    index = 0
-    while index < len(command):
-        character = command[index]
-        if quote != "'" and character == '\\':
-            index += 2
-            continue
-        if quote == "'":
-            if character == quote:
-                quote = ''
-            index += 1
-            continue
-        if (character == '$' and index + 1 < len(command)
-                and command[index + 1] == '('):
-            outer_quotes.append(quote)
-            quote = ''
-            index += 2
-            continue
-        if outer_quotes and not quote and character == ')':
-            quote = outer_quotes.pop()
-            index += 1
-            continue
-        if character in {'"', "'"}:
-            if not quote:
-                quote = character
-            elif quote == character:
-                quote = ''
-            index += 1
-            continue
-        separator_width = 0
-        if not quote and not outer_quotes:
-            if character == ';':
-                separator_width = 1
-            elif command[index:index + 2] in {'&&', '||'}:
-                separator_width = 2
-                linear = False
-            elif character in {'&', '|'}:
-                separator_width = 1
-                linear = False
-        if separator_width:
-            candidate = command[start:index].strip()
-            if candidate:
-                commands.append(candidate)
-            index += separator_width
-            start = index
-            continue
-        index += 1
-    candidate = command[start:].strip()
-    if candidate:
-        commands.append(candidate)
-    return commands, linear
-
-
 def _api_tool_install_commands(module_path):
     """The frozen repository-specific API tool installation protocol."""
     variable = API_TOOLS_VERSION_VARIABLES[module_path]
@@ -244,6 +114,19 @@ def _api_tool_install_commands(module_path):
     ]
 
 
+def _api_tool_install_argv(module_path):
+    """Exec-form argv immune to inherited Docker SHELL configuration."""
+    return ['/bin/sh', '-c', '; '.join(_api_tool_install_commands(module_path))]
+
+
+def _api_tool_install_instruction(module_path, script=None):
+    """Render the isolated exec-form instruction used by the Dockerfile."""
+    argv = _api_tool_install_argv(module_path)
+    if script is not None:
+        argv[-1] = script
+    return 'RUN ' + json.dumps(argv)
+
+
 def _api_tool_version_query(module_path, module_file):
     """Query one module version without inherited Go environment redirects."""
     module_file = Path(module_file)
@@ -256,46 +139,53 @@ def _api_tool_version_query(module_path, module_file):
 
 
 def _api_tool_pin_dataflow_errors(contents, module_path):
-    """Validate the final manifest COPY -> frozen install RUN protocol."""
-    expected_copy = (
-        f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+    """Validate the BuildKit-parsed manifest COPY -> exec RUN protocol."""
+    expected_copy = {
+        'command': 'copy',
+        'flags': [],
+        'copy': {
+            'from': '',
+            'sources': [str(API_TOOLS_MODULE)],
+            'destination': API_TOOLS_CONTAINER_MODULE + '/go.mod',
+            'inlineSources': 0,
+        },
+    }
+    expected_run = {
+        'command': 'run',
+        'flags': [],
+        'run': {
+            'arguments': _api_tool_install_argv(module_path),
+            'prependShell': False,
+            'heredocFiles': 0,
+        },
+    }
     errors = []
-    instructions = _docker_instructions(contents)
+    instructions = docker_instruction_metadata(contents)
     if len(instructions) < 2:
         errors.append(
             'API tools Dockerfile must end with the canonical manifest COPY '
-            'and install RUN')
+            'and isolated exec-form install RUN')
         return errors
 
-    copy_line, copy_instruction = instructions[-2]
-    if copy_instruction != expected_copy:
+    copy_instruction = instructions[-2]
+    copy_line = copy_instruction.get('line', '?')
+    copy_payload = {
+        key: value for key, value in copy_instruction.items() if key != 'line'
+    }
+    if copy_payload != expected_copy:
         errors.append(
             f'line {copy_line}: penultimate Docker instruction is '
-            f'{copy_instruction!r}; want {expected_copy!r}')
+            f'{copy_payload!r}; want {expected_copy!r}')
 
-    run_line, run_instruction = instructions[-1]
-    if not re.match(r'^[ \t]*RUN(?:[ \t]|$)', run_instruction,
-                    re.IGNORECASE):
+    run_instruction = instructions[-1]
+    run_line = run_instruction.get('line', '?')
+    run_payload = {
+        key: value for key, value in run_instruction.items() if key != 'line'
+    }
+    if run_payload != expected_run:
         errors.append(
-            f'line {run_line}: final Docker instruction must be the frozen '
-            'API tool install RUN')
-    else:
-        commands, linear = _shell_commands(run_instruction)
-        expected = _api_tool_install_commands(module_path)
-        if not linear:
-            errors.append(
-                'the API tool query/install RUN must use linear semicolon '
-                'sequencing')
-        if commands != expected:
-            mismatch = next((index for index, (actual, wanted) in enumerate(
-                zip(commands, expected)) if actual != wanted),
-                            min(len(commands), len(expected)))
-            actual = commands[mismatch] if mismatch < len(commands) else '<missing>'
-            wanted = expected[mismatch] if mismatch < len(expected) else '<no extra command>'
-            errors.append(
-                f'line {run_line}: API tool query/install command '
-                f'{mismatch + 1} is {actual!r}; '
-                f'want {wanted!r}')
+            f'line {run_line}: final Docker instruction is {run_payload!r}; '
+            f'want isolated exec-form install {expected_run!r}')
     return errors
 
 
@@ -668,42 +558,6 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     f'tidy` prunes it because no Go source imports it.',
                 )
 
-    def test_docker_comments_do_not_continue_into_instructions(self):
-        """A trailing escape on a Docker comment has no lexical effect."""
-        self.assertEqual(
-            _docker_instructions(
-                '# ordinary comment \\\n'
-                'COPY source destination\n'
-            ),
-            [(2, 'COPY source destination')],
-        )
-        self.assertEqual(
-            _docker_instructions(
-                'RUN echo one\\\n'
-                '\n'
-                '   \n'
-                '    two\n'
-            ),
-            [(1, 'RUN echo one two')],
-        )
-        self.assertEqual(
-            _docker_instructions(
-                '# escape=`\n'
-                '# ordinary comment `\n'
-                'RUN echo one`\n'
-                '# continued comment `\n'
-                '\n'
-                '    two\n'
-                'RUN echo ``\n'
-                'COPY second destination\n'
-            ),
-            [
-                (3, 'RUN echo one two'),
-                (7, 'RUN echo ``'),
-                (8, 'COPY second destination'),
-            ],
-        )
-
     def test_api_tools_pins_are_read_by_the_generator_image(self):
         """Guard manifest -> query -> download dataflow in one RUN."""
         contents = _read(API_TOOLS_DOCKERFILE)
@@ -782,16 +636,29 @@ class GoVersionConsistencyTest(unittest.TestCase):
         self.assertEqual(
             _api_tool_pin_dataflow_errors(redirected, module_path), [])
 
-    def test_api_tool_protocol_tolerates_empty_continuation_lines(self):
-        """Docker ignores empty physical lines inside a continuation."""
+    def test_api_tool_protocol_uses_buildkit_continuation_semantics(self):
+        """The guard compares BuildKit-normalized instructions, not lines."""
         contents = _read(API_TOOLS_DOCKERFILE)
-        continued = contents.replace('RUN set -eu; \\\n',
-                                     'RUN set -eu; \\\n\n')
+        continued = contents.replace('curl -fL', 'cu\\\nrl -fL')
         self.assertNotEqual(continued, contents)
         for module_path in API_TOOLS_PINS:
             with self.subTest(module_path=module_path):
                 self.assertEqual(
                     _api_tool_pin_dataflow_errors(continued, module_path), [])
+
+    def test_api_tool_protocol_is_independent_of_inherited_shell(self):
+        """The final exec-form RUN does not consult Docker SHELL state."""
+        contents = _read(API_TOOLS_DOCKERFILE)
+        module_path = API_TOOLS_PINS[0]
+        canonical_copy = (
+            f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+        inherited_shell = contents.replace(
+            canonical_copy,
+            'SHELL ["/bin/false", "-c"]\n' + canonical_copy,
+        )
+        self.assertNotEqual(inherited_shell, contents)
+        self.assertEqual(
+            _api_tool_pin_dataflow_errors(inherited_shell, module_path), [])
 
     def test_api_tools_pin_dataflow_rejects_decoupled_mutations(self):
         """Shared path strings must not satisfy the coupling invariant."""
@@ -799,109 +666,105 @@ class GoVersionConsistencyTest(unittest.TestCase):
         module_path = API_TOOLS_PINS[0]
         canonical_copy = (
             f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
-        copy_then_run = canonical_copy + '\nRUN set -eu;'
-        query = _api_tool_version_query(
-            module_path, API_TOOLS_CONTAINER_MODULE + '/go.mod')
-        canonical_assignment = (
-            f'{API_TOOLS_VERSION_VARIABLES[module_path]}="$({query})";')
+        canonical_run = _api_tool_install_instruction(module_path)
+        copy_then_run = canonical_copy + '\n' + canonical_run
+        canonical_script = _api_tool_install_argv(module_path)[-1]
+
+        def replace_script(old, new):
+            mutated_script = canonical_script.replace(old, new)
+            self.assertNotEqual(mutated_script, canonical_script)
+            return contents.replace(
+                canonical_run,
+                _api_tool_install_instruction(module_path, mutated_script),
+            )
+
         mutations = {
-            'hard-coded version': contents.replace(
-                canonical_assignment,
-                'go_swagger_version="v0.31.0";',
+            'hard-coded version': replace_script(
+                'go_swagger_version="$(cd /tmp/api-generator-tools',
+                'go_swagger_version="v0.31.0"; ignored="$(cd '
+                '/tmp/api-generator-tools',
             ),
-            'different manifest': contents.replace(
+            'different manifest': replace_script(
                 '-modfile=/tmp/api-generator-tools/go.mod',
                 '-modfile=/tmp/kfp-module/go.mod',
             ),
-            'different selected module': contents.replace(
+            'different selected module': replace_script(
                 'select(.Path == "github.com/go-swagger/go-swagger")',
                 'select(.Path == "google.golang.org/protobuf")',
             ),
-            'query is conditional': contents.replace(
+            'query is conditional': replace_script(
                 'go_swagger_version="$(cd /tmp/api-generator-tools',
                 'false && go_swagger_version="$(cd /tmp/api-generator-tools',
             ),
-            'module directory change is omitted': contents.replace(
+            'module directory change is omitted': replace_script(
                 'cd /tmp/api-generator-tools && GOFLAGS=',
                 'GOFLAGS=',
             ),
-            'inherited GOFLAGS is not cleared': contents.replace(
+            'inherited GOFLAGS is not cleared': replace_script(
                 'GOFLAGS= GOWORK=off go mod edit',
                 'GOWORK=off go mod edit',
             ),
-            'workspace mode is not disabled': contents.replace(
+            'workspace mode is not disabled': replace_script(
                 'GOFLAGS= GOWORK=off go mod edit',
                 'GOFLAGS= go mod edit',
             ),
-            'hard-coded download': contents.replace(
+            'hard-coded download': replace_script(
                 'releases/download/${go_swagger_version}/swagger_linux_amd64',
                 'releases/download/v0.31.0/swagger_linux_amd64',
             ),
-            'queried version overwritten': contents.replace(
+            'queried version overwritten': replace_script(
                 'curl -fL -o /usr/bin/swagger',
-                'go_swagger_version="v0.31.0"; \\\n'
-                '    curl -fL -o /usr/bin/swagger',
-            ),
-            'queried version exported over': contents.replace(
+                'go_swagger_version="v0.31.0"; '
                 'curl -fL -o /usr/bin/swagger',
-                'export go_swagger_version="v0.31.0"; \\\n'
-                '    curl -fL -o /usr/bin/swagger',
             ),
-            'queried version overridden through eval': contents.replace(
+            'exit before install': replace_script(
                 'curl -fL -o /usr/bin/swagger',
-                'eval \'go_swagger_version="v0.31.0"\'; \\\n'
-                '    curl -fL -o /usr/bin/swagger',
+                'exit 0; curl -fL -o /usr/bin/swagger',
             ),
-            'exit before install': contents.replace(
-                'curl -fL -o /usr/bin/swagger',
-                'exit 0; \\\n'
-                '    curl -fL -o /usr/bin/swagger',
-            ),
-            'decoy variable download before hard-coded install':
-                contents.replace(
-                    'curl -fL -o /usr/bin/swagger '
-                    '"https://github.com/go-swagger/go-swagger/releases/'
-                    'download/${go_swagger_version}/swagger_linux_amd64";',
-                    'curl -fL -o /tmp/swagger-decoy '
-                    '"https://github.com/go-swagger/go-swagger/releases/'
-                    'download/${go_swagger_version}/swagger_linux_amd64"; \\\n'
-                    '    curl -fL -o /usr/bin/swagger '
-                    '"https://github.com/go-swagger/go-swagger/releases/'
-                    'download/v0.31.0/swagger_linux_amd64";',
-                ),
             'later artifact overwrite':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
                 '/usr/bin/swagger\n',
             'WORKDIR inserted between manifest and query': contents.replace(
                 copy_then_run,
                 canonical_copy + '\nWORKDIR /tmp/api-generator-tools\n'
-                'RUN set -eu;',
+                + canonical_run,
             ),
             'ENV inserted between manifest and query': contents.replace(
                 copy_then_run,
-                canonical_copy + '\nENV GOFLAGS=-mod=mod\nRUN set -eu;',
+                canonical_copy + '\nENV GOFLAGS=-mod=mod\n' + canonical_run,
             ),
             'shell manifest writer inserted between copy and query':
                 contents.replace(
                     copy_then_run,
                     canonical_copy + '\n'
                     'RUN sed -i \'s/v0.31.0/v0.32.0/\' '
-                    '/tmp/api-generator-tools/go.mod\nRUN set -eu;',
+                    '/tmp/api-generator-tools/go.mod\n' + canonical_run,
                 ),
             'JSON manifest COPY inserted between copy and query':
                 contents.replace(
                     copy_then_run,
                     canonical_copy + '\n'
                     'COPY ["decoy.mod", '
-                    '"/tmp/api-generator-tools/go.mod"]\nRUN set -eu;',
+                    '"/tmp/api-generator-tools/go.mod"]\n' + canonical_run,
                 ),
             'comment-hidden manifest COPY inserted between copy and query':
                 contents.replace(
                     copy_then_run,
                     canonical_copy + '\n# ordinary comment \\\n'
                     'COPY ["decoy.mod", '
-                    '"/tmp/api-generator-tools/go.mod"]\nRUN set -eu;',
+                    '"/tmp/api-generator-tools/go.mod"]\n' + canonical_run,
                 ),
+            'heredoc impersonates canonical install': contents.replace(
+                canonical_run,
+                "RUN <<'PIN_PROTOCOL'\n" + canonical_run +
+                '\nPIN_PROTOCOL',
+            ),
+            'continuation alters canonical command': contents.replace(
+                'curl -fL', 'curl\\\n-fL',
+            ),
+            'shell-form install inherits SHELL': contents.replace(
+                canonical_run, 'RUN ' + canonical_script,
+            ),
             'normalized artifact alias written after install':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
                 '/usr/bin/../bin/swagger\n',

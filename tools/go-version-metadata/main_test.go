@@ -76,6 +76,39 @@ func TestYAMLGoDownloadUsesExactHTTPSOrigin(t *testing.T) {
 	}
 }
 
+func TestProjectDockerInstructionsUsesBuildKitSemantics(t *testing.T) {
+	contents := "FROM scratch\n" +
+		"# a trailing \\ does not continue a Docker comment\n" +
+		"COPY source /destination\n" +
+		"RUN [\"/bin/sh\", \"-c\", \"cu\\\nrl\"]\n" +
+		"RUN <<'EOF'\nRUN [\"/bin/false\"]\nEOF\n"
+	projected, err := projectDockerInstructions(contents)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(projected), 4; got != want {
+		t.Fatalf("instruction count = %d, want %d: %#v", got, want, projected)
+	}
+	if got, want := projected[1].Copy, (&dockerCopyMetadata{
+		Sources:     []string{"source"},
+		Destination: "/destination",
+	}); !reflect.DeepEqual(got, want) {
+		t.Fatalf("COPY projection = %#v, want %#v", got, want)
+	}
+	if got, want := projected[2].Run, (&dockerRunMetadata{
+		Arguments: []string{"/bin/sh", "-c", "curl"},
+	}); !reflect.DeepEqual(got, want) {
+		t.Fatalf("exec RUN projection = %#v, want %#v", got, want)
+	}
+	if got, want := projected[3].Run, (&dockerRunMetadata{
+		Arguments:    []string{"<<'EOF'"},
+		PrependShell: true,
+		HeredocFiles: 1,
+	}); !reflect.DeepEqual(got, want) {
+		t.Fatalf("heredoc RUN projection = %#v, want %#v", got, want)
+	}
+}
+
 func TestDockerClassification(t *testing.T) {
 	digest := strings.Repeat("a", 64)
 	tests := []struct {
@@ -1174,6 +1207,8 @@ func TestDockerSpecialParameterReferenceFieldBoundary(t *testing.T) {
 		{name: "doubled escape ONBUILD COPY expansion", contents: "FROM scratch AS base\nONBUILD COPY --from=\\\\${?} /src /dst\nFROM base\n"},
 		{name: "custom doubled escape COPY expansion", contents: "# escape=`\nFROM scratch\nCOPY --from=``${?} /src /dst\n"},
 		{name: "custom doubled escape ONBUILD COPY expansion", contents: "# escape=`\nFROM scratch AS base\nONBUILD COPY --from=``${?} /src /dst\nFROM base\n"},
+		{name: "custom escape ONBUILD COPY source", contents: "# escape=`\nFROM scratch AS base\nONBUILD COPY --from=`alpine /src /dst\nFROM base\n"},
+		{name: "custom escape ONBUILD RUN mount source", contents: "# escape=`\nFROM scratch AS base\nONBUILD RUN --mount=type=bind,from=`alpine,target=/src true\nFROM base\n"},
 	} {
 		t.Run("invalid/"+test.name, func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
