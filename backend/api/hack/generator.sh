@@ -96,7 +96,7 @@ else
 fi
 # Generate go_http_client from swagger json.
 if [[ "$API_VERSION" == "v1beta1" ]]; then
-    swagger generate client \
+    /usr/bin/swagger generate client \
         -f backend/api/${API_VERSION}/swagger/job.swagger.json \
         -A job \
         --principal models.Principal \
@@ -104,7 +104,7 @@ if [[ "$API_VERSION" == "v1beta1" ]]; then
         -m job_model \
         -t backend/api/${API_VERSION}/go_http_client
 else
-    swagger generate client \
+    /usr/bin/swagger generate client \
         -f backend/api/${API_VERSION}/swagger/recurring_run.swagger.json \
         -A recurring_run \
         --principal models.Principal \
@@ -112,42 +112,42 @@ else
         -m recurring_run_model \
         -t backend/api/${API_VERSION}/go_http_client
 fi
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/run.swagger.json \
     -A run \
     --principal models.Principal \
     -c run_client \
     -m run_model \
     -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/experiment.swagger.json \
     -A experiment \
     --principal models.Principal \
     -c experiment_client \
     -m experiment_model \
     -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/pipeline.swagger.json \
     -A pipeline \
     --principal models.Principal \
     -c pipeline_client \
     -m pipeline_model \
     -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/pipeline.upload.swagger.json \
     -A pipeline_upload \
     --principal models.Principal \
     -c pipeline_upload_client \
     -m pipeline_upload_model \
     -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/visualization.swagger.json \
     -A visualization \
     --principal models.Principal \
     -c visualization_client \
     -m visualization_model \
     -t backend/api/${API_VERSION}/go_http_client
-swagger generate client \
+/usr/bin/swagger generate client \
     -f backend/api/${API_VERSION}/swagger/healthz.swagger.json \
     -A healthz \
     --principal models.Principal \

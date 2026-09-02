@@ -58,11 +58,18 @@ type moduleMetadata struct {
 // BuildKit AST. Policy callers use it instead of reimplementing Docker's
 // physical-line, continuation, heredoc, and JSON parsing rules.
 type dockerInstructionMetadata struct {
-	Command string              `json:"command"`
-	Line    int                 `json:"line"`
-	Flags   []string            `json:"flags"`
-	Copy    *dockerCopyMetadata `json:"copy,omitempty"`
-	Run     *dockerRunMetadata  `json:"run,omitempty"`
+	Command string               `json:"command"`
+	Line    int                  `json:"line"`
+	Flags   []string             `json:"flags"`
+	Stage   *dockerStageMetadata `json:"stage,omitempty"`
+	Copy    *dockerCopyMetadata  `json:"copy,omitempty"`
+	Run     *dockerRunMetadata   `json:"run,omitempty"`
+}
+
+type dockerStageMetadata struct {
+	BaseName string `json:"baseName"`
+	Name     string `json:"name"`
+	Platform string `json:"platform"`
 }
 
 type dockerCopyMetadata struct {
@@ -404,7 +411,11 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 	if err := discovery.completeCurrentStage(); err != nil {
 		return "invalid", nil, err.Error()
 	}
-	unsupported = append(unsupported, discovery.unconsumedDeferredCandidates()...)
+	deferred, err := discovery.unconsumedDeferredCandidates()
+	if err != nil {
+		return dockerValidationFailure(err)
+	}
+	unsupported = append(unsupported, deferred...)
 	sort.SliceStable(unsupported, func(left, right int) bool {
 		return unsupported[left].Line < unsupported[right].Line
 	})
@@ -437,6 +448,12 @@ func projectDockerInstructions(contents string) ([]dockerInstructionMetadata, er
 			record.Flags = []string{}
 		}
 		switch command := typed.(type) {
+		case *instructions.Stage:
+			record.Stage = &dockerStageMetadata{
+				BaseName: command.BaseName,
+				Name:     command.Name,
+				Platform: command.Platform,
+			}
 		case *instructions.CopyCommand:
 			record.Copy = &dockerCopyMetadata{
 				From:          command.From,
@@ -518,20 +535,6 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 		index, found := names[strings.ToLower(value)]
 		return index, found
 	}
-	validateLiteralSource := func(value string) error {
-		normalized, err := discovery.normalizeDockerWord(value)
-		if err != nil {
-			return err
-		}
-		// BuildKit rejects COPY --from whenever its word lexer changes the
-		// parsed flag value. This includes parameter expansion and escape
-		// normalization: the Dockerfile parser retains one escape from a
-		// doubled pair, then the word lexer removes the other one.
-		if normalized != value || discovery.dockerWordHasExpansion(value) {
-			return fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
-		}
-		return nil
-	}
 	current := -1
 	priorNames := map[string]int{}
 	for _, node := range ast.Children {
@@ -558,7 +561,7 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			}
 		case *instructions.CopyCommand:
 			if command.From != "" {
-				if err := validateLiteralSource(command.From); err != nil {
+				if err := discovery.validateLiteralStageSource(command.From); err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
 				}
 				dependency, local := 0, false
@@ -585,7 +588,7 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 				if mount.From == "" {
 					continue
 				}
-				if err := validateLiteralSource(mount.From); err != nil {
+				if err := discovery.validateLiteralStageSource(mount.From); err != nil {
 					return fmt.Errorf("line %d: %w", node.StartLine, err)
 				}
 				// RUN --mount=from uses named local aliases. A numeric token is
@@ -606,7 +609,7 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			switch deferred := deferred.(type) {
 			case *instructions.CopyCommand:
 				if deferred.From != "" {
-					if err := validateLiteralSource(deferred.From); err != nil {
+					if err := discovery.validateLiteralStageSource(deferred.From); err != nil {
 						return fmt.Errorf("line %d: ONBUILD COPY --from: %w", node.StartLine, err)
 					}
 				}
@@ -617,7 +620,7 @@ func validateDockerStageGraph(ast *parser.Node, discovery *dockerDiscovery) erro
 			case *instructions.RunCommand:
 				for _, mount := range instructions.GetMounts(deferred) {
 					if mount.From != "" {
-						if err := validateLiteralSource(mount.From); err != nil {
+						if err := discovery.validateLiteralStageSource(mount.From); err != nil {
 							return fmt.Errorf("line %d: ONBUILD RUN --mount=from: %w", node.StartLine, err)
 						}
 					}
@@ -666,7 +669,8 @@ func deferredStageSourceIsOutsideContract(value string, definingStage int, final
 }
 
 type dockerWordKey struct {
-	value string
+	value       string
+	escapeToken rune
 }
 
 type dockerWordResult struct {
@@ -751,11 +755,10 @@ type deferredDockerInstruction struct {
 }
 
 type dockerStageState struct {
-	references  []string
-	baseName    string
-	shell       runtimeShell
-	triggers    []*deferredDockerInstruction
-	provisional []dockerCandidate
+	references []string
+	baseName   string
+	shell      runtimeShell
+	triggers   []*deferredDockerInstruction
 }
 
 type dockerInstructionContext struct {
@@ -799,6 +802,24 @@ func newDockerDiscovery(escapeToken rune) *dockerDiscovery {
 		stageReferences:     map[string]*dockerStageState{},
 		baseReferences:      map[string]*dockerStageState{},
 	}
+}
+
+func (discovery *dockerDiscovery) dockerWordKey(value string) dockerWordKey {
+	return dockerWordKey{value: value, escapeToken: discovery.escapeToken}
+}
+
+func (discovery *dockerDiscovery) withEscapeToken(escapeToken rune, evaluate func() error) error {
+	previousToken := discovery.escapeToken
+	previousLexer := discovery.wordLexer
+	wordLexer := shell.NewLex(escapeToken)
+	wordLexer.SkipUnsetEnv = true
+	discovery.escapeToken = escapeToken
+	discovery.wordLexer = wordLexer
+	defer func() {
+		discovery.escapeToken = previousToken
+		discovery.wordLexer = previousLexer
+	}()
+	return evaluate()
 }
 
 func classifyDockerInstruction(node *parser.Node, allowManaged bool, depth int, discovery *dockerDiscovery, managed *[]dockerCandidate, unsupported *[]dockerCandidate) error {
@@ -877,8 +898,9 @@ func parseDockerInstruction(node *parser.Node, discovery *dockerDiscovery) (any,
 
 func parseDeferredDockerInstruction(expression string, line int, discovery *dockerDiscovery) (*parser.Node, any, error) {
 	// BuildKit stores ONBUILD expressions and reparses them as standalone
-	// Dockerfiles with the default backslash parser. Typed word normalization
-	// still uses the enclosing Dockerfile's lexer and escape token.
+	// Dockerfiles with the default backslash parser. The caller selects the
+	// consuming Dockerfile's escape token for typed word normalization; exported
+	// triggers are evaluated once for each legal future child token.
 	parsed, err := parser.Parse(strings.NewReader(expression))
 	if err != nil {
 		return nil, nil, fmt.Errorf("line %d: parse ONBUILD trigger: %w", line, err)
@@ -896,12 +918,44 @@ func parseDeferredDockerInstruction(expression string, line int, discovery *dock
 	return node, typed, nil
 }
 
+func (discovery *dockerDiscovery) validateLiteralStageSource(value string) error {
+	normalized, err := discovery.normalizeDockerWord(value)
+	if err != nil {
+		return err
+	}
+	// BuildKit rejects COPY --from whenever its word lexer changes the parsed
+	// flag value. This includes parameter expansion and escape normalization:
+	// the Dockerfile parser can retain one escape that the word lexer removes.
+	if normalized != value || discovery.dockerWordHasExpansion(value) {
+		return fmt.Errorf("expanded stage source %q is not supported by BuildKit", value)
+	}
+	return nil
+}
+
+func (discovery *dockerDiscovery) validateDeferredStageSources(typed any) error {
+	switch command := typed.(type) {
+	case *instructions.CopyCommand:
+		if command.From != "" {
+			return discovery.validateLiteralStageSource(command.From)
+		}
+	case *instructions.RunCommand:
+		for _, mount := range instructions.GetMounts(command) {
+			if mount.From != "" {
+				if err := discovery.validateLiteralStageSource(mount.From); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func validateDockerInstructionWords(typed any, discovery *dockerDiscovery, line int) error {
 	validate := func(word string) (string, error) {
 		if _, err := discovery.dockerWordAlternatives(word); err != nil {
 			return "", err
 		}
-		result := discovery.wordMemo[dockerWordKey{value: word}]
+		result := discovery.wordMemo[discovery.dockerWordKey(word)]
 		if operator, found := unsupportedDockerWordOperator(word, result.variables, discovery.escapeToken); found {
 			return "", unsupportedDockerPolicyf("unsupported-word", word, line,
 				"line %d: Docker parameter operator %q is outside the bounded word-expansion contract", line, operator)
@@ -937,6 +991,9 @@ func (discovery *dockerDiscovery) evaluateDeferred(triggers []*deferredDockerIns
 		node, typed, err := parseDeferredDockerInstruction(trigger.expression, trigger.line, discovery)
 		if err != nil {
 			return nil, context.shell, err
+		}
+		if err := discovery.validateDeferredStageSources(typed); err != nil {
+			return nil, context.shell, fmt.Errorf("line %d: ONBUILD trigger: %w", trigger.line, err)
 		}
 		if _, forbidden := typed.(*instructions.Stage); forbidden {
 			return nil, context.shell, fmt.Errorf("line %d: FROM is not permitted in ONBUILD", trigger.line)
@@ -978,7 +1035,7 @@ func (discovery *dockerDiscovery) admitCandidates(count int) error {
 func dockerInstructionCandidates(node *parser.Node, typed any, context dockerInstructionContext, discovery *dockerDiscovery) ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
 	appendUnsupportedParameterReference := func(value string) bool {
-		result := discovery.wordMemo[dockerWordKey{value: value}]
+		result := discovery.wordMemo[discovery.dockerWordKey(value)]
 		if len(result.fixedParameters) == 0 {
 			return false
 		}
@@ -1233,7 +1290,7 @@ func (discovery *dockerDiscovery) beginStage(stage *instructions.Stage, unsuppor
 			baseStates = append(baseStates, base)
 		}
 	}
-	wordResult := discovery.wordMemo[dockerWordKey{value: stage.BaseName}]
+	wordResult := discovery.wordMemo[discovery.dockerWordKey(stage.BaseName)]
 	for symbolicIndex := range wordResult.symbolic {
 		externalPossible = true
 		pattern, compileErr := discovery.compileSymbolic(&wordResult.symbolic[symbolicIndex])
@@ -1289,14 +1346,6 @@ func (discovery *dockerDiscovery) completeCurrentStage() error {
 	if discovery.currentStage == nil {
 		return nil
 	}
-	if len(discovery.currentStage.triggers) > 0 {
-		context := dockerInstructionContext{shell: discovery.currentStage.shell, conservative: true}
-		candidates, _, err := discovery.evaluateDeferred(discovery.currentStage.triggers, context)
-		if err != nil {
-			return err
-		}
-		discovery.currentStage.provisional = candidates
-	}
 	for _, reference := range discovery.currentStage.references {
 		discovery.stageReferences[reference] = discovery.currentStage
 	}
@@ -1341,18 +1390,43 @@ func (discovery *dockerDiscovery) currentContext() dockerInstructionContext {
 	}
 }
 
-func (discovery *dockerDiscovery) unconsumedDeferredCandidates() []dockerCandidate {
-	var candidates []dockerCandidate
+func (discovery *dockerDiscovery) unconsumedDeferredCandidates() ([]dockerCandidate, error) {
+	candidates := []dockerCandidate{}
+	seen := map[dockerCandidate]bool{}
 	for _, stage := range discovery.allStages {
-		unconsumed := false
+		unconsumed := []*deferredDockerInstruction{}
 		for _, trigger := range stage.triggers {
-			unconsumed = unconsumed || !trigger.consumed
+			if !trigger.consumed {
+				unconsumed = append(unconsumed, trigger)
+			}
 		}
-		if unconsumed {
-			candidates = append(candidates, stage.provisional...)
+		if len(unconsumed) == 0 {
+			continue
+		}
+		context := dockerInstructionContext{
+			shell:             stage.shell,
+			conservative:      true,
+			currentReferences: stage.references,
+		}
+		for _, escapeToken := range []rune{'\\', '`'} {
+			var evaluated []dockerCandidate
+			err := discovery.withEscapeToken(escapeToken, func() error {
+				found, _, err := discovery.evaluateDeferred(unconsumed, context)
+				evaluated = found
+				return err
+			})
+			if err != nil {
+				return nil, err
+			}
+			for _, candidate := range evaluated {
+				if !seen[candidate] {
+					seen[candidate] = true
+					candidates = append(candidates, candidate)
+				}
+			}
 		}
 	}
-	return candidates
+	return candidates, nil
 }
 
 func (discovery *dockerDiscovery) normalizeDockerWord(value string) (string, error) {
@@ -1360,11 +1434,11 @@ func (discovery *dockerDiscovery) normalizeDockerWord(value string) (string, err
 	if err != nil {
 		return "", err
 	}
-	return discovery.wordMemo[dockerWordKey{value: value}].validation, nil
+	return discovery.wordMemo[discovery.dockerWordKey(value)].validation, nil
 }
 
 func (discovery *dockerDiscovery) dockerWordAlternatives(value string) ([]string, error) {
-	key := dockerWordKey{value: value}
+	key := discovery.dockerWordKey(value)
 	if result, found := discovery.wordMemo[key]; found {
 		return concreteSymbolicValues(result.values), result.err
 	}
@@ -1573,7 +1647,7 @@ func concreteSymbolicValues(values []symbolicValue) []string {
 }
 
 func (discovery *dockerDiscovery) dockerWordHasUnknown(value string) bool {
-	return discovery.wordMemo[dockerWordKey{value: value}].unknown
+	return discovery.wordMemo[discovery.dockerWordKey(value)].unknown
 }
 
 // dockerWordHasExpansion reports active Docker parameter-expansion syntax,
@@ -1581,7 +1655,7 @@ func (discovery *dockerDiscovery) dockerWordHasUnknown(value string) bool {
 // or BuildKit's deterministic unset value for special/positional parameters.
 // Callers use this syntax fact for fields whose grammar forbids expansion.
 func (discovery *dockerDiscovery) dockerWordHasExpansion(value string) bool {
-	return len(discovery.wordMemo[dockerWordKey{value: value}].activeParameters) > 0
+	return len(discovery.wordMemo[discovery.dockerWordKey(value)].activeParameters) > 0
 }
 
 func symbolicMarkerAt(value string, index int) (string, int, bool) {
@@ -1653,7 +1727,7 @@ func (discovery *dockerDiscovery) dockerWordUnknownMayContainSource(value string
 	if !discovery.dockerWordHasUnknown(value) {
 		return false, nil
 	}
-	wordResult := discovery.wordMemo[dockerWordKey{value: value}]
+	wordResult := discovery.wordMemo[discovery.dockerWordKey(value)]
 	for index := range wordResult.symbolic {
 		sourceResult := discovery.symbolicSource(&wordResult.symbolic[index], !downloadOnly)
 		if sourceResult.err != nil {

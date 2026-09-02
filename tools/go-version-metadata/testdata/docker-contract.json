@@ -416,6 +416,54 @@
       "want": {"classification": "invalid", "errorContains": "expanded stage source"}
     },
     {
+      "id": "exported-onbuild-env-default-parent-custom-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-context",
+      "dockerfile": "FROM scratch\nONBUILD ENV IMAGE=go`lang:latest\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
+      "id": "exported-onbuild-env-custom-parent-default-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-context",
+      "dockerfile": "# escape=`\nFROM scratch\nONBUILD ENV IMAGE=go\\lang:latest\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
+      "id": "exported-onbuild-copy-default-parent-custom-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-stage-source",
+      "dockerfile": "FROM scratch\nONBUILD COPY --from=`alpine /x /x\n",
+      "accepted": true,
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "exported-onbuild-copy-custom-parent-default-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-stage-source",
+      "dockerfile": "# escape=`\nFROM scratch\nONBUILD COPY --from=\\\\alpine /x /x\n",
+      "accepted": true,
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "exported-onbuild-run-mount-default-parent-custom-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-stage-source",
+      "dockerfile": "FROM scratch\nONBUILD RUN --mount=type=bind,from=`alpine,target=/x true\n",
+      "accepted": true,
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "exported-onbuild-run-mount-custom-parent-default-child",
+      "finding": 1,
+      "domain": "onbuild-child-escape-stage-source",
+      "dockerfile": "# escape=`\nFROM scratch\nONBUILD RUN --mount=type=bind,from=\\\\alpine,target=/x true\n",
+      "accepted": true,
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
       "id": "inherited-special-environment",
       "finding": 1,
       "domain": "docker-special-parameter-provenance",

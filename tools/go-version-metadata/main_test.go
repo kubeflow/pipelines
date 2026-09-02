@@ -89,6 +89,11 @@ func TestProjectDockerInstructionsUsesBuildKitSemantics(t *testing.T) {
 	if got, want := len(projected), 4; got != want {
 		t.Fatalf("instruction count = %d, want %d: %#v", got, want, projected)
 	}
+	if got, want := projected[0].Stage, (&dockerStageMetadata{
+		BaseName: "scratch",
+	}); !reflect.DeepEqual(got, want) {
+		t.Fatalf("FROM projection = %#v, want %#v", got, want)
+	}
 	if got, want := projected[1].Copy, (&dockerCopyMetadata{
 		Sources:     []string{"source"},
 		Destination: "/destination",
@@ -1958,6 +1963,105 @@ func TestDockerStageNamespaceAndConfigTransitions(t *testing.T) {
 				t.Fatalf("candidate kinds = %q, want %q", kinds, test.candidateKinds)
 			}
 		})
+	}
+}
+
+func TestUnconsumedOnbuildUsesEveryChildEscapeToken(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		contents       string
+		classification string
+		candidateKind  string
+		errorContains  string
+	}{
+		{
+			name:           "default parent custom child ENV",
+			contents:       "FROM scratch\nONBUILD ENV IMAGE=go`lang:latest\n",
+			classification: "unsupported",
+			candidateKind:  "env-value",
+		},
+		{
+			name:           "custom parent default child ENV",
+			contents:       "# escape=`\nFROM scratch\nONBUILD ENV IMAGE=go\\lang:latest\n",
+			classification: "unsupported",
+			candidateKind:  "env-value",
+		},
+		{
+			name:           "default parent custom child COPY",
+			contents:       "FROM scratch\nONBUILD COPY --from=`alpine /x /x\n",
+			classification: "invalid",
+			errorContains:  "expanded stage source",
+		},
+		{
+			name:           "custom parent default child COPY",
+			contents:       "# escape=`\nFROM scratch\nONBUILD COPY --from=\\\\alpine /x /x\n",
+			classification: "invalid",
+			errorContains:  "expanded stage source",
+		},
+		{
+			name:           "default parent custom child RUN mount",
+			contents:       "FROM scratch\nONBUILD RUN --mount=type=bind,from=`alpine,target=/x true\n",
+			classification: "invalid",
+			errorContains:  "expanded stage source",
+		},
+		{
+			name:           "custom parent default child RUN mount",
+			contents:       "# escape=`\nFROM scratch\nONBUILD RUN --mount=type=bind,from=\\\\alpine,target=/x true\n",
+			classification: "invalid",
+			errorContains:  "expanded stage source",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v error=%q", metadata.DockerClassification, test.classification, metadata.DockerCandidates, metadata.DockerError)
+			}
+			if test.candidateKind != "" && (len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != test.candidateKind) {
+				t.Fatalf("candidates = %#v, want one %q candidate", metadata.DockerCandidates, test.candidateKind)
+			}
+			if test.errorContains != "" && !strings.Contains(metadata.DockerError, test.errorContains) {
+				t.Fatalf("error = %q, want substring %q", metadata.DockerError, test.errorContains)
+			}
+		})
+	}
+
+	for _, contents := range []string{
+		"FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM parent\n",
+		"# escape=`\nFROM scratch AS parent\nONBUILD ENV IMAGE=go\\lang:latest\nFROM parent\n",
+	} {
+		metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if metadata.DockerClassification != "irrelevant" {
+			t.Fatalf("locally consumed classification = %q, want irrelevant; candidates=%#v error=%q", metadata.DockerClassification, metadata.DockerCandidates, metadata.DockerError)
+		}
+	}
+}
+
+func TestDockerWordMemoIncludesEscapeToken(t *testing.T) {
+	discovery := newDockerDiscovery('\\')
+	defaultValues, err := discovery.dockerWordAlternatives("go`lang")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(defaultValues, []string{"go`lang"}) {
+		t.Fatalf("default-escape values = %q, want [go`lang]", defaultValues)
+	}
+	if err := discovery.withEscapeToken('`', func() error {
+		values, err := discovery.dockerWordAlternatives("go`lang")
+		if err == nil && !slices.Equal(values, []string{"golang"}) {
+			t.Fatalf("custom-escape values = %q, want [golang]", values)
+		}
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(discovery.wordMemo), 2; got != want {
+		t.Fatalf("word memo entries = %d, want %d", got, want)
 	}
 }
 

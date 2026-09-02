@@ -15,11 +15,9 @@
 
 from pathlib import Path
 import json
-import os
 import re
 import shlex
 import subprocess
-import tempfile
 import unittest
 
 from go_version_metadata import docker_instruction_metadata
@@ -64,6 +62,9 @@ API_TOOLS_MODULE = Path('backend/api/tools/go.mod')
 API_TOOLS_DOCKERFILE = Path('backend/api/Dockerfile')
 API_TOOLS_PINS = ('github.com/go-swagger/go-swagger',)
 API_TOOLS_CONTAINER_MODULE = '/tmp/api-generator-tools'
+API_TOOL_BASE_STAGE = 'go-base'
+API_TOOL_INSTALLER_STAGE = 'api-tool-installer'
+API_TOOL_GENERATOR_STAGE = 'generator'
 API_TOOLS_VERSION_VARIABLES = {
     'github.com/go-swagger/go-swagger': 'go_swagger_version',
 }
@@ -107,16 +108,31 @@ def _api_tool_install_commands(module_path):
     return [
         'set -eu',
         f'{variable}="$({_api_tool_version_query(module_path, module_file)})"',
-        'curl -fL -o /usr/bin/swagger '
+        "/usr/bin/curl -q -fL --proto '=https' --proto-redir '=https' "
+        '-o /usr/bin/swagger '
         '"https://github.com/go-swagger/go-swagger/releases/download/'
         f'${{{variable}}}/swagger_linux_amd64"',
-        'chmod +x /usr/bin/swagger',
+        '/bin/chmod +x /usr/bin/swagger',
+        f'/usr/bin/swagger version | /usr/bin/grep -Fqx '
+        f'"version: ${{{variable}}}"',
     ]
 
 
 def _api_tool_install_argv(module_path):
-    """Exec-form argv immune to inherited Docker SHELL configuration."""
-    return ['/bin/sh', '-c', '; '.join(_api_tool_install_commands(module_path))]
+    """Hermetic exec-form argv for manifest-to-artifact installation."""
+    return [
+        '/usr/bin/env',
+        '-i',
+        'HOME=/tmp',
+        'PATH=/usr/local/go/bin:/usr/bin:/bin',
+        'GOENV=off',
+        'GOTOOLCHAIN=local',
+        'GOFLAGS=-mod=readonly',
+        'GOWORK=off',
+        '/bin/sh',
+        '-c',
+        '; '.join(_api_tool_install_commands(module_path)),
+    ]
 
 
 def _api_tool_install_instruction(module_path, script=None):
@@ -128,18 +144,30 @@ def _api_tool_install_instruction(module_path, script=None):
 
 
 def _api_tool_version_query(module_path, module_file):
-    """Query one module version without inherited Go environment redirects."""
+    """Read one selected module version with the pinned Go executable."""
     module_file = Path(module_file)
     return (
         f'cd {shlex.quote(str(module_file.parent))} && '
-        'GOFLAGS= GOWORK=off go mod edit '
-        f'-modfile={shlex.quote(str(module_file))} -json | '
-        f'jq -er \'.Require[] | select(.Path == "{module_path}") '
-        '| .Version\'')
+        '/usr/local/go/bin/go list -m -mod=readonly '
+        f'-modfile={shlex.quote(str(module_file))} '
+        f"-f '{{{{.Version}}}}' {shlex.quote(module_path)}")
+
+
+def _docker_instruction_payload(instruction):
+    return {key: value for key, value in instruction.items() if key != 'line'}
 
 
 def _api_tool_pin_dataflow_errors(contents, module_path):
-    """Validate the BuildKit-parsed manifest COPY -> exec RUN protocol."""
+    """Validate the isolated BuildKit stage and final artifact transfer."""
+    expected_installer_stage = {
+        'command': 'from',
+        'flags': [],
+        'stage': {
+            'baseName': API_TOOL_BASE_STAGE,
+            'name': API_TOOL_INSTALLER_STAGE,
+            'platform': '',
+        },
+    }
     expected_copy = {
         'command': 'copy',
         'flags': [],
@@ -159,33 +187,87 @@ def _api_tool_pin_dataflow_errors(contents, module_path):
             'heredocFiles': 0,
         },
     }
+    expected_generator_stage = {
+        'command': 'from',
+        'flags': [],
+        'stage': {
+            'baseName': API_TOOL_BASE_STAGE,
+            'name': API_TOOL_GENERATOR_STAGE,
+            'platform': '',
+        },
+    }
+    expected_artifact_copy = {
+        'command': 'copy',
+        'flags': [f'--from={API_TOOL_INSTALLER_STAGE}'],
+        'copy': {
+            'from': API_TOOL_INSTALLER_STAGE,
+            'sources': ['/usr/bin/swagger'],
+            'destination': '/usr/bin/swagger',
+            'inlineSources': 0,
+        },
+    }
     errors = []
     instructions = docker_instruction_metadata(contents)
-    if len(instructions) < 2:
+    if len(instructions) < 6:
         errors.append(
-            'API tools Dockerfile must end with the canonical manifest COPY '
-            'and isolated exec-form install RUN')
+            'API tools Dockerfile must contain the isolated installer and '
+            'generator-stage artifact transfer protocol')
         return errors
 
-    copy_instruction = instructions[-2]
-    copy_line = copy_instruction.get('line', '?')
-    copy_payload = {
-        key: value for key, value in copy_instruction.items() if key != 'line'
-    }
-    if copy_payload != expected_copy:
+    base = instructions[0]
+    base_payload = _docker_instruction_payload(base)
+    base_stage = base_payload.get('stage', {})
+    if (base_payload.get('command') != 'from'
+            or base_payload.get('flags') != []
+            or base_stage.get('name') != API_TOOL_BASE_STAGE
+            or base_stage.get('platform') != ''
+            or not re.fullmatch(
+                r'golang:[0-9]+\.[0-9]+\.[0-9]+'
+                r'(?:-[a-z0-9][a-z0-9._-]*)?@sha256:[0-9a-f]{64}',
+                base_stage.get('baseName', ''),
+            )):
         errors.append(
-            f'line {copy_line}: penultimate Docker instruction is '
-            f'{copy_payload!r}; want {expected_copy!r}')
+            f'line {base.get("line", "?")}: first Docker instruction is '
+            f'{base_payload!r}; want an otherwise-empty canonical Golang '
+            f'stage named {API_TOOL_BASE_STAGE!r}')
 
-    run_instruction = instructions[-1]
-    run_line = run_instruction.get('line', '?')
-    run_payload = {
-        key: value for key, value in run_instruction.items() if key != 'line'
-    }
-    if run_payload != expected_run:
+    expected_installer = [
+        expected_installer_stage,
+        expected_copy,
+        expected_run,
+        expected_generator_stage,
+    ]
+    actual_installer = [
+        _docker_instruction_payload(instruction)
+        for instruction in instructions[1:5]
+    ]
+    if actual_installer != expected_installer:
         errors.append(
-            f'line {run_line}: final Docker instruction is {run_payload!r}; '
-            f'want isolated exec-form install {expected_run!r}')
+            'the instructions between the pinned base and generator are '
+            f'{actual_installer!r}; want the complete hermetic installer '
+            f'protocol {expected_installer!r}')
+
+    stage_names = [
+        instruction.get('stage', {}).get('name')
+        for instruction in instructions if instruction.get('command') == 'from'
+    ]
+    expected_stage_names = [
+        API_TOOL_BASE_STAGE,
+        API_TOOL_INSTALLER_STAGE,
+        API_TOOL_GENERATOR_STAGE,
+    ]
+    if stage_names != expected_stage_names:
+        errors.append(
+            f'Docker stages are {stage_names!r}; want exactly '
+            f'{expected_stage_names!r}')
+
+    artifact_copy = instructions[-1]
+    artifact_payload = _docker_instruction_payload(artifact_copy)
+    if artifact_payload != expected_artifact_copy:
+        errors.append(
+            f'line {artifact_copy.get("line", "?")}: final Docker '
+            f'instruction is {artifact_payload!r}; want '
+            f'{expected_artifact_copy!r}')
     return errors
 
 
@@ -571,66 +653,17 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     'resulting variable to the matching download',
                 )
 
-    def test_api_tool_query_ignores_inherited_go_redirects(self):
-        """The frozen query reads the copied manifest despite Go env state."""
-        module_path = API_TOOLS_PINS[0]
-        module_file = REPOSITORY_ROOT / API_TOOLS_MODULE
-        expected = re.search(
-            rf'(?m)^[ \t]*(?:require[ \t]+)?{re.escape(module_path)}'
-            r'[ \t]+([^\s]+)', module_file.read_text(encoding='utf-8'))
-        self.assertIsNotNone(expected)
-
-        with tempfile.TemporaryDirectory() as directory:
-            temporary = Path(directory)
-            decoy_module = temporary / 'decoy.mod'
-            decoy_version = 'v0.1.0'
-            decoy_module.write_text(
-                'module example.com/decoy\n\ngo 1.27.0\n\n'
-                f'require {module_path} {decoy_version}\n',
-                encoding='utf-8',
-            )
-            workspace_module = temporary / 'workspace-module'
-            workspace_module.mkdir()
-            (workspace_module / 'go.mod').write_text(
-                'module example.com/workspace\n\ngo 1.27.0\n',
-                encoding='utf-8',
-            )
-            workspace = temporary / 'go.work'
-            workspace.write_text(
-                'go 1.27.0\n\nuse ./workspace-module\n', encoding='utf-8')
-            ambient_free_directory = temporary / 'no-main-module'
-            ambient_free_directory.mkdir()
-            environment = os.environ.copy()
-            environment.update({
-                'GOFLAGS': f'-modfile={decoy_module}',
-                'GOWORK': str(workspace),
-            })
-            result = subprocess.run(
-                ('/bin/sh', '-c',
-                 _api_tool_version_query(module_path, module_file)),
-                check=True,
-                capture_output=True,
-                cwd=ambient_free_directory,
-                encoding='utf-8',
-                env=environment,
-            )
-
-        self.assertNotEqual(expected.group(1), decoy_version)
-        self.assertEqual(result.stdout.strip(), expected.group(1))
-
     def test_api_tool_protocol_tolerates_prior_go_environment_redirects(self):
-        """Earlier Docker environment state cannot redirect the frozen query."""
+        """Generator poison cannot enter the sibling installer stage."""
         contents = _read(API_TOOLS_DOCKERFILE)
         module_path = API_TOOLS_PINS[0]
-        canonical_copy = (
-            f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+        generator_stage = f'FROM {API_TOOL_BASE_STAGE} AS generator'
         redirected = contents.replace(
-            canonical_copy,
-            'COPY decoy.mod /tmp/decoy.mod\n'
-            'COPY decoy.work /tmp/decoy.work\n'
-            'ENV GOFLAGS=-modfile=/tmp/decoy.mod\n'
-            'ENV GOWORK=/tmp/decoy.work\n'
-            + canonical_copy,
+            generator_stage,
+            generator_stage + '\n'
+            'ENV PATH=/tmp/fake-bin:/usr/bin:/bin\n'
+            'ENV GOENV=/tmp/evil-goenv\n'
+            'RUN printf \'url = "file:///tmp/wrong"\\n\' > /root/.curlrc',
         )
         self.assertNotEqual(redirected, contents)
         self.assertEqual(
@@ -639,7 +672,7 @@ class GoVersionConsistencyTest(unittest.TestCase):
     def test_api_tool_protocol_uses_buildkit_continuation_semantics(self):
         """The guard compares BuildKit-normalized instructions, not lines."""
         contents = _read(API_TOOLS_DOCKERFILE)
-        continued = contents.replace('curl -fL', 'cu\\\nrl -fL')
+        continued = contents.replace('/usr/bin/curl', '/usr/bin/cu\\\nrl')
         self.assertNotEqual(continued, contents)
         for module_path in API_TOOLS_PINS:
             with self.subTest(module_path=module_path):
@@ -647,14 +680,13 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     _api_tool_pin_dataflow_errors(continued, module_path), [])
 
     def test_api_tool_protocol_is_independent_of_inherited_shell(self):
-        """The final exec-form RUN does not consult Docker SHELL state."""
+        """Generator SHELL state cannot affect the sibling installer."""
         contents = _read(API_TOOLS_DOCKERFILE)
         module_path = API_TOOLS_PINS[0]
-        canonical_copy = (
-            f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+        generator_stage = f'FROM {API_TOOL_BASE_STAGE} AS generator'
         inherited_shell = contents.replace(
-            canonical_copy,
-            'SHELL ["/bin/false", "-c"]\n' + canonical_copy,
+            generator_stage,
+            generator_stage + '\nSHELL ["/bin/false", "-c"]',
         )
         self.assertNotEqual(inherited_shell, contents)
         self.assertEqual(
@@ -669,6 +701,15 @@ class GoVersionConsistencyTest(unittest.TestCase):
         canonical_run = _api_tool_install_instruction(module_path)
         copy_then_run = canonical_copy + '\n' + canonical_run
         canonical_script = _api_tool_install_argv(module_path)[-1]
+        base_stage = re.search(
+            r'(?m)^FROM golang:[^ ]+ AS go-base$', contents).group(0)
+        installer_stage = (
+            f'FROM {API_TOOL_BASE_STAGE} AS {API_TOOL_INSTALLER_STAGE}')
+        generator_stage = (
+            f'FROM {API_TOOL_BASE_STAGE} AS {API_TOOL_GENERATOR_STAGE}')
+        artifact_copy = (
+            f'COPY --from={API_TOOL_INSTALLER_STAGE} '
+            '/usr/bin/swagger /usr/bin/swagger')
 
         def replace_script(old, new):
             mutated_script = canonical_script.replace(old, new)
@@ -689,37 +730,48 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 '-modfile=/tmp/kfp-module/go.mod',
             ),
             'different selected module': replace_script(
-                'select(.Path == "github.com/go-swagger/go-swagger")',
-                'select(.Path == "google.golang.org/protobuf")',
+                'github.com/go-swagger/go-swagger)',
+                'google.golang.org/protobuf)',
             ),
             'query is conditional': replace_script(
                 'go_swagger_version="$(cd /tmp/api-generator-tools',
                 'false && go_swagger_version="$(cd /tmp/api-generator-tools',
             ),
             'module directory change is omitted': replace_script(
-                'cd /tmp/api-generator-tools && GOFLAGS=',
-                'GOFLAGS=',
+                'cd /tmp/api-generator-tools && ',
+                '',
             ),
-            'inherited GOFLAGS is not cleared': replace_script(
-                'GOFLAGS= GOWORK=off go mod edit',
-                'GOWORK=off go mod edit',
+            'GO environment file is enabled': contents.replace(
+                '"GOENV=off", ', '',
             ),
-            'workspace mode is not disabled': replace_script(
-                'GOFLAGS= GOWORK=off go mod edit',
-                'GOFLAGS= go mod edit',
+            'toolchain download is enabled': contents.replace(
+                '"GOTOOLCHAIN=local", ', '',
+            ),
+            'trusted GOFLAGS is empty': contents.replace(
+                '"GOFLAGS=-mod=readonly"', '"GOFLAGS="',
+            ),
+            'workspace mode is enabled': contents.replace(
+                '"GOWORK=off", ', '',
             ),
             'hard-coded download': replace_script(
                 'releases/download/${go_swagger_version}/swagger_linux_amd64',
                 'releases/download/v0.31.0/swagger_linux_amd64',
             ),
             'queried version overwritten': replace_script(
-                'curl -fL -o /usr/bin/swagger',
+                '/usr/bin/curl -q',
                 'go_swagger_version="v0.31.0"; '
-                'curl -fL -o /usr/bin/swagger',
+                '/usr/bin/curl -q',
             ),
             'exit before install': replace_script(
-                'curl -fL -o /usr/bin/swagger',
-                'exit 0; curl -fL -o /usr/bin/swagger',
+                '/usr/bin/curl -q',
+                'exit 0; /usr/bin/curl -q',
+            ),
+            'curl config is enabled': replace_script(
+                '/usr/bin/curl -q', '/usr/bin/curl',
+            ),
+            'artifact version is not asserted': replace_script(
+                '; /usr/bin/swagger version | /usr/bin/grep -Fqx '
+                '"version: ${go_swagger_version}"', '',
             ),
             'later artifact overwrite':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
@@ -760,10 +812,33 @@ class GoVersionConsistencyTest(unittest.TestCase):
                 '\nPIN_PROTOCOL',
             ),
             'continuation alters canonical command': contents.replace(
-                'curl -fL', 'curl\\\n-fL',
+                '/usr/bin/curl -q', '/usr/bin/curl\\\n-q',
             ),
             'shell-form install inherits SHELL': contents.replace(
                 canonical_run, 'RUN ' + canonical_script,
+            ),
+            'nonempty base stage': contents.replace(
+                base_stage,
+                base_stage + '\nENV PATH=/tmp/fake-bin',
+            ),
+            'installer derives from generator': contents.replace(
+                installer_stage,
+                f'FROM {API_TOOL_GENERATOR_STAGE} AS '
+                f'{API_TOOL_INSTALLER_STAGE}',
+            ),
+            'duplicate reserved installer stage': contents.replace(
+                generator_stage,
+                f'FROM scratch AS {API_TOOL_INSTALLER_STAGE}\n' +
+                generator_stage,
+            ),
+            'wrong final artifact source': contents.replace(
+                artifact_copy,
+                'COPY --from=generator /usr/bin/swagger /usr/bin/swagger',
+            ),
+            'wrong final artifact destination': contents.replace(
+                artifact_copy,
+                f'COPY --from={API_TOOL_INSTALLER_STAGE} '
+                '/usr/bin/swagger /tmp/swagger',
             ),
             'normalized artifact alias written after install':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
@@ -784,6 +859,13 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     _api_tool_pin_dataflow_errors(mutated, module_path),
                     f'{name} must break the API tool pin dataflow guard',
                 )
+
+    def test_api_generator_invokes_the_frozen_swagger_path(self):
+        contents = _read(Path('backend/api/hack/generator.sh'))
+        self.assertNotRegex(contents, r'(?m)^[ \t]*swagger[ \t]+generate')
+        self.assertEqual(
+            len(re.findall(r'(?m)^[ \t]*/usr/bin/swagger[ \t]+generate',
+                           contents)), 8)
 
 
 if __name__ == '__main__':

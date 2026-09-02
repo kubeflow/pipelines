@@ -139,9 +139,13 @@ stage-source value byte-for-byte unchanged.
 
 Stored `ONBUILD` expressions have two deliberate parsing phases. BuildKit
 reparses the stored expression as a standalone Dockerfile with the default
-backslash parser, then normalizes stage-source words with the enclosing
-Dockerfile's lexer and escape token. The helper follows those same phases;
-it does not inject the parent's parser directive into the stored expression.
+backslash parser. A trigger consumed in the same Dockerfile is then normalized
+with that consuming file's escape token. An exported trigger has no known child
+escape token, so the helper independently parses and evaluates it under both
+legal child tokens (`\` and `` ` ``), unions the candidates, and fails if either
+interpretation violates the policy. Typed parses and Docker-word memo entries
+are therefore escape-token-specific; the parent's parser directive is never
+assumed to be the future child's directive.
 This is not a claim to perform
 complete Dockerfile2LLB validation: filesystem/context checks, build-argument
 dependent graphs, deferred child-build graphs, and other solver-time checks are

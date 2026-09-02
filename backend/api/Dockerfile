@@ -12,8 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Generate client code (go & json) from API protocol buffers
-FROM golang:1.27.0@sha256:4013ae0f9e7994f8535c58c811f8f863fbed38b72e0d51e6592156f758d66146 AS generator
+# Shared, immutable Go base for the isolated tool installer and generator.
+FROM golang:1.27.0@sha256:4013ae0f9e7994f8535c58c811f8f863fbed38b72e0d51e6592156f758d66146 AS go-base
+
+# Install standalone generator tools before any generator-stage mutation. The
+# empty environment, absolute executable paths, disabled Go environment file,
+# local toolchain, trusted nonempty GOFLAGS, and curl -q make
+# manifest-to-artifact resolution independent of inherited PATH, GOENV, and
+# curl configuration.
+FROM go-base AS api-tool-installer
+COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
+RUN ["/usr/bin/env", "-i", "HOME=/tmp", "PATH=/usr/local/go/bin:/usr/bin:/bin", "GOENV=off", "GOTOOLCHAIN=local", "GOFLAGS=-mod=readonly", "GOWORK=off", "/bin/sh", "-c", "set -eu; go_swagger_version=\"$(cd /tmp/api-generator-tools && /usr/local/go/bin/go list -m -mod=readonly -modfile=/tmp/api-generator-tools/go.mod -f '{{.Version}}' github.com/go-swagger/go-swagger)\"; /usr/bin/curl -q -fL --proto '=https' --proto-redir '=https' -o /usr/bin/swagger \"https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64\"; /bin/chmod +x /usr/bin/swagger; /usr/bin/swagger version | /usr/bin/grep -Fqx \"version: ${go_swagger_version}\""]
+
+# Generate client code (Go and JSON) from API protocol buffers.
+FROM go-base AS generator
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
 # The googleapis repo doesn't use GitHub releases or version tags,
@@ -67,10 +79,6 @@ RUN chmod -R 777 /usr/bin/
 RUN chmod -R 777 /usr/include/google
 RUN chmod -R 777 /go
 
-# Standalone generator tools use the dedicated tools module so Dependabot can
-# update them without adding build-only dependencies to KFP. Keep this COPY and
-# install RUN as the final two instructions. Their adjacency prevents an
-# intervening manifest change or later artifact overwrite, while explicit
-# exec-form /bin/sh makes the install independent of inherited SHELL state.
-COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
-RUN ["/bin/sh", "-c", "set -eu; go_swagger_version=\"$(cd /tmp/api-generator-tools && GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == \"github.com/go-swagger/go-swagger\") | .Version')\"; curl -fL -o /usr/bin/swagger \"https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64\"; chmod +x /usr/bin/swagger"]
+# Copy the hermetically installed artifact last so no generator-stage command
+# can replace it afterward.
+COPY --from=api-tool-installer /usr/bin/swagger /usr/bin/swagger
