@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 type ScheduledWorkflowClientFake struct {
