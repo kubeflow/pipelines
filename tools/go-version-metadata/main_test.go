@@ -74,6 +74,7 @@ func TestYAMLGoDownloadUsesExactHTTPSOrigin(t *testing.T) {
 			}
 		})
 	}
+
 }
 
 func TestProjectDockerInstructionsUsesBuildKitSemantics(t *testing.T) {
@@ -151,6 +152,65 @@ func TestProjectDockerParserDirectivesUsesBuildKitSemantics(t *testing.T) {
 			}
 		})
 	}
+
+	for _, test := range []struct {
+		name     string
+		contents string
+		line     int
+		value    string
+	}{
+		{name: "Unicode no-break space", contents: "#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1, value: "example.com/frontend:latest"},
+		{name: "Unicode em space", contents: "#\u2003SyNtAx = example.com/frontend:latest\r\nFROM scratch\r\n", line: 1, value: "example.com/frontend:latest"},
+		{name: "BOM", contents: "\ufeff#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1, value: "example.com/frontend:latest"},
+		{name: "shebang", contents: "#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "BOM and shebang", contents: "\ufeff#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "after escape", contents: "# escape=\\\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "after check", contents: "# check=skip=all\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "Unicode value is preserved", contents: "#\u00a0syntax=\u00a0example.com/frontend:latest\nFROM scratch\n", line: 1, value: "\u00a0example.com/frontend:latest"},
+	} {
+		t.Run("supported frontend compatibility/"+test.name, func(t *testing.T) {
+			directives, err := projectDockerParserDirectives(test.contents)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var syntax []dockerParserDirectiveMetadata
+			for _, directive := range directives {
+				if directive.Name == "syntax" {
+					syntax = append(syntax, directive)
+				}
+			}
+			want := []dockerParserDirectiveMetadata{{Name: "syntax", Value: test.value, Line: test.line}}
+			if !reflect.DeepEqual(syntax, want) {
+				t.Fatalf("syntax projection = %#v, want %#v (all directives %#v)", syntax, want, directives)
+			}
+		})
+	}
+
+	for _, test := range []struct {
+		name     string
+		contents string
+	}{
+		{name: "blank before selector", contents: "\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "ordinary comment before selector", contents: "# ordinary comment\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "unknown directive before selector", contents: "# unknown=value\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "indented selector", contents: " #\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "selector after instruction", contents: "FROM scratch\n#\u00a0syntax=example.com/frontend:latest\n"},
+		{name: "double hash", contents: "## syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "zero-width space", contents: "#\u200bsyntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "Unicode space before equals", contents: "#\u00a0syntax\u00a0=example.com/frontend:latest\nFROM scratch\n"},
+	} {
+		t.Run("inactive frontend compatibility/"+test.name, func(t *testing.T) {
+			directives, err := projectDockerParserDirectives(test.contents)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if slices.ContainsFunc(directives, func(directive dockerParserDirectiveMetadata) bool {
+				return directive.Name == "syntax"
+			}) {
+				t.Fatalf("inactive syntax directive projected: %#v", directives)
+			}
+		})
+	}
 }
 
 func TestDockerClassification(t *testing.T) {
@@ -166,6 +226,18 @@ func TestDockerClassification(t *testing.T) {
 			contents:       "FROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
 			classification: "managed",
 			candidateKinds: []string{"from"},
+		},
+		{
+			name:           "managed form rejects custom frontend",
+			contents:       "# syntax=example.com/frontend:latest\nFROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "unsupported-frontend"},
+		},
+		{
+			name:           "managed form rejects newer Unicode-whitespace frontend",
+			contents:       "#\u00a0syntax=example.com/frontend:latest\nFROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
+			classification: "unsupported",
+			candidateKinds: []string{"from", "unsupported-frontend"},
 		},
 		{
 			name: "unrelated modern syntax",
@@ -2082,6 +2154,70 @@ func TestExportableOnbuildUsesEveryChildEscapeToken(t *testing.T) {
 		if len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != "env-value" {
 			t.Fatalf("locally consumed but exportable candidates = %#v, want one env-value", metadata.DockerCandidates)
 		}
+	}
+}
+
+func TestExportedOnbuildUsesOnlyReachableStageTargets(t *testing.T) {
+	for _, test := range []struct {
+		name           string
+		contents       string
+		classification string
+		candidateKind  string
+	}{
+		{
+			name:           "unnamed non-final stage",
+			contents:       "FROM scratch\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "shadowed alias",
+			contents:       "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch AS parent\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "unnamed non-final invalid alternate stage source",
+			contents:       "FROM scratch\nONBUILD COPY --from=`alpine /x /x\nFROM scratch\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "shadowed invalid alternate stage source",
+			contents:       "FROM scratch AS parent\nONBUILD COPY --from=`alpine /x /x\nFROM scratch AS parent\n",
+			classification: "irrelevant",
+		},
+		{
+			name:           "retained named non-final stage",
+			contents:       "FROM scratch AS retained\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n",
+			classification: "unsupported",
+			candidateKind:  "env-value",
+		},
+		{
+			name:           "final unnamed stage",
+			contents:       "FROM scratch AS build\nFROM scratch\nONBUILD ENV IMAGE=go`lang:latest\n",
+			classification: "unsupported",
+			candidateKind:  "env-value",
+		},
+		{
+			name: "local consumption survives later alias shadowing",
+			contents: "FROM scratch AS parent\n" +
+				"ONBUILD ENV IMAGE=golang:latest\n" +
+				"FROM parent AS child\n" +
+				"FROM scratch AS parent\n",
+			classification: "unsupported",
+			candidateKind:  "env-value",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != test.classification {
+				t.Fatalf("classification = %q, want %q; candidates=%#v error=%q", metadata.DockerClassification, test.classification, metadata.DockerCandidates, metadata.DockerError)
+			}
+			if test.candidateKind != "" && (len(metadata.DockerCandidates) != 1 || metadata.DockerCandidates[0].Kind != test.candidateKind) {
+				t.Fatalf("candidates = %#v, want one %q candidate", metadata.DockerCandidates, test.candidateKind)
+			}
+		})
 	}
 }
 

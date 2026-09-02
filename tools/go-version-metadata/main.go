@@ -285,6 +285,8 @@ func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMeta
 		projected = append(projected, dockerParserDirectiveMetadata{
 			Name: "syntax", Value: commandLine, Line: line,
 		})
+	} else if directive, found := compatibleHashSyntaxDirective(contents); found {
+		projected = append(projected, directive)
 	}
 	directiveParser := parser.DirectiveParser{}
 	directives, err := directiveParser.ParseAll([]byte(contents))
@@ -304,6 +306,66 @@ func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMeta
 		})
 	}
 	return projected, nil
+}
+
+// compatibleHashSyntaxDirective recognizes the initial hash-directive preamble
+// accepted by newer supported builders but not by the pinned parser. It is a
+// deliberately small, linear compatibility scanner: it never searches beyond
+// the first blank, ordinary comment, unknown directive, indented line, or
+// instruction. Managed files fail closed on this bounded superset so executor
+// upgrades cannot silently select a different frontend.
+func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetadata, bool) {
+	contents = strings.TrimPrefix(contents, "\ufeff")
+	lines := strings.Split(contents, "\n")
+	start := 0
+	if len(lines) > 0 && strings.HasPrefix(strings.TrimSuffix(lines[0], "\r"), "#!") {
+		start = 1
+	}
+	for index := start; index < len(lines); index++ {
+		line := strings.TrimSuffix(lines[index], "\r")
+		if line == "" || !strings.HasPrefix(line, "#") {
+			return dockerParserDirectiveMetadata{}, false
+		}
+		body := strings.TrimLeftFunc(line[1:], unicode.IsSpace)
+		nameEnd := 0
+		if len(body) == 0 || !((body[0] >= 'a' && body[0] <= 'z') ||
+			(body[0] >= 'A' && body[0] <= 'Z')) {
+			return dockerParserDirectiveMetadata{}, false
+		}
+		for nameEnd < len(body) {
+			character := body[nameEnd]
+			if !((character >= 'a' && character <= 'z') ||
+				(character >= 'A' && character <= 'Z') ||
+				(character >= '0' && character <= '9')) {
+				break
+			}
+			nameEnd++
+		}
+		name := strings.ToLower(body[:nameEnd])
+		remainder := trimDockerDirectiveSpace(body[nameEnd:])
+		if !strings.HasPrefix(remainder, "=") {
+			return dockerParserDirectiveMetadata{}, false
+		}
+		value := trimDockerDirectiveSpace(remainder[1:])
+		if value == "" {
+			return dockerParserDirectiveMetadata{}, false
+		}
+		switch name {
+		case "syntax":
+			return dockerParserDirectiveMetadata{
+				Name: name, Value: value, Line: index + 1,
+			}, true
+		case "escape", "check":
+			continue
+		default:
+			return dockerParserDirectiveMetadata{}, false
+		}
+	}
+	return dockerParserDirectiveMetadata{}, false
+}
+
+func trimDockerDirectiveSpace(value string) string {
+	return strings.Trim(value, " \t\r\f")
 }
 
 func isContainerRecipe(name string) bool {
@@ -466,6 +528,24 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 		if !seenUnsupported[candidate] {
 			seenUnsupported[candidate] = true
 			unsupported = append(unsupported, candidate)
+		}
+	}
+	if len(managed) > 0 {
+		directives, err := projectDockerParserDirectives(contents)
+		if err != nil {
+			return "invalid", nil, err.Error()
+		}
+		for _, directive := range directives {
+			if directive.Name != "syntax" {
+				continue
+			}
+			candidate := dockerCandidate{
+				Kind: "unsupported-frontend", Value: directive.Value, Line: directive.Line,
+			}
+			if !seenUnsupported[candidate] {
+				seenUnsupported[candidate] = true
+				unsupported = append(unsupported, candidate)
+			}
 		}
 	}
 	sort.SliceStable(unsupported, func(left, right int) bool {
@@ -1438,11 +1518,21 @@ func (discovery *dockerDiscovery) currentContext() dockerInstructionContext {
 	}
 }
 
+func (discovery *dockerDiscovery) stageIsExportable(index int, stage *dockerStageState) bool {
+	if index == len(discovery.allStages)-1 {
+		return true
+	}
+	if stage.baseName == "" {
+		return false
+	}
+	return discovery.baseReferences[stage.baseName] == stage
+}
+
 func (discovery *dockerDiscovery) exportedDeferredCandidates() ([]dockerCandidate, error) {
 	candidates := []dockerCandidate{}
 	seen := map[dockerCandidate]bool{}
-	for _, stage := range discovery.allStages {
-		if len(stage.triggers) == 0 {
+	for index, stage := range discovery.allStages {
+		if len(stage.triggers) == 0 || !discovery.stageIsExportable(index, stage) {
 			continue
 		}
 		context := dockerInstructionContext{

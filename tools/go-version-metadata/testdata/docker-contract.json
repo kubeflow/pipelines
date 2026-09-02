@@ -480,6 +480,30 @@
       "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
     },
     {
+      "id": "unnamed-nonfinal-onbuild-is-not-exportable",
+      "finding": 3,
+      "domain": "onbuild-exportable-stage",
+      "dockerfile": "FROM scratch\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "shadowed-alias-onbuild-is-not-exportable",
+      "finding": 3,
+      "domain": "onbuild-exportable-stage",
+      "dockerfile": "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch AS parent\n",
+      "accepted": true,
+      "want": {"classification": "irrelevant"}
+    },
+    {
+      "id": "retained-alias-onbuild-is-exportable",
+      "finding": 3,
+      "domain": "onbuild-exportable-stage",
+      "dockerfile": "FROM scratch AS retained\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["env-value"]}
+    },
+    {
       "id": "inherited-special-environment",
       "finding": 1,
       "domain": "docker-special-parameter-provenance",

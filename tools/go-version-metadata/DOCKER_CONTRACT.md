@@ -9,7 +9,10 @@ new example alone is not a reason to extend an ad hoc scanner.
 The contract is tied to the BuildKit Dockerfile parser version pinned in the
 root `go.mod`. BuildKit owns Dockerfile parsing, escape-directive handling,
 continuation removal, JSON decoding, typed instruction fields, and Docker word
-normalization. The helper must not independently emulate those rules.
+normalization. The helper must not independently emulate those rules. The only
+forward-compatibility exception is the bounded frontend-selector admission
+scanner described below; it does not parse instructions or alter their pinned
+semantics.
 
 ## Results
 
@@ -33,8 +36,14 @@ Every Dockerfile produces exactly one result:
   parsing/resource contract is exceeded.
 
 A canonical source does not hide another source: one canonical source plus any
-unsupported source is `unsupported`. An `ONBUILD` payload is never managed;
-payloads that BuildKit forbids, including `ONBUILD FROM`, are `invalid`.
+unsupported source is `unsupported`. A managed Dockerfile must not select a
+custom Docker frontend. Frontend selection is detected with the pinned parser
+and a bounded initial-preamble compatibility scanner for syntax-directive forms
+accepted by newer supported builders; this keeps checker and updater behavior
+stable when the CI executor changes. Dockerfiles without a canonical Go source
+keep parser directives outside the source policy. An `ONBUILD` payload is never
+managed; payloads that BuildKit forbids, including `ONBUILD FROM`, are
+`invalid`.
 
 ## What is a Go source
 
@@ -90,7 +99,8 @@ under this restriction.
 
 `LABEL`, `MAINTAINER`, `WORKDIR`, `EXPOSE`, `USER`, `VOLUME`, `STOPSIGNAL`,
 ordinary `COPY` operands, local `ADD` operands, destinations, option values not
-listed above, comments, and parser directives are excluded. `SHELL` configures
+listed above, comments, and parser directives in files without a canonical Go
+source are excluded. `SHELL` configures
 interpretation but its argv is not itself a Go source field.
 Active special/positional references in these excluded fields do not make them
 source-bearing. An unresolved `ADD` source remains included conservatively
@@ -140,14 +150,16 @@ stage-source value byte-for-byte unchanged.
 Stored `ONBUILD` expressions have two deliberate parsing phases. BuildKit
 reparses the stored expression as a standalone Dockerfile with the default
 backslash parser. A trigger consumed in the same Dockerfile is normalized with
-that consuming file's escape token. Consumption does not make its defining
-stage non-exportable: any named stage can also be built as a target and used as
-a parent image. The helper therefore additionally evaluates every stage's
-stored triggers under both legal future-child tokens (`\` and `` ` ``), unions
-the candidates, and fails if either interpretation violates the policy. Typed
-parses and Docker-word memo entries are escape-token-specific; neither local
-consumption nor the parent's parser directive is assumed to constrain a future
-child.
+that consuming file's escape token. The helper separately evaluates stored
+triggers only for stages Docker can export: the final stage and the final
+binding of each normalized alias. Unnamed non-final stages and earlier stages
+shadowed by a later alias binding are not exportable targets. Each exportable
+stage is evaluated under both legal future-child tokens (`\` and `` ` ``), the
+candidates are unioned, and either interpretation can violate the policy. Local
+consumption is orthogonal: a retained alias remains exportable after its
+triggers are consumed by a local child. Typed parses and Docker-word memo
+entries are escape-token-specific; neither local consumption nor the parent's
+parser directive is assumed to constrain a future child.
 This is not a claim to perform
 complete Dockerfile2LLB validation: filesystem/context checks, build-argument
 dependent graphs, deferred child-build graphs, and other solver-time checks are

@@ -180,6 +180,9 @@ func authoritativeDockerConformanceScenarios() []dockerConformanceCase {
 		{ID: "exported-onbuild-run-mount-custom-parent-default-child", Finding: 1, Domain: "onbuild-child-escape-stage-source", Dockerfile: "# escape=`\nFROM scratch\nONBUILD RUN --mount=type=bind,from=\\\\alpine,target=/x true\n", Accepted: true, Want: dockerContractWant{Classification: "invalid", ErrorContains: "expanded stage source"}},
 		{ID: "locally-consumed-onbuild-remains-exportable-default-parent", Finding: 1, Domain: "onbuild-exportable-stage", Dockerfile: "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM parent\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"env-value"}}},
 		{ID: "locally-consumed-onbuild-remains-exportable-custom-parent", Finding: 1, Domain: "onbuild-exportable-stage", Dockerfile: "# escape=`\nFROM scratch AS parent\nONBUILD ENV IMAGE=go\\lang:latest\nFROM parent\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"env-value"}}},
+		{ID: "unnamed-nonfinal-onbuild-is-not-exportable", Finding: 3, Domain: "onbuild-exportable-stage", Dockerfile: "FROM scratch\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "shadowed-alias-onbuild-is-not-exportable", Finding: 3, Domain: "onbuild-exportable-stage", Dockerfile: "FROM scratch AS parent\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch AS parent\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
+		{ID: "retained-alias-onbuild-is-exportable", Finding: 3, Domain: "onbuild-exportable-stage", Dockerfile: "FROM scratch AS retained\nONBUILD ENV IMAGE=go`lang:latest\nFROM scratch\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"env-value"}}},
 		{ID: "inherited-special-environment", Finding: 1, Domain: "docker-special-parameter-provenance", Dockerfile: "FROM scratch AS parent\nENV \"?\"=go\nFROM parent\nARG V=$?lang\n", Accepted: true, Want: dockerContractWant{Classification: "unsupported", CandidateKinds: []string{"unsupported-parameter-name", "unsupported-parameter-reference"}}},
 		{ID: "excluded-label-special-reference", Finding: 3, Domain: "docker-special-parameter-field-boundary", Dockerfile: "FROM scratch\nLABEL note=$?golang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
 		{ID: "excluded-workdir-special-reference", Finding: 3, Domain: "docker-special-parameter-field-boundary", Dockerfile: "FROM scratch\nWORKDIR /$?golang\n", Accepted: true, Want: dockerContractWant{Classification: "irrelevant"}},
@@ -707,6 +710,58 @@ func TestExportedOnbuildUsesChildEscapeToken(t *testing.T) {
 			}
 			if !slices.Contains(strings.Fields(string(output)), testCase.wantEnvVar) {
 				t.Fatalf("child environment %q does not contain %q", output, testCase.wantEnvVar)
+			}
+		})
+	}
+}
+
+func TestDockerExportableStageSelection(t *testing.T) {
+	if os.Getenv("KFP_RUN_DOCKER_CONFORMANCE") != "1" {
+		t.Skip("set KFP_RUN_DOCKER_CONFORMANCE=1 to validate exportable stages with Docker")
+	}
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker is not available")
+	}
+	for index, testCase := range []struct {
+		name       string
+		dockerfile string
+		target     string
+		want       string
+	}{
+		{
+			name:       "unnamed non-final stage is not exportable",
+			dockerfile: "FROM scratch\nONBUILD ENV DEAD=1\nFROM scratch\n",
+			want:       "null",
+		},
+		{
+			name:       "shadowed alias resolves to its final binding",
+			dockerfile: "FROM scratch AS parent\nONBUILD ENV DEAD=1\nFROM scratch AS parent\n",
+			target:     "parent",
+			want:       "null",
+		},
+		{
+			name:       "retained alias is exportable",
+			dockerfile: "FROM scratch AS retained\nONBUILD ENV KEEP=1\nFROM scratch\n",
+			target:     "retained",
+			want:       `["ENV KEEP=1"]`,
+		},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			tag := fmt.Sprintf("kfp-go-version-exportable-%d-%d", os.Getpid(), index)
+			t.Cleanup(func() {
+				cleanupContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				_ = exec.CommandContext(cleanupContext, "docker", "image", "rm", "-f", tag).Run()
+			})
+			buildDockerfile(t, tag, testCase.dockerfile, testCase.target)
+			inspectContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			output, err := exec.CommandContext(inspectContext, "docker", "image", "inspect", "--format", "{{json .Config.OnBuild}}", tag).CombinedOutput()
+			if err != nil {
+				t.Fatalf("inspect image: %v\n%s", err, boundedDockerOutput(output))
+			}
+			if got := strings.TrimSpace(string(output)); got != testCase.want {
+				t.Fatalf("OnBuild = %s, want %s", got, testCase.want)
 			}
 		})
 	}

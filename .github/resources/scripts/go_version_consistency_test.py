@@ -488,6 +488,21 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     'tag and digest',
                 )
 
+    def test_all_go_builder_images_reject_custom_frontends(self):
+        for relative_path in sorted(GO_DOCKERFILES):
+            contents = _read(relative_path)
+            for prefix in (
+                    '# syntax=example.com/frontend:latest\n',
+                    '#\u00a0syntax=example.com/frontend:latest\n'):
+                with self.subTest(path=relative_path, prefix=repr(prefix)):
+                    docker = docker_runtime_classification(prefix + contents)
+                    self.assertEqual(docker['classification'], 'unsupported')
+                    self.assertIn(
+                        'unsupported-frontend',
+                        [candidate['kind']
+                         for candidate in docker['candidates']],
+                    )
+
     def test_no_unmanaged_go_runtime_pins(self):
         discovered = set()
         for relative_path in _repository_paths():
@@ -741,6 +756,8 @@ class GoVersionConsistencyTest(unittest.TestCase):
             'BOM-and-shebang-prefixed custom Docker frontend':
                 '\ufeff#!/usr/bin/env dockerfile\n'
                 '# syntax=docker/dockerfile:1.19\n' + contents,
+            'Unicode-whitespace custom Docker frontend':
+                '#\u00a0syntax=docker/dockerfile:1.19\n' + contents,
             'hard-coded version': replace_script(
                 'go_swagger_version="$(cd /tmp/api-generator-tools',
                 'go_swagger_version="v0.31.0"; ignored="$(cd '

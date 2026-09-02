@@ -2238,6 +2238,30 @@ updater.sync(
                 repository_paths=self.files,
             )
 
+    def test_rejects_custom_frontend_for_managed_dockerfile(self):
+        dockerfile = self.repo_root / 'Dockerfile'
+        original = self.files[Path('Dockerfile')]
+        for prefix in (
+                '# syntax=example.com/frontend:latest\n',
+                '#\u00a0syntax=example.com/frontend:latest\n'):
+            with self.subTest(prefix=repr(prefix)):
+                contents = prefix + original
+                dockerfile.write_text(contents, encoding='utf-8')
+
+                def unexpected_digest_resolution(_tag):
+                    self.fail('unsupported frontend reached digest resolution')
+
+                with self.assertRaisesRegex(ValueError,
+                                            'unsupported Go runtime pins'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=unexpected_digest_resolution,
+                        repository_paths=self.files,
+                    )
+                self.assertEqual(
+                    dockerfile.read_text(encoding='utf-8'), contents)
+
     def test_rejects_external_golang_copy_and_run_mount_sources(self):
         dockerfile = self.repo_root / 'Dockerfile'
         for instruction in (
