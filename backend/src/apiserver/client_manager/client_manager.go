@@ -507,6 +507,11 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool
 		util.TerminateIfError(autoMigrate(db))
 	}
 
+	// Runs on both paths: a deployment that took the legacy upgrade before this
+	// backfill existed is no longer detected as legacy, but can still hold
+	// reference-only rows.
+	util.TerminateIfError(backfillPipelineRefsToRunTable(db, dialect))
+
 	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
 	// the connection pool with the returned *storage.DB. The GC loop calls
 	// this on every tick, so index migrations take effect without a restart.
@@ -1393,6 +1398,63 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
+}
+
+// backfillPipelineRefsToRunTable populates run_details.PipelineId and
+// PipelineVersionId for legacy runs that recorded them only as resource
+// references. scanRowsToRuns reconstructs both values after the query returns,
+// so without this the columns and the reported values disagree, breaking the
+// pipeline_id filter and sorting, whose page token holds the reconstructed
+// value.
+func backfillPipelineRefsToRunTable(db *gorm.DB, dialect SQLDialect) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	// One statement per column, mirroring the two reconstruction branches in
+	// scanRowsToRuns.
+	for _, c := range []struct {
+		column  string
+		refType model.ResourceType
+	}{
+		{"PipelineId", model.PipelineResourceType},
+		{"PipelineVersionId", model.PipelineVersionResourceType},
+	} {
+		if _, err := sqlDB.Exec(backfillRunRefColumnSQL(dialect, c.column, c.refType)); err != nil {
+			return fmt.Errorf("backfill %s: %w", c.column, err)
+		}
+	}
+	return nil
+}
+
+// backfillRunRefColumnSQL updates only run_details while its subqueries read
+// resource_references, so MySQL's restriction on selecting from the table being
+// updated does not apply. The (ResourceUUID, ResourceType, ReferenceType) key
+// means at most one row matches per run, keeping the subquery scalar.
+func backfillRunRefColumnSQL(dialect SQLDialect, column string, refType model.ResourceType) string {
+	// Bare mixed-case identifiers fold to lower case on PostgreSQL.
+	q := dialect.QuoteIdentifier
+	refPredicate := fmt.Sprintf(
+		`rr.%s = run_details.%s AND rr.%s = '%s' AND rr.%s = '%s' AND rr.%s <> ''`,
+		q("ResourceUUID"), q("UUID"),
+		q("ResourceType"), model.RunResourceType,
+		q("ReferenceType"), refType,
+		q("ReferenceUUID"),
+	)
+	return fmt.Sprintf(`
+		UPDATE run_details
+		SET %s = (
+			SELECT rr.%s FROM resource_references rr WHERE %s
+		)
+		WHERE (run_details.%s = '' OR run_details.%s IS NULL)
+			AND EXISTS (
+				SELECT 1 FROM resource_references rr WHERE %s
+			)`,
+		q(column),
+		q("ReferenceUUID"), refPredicate,
+		q(column), q(column),
+		refPredicate,
+	)
 }
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {

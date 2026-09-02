@@ -478,3 +478,128 @@ func TestAutoMigrateSucceeds(t *testing.T) {
 	assertColumnExists("tasks", "RunUUID")
 	assertColumnExists("resource_references", "ResourceUUID")
 }
+
+// insertLegacyRunWithPipelineRef writes a run the way v1 did, with the pipeline
+// recorded only as a resource reference.
+func insertLegacyRunWithPipelineRef(t *testing.T, db *gorm.DB, runID, pipelineID string) {
+	t.Helper()
+	require.NoError(t, db.Create(&model.Run{
+		UUID:         runID,
+		DisplayName:  runID,
+		K8SName:      runID,
+		Description:  "",
+		Namespace:    "ns",
+		ExperimentId: "exp-1",
+		StorageState: model.StorageStateAvailable,
+	}).Error)
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID:  runID,
+		ResourceType:  model.RunResourceType,
+		ReferenceUUID: pipelineID,
+		ReferenceName: pipelineID,
+		ReferenceType: model.PipelineResourceType,
+		Relationship:  model.OwnerRelationship,
+		Payload:       "",
+	}).Error)
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID:  runID,
+		ResourceType:  model.RunResourceType,
+		ReferenceUUID: pipelineID + "-v1",
+		ReferenceName: pipelineID + "-v1",
+		ReferenceType: model.PipelineVersionResourceType,
+		Relationship:  model.OwnerRelationship,
+		Payload:       "",
+	}).Error)
+}
+
+func storedRunColumn(t *testing.T, db *gorm.DB, column, runID string) string {
+	t.Helper()
+	var got string
+	require.NoError(t, db.Raw(
+		`SELECT "`+column+`" FROM run_details WHERE "UUID" = ?`, runID,
+	).Scan(&got).Error)
+	return got
+}
+
+func TestBackfillPipelineRefsToRunTable(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+
+	insertLegacyRunWithPipelineRef(t, db, "run-legacy", "pipeline-legacy")
+
+	require.NoError(t, db.Create(&model.Run{
+		UUID:         "run-no-ref",
+		DisplayName:  "run-no-ref",
+		K8SName:      "run-no-ref",
+		Namespace:    "ns",
+		ExperimentId: "exp-1",
+		StorageState: model.StorageStateAvailable,
+	}).Error)
+
+	require.NoError(t, db.Create(&model.Run{
+		UUID:         "run-modern",
+		DisplayName:  "run-modern",
+		K8SName:      "run-modern",
+		Namespace:    "ns",
+		ExperimentId: "exp-1",
+		StorageState: model.StorageStateAvailable,
+		PipelineSpec: model.PipelineSpec{PipelineId: "pipeline-current"},
+	}).Error)
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID:  "run-modern",
+		ResourceType:  model.RunResourceType,
+		ReferenceUUID: "pipeline-stale",
+		ReferenceName: "pipeline-stale",
+		ReferenceType: model.PipelineResourceType,
+		Relationship:  model.OwnerRelationship,
+	}).Error)
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+
+	assert.Equal(t, "pipeline-legacy", storedRunColumn(t, db, "PipelineId", "run-legacy"),
+		"reference-only run must have its pipeline ID backfilled into the column the filter reads")
+	assert.Equal(t, "", storedRunColumn(t, db, "PipelineId", "run-no-ref"),
+		"run without a pipeline reference must be left empty, not nulled by a subquery that matched nothing")
+	assert.Equal(t, "pipeline-current", storedRunColumn(t, db, "PipelineId", "run-modern"),
+		"run that already stores a pipeline ID must not be overwritten by a stale reference")
+	assert.Equal(t, "pipeline-legacy-v1", storedRunColumn(t, db, "PipelineVersionId", "run-legacy"),
+		"pipeline-version reference must be backfilled alongside the pipeline reference")
+}
+
+func TestBackfillPipelineRefsToRunTable_Idempotent(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	insertLegacyRunWithPipelineRef(t, db, "run-legacy", "pipeline-legacy")
+
+	dialect := GetDialect("sqlite")
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+
+	assert.Equal(t, "pipeline-legacy", storedRunColumn(t, db, "PipelineId", "run-legacy"))
+}
+
+func TestBackfillRunRefColumnSQL_QuotesPerDialect(t *testing.T) {
+	tests := []struct {
+		dialect string
+		quoted  string
+	}{
+		{"mysql", "`PipelineId`"},
+		{"pgx", `"PipelineId"`},
+		{"sqlite", `"PipelineId"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.dialect, func(t *testing.T) {
+			sql := backfillRunRefColumnSQL(GetDialect(tt.dialect), "PipelineId", model.PipelineResourceType)
+
+			assert.Contains(t, sql, tt.quoted)
+
+			// PipelineResourceType is lower-case unlike the other resource types;
+			// matching 'Pipeline' would silently backfill nothing.
+			assert.Contains(t, sql, "= 'pipeline'")
+			assert.Contains(t, sql, "= 'Run'")
+
+			pvSQL := backfillRunRefColumnSQL(GetDialect(tt.dialect), "PipelineVersionId", model.PipelineVersionResourceType)
+			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
+		})
+	}
+}

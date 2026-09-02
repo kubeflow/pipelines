@@ -2693,3 +2693,62 @@ func TestListRuns_FilterByPipelineId(t *testing.T) {
 		assert.Equal(t, targetPipelineID, r.PipelineId)
 	}
 }
+
+// TestListRuns_SortByPipelineIdPaginates covers the sort key that the pipeline_id
+// mapping newly enables. It fails if the key is rejected, if the sort silently
+// falls back to the default field, or if a row is skipped or repeated across a
+// page boundary.
+func TestListRuns_SortByPipelineIdPaginates(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_sort"})
+	require.NoError(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	// Created in an order that does not match the pipeline ID ordering, so a
+	// sort that silently fell back to the default field would be visible.
+	for i, tc := range []struct{ runID, pipelineID string }{
+		{"ps-run-b", "pipeline-b"},
+		{"ps-run-c", "pipeline-c"},
+		{"ps-run-a", "pipeline-a"},
+	} {
+		_, err := runStore.CreateRun(&model.Run{
+			UUID:         tc.runID,
+			ExperimentId: defaultFakeExpId,
+			K8SName:      tc.runID,
+			DisplayName:  tc.runID,
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "ns1",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec: int64(i + 1),
+				Conditions:     "Succeeded",
+				State:          model.RuntimeStateSucceeded,
+			},
+			PipelineSpec: model.PipelineSpec{PipelineId: tc.pipelineID},
+		})
+		require.NoError(t, err)
+	}
+
+	opts, err := list.NewOptions(&model.Run{}, 2, "pipeline_id", nil)
+	require.NoError(t, err)
+
+	firstPage, totalSize, nextPageToken, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.NoError(t, err)
+	assert.Equal(t, 3, totalSize)
+	require.Len(t, firstPage, 2)
+	require.NotEmpty(t, nextPageToken, "a third run remains, so a page token must be issued")
+
+	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+	require.NoError(t, err)
+	secondPage, _, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.NoError(t, err)
+	require.Len(t, secondPage, 1)
+
+	var got []string
+	for _, r := range append(firstPage, secondPage...) {
+		got = append(got, r.PipelineId)
+	}
+	assert.Equal(t, []string{"pipeline-a", "pipeline-b", "pipeline-c"}, got)
+}
