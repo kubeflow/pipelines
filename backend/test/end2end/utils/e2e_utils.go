@@ -2,6 +2,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"maps"
 	"sort"
@@ -19,6 +20,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -145,6 +147,44 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 	if len(failedTasks) > 0 {
 		logger.Log("Found failed tasks: %v", maps.Keys(failedTasks))
 	}
+}
+
+// ValidateDRAResourceClaims verifies that each task pod in the run has
+// DRA resource claims in its spec and that allocation happened.
+func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, runClient *apiserver.RunClient, namespace string, runID string) {
+	updatedRun := testutil.GetPipelineRun(runClient, &runID)
+	validated := 0
+	for _, task := range updatedRun.RunDetails.TaskDetails {
+		if task.ChildTasks != nil {
+			continue
+		}
+		if task.PodName == "" {
+			continue
+		}
+
+		pod, err := k8Client.CoreV1().Pods(namespace).Get(context.Background(), task.PodName, metav1.GetOptions{})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to get pod %s", task.PodName)
+
+		gomega.Expect(pod.Spec.ResourceClaims).NotTo(gomega.BeEmpty(),
+			"Pod %s has no resourceClaims in spec", pod.Name)
+
+		gomega.Expect(pod.Spec.Containers).NotTo(gomega.BeEmpty())
+		gomega.Expect(pod.Spec.Containers[0].Resources.Claims).NotTo(gomega.BeEmpty(),
+			"Pod %s main container has no resource claim references", pod.Name)
+
+		gomega.Expect(pod.Status.ResourceClaimStatuses).NotTo(gomega.BeEmpty(),
+			"Pod %s has no resourceClaimStatuses — DRA allocation did not happen", pod.Name)
+
+		for _, cs := range pod.Status.ResourceClaimStatuses {
+			gomega.Expect(cs.ResourceClaimName).NotTo(gomega.BeNil(),
+				"Pod %s claim '%s' was not bound to a ResourceClaim", pod.Name, cs.Name)
+		}
+
+		validated++
+		logger.Log("Pod %s: DRA resource claims verified (%d claim(s) allocated)", pod.Name, len(pod.Spec.ResourceClaims))
+	}
+	gomega.Expect(validated).To(gomega.BeNumerically(">", 0),
+		"No task pods found to validate DRA claims for run %s", runID)
 }
 
 type TaskDetails struct {

@@ -254,15 +254,17 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 	Context("DRA scheduling check >", Label(E2eDraCheck), func() {
 		var pipelineDir = "valid/dra"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		Expect(pipelineFiles).NotTo(BeEmpty(), "no pipeline files found in %s", pipelineDir)
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
-				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+				runID := validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+				e2e_utils.ValidateDRAResourceClaims(k8Client, runClient, *config.Namespace, runID)
 			})
 		}
 	})
 })
 
-func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {
+func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) string {
 	testutil.CheckIfSkipping(pipelineFile)
 	pipelineFilePath := filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir, pipelineFile)
 	logger.Log("Uploading pipeline file %s", pipelineFile)
@@ -279,7 +281,7 @@ func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testCon
 	}
 	compiledWorkflow := workflowutils.UnmarshallWorkflowYAML(filepath.Join(testutil.GetCompiledWorkflowsFilesDir(), pipelineFile))
 	e2e_utils.ValidateComponentStatuses(runClient, k8Client, testContext, createdRunID, compiledWorkflow)
-
+	return createdRunID
 }
 
 func cleanupE2ETestResources(testContext *apitests.TestContext) {

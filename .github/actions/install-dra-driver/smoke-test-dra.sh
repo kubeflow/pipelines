@@ -70,16 +70,31 @@ echo "Waiting for smoke test pod to become Ready..."
 kubectl wait --for=condition=Ready pod/dra-smoke-pod \
   -n "${SMOKE_NS}" --timeout=120s
 
-# Stage 3: Verify resourceClaimStatuses shows allocation
+# Stage 3: Verify resourceClaimStatuses shows the expected claim name
 echo "=== Stage 3: Verifying DRA allocation ==="
-claim_statuses=$(kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" \
-  -o jsonpath='{.status.resourceClaimStatuses}')
+claim_name=$(kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" \
+  -o jsonpath='{.status.resourceClaimStatuses[0].name}')
 
-if [[ -z "${claim_statuses}" || "${claim_statuses}" == "null" ]]; then
+if [[ -z "${claim_name}" || "${claim_name}" == "null" ]]; then
   echo "ERROR: Pod has no resourceClaimStatuses — DRA allocation did not happen" >&2
   kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" -o yaml >&2
   exit 1
 fi
 
-echo "resourceClaimStatuses: ${claim_statuses}"
+if [[ "${claim_name}" != "gpu" ]]; then
+  echo "ERROR: Expected claim name 'gpu', got '${claim_name}'" >&2
+  kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" -o jsonpath='{.status.resourceClaimStatuses}' >&2
+  exit 1
+fi
+
+resource_claim_name=$(kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" \
+  -o jsonpath='{.status.resourceClaimStatuses[0].resourceClaimName}')
+
+if [[ -z "${resource_claim_name}" || "${resource_claim_name}" == "null" ]]; then
+  echo "ERROR: resourceClaimName not set — claim was not bound" >&2
+  kubectl get pod/dra-smoke-pod -n "${SMOKE_NS}" -o yaml >&2
+  exit 1
+fi
+
+echo "Claim '${claim_name}' bound to ResourceClaim '${resource_claim_name}'."
 echo "DRA smoke test passed: pod scheduled and resource claim allocated."

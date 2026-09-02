@@ -7,6 +7,8 @@ inputs:
   driver_version:
     description: "Git tag of dra-example-driver to install"
     required: false
+    # v0.2.1 is the latest tag compatible with K8s 1.34 (DRA GA minimum).
+    # v0.4.0+ targets K8s 1.36 and will not work with kindest/node:v1.34.x.
     default: "v0.2.1"
   namespace:
     description: "Namespace for the DRA driver release"
