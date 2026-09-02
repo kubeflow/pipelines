@@ -23,6 +23,8 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
       && mkdir -p /tmp/rules_java/tools/jdk \
       && printf '%s\n' 'package(default_visibility = ["//visibility:public"])' 'alias(name = "bootstrap_runtime_toolchain_type", actual = "//toolchains:bootstrap_runtime_toolchain_type")' > /tmp/rules_java/tools/jdk/BUILD \
       && cd /tmp/ml-metadata \
+      && perl -0pi -e 's/http_archive\(\s*name\s*=\s*"rules_java".*?\n\)/local_repository(name = "rules_java", path = "\/tmp\/rules_java")/s' WORKSPACE \
+      && grep -q 'local_repository(name = "rules_java", path = "/tmp/rules_java")' WORKSPACE \
       && BAZELFLAGS="--copt=-march=armv8.3-a --host_copt=-march=armv8.3-a --experimental_google_legacy_api --override_repository=rules_java=/tmp/rules_java" python3 setup.py bdist_wheel --dist-dir /tmp/mlmd-wheel \
       && python3 -m pip install --no-cache-dir /tmp/mlmd-wheel/ml_metadata-1.21.0-*.whl \
       && cd / \
