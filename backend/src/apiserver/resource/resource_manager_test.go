@@ -3327,6 +3327,84 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	assert.Contains(t, err.Error(), "error getting workflow")
 }
 
+func TestRetryRun_Failed_RunArchived(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.ArchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+	before, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	userError := err.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		fmt.Sprintf("Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runDetail.UUID),
+		userError.ExternalMessage())
+
+	after, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, model.StorageStateArchived, after.StorageState.ToV2())
+	assert.Equal(t, before.State, after.State)
+	assert.Equal(t, before.RetryGeneration, after.RetryGeneration)
+	assert.Equal(t, before.RetryClaimedAtInSec, after.RetryClaimedAtInSec)
+	assert.Equal(t, before.WorkflowRuntimeManifest, after.WorkflowRuntimeManifest)
+}
+
+func TestRetryRun_UnarchivedRunStillRetries(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	err := manager.ArchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+	err = manager.UnarchiveRun(runDetail.UUID)
+	assert.Nil(t, err)
+
+	err = manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.Nil(t, err)
+}
+
+// archiveOnClaimRunStore archives the run inside the window RetryRun leaves
+// between its GetRun pre-check and the claim taking the row lock, which is what
+// ArchiveExpiredRuns does when it commits concurrently.
+type archiveOnClaimRunStore struct {
+	storage.RunStoreInterface
+	runID string
+}
+
+func (s *archiveOnClaimRunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+	if runID == s.runID {
+		if err := s.RunStoreInterface.ArchiveRun(runID); err != nil {
+			return "", "", 0, 0, err
+		}
+	}
+	return s.RunStoreInterface.ClaimRunForRetry(runID, takeoverExpiredClaim)
+}
+
+func TestRetryRun_Failed_RunArchivedDuringClaim(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+
+	manager.runStore = &archiveOnClaimRunStore{RunStoreInterface: manager.runStore, runID: runDetail.UUID}
+
+	err := manager.RetryRun(context.Background(), runDetail.UUID)
+	assert.NotNil(t, err)
+	userError := err.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		fmt.Sprintf("Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runDetail.UUID),
+		userError.ExternalMessage())
+
+	after, err := manager.GetRun(runDetail.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, model.StorageStateArchived, after.StorageState.ToV2())
+	assert.Equal(t, model.RuntimeStateFailed, after.State)
+	assert.Equal(t, int64(0), after.RetryGeneration)
+	assert.Equal(t, int64(0), after.RetryClaimedAtInSec)
+}
+
 func TestUnarchiveRun_OK(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
