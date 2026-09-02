@@ -153,6 +153,7 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 // DRA resource claims in its spec and that allocation happened.
 func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, runClient *apiserver.RunClient, namespace string, runID string) {
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
+	logger.Log("Validating DRA resource claims for run %s (%d task(s))", runID, len(updatedRun.RunDetails.TaskDetails))
 	validated := 0
 	for _, task := range updatedRun.RunDetails.TaskDetails {
 		if task.ChildTasks != nil {

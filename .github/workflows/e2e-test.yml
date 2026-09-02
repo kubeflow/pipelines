@@ -158,20 +158,7 @@ jobs:
         shell: bash
         if: ${{ matrix.test_label == 'dra-check' && steps.deploy.outcome == 'success' }}
         run: |
-          kubectl apply -f - <<EOF
-          apiVersion: resource.k8s.io/v1
-          kind: ResourceClaimTemplate
-          metadata:
-            name: dra-test-claim
-            namespace: ${{ env.NAMESPACE }}
-          spec:
-            spec:
-              devices:
-                requests:
-                - name: gpu
-                  exactly:
-                    deviceClassName: gpu.example.com
-          EOF
+          kubectl apply -n "${{ env.NAMESPACE }}" -f .github/actions/install-dra-driver/e2e-resource-claim-template.yaml
 
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash

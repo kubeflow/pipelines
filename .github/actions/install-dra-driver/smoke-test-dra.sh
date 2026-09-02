@@ -31,40 +31,9 @@ echo "Driver has ${running} running pod(s)."
 
 # Stage 2: Create ResourceClaimTemplate + Pod and wait for Ready
 echo "=== Stage 2: Testing DRA pod scheduling ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 kubectl create namespace "${SMOKE_NS}"
-
-kubectl apply -f - <<EOF
-apiVersion: resource.k8s.io/v1
-kind: ResourceClaimTemplate
-metadata:
-  name: smoke-test-gpu
-  namespace: ${SMOKE_NS}
-spec:
-  spec:
-    devices:
-      requests:
-      - name: gpu
-        exactly:
-          deviceClassName: gpu.example.com
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: dra-smoke-pod
-  namespace: ${SMOKE_NS}
-spec:
-  restartPolicy: Never
-  containers:
-  - name: test
-    image: busybox:1.36
-    command: ["echo", "DRA smoke test: PASS"]
-    resources:
-      claims:
-      - name: gpu
-  resourceClaims:
-  - name: gpu
-    resourceClaimTemplateName: smoke-test-gpu
-EOF
+kubectl apply -n "${SMOKE_NS}" -f "${SCRIPT_DIR}/smoke-test-resources.yaml"
 
 echo "Waiting for smoke test pod to become Ready..."
 kubectl wait --for=condition=Ready pod/dra-smoke-pod \
