@@ -80,8 +80,11 @@ names that collide with POSIX special parameters or ASCII positional digit
 parameters. Docker permits declarations such as `ARG 0=go` and then expands
 `$0`. Literal ARG names in that set are `unsupported`. ENV keys are first
 normalized with the pinned BuildKit lexer, so quoted and escaped spellings
-cannot bypass the same restriction; ENV keys containing variable expansion are
-also `unsupported` rather than partially evaluated. This includes valueless ARG
+cannot bypass the same restriction. Active expansion syntax in an ENV key is
+also `unsupported` rather than partially evaluated, independently of whether
+its value domain is an ordinary unknown (`${NAME}`) or BuildKit's deterministic
+unset value for a special/positional parameter (`${?}` or `${0}`). Escaped and
+single-quoted dollar text remains literal. This includes valueless ARG
 declarations. Unicode digits are ordinary Docker identifiers and do not fall
 under this restriction.
 
@@ -124,8 +127,13 @@ to the current or a later stage are `invalid` where the instruction resolves
 named stages. Deferred `ONBUILD COPY --from` and
 `ONBUILD RUN --mount=from` depend on the eventual child build's stage namespace;
 numeric references and names that denote the defining/current or a later local
-stage are therefore `unsupported`, not guessed. Variable expansion in these
-deferred source fields is `invalid`, matching BuildKit's field restriction.
+stage are therefore `unsupported`, not guessed. Any active variable-expansion
+syntax in top-level or deferred `COPY --from` and `RUN --mount=from` fields is
+`invalid`, matching BuildKit's field restriction. This syntax check is
+independent of the parameter's semantic value domain, so ordinary
+(`${SOURCE}`), special (`${?}`), and positional (`${0}`) references are all
+invalid; escaped or single-quoted dollar text is literal rather than an
+expansion.
 This is not a claim to perform
 complete Dockerfile2LLB validation: filesystem/context checks, build-argument
 dependent graphs, deferred child-build graphs, and other solver-time checks are
@@ -220,15 +228,17 @@ helper enforces these deterministic limits:
 - total Docker alternative-expansion input work: 1 MiB;
 - symbolic image-reference automaton states: 128;
 - symbolic variable transformations: 2,048;
-- symbolic reference match work: 1 MiB state visits and correlated-value bytes
-  compared across image, download-prefix, and local-stage equality searches;
+- symbolic reference work: 1 MiB charged before pattern key/atom construction,
+  plus state visits and correlated-value bytes compared across image,
+  download-prefix, and local-stage equality searches;
 - POSIX shell AST nodes: 100,000;
 - POSIX shell AST depth: 256; and
 - total visited or normalized semantic literal bytes: 16 MiB.
 
-Repeated alias/word objects and alpha-equivalent normalized symbolic values are
-memoized and charged once across Docker and runtime-shell fields. Variable names
-are canonicalized while repeated-identity correlation is preserved. Exhausting
+Symbolic patterns are compiled once before pairwise local-stage matching and
+alpha-equivalent normalized values share the interned pattern. Variable names
+are canonicalized while repeated-identity correlation is preserved. Repeated
+search results are memoized across Docker and runtime-shell fields. Exhausting
 symbolic search work is an explicit `invalid` resource error, never evidence
 that a source was found. Limits for shell depth and work are computed from lexer-visible or
 AST-visible structures, not

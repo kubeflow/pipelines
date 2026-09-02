@@ -21,10 +21,8 @@ ENV GOBIN=/go/bin
 ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
 
 # Runtime-coupled Go generators use the exact versions selected by the root
-# module. Standalone generator tools use the dedicated tools module so
-# Dependabot can update them without adding build-only dependencies to KFP.
+# module.
 COPY go.mod /tmp/kfp-module/go.mod
-COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
 
 # Install protoc and Java (needed for KFP server API package generation).
 RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
@@ -58,12 +56,6 @@ RUN git init /googleapis && \
     git remote add origin https://github.com/googleapis/googleapis.git && \
     git fetch --depth 1 origin ${GOOGLEAPIS_COMMIT} && \
     git checkout FETCH_HEAD
-# Download go-swagger binary.
-RUN set -eu; \
-    go_swagger_version="$(cd /tmp/api-generator-tools && go mod edit -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
-    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
-    chmod +x /usr/bin/swagger
-
 # Needed for buildling python packages requiring protoc
 RUN apt-get update && apt-get install -y python3-pip
 RUN python3 -m pip install --no-cache-dir --break-system-packages --upgrade --ignore-installed pip setuptools wheel
@@ -74,3 +66,14 @@ ENV XDG_CACHE_HOME=/tmp/.cache
 RUN chmod -R 777 /usr/bin/
 RUN chmod -R 777 /usr/include/google
 RUN chmod -R 777 /go
+
+# Standalone generator tools use the dedicated tools module so Dependabot can
+# update them without adding build-only dependencies to KFP. Keep this COPY and
+# install RUN as the final two instructions: their adjacency guarantees that
+# the queried manifest produces the installed artifact without an intervening
+# Docker state change or a later overwrite.
+COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
+RUN set -eu; \
+    go_swagger_version="$(GOFLAGS= GOWORK=off go mod edit -modfile=/tmp/api-generator-tools/go.mod -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
+    curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
+    chmod +x /usr/bin/swagger

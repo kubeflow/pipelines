@@ -328,6 +328,40 @@
       "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
     },
     {
+      "id": "expanded-special-env-key",
+      "finding": 2,
+      "domain": "docker-special-parameter-expansion-syntax",
+      "dockerfile": "FROM scratch\nENV ${?}=go\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "expanded-positional-env-key",
+      "finding": 2,
+      "domain": "docker-special-parameter-expansion-syntax",
+      "dockerfile": "FROM scratch\nENV ${0}=go\n",
+      "accepted": true,
+      "want": {"classification": "unsupported", "candidateKinds": ["unsupported-parameter-name"]}
+    },
+    {
+      "id": "copy-special-expansion-invalid",
+      "finding": 3,
+      "domain": "copy-stage-expansion-syntax",
+      "dockerfile": "FROM scratch\nCOPY --from=${?} /src /dst\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
+      "id": "onbuild-copy-special-expansion-invalid",
+      "finding": 3,
+      "domain": "onbuild-stage-expansion-syntax",
+      "dockerfile": "FROM scratch AS base\nONBUILD COPY --from=${?} /src /dst\nFROM base\n",
+      "accepted": false,
+      "errorContains": "variable expansion is not supported",
+      "want": {"classification": "invalid", "errorContains": "expanded stage source"}
+    },
+    {
       "id": "inherited-special-environment",
       "finding": 1,
       "domain": "docker-special-parameter-provenance",

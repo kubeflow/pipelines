@@ -14,8 +14,11 @@
 """Repository-level consistency checks for pinned Go versions."""
 
 from pathlib import Path
+import os
 import re
+import shlex
 import subprocess
+import tempfile
 import unittest
 
 from go_version_metadata import docker_runtime_classification
@@ -95,27 +98,34 @@ def _read(relative_path):
     return (REPOSITORY_ROOT / relative_path).read_text(encoding='utf-8')
 
 
-def _docker_run_blocks(contents):
-    """Return normalized logical RUN instructions without parsing shell."""
+def _docker_instruction_blocks(contents):
+    """Return line-numbered logical Docker instructions."""
     lines = contents.splitlines()
     blocks = []
     index = 0
     while index < len(lines):
+        start_line = index + 1
         line = lines[index]
-        if not re.match(r'^[ \t]*RUN(?:[ \t]|$)', line, re.IGNORECASE):
-            index += 1
-            continue
         physical_lines = [line]
         while physical_lines[-1].rstrip().endswith('\\'):
             index += 1
             if index >= len(lines):
                 break
             physical_lines.append(lines[index])
-        blocks.append(' '.join(
+        blocks.append((start_line, ' '.join(
             physical_line.rstrip().removesuffix('\\').strip()
-            for physical_line in physical_lines))
+            for physical_line in physical_lines)))
         index += 1
     return blocks
+
+
+def _docker_instructions(contents):
+    """Return non-comment logical Docker instructions in source order."""
+    return [
+        (line_number, block)
+        for line_number, block in _docker_instruction_blocks(contents)
+        if block and not block.lstrip().startswith('#')
+    ]
 
 
 def _shell_commands(run_block):
@@ -182,11 +192,10 @@ def _shell_commands(run_block):
 def _api_tool_install_commands(module_path):
     """The frozen repository-specific API tool installation protocol."""
     variable = API_TOOLS_VERSION_VARIABLES[module_path]
+    module_file = API_TOOLS_CONTAINER_MODULE + '/go.mod'
     return [
         'set -eu',
-        f'{variable}="$(cd {API_TOOLS_CONTAINER_MODULE} && go mod edit '
-        f'-json | jq -er \'.Require[] | select(.Path == "{module_path}") '
-        '| .Version\')"',
+        f'{variable}="$({_api_tool_version_query(module_path, module_file)})"',
         'curl -fL -o /usr/bin/swagger '
         '"https://github.com/go-swagger/go-swagger/releases/download/'
         f'${{{variable}}}/swagger_linux_amd64"',
@@ -194,33 +203,41 @@ def _api_tool_install_commands(module_path):
     ]
 
 
-def _api_tool_pin_dataflow_errors(contents, module_path):
-    """Validate manifest -> query -> version-variable consumer dataflow."""
-    variable = API_TOOLS_VERSION_VARIABLES[module_path]
-    copy_pattern = re.compile(
-        rf'(?mi)^[ \t]*COPY[ \t]+{re.escape(str(API_TOOLS_MODULE))}'
-        rf'[ \t]+{re.escape(API_TOOLS_CONTAINER_MODULE)}/go\.mod[ \t]*$')
-    errors = []
-    if not copy_pattern.search(contents):
-        errors.append(
-            f'{API_TOOLS_MODULE} is not copied to '
-            f'{API_TOOLS_CONTAINER_MODULE}/go.mod')
+def _api_tool_version_query(module_path, module_file):
+    """Query one module version without inherited Go environment redirects."""
+    return (
+        'GOFLAGS= GOWORK=off go mod edit '
+        f'-modfile={shlex.quote(str(module_file))} -json | '
+        f'jq -er \'.Require[] | select(.Path == "{module_path}") '
+        '| .Version\'')
 
-    parsed_runs = [
-        _shell_commands(block) for block in _docker_run_blocks(contents)
-    ]
-    markers = (variable, '/usr/bin/swagger', module_path)
-    relevant_runs = [
-        (commands, linear) for commands, linear in parsed_runs
-        if any(marker in command for marker in markers
-               for command in commands)
-    ]
-    if len(relevant_runs) != 1:
+
+def _api_tool_pin_dataflow_errors(contents, module_path):
+    """Validate the final manifest COPY -> frozen install RUN protocol."""
+    expected_copy = (
+        f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+    errors = []
+    instructions = _docker_instructions(contents)
+    if len(instructions) < 2:
         errors.append(
-            'expected exactly one RUN containing the API tool query/install '
-            f'protocol, found {len(relevant_runs)}')
+            'API tools Dockerfile must end with the canonical manifest COPY '
+            'and install RUN')
+        return errors
+
+    copy_line, copy_instruction = instructions[-2]
+    if copy_instruction != expected_copy:
+        errors.append(
+            f'line {copy_line}: penultimate Docker instruction is '
+            f'{copy_instruction!r}; want {expected_copy!r}')
+
+    run_line, run_instruction = instructions[-1]
+    if not re.match(r'^[ \t]*RUN(?:[ \t]|$)', run_instruction,
+                    re.IGNORECASE):
+        errors.append(
+            f'line {run_line}: final Docker instruction must be the frozen '
+            'API tool install RUN')
     else:
-        commands, linear = relevant_runs[0]
+        commands, linear = _shell_commands(run_instruction)
         expected = _api_tool_install_commands(module_path)
         if not linear:
             errors.append(
@@ -233,7 +250,8 @@ def _api_tool_pin_dataflow_errors(contents, module_path):
             actual = commands[mismatch] if mismatch < len(commands) else '<missing>'
             wanted = expected[mismatch] if mismatch < len(expected) else '<no extra command>'
             errors.append(
-                f'API tool query/install command {mismatch + 1} is {actual!r}; '
+                f'line {run_line}: API tool query/install command '
+                f'{mismatch + 1} is {actual!r}; '
                 f'want {wanted!r}')
     return errors
 
@@ -620,28 +638,103 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     'resulting variable to the matching download',
                 )
 
+    def test_api_tool_query_ignores_inherited_go_redirects(self):
+        """The frozen query reads the copied manifest despite Go env state."""
+        module_path = API_TOOLS_PINS[0]
+        module_file = REPOSITORY_ROOT / API_TOOLS_MODULE
+        expected = re.search(
+            rf'(?m)^[ \t]*(?:require[ \t]+)?{re.escape(module_path)}'
+            r'[ \t]+([^\s]+)', module_file.read_text(encoding='utf-8'))
+        self.assertIsNotNone(expected)
+
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = Path(directory)
+            decoy_module = temporary / 'decoy.mod'
+            decoy_version = 'v0.1.0'
+            decoy_module.write_text(
+                'module example.com/decoy\n\ngo 1.27.0\n\n'
+                f'require {module_path} {decoy_version}\n',
+                encoding='utf-8',
+            )
+            workspace_module = temporary / 'workspace-module'
+            workspace_module.mkdir()
+            (workspace_module / 'go.mod').write_text(
+                'module example.com/workspace\n\ngo 1.27.0\n',
+                encoding='utf-8',
+            )
+            workspace = temporary / 'go.work'
+            workspace.write_text(
+                'go 1.27.0\n\nuse ./workspace-module\n', encoding='utf-8')
+            environment = os.environ.copy()
+            environment.update({
+                'GOFLAGS': f'-modfile={decoy_module}',
+                'GOWORK': str(workspace),
+            })
+            result = subprocess.run(
+                ('/bin/sh', '-c',
+                 _api_tool_version_query(module_path, module_file)),
+                check=True,
+                capture_output=True,
+                encoding='utf-8',
+                env=environment,
+            )
+
+        self.assertNotEqual(expected.group(1), decoy_version)
+        self.assertEqual(result.stdout.strip(), expected.group(1))
+
+    def test_api_tool_protocol_tolerates_prior_go_environment_redirects(self):
+        """Earlier Docker environment state cannot redirect the frozen query."""
+        contents = _read(API_TOOLS_DOCKERFILE)
+        module_path = API_TOOLS_PINS[0]
+        canonical_copy = (
+            f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+        redirected = contents.replace(
+            canonical_copy,
+            'COPY decoy.mod /tmp/decoy.mod\n'
+            'COPY decoy.work /tmp/decoy.work\n'
+            'ENV GOFLAGS=-modfile=/tmp/decoy.mod\n'
+            'ENV GOWORK=/tmp/decoy.work\n'
+            + canonical_copy,
+        )
+        self.assertNotEqual(redirected, contents)
+        self.assertEqual(
+            _api_tool_pin_dataflow_errors(redirected, module_path), [])
+
     def test_api_tools_pin_dataflow_rejects_decoupled_mutations(self):
         """Shared path strings must not satisfy the coupling invariant."""
         contents = _read(API_TOOLS_DOCKERFILE)
         module_path = API_TOOLS_PINS[0]
+        canonical_copy = (
+            f'COPY {API_TOOLS_MODULE} {API_TOOLS_CONTAINER_MODULE}/go.mod')
+        copy_then_run = canonical_copy + '\nRUN set -eu;'
+        query = _api_tool_version_query(
+            module_path, API_TOOLS_CONTAINER_MODULE + '/go.mod')
+        canonical_assignment = (
+            f'{API_TOOLS_VERSION_VARIABLES[module_path]}="$({query})";')
         mutations = {
             'hard-coded version': contents.replace(
-                'go_swagger_version="$(cd /tmp/api-generator-tools && go mod '
-                'edit -json | jq -er \'.Require[] | select(.Path == '
-                '"github.com/go-swagger/go-swagger") | .Version\')";',
+                canonical_assignment,
                 'go_swagger_version="v0.31.0";',
             ),
             'different manifest': contents.replace(
-                'cd /tmp/api-generator-tools && go mod edit -json',
-                'cd /tmp/kfp-module && go mod edit -json',
+                '-modfile=/tmp/api-generator-tools/go.mod',
+                '-modfile=/tmp/kfp-module/go.mod',
             ),
             'different selected module': contents.replace(
                 'select(.Path == "github.com/go-swagger/go-swagger")',
                 'select(.Path == "google.golang.org/protobuf")',
             ),
             'query is conditional': contents.replace(
-                'go_swagger_version="$(cd /tmp/api-generator-tools',
-                'false && go_swagger_version="$(cd /tmp/api-generator-tools',
+                'go_swagger_version="$(GOFLAGS=',
+                'false && go_swagger_version="$(GOFLAGS=',
+            ),
+            'inherited GOFLAGS is not cleared': contents.replace(
+                'GOFLAGS= GOWORK=off go mod edit',
+                'GOWORK=off go mod edit',
+            ),
+            'workspace mode is not disabled': contents.replace(
+                'GOFLAGS= GOWORK=off go mod edit',
+                'GOFLAGS= go mod edit',
             ),
             'hard-coded download': contents.replace(
                 'releases/download/${go_swagger_version}/swagger_linux_amd64',
@@ -682,6 +775,36 @@ class GoVersionConsistencyTest(unittest.TestCase):
             'later artifact overwrite':
                 contents + '\nRUN cp /tmp/hard-coded-swagger '
                 '/usr/bin/swagger\n',
+            'WORKDIR inserted between manifest and query': contents.replace(
+                copy_then_run,
+                canonical_copy + '\nWORKDIR /tmp/api-generator-tools\n'
+                'RUN set -eu;',
+            ),
+            'ENV inserted between manifest and query': contents.replace(
+                copy_then_run,
+                canonical_copy + '\nENV GOFLAGS=-mod=mod\nRUN set -eu;',
+            ),
+            'shell manifest writer inserted between copy and query':
+                contents.replace(
+                    copy_then_run,
+                    canonical_copy + '\n'
+                    'RUN sed -i \'s/v0.31.0/v0.32.0/\' '
+                    '/tmp/api-generator-tools/go.mod\nRUN set -eu;',
+                ),
+            'JSON manifest COPY inserted between copy and query':
+                contents.replace(
+                    copy_then_run,
+                    canonical_copy + '\n'
+                    'COPY ["decoy.mod", '
+                    '"/tmp/api-generator-tools/go.mod"]\nRUN set -eu;',
+                ),
+            'normalized artifact alias written after install':
+                contents + '\nRUN cp /tmp/hard-coded-swagger '
+                '/usr/bin/../bin/swagger\n',
+            'JSON artifact COPY after install':
+                contents + '\nCOPY ["swagger", "/usr/bin/swagger"]\n',
+            'unrelated instruction after install':
+                contents + '\nENV API_INSTALL_COMPLETE=true\n',
         }
         for name, mutated in mutations.items():
             with self.subTest(name=name):
