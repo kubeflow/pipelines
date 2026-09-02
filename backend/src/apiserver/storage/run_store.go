@@ -230,6 +230,7 @@ func (s *RunStore) ListRuns(
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return errorF(err)
 	}
@@ -238,7 +239,6 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
 	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
 	// computing it requires a second, potentially expensive query that some
