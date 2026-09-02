@@ -308,6 +308,132 @@ func TestPropagateOutputsUpDAGForTask_UsesExplicitDependencies(t *testing.T) {
 	assert.Equal(t, "worker", outputParam.GetProducer().GetTaskName())
 }
 
+func TestPropagateOutputsUpDAGForTask_OmitsLinksPersistedByPriorAttempt(t *testing.T) {
+	pipelineSpec := &pipelinespec.PipelineSpec{
+		Root: &pipelinespec.ComponentSpec{
+			Implementation: &pipelinespec.ComponentSpec_Dag{
+				Dag: &pipelinespec.DagSpec{
+					Tasks: map[string]*pipelinespec.PipelineTaskSpec{
+						"worker": {
+							TaskInfo:     &pipelinespec.PipelineTaskInfo{Name: "worker"},
+							ComponentRef: &pipelinespec.ComponentRef{Name: "worker-comp"},
+						},
+					},
+					Outputs: &pipelinespec.DagOutputsSpec{
+						Artifacts: map[string]*pipelinespec.DagOutputsSpec_DagOutputArtifactSpec{
+							"pipeline-model": {
+								ArtifactSelectors: []*pipelinespec.DagOutputsSpec_ArtifactSelectorSpec{{
+									ProducerSubtask:   "worker",
+									OutputArtifactKey: "model",
+								}},
+							},
+						},
+					},
+				},
+			},
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+					"pipeline-model": {IsArtifactList: true},
+				},
+			},
+		},
+		Components: map[string]*pipelinespec.ComponentSpec{
+			"worker-comp": {
+				Implementation: &pipelinespec.ComponentSpec_ExecutorLabel{ExecutorLabel: "worker"},
+				OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+					Artifacts: map[string]*pipelinespec.ComponentOutputsSpec_ArtifactSpec{
+						"model": {IsArtifactList: true},
+					},
+				},
+			},
+		},
+	}
+	pipelineSpecStruct, err := pipelineSpecToStruct(t, pipelineSpec)
+	require.NoError(t, err)
+	scopePath, err := util.ScopePathFromStringPathWithNewTask(pipelineSpecStruct, "root", "worker")
+	require.NoError(t, err)
+
+	run := &apiv2beta1.Run{RunId: "run-retry"}
+	parentTask := &apiv2beta1.PipelineTask{
+		TaskId:    "root-task",
+		RunId:     run.GetRunId(),
+		Name:      "root",
+		State:     apiv2beta1.PipelineTask_RUNNING,
+		Type:      apiv2beta1.PipelineTask_DAG,
+		ScopePath: "root",
+	}
+	childTask := &apiv2beta1.PipelineTask{
+		TaskId:       "worker-task",
+		RunId:        run.GetRunId(),
+		Name:         "worker",
+		State:        apiv2beta1.PipelineTask_SUCCEEDED,
+		Type:         apiv2beta1.PipelineTask_RUNTIME,
+		ScopePath:    scopePath.DotNotation(),
+		ParentTaskId: util.StringPointer(parentTask.GetTaskId()),
+	}
+
+	baseAPI := kfpapi.NewMockAPI()
+	mockAPI := &uniqueLinkEnforcingMockAPI{MockAPI: baseAPI, seen: map[string]struct{}{}}
+	mockAPI.AddRun(run)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task:  parentTask,
+	})
+	require.NoError(t, err)
+	_, err = mockAPI.CreateTask(context.Background(), &apiv2beta1.CreateTaskRequest{
+		RunId: run.GetRunId(),
+		Task:  childTask,
+	})
+	require.NoError(t, err)
+
+	const (
+		priorArtifactID   = "artifact-prior-attempt"
+		currentArtifactID = "artifact-current-attempt"
+	)
+	for _, artifactID := range []string{priorArtifactID, currentArtifactID} {
+		_, err = mockAPI.CreateArtifact(context.Background(), &apiv2beta1.CreateArtifactRequest{
+			Artifact:    &apiv2beta1.Artifact{ArtifactId: artifactID, Name: "model", Uri: util.StringPointer("s3://bucket/" + artifactID)},
+			TaskId:      childTask.GetTaskId(),
+			RunId:       run.GetRunId(),
+			ProducerKey: "model",
+		})
+		require.NoError(t, err)
+	}
+	_, err = mockAPI.CreateArtifactTasks(context.Background(), &apiv2beta1.CreateArtifactTasksBulkRequest{
+		ArtifactTasks: []*apiv2beta1.ArtifactTask{{
+			ArtifactId: priorArtifactID,
+			TaskId:     parentTask.GetTaskId(),
+			RunId:      run.GetRunId(),
+			Key:        "pipeline-model",
+			Type:       apiv2beta1.IOType_OUTPUT,
+			Producer:   &apiv2beta1.IOProducer{TaskName: "worker"},
+		}},
+	})
+	require.NoError(t, err)
+
+	clientManager := client_manager.NewFakeClientManager(fake.NewClientset(), mockAPI)
+	err = PropagateOutputsUpDAGForTask(context.Background(), OutputPropagationOptions{
+		Run:          run,
+		Task:         childTask,
+		ParentTask:   parentTask,
+		ScopePath:    scopePath,
+		PipelineSpec: pipelineSpecStruct,
+	}, clientManager)
+	require.NoError(t, err)
+
+	updatedParent, err := mockAPI.GetTask(context.Background(), &apiv2beta1.GetTaskRequest{
+		TaskId: parentTask.GetTaskId(),
+		RunId:  run.GetRunId(),
+	})
+	require.NoError(t, err)
+	require.Len(t, updatedParent.GetOutputs().GetArtifacts(), 1)
+	artifacts := updatedParent.GetOutputs().GetArtifacts()[0].GetArtifacts()
+	require.Len(t, artifacts, 2)
+	assert.ElementsMatch(t, []string{priorArtifactID, currentArtifactID}, []string{
+		artifacts[0].GetArtifactId(), artifacts[1].GetArtifactId(),
+	})
+}
+
 type transientArtifactUploadError struct {
 	message string
 }
