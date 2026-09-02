@@ -39,10 +39,13 @@ A canonical source does not hide another source: one canonical source plus any
 unsupported source is `unsupported`. Any active custom Docker frontend is also
 `unsupported`, independently of `FROM` contents, because the frontend selector
 is itself a mutable executable image reference and can replace the pinned
-Dockerfile semantics. Frontend selection is detected with the pinned parser and
-a bounded initial-preamble compatibility scanner for syntax-directive forms
-accepted by newer supported builders; this keeps checker and updater behavior
-stable when the CI executor changes. An `ONBUILD` payload is never managed;
+Dockerfile semantics. Frontend selection is detected before applying pinned
+Dockerfile grammar, matching BuildKit's frontend-selection phase; selected
+payloads may be arbitrary frontend DSLs and are not projected as Dockerfile
+instructions. Detection uses BuildKit's selector detector plus a bounded
+initial-preamble compatibility scanner for syntax-directive forms accepted by
+newer supported builders. This keeps checker and updater behavior stable when
+the CI executor changes. An `ONBUILD` payload is never managed;
 payloads that BuildKit forbids, including `ONBUILD FROM`, are `invalid`.
 
 ## What is a Go source

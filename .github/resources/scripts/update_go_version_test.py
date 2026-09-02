@@ -2262,21 +2262,27 @@ updater.sync(
                 self.assertEqual(
                     dockerfile.read_text(encoding='utf-8'), contents)
 
-        contents = '# syntax=example.com/golang:latest\nFROM scratch\n'
-        dockerfile.write_text(contents, encoding='utf-8')
+        for contents in (
+                '# syntax=example.com/golang:latest\ncustom payload\n',
+                '// syntax=example.com/golang:latest\n',
+                '{"syntax":"example.com/golang:latest"}\n'):
+            with self.subTest(contents=contents):
+                dockerfile.write_text(contents, encoding='utf-8')
 
-        def unexpected_frontend_digest_resolution(_tag):
-            self.fail('frontend-only reference reached digest resolution')
+                def unexpected_frontend_digest_resolution(_tag):
+                    self.fail(
+                        'frontend-only reference reached digest resolution')
 
-        with self.assertRaisesRegex(ValueError,
-                                    'unsupported Go runtime pins'):
-            update_go_version.synchronized_contents(
-                self.repo_root,
-                '1.28.3',
-                digest_resolver=unexpected_frontend_digest_resolution,
-                repository_paths=self.files,
-            )
-        self.assertEqual(dockerfile.read_text(encoding='utf-8'), contents)
+                with self.assertRaisesRegex(ValueError,
+                                            'unsupported Go runtime pins'):
+                    update_go_version.synchronized_contents(
+                        self.repo_root,
+                        '1.28.3',
+                        digest_resolver=unexpected_frontend_digest_resolution,
+                        repository_paths=self.files,
+                    )
+                self.assertEqual(
+                    dockerfile.read_text(encoding='utf-8'), contents)
 
     def test_rejects_external_golang_copy_and_run_mount_sources(self):
         dockerfile = self.repo_root / 'Dockerfile'

@@ -19,6 +19,7 @@ import unittest
 from unittest import mock
 
 import go_version_metadata
+from go_version_metadata import docker_buildkit_metadata
 from go_version_metadata import docker_runtime_classification
 from go_version_metadata import has_go_runtime_reference
 from go_version_metadata import has_setup_go_use
@@ -51,15 +52,27 @@ class GoVersionMetadataTest(unittest.TestCase):
                 )
 
     def test_frontend_selector_is_always_runtime_metadata(self):
-        contents = '# syntax=example.com/golang:latest\nFROM scratch\n'
-        result = docker_runtime_classification(contents)
-        self.assertEqual(result['classification'], 'unsupported')
-        self.assertEqual(
-            [candidate['kind'] for candidate in result['candidates']],
-            ['unsupported-frontend'],
-        )
-        self.assertTrue(
-            has_go_runtime_reference(Path('Dockerfile'), contents))
+        for contents in (
+                '# syntax=example.com/golang:latest\ncustom payload\n',
+                '// syntax=example.com/golang:latest\n',
+                '{"syntax":"example.com/golang:latest"}\n'):
+            with self.subTest(contents=contents):
+                result = docker_runtime_classification(contents)
+                self.assertEqual(result['classification'], 'unsupported')
+                self.assertEqual(
+                    [candidate['kind'] for candidate in result['candidates']],
+                    ['unsupported-frontend'],
+                )
+                self.assertTrue(
+                    has_go_runtime_reference(Path('Dockerfile'), contents))
+                projection = docker_buildkit_metadata(contents)
+                self.assertEqual(projection['instructions'], [])
+                self.assertEqual(
+                    projection['directives'], [{
+                        'name': 'syntax',
+                        'value': 'example.com/golang:latest',
+                        'line': 1,
+                    }])
 
     def test_yaml_block_scalars_are_structural(self):
         contents = ('steps:\n'

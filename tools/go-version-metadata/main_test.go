@@ -231,13 +231,13 @@ func TestDockerClassification(t *testing.T) {
 			name:           "managed form rejects custom frontend",
 			contents:       "# syntax=example.com/frontend:latest\nFROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
 			classification: "unsupported",
-			candidateKinds: []string{"from", "unsupported-frontend"},
+			candidateKinds: []string{"unsupported-frontend"},
 		},
 		{
 			name:           "managed form rejects newer Unicode-whitespace frontend",
 			contents:       "#\u00a0syntax=example.com/frontend:latest\nFROM golang:1.27.0-alpine@sha256:" + digest + " AS builder\n",
 			classification: "unsupported",
-			candidateKinds: []string{"from", "unsupported-frontend"},
+			candidateKinds: []string{"unsupported-frontend"},
 		},
 		{
 			name:           "frontend Go image is unsupported without a Go FROM",
@@ -776,6 +776,37 @@ func TestDockerClassification(t *testing.T) {
 					candidate.Digest != "sha256:"+digest || candidate.Alias != "builder" {
 					t.Fatalf("managed candidate metadata = %#v", candidate)
 				}
+			}
+		})
+	}
+}
+
+func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
+	for _, contents := range []string{
+		"# syntax=example.com/frontend:latest\ncustom frontend payload\n",
+		"// syntax=example.com/frontend:latest\n",
+		"{\"syntax\":\"example.com/frontend:latest\"}\n",
+	} {
+		t.Run(strings.SplitN(contents, "\n", 2)[0], func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported (error %q)", metadata.DockerClassification, metadata.DockerError)
+			}
+			if got, want := metadata.DockerCandidates, []dockerCandidate{{
+				Kind: "unsupported-frontend", Value: "example.com/frontend:latest", Line: 1,
+			}}; !reflect.DeepEqual(got, want) {
+				t.Fatalf("candidates = %#v, want %#v", got, want)
+			}
+			if len(metadata.DockerInstructions) != 0 {
+				t.Fatalf("frontend-selected payload was projected as Docker instructions: %#v", metadata.DockerInstructions)
+			}
+			if got, want := metadata.DockerDirectives, []dockerParserDirectiveMetadata{{
+				Name: "syntax", Value: "example.com/frontend:latest", Line: 1,
+			}}; !reflect.DeepEqual(got, want) {
+				t.Fatalf("directives = %#v, want %#v", got, want)
 			}
 		})
 	}

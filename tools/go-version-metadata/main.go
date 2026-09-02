@@ -259,6 +259,12 @@ func inspect(input request) (response, error) {
 		metadata.DockerClassification = classification
 		metadata.DockerCandidates = candidates
 		metadata.DockerError = parseError
+		if len(candidates) == 1 && candidates[0].Kind == "unsupported-frontend" {
+			metadata.DockerDirectives = []dockerParserDirectiveMetadata{{
+				Name: "syntax", Value: candidates[0].Value, Line: candidates[0].Line,
+			}}
+			return metadata, nil
+		}
 		if classification != "invalid" {
 			directives, err := projectDockerParserDirectives(input.Contents)
 			if err != nil {
@@ -277,15 +283,7 @@ func inspect(input request) (response, error) {
 
 func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMetadata, error) {
 	projected := []dockerParserDirectiveMetadata{}
-	if _, commandLine, locations, found := parser.DetectSyntax([]byte(contents)); found {
-		line := 0
-		if len(locations) > 0 {
-			line = locations[0].Start.Line
-		}
-		projected = append(projected, dockerParserDirectiveMetadata{
-			Name: "syntax", Value: commandLine, Line: line,
-		})
-	} else if directive, found := compatibleHashSyntaxDirective(contents); found {
+	if directive, found := detectDockerFrontend(contents); found {
 		projected = append(projected, directive)
 	}
 	directiveParser := parser.DirectiveParser{}
@@ -306,6 +304,19 @@ func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMeta
 		})
 	}
 	return projected, nil
+}
+
+func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool) {
+	if _, commandLine, locations, found := parser.DetectSyntax([]byte(contents)); found {
+		line := 1
+		if len(locations) > 0 && locations[0].Start.Line > 0 {
+			line = locations[0].Start.Line
+		}
+		return dockerParserDirectiveMetadata{
+			Name: "syntax", Value: commandLine, Line: line,
+		}, true
+	}
+	return compatibleHashSyntaxDirective(contents)
 }
 
 // compatibleHashSyntaxDirective recognizes the initial hash-directive preamble
@@ -496,6 +507,11 @@ func resolvedScalar(node *yaml.Node, state *yamlTraversalState) string {
 }
 
 func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
+	if frontend, found := detectDockerFrontend(contents); found {
+		return "unsupported", []dockerCandidate{{
+			Kind: "unsupported-frontend", Value: frontend.Value, Line: frontend.Line,
+		}}, ""
+	}
 	parsed, err := parser.Parse(strings.NewReader(contents))
 	if err != nil {
 		return "invalid", nil, err.Error()
@@ -531,22 +547,6 @@ func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
 		seenUnsupported[candidate] = true
 	}
 	for _, candidate := range deferred {
-		if !seenUnsupported[candidate] {
-			seenUnsupported[candidate] = true
-			unsupported = append(unsupported, candidate)
-		}
-	}
-	directives, err := projectDockerParserDirectives(contents)
-	if err != nil {
-		return "invalid", nil, err.Error()
-	}
-	for _, directive := range directives {
-		if directive.Name != "syntax" {
-			continue
-		}
-		candidate := dockerCandidate{
-			Kind: "unsupported-frontend", Value: directive.Value, Line: directive.Line,
-		}
 		if !seenUnsupported[candidate] {
 			seenUnsupported[candidate] = true
 			unsupported = append(unsupported, candidate)
