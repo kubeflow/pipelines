@@ -20,6 +20,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -168,6 +169,9 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, runClient *apiser
 	validated := 0
 	for podName := range podNames {
 		pod, err := k8Client.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			continue
+		}
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to get pod %s", podName)
 
 		if len(pod.Spec.ResourceClaims) == 0 {
