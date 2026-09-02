@@ -71,6 +71,13 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIn('id: golangci-lint-fmt', self.config)
         self.assertIn('id: golangci-lint-config-verify', self.config)
 
+    def test_go_formatter_receives_only_pre_commit_selected_files(self):
+        self.assertIn(
+            '      - id: golangci-lint-fmt\n'
+            '        pass_filenames: true',
+            self.config,
+        )
+
     def test_workflow_changes_run_ci_script_tests(self):
         self.assertIn("      - '.pre-commit-config.yaml'",
                       self.ci_scripts_workflow)

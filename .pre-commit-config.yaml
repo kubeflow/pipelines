@@ -73,6 +73,7 @@ repos:
         require_serial: true
         pass_filenames: false
       - id: golangci-lint-fmt
+        pass_filenames: true
       - id: golangci-lint-config-verify
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
