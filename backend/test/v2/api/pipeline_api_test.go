@@ -1622,7 +1622,7 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(retrievedVersion.Tags).To(Equal(versionTags), "Tags should match what was set during creation")
 		})
 
-		It("Returns version even when pipeline ID in URL does not match the version's pipeline", func() {
+		It("Rejects request when pipeline ID in URL does not match the version's pipeline", func() {
 			pipelineDir := "valid"
 			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
 
@@ -1639,14 +1639,11 @@ var _ = Describe("Get Pipeline Version API Tests >", Label(constants.POSITIVE, c
 			Expect(err).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline1")
 			Expect(versionsList).Should(HaveLen(1))
 
-			// NOTE: The server does not validate that the version belongs to the specified pipeline.
-			retrievedVersion, err := pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
+			_, err = pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
 				PipelineID:        pipeline2.PipelineID,
 				PipelineVersionID: versionsList[0].PipelineVersionID,
 			})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(retrievedVersion.PipelineID).To(Equal(pipeline1.PipelineID))
-			_ = pipeline2
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -2051,8 +2048,26 @@ var _ = Describe("Verify Pipeline Negative Tests >", Label("Negative", constants
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("By valid version ID but with the pipeline ID that does not contain this version should ideally fail", func() {
-			Skip("Server does not currently validate pipeline ownership for GetPipelineVersion")
+		It("By valid version ID but with the pipeline ID that does not contain this version", func() {
+			pipelineDir := "valid"
+			pipelineSpecFilePath := filepath.Join(pipelineFilesRootDir, pipelineDir, helloWorldPipelineFileName)
+
+			name1 := testContext.Pipeline.PipelineGeneratedName + "-1"
+			pipeline1 := uploadPipelineAndVerify(pipelineSpecFilePath, &name1, nil)
+			name2 := testContext.Pipeline.PipelineGeneratedName + "-2"
+			pipeline2 := uploadPipelineAndVerify(pipelineSpecFilePath, &name2, nil)
+
+			versionsList, _, _, err := pipelineClient.ListPipelineVersions(&pipeline_params.PipelineServiceListPipelineVersionsParams{
+				PipelineID: pipeline1.PipelineID,
+			})
+			Expect(err).NotTo(HaveOccurred(), "Failed to list pipeline versions for pipeline1")
+			Expect(versionsList).Should(HaveLen(1))
+
+			_, err = pipelineClient.GetPipelineVersion(&pipeline_params.PipelineServiceGetPipelineVersionParams{
+				PipelineID:        pipeline2.PipelineID,
+				PipelineVersionID: versionsList[0].PipelineVersionID,
+			})
+			Expect(err).To(HaveOccurred())
 		})
 
 		if *config.KubeflowMode {

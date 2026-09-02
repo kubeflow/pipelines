@@ -966,6 +966,9 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *apiv2b
 	if err != nil {
 		return nil, util.Wrapf(err, "Failed to get a pipeline version %s", request.GetPipelineVersionId())
 	}
+	if pipelineVersion.PipelineId != request.GetPipelineId() {
+		return nil, util.NewInvalidInputError("Pipeline version %v belongs to pipeline %v (not %v)", request.GetPipelineVersionId(), pipelineVersion.PipelineId, request.GetPipelineId())
+	}
 	return toApiPipelineVersion(pipelineVersion), nil
 }
 
