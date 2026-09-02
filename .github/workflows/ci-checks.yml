@@ -8,7 +8,7 @@ name: CI Check
 
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
   workflow_run:
     types: [completed]
 
@@ -18,13 +18,12 @@ jobs:
     # Skip unrelated labels before entering concurrency so Dependabot/Prow label
     # bursts cannot leave cancelled checks on the current head SHA.
     # The first clause admits opened/synchronize/reopened/closed (any action
-    # other than labeled/unlabeled/edited). A closed event must reach the
+    # other than labeled/unlabeled). A closed event must reach the
     # close-handling step below to remove the informational ci-passed label.
     if: >-
       github.event_name == 'pull_request_target' &&
       (
-        (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') ||
-        (github.event.action == 'edited' && github.event.changes.base.ref.from != '') ||
+        (github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
         (github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) ||
         (github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test'))
       )
@@ -48,7 +47,6 @@ jobs:
         env:
           EVENT_ACTION: ${{ github.event.action }}
           LABEL_NAME: ${{ github.event.label.name }}
-          OLD_BASE_REF: ${{ github.event.changes.base.ref.from }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           AUTHOR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
         shell: bash
@@ -58,8 +56,6 @@ jobs:
 
           if [[ "${{ contains(github.event.pull_request.labels.*.name, 'needs-ok-to-test') }}" == "true" ]]; then
             reason="PR still has the needs-ok-to-test label."
-          elif [[ "${EVENT_ACTION}" == "edited" && -n "${OLD_BASE_REF}" ]]; then
-            reason="Base branch changed from '${OLD_BASE_REF}'; push or update the branch to revalidate CI against the new base."
           elif [[ "${{ contains(github.event.pull_request.labels.*.name, 'ok-to-test') }}" == "true" ]]; then
             should_poll=true
             reason="PR is eligible; running CI status polling."
@@ -111,29 +107,6 @@ jobs:
           retries: 3
           script: |
             const sha = context.payload.pull_request.head.sha;
-
-            // I1: a base-retarget revalidation marker (a ci-passed failure
-            // whose description starts with "Base branch retargeted") must
-            // survive label-only and reopen events on the same head SHA.
-            // Overwriting it with "pending" here would let the reconcile step
-            // re-derive success from CI results that were never revalidated
-            // against the new base. Detect the marker before writing and
-            // preserve it; only a real head update (synchronize) that re-runs
-            // CI on a new SHA clears the requirement.
-            const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: sha,
-            });
-            const ciPassed = statuses.find((s) => s.context === "ci-passed");
-            const baseRevalidationRequired = Boolean(ciPassed &&
-              ciPassed.state === "failure" &&
-              (ciPassed.description || "").startsWith("Base branch retargeted"));
-            if (baseRevalidationRequired) {
-              core.info(`Preserving base-retarget revalidation marker on ${sha}; not marking pending.`);
-              return;
-            }
-
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -241,6 +214,8 @@ jobs:
               return;
             }
 
+            // I2: eligibility. Keep in sync with the identical predicate in
+            // the reconcile_workflow_run job below.
             const labels = new Set(pullRequest.labels.map((label) => label.name));
             const association = pullRequest.author_association;
             const eligible = !labels.has("needs-ok-to-test") && (
@@ -251,38 +226,13 @@ jobs:
               association === "COLLABORATOR"
             );
 
-            // P1 #2: persist a base-retarget revalidation requirement. A base
-            // change does not re-run pull_request CI, so the requirement must
-            // survive label-only events until a head update revalidates CI.
-            const baseRetargetEvent = context.payload.action === "edited" &&
-              context.payload.changes &&
-              context.payload.changes.base &&
-              context.payload.changes.base.ref &&
-              context.payload.changes.base.ref.from;
-            let baseRevalidationRequired = false;
-            {
-              const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: eventHeadSha,
-              });
-              const ciPassed = statuses.find((s) => s.context === "ci-passed");
-              baseRevalidationRequired = Boolean(ciPassed &&
-                ciPassed.state === "failure" &&
-                (ciPassed.description || "").startsWith("Base branch retargeted"));
-            }
-
             const passed = eligible &&
               "${{ steps.eligibility.outputs.should_poll }}" === "true" &&
-              "${{ steps.poll.outcome }}" === "success" &&
-              !baseRevalidationRequired;
+              "${{ steps.poll.outcome }}" === "success";
 
             let state;
             let description;
-            if (baseRetargetEvent || baseRevalidationRequired) {
-              state = "failure";
-              description = "Base branch retargeted; CI revalidation is required.";
-            } else if (passed) {
+            if (passed) {
               state = "success";
               description = "All CI checks passed on this exact commit.";
             } else {
@@ -306,43 +256,6 @@ jobs:
                 issue_number: prNumber,
                 labels: ["ci-passed"],
               });
-              // Close the read-publish interleaving with a second
-              // full-state read immediately after the mutation. Any drift
-              // (head move, base change, close, or loss of eligibility)
-              // publishes an explicit failure.
-              const { data: afterLabel } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: prNumber,
-              });
-              const afterLabels = new Set(afterLabel.labels.map((label) => label.name));
-              const afterAssociation = afterLabel.author_association;
-              const afterEligible = !afterLabels.has("needs-ok-to-test") && (
-                afterLabels.has("ok-to-test") ||
-                afterLabel.user.login === "dependabot[bot]" ||
-                afterAssociation === "MEMBER" ||
-                afterAssociation === "OWNER" ||
-                afterAssociation === "COLLABORATOR"
-              );
-              if (afterLabel.state !== "open" ||
-                  afterLabel.head.sha !== eventHeadSha ||
-                  afterLabel.base.ref !== eventBaseRef ||
-                  !afterEligible) {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  name: "ci-passed",
-                });
-                await github.rest.repos.createCommitStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  sha: eventHeadSha,
-                  context: "ci-passed",
-                  state: "failure",
-                  description: "PR state changed during reconciliation; CI revalidation is required.",
-                });
-              }
             } else {
               try {
                 await github.rest.issues.removeLabel({
@@ -510,7 +423,8 @@ jobs:
               return;
             }
 
-            // Only an eligible PR can earn the gate. needs-ok-to-test rejects
+            // I2: eligibility. Keep in sync with the identical predicate in
+            // the check_ci_status job above. needs-ok-to-test rejects
             // unconditionally; otherwise eligible iff ok-to-test, a Dependabot
             // PR, or a trusted (MEMBER/OWNER/COLLABORATOR) author.
             const labels = new Set(pullRequest.labels.map((label) => label.name));
@@ -523,11 +437,6 @@ jobs:
               association === "COLLABORATOR"
             );
 
-            // Honor the P1#2 base-retarget revalidation marker. A base
-            // change does not re-run pull_request CI, so the marker must
-            // persist on the head SHA and block any re-derivation back to
-            // success until the head is updated and revalidated.
-            let baseRevalidationRequired = false;
             let currentStatusIsSuccess = false;
             {
               const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
@@ -536,33 +445,7 @@ jobs:
                 ref: headSha,
               });
               const ciPassed = statuses.find((s) => s.context === "ci-passed");
-              baseRevalidationRequired = Boolean(ciPassed &&
-                ciPassed.state === "failure" &&
-                (ciPassed.description || "").startsWith("Base branch retargeted"));
               currentStatusIsSuccess = Boolean(ciPassed && ciPassed.state === "success");
-            }
-
-            if (baseRevalidationRequired) {
-              await github.rest.repos.createCommitStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                sha: headSha,
-                context: "ci-passed",
-                state: "failure",
-                description: "Base branch retargeted; CI revalidation is required.",
-              });
-              try {
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: prNumber,
-                  name: "ci-passed",
-                });
-              } catch (error) {
-                if (error.status !== 404) throw error;
-              }
-              core.info(`Base branch retargeted for ${headSha}; revalidation is required.`);
-              return;
             }
 
             // An ineligible PR can never hold a green gate. Publish failure
