@@ -10,7 +10,7 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^manifests/gcp_marketplace/test/*
+        exclude: ^manifests/gcp_marketplace/test/
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
@@ -61,21 +61,20 @@ repos:
       - id: golangci-lint
         name: golangci-lint
         description: Fast linters runner for Go.
-        entry: golangci-lint run --new-from-rev HEAD --fix
+        entry: >-
+          bash -c 'base="${PRE_COMMIT_FROM_REF:-HEAD}";
+          if git diff --quiet "${base}" -- "*.go"; then
+            golangci-lint config verify;
+          else
+            golangci-lint run --new-from-rev "${base}" --fix;
+          fi'
         types: [go]
         language: golang
         require_serial: true
         pass_filenames: false
-      - id: golangci-lint
-        name: golangci-lint fmt
-        description: Formatter for Go.
-        entry: golangci-lint fmt
-        types: [go]
-        language: golang
-        require_serial: true
-        pass_filenames: false
+      - id: golangci-lint-fmt
+      - id: golangci-lint-config-verify
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.12
     hooks:
       - id: actionlint
-    types: ["yml", "yaml"]

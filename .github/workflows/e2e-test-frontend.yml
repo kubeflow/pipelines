@@ -11,6 +11,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'frontend/**'
+      - 'third_party/metadata_envoy/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'
       - 'test/frontend-integration-test/**'

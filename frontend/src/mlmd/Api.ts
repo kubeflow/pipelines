@@ -16,6 +16,9 @@
 
 import { MetadataStoreServicePromiseClient } from 'src/third_party/mlmd';
 
+// Match the MLMD deployment's grpc.max_send_message_length for browser responses.
+const MLMD_MAX_RECEIVE_MESSAGE_SIZE_BYTES = 100 * 1024 * 1024;
+
 /** Known Artifact properties */
 export enum ArtifactProperties {
   ALL_META = '__ALL_META__',
@@ -68,7 +71,9 @@ export interface ListRequest {
  */
 export class Api {
   private static instance: Api;
-  private metadataServicePromiseClient = new MetadataStoreServicePromiseClient('', null, null);
+  private metadataServicePromiseClient = new MetadataStoreServicePromiseClient('', null, {
+    maxReceiveMessageSize: MLMD_MAX_RECEIVE_MESSAGE_SIZE_BYTES,
+  });
 
   /**
    * Factory function to return an Api instance.
