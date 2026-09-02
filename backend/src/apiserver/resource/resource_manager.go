@@ -1173,19 +1173,19 @@ func (r *ResourceManager) ReadLog(ctx context.Context, runId string, nodeId stri
 }
 
 // Fetches execution logs from a pod.
-func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, namespace string, nodeId string, follow bool, dst io.Writer) error {
-	// The caller controls nodeId, so confirm the pod was created by this run
+func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, namespace string, nodeID string, follow bool, dst io.Writer) error {
+	// The caller controls nodeID, so confirm the pod was created by this run
 	// before streaming, otherwise the run only selects a namespace and any pod
 	// in it could be read with the API server's credentials.
-	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeId, v1.GetOptions{})
+	pod, err := r.k8sCoreClient.PodClient(namespace).Get(ctx, nodeID, v1.GetOptions{})
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			glog.Errorf("Failed to get pod %v: %v", nodeId, err)
+			glog.Errorf("Failed to get pod %v: %v", nodeID, err)
 		}
-		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error fetching the pod", nodeID)
 	}
 	if pod == nil || pod.Labels[util.LabelKeyWorkflowRunId] != runID {
-		return util.NewInvalidInputError("Pod %v does not belong to run %v", nodeId, runID)
+		return util.NewInvalidInputError("Pod %v does not belong to run %v", nodeID, runID)
 	}
 
 	logOptions := corev1.PodLogOptions{
@@ -1194,19 +1194,19 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, runID string, n
 		Follow:     follow,
 	}
 
-	req := r.k8sCoreClient.PodClient(namespace).GetLogs(nodeId, &logOptions)
+	req := r.k8sCoreClient.PodClient(namespace).GetLogs(nodeID, &logOptions)
 	podLogs, err := req.Stream(ctx)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			glog.Errorf("Failed to read logs from pod %v: %v", nodeId, err)
+			glog.Errorf("Failed to read logs from pod %v: %v", nodeID, err)
 		}
-		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error opening log stream", nodeID)
 	}
 	defer podLogs.Close()
 
 	_, err = io.Copy(dst, podLogs)
 	if err != nil && !errors.Is(err, io.EOF) {
-		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error in streaming the log", nodeId)
+		return util.NewInternalServerError(err, "Failed to read logs from pod %v due to error in streaming the log", nodeID)
 	}
 	return nil
 }
