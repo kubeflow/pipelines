@@ -24,6 +24,7 @@ on:
       - '.github/actions/create-cluster/**'
       - '.github/actions/deploy/**'
       - '.github/actions/install-fgo-fake/**'
+      - '.github/actions/install-dra-driver/**'
       - '.github/actions/test-and-report/**'
       - '.github/resources/**'
       - 'api/**'
@@ -39,6 +40,8 @@ on:
       # changes to it must trigger these lanes.
       - 'test/artifact-proxy/**'
       - 'test_data/sdk_compiled_pipelines/**'
+      - 'sdk/**'
+      - 'kubernetes_platform/**'
       - '!**/*.md'
       - '!**/OWNERS'
 
@@ -107,6 +110,13 @@ jobs:
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
+          # DRA (Dynamic Resource Allocation) lane (Kind + dra-example-driver).
+          - k8s_version: "v1.34.3"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "dra-check"
+            pod_to_pod_tls_enabled: "false"
       fail-fast: false
     name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
@@ -120,9 +130,14 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      - name: Install DRA Example Driver
+        uses: ./.github/actions/install-dra-driver
+        id: install-dra-driver
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+
       - name: Deploy KFP
         uses: ./.github/actions/deploy
-        if: ${{ steps.create-cluster.outcome == 'success' }}
+        if: ${{ steps.create-cluster.outcome == 'success' && steps.install-dra-driver.outcome != 'failure' }}
         id: deploy
         with:
           proxy: ${{ matrix.proxy }}
@@ -139,6 +154,25 @@ jobs:
         id: install-fgo-fake
         if: ${{ matrix.test_label == 'gpu-scheduling-check' && steps.deploy.outcome == 'success' }}
 
+      - name: Create DRA ResourceClaimTemplate
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.deploy.outcome == 'success' }}
+        run: |
+          kubectl apply -f - <<EOF
+          apiVersion: resource.k8s.io/v1
+          kind: ResourceClaimTemplate
+          metadata:
+            name: dra-test-claim
+            namespace: ${{ env.NAMESPACE }}
+          spec:
+            spec:
+              devices:
+                requests:
+                - name: gpu
+                  exactly:
+                    deviceClassName: gpu.example.com
+          EOF
+
       - name: Configure Cluster CA Cert for TLS-Enabled Tests
         shell: bash
         if: ${{ matrix.pod_to_pod_tls_enabled == 'true'}}
@@ -148,7 +182,7 @@ jobs:
       - name: Configure Input Variables
         shell: bash
         id: configure
-        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' }}
+        if: ${{ steps.deploy.outcome == 'success' && steps.install-fgo-fake.outcome != 'failure' && steps.install-dra-driver.outcome != 'failure' }}
         env:
           DISPATCH_NUMBER_OF_NODES: ${{ inputs.number_of_parallel_tests }}
           DISPATCH_TEST_LABEL: ${{ inputs.test_label }}

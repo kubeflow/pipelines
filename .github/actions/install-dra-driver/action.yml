@@ -1,0 +1,39 @@
+name: "Install DRA Example Driver"
+description: >
+  Install kubernetes-sigs/dra-example-driver on a Kind cluster via Helm,
+  then run a smoke test to verify DRA allocation works end-to-end.
+
+inputs:
+  driver_version:
+    description: "Git tag of dra-example-driver to install"
+    required: false
+    default: "v0.2.1"
+  namespace:
+    description: "Namespace for the DRA driver release"
+    required: false
+    default: "dra-example-driver"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Helm
+      uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310
+      with:
+        version: v3.17.3
+
+    - name: Install DRA Example Driver
+      shell: bash
+      env:
+        DRIVER_VERSION: ${{ inputs.driver_version }}
+        NAMESPACE: ${{ inputs.namespace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${ACTION_PATH}/install-dra-driver.sh"
+
+    - name: Smoke test DRA allocation
+      shell: bash
+      env:
+        NAMESPACE: ${{ inputs.namespace }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        "${ACTION_PATH}/smoke-test-dra.sh"

@@ -248,6 +248,18 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 			})
 		}
 	})
+
+	// Filter with --label-filter=dra-check. Requires a cluster with a DRA
+	// driver installed (e.g. Kind + dra-example-driver).
+	Context("DRA scheduling check >", Label(E2eDraCheck), func() {
+		var pipelineDir = "valid/dra"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
+			})
+		}
+	})
 })
 
 func validatePipelineRunSuccess(pipelineFile string, pipelineDir string, testContext *apitests.TestContext) {

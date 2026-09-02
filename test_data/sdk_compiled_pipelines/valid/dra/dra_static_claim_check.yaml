@@ -1,0 +1,39 @@
+# PIPELINE DEFINITION
+# Name: dra-static-claim-check
+# Description: Verifies a task with a static DRA ResourceClaim can schedule and complete using the dra-example-driver.
+components:
+  comp-verify-dra-static:
+    executorLabel: exec-verify-dra-static
+deploymentSpec:
+  executors:
+    exec-verify-dra-static:
+      container:
+        args:
+        - 'echo "DRA static claim check: PASS"'
+        command:
+        - sh
+        - -c
+        image: python:3.11
+pipelineInfo:
+  description: Verifies a task with a static DRA ResourceClaim can schedule and complete
+    using the dra-example-driver.
+  name: dra-static-claim-check
+root:
+  dag:
+    tasks:
+      verify-dra-static:
+        cachingOptions: {}
+        componentRef:
+          name: comp-verify-dra-static
+        taskInfo:
+          name: verify-dra-static
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.15.2
+---
+platforms:
+  kubernetes:
+    deploymentSpec:
+      executors:
+        exec-verify-dra-static:
+          podResourceClaims:
+          - resourceClaimTemplateName: dra-test-claim
