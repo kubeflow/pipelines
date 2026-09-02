@@ -480,8 +480,13 @@ func (l *LauncherV2) executeV2(ctx context.Context) (*pipelinespec.ExecutorOutpu
 
 	// Flush propagation updates (artifact-tasks and parent task parameter updates)
 	// so that propagated outputs are visible to subsequent driver calls
-	if err = l.batchUpdater.Flush(ctx, l.clientManager.KFPAPIClient()); err != nil {
-		return nil, fmt.Errorf("failed to flush propagation updates: %w", err)
+	if err = flushPropagationUpdates(
+		ctx,
+		l.options.Run.GetRunId(),
+		l.clientManager.KFPAPIClient(),
+		l.batchUpdater,
+	); err != nil {
+		return nil, err
 	}
 
 	return executorOutput, nil
@@ -673,7 +678,26 @@ func PropagateOutputsUpDAGForTask(
 	if err := propagateOutputsUpDAG(ctx, opts, apiClient, batchUpdater); err != nil {
 		return err
 	}
-	return batchUpdater.Flush(ctx, apiClient)
+	return flushPropagationUpdates(ctx, opts.Run.GetRunId(), apiClient, batchUpdater)
+}
+
+// flushPropagationUpdates reconciles links from prior launcher attempts before
+// inserting the current propagation batch. The artifact-task store enforces a
+// strict UniqueLink constraint, while task hydration intentionally includes
+// artifacts produced by earlier attempts.
+func flushPropagationUpdates(
+	ctx context.Context,
+	runID string,
+	apiClient kfpapi.API,
+	batchUpdater *BatchUpdater,
+) error {
+	if err := batchUpdater.OmitArtifactTasksAlreadyPresentOnTasks(ctx, apiClient, runID); err != nil {
+		return fmt.Errorf("failed to reconcile propagation artifact links: %w", err)
+	}
+	if err := batchUpdater.Flush(ctx, apiClient); err != nil {
+		return fmt.Errorf("failed to flush propagation updates: %w", err)
+	}
+	return nil
 }
 
 // ObjectStoreDependencies interface implementation for LauncherV2
