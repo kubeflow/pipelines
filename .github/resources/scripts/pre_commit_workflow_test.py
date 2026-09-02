@@ -13,7 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
+import shlex
+import subprocess
+import tempfile
 import unittest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -22,6 +26,17 @@ PRE_COMMIT_WORKFLOW = (
 PRE_COMMIT_CONFIG = REPOSITORY_ROOT / '.pre-commit-config.yaml'
 CI_SCRIPTS_WORKFLOW = (
     REPOSITORY_ROOT / '.github' / 'workflows' / 'ci-scripts-tests.yml')
+
+
+def golangci_lint_entry(config: str) -> str:
+    hook = config.split('      - id: golangci-lint\n', maxsplit=1)[1]
+    entry = hook.split('        entry: >-\n', maxsplit=1)[1]
+    lines = []
+    for line in entry.splitlines():
+        if not line.startswith('          '):
+            break
+        lines.append(line.strip())
+    return ' '.join(lines)
 
 
 class PreCommitWorkflowTest(unittest.TestCase):
@@ -63,7 +78,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 '.golangci.yaml',
                 'frontend/package.json',
                 'sdk/python/kfp/cli/__init__.py',
-                'backend/src/common/types.go',
+                'backend/src/common/plugins/config.go',
         ):
             with self.subTest(representative_file=representative_file):
                 self.assertIn(representative_file, self.workflow)
@@ -77,6 +92,64 @@ class PreCommitWorkflowTest(unittest.TestCase):
             '        pass_filenames: true',
             self.config,
         )
+
+    def test_config_only_smoke_runs_bounded_golangci_package(self):
+        entry = golangci_lint_entry(self.config)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            bin_dir = Path(temp_dir)
+            calls_path = bin_dir / 'golangci-calls'
+            (bin_dir / 'git').write_text(
+                '#!/bin/sh\nexit 0\n', encoding='utf-8')
+            (bin_dir / 'golangci-lint').write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$GOLANGCI_CALLS"\n'
+                'if [ "$1" = "config" ]; then\n'
+                '  exit "${CONFIG_VERIFY_EXIT:-0}"\n'
+                'fi\n',
+                encoding='utf-8',
+            )
+            (bin_dir / 'git').chmod(0o755)
+            (bin_dir / 'golangci-lint').chmod(0o755)
+
+            env = os.environ.copy()
+            env.update({
+                'GOLANGCI_CALLS': str(calls_path),
+                'PATH': f'{bin_dir}{os.pathsep}{env["PATH"]}',
+                'PRE_COMMIT_FROM_REF': 'base-sha',
+            })
+            result = subprocess.run(
+                shlex.split(entry),
+                check=False,
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual(
+                [
+                    'config verify',
+                    'run ./backend/src/common/plugins',
+                ],
+                calls_path.read_text(encoding='utf-8').splitlines(),
+            )
+
+            calls_path.unlink()
+            env['CONFIG_VERIFY_EXIT'] = '17'
+            result = subprocess.run(
+                shlex.split(entry),
+                check=False,
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(17, result.returncode)
+            self.assertEqual(
+                ['config verify'],
+                calls_path.read_text(encoding='utf-8').splitlines(),
+            )
 
     def test_workflow_changes_run_ci_script_tests(self):
         self.assertIn("      - '.pre-commit-config.yaml'",

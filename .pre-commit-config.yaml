@@ -64,7 +64,8 @@ repos:
         entry: >-
           bash -c 'base="${PRE_COMMIT_FROM_REF:-HEAD}";
           if git diff --quiet "${base}" -- "*.go"; then
-            golangci-lint config verify;
+            golangci-lint config verify &&
+            golangci-lint run ./backend/src/common/plugins;
           else
             golangci-lint run --new-from-rev "${base}" --fix;
           fi'
