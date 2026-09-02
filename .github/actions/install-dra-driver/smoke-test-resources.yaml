@@ -19,7 +19,7 @@ spec:
   containers:
   - name: test
     image: busybox:1.36
-    command: ["echo", "DRA smoke test: PASS"]
+    command: ["sh", "-c", "echo 'DRA smoke test: PASS' && sleep infinity"]
     resources:
       claims:
       - name: gpu

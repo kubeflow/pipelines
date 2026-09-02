@@ -2261,7 +2261,12 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
         self.execute_and_load_output_metadata(consume, input_executor_input)
 
 
-class TestTaskConfigDeserialization(unittest.TestCase):
+class TestTaskConfigDeserialization(parameterized.TestCase):
+
+    @classmethod
+    def setUp(cls):
+        cls.maxDiff = None
+        cls._test_dir = tempfile.mkdtemp()
 
     def test_resource_claims_deserialized_from_json(self):
         from kfp.dsl.task_config import TaskConfig
@@ -2291,6 +2296,42 @@ class TestTaskConfigDeserialization(unittest.TestCase):
         self.assertEqual(config.resource_claims[0]['resourceClaimTemplateName'],
                          'gpu-template')
         self.assertIsNotNone(config.tolerations)
+
+    def test_executor_deserializes_resource_claims_via_task_config(self):
+        from kfp.dsl.task_config import TaskConfig
+
+        received = {}
+
+        def my_component(task_config: TaskConfig):
+            received['claims'] = task_config.resource_claims
+
+        executor_input = {
+            'inputs': {
+                'parameterValues': {
+                    'task_config': {
+                        'resourceClaims': [{
+                            'name': 'gpu',
+                            'resourceClaimTemplateName': 'gpu-template',
+                        }],
+                    },
+                },
+            },
+            'outputs': {
+                'outputFile':
+                    os.path.join(self._test_dir, 'output_metadata.json'),
+            },
+        }
+
+        executor.Executor(
+            executor_input=executor_input,
+            function_to_execute=my_component,
+        ).execute()
+
+        self.assertIsNotNone(received.get('claims'))
+        self.assertEqual(len(received['claims']), 1)
+        self.assertEqual(received['claims'][0]['name'], 'gpu')
+        self.assertEqual(received['claims'][0]['resourceClaimTemplateName'],
+                         'gpu-template')
 
 
 if __name__ == '__main__':
