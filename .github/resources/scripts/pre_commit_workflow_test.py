@@ -78,7 +78,7 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 '.golangci.yaml',
                 'frontend/package.json',
                 'sdk/python/kfp/cli/__init__.py',
-                'backend/src/common/plugins/config.go',
+                'backend/src/common/types.go',
         ):
             with self.subTest(representative_file=representative_file):
                 self.assertIn(representative_file, self.workflow)
@@ -106,7 +106,8 @@ class PreCommitWorkflowTest(unittest.TestCase):
                 'printf "%s\\n" "$*" >> "$GOLANGCI_CALLS"\n'
                 'if [ "$1" = "config" ]; then\n'
                 '  exit "${CONFIG_VERIFY_EXIT:-0}"\n'
-                'fi\n',
+                'fi\n'
+                'exit "${GOLANGCI_RUN_EXIT:-0}"\n',
                 encoding='utf-8',
             )
             (bin_dir / 'git').chmod(0o755)
@@ -148,6 +149,26 @@ class PreCommitWorkflowTest(unittest.TestCase):
             self.assertEqual(17, result.returncode)
             self.assertEqual(
                 ['config verify'],
+                calls_path.read_text(encoding='utf-8').splitlines(),
+            )
+
+            calls_path.unlink()
+            env['CONFIG_VERIFY_EXIT'] = '0'
+            env['GOLANGCI_RUN_EXIT'] = '23'
+            result = subprocess.run(
+                shlex.split(entry),
+                check=False,
+                env=env,
+                text=True,
+                capture_output=True,
+            )
+
+            self.assertEqual(23, result.returncode)
+            self.assertEqual(
+                [
+                    'config verify',
+                    'run ./backend/src/common/plugins',
+                ],
                 calls_path.read_text(encoding='utf-8').splitlines(),
             )
 
