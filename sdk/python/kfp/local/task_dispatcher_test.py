@@ -467,6 +467,37 @@ class TestRetryLogic(testing_utilities.LocalRunnerEnvironmentTestCase):
         result = retry_fail_pipeline()
         self.assertDictEqual(result.outputs, {})
 
+    def test_retry_with_zero_backoff_factor(self):
+        """Test that retry policy with backoff_factor=0.0 compiles and runs successfully."""
+        local.init(runner=local.SubprocessRunner(use_venv=True))
+
+        import tempfile
+        counter_file = os.path.join(tempfile.mkdtemp(), 'counter.txt')
+
+        @dsl.component
+        def flaky_component(counter_path: str) -> str:
+            import os
+            count = 0
+            if os.path.exists(counter_path):
+                with open(counter_path, 'r') as f:
+                    count = int(f.read().strip())
+            count += 1
+            with open(counter_path, 'w') as f:
+                f.write(str(count))
+            if count < 2:
+                raise RuntimeError(f'Attempt {count}: not yet!')
+            return f'succeeded on attempt {count}'
+
+        @dsl.pipeline
+        def retry_pipeline(counter_path: str) -> str:
+            task = flaky_component(counter_path=counter_path)
+            task.set_retry(
+                num_retries=2, backoff_duration='0s', backoff_factor=0.0)
+            return task.output
+
+        result = retry_pipeline(counter_path=counter_file)
+        self.assertEqual(result.output, 'succeeded on attempt 2')
+
 
 class TestExitHandler(testing_utilities.LocalRunnerEnvironmentTestCase):
     """Tests for dsl.ExitHandler support in local execution."""
