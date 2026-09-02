@@ -145,6 +145,102 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                     ['cachingOptions']['cacheKey'], 'OVERRIDE_KEY')
 
 
+class TestCreateJobConfigCachingWithPipelineReference(parameterized.TestCase):
+    """Regression tests for enable_caching/cache_key being silently dropped
+
+    when a run is submitted by pipeline_id/version_id instead of a local
+    pipeline_package_path. See #14253.
+    """
+
+    def setUp(self):
+        self.client = client.Client(namespace='ns1')
+
+        @component
+        def hello_word(text: str) -> str:
+            return text
+
+        @component
+        def to_lower(text: str) -> str:
+            return text.lower()
+
+        @pipeline(
+            name='sample two-step pipeline',
+            description='a minimal two-step pipeline')
+        def pipeline_with_two_component(text: str = 'hi there'):
+            # Both tasks are compiled with caching *disabled*, so that an
+            # override to enable_caching=True is unambiguous: `enable_cache`
+            # is a plain proto3 bool whose zero value is False, so an
+            # override *to* False would be indistinguishable from the
+            # override never having happened. Overriding to True is the
+            # only direction that proves the fetched spec was actually
+            # mutated.
+            component_1 = hello_word(text=text).set_caching_options(False)
+            to_lower(text=component_1.output).set_caching_options(False)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_with_two_component,
+                package_path=temp_filepath)
+            with open(temp_filepath, 'r') as f:
+                self.pipeline_spec_dict = yaml.safe_load(f)
+
+    def test_enable_caching_is_applied_when_using_pipeline_id_and_version_id(
+            self):
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_get_pipeline_version',
+                return_value=Mock(
+                    pipeline_spec=self.pipeline_spec_dict)) as mock_get_version:
+            job_config = self.client._create_job_config(
+                params=None,
+                pipeline_package_path=None,
+                pipeline_id='pipeline-1',
+                version_id='version-1',
+                enable_caching=True,
+                cache_key=None,
+                pipeline_root=None,
+            )
+
+        mock_get_version.assert_called_once_with(
+            pipeline_id='pipeline-1', pipeline_version_id='version-1')
+
+        # The caching override must actually reach the submitted spec, even
+        # though both tasks were compiled with caching disabled...
+        self.assertIsNotNone(job_config.pipeline_spec)
+        tasks = job_config.pipeline_spec['root']['dag']['tasks']
+        self.assertTrue(tasks['hello-word']['cachingOptions']['enableCache'])
+        self.assertTrue(tasks['to-lower']['cachingOptions']['enableCache'])
+
+        # ...without losing the pipeline version linkage.
+        self.assertEqual(job_config.pipeline_version_reference.pipeline_id,
+                         'pipeline-1')
+        self.assertEqual(
+            job_config.pipeline_version_reference.pipeline_version_id,
+            'version-1')
+
+    def test_no_caching_override_skips_the_pipeline_version_fetch(self):
+        # When the caller doesn't ask for a caching override, submitting by
+        # reference should stay a cheap, spec-free request: no extra fetch.
+        with patch.object(
+                self.client._pipelines_api,
+                'pipeline_service_get_pipeline_version') as mock_get_version:
+            job_config = self.client._create_job_config(
+                params=None,
+                pipeline_package_path=None,
+                pipeline_id='pipeline-1',
+                version_id='version-1',
+                enable_caching=None,
+                cache_key=None,
+                pipeline_root=None,
+            )
+
+        mock_get_version.assert_not_called()
+        self.assertIsNone(job_config.pipeline_spec)
+        self.assertEqual(job_config.pipeline_version_reference.pipeline_id,
+                         'pipeline-1')
+
+
 class TestExtractPipelineYAML(parameterized.TestCase):
 
     def test_extract_pipeline_yaml_single_doc(self):

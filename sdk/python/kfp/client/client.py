@@ -984,6 +984,20 @@ class Client:
                 _override_caching_options(pipeline_doc.pipeline_spec,
                                           enable_caching, cache_key)
             pipeline_spec = pipeline_doc.to_dict()
+        elif pipeline_id is not None and version_id is not None and enable_caching is not None:
+            # A caching override can only be applied to a concrete
+            # PipelineSpec. When the pipeline is referenced by id/version
+            # rather than submitted as a local package, fetch its spec so the
+            # override actually reaches the tasks instead of being silently
+            # dropped. The fetch is skipped whenever no caching override is
+            # requested, so the common case stays a cheap reference-only
+            # request.
+            pipeline_version = self.get_pipeline_version(
+                pipeline_id=pipeline_id, pipeline_version_id=version_id)
+            fetched_spec = pipeline_spec_pb2.PipelineSpec()
+            json_format.ParseDict(pipeline_version.pipeline_spec, fetched_spec)
+            _override_caching_options(fetched_spec, enable_caching, cache_key)
+            pipeline_spec = json_format.MessageToDict(fetched_spec)
 
         pipeline_version_reference = None
         if pipeline_id is not None and version_id is not None:
