@@ -154,8 +154,7 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertEqual(
             condition,
             "github.event_name == 'pull_request_target' && "
-            "( (github.event.action != 'labeled' && github.event.action != 'unlabeled' && github.event.action != 'edited') || "
-            "(github.event.action == 'edited' && github.event.changes.base.ref.from != '') || "
+            "( (github.event.action != 'labeled' && github.event.action != 'unlabeled') || "
             "(github.event.action == 'labeled' && (github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')) || "
             "(github.event.action == 'unlabeled' && (github.event.label.name == 'needs-ok-to-test' || github.event.label.name == 'ok-to-test')) )",
         )
