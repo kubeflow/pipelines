@@ -154,20 +154,25 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, runClient *apiserver.RunClient, namespace string, runID string) {
 	updatedRun := testutil.GetPipelineRun(runClient, &runID)
 	logger.Log("Validating DRA resource claims for run %s (%d task(s))", runID, len(updatedRun.RunDetails.TaskDetails))
-	validated := 0
+
+	// Pod names live in ChildTasks, not on top-level task details.
+	podNames := make(map[string]bool)
 	for _, task := range updatedRun.RunDetails.TaskDetails {
-		if task.ChildTasks != nil {
+		for _, child := range task.ChildTasks {
+			if child.PodName != "" {
+				podNames[child.PodName] = true
+			}
+		}
+	}
+
+	validated := 0
+	for podName := range podNames {
+		pod, err := k8Client.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
+		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to get pod %s", podName)
+
+		if len(pod.Spec.ResourceClaims) == 0 {
 			continue
 		}
-		if task.PodName == "" {
-			continue
-		}
-
-		pod, err := k8Client.CoreV1().Pods(namespace).Get(context.Background(), task.PodName, metav1.GetOptions{})
-		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to get pod %s", task.PodName)
-
-		gomega.Expect(pod.Spec.ResourceClaims).NotTo(gomega.BeEmpty(),
-			"Pod %s has no resourceClaims in spec", pod.Name)
 
 		gomega.Expect(pod.Spec.Containers).NotTo(gomega.BeEmpty())
 		gomega.Expect(pod.Spec.Containers[0].Resources.Claims).NotTo(gomega.BeEmpty(),
@@ -185,7 +190,7 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, runClient *apiser
 		logger.Log("Pod %s: DRA resource claims verified (%d claim(s) allocated)", pod.Name, len(pod.Spec.ResourceClaims))
 	}
 	gomega.Expect(validated).To(gomega.BeNumerically(">", 0),
-		"No task pods found to validate DRA claims for run %s", runID)
+		"No task pods found with DRA claims for run %s", runID)
 }
 
 type TaskDetails struct {
