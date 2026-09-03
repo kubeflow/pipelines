@@ -392,7 +392,25 @@ jobs:
         shell: bash
         if: ${{ steps.deploy-mlflow.outcome == 'success' || steps.deploy_direct_mlflow.outcome == 'success' }}
         run: |
-          kubectl wait --for=condition=Ready pods --field-selector=status.phase=Running -n opendatahub --timeout=180s
+          echo "Checking pod readiness (timeout 180s)..."
+          kubectl get pods -n opendatahub -o wide
+
+          if ! kubectl wait --for=condition=Ready pods --field-selector=status.phase=Running -n opendatahub --timeout=180s; then
+            echo "ERROR: Pod readiness timeout after 180s"
+            echo "=== Pod status ==="
+            kubectl get pods -n opendatahub -o wide
+            echo "=== Pod describe ==="
+            kubectl describe pods -n opendatahub || true
+            echo "=== Pod logs (last 50 lines per container) ==="
+            for pod in $(kubectl get pods -n opendatahub -o jsonpath='{.items[*].metadata.name}'); do
+              echo "--- $pod ---"
+              kubectl logs -n opendatahub "$pod" --all-containers=true --tail=50 || true
+            done
+            echo "=== Namespace events (last 30) ==="
+            kubectl get events -n opendatahub --sort-by='.lastTimestamp' | tail -30
+            exit 1
+          fi
+
           echo "All running pods in opendatahub are Ready"
 
       - name: Configure MLflow Plugin and Forward Ports

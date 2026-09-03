@@ -44,7 +44,8 @@ spec:
           auth_args=""
           if [ "${MLFLOW_AUTH_TYPE}" = "basic-auth" ]; then
             python -m pip install --no-cache-dir --target /mlflow/python-packages \
-              "mlflow[auth]==$(python -c 'import mlflow; print(mlflow.__version__)')"
+              "mlflow[auth]==$(python -c 'import mlflow; print(mlflow.__version__)')" \
+              "anyio<4.15"
             export PYTHONPATH="/mlflow/python-packages${PYTHONPATH:+:${PYTHONPATH}}"
             python -m mlflow.server.auth db upgrade --url sqlite:////mlflow/basic_auth.db
             cd /mlflow
@@ -108,9 +109,9 @@ spec:
           httpGet:
             path: /mlflow/health
             port: 5000
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          failureThreshold: 24
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 54
         resources:
           requests:
             cpu: 100m

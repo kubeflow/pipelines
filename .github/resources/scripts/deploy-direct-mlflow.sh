@@ -72,6 +72,72 @@ kubectl kustomize "$MANIFESTS_DIR" \
   | sed "s#ghcr.io/mlflow/mlflow:v3.13.0-full#${MLFLOW_IMAGE}#g" \
   | kubectl apply -f -
 
-kubectl -n "$MLFLOW_NAMESPACE" wait --for=condition=available deployment/postgres-deployment --timeout=180s
-kubectl -n "$MLFLOW_NAMESPACE" wait --for=condition=available deployment/mlflow --timeout=300s
+echo "Waiting for postgres deployment (timeout 180s)..."
+kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=postgres -o wide
+
+if ! kubectl -n "$MLFLOW_NAMESPACE" wait --for=condition=available deployment/postgres-deployment --timeout=180s; then
+  echo "ERROR: postgres deployment timeout after 180s"
+  echo "=== Pod status ==="
+  kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=postgres -o wide
+  echo "=== Pod describe ==="
+  kubectl -n "$MLFLOW_NAMESPACE" describe pods -l app=postgres
+  echo "=== Pod logs (last 50 lines) ==="
+  kubectl -n "$MLFLOW_NAMESPACE" logs deployment/postgres-deployment --tail=50 --all-containers=true || echo "No logs available"
+  echo "=== Namespace events (last 20) ==="
+  kubectl -n "$MLFLOW_NAMESPACE" get events --sort-by='.lastTimestamp' | tail -20
+  exit 1
+fi
+
+echo "Waiting for mlflow deployment (timeout 600s)..."
+kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=mlflow -o wide
+
+# Background wait with timeout
+(kubectl -n "$MLFLOW_NAMESPACE" wait --for=condition=available deployment/mlflow --timeout=600s) &
+WAIT_PID=$!
+
+# Cleanup trap for background process
+cleanup_mlflow_wait() {
+  if [ -n "$WAIT_PID" ] && kill -0 $WAIT_PID 2>/dev/null; then
+    kill $WAIT_PID 2>/dev/null
+  fi
+}
+trap cleanup_mlflow_wait EXIT INT TERM
+
+# Poll health endpoint while waiting
+MLFLOW_POD=""
+POLL_COUNT=0
+while kill -0 $WAIT_PID 2>/dev/null; do
+  POLL_COUNT=$((POLL_COUNT + 1))
+
+  # Get pod name
+  MLFLOW_POD=$(kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=mlflow -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || echo "")
+
+  if [ -n "$MLFLOW_POD" ]; then
+    # Check if container is running before exec
+    POD_PHASE=$(kubectl -n "$MLFLOW_NAMESPACE" get pod "$MLFLOW_POD" -o jsonpath='{.status.phase}' 2>/dev/null || echo "")
+    if [ "$POD_PHASE" = "Running" ]; then
+      echo "[Poll $POLL_COUNT] Testing health endpoint in pod $MLFLOW_POD..."
+      kubectl -n "$MLFLOW_NAMESPACE" exec "$MLFLOW_POD" -- sh -c 'command -v curl >/dev/null && curl -s -o /dev/null -w "HTTP %{http_code}" http://localhost:5000/mlflow/health' 2>&1 || echo "Health check exec failed"
+    fi
+  fi
+
+  sleep 10
+done
+
+# Check if wait succeeded
+if ! wait $WAIT_PID; then
+  echo "ERROR: mlflow deployment timeout after 600s"
+  echo "=== Pod status ==="
+  kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=mlflow -o wide
+  echo "=== Pod describe ==="
+  kubectl -n "$MLFLOW_NAMESPACE" describe pods -l app=mlflow
+  echo "=== Full pod logs (all containers) ==="
+  kubectl -n "$MLFLOW_NAMESPACE" logs deployment/mlflow --all-containers=true --prefix=true || echo "No logs available"
+  echo "=== Previous container logs (if restarted) ==="
+  kubectl -n "$MLFLOW_NAMESPACE" logs deployment/mlflow --all-containers=true --previous --prefix=true 2>/dev/null || echo "No previous container logs"
+  echo "=== Namespace events (last 20) ==="
+  kubectl -n "$MLFLOW_NAMESPACE" get events --sort-by='.lastTimestamp' | tail -20
+  exit 1
+fi
+
 kubectl -n "$MLFLOW_NAMESPACE" get pods -l app=mlflow -o wide
