@@ -134,6 +134,10 @@ def build_task_spec_for_task(
         pipeline_task_spec.retry_policy.CopyFrom(
             task._task_spec.retry_policy.to_proto())
 
+    if task._task_spec.autoscaling_policy is not None:
+        pipeline_task_spec.autoscaling_policy.CopyFrom(
+            task._task_spec.autoscaling_policy.to_proto())
+
     # Inject resource fields into inputs
     if task.container_spec and task.container_spec.resources:
         for key, val in task.container_spec.resources.__dict__.items():
