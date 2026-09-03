@@ -552,7 +552,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
-	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow, nil)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -577,7 +577,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
 	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
-	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow, nil)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -599,7 +599,7 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
-	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow, nil)
 	assert.Nil(t, err)
 	return store, manager, runDetail
 }
@@ -4064,7 +4064,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.Nil(t, err)
 	run, err = manager.GetRun(run.UUID)
 	assert.Nil(t, err)
@@ -4120,7 +4120,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.Nil(t, err)
 
 	runDetail, err := manager.GetRun("WORKFLOW_1")
@@ -4167,7 +4167,7 @@ func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
 			Name: run.K8SName,
 		},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Workflow[workflow-name] missing the Run ID label")
 }
@@ -4188,7 +4188,7 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	_, err := manager.ReportWorkflowResource(ctx, workflow, nil)
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
@@ -4214,7 +4214,7 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 		},
 	})
 	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	_, err := manager.ReportWorkflowResource(ctx, workflow, nil)
 	require.NotNil(t, err)
 	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
@@ -4241,7 +4241,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.Nil(t, err)
 
 	wf, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.K8SName, v1.GetOptions{})
@@ -4322,7 +4322,7 @@ func TestReportWorkflowResource_SkipsTerminalPluginSyncWhenReportedWorkflowIsSta
 		},
 	})
 
-	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow)
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, staleTerminalWorkflow, nil)
 	require.Error(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 	assert.Nil(t, reportedWorkflow)
@@ -4358,7 +4358,7 @@ func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalRep
 		},
 	})
 
-	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow, nil)
 	require.Error(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
 		"caller should receive the NotFound signal so the persistence agent stops retrying")
@@ -4402,7 +4402,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 		},
 	})
 
-	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.Error(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
 	assert.Nil(t, reportedWorkflow)
@@ -4472,7 +4472,7 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NoError(t, err,
 		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
 
@@ -4499,7 +4499,7 @@ func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T)
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NotNil(t, err)
 	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to add PersistedFinalState label")
@@ -4518,7 +4518,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.Nil(t, err)
 }
 
@@ -4534,7 +4534,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NotNil(t, err)
 	assert.Equalf(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode(), "Expected not found error, but got %s", err.Error())
 	assert.Contains(t, err.Error(), "Failed to delete the completed workflow")
@@ -4554,7 +4554,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
@@ -6023,7 +6023,7 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 	})
 
 	// Drive the run terminal, then claim it for retry.
-	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	require.Nil(t, err)
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
@@ -6031,7 +6031,7 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 
 	// The same terminal snapshot arrives again (requeued by the persistence
 	// agent). It carries no retry-generation annotation.
-	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	assert.Nil(t, err, "stale terminal report during a fresh claim must be a successful no-op")
 
 	claimed, err := manager.GetRun(run.UUID)
@@ -6055,7 +6055,7 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), terminal)
+	_, err := manager.ReportWorkflowResource(context.Background(), terminal, nil)
 	require.Nil(t, err)
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
@@ -6072,7 +6072,7 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
 	})
-	_, err = manager.ReportWorkflowResource(context.Background(), retried)
+	_, err = manager.ReportWorkflowResource(context.Background(), retried, nil)
 	assert.Nil(t, err)
 
 	updated, err := manager.GetRun(run.UUID)
@@ -6096,7 +6096,7 @@ func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	require.Nil(t, err)
 	_, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
@@ -6106,7 +6106,7 @@ func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
 	_, err = store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
 	require.Nil(t, err)
 
-	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	assert.Nil(t, err)
 
 	recovered, err := manager.GetRun(run.UUID)
@@ -6271,7 +6271,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	require.Nil(t, err)
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
 	require.Nil(t, claimErr)
@@ -6290,7 +6290,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 
 	// The stale snapshot (no annotation, empty resourceVersion) arrives with
 	// an aged-out claim: it must be skipped, not age-accepted.
-	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), staleWorkflow, nil)
 	assert.Nil(t, err)
 	claimed, err := manager.GetRun(run.UUID)
 	require.Nil(t, err)
@@ -6311,7 +6311,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err = manager.ReportWorkflowResource(context.Background(), staleFinal)
+	_, err = manager.ReportWorkflowResource(context.Background(), staleFinal, nil)
 	assert.Nil(t, err)
 	_, err = wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
 	assert.Nil(t, err, "the live retried workflow must not be deleted by a stale persisted-final-state snapshot")
@@ -6374,7 +6374,7 @@ func TestReportWorkflowResource_RunStoreErrorFailsClosedBeforeDeletion(t *testin
 	// Force GetRun to fail with a non-NotFound error.
 	store.Close()
 
-	_, err := manager.ReportWorkflowResource(context.Background(), staleFinal)
+	_, err := manager.ReportWorkflowResource(context.Background(), staleFinal, nil)
 	require.Error(t, err)
 	assert.False(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
 		"a run-store read failure must surface as an error, not be treated as run-not-found")

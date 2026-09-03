@@ -701,6 +701,7 @@ type Run struct {
 	// Output. The metrics of the run. The metrics are reported by ReportMetrics
 	// API.
 	Metrics       []*RunMetric `protobuf:"bytes,9,rep,name=metrics,proto3" json:"metrics,omitempty"`
+	MetricErrors  string       `protobuf:"bytes,15,opt,name=metric_errors,json=metricErrors,proto3" json:"metric_errors,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -824,6 +825,13 @@ func (x *Run) GetMetrics() []*RunMetric {
 		return x.Metrics
 	}
 	return nil
+}
+
+func (x *Run) GetMetricErrors() string {
+	if x != nil {
+		return x.MetricErrors
+	}
+	return ""
 }
 
 type PipelineRuntime struct {
@@ -1233,7 +1241,7 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"\x13UnarchiveRunRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\"\n" +
 	"\x10DeleteRunRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x87\x05\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xac\x05\n" +
 	"\x03Run\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12:\n" +
@@ -1250,7 +1258,8 @@ const file_backend_api_v1beta1_run_proto_rawDesc = "" +
 	"finishedAt\x12\x16\n" +
 	"\x06status\x18\b \x01(\tR\x06status\x12\x14\n" +
 	"\x05error\x18\f \x01(\tR\x05error\x12(\n" +
-	"\ametrics\x18\t \x03(\v2\x0e.api.RunMetricR\ametrics\"E\n" +
+	"\ametrics\x18\t \x03(\v2\x0e.api.RunMetricR\ametrics\x12#\n" +
+	"\rmetric_errors\x18\x0f \x01(\tR\fmetricErrors\"E\n" +
 	"\fStorageState\x12\x1a\n" +
 	"\x16STORAGESTATE_AVAILABLE\x10\x00\x12\x19\n" +
 	"\x15STORAGESTATE_ARCHIVED\x10\x01\"k\n" +

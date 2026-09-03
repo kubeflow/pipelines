@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **status** | **str** |  | [optional] 
 **error** | **str** | In case any error happens retrieving a run field, only run ID and the error message is returned. Client has the flexibility of choosing how to handle error. This is especially useful during listing call. | [optional] 
 **metrics** | [**list[ApiRunMetric]**](ApiRunMetric.md) | Output. The metrics of the run. The metrics are reported by ReportMetrics API. | [optional] 
+**metric_errors** | **str** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

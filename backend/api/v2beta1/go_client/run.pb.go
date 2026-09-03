@@ -795,7 +795,9 @@ type RunDetails struct {
 	// Pipeline run context ID of a run.
 	PipelineRunContextId int64 `protobuf:"varint,2,opt,name=pipeline_run_context_id,json=pipelineRunContextId,proto3" json:"pipeline_run_context_id,omitempty"`
 	// Runtime details of the tasks that belong to the run.
-	TaskDetails   []*PipelineTaskDetail `protobuf:"bytes,3,rep,name=task_details,json=taskDetails,proto3" json:"task_details,omitempty"`
+	TaskDetails []*PipelineTaskDetail `protobuf:"bytes,3,rep,name=task_details,json=taskDetails,proto3" json:"task_details,omitempty"`
+	// Errors encountered while collecting or reporting run metrics.
+	MetricErrors  string `protobuf:"bytes,4,opt,name=metric_errors,json=metricErrors,proto3" json:"metric_errors,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -849,6 +851,13 @@ func (x *RunDetails) GetTaskDetails() []*PipelineTaskDetail {
 		return x.TaskDetails
 	}
 	return nil
+}
+
+func (x *RunDetails) GetMetricErrors() string {
+	if x != nil {
+		return x.MetricErrors
+	}
+	return ""
 }
 
 // Runtime information of a task execution.
@@ -1886,12 +1895,13 @@ const file_backend_api_v2beta1_run_proto_rawDesc = "" +
 	"\rstate_message\x18\x03 \x01(\tR\fstateMessage\x1aq\n" +
 	"\fEntriesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12K\n" +
-	"\x05value\x18\x02 \x01(\v25.kubeflow.pipelines.backend.api.v2beta1.MetadataValueR\x05value:\x028\x01\"\xd2\x01\n" +
+	"\x05value\x18\x02 \x01(\v25.kubeflow.pipelines.backend.api.v2beta1.MetadataValueR\x05value:\x028\x01\"\xf7\x01\n" +
 	"\n" +
 	"RunDetails\x12.\n" +
 	"\x13pipeline_context_id\x18\x01 \x01(\x03R\x11pipelineContextId\x125\n" +
 	"\x17pipeline_run_context_id\x18\x02 \x01(\x03R\x14pipelineRunContextId\x12]\n" +
-	"\ftask_details\x18\x03 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\vtaskDetails\"\x99\n" +
+	"\ftask_details\x18\x03 \x03(\v2:.kubeflow.pipelines.backend.api.v2beta1.PipelineTaskDetailR\vtaskDetails\x12#\n" +
+	"\rmetric_errors\x18\x04 \x01(\tR\fmetricErrors\"\x99\n" +
 	"\n" +
 	"\x12PipelineTaskDetail\x12\x15\n" +
 	"\x06run_id\x18\x01 \x01(\tR\x05runId\x12\x17\n" +

@@ -35,16 +35,18 @@ class V2beta1RunDetails(object):
     openapi_types = {
         'pipeline_context_id': 'str',
         'pipeline_run_context_id': 'str',
-        'task_details': 'list[V2beta1PipelineTaskDetail]'
+        'task_details': 'list[V2beta1PipelineTaskDetail]',
+        'metric_errors': 'str'
     }
 
     attribute_map = {
         'pipeline_context_id': 'pipeline_context_id',
         'pipeline_run_context_id': 'pipeline_run_context_id',
-        'task_details': 'task_details'
+        'task_details': 'task_details',
+        'metric_errors': 'metric_errors'
     }
 
-    def __init__(self, pipeline_context_id=None, pipeline_run_context_id=None, task_details=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, pipeline_context_id=None, pipeline_run_context_id=None, task_details=None, metric_errors=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1RunDetails - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -53,6 +55,7 @@ class V2beta1RunDetails(object):
         self._pipeline_context_id = None
         self._pipeline_run_context_id = None
         self._task_details = None
+        self._metric_errors = None
         self.discriminator = None
 
         if pipeline_context_id is not None:
@@ -61,6 +64,8 @@ class V2beta1RunDetails(object):
             self.pipeline_run_context_id = pipeline_run_context_id
         if task_details is not None:
             self.task_details = task_details
+        if metric_errors is not None:
+            self.metric_errors = metric_errors
 
     @property
     def pipeline_context_id(self):
@@ -130,6 +135,29 @@ class V2beta1RunDetails(object):
         """
 
         self._task_details = task_details
+
+    @property
+    def metric_errors(self):
+        """Gets the metric_errors of this V2beta1RunDetails.  # noqa: E501
+
+        Errors encountered while collecting or reporting run metrics.  # noqa: E501
+
+        :return: The metric_errors of this V2beta1RunDetails.  # noqa: E501
+        :rtype: str
+        """
+        return self._metric_errors
+
+    @metric_errors.setter
+    def metric_errors(self, metric_errors):
+        """Sets the metric_errors of this V2beta1RunDetails.
+
+        Errors encountered while collecting or reporting run metrics.  # noqa: E501
+
+        :param metric_errors: The metric_errors of this V2beta1RunDetails.  # noqa: E501
+        :type metric_errors: str
+        """
+
+        self._metric_errors = metric_errors
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -40,7 +40,9 @@ const (
 type ReportWorkflowRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Workflow is a workflow custom resource marshalled into a json string.
-	Workflow      string `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	Workflow string `protobuf:"bytes,1,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	// MetricErrors contains permanent errors encountered while collecting or reporting metrics for the workflow.
+	MetricErrors  []string `protobuf:"bytes,2,rep,name=metric_errors,json=metricErrors,proto3" json:"metric_errors,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -80,6 +82,13 @@ func (x *ReportWorkflowRequest) GetWorkflow() string {
 		return x.Workflow
 	}
 	return ""
+}
+
+func (x *ReportWorkflowRequest) GetMetricErrors() []string {
+	if x != nil {
+		return x.MetricErrors
+	}
+	return nil
 }
 
 type ReportScheduledWorkflowRequest struct {
@@ -131,9 +140,10 @@ var File_backend_api_v2beta1_report_proto protoreflect.FileDescriptor
 
 const file_backend_api_v2beta1_report_proto_rawDesc = "" +
 	"\n" +
-	" backend/api/v2beta1/report.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"3\n" +
+	" backend/api/v2beta1/report.proto\x12&kubeflow.pipelines.backend.api.v2beta1\x1a\x1cgoogle/api/annotations.proto\x1a\x1bgoogle/protobuf/empty.proto\"X\n" +
 	"\x15ReportWorkflowRequest\x12\x1a\n" +
-	"\bworkflow\x18\x01 \x01(\tR\bworkflow\"O\n" +
+	"\bworkflow\x18\x01 \x01(\tR\bworkflow\x12#\n" +
+	"\rmetric_errors\x18\x02 \x03(\tR\fmetricErrors\"O\n" +
 	"\x1eReportScheduledWorkflowRequest\x12-\n" +
 	"\x12scheduled_workflow\x18\x01 \x01(\tR\x11scheduledWorkflow2\xde\x02\n" +
 	"\rReportService\x12\x92\x01\n" +

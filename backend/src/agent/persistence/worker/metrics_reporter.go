@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	metricsArtifactName = "mlpipeline-metrics"
 	// More than 50 metrics is not scalable with current UI design.
 	maxMetricsCountLimit = 50
 )
@@ -42,30 +41,31 @@ func NewMetricsReporter(pipelineClient client.PipelineClientInterface) *MetricsR
 }
 
 // ReportMetrics reports workflow metrics to pipeline server.
-func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec) error {
+func (r MetricsReporter) ReportMetrics(workflow util.ExecutionSpec) ([]string, error) {
 	if !workflow.ExecutionStatus().HasMetrics() {
-		return nil
+		return nil, nil
 	}
 	objMeta := workflow.ExecutionObjectMeta()
 	runID, ok := objMeta.Labels[util.LabelKeyWorkflowRunId]
 	if !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return nil
+		return nil, nil
 	}
 	runMetrics, partialFailures := workflow.ExecutionStatus().CollectionMetrics(r.pipelineClient.ArtifactClient().ReadArtifact)
+	// Partial failures from fetching metrics artifacts.
 	if len(runMetrics) == 0 {
-		return aggregateErrors(partialFailures)
+		return permanentErrorMessages(partialFailures), aggregateErrors(partialFailures)
 	}
 	reportMetricsResponse, err := r.pipelineClient.ReportRunMetrics(&api.ReportRunMetricsRequest{
 		RunId:   runID,
 		Metrics: runMetrics,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	// Partial failures returned by the API while reporting metrics.
 	partialFailures = append(partialFailures, processReportMetricResults(reportMetricsResponse)...)
-	return aggregateErrors(partialFailures)
+	return permanentErrorMessages(partialFailures), aggregateErrors(partialFailures)
 }
 
 func processReportMetricResults(
@@ -74,7 +74,7 @@ func processReportMetricResults(
 	for _, result := range reportMetricsResponse.GetResults() {
 		err := processReportMetricResult(result)
 		if err != nil {
-			errors = append(errors, processReportMetricResult(result))
+			errors = append(errors, err)
 		}
 	}
 	return errors
@@ -84,7 +84,7 @@ func processReportMetricResult(
 	result *api.ReportRunMetricsResponse_ReportRunMetricResult) error {
 	switch result.GetStatus() {
 	case api.ReportRunMetricsResponse_ReportRunMetricResult_INVALID_ARGUMENT:
-		// TODO(#1426): report user error back to API server to notify user.
+		// report user error back to API server to notify user.
 		return util.NewCustomError(
 			errors.New(result.GetMessage()), util.CUSTOM_CODE_PERMANENT,
 			"failed to report metric because of invalid arguments: %+v", result)
@@ -113,4 +113,16 @@ func aggregateErrors(errors []error) error {
 		errorMsgs = append(errorMsgs, err.Error())
 	}
 	return util.NewCustomErrorf(code, "%s", strings.Join(errorMsgs, "\n"))
+}
+
+func permanentErrorMessages(errs []error) []string {
+	var messages []string
+
+	for _, err := range errs {
+		if util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT) {
+			messages = append(messages, err.Error())
+		}
+	}
+
+	return messages
 }

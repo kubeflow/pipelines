@@ -172,16 +172,19 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() =>
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          additionalInfo:
-            'Cannot find context with {"typeName":"system.PipelineRun","contextName":"1"}: Not connected to MLMD',
-          message: 'Cannot get MLMD objects from Metadata store.',
-          mode: 'error',
-        }),
-      ),
-    );
+    await waitFor(() =>{
+      const banners = updateBannerSpy.mock.calls[updateBannerSpy.mock.calls.length - 1][0];
+      expect(banners).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            additionalInfo:
+              'Cannot find context with {"typeName":"system.PipelineRun","contextName":"1"}: Not connected to MLMD',
+              message: 'Cannot get MLMD objects from Metadata store.',
+              mode: 'error',
+          }),
+        ]),
+      );
+    });
   });
 
   it('Shows experiment warning banner when experiment fetch fails and MLMD succeeds', async () => {
@@ -199,18 +202,54 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() =>
-      expect(updateBannerSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          additionalInfo: 'Experiment not found',
-          message: 'Error: failed to retrieve experiment details.',
-          mode: 'warning',
-        }),
-      ),
-    );
+    await waitFor(() => {
+      const banners = updateBannerSpy.mock.calls[updateBannerSpy.mock.calls.length - 1][0];
+      expect(banners).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            additionalInfo: 'Experiment not found',
+            message: 'Error: failed to retrieve experiment details.',
+            mode: 'warning',
+          }),
+        ]),
+      );
+   });
   });
 
-  it('Shows MLMD error banner even when experiment also fails (MLMD takes precedence)', async () => {
+  it('Shows metric errors warning banner', async () => {
+    const runWithMetricErrors: V2beta1Run = {
+      ...TEST_RUN,
+      run_details: {
+        metric_errors: 'Failed to collect metric for node-1\nFailed to report metric for node-2',
+      },
+    };
+
+    render(
+      <CommonTestWrapper>
+        <RunDetailsV2
+          pipeline_job={v2YamlTemplateString}
+          run={runWithMetricErrors}
+          {...generateProps()}
+        ></RunDetailsV2>
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() =>{
+      const banners = updateBannerSpy.mock.calls[updateBannerSpy.mock.calls.length - 1][0];
+      expect(banners).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: 'Some run metrics could not be collected or reported.',
+            additionalInfo:
+              'Failed to collect metric for node-1\nFailed to report metric for node-2',
+            mode: 'warning',
+          }),
+        ]),
+      );
+    });
+  });
+
+  it('Shows MLMD and experiment error banners when both fail', async () => {
     vi.spyOn(Api.getInstance().metadataStoreService, 'getContextByTypeAndName').mockRejectedValue(
       new Error('Not connected to MLMD'),
     );
@@ -228,14 +267,21 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() =>
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          message: 'Cannot get MLMD objects from Metadata store.',
-          mode: 'error',
-        }),
-      ),
-    );
+    await waitFor(() => {
+      const banners = updateBannerSpy.mock.calls[updateBannerSpy.mock.calls.length - 1][0];
+      expect(banners).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: 'Cannot get MLMD objects from Metadata store.',
+            mode: 'error',
+          }),
+          expect.objectContaining({
+            message: 'Error: failed to retrieve experiment details.',
+            mode: 'warning',
+          }),
+        ]),
+      );
+    });
   });
 
   it('Does not clear experiment warning when MLMD succeeds after experiment fails', async () => {
@@ -255,14 +301,17 @@ describe('RunDetailsV2', () => {
 
     // Wait for both queries to settle — the last banner call should be the experiment warning,
     // NOT a clear ({}) from the MLMD success path.
-    await waitFor(() =>
-      expect(updateBannerSpy).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          message: 'Error: failed to retrieve experiment details.',
-          mode: 'warning',
-        }),
-      ),
-    );
+    await waitFor(() =>{
+      const banners = updateBannerSpy.mock.calls[updateBannerSpy.mock.calls.length - 1][0];
+      expect(banners).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            message: 'Error: failed to retrieve experiment details.',
+            mode: 'warning',
+          }),
+        ]),
+      );
+    });
   });
 
   it('Shows no banner when connected from MLMD', async () => {
@@ -299,7 +348,7 @@ describe('RunDetailsV2', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
+    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith([]));
   });
 
   it("shows run title and experiments' links", async () => {

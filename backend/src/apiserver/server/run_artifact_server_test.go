@@ -99,7 +99,7 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NoError(t, err, "Failed to report workflow resource")
 
 	runArtifactServer := NewRunArtifactServer(manager)
@@ -192,7 +192,7 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	require.NoError(t, err, "Failed to add large file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "large-artifact", filePath)
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NoError(t, err, "Failed to report workflow resource")
 
 	runArtifactServer := NewRunArtifactServer(manager)
@@ -273,7 +273,7 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	}()
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", "test/nonexistent.txt")
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NoError(t, err, "Failed to report workflow resource")
 
 	runArtifactServer := NewRunArtifactServer(manager)
@@ -383,7 +383,7 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
-	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow, nil)
 	require.NoError(t, err, "Failed to report workflow resource")
 
 	runArtifactServer := NewRunArtifactServer(resourceManager)

@@ -3,7 +3,7 @@
 exports[`Banner > defaults to error mode 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    class="flex_f16jawj4 banner_f1uney40 mode_fo01qrq"
   >
     <div
       class="message_fddsvlq"
@@ -31,7 +31,7 @@ exports[`Banner > defaults to error mode 1`] = `
 exports[`Banner > shows "Details" button and has dialog when there is additional info 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    class="flex_f16jawj4 banner_f1uney40 mode_fo01qrq"
   >
     <div
       class="message_fddsvlq"
@@ -70,7 +70,7 @@ exports[`Banner > shows "Details" button and has dialog when there is additional
 exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    class="flex_f16jawj4 banner_f1uney40 mode_fo01qrq"
   >
     <div
       class="message_fddsvlq"
@@ -109,7 +109,7 @@ exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
 exports[`Banner > uses error mode when instructed 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_fo01qrq"
+    class="flex_f16jawj4 banner_f1uney40 mode_fo01qrq"
   >
     <div
       class="message_fddsvlq"
@@ -137,7 +137,7 @@ exports[`Banner > uses error mode when instructed 1`] = `
 exports[`Banner > uses info mode when instructed 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_f77nw2b"
+    class="flex_f16jawj4 banner_f1uney40 mode_f77nw2b"
   >
     <div
       class="message_fddsvlq"
@@ -165,7 +165,7 @@ exports[`Banner > uses info mode when instructed 1`] = `
 exports[`Banner > uses warning mode when instructed 1`] = `
 <DocumentFragment>
   <div
-    class="flex_f16jawj4 banner_forn49x mode_fdjkr5s"
+    class="flex_f16jawj4 banner_f1uney40 mode_fdjkr5s"
   >
     <div
       class="message_fddsvlq"

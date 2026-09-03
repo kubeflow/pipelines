@@ -68,8 +68,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 		return nil
 	}
 
+	// Report metrics and collect any permanent metric errors.
+	permanentMetricErrors, metricErr := s.metricsReporter.ReportMetrics(wf)
+
 	// Save this Workflow to the database.
-	err = s.pipelineClient.ReportWorkflow(wf)
+	err = s.pipelineClient.ReportWorkflow(wf, permanentMetricErrors)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
 
 	// Failure
@@ -87,5 +90,5 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
-	return s.metricsReporter.ReportMetrics(wf)
+	return metricErr
 }

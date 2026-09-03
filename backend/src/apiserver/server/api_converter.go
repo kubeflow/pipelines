@@ -1175,6 +1175,7 @@ func toModelRunDetails(r interface{}) (*model.RunDetails, error) {
 			State:                model.RuntimeState(apiRunV2.GetState().String()),
 			PipelineContextId:    apiRunV2.GetRunDetails().GetPipelineContextId(),
 			PipelineRunContextId: apiRunV2.GetRunDetails().GetPipelineRunContextId(),
+			MetricErrors:         model.LargeText(apiRunV2.GetRunDetails().GetMetricErrors()),
 		}
 		if apiRunV2.GetPipelineSpec() != nil {
 			spec, err := pipelineSpecStructToYamlString(apiRunV2.GetPipelineSpec())
@@ -1583,8 +1584,9 @@ func toApiRun(r *model.Run) *apiv2beta1.Run {
 		PipelineContextId:    r.RunDetails.PipelineContextId,
 		PipelineRunContextId: r.RunDetails.PipelineRunContextId,
 		TaskDetails:          toApiPipelineTaskDetails(r.RunDetails.TaskDetails),
+		MetricErrors:         string(r.RunDetails.MetricErrors),
 	}
-	if apiRd.PipelineContextId == 0 && apiRd.PipelineRunContextId == 0 && apiRd.TaskDetails == nil {
+	if apiRd.PipelineContextId == 0 && apiRd.PipelineRunContextId == 0 && apiRd.TaskDetails == nil && apiRd.MetricErrors == "" {
 		apiRd = nil
 	}
 	apiRunV2 := &apiv2beta1.Run{

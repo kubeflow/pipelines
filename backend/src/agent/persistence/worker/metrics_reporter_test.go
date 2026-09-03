@@ -55,8 +55,9 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
+	assert.Empty(t, metricErrors)
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
 
@@ -80,8 +81,9 @@ func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
+	assert.Empty(t, metricErrors)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -108,8 +110,9 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
+	assert.Empty(t, metricErrors)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -139,8 +142,9 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
+	assert.Empty(t, metricErrors)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -183,9 +187,10 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}, nil)
 
-	err1 := reporter.ReportMetrics(workflow)
+	metricErrors,err1 := reporter.ReportMetrics(workflow)
 
 	assert.Nil(t, err1)
+	assert.Empty(t, metricErrors)
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
 		RunId: "run-1",
 		Metrics: []*api.RunMetric{
@@ -243,10 +248,11 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	assert.Len(t, metricErrors, 1)
 	// Verify that ReportRunMetrics is not called.
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -287,10 +293,11 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	assert.Len(t, metricErrors, 1)
 	// Verify that ReportRunMetrics is not called.
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -330,10 +337,11 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	assert.Len(t, metricErrors, 1)
 	// Verify that ReportRunMetrics is not called.
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -393,10 +401,11 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			Data: []byte(validArtifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	// Partial failure is reported while valid metrics are reported.
 	assert.NotNil(t, err)
+	assert.Len(t, metricErrors, 1)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
 		RunId: "run-1",
@@ -454,10 +463,11 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 			Data: []byte("invalid tgz content"),
 		})
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
+	assert.Len(t, metricErrors, 1)
 	// Verify that ReportRunMetrics is not called.
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -519,10 +529,13 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		},
 	}, nil)
 
-	err := reporter.ReportMetrics(workflow)
+	metricErrors, err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
+	assert.Len(t, metricErrors, 1)
+	assert.Contains(t, metricErrors[0], "invalid arguments")
+	assert.NotContains(t, metricErrors[0], "internal error")
 }
 
 func TestReportMetrics_Unauthorized(t *testing.T) {
@@ -564,8 +577,28 @@ func TestReportMetrics_Unauthorized(t *testing.T) {
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}, errors.New("failed to read artifacts"))
 
-	err1 := reporter.ReportMetrics(workflow)
+	metricErrors, err1 := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err1)
 	assert.Contains(t, err1.Error(), "failed to read artifacts")
+	assert.Empty(t, metricErrors)
+}
+
+func TestPermanentErrorMessages(t *testing.T) {
+	permanentErr := util.NewCustomError(
+		errors.New("permanent error"),
+		util.CUSTOM_CODE_PERMANENT,
+		"permanent metric failure",
+	)
+	transientErr := util.NewCustomError(
+		errors.New("transient error"),
+		util.CUSTOM_CODE_TRANSIENT,
+		"transient metric failure",
+	)
+
+	messages := permanentErrorMessages([]error{permanentErr, transientErr})
+
+	assert.Len(t, messages, 1)
+	assert.Contains(t, messages[0], "permanent metric failure")
+	assert.NotContains(t, messages[0], "transient metric failure")
 }
