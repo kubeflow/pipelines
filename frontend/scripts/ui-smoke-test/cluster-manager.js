@@ -63,6 +63,11 @@ const KUBEFLOW_FIRST_PARTY_IMAGE_PREFIXES = Object.freeze([
 // the node can execute an amd64 workload.
 const AMD64_EMULATION_CANARY_IMAGE =
   'docker.io/library/busybox@sha256:b7f3d86d6e84fc17718c48bcde1450807faa2d56704205c697b4bd5df7b9e29f';
+// Saving an image by digest makes Kind/containerd import it under an anonymous `import-*` name.
+// Apply a deterministic local tag before export so imagePullPolicy Never addresses the preloaded
+// image instead of producing ErrImageNeverPull without exercising emulation.
+const AMD64_EMULATION_CANARY_LOCAL_IMAGE =
+  'kfp-ui-smoke/amd64-emulation-canary:b7f3d86d6e84';
 // These are the two amd64-only workloads in the 2.17.1 platform-agnostic manifests. The metadata
 // writer remains amd64-only when it is built from source because ml-metadata does not publish the
 // required arm64 wheel. Keep this list exact and fail closed for other image references: executing
@@ -1133,10 +1138,21 @@ function createKindStack(config = {}) {
       return { required: false, verified: true };
     }
 
-    const image = AMD64_EMULATION_CANARY_IMAGE;
+    const image = AMD64_EMULATION_CANARY_LOCAL_IMAGE;
     const canaryImageKey = loadedImageKey(image, 'linux/amd64');
     if (!loadedImages.has(canaryImageKey)) {
-      pullImageForPlatform(image, 'linux/amd64', { nodePlatform, runner });
+      pullImageForPlatform(AMD64_EMULATION_CANARY_IMAGE, 'linux/amd64', {
+        nodePlatform,
+        runner,
+      });
+      requireSuccess(
+        runner(
+          'docker',
+          ['tag', AMD64_EMULATION_CANARY_IMAGE, image],
+          commandOptions({ timeout: 30000 }),
+        ),
+        'Failed to tag the pinned amd64 emulation canary image',
+      );
       saveAndLoadImage(image, 'amd64-emulation-canary', 'linux/amd64', {
         nodePlatform,
         runner,
@@ -2216,6 +2232,7 @@ function spawnProcess(command, args, options = {}) {
 
 module.exports = {
   AMD64_EMULATION_CANARY_IMAGE,
+  AMD64_EMULATION_CANARY_LOCAL_IMAGE,
   CLUSTER_NAME,
   DEFAULT_KUBECONFIG,
   DEFAULT_PORTS,

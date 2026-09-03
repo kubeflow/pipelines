@@ -824,7 +824,7 @@ test('arm64 preload runs one Kubernetes amd64 emulation canary from a pinned ima
 
   assert.ok(canary);
   const container = canary.spec.template.spec.containers[0];
-  assert.equal(container.image, cluster.AMD64_EMULATION_CANARY_IMAGE);
+  assert.equal(container.image, cluster.AMD64_EMULATION_CANARY_LOCAL_IMAGE);
   assert.equal(container.imagePullPolicy, 'Never');
   assert.deepEqual(container.command, ['/bin/sh', '-c', 'exit 0']);
   assert.equal(container.securityContext.runAsNonRoot, true);
@@ -835,6 +835,22 @@ test('arm64 preload runs one Kubernetes amd64 emulation canary from a pinned ima
       args.at(-1) === cluster.AMD64_EMULATION_CANARY_IMAGE,
   );
   assert.deepEqual(canaryPull.args.slice(0, 3), ['pull', '--platform', 'linux/amd64']);
+  assert.ok(
+    calls.some(
+      ({ args, command }) =>
+        command === 'docker' &&
+        args[0] === 'tag' &&
+        args[1] === cluster.AMD64_EMULATION_CANARY_IMAGE &&
+        args[2] === cluster.AMD64_EMULATION_CANARY_LOCAL_IMAGE,
+    ),
+  );
+  const canarySave = calls.find(
+    ({ args, command }) =>
+      command === 'docker' &&
+      args[0] === 'save' &&
+      args.at(-1) === cluster.AMD64_EMULATION_CANARY_LOCAL_IMAGE,
+  );
+  assert.deepEqual(canarySave.args.slice(0, 3), ['save', '--platform', 'linux/amd64']);
   assert.ok(
     calls.some(
       ({ args, command }) =>
