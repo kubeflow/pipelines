@@ -72,6 +72,35 @@ export interface SecretSelector {
   name: string;
 }
 
+// Log sources are composed at most three deep (Kubernetes API, workflow status,
+// archive), so this bounds the walk below well above what can legitimately occur.
+const MAX_CAUSE_DEPTH = 8;
+
+/**
+ * Records why an earlier log source failed at the end of the cause chain of the
+ * error thrown by the next one, so every source that was tried stays inspectable.
+ *
+ * Appending rather than overwriting matters because these handlers nest: the
+ * archive error already carries the workflow error by the time the outer handler
+ * attaches the Kubernetes one. The error is returned as-is when it cannot carry a
+ * cause, since handlers here may reject with a plain string. Its own message and
+ * identity are never touched, so callers matching on them still work.
+ */
+function withCause(error: unknown, cause: unknown): unknown {
+  let end = error;
+  for (let depth = 0; depth < MAX_CAUSE_DEPTH; depth++) {
+    if (!(end instanceof Error)) {
+      return error;
+    }
+    if (end.cause === undefined) {
+      end.cause = cause;
+      return error;
+    }
+    end = end.cause;
+  }
+  return error;
+}
+
 /**
  * Compose a pod logs stream handler - i.e. a stream handler returns a stream
  * containing the pod logs.
@@ -88,7 +117,15 @@ export function composePodLogsStreamHandler<T = Stream>(
       return await handler(podName, createdAt, namespace);
     } catch (err) {
       if (fallback) {
-        return await fallback(podName, createdAt, namespace);
+        // Debug rather than warn: once a pod is garbage collected the Kubernetes
+        // API cannot serve its logs, so falling through to the archive is the
+        // expected path for any completed run, not a problem worth reporting.
+        console.debug(`Failed to get logs for pod, ${podName}, trying the next log source.`, err);
+        try {
+          return await fallback(podName, createdAt, namespace);
+        } catch (fallbackErr) {
+          throw withCause(fallbackErr, err);
+        }
       }
       console.warn(err);
       throw err;
