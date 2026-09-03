@@ -454,6 +454,23 @@ class ImporterSpec:
 
 
 @dataclasses.dataclass
+class TriggerPipelineSpec:
+    """TriggerPipelineSpec definition.
+
+    Attributes:
+        pipeline_name: Registered pipeline display/lookup name to run.
+        pipeline_version_id: Optional PipelineVersion ID; empty matches parent
+            version name/display_name when possible, else latest.
+        wait_for_completion: Wait for child run terminal state when True.
+        poke_interval_seconds: Poll interval when waiting.
+    """
+    pipeline_name: str
+    pipeline_version_id: str = ''
+    wait_for_completion: bool = True
+    poke_interval_seconds: int = 30
+
+
+@dataclasses.dataclass
 class Implementation:
     """Implementation definition.
 
@@ -461,9 +478,11 @@ class Implementation:
         container: container implementation details.
         graph: graph implementation details.
         importer: importer implementation details.
+        trigger_pipeline: trigger-pipeline implementation details.
     """
     container: Optional[ContainerSpecImplementation] = None
     importer: Optional[ImporterSpec] = None
+    trigger_pipeline: Optional[TriggerPipelineSpec] = None
     # Use type forward reference to skip the type validation in BaseModel.
     graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 

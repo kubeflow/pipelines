@@ -627,6 +627,26 @@ def build_importer_spec_for_task(
     return importer_spec
 
 
+def build_trigger_pipeline_spec_for_task(
+    task: pipeline_task.PipelineTask
+) -> pipeline_spec_pb2.PipelineDeploymentConfig.TriggerPipelineSpec:
+    """Builds TriggerPipelineSpec for a pipeline task.
+
+    Args:
+        task: The task to build a TriggerPipelineSpec for.
+
+    Returns:
+        A TriggerPipelineSpec object for the task.
+    """
+    spec = task.trigger_pipeline_spec
+    return pipeline_spec_pb2.PipelineDeploymentConfig.TriggerPipelineSpec(
+        pipeline_name=spec.pipeline_name,
+        pipeline_version_id=spec.pipeline_version_id or '',
+        wait_for_completion=spec.wait_for_completion,
+        poke_interval_seconds=spec.poke_interval_seconds,
+    )
+
+
 def build_container_spec_for_task(
     task: pipeline_task.PipelineTask
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.PipelineContainerSpec:
@@ -1427,6 +1447,12 @@ def build_spec_by_group(
                     task=subgroup)
                 deployment_config.executors[executor_label].importer.CopyFrom(
                     subgroup_importer_spec)
+            elif subgroup.trigger_pipeline_spec is not None:
+                subgroup_trigger_spec = build_trigger_pipeline_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[
+                    executor_label].trigger_pipeline.CopyFrom(
+                        subgroup_trigger_spec)
             elif subgroup.pipeline_spec is not None:
                 if subgroup.platform_config:
                     raise ValueError(
