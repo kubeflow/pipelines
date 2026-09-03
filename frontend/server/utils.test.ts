@@ -18,10 +18,12 @@ import * as path from 'path';
 import {
   PreviewStream,
   findFileOnPodVolume,
+  isAllowedBucketName,
   openFileWithinRoot,
   parseError,
   resolveFilePathOnVolume,
 } from './utils.js';
+import { describe, expect, it } from 'vitest';
 
 describe('utils', () => {
   describe('PreviewStream', () => {
@@ -376,6 +378,26 @@ describe('utils', () => {
         message: 'plain text failure',
         additionalInfo: 'plain text failure',
       });
+    });
+  });
+  describe('isAllowedBucketName', () => {
+    it('accepts valid bucket names, including names containing dots', () => {
+      expect(isAllowedBucketName('my-bucket')).toBe(true);
+      expect(isAllowedBucketName('my.bucket')).toBe(true);
+      expect(isAllowedBucketName('my-org.my-env.pipelines')).toBe(true);
+    });
+
+    it('rejects invalid bucket names', () => {
+      expect(isAllowedBucketName('.bucket')).toBe(false);
+      expect(isAllowedBucketName('bucket.')).toBe(false);
+      expect(isAllowedBucketName('-bucket')).toBe(false);
+      expect(isAllowedBucketName('bucket-')).toBe(false);
+    });
+
+    it('rejects non-string and overlong values', () => {
+      expect(isAllowedBucketName('')).toBe(false);
+      expect(isAllowedBucketName(123)).toBe(false);
+      expect(isAllowedBucketName('a'.repeat(64))).toBe(false);
     });
   });
 });
