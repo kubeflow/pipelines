@@ -350,13 +350,20 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 			nameEnd++
 		}
 		name := strings.ToLower(body[:nameEnd])
-		remainder := trimDockerDirectiveSpace(body[nameEnd:])
+		remainder := strings.TrimLeft(body[nameEnd:], " \t\r\f")
 		if !strings.HasPrefix(remainder, "=") {
 			return dockerParserDirectiveMetadata{}, false
 		}
-		value := trimDockerDirectiveSpace(remainder[1:])
-		if value == "" {
+		rawValue := remainder[1:]
+		if rawValue == "" {
 			return dockerParserDirectiveMetadata{}, false
+		}
+		value := trimDockerDirectiveSpace(rawValue)
+		if value == "" {
+			// Newer BuildKit directive grammars distinguish an absent value
+			// from a value containing Docker whitespace. Preserve the latter
+			// so syntax selection remains visible to callers.
+			value = rawValue
 		}
 		switch name {
 		case "syntax":

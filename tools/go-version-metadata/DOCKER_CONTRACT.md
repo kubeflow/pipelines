@@ -45,8 +45,12 @@ payloads may be arbitrary frontend DSLs and are not projected as Dockerfile
 instructions. Detection uses BuildKit's selector detector plus a bounded
 initial-preamble compatibility scanner for syntax-directive forms accepted by
 newer supported builders. This keeps checker and updater behavior stable when
-the CI executor changes. An `ONBUILD` payload is never managed;
-payloads that BuildKit forbids, including `ONBUILD FROM`, are `invalid`.
+the CI executor changes. The compatibility grammar determines whether a value
+is present from the raw bytes after `=` before trimming Docker whitespace:
+an absent value terminates the preamble, while a whitespace-only `check`,
+`escape`, or `syntax` value remains an active directive. An `ONBUILD` payload
+is never managed; payloads that BuildKit forbids, including `ONBUILD FROM`, are
+`invalid`.
 
 ## What is a Go source
 

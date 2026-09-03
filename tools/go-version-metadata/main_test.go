@@ -166,6 +166,9 @@ func TestProjectDockerParserDirectivesUsesBuildKitSemantics(t *testing.T) {
 		{name: "BOM and shebang", contents: "\ufeff#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
 		{name: "after escape", contents: "# escape=\\\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
 		{name: "after check", contents: "# check=skip=all\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "after whitespace-only escape", contents: "#\u00a0escape=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "after whitespace-only check", contents: "#\u00a0check=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
+		{name: "whitespace-only syntax", contents: "#\u00a0syntax=   \ncustom frontend payload\n", line: 1, value: "   "},
 		{name: "Unicode value is preserved", contents: "#\u00a0syntax=\u00a0example.com/frontend:latest\nFROM scratch\n", line: 1, value: "\u00a0example.com/frontend:latest"},
 	} {
 		t.Run("supported frontend compatibility/"+test.name, func(t *testing.T) {
@@ -198,6 +201,9 @@ func TestProjectDockerParserDirectivesUsesBuildKitSemantics(t *testing.T) {
 		{name: "double hash", contents: "## syntax=example.com/frontend:latest\nFROM scratch\n"},
 		{name: "zero-width space", contents: "#\u200bsyntax=example.com/frontend:latest\nFROM scratch\n"},
 		{name: "Unicode space before equals", contents: "#\u00a0syntax\u00a0=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "absent check value stops selector", contents: "#\u00a0check=\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "absent escape value stops selector", contents: "#\u00a0escape=\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
+		{name: "absent syntax value stops selector", contents: "#\u00a0syntax=\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n"},
 	} {
 		t.Run("inactive frontend compatibility/"+test.name, func(t *testing.T) {
 			directives, err := projectDockerParserDirectives(test.contents)
@@ -782,13 +788,20 @@ func TestDockerClassification(t *testing.T) {
 }
 
 func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
-	for _, contents := range []string{
-		"# syntax=example.com/frontend:latest\ncustom frontend payload\n",
-		"// syntax=example.com/frontend:latest\n",
-		"{\"syntax\":\"example.com/frontend:latest\"}\n",
+	for _, test := range []struct {
+		contents string
+		value    string
+		line     int
+	}{
+		{contents: "# syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 1},
+		{contents: "// syntax=example.com/frontend:latest\n", value: "example.com/frontend:latest", line: 1},
+		{contents: "{\"syntax\":\"example.com/frontend:latest\"}\n", value: "example.com/frontend:latest", line: 1},
+		{contents: "#\u00a0check=   \n#\u00a0syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 2},
+		{contents: "#\u00a0escape=   \n#\u00a0syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 2},
+		{contents: "#\u00a0syntax=   \ncustom frontend payload\n", value: "   ", line: 1},
 	} {
-		t.Run(strings.SplitN(contents, "\n", 2)[0], func(t *testing.T) {
-			metadata, err := inspect(request{Path: "Dockerfile", Contents: contents})
+		t.Run(strings.SplitN(test.contents, "\n", 2)[0], func(t *testing.T) {
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -796,7 +809,7 @@ func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
 				t.Fatalf("classification = %q, want unsupported (error %q)", metadata.DockerClassification, metadata.DockerError)
 			}
 			if got, want := metadata.DockerCandidates, []dockerCandidate{{
-				Kind: "unsupported-frontend", Value: "example.com/frontend:latest", Line: 1,
+				Kind: "unsupported-frontend", Value: test.value, Line: test.line,
 			}}; !reflect.DeepEqual(got, want) {
 				t.Fatalf("candidates = %#v, want %#v", got, want)
 			}
@@ -804,7 +817,7 @@ func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
 				t.Fatalf("frontend-selected payload was projected as Docker instructions: %#v", metadata.DockerInstructions)
 			}
 			if got, want := metadata.DockerDirectives, []dockerParserDirectiveMetadata{{
-				Name: "syntax", Value: "example.com/frontend:latest", Line: 1,
+				Name: "syntax", Value: test.value, Line: test.line,
 			}}; !reflect.DeepEqual(got, want) {
 				t.Fatalf("directives = %#v, want %#v", got, want)
 			}

@@ -52,10 +52,20 @@ class GoVersionMetadataTest(unittest.TestCase):
                 )
 
     def test_frontend_selector_is_always_runtime_metadata(self):
-        for contents in (
-                '# syntax=example.com/golang:latest\ncustom payload\n',
-                '// syntax=example.com/golang:latest\n',
-                '{"syntax":"example.com/golang:latest"}\n'):
+        for contents, value, line in (
+                ('# syntax=example.com/golang:latest\ncustom payload\n',
+                 'example.com/golang:latest', 1),
+                ('// syntax=example.com/golang:latest\n',
+                 'example.com/golang:latest', 1),
+                ('{"syntax":"example.com/golang:latest"}\n',
+                 'example.com/golang:latest', 1),
+                ('#\u00a0check=   \n'
+                 '#\u00a0syntax=example.com/golang:latest\ncustom payload\n',
+                 'example.com/golang:latest', 2),
+                ('#\u00a0escape=   \n'
+                 '#\u00a0syntax=example.com/golang:latest\ncustom payload\n',
+                 'example.com/golang:latest', 2),
+                ('#\u00a0syntax=   \ncustom payload\n', '   ', 1)):
             with self.subTest(contents=contents):
                 result = docker_runtime_classification(contents)
                 self.assertEqual(result['classification'], 'unsupported')
@@ -70,8 +80,8 @@ class GoVersionMetadataTest(unittest.TestCase):
                 self.assertEqual(
                     projection['directives'], [{
                         'name': 'syntax',
-                        'value': 'example.com/golang:latest',
-                        'line': 1,
+                        'value': value,
+                        'line': line,
                     }])
 
     def test_yaml_block_scalars_are_structural(self):
