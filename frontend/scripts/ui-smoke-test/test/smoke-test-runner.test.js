@@ -1596,6 +1596,7 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
   assert.equal(calls.seed.length, 2);
   assert.notEqual(calls.seed[0].apiBase, calls.seed[1].apiBase);
   assert.notEqual(calls.seed[0].manifestPath, calls.seed[1].manifestPath);
+  assert.ok(calls.seed.every(({ waitForCreatedRuns }) => waitForCreatedRuns === true));
   assert.deepEqual(calls.proxies, []);
   assert.deepEqual(
     calls.waits.map(({ child, url }) => ({ child, url })),

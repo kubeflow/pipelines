@@ -1798,6 +1798,7 @@ test('fills each missing deterministic resource type instead of skipping on part
     throw new Error(`Unexpected request: ${method} ${endpoint}`);
   };
 
+  const waitCalls = [];
   const result = await seedData({
     pipelines: 1,
     experiments: 1,
@@ -1807,7 +1808,11 @@ test('fills each missing deterministic resource type instead of skipping on part
     manifestPath,
     apiBase: 'http://seed.test',
     semanticTimeout: 0,
-    waitForRunsFn: async () => true,
+    waitForCreatedRuns: true,
+    waitForRunsFn: async (runIds) => {
+      waitCalls.push([...runIds]);
+      return true;
+    },
   });
 
   assert.equal(result.success, true, result.error);
@@ -1816,6 +1821,7 @@ test('fills each missing deterministic resource type instead of skipping on part
   assert.deepEqual(result.resources.experimentIds, ['experiment-created']);
   assert.deepEqual(result.resources.runIds, ['run-created']);
   assert.deepEqual(result.resources.recurringRunIds, ['recurring-created']);
+  assert.deepEqual(waitCalls, [['run-created'], ['run-created']]);
   assert.ok(fs.existsSync(manifestPath));
   assert.ok(
     !calls.some(
