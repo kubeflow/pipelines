@@ -43,8 +43,11 @@ spec:
           set -e
           auth_args=""
           if [ "${MLFLOW_AUTH_TYPE}" = "basic-auth" ]; then
-            python -m pip install --no-cache-dir --target /mlflow/python-packages \
-              "mlflow[auth]==$(python -c 'import mlflow; print(mlflow.__version__)')"
+            # The full image already contains MLflow and its compatible web stack. Install
+            # only the two missing auth packages so pip does not replace that stack with
+            # newer, mutually incompatible FastAPI, Starlette, and AnyIO releases.
+            python -m pip install --no-cache-dir --no-deps --target /mlflow/python-packages \
+              "Flask-WTF<2" "WTForms<4"
             export PYTHONPATH="/mlflow/python-packages${PYTHONPATH:+:${PYTHONPATH}}"
             python -m mlflow.server.auth db upgrade --url sqlite:////mlflow/basic_auth.db
             cd /mlflow
