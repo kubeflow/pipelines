@@ -411,7 +411,9 @@ node smoke-test-runner.js --teardown
    applicable, the non-release base's—revision-compatible frontend, frontend-server, backend, and
    runtime images for the explicit Kind node platform. The known 2.17.1 amd64-only workloads use
    narrow workload-level overrides on arm64; unknown architecture or build failures occur before
-   deployment.
+   deployment. When a component declares its complete build inputs and those inputs are byte-for-byte
+   identical across two local revisions, the exact base image is retagged for the head instead of
+   being rebuilt.
 4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
    preflighted for that revision. Exact local image overrides and runtime-image variables are
    applied to each locally built revision before any workload starts. After each run-scoped image

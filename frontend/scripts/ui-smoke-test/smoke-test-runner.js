@@ -836,6 +836,83 @@ function hashParts(parts) {
   return hash.digest('hex');
 }
 
+function appendBuildInput(hash, rootPath, relativePath) {
+  const absolutePath = path.resolve(rootPath, relativePath);
+  if (!isPathInside(path.resolve(rootPath), absolutePath)) {
+    throw new Error(`Cross-revision build input escapes its worktree: ${relativePath}.`);
+  }
+  const stat = fs.lstatSync(absolutePath, { throwIfNoEntry: false });
+  if (!stat) return false;
+  hash.update(`${relativePath.length}:${relativePath}`);
+  if (stat.isSymbolicLink()) {
+    const target = fs.readlinkSync(absolutePath);
+    hash.update(`symlink:${target.length}:${target}`);
+    return true;
+  }
+  if (stat.isFile()) {
+    const contents = fs.readFileSync(absolutePath);
+    hash.update(`file:${stat.mode & 0o111 ? 'executable' : 'non-executable'}:${contents.length}:`);
+    hash.update(contents);
+    return true;
+  }
+  if (!stat.isDirectory()) {
+    throw new Error(`Unsupported cross-revision build input type: ${relativePath}.`);
+  }
+  hash.update('directory:');
+  for (const entry of fs.readdirSync(absolutePath).sort()) {
+    if (!appendBuildInput(hash, rootPath, path.join(relativePath, entry))) return false;
+  }
+  return true;
+}
+
+function componentBuildInputFingerprint(component, repoRoot) {
+  const inputs = component.crossRevisionBuildInputs;
+  if (!Array.isArray(inputs) || inputs.length === 0) return null;
+  const hash = crypto.createHash('sha256');
+  hash.update('ui-smoke-component-build-input/v1:');
+  for (const relativePath of inputs) {
+    if (typeof relativePath !== 'string' || relativePath.length === 0) {
+      throw new Error(`Component ${component.name} has an invalid cross-revision build input.`);
+    }
+    if (!appendBuildInput(hash, repoRoot, relativePath)) return null;
+  }
+  return hash.digest('hex');
+}
+
+function findReusableComponents(baseComponents, headComponents, baseRoot, headRoot) {
+  const baseByName = new Map(baseComponents.map((component) => [component.name, component]));
+  return headComponents.filter((headComponent) => {
+    const baseComponent = baseByName.get(headComponent.name);
+    if (!baseComponent) return false;
+    if (
+      Object.keys(baseComponent.buildArgs || {}).length > 0 ||
+      Object.keys(headComponent.buildArgs || {}).length > 0
+    ) {
+      return false;
+    }
+    if (
+      JSON.stringify(baseComponent.crossRevisionBuildInputs || null) !==
+      JSON.stringify(headComponent.crossRevisionBuildInputs || null)
+    ) {
+      return false;
+    }
+    const baseFingerprint = componentBuildInputFingerprint(baseComponent, baseRoot);
+    const headFingerprint = componentBuildInputFingerprint(headComponent, headRoot);
+    return baseFingerprint !== null && baseFingerprint === headFingerprint;
+  });
+}
+
+function mergeImageOverrides(...overrides) {
+  return overrides.reduce(
+    (merged, current) => ({
+      deployments: [...merged.deployments, ...current.deployments],
+      images: { ...merged.images, ...current.images },
+      runtimeEnvironment: { ...merged.runtimeEnvironment, ...current.runtimeEnvironment },
+    }),
+    { deployments: [], images: {}, runtimeEnvironment: {} },
+  );
+}
+
 function validateSnapshotRelativePath(relativePath) {
   if (
     !relativePath ||
@@ -1795,6 +1872,7 @@ function comparisonServices(overrides = {}) {
     ensureComparisonRuntime,
     fetchPullRequest,
     fullSha,
+    findReusableComponents,
     gitOutput,
     loadUpgradeAdapter,
     materializeTrustedHeadSnapshot,
@@ -2259,12 +2337,20 @@ async function runFullStackComparisonOrchestration({
     services.components,
     headManifestSources,
   );
+  const reusableHeadComponents = services.findReusableComponents(
+    baseComponents,
+    headComponents,
+    baseWorktree,
+    headRoot,
+  );
+  const reusableHeadNames = new Set(reusableHeadComponents.map(({ name }) => name));
+  const headComponentsToBuild = headComponents.filter(({ name }) => !reusableHeadNames.has(name));
   const baseBuildMetadata = baseComponents.some(
     (component) => Object.keys(component.buildArgs || {}).length > 0,
   )
     ? services.revisionBuildMetadata(baseWorktree, baseCommitSha)
     : undefined;
-  const headBuildMetadata = headComponents.some(
+  const headBuildMetadata = headComponentsToBuild.some(
     (component) => Object.keys(component.buildArgs || {}).length > 0,
   )
     ? services.revisionBuildMetadata(headRoot, expectedHeadSha)
@@ -2281,15 +2367,30 @@ async function runFullStackComparisonOrchestration({
       : { deployments: [], images: {}, runtimeEnvironment: {} };
 
   state.phase = 'head_image_build';
-  const headImageOverrides =
-    headComponents.length > 0
-      ? await headStack.buildComponentImages(headComponents, headRoot, {
+  const builtHeadImageOverrides =
+    headComponentsToBuild.length > 0
+      ? await headStack.buildComponentImages(headComponentsToBuild, headRoot, {
           buildMetadata: headBuildMetadata,
           load: false,
           platform: targetPlatform,
           tagSuffix: `${run.runId}-head`,
         })
       : { deployments: [], images: {}, runtimeEnvironment: {} };
+  const reusedHeadImageOverrides =
+    reusableHeadComponents.length > 0
+      ? headStack.reuseComponentImages(reusableHeadComponents, baseImageOverrides, {
+          platform: targetPlatform,
+          tagSuffix: `${run.runId}-head`,
+        })
+      : { deployments: [], images: {}, runtimeEnvironment: {} };
+  const headImageOverrides = mergeImageOverrides(builtHeadImageOverrides, reusedHeadImageOverrides);
+  if (reusableHeadComponents.length > 0) {
+    log(
+      `Reused byte-identical base images for head: ${reusableHeadComponents
+        .map(({ name }) => name)
+        .join(', ')}`,
+    );
+  }
 
   state.phase = 'cluster_creation';
   await Promise.all([baseStack.createCluster(), headStack.createCluster()]);
@@ -2846,6 +2947,7 @@ module.exports = {
   externalBuildArguments,
   externalInstallArguments,
   fetchedDependencyInputs,
+  findReusableComponents,
   fullSha,
   fullCaptureEnvironment,
   helpText,

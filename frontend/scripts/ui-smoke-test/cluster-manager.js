@@ -66,8 +66,7 @@ const AMD64_EMULATION_CANARY_IMAGE =
 // Saving an image by digest makes Kind/containerd import it under an anonymous `import-*` name.
 // Apply a deterministic local tag before export so imagePullPolicy Never addresses the preloaded
 // image instead of producing ErrImageNeverPull without exercising emulation.
-const AMD64_EMULATION_CANARY_LOCAL_IMAGE =
-  'kfp-ui-smoke/amd64-emulation-canary:b7f3d86d6e84';
+const AMD64_EMULATION_CANARY_LOCAL_IMAGE = 'kfp-ui-smoke/amd64-emulation-canary:b7f3d86d6e84';
 // These are the two amd64-only workloads in the 2.17.1 platform-agnostic manifests. The metadata
 // writer remains amd64-only when it is built from source because ml-metadata does not publish the
 // required arm64 wheel. Keep this list exact and fail closed for other image references: executing
@@ -810,6 +809,36 @@ function createKindStack(config = {}) {
           runner,
         });
       }
+      if (component.deployment) {
+        overrides.deployments.push({
+          container: component.container,
+          deployment: component.deployment,
+          image,
+        });
+      }
+      if (component.runtimeEnv) overrides.runtimeEnvironment[component.runtimeEnv] = image;
+    }
+    return overrides;
+  }
+
+  function reuseComponentImages(components, sourceOverrides, options = {}) {
+    const runner = stackRunner(options);
+    const platform = options.platform || getClusterPlatform({ runner });
+    validatePlatform(platform, 'Reused image platform');
+    const tagSuffix = sanitizeImageTagPart(options.tagSuffix || imageScope);
+    const overrides = { deployments: [], images: {}, runtimeEnvironment: {} };
+    for (const component of components) {
+      const sourceImage = sourceOverrides?.images?.[component.name];
+      if (!sourceImage) {
+        throw new Error(`Cannot reuse ${component.name}: the base image override is missing.`);
+      }
+      const image = scopedImageTag(component, tagSuffix);
+      requireSuccess(
+        runner('docker', ['image', 'tag', sourceImage, image], commandOptions()),
+        `Failed to reuse ${component.name}`,
+      );
+      builtImagePlatforms.set(image, platform);
+      overrides.images[component.name] = image;
       if (component.deployment) {
         overrides.deployments.push({
           container: component.container,
@@ -2137,6 +2166,7 @@ function createKindStack(config = {}) {
     preloadManifestImages,
     preloadSeedRuntimeImage,
     reapplyManifests,
+    reuseComponentImages,
     revision,
     role,
     saveAndLoadImage,
