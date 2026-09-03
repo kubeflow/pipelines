@@ -372,7 +372,10 @@ func extendPodSpecPatch(
 			}
 		}
 
-		seen := make(map[string]bool, len(k8sClaims))
+		seen := make(map[string]bool, len(podSpec.ResourceClaims)+len(k8sClaims))
+		for _, rc := range podSpec.ResourceClaims {
+			seen[rc.Name] = true
+		}
 		for _, rc := range k8sClaims {
 			if seen[rc.Name] {
 				return fmt.Errorf("duplicate resource claim name %q", rc.Name)

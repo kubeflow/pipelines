@@ -98,7 +98,13 @@ def add_resource_claim_json(
                 raise ValueError(
                     'Each element in resource_claim_json list must be a '
                     'ResourceClaimConfig instance.')
-            _add_resource_claim_config(task, config)
+        msg = common.get_existing_kubernetes_config_as_message(task)
+        for config in resource_claim_json:
+            claim = pb.PodResourceClaim()
+            claim.resource_claim_json.CopyFrom(
+                common.parse_k8s_parameter_input(config.to_dict(), task))
+            msg.pod_resource_claims.append(claim)
+        task.platform_config['kubernetes'] = json_format.MessageToDict(msg)
     elif isinstance(resource_claim_json, ResourceClaimConfig):
         _add_resource_claim_config(task, resource_claim_json)
     else:

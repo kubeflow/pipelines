@@ -4191,6 +4191,7 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 		expected                *k8score.PodSpec
 		inputParams             map[string]*structpb.Value
 		existingContainerClaims []k8score.ResourceClaim
+		existingPodClaims       []k8score.PodResourceClaim
 		wantErr                 bool
 		wantErrMsg              string
 	}{
@@ -4527,6 +4528,22 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 			wantErr:    true,
 			wantErrMsg: "duplicate resource claim name",
 		},
+		{
+			name: "Duplicate with pre-existing podSpec claim - error",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				PodResourceClaims: []*kubernetesplatform.PodResourceClaim{
+					{ResourceClaimTemplateName: "gpu-claim-template"},
+				},
+			},
+			existingPodClaims: []k8score.PodResourceClaim{
+				{
+					Name:                      "gpu-claim-template",
+					ResourceClaimTemplateName: stringPtr("gpu-claim-template"),
+				},
+			},
+			wantErr:    true,
+			wantErrMsg: "duplicate resource claim name",
+		},
 	}
 
 	for _, tt := range tests {
@@ -4535,6 +4552,9 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 
 			if tt.existingContainerClaims != nil {
 				got.Containers[0].Resources.Claims = tt.existingContainerClaims
+			}
+			if tt.existingPodClaims != nil {
+				got.ResourceClaims = tt.existingPodClaims
 			}
 
 			taskConfig := &TaskConfig{}

@@ -14,7 +14,7 @@ runs:
     - name: Install DRA Example Driver
       shell: bash
       env:
-        # v0.2.1 is the latest tag compatible with K8s 1.34 (DRA GA minimum).
+        # v0.2.1 (4bf7a1c) is the latest tag compatible with K8s 1.34 (DRA GA minimum).
         # v0.4.0+ targets K8s 1.36 and will not work with kindest/node:v1.34.x.
         DRIVER_VERSION: "v0.2.1"
         NAMESPACE: "dra-example-driver"
