@@ -314,7 +314,9 @@ def get_name_to_specs(
             type_string = type_utils._annotation_to_type_struct(annotation)
             name_to_input_specs[maybe_make_unique(
                 name, list(name_to_input_specs))] = make_input_spec(
-                    type_string, func_param)
+                    type_string,
+                    func_param,
+                    literals=type_utils.get_literal_values(annotation))
 
     ### handle return annotations ###
     return_ann = signature.return_annotation
@@ -399,9 +401,24 @@ def make_output_spec(annotation: Any) -> structures.OutputSpec:
     return structures.OutputSpec(**args)
 
 
-def make_input_spec(annotation: Any,
-                    inspect_param: inspect.Parameter) -> structures.InputSpec:
-    """Makes an InputSpec from a cleaned output annotation."""
+def make_input_spec(
+    annotation: Any,
+    inspect_param: inspect.Parameter,
+    literals: Optional[Union[List[str], List[int], List[float]]] = None
+) -> structures.InputSpec:
+    """Makes an InputSpec from a cleaned output annotation.
+
+    Args:
+        annotation: The input's type annotation. By the time this is called,
+            callers in `get_name_to_specs` have already converted most
+            parameter-type annotations (str, int, List[...], Literal[...],
+            etc.) to their compiled type-struct string, so `literals` must be
+            extracted from the original annotation by the caller and passed
+            in explicitly rather than derived here.
+        inspect_param: The `inspect.Parameter` for this input.
+        literals: The input's allowed values, if it was declared with a
+            `typing.Literal[...]` annotation.
+    """
     annotation = canonicalize_annotation(annotation)
     input_output_spec_args = make_input_output_spec_args(annotation)
 
@@ -425,6 +442,7 @@ def make_input_spec(annotation: Any,
         **input_output_spec_args,
         default=default,
         optional=optional,
+        literals=literals,
     )
 
 
