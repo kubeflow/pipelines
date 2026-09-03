@@ -1463,8 +1463,8 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
               record('getDockerPlatform');
               return 'linux/amd64';
             },
-            loadImageOverrides(imageOverrides, platform) {
-              record('loadImageOverrides', { imageOverrides, platform });
+            loadImageOverrides(imageOverrides, platform, options) {
+              record('loadImageOverrides', { imageOverrides, options, platform });
             },
             preflightReleaseImages(target, options) {
               record('preflightReleaseImages', { options, target });
@@ -1725,8 +1725,8 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
             getDockerPlatform() {
               return 'linux/amd64';
             },
-            loadImageOverrides(imageOverrides, platform) {
-              record('loadImageOverrides', { imageOverrides, platform });
+            loadImageOverrides(imageOverrides, platform, options) {
+              record('loadImageOverrides', { imageOverrides, options, platform });
             },
             preflightReleaseImages() {
               throw new Error('arbitrary bases must not use published release images');
@@ -1856,8 +1856,11 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   assert.deepEqual(
     stackOperations
       .filter(({ operation }) => operation === 'loadImageOverrides')
-      .map(({ role }) => role),
-    ['base', 'head'],
+      .map(({ options, role }) => ({ options, role })),
+    [
+      { options: { removeSourceAfterLoad: true }, role: 'base' },
+      { options: { removeSourceAfterLoad: true }, role: 'head' },
+    ],
   );
   const semanticManifest = JSON.parse(
     fs.readFileSync(path.join(run.runDir, 'semantic-fixtures.json'), 'utf8'),
