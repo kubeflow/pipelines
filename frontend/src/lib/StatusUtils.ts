@@ -148,7 +148,7 @@ export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
       return false;
     default:
       logger.warn('Unknown state:', state);
-      throw new Error('Unexpected runtime state!');
+      return false;
   }
 }
 
@@ -164,7 +164,7 @@ export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: str
     case V2beta1RuntimeState.RUNNING:
       return statusBgColors.running;
     case V2beta1RuntimeState.PAUSED:
-      return statusBgColors.warning;
+      return statusBgColors.notStarted;
     case V2beta1RuntimeState.SUCCEEDED:
       return statusBgColors.succeeded;
     case V2beta1RuntimeState.SKIPPED:

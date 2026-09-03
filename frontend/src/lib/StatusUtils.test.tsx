@@ -243,11 +243,15 @@ describe('StatusUtils', () => {
         expect(hasFinishedV2(state)).toBe(false);
       });
     });
+
+    it('does not throw for undefined state', () => {
+      expect(() => hasFinishedV2(undefined)).not.toThrow();
+    });
   });
 
   describe('statusToBgColorV2', () => {
-    it("returns 'warning' color for PAUSED state", () => {
-      expect(statusToBgColorV2(V2beta1RuntimeState.PAUSED)).toEqual(statusBgColors.warning);
+    it("returns 'notStarted' color for PAUSED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.PAUSED)).toEqual(statusBgColors.notStarted);
     });
 
     it("returns 'running' color for RUNNING state", () => {
