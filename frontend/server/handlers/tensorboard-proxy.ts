@@ -342,7 +342,6 @@ export default function registerTensorboardProxy(
     proxyRoutes,
     createProxyMiddleware({
       changeOrigin: true,
-      logLevel: process.env.NODE_ENV === 'test' ? 'warn' : 'debug',
       target: 'http://127.0.0.1',
       router: (req: any) => {
         const { namespace, viewerName } = req.tensorboardProxy as TensorboardProxyPayload;

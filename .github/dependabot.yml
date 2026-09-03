@@ -65,6 +65,14 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     groups:
+      # @mui/icons-material declares a peer dependency on the matching
+      # @mui/material version, so bumping either one alone leaves the other
+      # outside its peer range and `npm install` fails to resolve. They have to
+      # land together. Listed before npm-dependencies because a dependency
+      # joins the first group whose patterns match.
+      mui:
+        patterns:
+          - "@mui/*"
       # Update a shared package in one PR across all npm projects.
       npm-dependencies:
         group-by: dependency-name
@@ -79,6 +87,7 @@ updates:
       - "/backend/src/apiserver/visualization"
       - "/backend/src/v2/test"
       - "/components/google-cloud"
+      - "/docs"
       - "/docs/sdk"
       - "/kubernetes_platform/python"
       - "/kubernetes_platform/python/docs"

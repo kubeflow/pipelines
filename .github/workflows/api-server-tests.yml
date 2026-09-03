@@ -69,16 +69,16 @@ jobs:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
         proxy: [ "true", "false" ]
-        argo_version: [ "v3.7.17", "v4.0.8" ]
+        argo_version: [ "v3.7.18", "v4.1.2" ]
         pipeline_store: [ "database" ]
         pod_to_pod_tls_enabled: [ "false" ]
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v3.7.17"
+            argo_version: "v3.7.18"
           - k8s_version: "v1.33.12"
             cache_enabled: "true"
-            argo_version: "v4.0.8"
+            argo_version: "v4.1.2"
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
             pod_to_pod_tls_enabled: "true"
@@ -153,7 +153,7 @@ jobs:
         if: ${{ steps.configure.outcome == 'success' }}
         id: test-run
         env:
-          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.0.8' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
+          ARGO_COMPATIBILITY_TESTS: ${{ matrix.argo_version == 'v4.1.2' && matrix.k8s_version == 'v1.36.1' && matrix.cache_enabled == 'true' && matrix.proxy == 'false' && matrix.pod_to_pod_tls_enabled == 'false' }}
         with:
           pipeline_store: ${{ matrix.pipeline_store }}
           cache_enabled: ${{ matrix.cache_enabled }}
@@ -178,7 +178,7 @@ jobs:
         k8s_version: [ "v1.36.1", "v1.33.12" ]
         cache_enabled: [ "true" ]
         uploadPipelinesWithKubernetesClient: [ "true", "false" ]
-        argo_version: [ "v3.7.17", "v4.0.8" ]
+        argo_version: [ "v3.7.18", "v4.1.2" ]
         pipeline_store: [ "kubernetes" ]
       fail-fast: false # So that failure in 1 type of parameterized job does not cause other jobs to terminate prematurely
     name: KFP API Server tests K8s Native API - K8sVersion=${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version }} uploadPipelinesWithKubernetesClient=${{ matrix.uploadPipelinesWithKubernetesClient }}

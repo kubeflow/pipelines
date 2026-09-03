@@ -50,6 +50,7 @@ export interface ListRunsRequest {
   page_size?: number;
   sort_by?: string;
   filter?: string;
+  skip_count?: boolean;
 }
 
 export interface RetryRunRequest {
@@ -343,6 +344,10 @@ export class RunServiceApi extends runtime.BaseAPI {
       queryParameters['filter'] = requestParameters['filter'];
     }
 
+    if (requestParameters['skip_count'] != null) {
+      queryParameters['skip_count'] = requestParameters['skip_count'];
+    }
+
     const headerParameters: runtime.HTTPHeaders = {};
 
     if (this.configuration && this.configuration.apiKey) {
@@ -376,6 +381,7 @@ export class RunServiceApi extends runtime.BaseAPI {
     page_size?: number,
     sort_by?: string,
     filter?: string,
+    skip_count?: boolean,
     initOverrides?: RequestInit | runtime.InitOverrideFunction,
   ): Promise<V2beta1ListRunsResponse> {
     const response = await this.listRunsRaw(
@@ -386,6 +392,7 @@ export class RunServiceApi extends runtime.BaseAPI {
         page_size: page_size,
         sort_by: sort_by,
         filter: filter,
+        skip_count: skip_count,
       },
       initOverrides,
     );

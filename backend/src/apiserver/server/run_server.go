@@ -565,6 +565,7 @@ func (s *RunServer) ListRuns(ctx context.Context, r *apiv2beta1.ListRunsRequest)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
+	opts.SkipCount = r.GetSkipCount()
 	runs, runsCount, nextPageToken, err := s.listRuns(ctx, r.GetPageToken(), int(r.GetPageSize()), r.GetSortBy(), opts, r.GetNamespace(), r.GetExperimentId())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs")

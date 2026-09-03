@@ -42,6 +42,7 @@ const (
 	RbacResourceVerbReportMetrics = "reportMetrics"
 	RbacResourceVerbReadArtifact  = "readArtifact"
 	RbacResourceVerbReport        = "report"
+	RbacResourceVerbUse           = "use"
 )
 
 const (

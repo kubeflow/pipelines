@@ -483,6 +483,32 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	assert.Equal(t, 2, total_size)
 }
 
+func TestListRuns_SkipCount(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
+	opts.SkipCount = true
+
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, -1, totalSize)
+}
+
+func TestListRuns_DoesNotSkipCountByDefault(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// SkipCount left unset (false), matching every caller before this option existed.
+	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
+
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(runs))
+	assert.Equal(t, 3, totalSize)
+}
+
 func TestListRuns_Pagination_Descend(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
@@ -2845,6 +2871,50 @@ func TestRollbackRetryClaim_DoesNotOverwriteCancellation(t *testing.T) {
 	assert.Equal(t, string(model.RuntimeStateCancelling.ToV1()), persistedRun.Conditions)
 	assert.Equal(t, int64(0), persistedRun.FinishedAtInSec)
 	assert.Equal(t, claimGeneration, persistedRun.RetryGeneration)
+}
+
+// Regression: ArchiveExpiredRuns can commit ARCHIVED between RetryRun's
+// pre-check and this claim taking its row lock. The locked read must catch it,
+// otherwise the claim leaves the row PENDING and ARCHIVED at the same time.
+func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-archived-claim",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-archived-claim",
+		DisplayName:  "run-archived-claim",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+	require.Nil(t, runStore.ArchiveRun("run-archived-claim"))
+
+	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", 0, false)
+	require.NotNil(t, claimErr)
+	userError := claimErr.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		"Failed to retry run run-archived-claim as it is archived. Unarchive the run first to allow it to be retried",
+		userError.ExternalMessage())
+
+	unchanged, err := runStore.GetRun("run-archived-claim")
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
+	assert.Equal(t, int64(100), unchanged.FinishedAtInSec)
+	assert.Equal(t, int64(0), unchanged.RetryGeneration)
+	assert.Equal(t, int64(0), unchanged.RetryClaimedAtInSec)
 }
 
 func TestClaimRunForRetry_RunNotFound(t *testing.T) {

@@ -6,7 +6,6 @@ name: CI Scripts Tests
 on:
   pull_request:
     paths:
-      - '.gitattributes'
       - '.github/dependabot.yml'
       - '**/go.mod'
       - '**/package.json'
@@ -35,7 +34,6 @@ on:
       - '.github/workflows/create-manifest.yml'
       - '.github/workflows/e2e-test.yml'
       - '.github/workflows/image-builds.yml'
-      - '.github/workflows/update-dependabot-generated-files.yml'
       - '.github/workflows/validate-generated-files.yml'
       - '.github/workflows/osv-scanner.yml'
       - '.github/workflows/build-tools-images.yml'
