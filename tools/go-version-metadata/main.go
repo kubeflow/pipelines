@@ -18,6 +18,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -283,7 +284,9 @@ func inspect(input request) (response, error) {
 
 func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMetadata, error) {
 	projected := []dockerParserDirectiveMetadata{}
-	if directive, found := detectDockerFrontend(contents); found {
+	if directive, found, err := detectDockerFrontend(contents); err != nil {
+		return nil, err
+	} else if found {
 		projected = append(projected, directive)
 	}
 	directiveParser := parser.DirectiveParser{}
@@ -306,7 +309,7 @@ func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMeta
 	return projected, nil
 }
 
-func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool) {
+func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool, error) {
 	if _, commandLine, locations, found := parser.DetectSyntax([]byte(contents)); found {
 		line := 1
 		if len(locations) > 0 && locations[0].Start.Line > 0 {
@@ -314,7 +317,7 @@ func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool)
 		}
 		return dockerParserDirectiveMetadata{
 			Name: "syntax", Value: commandLine, Line: line,
-		}, true
+		}, true, nil
 	}
 	return compatibleHashSyntaxDirective(contents)
 }
@@ -325,22 +328,30 @@ func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool)
 // the first blank, ordinary comment, unknown directive, indented line, or
 // instruction. Managed files fail closed on this bounded superset so executor
 // upgrades cannot silently select a different frontend.
-func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetadata, bool) {
+func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetadata, bool, error) {
 	contents = strings.TrimPrefix(contents, "\ufeff")
 	lines := strings.Split(contents, "\n")
 	start := 0
 	if len(lines) > 0 && strings.HasPrefix(strings.TrimSuffix(lines[0], "\r"), "#!") {
 		start = 1
 	}
+	seen := map[string]struct{}{}
 	for index := start; index < len(lines); index++ {
-		line := strings.TrimSuffix(lines[index], "\r")
+		rawLine := lines[index]
+		if len(rawLine) >= bufio.MaxScanTokenSize {
+			return dockerParserDirectiveMetadata{}, false, fmt.Errorf(
+				"dockerfile line greater than max allowed size of %d",
+				bufio.MaxScanTokenSize-1,
+			)
+		}
+		line := strings.TrimSuffix(rawLine, "\r")
 		if line == "" || !strings.HasPrefix(line, "#") {
-			return dockerParserDirectiveMetadata{}, false
+			return dockerParserDirectiveMetadata{}, false, nil
 		}
 		body := strings.TrimLeftFunc(line[1:], unicode.IsSpace)
 		nameEnd := 0
 		if len(body) == 0 || !isASCIILetter(body[0]) {
-			return dockerParserDirectiveMetadata{}, false
+			return dockerParserDirectiveMetadata{}, false, nil
 		}
 		for nameEnd < len(body) {
 			character := body[nameEnd]
@@ -352,31 +363,37 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 		name := strings.ToLower(body[:nameEnd])
 		remainder := strings.TrimLeft(body[nameEnd:], " \t\r\f")
 		if !strings.HasPrefix(remainder, "=") {
-			return dockerParserDirectiveMetadata{}, false
+			return dockerParserDirectiveMetadata{}, false, nil
 		}
 		rawValue := remainder[1:]
 		if rawValue == "" {
-			return dockerParserDirectiveMetadata{}, false
+			return dockerParserDirectiveMetadata{}, false, nil
 		}
 		value := trimDockerDirectiveSpace(rawValue)
 		if value == "" {
 			// Newer BuildKit directive grammars distinguish an absent value
-			// from a value containing Docker whitespace. Preserve the latter
-			// so syntax selection remains visible to callers.
-			value = rawValue
+			// from a value containing Docker whitespace. Preserve BuildKit's
+			// single-byte capture so selection stays visible without copying
+			// an arbitrarily large whitespace run into response metadata.
+			value = rawValue[:1]
 		}
 		switch name {
-		case "syntax":
+		case "syntax", "escape", "check":
+			if _, duplicate := seen[name]; duplicate {
+				return dockerParserDirectiveMetadata{}, false, fmt.Errorf(
+					"only one %s parser directive can be used", name)
+			}
+			seen[name] = struct{}{}
+		default:
+			return dockerParserDirectiveMetadata{}, false, nil
+		}
+		if name == "syntax" {
 			return dockerParserDirectiveMetadata{
 				Name: name, Value: value, Line: index + 1,
-			}, true
-		case "escape", "check":
-			continue
-		default:
-			return dockerParserDirectiveMetadata{}, false
+			}, true, nil
 		}
 	}
-	return dockerParserDirectiveMetadata{}, false
+	return dockerParserDirectiveMetadata{}, false, nil
 }
 
 func trimDockerDirectiveSpace(value string) string {
@@ -514,7 +531,11 @@ func resolvedScalar(node *yaml.Node, state *yamlTraversalState) string {
 }
 
 func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
-	if frontend, found := detectDockerFrontend(contents); found {
+	frontend, found, err := detectDockerFrontend(contents)
+	if err != nil {
+		return "invalid", nil, err.Error()
+	}
+	if found {
 		return "unsupported", []dockerCandidate{{
 			Kind: "unsupported-frontend", Value: frontend.Value, Line: frontend.Line,
 		}}, ""

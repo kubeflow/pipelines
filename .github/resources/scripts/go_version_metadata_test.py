@@ -65,7 +65,7 @@ class GoVersionMetadataTest(unittest.TestCase):
                 ('#\u00a0escape=   \n'
                  '#\u00a0syntax=example.com/golang:latest\ncustom payload\n',
                  'example.com/golang:latest', 2),
-                ('#\u00a0syntax=   \ncustom payload\n', '   ', 1)):
+                ('#\u00a0syntax=   \ncustom payload\n', ' ', 1)):
             with self.subTest(contents=contents):
                 result = docker_runtime_classification(contents)
                 self.assertEqual(result['classification'], 'unsupported')
@@ -83,6 +83,37 @@ class GoVersionMetadataTest(unittest.TestCase):
                         'value': value,
                         'line': line,
                     }])
+
+    def test_compatibility_directive_termination_matches_buildkit(self):
+        long_prefix = '#\u00a0check='
+        long_check = long_prefix + 'x' * ((64 * 1024) - len(
+            long_prefix.encode('utf-8')))
+        for contents, expected_error in (
+                ('#\u00a0check=first\n#\u00a0check=second\n'
+                 '#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
+                 'only one check parser directive can be used'),
+                ('#\u00a0escape=\\\n#\u00a0escape=`\n'
+                 '#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
+                 'only one escape parser directive can be used'),
+                (long_check +
+                 '\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
+                 'dockerfile line greater than max allowed size of 65535')):
+            with self.subTest(expected_error=expected_error):
+                result = docker_runtime_classification(contents)
+                self.assertEqual(result['classification'], 'invalid')
+                self.assertIn(expected_error, result['error'])
+                self.assertEqual(result['candidates'], [])
+
+    def test_whitespace_only_frontend_metadata_is_bounded(self):
+        prefix = '#\u00a0syntax=' + ('\t' * (32 * 1024)) + '\n'
+        contents = prefix + ('x' * (
+            go_version_metadata.MAX_METADATA_INPUT_BYTES -
+            len(prefix.encode('utf-8'))))
+        result = docker_runtime_classification(contents)
+        self.assertEqual(result['classification'], 'unsupported')
+        self.assertEqual(result['candidates'][0]['value'], '\t')
+        projection = docker_buildkit_metadata(contents)
+        self.assertEqual(projection['directives'][0]['value'], '\t')
 
     def test_yaml_block_scalars_are_structural(self):
         contents = ('steps:\n'

@@ -48,9 +48,12 @@ newer supported builders. This keeps checker and updater behavior stable when
 the CI executor changes. The compatibility grammar determines whether a value
 is present from the raw bytes after `=` before trimming Docker whitespace:
 an absent value terminates the preamble, while a whitespace-only `check`,
-`escape`, or `syntax` value remains an active directive. An `ONBUILD` payload
-is never managed; payloads that BuildKit forbids, including `ONBUILD FROM`, are
-`invalid`.
+`escape`, or `syntax` value remains an active directive and its semantic value
+is the first whitespace byte, matching BuildKit's capture. A duplicate
+pre-selector `check` or `escape`, or a pre-selector line at or above BuildKit's
+64-KiB scanner boundary, terminates selection as `invalid`; a later selector is
+not inspected. An `ONBUILD` payload is never managed; payloads that BuildKit
+forbids, including `ONBUILD FROM`, are `invalid`.
 
 ## What is a Go source
 
