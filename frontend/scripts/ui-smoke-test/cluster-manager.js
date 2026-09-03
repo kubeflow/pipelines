@@ -63,11 +63,14 @@ const KUBEFLOW_FIRST_PARTY_IMAGE_PREFIXES = Object.freeze([
 // the node can execute an amd64 workload.
 const AMD64_EMULATION_CANARY_IMAGE =
   'docker.io/library/busybox@sha256:b7f3d86d6e84fc17718c48bcde1450807faa2d56704205c697b4bd5df7b9e29f';
-// These are the two amd64-only images in the 2.17.1 platform-agnostic manifests. Keep this list
-// exact and fail closed for other image references: executing a newly encountered foreign-
-// architecture image is a trust decision, not a registry-error fallback.
+// These are the two amd64-only workloads in the 2.17.1 platform-agnostic manifests. The metadata
+// writer remains amd64-only when it is built from source because ml-metadata does not publish the
+// required arm64 wheel. Keep this list exact and fail closed for other image references: executing
+// a newly encountered foreign-architecture image is a trust decision, not a registry-error
+// fallback.
 const MIXED_PLATFORM_WORKLOADS = Object.freeze([
   Object.freeze({
+    component: 'metadata-writer',
     container: 'main',
     deployment: 'metadata-writer',
     image: 'ghcr.io/kubeflow/kfp-metadata-writer:2.17.1',
@@ -432,22 +435,26 @@ function validatePlatform(value, description) {
   return value;
 }
 
-function mixedPlatformWorkloadForImage(image) {
-  return MIXED_PLATFORM_WORKLOADS.find((workload) => workload.image === image) || null;
+function mixedPlatformWorkloadForImage(image, localWorkloads = new Map()) {
+  return (
+    localWorkloads.get(image) ||
+    MIXED_PLATFORM_WORKLOADS.find((workload) => workload.image === image) ||
+    null
+  );
 }
 
-function imagePlatformForNode(image, nodePlatform) {
+function imagePlatformForNode(image, nodePlatform, localWorkloads = new Map()) {
   validatePlatform(nodePlatform, 'Kind node platform');
   if (nodePlatform !== 'linux/arm64') return nodePlatform;
-  return mixedPlatformWorkloadForImage(image)?.platform || nodePlatform;
+  return mixedPlatformWorkloadForImage(image, localWorkloads)?.platform || nodePlatform;
 }
 
-function manifestImagePlan(images, nodePlatform) {
+function manifestImagePlan(images, nodePlatform, localWorkloads = new Map()) {
   validatePlatform(nodePlatform, 'Kind node platform');
   return images.map((image) =>
     Object.freeze({
       image,
-      platform: imagePlatformForNode(image, nodePlatform),
+      platform: imagePlatformForNode(image, nodePlatform, localWorkloads),
     }),
   );
 }
@@ -471,6 +478,8 @@ function createKindStack(config = {}) {
   const defaultRunner = config.runner || run;
   const defaultSpawn = config.spawn || spawn;
   const processes = [];
+  const builtImagePlatforms = new Map();
+  const builtMixedPlatformWorkloads = new Map();
   const loadedImages = new Set();
   const verifiedEmulationPlatforms = new Set();
   let frontendServerProcess = null;
@@ -754,6 +763,17 @@ function createKindStack(config = {}) {
         throw new Error(`Component ${component.name} is missing Docker build metadata.`);
       }
       const image = scopedImageTag(component, tagSuffix);
+      const mixedPlatformWorkload = MIXED_PLATFORM_WORKLOADS.find(
+        (workload) =>
+          workload.component === component.name &&
+          workload.deployment === component.deployment &&
+          workload.container === component.container,
+      );
+      const buildPlatform =
+        platform === 'linux/arm64' && mixedPlatformWorkload
+          ? mixedPlatformWorkload.platform
+          : platform;
+      validatePlatform(buildPlatform, `Build platform for ${component.name}`);
       const buildArguments = componentBuildArguments(component, options.buildMetadata);
       overrides.images[component.name] = image;
       log(`Building ${component.name} as ${image}...`);
@@ -763,7 +783,7 @@ function createKindStack(config = {}) {
           [
             'build',
             '--platform',
-            platform,
+            buildPlatform,
             '--tag',
             image,
             '--file',
@@ -775,8 +795,15 @@ function createKindStack(config = {}) {
         ),
         `Failed to build ${component.name}`,
       );
+      builtImagePlatforms.set(image, buildPlatform);
+      if (buildPlatform !== platform) {
+        builtMixedPlatformWorkloads.set(image, Object.freeze({ ...mixedPlatformWorkload, image }));
+      }
       if (options.load !== false) {
-        saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, platform, { runner });
+        saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, buildPlatform, {
+          nodePlatform: platform,
+          runner,
+        });
       }
       if (component.deployment) {
         overrides.deployments.push({
@@ -803,8 +830,12 @@ function createKindStack(config = {}) {
       if (typeof image !== 'string' || image.length === 0) {
         throw new Error('Local image overrides must contain non-empty image references.');
       }
-      if (loadedImages.has(loadedImageKey(image, platform))) continue;
-      saveAndLoadImage(image, `local-image-${index}`, platform, { runner });
+      const imagePlatform = builtImagePlatforms.get(image) || platform;
+      if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;
+      saveAndLoadImage(image, `local-image-${index}`, imagePlatform, {
+        nodePlatform: platform,
+        runner,
+      });
     }
     return images;
   }
@@ -954,14 +985,14 @@ function createKindStack(config = {}) {
 
   function mixedPlatformPullPolicyOverrides(images, nodePlatform) {
     if (nodePlatform !== 'linux/arm64') return [];
-    const renderedImages = new Set(images);
-    return MIXED_PLATFORM_WORKLOADS.filter((workload) => renderedImages.has(workload.image)).map(
-      (workload) => ({
+    return images
+      .map((image) => mixedPlatformWorkloadForImage(image, builtMixedPlatformWorkloads))
+      .filter((workload) => workload && workload.platform !== nodePlatform)
+      .map((workload) => ({
         container: workload.container,
         deployment: workload.deployment,
         imagePullPolicy: 'IfNotPresent',
-      }),
-    );
+      }));
   }
 
   function manifestContainerImages(manifestContents) {
@@ -1015,7 +1046,7 @@ function createKindStack(config = {}) {
     if (mixedPlatformImages.length === 0) return;
     const containerImages = manifestContainerImages(manifestContents);
     for (const { image } of mixedPlatformImages) {
-      const workload = mixedPlatformWorkloadForImage(image);
+      const workload = mixedPlatformWorkloadForImage(image, builtMixedPlatformWorkloads);
       if (!workload) {
         throw new Error(`Mixed-platform image ${image} does not have an exact reviewed workload.`);
       }
@@ -1083,7 +1114,7 @@ function createKindStack(config = {}) {
         fs.writeFileSync(rendered.renderedPath, configuredManifest);
         manifestContents = configuredManifest;
       }
-      const imagePlan = manifestImagePlan(images, nodePlatform);
+      const imagePlan = manifestImagePlan(images, nodePlatform, builtMixedPlatformWorkloads);
       validateMixedPlatformPullPolicies(manifestContents, imagePlan, nodePlatform);
       return { ...rendered, imagePlan, images, manifestContents };
     } catch (error) {
@@ -1298,7 +1329,7 @@ function createKindStack(config = {}) {
     const runner = stackRunner(options);
     validatePlatform(platform, 'Manifest node platform');
     const images = extractManifestImages(fs.readFileSync(manifestPath, 'utf8'));
-    const imagePlan = manifestImagePlan(images, platform);
+    const imagePlan = manifestImagePlan(images, platform, builtMixedPlatformWorkloads);
     validateMixedPlatformPullPolicies(fs.readFileSync(manifestPath, 'utf8'), imagePlan, platform);
     for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
       if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;

@@ -112,6 +112,8 @@ function renderedManifestWithWorkflowDefaults() {
 function mixedPlatformManifest(options = {}) {
   const pullPolicy = options.pullPolicy ? `\n          imagePullPolicy: ${options.pullPolicy}` : '';
   const metadataWriterDeployment = options.metadataWriterDeployment || 'metadata-writer';
+  const metadataWriterImage =
+    options.metadataWriterImage || 'ghcr.io/kubeflow/kfp-metadata-writer:2.17.1';
   return [
     'apiVersion: apps/v1',
     'kind: Deployment',
@@ -122,7 +124,7 @@ function mixedPlatformManifest(options = {}) {
     '    spec:',
     '      containers:',
     '        - name: main',
-    `          image: ghcr.io/kubeflow/kfp-metadata-writer:2.17.1${pullPolicy}`,
+    `          image: ${metadataWriterImage}${pullPolicy}`,
     '---',
     'apiVersion: apps/v1',
     'kind: Deployment',
@@ -653,6 +655,68 @@ test('arm64 preflight uses exact amd64 workload exceptions and leaves other imag
       },
     ],
   );
+});
+
+test('arm64 source builds keep the metadata writer on its reviewed amd64 workload', async (t) => {
+  const calls = [];
+  let localMetadataWriterImage;
+  let renderedWithPullPolicy;
+  const runner = (command, args, options) => {
+    calls.push({ args, command, options });
+    if (command === 'kubectl' && args[0] === 'kustomize') {
+      const outputPath = args[args.indexOf('--output') + 1];
+      const kustomizationPath = path.join(args[1], 'kustomization.yaml');
+      const pullPolicy = fs.existsSync(kustomizationPath) ? 'IfNotPresent' : undefined;
+      fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+      const manifest = mixedPlatformManifest({
+        metadataWriterImage: localMetadataWriterImage,
+        pullPolicy,
+      });
+      if (pullPolicy) renderedWithPullPolicy = manifest;
+      fs.writeFileSync(outputPath, manifest);
+    }
+    if (
+      command === 'kubectl' &&
+      args.includes('get') &&
+      args.includes('deployments') &&
+      args.some((argument) => argument.startsWith('jsonpath='))
+    ) {
+      return success('metadata-grpc-deployment\nmetadata-writer\nmysql');
+    }
+    return success();
+  };
+  const stack = createTestStack(t, { runner });
+  const revisionRoot = createRevisionRoot(stack);
+  const metadataWriter = COMPONENTS.find((component) => component.name === 'metadata-writer');
+  const driver = COMPONENTS.find((component) => component.name === 'driver');
+
+  const overrides = await stack.buildComponentImages([metadataWriter, driver], revisionRoot, {
+    load: false,
+    platform: 'linux/arm64',
+    tagSuffix: 'head-sha',
+  });
+  localMetadataWriterImage = overrides.images['metadata-writer'];
+
+  const buildPlatform = (component) =>
+    calls.find(
+      ({ args, command }) =>
+        command === 'docker' && args[0] === 'build' && args.includes(component.dockerfile),
+    )?.args[2];
+  assert.equal(buildPlatform(metadataWriter), 'linux/amd64');
+  assert.equal(buildPlatform(driver), 'linux/arm64');
+
+  stack.loadImageOverrides(overrides, 'linux/arm64');
+  const metadataWriterSave = calls.find(
+    ({ args, command }) =>
+      command === 'docker' && args[0] === 'save' && args.at(-1) === localMetadataWriterImage,
+  );
+  assert.deepEqual(metadataWriterSave.args.slice(0, 3), ['save', '--platform', 'linux/amd64']);
+
+  stack.applyKfpManifests(revisionRoot, {
+    imageOverrides: overrides,
+    platform: 'linux/arm64',
+  });
+  assert.match(renderedWithPullPolicy, /imagePullPolicy: IfNotPresent/);
 });
 
 test('manifest overlays resolve resources from canonical paths across directory aliases', (t) => {
