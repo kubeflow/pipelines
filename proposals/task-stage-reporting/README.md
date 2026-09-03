@@ -2,6 +2,10 @@
 
 This proposal adds the ability for running components to report their current stage back to the KFP API server, enabling visibility into long-running tasks.
 
+> [!NOTE]
+> This proposal is built on top of [mlmd removal](../../proposals/12147-mlmd-removal/README.md) and strictly depends on it. 
+
+
 ## Motivation
 
 KFP components can only report status at completion — either success with outputs or failure with an error. For long-running components (large model training, data processing pipelines, multi-step ETL), users have no way to see what the component is currently doing. The only visible states are `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `CACHED`, `SKIPPED`, `CANCELING`, `CANCELED`, and `PAUSED` — none of which convey progress within a running task.
