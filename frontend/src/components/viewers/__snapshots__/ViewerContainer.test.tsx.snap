@@ -17,14 +17,15 @@ exports[`ViewerContainer > renders a viewer of type CONFUSION_MATRIX 1`] = `
         <tr>
           <td>
             <div
-              class="ylabel_fx8icwu"
+              class="ylabel_f1bjr6qr"
+              style="line-height: 79px; min-width: 79px;"
             >
               label
             </div>
           </td>
           <td
-            class="cell_f1i7lfy8"
-            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255);"
+            class="cell_fkzbx8g"
+            style="background-color: rgb(41, 121, 255); color: rgb(255, 255, 255); height: 79px; min-height: 79px; min-width: 79px; width: 79px;"
           >
             <div
               class="overlay_fecblze"

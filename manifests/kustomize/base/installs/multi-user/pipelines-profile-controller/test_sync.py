@@ -101,6 +101,21 @@ ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS,
                                       )
 
 
+def test_allowed_gcs_universe_domains_default_and_override():
+    with mock.patch.dict(os.environ, {"KFP_VERSION": KFP_VERSION}, clear=True):
+        assert get_settings_from_env()["allowed_gcs_universe_domains"] == "googleapis.com"
+
+    with mock.patch.dict(
+            os.environ,
+            {
+                "KFP_VERSION": KFP_VERSION,
+                "ALLOWED_GCS_UNIVERSE_DOMAINS": "googleapis.com,gdc.example",
+            },
+            clear=True):
+        assert get_settings_from_env()["allowed_gcs_universe_domains"] == \
+            "googleapis.com,gdc.example"
+
+
 def generate_image_name(imagename, tag):
     return f"{str(imagename)}:{str(tag)}"
 

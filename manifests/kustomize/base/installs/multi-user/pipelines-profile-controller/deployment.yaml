@@ -65,6 +65,12 @@ spec:
               key: ARTIFACTS_PROXY_ENABLED
               name: pipeline-install-config
               optional: true
+        - name: ALLOWED_GCS_UNIVERSE_DOMAINS
+          valueFrom:
+            configMapKeyRef:
+              key: ALLOWED_GCS_UNIVERSE_DOMAINS
+              name: pipeline-install-config
+              optional: true
         - name: OBJECT_STORE_HOST
           value: seaweedfs
         - name: ARTIFACT_RETENTION_DAYS

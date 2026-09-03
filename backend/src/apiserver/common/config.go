@@ -35,11 +35,17 @@ const (
 	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
 	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
 	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+	MLPipelineGRPCBackoffBaseDelay          string = "ML_PIPELINE_GRPC_BACKOFF_BASE_DELAY"
+	MLPipelineGRPCBackoffMultiplier         string = "ML_PIPELINE_GRPC_BACKOFF_MULTIPLIER"
+	MLPipelineGRPCBackoffJitter             string = "ML_PIPELINE_GRPC_BACKOFF_JITTER"
+	MLPipelineGRPCBackoffMaxDelay           string = "ML_PIPELINE_GRPC_BACKOFF_MAX_DELAY"
+	MLPipelineGRPCMinConnectTimeout         string = "ML_PIPELINE_GRPC_MIN_CONNECT_TIMEOUT"
 	MetadataTLSEnabled                      string = "METADATA_TLS_ENABLED"
 	CaBundleSecretName                      string = "CABUNDLE_SECRET_NAME"
 	CaBundleConfigMapName                   string = "CABUNDLE_CONFIGMAP_NAME"
 	CaBundleKeyName                         string = "CABUNDLE_KEY_NAME"
 	RequireNamespaceForPipelines            string = "REQUIRE_NAMESPACE_FOR_PIPELINES"
+	ListRunsFullViewMaxPageSize             string = "LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE"
 	CompiledPipelineSpecPatch               string = "COMPILED_PIPELINE_SPEC_PATCH"
 	MLPipelineServiceName                   string = "ML_PIPELINE_SERVICE_NAME"
 	MetadataServiceName                     string = "METADATA_SERVICE_NAME"
@@ -228,6 +234,36 @@ func GetTokenReviewAudience() string {
 	return GetStringConfigWithDefault(TokenReviewAudience, DefaultTokenReviewAudience)
 }
 
+// TokenAudienceForRun returns the projected-token audience bound to a single
+// in-flight run. Runtime pods authenticate with this audience so a stolen
+// launcher token cannot authorize API calls against other runs.
+func TokenAudienceForRun(runID string) string {
+	return GetTokenReviewAudience() + TokenAudienceRunPrefix + runID
+}
+
+func GetMLPipelineGRPCBackoffBaseDelay() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffBaseDelay, "")
+}
+
+func GetMLPipelineGRPCBackoffMultiplier() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffMultiplier, "")
+}
+
+func GetMLPipelineGRPCBackoffJitter() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffJitter, "")
+}
+
+func GetMLPipelineGRPCBackoffMaxDelay() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCBackoffMaxDelay, "")
+}
+
+func GetMLPipelineGRPCMinConnectTimeout() string {
+	return GetStringConfigWithDefault(MLPipelineGRPCMinConnectTimeout, "")
+}
+
+// GetMetadataTLSEnabled returns whether metadata TLS is enabled.
+// Keep this getter during the PR 1 extraction so packages that still depend on
+// the MLMD runtime wiring continue to build until PR 2 removes those call sites.
 func GetMetadataTLSEnabled() bool {
 	return GetBoolConfigWithDefault(MetadataTLSEnabled, DefaultMetadataTLSEnabled)
 }

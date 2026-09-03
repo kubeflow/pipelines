@@ -8,8 +8,7 @@ Never edit generated files. Update their source and regenerate them.
 | Pipeline-spec Go | `api/` protos | `make -C api golang` |
 | Kubernetes executor config | `kubernetes_platform/proto/kubernetes_executor_config.proto` | `make -C kubernetes_platform python` |
 | Backend API clients and Swagger | `backend/api/{v1beta1,v2beta1}/*.proto` | `make -C backend/api API_VERSION=<version> generate` |
-| Frontend OpenAPI clients | `backend/api/**/swagger/*.json` | `cd frontend && npm run apis:all` |
-| Frontend MLMD protos | `third_party/ml-metadata/*.proto` | `cd frontend && npm run build:protos` |
+| Frontend OpenAPI clients, including the browser and server ArtifactService clients | `backend/api/**/swagger/*.json` | `cd frontend && npm run apis:all` |
 
 - `api/v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py` is generated but not committed.
 - For backend generator changes, use `USE_PREBUILT_IMAGE=false make -C backend/api API_VERSION=<version> generate`.

@@ -16,6 +16,7 @@ import * as zlib from 'zlib';
 import { PassThrough } from 'stream';
 import { Client as MinioClient } from 'minio';
 import {
+  createArtifactStoreClient,
   createMinioClient,
   isTarball,
   maybeTarball,
@@ -25,21 +26,64 @@ import {
   summarizeDirectoryUnderPrefix,
   MinioClientOptionsWithOptionalSecrets,
   Credentials,
+  TEST_ONLY,
 } from './minio-helper.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { getK8sSecret } from './k8s-helper.js';
 
 vi.mock('minio');
 vi.mock('@aws-sdk/credential-providers');
+vi.mock('./k8s-helper.js', () => ({ getK8sSecret: vi.fn() }));
 
 describe('minio-helper', () => {
   const MockedMinioClient: Mock = MinioClient as any;
   const MockedAuthorizeFn: Mock = vi.fn((x) => undefined);
+  const minioClientDouble = (overrides: Record<string, unknown>) => ({
+    getObject: vi.fn(),
+    listObjectsV2Query: vi.fn(),
+    retryOptions: {},
+    ...overrides,
+  });
+  const transportError = (message: string, code: string = 'ECONNRESET', syscall = 'read') =>
+    TEST_ONLY.markS3TransportError(
+      Object.assign(new Error(message), { code, errno: -104, syscall }),
+    );
 
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
   describe('createMinioClient', () => {
+    it.each([
+      ['', 'secret'],
+      ['access', ''],
+    ])(
+      'fails closed when an explicit provider Secret contains credentials %j / %j',
+      async (accessKey, secretKey) => {
+        vi.mocked(getK8sSecret).mockResolvedValueOnce(accessKey).mockResolvedValueOnce(secretKey);
+
+        await expect(
+          createMinioClient(
+            { endPoint: 'central.example' },
+            's3',
+            JSON.stringify({
+              Provider: 's3',
+              Params: {
+                accessKeyKey: 'access-key',
+                fromEnv: 'false',
+                secretKeyKey: 'secret-key',
+                secretName: 'artifact-store',
+              },
+            }),
+            'team-a',
+          ),
+        ).rejects.toThrow('Provider Secret contains an empty access key or secret key');
+
+        expect(fromNodeProviderChain).not.toHaveBeenCalled();
+        expect(MockedMinioClient).not.toHaveBeenCalled();
+      },
+    );
+
     it('creates a minio client with the provided configs.', async () => {
       const client = await createMinioClient(
         {
@@ -86,18 +130,1076 @@ describe('minio-helper', () => {
       });
     });
 
-    it('fallbacks to the provided configs if EC2 metadata is not available.', async () => {
-      const client = await createMinioClient(
-        {
-          endPoint: 'minio.kubeflow:80',
-        },
-        's3',
+    it('fails closed if authenticated S3 credentials are unavailable.', async () => {
+      await expect(createMinioClient({ endPoint: 'minio.kubeflow:80' }, 's3')).rejects.toThrow(
+        'Unable to resolve AWS credentials',
       );
 
-      expect(client).toBeInstanceOf(MinioClient);
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('applies endpoint and region settings when credentials come from the environment', async () => {
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'https://ceph.example:9443',
+            fromEnv: 'true',
+            region: 'ceph',
+          },
+        }),
+      );
+
       expect(MockedMinioClient).toHaveBeenCalledWith({
-        endPoint: 'minio.kubeflow:80',
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9443,
+        region: 'ceph',
+        secretKey: 'secretkey',
+        useSSL: true,
       });
+    });
+
+    it('uses standard AWS HTTPS for an explicitly empty structured S3 endpoint', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'central.example',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { disableSSL: 'false', endpoint: '', fromEnv: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('applies structured provider retry settings', async () => {
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '5' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        secretKey: 'secretkey',
+      });
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+    });
+
+    it('uses an operation retry budget when structured maxRetries is zero', async () => {
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '0' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        secretKey: 'secretkey',
+      });
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+    });
+
+    it('uses the Go default retry budget when maxRetries is omitted', async () => {
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({ Provider: 'minio', Params: { fromEnv: 'true' } }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        secretKey: 'secretkey',
+      });
+      expect((client as any).retryOptions.maximumRetryCount).toBe(0);
+    });
+
+    it('accepts retry budgets above the frontend safety limit', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '20' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects malformed native endpoint authorities instead of repairing them', async () => {
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'http:///evil.example/base',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('must contain a valid authority');
+
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('rejects backslashes in native endpoint authorities', async () => {
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'http://evil.example\\@trusted.example/base',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('must contain a valid authority');
+
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('uses the secure default when provider info does not specify disableSSL', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'default-store',
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            endpoint: 'https://ceph.example:9443',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9443,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('preserves an explicit HTTP endpoint scheme when disableSSL is false', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'default-store',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'http://ceph.example:9000',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('retains the server TLS setting when provider info does not override the endpoint', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: false,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { disableSSL: 'false', fromEnv: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'minio-service.kubeflow',
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('applies endpoint-less disableSSL=true while inheriting the server endpoint and region', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 'minio-service.kubeflow',
+          region: 'environment-region',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { disableSSL: 'true', fromEnv: 'true', region: '' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'minio-service.kubeflow',
+        region: 'environment-region',
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('supports anonymous virtual-hosted S3 access without resolving credentials', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'environment-access',
+          endPoint: 'default-store',
+          secretKey: 'environment-secret',
+          sessionToken: 'environment-session-token',
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            anonymous: '1',
+            endpoint: 'https://s3.us-west-2.amazonaws.com',
+            forcePathStyle: 'false',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        endPoint: 's3.us-west-2.amazonaws.com',
+        pathStyle: false,
+        port: undefined,
+        useSSL: true,
+      });
+    });
+
+    it('rejects unsupported S3 read options before resolving ambient credentials', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'https://s3.us-west-2.amazonaws.com',
+              fromEnv: 'true',
+              role: 'arn:aws:iam::123456789012:role/ArtifactReader',
+            },
+          }),
+        ),
+      ).rejects.toThrow('Unsupported S3 artifact read option: role');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('accepts valid neutral S3 options that do not change read behavior', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            accelerate: '0',
+            dualstack: 'false',
+            endpoint: 'https://s3.us-west-2.amazonaws.com',
+            fips: 'False',
+            fromEnv: 'true',
+            hostname_immutable: 'FALSE',
+            profile: '',
+            rate_limiter_capacity: '0',
+            request_checksum_calculation: 'when_supported',
+            response_checksum_validation: 'WHEN_SUPPORTED',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it.each([
+      ['profile', 'team-profile'],
+      ['request_checksum_calculation', 'when_required'],
+      ['response_checksum_validation', 'when_required'],
+    ])('rejects unsupported non-neutral S3 option %s', async (option, value) => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'https://s3.us-west-2.amazonaws.com',
+              fromEnv: 'true',
+              [option]: value,
+            },
+          }),
+        ),
+      ).rejects.toThrow(`Unsupported S3 artifact read option: ${option}`);
+    });
+
+    it.each(['', 'invalid'])(
+      'rejects invalid request checksum calculation value %j',
+      async (value) => {
+        await expect(
+          createMinioClient(
+            { endPoint: 's3.amazonaws.com' },
+            's3',
+            JSON.stringify({
+              Provider: 's3',
+              Params: {
+                fromEnv: 'true',
+                request_checksum_calculation: value,
+              },
+            }),
+          ),
+        ).rejects.toThrow('Invalid value for provider option request_checksum_calculation');
+      },
+    );
+
+    it.each([
+      ['ssetype', ''],
+      ['ssetype', 'invalid'],
+      ['kmskeyid', ''],
+    ])('rejects invalid native S3 write option %s=%j', async (option, value) => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: { fromEnv: 'true', [option]: value },
+          }),
+        ),
+      ).rejects.toThrow(option);
+    });
+
+    it('rejects unsupported S3 behavior when its native boolean is enabled', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              accelerate: '1',
+              endpoint: 'https://s3.us-west-2.amazonaws.com',
+              fromEnv: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('Unsupported S3 artifact read option: accelerate');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it('parses an explicit HTTP AWS endpoint into Minio client options', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'http://s3.us-west-2.amazonaws.com',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('applies disableSSL to a scheme-less AWS endpoint', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            disableSSL: 'true',
+            endpoint: 's3.us-west-2.amazonaws.com',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.us-west-2.amazonaws.com',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('applies runtime S3 query aliases', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            disable_https: 'true',
+            endpoint: 'ceph.example:9000',
+            fromEnv: 'true',
+            use_path_style: 'false',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'ceph.example',
+        pathStyle: false,
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('applies endpoint-less disable_https from a native S3 query', async () => {
+      await createMinioClient(
+        {
+          accessKey: 'accesskey',
+          endPoint: 's3.amazonaws.com',
+          secretKey: 'secretkey',
+          useSSL: true,
+        },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { disable_https: 'true', fromEnv: 'true', nativeQuery: 'true' },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        pathStyle: false,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('defaults native custom S3 endpoints to virtual-host addressing', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://store.example/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        pathStyle: false,
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('parses uppercase native HTTPS endpoint schemes', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'HTTPS://store.example:9443/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        pathStyle: false,
+        port: 9443,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('rejects scheme-less endpoints from native S3 queries', async () => {
+      await expect(
+        createMinioClient(
+          { endPoint: 's3.amazonaws.com' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              endpoint: 'store.example:9000',
+              fromEnv: 'true',
+              nativeQuery: 'true',
+            },
+          }),
+        ),
+      ).rejects.toThrow('absolute HTTP(S) URL');
+
+      expect(fromNodeProviderChain).not.toHaveBeenCalled();
+      expect(MockedMinioClient).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['disableSSL', 'true', 'https://store.example:9000', false],
+      ['disableSSL', 'false', 'http://store.example:9000', false],
+      ['disable_https', 'true', 'https://store.example:9000', false],
+      ['disable_https', 'false', 'http://store.example:9000', false],
+    ])(
+      'applies asymmetric TLS precedence for %s=%s and an explicit endpoint',
+      async (option, value, endpoint, expectedUseSSL) => {
+        await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+          's3',
+          JSON.stringify({
+            Provider: 's3',
+            Params: {
+              [option]: value,
+              endpoint,
+              fromEnv: 'true',
+            },
+          }),
+        );
+
+        expect(MockedMinioClient).toHaveBeenCalledWith({
+          accessKey: 'accesskey',
+          endPoint: 'store.example',
+          port: 9000,
+          secretKey: 'secretkey',
+          useSSL: expectedUseSSL,
+        });
+      },
+    );
+
+    it('uses the AWS default credential chain with a custom S3 endpoint', async () => {
+      (fromNodeProviderChain as Mock).mockReturnValueOnce(async () => ({
+        accessKeyId: 'irsa-access-key',
+        secretAccessKey: 'irsa-secret-key',
+        sessionToken: 'irsa-session-token',
+      }));
+
+      await createMinioClient(
+        { endPoint: 's3.amazonaws.com' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://ceph.example:9443/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'irsa-access-key',
+        endPoint: 'ceph.example',
+        pathStyle: false,
+        port: 9443,
+        secretKey: 'irsa-secret-key',
+        sessionToken: 'irsa-session-token',
+        useSSL: true,
+      });
+    });
+
+    it('passes bare IPv6 addresses from native endpoints to MinIO', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'http://[2001:db8::1]:9000/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: '2001:db8::1',
+        pathStyle: false,
+        port: 9000,
+        secretKey: 'secretkey',
+        useSSL: false,
+      });
+    });
+
+    it('preserves endpoint base paths in the path MinIO signs and requests', async () => {
+      const getRequestOptions = vi.fn(() => ({ path: '/bucket/object?versionId=1' }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://store.example/base/path/',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      const requestOptions = (client as any).getRequestOptions({ method: 'GET' });
+      expect(requestOptions.path).toBe('/base/path/bucket/object?versionId=1');
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 'store.example',
+        port: undefined,
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it.each([
+      ['https://store.example/root dir/café', '/root%20dir/caf%C3%A9/bucket/object'],
+      ['https://store.example/base/%2e%2e/inner', '/base/../inner/bucket/object'],
+      ['https://store.example/base/%3F/discarded', '/base/bucket/object'],
+      ['https://store.example/base/%23/discarded', '/base/bucket/object'],
+    ])('preserves the Go request spelling for endpoint path %s', async (endpoint, expectedPath) => {
+      const getRequestOptions = vi.fn(() => ({ path: '/bucket/object' }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({ Provider: 's3', Params: { endpoint, fromEnv: 'true' } }),
+      );
+
+      expect((client as any).getRequestOptions({ method: 'GET' }).path).toBe(expectedPath);
+    });
+
+    it('preserves an explicitly selected global AWS endpoint authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.us-west-2.amazonaws.com' },
+        host: 'bucket.s3.us-west-2.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com/base',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+            region: 'us-west-2',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.amazonaws.com' },
+          host: 'bucket.s3.amazonaws.com',
+          path: '/base/object',
+        }),
+      );
+    });
+
+    it('preserves a virtual-host key matching the bucket across endpoint delimiter truncation', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'mybucket.s3.us-west-2.amazonaws.com' },
+        host: 'mybucket.s3.us-west-2.amazonaws.com',
+        path: '/mybucket/data.csv',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.us-west-2.amazonaws.com/base/%3F/discarded',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'mybucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'mybucket.s3.us-west-2.amazonaws.com' },
+          host: 'mybucket.s3.us-west-2.amazonaws.com',
+          path: '/base/mybucket/data.csv',
+        }),
+      );
+    });
+
+    it('preserves MinIO path-style addressing for dotted HTTPS buckets', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 's3.amazonaws.com' },
+        host: 's3.amazonaws.com',
+        path: '/bucket.with.dot/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+          },
+        }),
+      );
+
+      expect(
+        (client as any).getRequestOptions({ bucketName: 'bucket.with.dot', method: 'GET' }),
+      ).toEqual(
+        expect.objectContaining({
+          headers: { host: 's3.amazonaws.com' },
+          host: 's3.amazonaws.com',
+          path: '/bucket.with.dot/object',
+        }),
+      );
+    });
+
+    it.each([
+      ['https://s3.amazonaws.com:80', 80],
+      ['http://s3.amazonaws.com:443', 443],
+    ])('preserves cross-scheme port in the signed Host for %s', async (endpoint, port) => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.amazonaws.com' },
+        host: 'bucket.s3.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: { endpoint, fromEnv: 'true', nativeQuery: 'true' },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({ headers: { host: `bucket.s3.amazonaws.com:${port}` } }),
+      );
+    });
+
+    it('preserves an explicit China partition S3 authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.cn-northwest-1.amazonaws.com.cn' },
+        host: 'bucket.s3.cn-northwest-1.amazonaws.com.cn',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.cn-north-1.amazonaws.com.cn',
+            fromEnv: 'true',
+            nativeQuery: 'true',
+            region: 'cn-northwest-1',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
+          host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
+        }),
+      );
+    });
+
+    it('preserves a structured China partition S3 authority', async () => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 'bucket.s3.us-east-1.amazonaws.com' },
+        host: 'bucket.s3.us-east-1.amazonaws.com',
+        path: '/object',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.cn-north-1.amazonaws.com.cn/base',
+            fromEnv: 'true',
+            region: 'cn-northwest-1',
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 'bucket', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 'bucket.s3.cn-north-1.amazonaws.com.cn' },
+          host: 'bucket.s3.cn-north-1.amazonaws.com.cn',
+          path: '/base/object',
+        }),
+      );
+    });
+
+    it.each([
+      ['native', 'true'],
+      ['structured', undefined],
+    ])('does not prepend a path-style bucket named s3 for %s endpoints', async (_, nativeQuery) => {
+      const getRequestOptions = vi.fn(() => ({
+        headers: { host: 's3.s3.us-west-2.amazonaws.com' },
+        host: 's3.s3.us-west-2.amazonaws.com',
+        path: '/s3/hello.txt',
+      }));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return minioClientDouble({ getRequestOptions });
+      });
+
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.us-west-2.amazonaws.com/base',
+            forcePathStyle: 'true',
+            fromEnv: 'true',
+            ...(nativeQuery ? { nativeQuery } : {}),
+          },
+        }),
+      );
+
+      expect((client as any).getRequestOptions({ bucketName: 's3', method: 'GET' })).toEqual(
+        expect.objectContaining({
+          headers: { host: 's3.us-west-2.amazonaws.com' },
+          host: 's3.us-west-2.amazonaws.com',
+          path: '/base/s3/hello.txt',
+        }),
+      );
+    });
+
+    it('normalizes structured global AWS endpoints through the standard resolver', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com:9443/base/path',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith({
+        accessKey: 'accesskey',
+        endPoint: 's3.amazonaws.com',
+        secretKey: 'secretkey',
+        useSSL: true,
+      });
+    });
+
+    it('preserves escaped dot segments and encodes path backslashes without repairing them', () => {
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/base/%2e%2e/inner', true)).toEqual(
+        expect.objectContaining({ basePath: '/base/../inner', host: 'store' }),
+      );
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/base\\name/object', true)).toEqual(
+        expect.objectContaining({ basePath: '/base%5Cname/object', host: 'store' }),
+      );
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/root dir/café', true)).toEqual(
+        expect.objectContaining({ basePath: '/root%20dir/caf%C3%A9', host: 'store' }),
+      );
+      expect(
+        TEST_ONLY.parseProviderEndpoint('https://store/%41/%7e/%2f/%3A/raw[bracket]', true),
+      ).toEqual(expect.objectContaining({ basePath: '/A/~///:/raw[bracket]', host: 'store' }));
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/%252e/%252f', true)).toEqual(
+        expect.objectContaining({ basePath: '/%2e/%2f', host: 'store' }),
+      );
+      expect(() => TEST_ONLY.parseProviderEndpoint('https://store/%00', true)).toThrow(
+        'unsupported URL escape',
+      );
+      expect(TEST_ONLY.parseProviderEndpoint('https://store/%FF/%C0%AF/%ED%A0%80', true)).toEqual(
+        expect.objectContaining({ basePath: '/%FF/%C0%AF/%ED%A0%80', host: 'store' }),
+      );
+    });
+
+    it.each([
+      ['%2525', '/%25'],
+      ['%25FF', '/%FF'],
+      ['%253F', '/%3F'],
+    ])('accepts the Go-valid second-layer endpoint escape %s', (path, basePath) => {
+      expect(TEST_ONLY.parseProviderEndpoint(`https://store/${path}`, true)).toEqual(
+        expect.objectContaining({ basePath, host: 'store' }),
+      );
+    });
+
+    it.each(['%25', '%00', '%7F', '%25zz', '%252G'])(
+      'rejects the endpoint path escape %s that Go rejects',
+      (path) => {
+        expect(() => TEST_ONLY.parseProviderEndpoint(`https://store/${path}`, true)).toThrow(
+          'unsupported URL escape',
+        );
+      },
+    );
+
+    it('does not normalize a hostname that merely starts with the standard AWS name', async () => {
+      await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'default-store', secretKey: 'secretkey' },
+        's3',
+        JSON.stringify({
+          Provider: 's3',
+          Params: {
+            endpoint: 'https://s3.amazonaws.com.tenant.example/base',
+            fromEnv: 'true',
+          },
+        }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 's3.amazonaws.com.tenant.example' }),
+      );
+    });
+
+    it('rejects control characters in provider endpoints instead of repairing them', () => {
+      expect(() =>
+        TEST_ONLY.parseProviderEndpoint('https://store.example\t.evil/base', true),
+      ).toThrow('invalid control character');
+      expect(() => TEST_ONLY.parseProviderEndpoint('https://store.example\n/base', true)).toThrow(
+        'invalid control character',
+      );
+    });
+
+    it('rejects malformed endpoint path escapes like Go net/url', () => {
+      expect(() =>
+        TEST_ONLY.parseProviderEndpoint('https://store.example/base/%zz/object', true),
+      ).toThrow('invalid URL escape');
+    });
+
+    it('does not mutate shared defaults when applying per-request provider settings', async () => {
+      const sharedConfig = {
+        accessKey: 'default-access-key',
+        endPoint: 'default-store',
+        port: 9000,
+        secretKey: 'default-secret-key',
+        useSSL: false,
+      };
+
+      await createMinioClient(
+        sharedConfig,
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: {
+            disableSSL: 'false',
+            endpoint: 'https://tenant-store.example:9443',
+            fromEnv: 'true',
+          },
+        }),
+      );
+      await createMinioClient(sharedConfig, 'minio');
+
+      expect(sharedConfig).toEqual({
+        accessKey: 'default-access-key',
+        endPoint: 'default-store',
+        port: 9000,
+        secretKey: 'default-secret-key',
+        useSSL: false,
+      });
+      expect(MockedMinioClient).toHaveBeenNthCalledWith(2, sharedConfig);
     });
 
     it('uses EC2 metadata credentials if access key are not provided.', async () => {
@@ -118,6 +1220,26 @@ describe('minio-helper', () => {
         sessionToken: 'SessionToken',
       });
       expect(MockedMinioClient).toBeCalledTimes(1);
+    });
+
+    it('selects the S3 base configuration inside artifact client creation', async () => {
+      (fromNodeProviderChain as Mock).mockImplementation(
+        () => () =>
+          Promise.resolve({ accessKeyId: 'AccessKeyId', secretAccessKey: 'SecretAccessKey' }),
+      );
+
+      await createArtifactStoreClient(
+        {
+          minio: { endPoint: 'central-minio.example' },
+          s3: { endPoint: 's3.amazonaws.com', useSSL: true },
+        },
+        'minio',
+        JSON.stringify({ Provider: 's3', Params: { fromEnv: 'true' } }),
+      );
+
+      expect(MockedMinioClient).toHaveBeenCalledWith(
+        expect.objectContaining({ endPoint: 's3.amazonaws.com', useSSL: true }),
+      );
     });
 
     it('rewrites configured in-cluster endpoints to local proxy endpoints.', async () => {
@@ -171,6 +1293,356 @@ describe('minio-helper', () => {
         secretKey: 'secretkey',
         useSSL: false,
       });
+    });
+  });
+
+  describe('S3 operation retries', () => {
+    it.each([
+      [0, 3],
+      [5, 5],
+      [20, 10],
+    ])('applies maxRetries=%i to configured client operations', async (maxRetries, attempts) => {
+      vi.useFakeTimers();
+      try {
+        const getObject = vi.fn().mockRejectedValue(transportError('connection reset'));
+        const listObjectsV2Query = vi.fn();
+        MockedMinioClient.mockImplementationOnce(function () {
+          return { getObject, listObjectsV2Query };
+        });
+        const client = await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: String(maxRetries) },
+          }),
+        );
+
+        const request = expect(client.getObject('bucket', 'key')).rejects.toThrow(
+          'connection reset',
+        );
+        await vi.runAllTimersAsync();
+        await request;
+        expect(getObject).toHaveBeenCalledTimes(attempts);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it.each([
+      'EADDRINUSE',
+      'EADDRNOTAVAIL',
+      'ECONNABORTED',
+      'EHOSTDOWN',
+      'EHOSTUNREACH',
+      'ENETDOWN',
+      'ENETUNREACH',
+    ])('retries the Go connection error %s', async (code) => {
+      const operation = vi.fn().mockRejectedValue(transportError(code, code, 'connect'));
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        code,
+      );
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
+    it('uses randomized exponential backoff with the Go twenty-second cap', () => {
+      expect(TEST_ONLY.getS3RetryDelayMs(1, () => 0.25)).toBe(500);
+      expect(TEST_ONLY.getS3RetryDelayMs(4, () => 0.25)).toBe(4_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(5, () => 0.25)).toBe(20_000);
+      expect(TEST_ONLY.getS3RetryDelayMs(9, () => 0.75)).toBe(20_000);
+    });
+
+    it('fails loudly when a required retryable method is unavailable', async () => {
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject: vi.fn() };
+      });
+
+      await expect(
+        createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: '5' },
+          }),
+        ),
+      ).rejects.toThrow('does not expose listObjectsV2Query');
+    });
+
+    it.each([
+      [0, 3],
+      [5, 5],
+    ])('matches Go total-attempt semantics for maxRetries=%i', async (maxRetries, attempts) => {
+      const operation = vi.fn().mockRejectedValue(transportError('connection reset'));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(
+          operation,
+          maxRetries > 0 ? maxRetries : 3,
+          async () => undefined,
+        ),
+      ).rejects.toThrow('connection reset');
+
+      expect(operation).toHaveBeenCalledTimes(attempts);
+    });
+
+    it('does not retry non-retryable object-store failures', async () => {
+      const operation = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('denied'), { code: 'AccessDenied' }));
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 5, async () => undefined)).rejects.toThrow(
+        'denied',
+      );
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let a parsed S3 message impersonate the MinIO retry wrapper', () => {
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          code: 'AccessDenied',
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
+      expect(TEST_ONLY.isRetryableS3Error({ code: 'UnknownError', statusCode: 500 })).toBe(true);
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          code: '',
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
+      expect(
+        TEST_ONLY.isRetryableS3Error({
+          message: 'Request failed after 0 retries: Error: Retryable HTTP status: 500',
+        }),
+      ).toBe(false);
+      ['EAI_FAIL', 'ENOBUFS', 'EINTR', 'ESHUTDOWN'].forEach((code) => {
+        expect(TEST_ONLY.isRetryableS3Error({ code, errno: -1, syscall: 'read' })).toBe(false);
+      });
+      expect(
+        TEST_ONLY.isRetryableS3Error({ code: 'EALREADY', errno: -1, syscall: 'connect' }),
+      ).toBe(false);
+      expect(TEST_ONLY.isRetryableS3Error({ code: 'AccessDenied', status: 500 }, 400)).toBe(false);
+    });
+
+    it.each(['EALREADY', 'ENETRESET', 'ESHUTDOWN', 'ENOBUFS'])(
+      'retries structurally identified dial failure %s',
+      async (code) => {
+        const operation = vi.fn().mockRejectedValue(transportError(code, code, 'connect'));
+
+        await expect(
+          TEST_ONLY.retryS3Operation(operation, 3, async () => undefined),
+        ).rejects.toThrow(code);
+        expect(operation).toHaveBeenCalledTimes(3);
+      },
+    );
+
+    it('does not retry a permanent DNS lookup failure', async () => {
+      const operation = vi.fn().mockRejectedValue(
+        Object.assign(new Error('not found'), {
+          code: 'ENOTFOUND',
+          errno: -3008,
+          syscall: 'getaddrinfo',
+        }),
+      );
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        'not found',
+      );
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['EAI_FAIL', 'getaddrinfo'],
+      ['ENETRESET', 'read'],
+      ['ENOBUFS', 'read'],
+      ['EINTR', 'read'],
+      ['ESHUTDOWN', 'read'],
+    ])('retries transient network failure %s during %s', async (code, syscall) => {
+      const operation = vi.fn().mockRejectedValue(transportError(code, code, syscall));
+
+      await expect(TEST_ONLY.retryS3Operation(operation, 3, async () => undefined)).rejects.toThrow(
+        code,
+      );
+      expect(operation).toHaveBeenCalledTimes(3);
+    });
+
+    it('gives each fallback operation its own attempt budget', async () => {
+      const context = TEST_ONLY.createS3RetryContext(3);
+      const missingObject = vi
+        .fn()
+        .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
+      const failingSummary = vi.fn().mockRejectedValue(transportError('reset'));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(missingObject, context, async () => undefined),
+      ).rejects.toThrow('missing');
+      await expect(
+        TEST_ONLY.retryS3Operation(failingSummary, context, async () => undefined),
+      ).rejects.toThrow('reset');
+
+      expect(missingObject).toHaveBeenCalledTimes(1);
+      expect(failingSummary).toHaveBeenCalledTimes(3);
+    });
+
+    it('gives configured client object and fallback methods independent budgets', async () => {
+      vi.useFakeTimers();
+      try {
+        const getObject = vi
+          .fn()
+          .mockRejectedValue(Object.assign(new Error('missing'), { code: 'NoSuchKey' }));
+        const listObjectsV2Query = vi.fn().mockRejectedValue(transportError('reset'));
+        MockedMinioClient.mockImplementationOnce(function () {
+          return { getObject, listObjectsV2Query };
+        });
+        const client = await createMinioClient(
+          { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+          'minio',
+          JSON.stringify({
+            Provider: 'minio',
+            Params: { fromEnv: 'true', maxRetries: '3' },
+          }),
+        );
+
+        await expect(client.getObject('bucket', 'key')).rejects.toThrow('missing');
+        const fallback = expect(
+          (client as any).listObjectsV2Query('bucket', 'key/', '', 1),
+        ).rejects.toThrow('reset');
+        await vi.runAllTimersAsync();
+        await fallback;
+
+        expect(getObject).toHaveBeenCalledTimes(1);
+        expect(listObjectsV2Query).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('preserves method instrumentation when adding retry behavior', async () => {
+      const stream = new PassThrough();
+      stream.end('artifact');
+      const getObject = vi.fn().mockResolvedValue(stream);
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject, listObjectsV2Query: vi.fn() };
+      });
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+      );
+
+      await expect(client.getObject('bucket', 'key')).resolves.toBe(stream);
+      expect(client.getObject).toHaveBeenCalledTimes(1);
+      expect(client.getObject).toHaveBeenCalledWith('bucket', 'key');
+    });
+
+    it('keeps retry classification local to concurrent operations', async () => {
+      const context = TEST_ONLY.createS3RetryContext(2);
+      const attemptStorage = (
+        context as unknown as {
+          attemptStorage: { getStore: () => { transportStatus?: number } | undefined };
+        }
+      ).attemptStorage;
+      let releaseFirst!: () => void;
+      const firstGate = new Promise<void>((resolve) => (releaseFirst = resolve));
+      let firstStarted!: () => void;
+      const firstStartedPromise = new Promise<void>((resolve) => (firstStarted = resolve));
+      const firstOperation = vi.fn(async () => {
+        if (firstOperation.mock.calls.length === 1) {
+          attemptStorage.getStore()!.transportStatus = 500;
+          firstStarted();
+          await firstGate;
+          throw new Error('server error');
+        }
+        return 'recovered';
+      });
+      const secondOperation = vi.fn(async () => {
+        attemptStorage.getStore()!.transportStatus = 400;
+        throw Object.assign(new Error('denied'), { code: 'AccessDenied' });
+      });
+
+      const firstRequest = TEST_ONLY.retryS3Operation(
+        firstOperation,
+        context,
+        async () => undefined,
+      );
+      await firstStartedPromise;
+      await expect(
+        TEST_ONLY.retryS3Operation(secondOperation, context, async () => undefined),
+      ).rejects.toThrow('denied');
+      releaseFirst();
+
+      await expect(firstRequest).resolves.toBe('recovered');
+      expect(firstOperation).toHaveBeenCalledTimes(2);
+      expect(secondOperation).toHaveBeenCalledTimes(1);
+    });
+
+    it('enforces the request-wide ten-retry ceiling across operations', async () => {
+      const context = TEST_ONLY.createS3RetryContext(10);
+      const firstOperation = vi.fn().mockRejectedValue(transportError('first reset'));
+      const secondOperation = vi.fn().mockRejectedValue(transportError('second reset'));
+      const thirdOperation = vi.fn().mockRejectedValue(transportError('third reset'));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(firstOperation, context, async () => undefined),
+      ).rejects.toThrow('first reset');
+      await expect(
+        TEST_ONLY.retryS3Operation(secondOperation, context, async () => undefined),
+      ).rejects.toThrow('second reset');
+      await expect(
+        TEST_ONLY.retryS3Operation(thirdOperation, context, async () => undefined),
+      ).rejects.toThrow('third reset');
+
+      expect(firstOperation).toHaveBeenCalledTimes(10);
+      expect(secondOperation).toHaveBeenCalledTimes(2);
+      expect(thirdOperation).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not charge successful child reads against the retry ceiling', async () => {
+      const context = TEST_ONLY.createS3RetryContext(10);
+      const operation = vi.fn().mockResolvedValue('object');
+
+      for (let index = 0; index < 20; index++) {
+        await expect(TEST_ONLY.retryS3Operation(operation, context)).resolves.toBe('object');
+      }
+      expect(operation).toHaveBeenCalledTimes(20);
+    });
+
+    it('stops retrying when the artifact HTTP request is aborted', async () => {
+      const abortController = new AbortController();
+      const context = TEST_ONLY.createS3RetryContext(3, abortController.signal);
+      const operation = vi.fn().mockRejectedValue(transportError('reset'));
+
+      await expect(
+        TEST_ONLY.retryS3Operation(operation, context, async () => abortController.abort()),
+      ).rejects.toMatchObject({ name: 'AbortError' });
+      expect(operation).toHaveBeenCalledTimes(1);
+    });
+
+    it('passes request cancellation through a configured MinIO client', async () => {
+      const abortController = new AbortController();
+      const getObject = vi.fn().mockRejectedValue(transportError('reset'));
+      MockedMinioClient.mockImplementationOnce(function () {
+        return { getObject, listObjectsV2Query: vi.fn() };
+      });
+      const client = await createMinioClient(
+        { accessKey: 'accesskey', endPoint: 'store.example', secretKey: 'secretkey' },
+        'minio',
+        JSON.stringify({
+          Provider: 'minio',
+          Params: { fromEnv: 'true', maxRetries: '3' },
+        }),
+        undefined,
+        undefined,
+        abortController.signal,
+      );
+
+      const request = expect(client.getObject('bucket', 'key')).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+      await vi.waitFor(() => expect(getObject).toHaveBeenCalledTimes(1));
+      abortController.abort();
+      await request;
     });
   });
 
@@ -280,6 +1752,23 @@ describe('minio-helper', () => {
       stream.on('finish', () => {
         expect(stream.read().toString().trim()).toBe('hello world');
       });
+    });
+
+    it('destroys the upstream object stream when the request is aborted', async () => {
+      const abortController = new AbortController();
+      const objStream = new PassThrough();
+      const destroy = vi.spyOn(objStream, 'destroy');
+      mockedMinioGetObject.mockResolvedValueOnce(objStream);
+
+      await getObjectStream({
+        bucket: 'bucket',
+        client: minioClient,
+        key: 'key',
+        signal: abortController.signal,
+      });
+      abortController.abort();
+
+      expect(destroy).toHaveBeenCalledWith();
     });
   });
 

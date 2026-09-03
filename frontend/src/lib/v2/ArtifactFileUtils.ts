@@ -1,0 +1,130 @@
+// Copyright 2026 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { V2beta1Artifact } from 'src/apisv2beta1/run';
+import { Apis } from 'src/lib/Apis';
+import WorkflowParser, { StorageService } from 'src/lib/WorkflowParser';
+
+const LAUNCHER_ARTIFACT_SOURCES = new Set<StorageService>([
+  StorageService.GCS,
+  StorageService.MINIO,
+  StorageService.S3,
+]);
+
+function isLauncherArtifactSource(source: StorageService): boolean {
+  return LAUNCHER_ARTIFACT_SOURCES.has(source);
+}
+
+export interface ArtifactFileLocation {
+  path: ReturnType<typeof WorkflowParser.parseStoragePath>;
+  artifactUriQuery?: string;
+}
+
+function decodeArtifactUriKey(key: string, source: StorageService): string {
+  try {
+    // Native artifacts use Go URL parsing in SplitObjectURI: valid escapes are decoded for storage
+    // and malformed raw percent text is rejected. Exact persisted spelling is carried in uriKey.
+    const decodedKey = decodeURIComponent(key);
+    const enforceLauncherPathPolicy = isLauncherArtifactSource(source);
+    const normalizeVolumeDotSegments = source === StorageService.VOLUME;
+    const rejectBackslashes = source === StorageService.HTTP || source === StorageService.HTTPS;
+    const storageKey =
+      enforceLauncherPathPolicy && decodedKey.endsWith('/') ? decodedKey.slice(0, -1) : decodedKey;
+    const segments = storageKey.split('/');
+    if (
+      /%2f/i.test(key) ||
+      (rejectBackslashes && storageKey.includes('\\')) ||
+      (enforceLauncherPathPolicy && /%26/i.test(key)) ||
+      (enforceLauncherPathPolicy && /[?#]/.test(storageKey)) ||
+      (storageKey !== '' &&
+        segments.some(
+          (segment) =>
+            segment === '..' ||
+            // HTTP paths cannot carry dot segments through browser URL normalization without
+            // changing the request target. Volume is the only source with a safe normalization
+            // contract, enforced beneath its mounted root.
+            (!normalizeVolumeDotSegments && segment === '.') ||
+            (enforceLauncherPathPolicy && segment === ''),
+        ))
+    ) {
+      throw new Error(
+        'Artifact URI keys cannot contain empty or relative path segments, encoded separators, query delimiters, or fragment delimiters.',
+      );
+    }
+    return normalizeVolumeDotSegments
+      ? segments.filter((segment) => segment !== '.').join('/')
+      : storageKey;
+  } catch (error) {
+    throw new Error(`Artifact URI key has invalid encoding. Correct the artifact URI: ${error}`, {
+      cause: error,
+    });
+  }
+}
+
+export function parseArtifactFileLocation(uri: string): ArtifactFileLocation {
+  if (uri.includes('#')) {
+    throw new Error(
+      'Artifact URI fragments are not supported. Percent-encode # as %23 when it is part of the artifact path.',
+    );
+  }
+  const queryStart = uri.indexOf('?');
+  const uriWithoutQuery = queryStart < 0 ? uri : uri.slice(0, queryStart);
+  const query = queryStart < 0 ? '' : uri.slice(queryStart + 1);
+  if (queryStart >= 0 && query === '') {
+    throw new Error(
+      'Artifact URIs cannot end with an empty query marker. Remove the trailing ? and retry.',
+    );
+  }
+  const parsedPath = WorkflowParser.parseStoragePath(uriWithoutQuery);
+  const schemeEnd = uriWithoutQuery.indexOf('://');
+  const keyStart = uriWithoutQuery.indexOf('/', schemeEnd + 3);
+  const uriKey = keyStart < 0 ? '' : uriWithoutQuery.slice(keyStart + 1);
+  const isLauncherArtifact = isLauncherArtifactSource(parsedPath.source);
+  if (query && !isLauncherArtifact) {
+    throw new Error(
+      'HTTP and volume artifact URI query strings are not supported. Percent-encode ? as %3F when it is part of the artifact path.',
+    );
+  }
+  const key = decodeArtifactUriKey(uriKey, parsedPath.source);
+  const canonicalUriKey = encodeURI(key);
+  const preserveExactUriKey = isLauncherArtifact
+    ? uriKey !== canonicalUriKey
+    : uriKey !== key || canonicalUriKey !== key;
+  const path = {
+    ...parsedPath,
+    key,
+    keyEncoding: 'storage' as const,
+    ...(preserveExactUriKey ? { uriKey } : {}),
+  };
+  if (!query || !isLauncherArtifact) {
+    return { path };
+  }
+
+  return { path, artifactUriQuery: query };
+}
+
+export async function readArtifactFile(
+  artifact: V2beta1Artifact,
+  namespace?: string,
+): Promise<string> {
+  if (!artifact.uri) {
+    throw new Error('Artifact has no URI. Verify the artifact output location.');
+  }
+  const location = parseArtifactFileLocation(artifact.uri);
+  return await Apis.readFile({
+    path: location.path,
+    namespace: namespace || artifact.namespace,
+    artifactUriQuery: location.artifactUriQuery,
+  });
+}

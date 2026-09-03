@@ -427,7 +427,7 @@ async function runComparison(baseRef, displayPrNumber = '') {
 
   // Step 1: Check port availability (Issue 6)
   tracker.step('Checking port availability...');
-  const portsToCheck = [PORT_MAIN, PORT_PR, clusterManager.FRONTEND_SERVER_PORT, 3002, 9000, 9090];
+  const portsToCheck = [PORT_MAIN, PORT_PR, clusterManager.FRONTEND_SERVER_PORT, 3002, 9000];
   const conflicts = clusterManager.checkPortAvailability(portsToCheck);
   if (conflicts.length > 0) {
     log('Port conflicts detected:', 'error');
@@ -542,9 +542,13 @@ async function runComparison(baseRef, displayPrNumber = '') {
   if (!SKIP_SEED) {
     tracker.step('Seeding test data...');
     try {
-      await seedData({ skipIfExists: true });
+      const seedResult = await seedData({ skipIfExists: true });
+      if (!seedResult.success) {
+        throw new Error(seedResult.error || 'required native artifact seed was not created');
+      }
     } catch (e) {
-      log(`Data seeding failed: ${e.message}`, 'warn');
+      log(`Data seeding failed: ${e.message}`, 'error');
+      return false;
     }
   } else {
     tracker.skip('Seed test data');
@@ -666,8 +670,8 @@ async function runComparison(baseRef, displayPrNumber = '') {
     ? `PR #${displayPrNumber} (${headShaStr})`
     : `HEAD (${headShaStr})`;
 
-  const mainCaptured = await captureScreenshots(PORT_MAIN, mainScreenshots, baseLabel);
-  const prCaptured = await captureScreenshots(PORT_PR, prScreenshots, prLabel);
+  const mainCaptured = await captureScreenshots(PORT_MAIN, mainScreenshots, baseLabel, 'base', false);
+  const prCaptured = await captureScreenshots(PORT_PR, prScreenshots, prLabel, 'head', true);
 
   if (!mainCaptured || !prCaptured) {
     log('Failed to capture screenshots', 'error');
@@ -848,7 +852,13 @@ async function serveBuild(buildDir, port, label, mode = 'static') {
   return true;
 }
 
-async function captureScreenshots(port, outputDir, label) {
+async function captureScreenshots(
+  port,
+  outputDir,
+  label,
+  revision = 'head',
+  requireSeededNativeArtifacts = false,
+) {
   log(`Capturing screenshots for ${label}...`);
   fs.mkdirSync(outputDir, { recursive: true });
 
@@ -860,8 +870,9 @@ async function captureScreenshots(port, outputDir, label) {
     env.UI_SMOKE_VIEWPORTS = VIEWPORTS;
   }
 
+  const requireSeedArg = requireSeededNativeArtifacts ? ' --require-seeded-native-artifacts' : '';
   const result = run(
-    `node "${path.join(SCRIPT_DIR, 'capture-screenshots.js')}" --port ${port} --output "${outputDir}" --label ${shellEscape(label)} --seed-manifest ${shellEscape(SEED_MANIFEST_PATH)}`,
+    `node "${path.join(SCRIPT_DIR, 'capture-screenshots.js')}" --port ${port} --output "${outputDir}" --label ${shellEscape(label)} --revision ${revision} --seed-manifest ${shellEscape(SEED_MANIFEST_PATH)}${requireSeedArg}`,
     { cwd: SCRIPT_DIR, env }
   );
 
@@ -921,7 +932,7 @@ async function runCurrentOnly(mode) {
     }
 
     const prScreenshots = path.join(SCREENSHOTS_DIR, 'pr');
-    const captured = await captureScreenshots(existingPort, prScreenshots, 'current');
+    const captured = await captureScreenshots(existingPort, prScreenshots, 'current', 'head');
 
     if (!captured) {
       log('Failed to capture screenshots', 'error');
@@ -951,7 +962,11 @@ async function runCurrentOnly(mode) {
 
   if ((SEED_DATA || !SKIP_SEED) && mode === 'cluster') {
     log('Seeding test data...');
-    await seedData({ skipIfExists: true });
+    const seedResult = await seedData({ skipIfExists: true });
+    if (!seedResult.success) {
+      log(`Data seeding failed: ${seedResult.error}`, 'error');
+      return false;
+    }
   }
 
   const serverStarted = await serveBuild(buildDir, PORT_PR, 'current', mode);
@@ -961,7 +976,13 @@ async function runCurrentOnly(mode) {
   }
 
   const prScreenshots = path.join(SCREENSHOTS_DIR, 'pr');
-  const captured = await captureScreenshots(PORT_PR, prScreenshots, 'current');
+  const captured = await captureScreenshots(
+    PORT_PR,
+    prScreenshots,
+    'current',
+    'head',
+    mode === 'cluster',
+  );
 
   if (!captured) {
     log('Failed to capture screenshots', 'error');
@@ -997,7 +1018,11 @@ async function runFullComparison(mode) {
 
   if (!SKIP_SEED && mode === 'cluster') {
     log('Seeding test data...');
-    await seedData({ skipIfExists: true });
+    const seedResult = await seedData({ skipIfExists: true });
+    if (!seedResult.success) {
+      log(`Data seeding failed: ${seedResult.error}`, 'error');
+      return false;
+    }
   }
 
   log('Setting up main branch...');
@@ -1030,8 +1055,14 @@ async function runFullComparison(mode) {
   const mainScreenshots = path.join(SCREENSHOTS_DIR, 'main');
   const prScreenshots = path.join(SCREENSHOTS_DIR, 'pr');
 
-  const mainCaptured = await captureScreenshots(PORT_MAIN, mainScreenshots, 'main');
-  const prCaptured = await captureScreenshots(PORT_PR, prScreenshots, 'PR');
+  const mainCaptured = await captureScreenshots(PORT_MAIN, mainScreenshots, 'main', 'base');
+  const prCaptured = await captureScreenshots(
+    PORT_PR,
+    prScreenshots,
+    'PR',
+    'head',
+    mode === 'cluster',
+  );
 
   if (!mainCaptured || !prCaptured) {
     log('Failed to capture screenshots', 'error');

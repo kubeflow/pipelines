@@ -24,10 +24,6 @@
     "path": "/artifacts"
   },
   {
-    "name": "executions",
-    "path": "/executions"
-  },
-  {
     "name": "compare",
     "path": "/compare"
   },

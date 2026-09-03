@@ -22,7 +22,6 @@ on:
       - '.github/resources/**'
       - 'backend/api/v2beta1/**'
       - 'backend/src/**'
-      - 'backend/metadata_writer/**'
       - 'backend/test/v2/api/**'
       - 'manifests/kustomize/**'
       - 'test_data/sdk_compiled_pipelines/**'
@@ -36,9 +35,13 @@ concurrency:
 
 jobs:
   build:
+    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
+    # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

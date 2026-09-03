@@ -84,6 +84,11 @@ type RunServiceListRunsParams struct {
 	// The number of runs to be listed per page. If there are more runs than this
 	// number, the response message will contain a nextPageToken field you can use
 	// to fetch the next page.
+	// If omitted, the server uses its standard default page size.
+	// When `view = FULL`, the server may enforce a lower maximum page size to
+	// limit task hydration cost. By default FULL requests are capped at 100 runs,
+	// and operators can override that cap with
+	// `LIST_RUNS_FULL_VIEW_MAX_PAGE_SIZE`.
 	//
 	// Format: int32
 	PageSize *int32
@@ -108,6 +113,19 @@ type RunServiceListRunsParams struct {
 	// (Example, "name asc" or "id desc"). Ascending by default.
 	SortBy *string
 
+	// View.
+	//
+	// Optional view mode. This field can be used to adjust
+	// how detailed the Run object that is returned will be.
+	//
+	//  - DEFAULT: By default `tasks` field is omitted.
+	// This provides a faster and leaner run object.
+	//  - FULL: This view mode displays all the tasks for this run
+	// with all its fields populated.
+	//
+	// Default: "DEFAULT"
+	View *string
+
 	HTTPClient *http.Client
 
 	inner innerParams
@@ -125,7 +143,18 @@ func (o *RunServiceListRunsParams) WithDefaults() *RunServiceListRunsParams {
 //
 // All values with no default are reset to their zero value.
 func (o *RunServiceListRunsParams) SetDefaults() {
-	// no default values defined for this parameter
+	var (
+		viewDefault = string("DEFAULT")
+	)
+
+	val := RunServiceListRunsParams{
+		View: &viewDefault,
+	}
+
+	val.inner.timeout = o.inner.timeout
+	val.inner.ctx = o.inner.ctx
+	val.HTTPClient = o.HTTPClient
+	*o = val
 }
 
 // WithTimeout adds the timeout to the run service list runs params.
@@ -240,6 +269,17 @@ func (o *RunServiceListRunsParams) WithSortBy(sortBy *string) *RunServiceListRun
 // SetSortBy adds the sortBy to the run service list runs params.
 func (o *RunServiceListRunsParams) SetSortBy(sortBy *string) {
 	o.SortBy = sortBy
+}
+
+// WithView adds the view to the run service list runs params.
+func (o *RunServiceListRunsParams) WithView(view *string) *RunServiceListRunsParams {
+	o.SetView(view)
+	return o
+}
+
+// SetView adds the view to the run service list runs params.
+func (o *RunServiceListRunsParams) SetView(view *string) {
+	o.View = view
 }
 
 // WriteToRequest writes these params to a [runtime.ClientRequest].
@@ -363,6 +403,23 @@ func (o *RunServiceListRunsParams) WriteToRequest(r runtime.ClientRequest, reg s
 		if qSortBy != "" {
 
 			if err := r.SetQueryParam("sort_by", qSortBy); err != nil {
+				return err
+			}
+		}
+	}
+
+	if o.View != nil {
+
+		// query param view
+		var qrView string
+
+		if o.View != nil {
+			qrView = *o.View
+		}
+		qView := qrView
+		if qView != "" {
+
+			if err := r.SetQueryParam("view", qView); err != nil {
 				return err
 			}
 		}

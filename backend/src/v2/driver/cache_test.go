@@ -16,580 +16,457 @@ package driver
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
-	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/v2/driver/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// mockCacheClient implements cacheutils.Client for testing.
-type mockCacheClient struct {
-	getExecutionCacheFunc    func(fingerPrint, pipelineName, namespace string) (string, error)
-	createExecutionCacheFunc func(ctx context.Context, task *api.Task) error
-	generateCacheKeyFunc     func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error)
-	generateFingerPrintFunc  func(cacheKey *cachekey.CacheKey) (string, error)
+func TestGetFingerPrintIsDeterministicForEquivalentPVCSets(t *testing.T) {
+	opts := common.Options{
+		Component: &pipelinespec.ComponentSpec{
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"output1": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+		},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image:   "test-image:latest",
+			Command: []string{"python", "main.py"},
+			Args:    []string{"--flag"},
+		},
+	}
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input1": structpb.NewStringValue("value1"),
+			},
+		},
+	}
+
+	fingerprintA, err := getFingerPrint(opts, executorInput, []string{"pvc-b", "pvc-a", "pvc-b"})
+	require.NoError(t, err)
+	require.NotEmpty(t, fingerprintA)
+
+	fingerprintB, err := getFingerPrint(opts, executorInput, []string{"pvc-a", "pvc-b"})
+	require.NoError(t, err)
+	require.NotEmpty(t, fingerprintB)
+
+	assert.Equal(t, fingerprintA, fingerprintB)
 }
 
-var _ cacheutils.Client = &mockCacheClient{}
-
-func (m *mockCacheClient) GetExecutionCache(fingerPrint, pipelineName, namespace string) (string, error) {
-	if m.getExecutionCacheFunc != nil {
-		return m.getExecutionCacheFunc(fingerPrint, pipelineName, namespace)
+func TestGetFingerPrintIncludesPipelineName(t *testing.T) {
+	baseOpts := common.Options{
+		Component: &pipelinespec.ComponentSpec{
+			OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+				Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+					"output1": {ParameterType: pipelinespec.ParameterType_STRING},
+				},
+			},
+		},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image:   "test-image:latest",
+			Command: []string{"python", "main.py"},
+		},
 	}
-	return "", nil
+	executorInput := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input1": structpb.NewStringValue("value1"),
+			},
+		},
+	}
+
+	optsA := baseOpts
+	optsA.PipelineName = "pipeline-a"
+	fingerprintA, err := getFingerPrint(optsA, executorInput, nil)
+	require.NoError(t, err)
+
+	optsB := baseOpts
+	optsB.PipelineName = "pipeline-b"
+	fingerprintB, err := getFingerPrint(optsB, executorInput, nil)
+	require.NoError(t, err)
+
+	assert.NotEqual(t, fingerprintA, fingerprintB)
 }
 
-func (m *mockCacheClient) CreateExecutionCache(ctx context.Context, task *api.Task) error {
-	if m.createExecutionCacheFunc != nil {
-		return m.createExecutionCacheFunc(ctx, task)
+func TestGetFingerPrintsAndIDReturnsEarlyWhenCachingDisabled(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
 	}
+	opts := &common.Options{
+		CacheDisabled: true,
+		Task: &pipelinespec.PipelineTaskSpec{
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+			},
+		},
+	}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, nil, opts, nil)
+	require.NoError(t, err)
+	assert.Empty(t, fingerprint)
+	assert.Nil(t, task)
+}
+
+func TestGetFingerPrintsAndIDReturnsEarlyWhenExecutionWillNotTrigger(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
+		Condition:     proto.Bool(false),
+	}
+	opts := &common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+			},
+		},
+	}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, nil, opts, nil)
+	require.NoError(t, err)
+	assert.Empty(t, fingerprint)
+	assert.Nil(t, task)
+}
+
+func TestGetFingerPrintsAndIDReturnsEarlyWhenTaskCachingDisabled(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
+	}
+	opts := &common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: false,
+			},
+		},
+	}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, nil, opts, nil)
+	require.NoError(t, err)
+	assert.Empty(t, fingerprint)
+	assert.Nil(t, task)
+}
+
+func TestGetFingerPrintsAndIDReturnsEarlyWhenTaskCachingOptionsMissing(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
+	}
+	opts := &common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{},
+	}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, nil, opts, nil)
+	require.NoError(t, err)
+	assert.Empty(t, fingerprint)
+	assert.Nil(t, task)
+}
+
+func TestGetFingerPrintsAndIDReturnsNilTaskForCacheMissWithoutAPIError(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
+	}
+	opts := &common.Options{
+		Component: &pipelinespec.ComponentSpec{},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image: "test-image",
+		},
+		Task: &pipelinespec.PipelineTaskSpec{
+			TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+			},
+		},
+		Namespace: "default",
+	}
+	api := &fakeCacheLookupAPI{}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, api, opts, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, fingerprint)
+	assert.Nil(t, task)
+}
+
+func TestGetFingerPrintsAndIDUsesFindCachedTask(t *testing.T) {
+	execution := &Execution{
+		ExecutorInput: &pipelinespec.ExecutorInput{},
+	}
+	cachedTask := &apiv2beta1.PipelineTask{
+		TaskId:           "cached-task-id",
+		RunId:            "cached-run-id",
+		CacheFingerprint: "existing-cache-fingerprint",
+		State:            apiv2beta1.PipelineTask_SUCCEEDED,
+	}
+	opts := &common.Options{
+		Component: &pipelinespec.ComponentSpec{},
+		Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+			Image: "test-image",
+		},
+		Task: &pipelinespec.PipelineTaskSpec{
+			TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+			},
+		},
+		Namespace: "default",
+	}
+	api := &fakeCacheLookupAPI{
+		findCachedTaskResponse: &apiv2beta1.FindCachedTaskResponse{
+			Task: cachedTask,
+		},
+	}
+
+	fingerprint, task, err := getFingerPrintsAndID(context.Background(), execution, api, opts, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, fingerprint)
+	require.NotNil(t, task)
+	assert.Equal(t, cachedTask.GetTaskId(), task.GetTaskId())
+	require.NotNil(t, api.findCachedTaskRequest)
+	assert.Equal(t, opts.Namespace, api.findCachedTaskRequest.GetNamespace())
+	assert.Equal(t, fingerprint, api.findCachedTaskRequest.GetCacheFingerprint())
+}
+
+func TestCloneCachedOutputsForTaskRestampsProducers(t *testing.T) {
+	iterationIndex := 3
+	outputs := &apiv2beta1.PipelineTask_InputOutputs{
+		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{
+			{
+				ParameterKey: "result",
+				Producer: &apiv2beta1.IOProducer{
+					TaskName:  "cached-task",
+					Iteration: proto.Int64(0),
+				},
+			},
+		},
+		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{
+			{
+				ArtifactKey: "model",
+				Producer: &apiv2beta1.IOProducer{
+					TaskName:  "cached-task",
+					Iteration: proto.Int64(0),
+				},
+			},
+		},
+	}
+
+	clonedOutputs, err := cloneCachedOutputsForTask(outputs, "current-task", &iterationIndex)
+	require.NoError(t, err)
+	require.NotNil(t, clonedOutputs)
+
+	assert.Equal(t, "current-task", clonedOutputs.GetParameters()[0].GetProducer().GetTaskName())
+	assert.Equal(t, int64(iterationIndex), *clonedOutputs.GetParameters()[0].GetProducer().Iteration)
+	assert.Equal(t, "current-task", clonedOutputs.GetArtifacts()[0].GetProducer().GetTaskName())
+	assert.Equal(t, int64(iterationIndex), *clonedOutputs.GetArtifacts()[0].GetProducer().Iteration)
+
+	assert.Equal(t, "cached-task", outputs.GetParameters()[0].GetProducer().GetTaskName())
+	assert.Equal(t, "cached-task", outputs.GetArtifacts()[0].GetProducer().GetTaskName())
+}
+
+func TestCloneCachedOutputsForTaskNormalizesOutputTypesToCurrentContext(t *testing.T) {
+	loopOutputs := &apiv2beta1.PipelineTask_InputOutputs{
+		Parameters: []*apiv2beta1.PipelineTask_InputOutputs_IOParameter{{
+			ParameterKey: "result",
+			Type:         apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Producer:     &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+		}},
+		Artifacts: []*apiv2beta1.PipelineTask_InputOutputs_IOArtifact{{
+			ArtifactKey: "model",
+			Type:        apiv2beta1.IOType_ITERATOR_OUTPUT,
+			Producer:    &apiv2beta1.IOProducer{TaskName: "cached-task", Iteration: proto.Int64(0)},
+		}},
+	}
+
+	nonLoopOutputs, err := cloneCachedOutputsForTask(loopOutputs, "current-task", nil)
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2beta1.IOType_OUTPUT, nonLoopOutputs.GetArtifacts()[0].GetType())
+
+	iterationIndex := 2
+	loopOutputsRestamped, err := cloneCachedOutputsForTask(loopOutputs, "current-task", &iterationIndex)
+	require.NoError(t, err)
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetParameters()[0].GetType())
+	assert.Equal(t, apiv2beta1.IOType_ITERATOR_OUTPUT, loopOutputsRestamped.GetArtifacts()[0].GetType())
+	assert.Equal(t, int64(iterationIndex), *loopOutputsRestamped.GetParameters()[0].GetProducer().Iteration)
+}
+
+type fakeCacheLookupAPI struct {
+	findCachedTaskRequest  *apiv2beta1.FindCachedTaskRequest
+	findCachedTaskResponse *apiv2beta1.FindCachedTaskResponse
+}
+
+func (f *fakeCacheLookupAPI) GetRun(context.Context, *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) ListRuns(context.Context, *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+	return &apiv2beta1.ListRunsResponse{}, nil
+}
+
+func (f *fakeCacheLookupAPI) CreateTask(context.Context, *apiv2beta1.CreateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) UpdateTask(context.Context, *apiv2beta1.UpdateTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) UpdateTasksBulk(context.Context, *apiv2beta1.UpdateTasksBulkRequest) (*apiv2beta1.UpdateTasksBulkResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) GetTask(context.Context, *apiv2beta1.GetTaskRequest) (*apiv2beta1.PipelineTask, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) ListTasks(context.Context, *apiv2beta1.ListTasksRequest) (*apiv2beta1.ListTasksResponse, error) {
+	return &apiv2beta1.ListTasksResponse{}, nil
+}
+
+func (f *fakeCacheLookupAPI) FindCachedTask(_ context.Context, req *apiv2beta1.FindCachedTaskRequest) (*apiv2beta1.FindCachedTaskResponse, error) {
+	f.findCachedTaskRequest = proto.Clone(req).(*apiv2beta1.FindCachedTaskRequest)
+	if f.findCachedTaskResponse == nil {
+		return &apiv2beta1.FindCachedTaskResponse{}, nil
+	}
+	return proto.Clone(f.findCachedTaskResponse).(*apiv2beta1.FindCachedTaskResponse), nil
+}
+
+func (f *fakeCacheLookupAPI) CreateArtifact(context.Context, *apiv2beta1.CreateArtifactRequest) (*apiv2beta1.Artifact, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) CreateArtifactsBulk(context.Context, *apiv2beta1.CreateArtifactsBulkRequest) (*apiv2beta1.CreateArtifactsBulkResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) ListArtifactsByURI(context.Context, string, string) ([]*apiv2beta1.Artifact, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) ListArtifactTasks(context.Context, *apiv2beta1.ListArtifactTasksRequest) (*apiv2beta1.ListArtifactTasksResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) CreateArtifactTask(context.Context, *apiv2beta1.CreateArtifactTaskRequest) (*apiv2beta1.ArtifactTask, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) CreateArtifactTasks(context.Context, *apiv2beta1.CreateArtifactTasksBulkRequest) (*apiv2beta1.CreateArtifactTasksBulkResponse, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) GetPipelineVersion(context.Context, *apiv2beta1.GetPipelineVersionRequest) (*apiv2beta1.PipelineVersion, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) FetchPipelineSpecFromRun(context.Context, *apiv2beta1.Run) (*structpb.Struct, error) {
+	return nil, nil
+}
+
+func (f *fakeCacheLookupAPI) UpdateStatuses(context.Context, *apiv2beta1.Run, *structpb.Struct, *apiv2beta1.PipelineTask) error {
 	return nil
 }
 
-func (m *mockCacheClient) GenerateCacheKey(
-	inputs *pipelinespec.ExecutorInput_Inputs,
-	outputs *pipelinespec.ExecutorInput_Outputs,
-	outputParametersTypeMap map[string]string,
-	cmdArgs []string, image string,
-	pvcNames []string,
-) (*cachekey.CacheKey, error) {
-	if m.generateCacheKeyFunc != nil {
-		return m.generateCacheKeyFunc(inputs, outputs, outputParametersTypeMap, cmdArgs, image, pvcNames)
+func TestGetFingerPrintUsesCustomCacheKey(t *testing.T) {
+	opts := common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "my-component"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+				CacheKey:    "my-custom-cache-key",
+			},
+		},
 	}
-	return &cachekey.CacheKey{}, nil
+
+	fingerprint, err := getFingerPrint(opts, &pipelinespec.ExecutorInput{}, []string{"ignored-pvc"})
+	require.NoError(t, err)
+	assert.Equal(t, "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e", fingerprint)
 }
 
-func (m *mockCacheClient) GenerateFingerPrint(cacheKey *cachekey.CacheKey) (string, error) {
-	if m.generateFingerPrintFunc != nil {
-		return m.generateFingerPrintFunc(cacheKey)
+func TestGetFingerPrintCustomCacheKeyIgnoresResolvedInputsAndContainerShape(t *testing.T) {
+	baseOpts := common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "my-component"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+				CacheKey:    "my-custom-cache-key",
+			},
+		},
 	}
-	return "mock-fingerprint", nil
+	optsA := baseOpts
+	optsA.Component = &pipelinespec.ComponentSpec{
+		OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
+			Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
+				"output1": {ParameterType: pipelinespec.ParameterType_STRING},
+			},
+		},
+	}
+	optsA.Container = &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "image-a:latest",
+		Command: []string{"python", "main.py"},
+		Args:    []string{"--flag-a"},
+	}
+	inputA := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input1": structpb.NewStringValue("value-a"),
+			},
+		},
+	}
+
+	optsB := baseOpts
+	optsB.Component = &pipelinespec.ComponentSpec{}
+	optsB.Container = &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
+		Image:   "image-b:latest",
+		Command: []string{"python", "other.py"},
+		Args:    []string{"--flag-b"},
+	}
+	inputB := &pipelinespec.ExecutorInput{
+		Inputs: &pipelinespec.ExecutorInput_Inputs{
+			ParameterValues: map[string]*structpb.Value{
+				"input1": structpb.NewStringValue("value-b"),
+			},
+		},
+	}
+
+	fingerprintA, err := getFingerPrint(optsA, inputA, []string{"pvc-a"})
+	require.NoError(t, err)
+	fingerprintB, err := getFingerPrint(optsB, inputB, []string{"pvc-b", "pvc-c"})
+	require.NoError(t, err)
+
+	assert.Equal(t, fingerprintA, fingerprintB)
+	assert.Equal(t, "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e", fingerprintA)
 }
 
-func Test_getFingerPrint(t *testing.T) {
-	tests := []struct {
-		name            string
-		opts            Options
-		executorInput   *pipelinespec.ExecutorInput
-		pvcNames        []string
-		mockClient      *mockCacheClient
-		wantFingerPrint string
-		wantErr         bool
-	}{
-		{
-			name: "basic fingerprint generation",
-			opts: Options{
-				Component: &pipelinespec.ComponentSpec{
-					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
-							"output1": {ParameterType: pipelinespec.ParameterType_STRING},
-						},
-					},
-				},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "test-image:latest",
-					Command: []string{"python", "main.py"},
-					Args:    []string{"--flag"},
-				},
+func TestGetFingerPrintCustomCacheKeyStillScopesByComponent(t *testing.T) {
+	optsA := common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "my-component"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+				CacheKey:    "my-custom-cache-key",
 			},
-			executorInput: &pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{
-						"input1": structpb.NewStringValue("value1"),
-					},
-				},
-			},
-			pvcNames: nil,
-			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
-					assert.Equal(t, "test-image:latest", image)
-					assert.Equal(t, []string{"python", "main.py", "--flag"}, cmdArgs)
-					return &cachekey.CacheKey{}, nil
-				},
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "abc123", nil
-				},
-			},
-			wantFingerPrint: "abc123",
-			wantErr:         false,
 		},
-		{
-			name: "PVC names are deduplicated and sorted",
-			opts: Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image:latest",
-				},
+	}
+	optsB := common.Options{
+		Task: &pipelinespec.PipelineTaskSpec{
+			ComponentRef: &pipelinespec.ComponentRef{Name: "other-component"},
+			CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
+				EnableCache: true,
+				CacheKey:    "my-custom-cache-key",
 			},
-			executorInput: &pipelinespec.ExecutorInput{},
-			pvcNames:      []string{"pvc-b", "pvc-a", "pvc-b", "pvc-c", "pvc-a"},
-			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
-					// Verify PVC names are deduplicated and sorted
-					assert.Equal(t, []string{"pvc-a", "pvc-b", "pvc-c"}, pvcNames)
-					return &cachekey.CacheKey{}, nil
-				},
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "sorted-fingerprint", nil
-				},
-			},
-			wantFingerPrint: "sorted-fingerprint",
-			wantErr:         false,
-		},
-		{
-			name: "empty inputs produce valid fingerprint",
-			opts: Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image:latest",
-				},
-			},
-			executorInput: &pipelinespec.ExecutorInput{},
-			pvcNames:      nil,
-			mockClient: &mockCacheClient{
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "empty-fingerprint", nil
-				},
-			},
-			wantFingerPrint: "empty-fingerprint",
-			wantErr:         false,
-		},
-		{
-			name: "GenerateCacheKey error propagates",
-			opts: Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image:latest",
-				},
-			},
-			executorInput: &pipelinespec.ExecutorInput{},
-			mockClient: &mockCacheClient{
-				generateCacheKeyFunc: func(inputs *pipelinespec.ExecutorInput_Inputs, outputs *pipelinespec.ExecutorInput_Outputs, outputParametersTypeMap map[string]string, cmdArgs []string, image string, pvcNames []string) (*cachekey.CacheKey, error) {
-					return nil, fmt.Errorf("cache key generation failed")
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "GenerateFingerPrint error propagates",
-			opts: Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image:latest",
-				},
-			},
-			executorInput: &pipelinespec.ExecutorInput{},
-			mockClient: &mockCacheClient{
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "", fmt.Errorf("fingerprint generation failed")
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "custom cache key overrides default fingerprint",
-			opts: Options{
-				Task: &pipelinespec.PipelineTaskSpec{
-					ComponentRef: &pipelinespec.ComponentRef{
-						Name: "my-component",
-					},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-						CacheKey:    "my-custom-cache-key",
-					},
-				},
-			},
-			executorInput:   &pipelinespec.ExecutorInput{},
-			pvcNames:        nil,
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e",
-			wantErr:         false,
-		},
-		{
-			name: "custom cache key overrides default fingerprint with differing inputs and configs",
-			opts: Options{
-				Task: &pipelinespec.PipelineTaskSpec{
-					ComponentRef: &pipelinespec.ComponentRef{
-						Name: "my-component",
-					},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-						CacheKey:    "my-custom-cache-key",
-					},
-				},
-				Component: &pipelinespec.ComponentSpec{
-					OutputDefinitions: &pipelinespec.ComponentOutputsSpec{
-						Parameters: map[string]*pipelinespec.ComponentOutputsSpec_ParameterSpec{
-							"output1": {ParameterType: pipelinespec.ParameterType_STRING},
-						},
-					},
-				},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image:   "different-image:v2",
-					Command: []string{"python", "other.py"},
-					Args:    []string{"--other-flag"},
-				},
-			},
-			executorInput: &pipelinespec.ExecutorInput{
-				Inputs: &pipelinespec.ExecutorInput_Inputs{
-					ParameterValues: map[string]*structpb.Value{
-						"input1": structpb.NewStringValue("different-value"),
-					},
-				},
-			},
-			pvcNames:        []string{"some-pvc"},
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e",
-			wantErr:         false,
-		},
-		{
-			name: "custom cache key scopes by component to prevent collision",
-			opts: Options{
-				Task: &pipelinespec.PipelineTaskSpec{
-					ComponentRef: &pipelinespec.ComponentRef{
-						Name: "other-component",
-					},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-						CacheKey:    "my-custom-cache-key",
-					},
-				},
-			},
-			executorInput:   &pipelinespec.ExecutorInput{},
-			pvcNames:        nil,
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "3b3a067cac2d9161742542c6afa8a1291699e27c637dd0d5d66cd8b2bdc5ab76",
-			wantErr:         false,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, err := getFingerPrint(test.opts, test.executorInput, test.mockClient, test.pvcNames)
-			if test.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.wantFingerPrint, fingerPrint)
-			}
-		})
-	}
-}
+	fingerprintA, err := getFingerPrint(optsA, &pipelinespec.ExecutorInput{}, nil)
+	require.NoError(t, err)
+	fingerprintB, err := getFingerPrint(optsB, &pipelinespec.ExecutorInput{}, nil)
+	require.NoError(t, err)
 
-func Test_getFingerPrintsAndID(t *testing.T) {
-	tests := []struct {
-		name            string
-		execution       *Execution
-		opts            *Options
-		mockClient      *mockCacheClient
-		pvcNames        []string
-		wantFingerPrint string
-		wantExecutionID string
-		wantErr         bool
-	}{
-		{
-			name: "caching disabled globally returns empty",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				CacheDisabled: true,
-				Task: &pipelinespec.PipelineTaskSpec{
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-					},
-				},
-			},
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "",
-			wantExecutionID: "",
-			wantErr:         false,
-		},
-		{
-			name: "cache not enabled on task returns empty",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				Task: &pipelinespec.PipelineTaskSpec{
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: false,
-					},
-				},
-			},
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "",
-			wantExecutionID: "",
-			wantErr:         false,
-		},
-		{
-			name: "nil caching options returns empty",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				Task: &pipelinespec.PipelineTaskSpec{},
-			},
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "",
-			wantExecutionID: "",
-			wantErr:         false,
-		},
-		{
-			name: "cache hit returns fingerprint and execution ID",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				Task: &pipelinespec.PipelineTaskSpec{
-					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-					},
-				},
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-			},
-			mockClient: &mockCacheClient{
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "fingerprint-123", nil
-				},
-				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-					assert.Equal(t, "fingerprint-123", fingerPrint)
-					assert.Equal(t, "pipeline/my-pipeline", pipelineName)
-					assert.Equal(t, "default", namespace)
-					return "cached-exec-456", nil
-				},
-			},
-			wantFingerPrint: "fingerprint-123",
-			wantExecutionID: "cached-exec-456",
-			wantErr:         false,
-		},
-		{
-			name: "cache miss returns fingerprint with empty execution ID",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				Task: &pipelinespec.PipelineTaskSpec{
-					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-					},
-				},
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-			},
-			mockClient: &mockCacheClient{
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "fingerprint-789", nil
-				},
-				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-					return "", nil
-				},
-			},
-			wantFingerPrint: "fingerprint-789",
-			wantExecutionID: "",
-			wantErr:         false,
-		},
-		{
-			name: "execution will not trigger returns empty",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-				Condition:     proto.Bool(false),
-			},
-			opts: &Options{
-				Task: &pipelinespec.PipelineTaskSpec{
-					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-					},
-				},
-			},
-			mockClient:      &mockCacheClient{},
-			wantFingerPrint: "",
-			wantExecutionID: "",
-			wantErr:         false,
-		},
-		{
-			name: "GetExecutionCache error propagates",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				Component: &pipelinespec.ComponentSpec{},
-				Container: &pipelinespec.PipelineDeploymentConfig_PipelineContainerSpec{
-					Image: "test-image",
-				},
-				Task: &pipelinespec.PipelineTaskSpec{
-					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-					},
-				},
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-			},
-			mockClient: &mockCacheClient{
-				generateFingerPrintFunc: func(cacheKey *cachekey.CacheKey) (string, error) {
-					return "fingerprint-error-test", nil
-				},
-				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-					return "", fmt.Errorf("cache server unavailable")
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "custom cache key in getFingerPrintsAndID",
-			execution: &Execution{
-				ExecutorInput: &pipelinespec.ExecutorInput{},
-			},
-			opts: &Options{
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-				Task: &pipelinespec.PipelineTaskSpec{
-					TaskInfo: &pipelinespec.PipelineTaskInfo{Name: "my-task"},
-					ComponentRef: &pipelinespec.ComponentRef{
-						Name: "my-component",
-					},
-					CachingOptions: &pipelinespec.PipelineTaskSpec_CachingOptions{
-						EnableCache: true,
-						CacheKey:    "custom-key",
-					},
-				},
-			},
-			mockClient: &mockCacheClient{
-				getExecutionCacheFunc: func(fingerPrint, pipelineName, namespace string) (string, error) {
-					assert.Equal(t, "7a5348ebd8b216ba326ef72a8cfa070636c903428e429684b03e42dd1e772641", fingerPrint)
-					return "cached-exec-999", nil
-				},
-			},
-			wantFingerPrint: "7a5348ebd8b216ba326ef72a8cfa070636c903428e429684b03e42dd1e772641",
-			wantExecutionID: "cached-exec-999",
-			wantErr:         false,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			fingerPrint, cachedExecutionID, err := getFingerPrintsAndID(test.execution, test.opts, test.mockClient, test.pvcNames)
-			if test.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, test.wantFingerPrint, fingerPrint)
-				assert.Equal(t, test.wantExecutionID, cachedExecutionID)
-			}
-		})
-	}
-}
-
-func Test_createCache(t *testing.T) {
-	tests := []struct {
-		name        string
-		execution   *metadata.Execution
-		opts        *Options
-		fingerPrint string
-		mockClient  *mockCacheClient
-		wantErr     bool
-	}{
-		{
-			name:      "successful cache creation",
-			execution: metadata.NewExecution(&pb.Execution{Id: proto.Int64(123)}),
-			opts: &Options{
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-				RunID:        "run-001",
-			},
-			fingerPrint: "fingerprint-abc",
-			mockClient: &mockCacheClient{
-				createExecutionCacheFunc: func(ctx context.Context, task *api.Task) error {
-					assert.Equal(t, "pipeline/my-pipeline", task.PipelineName)
-					assert.Equal(t, "default", task.Namespace)
-					assert.Equal(t, "run-001", task.RunId)
-					assert.Equal(t, "123", task.MlmdExecutionID)
-					assert.Equal(t, "fingerprint-abc", task.Fingerprint)
-					return nil
-				},
-			},
-			wantErr: false,
-		},
-		{
-			// nil execution is handled gracefully by Execution.GetID() returning 0,
-			// which triggers the "execution ID is 0" error path.
-			name:      "nil execution returns error",
-			execution: nil,
-			opts: &Options{
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-				RunID:        "run-001",
-			},
-			fingerPrint: "fingerprint-nil",
-			mockClient:  &mockCacheClient{},
-			wantErr:     true,
-		},
-		{
-			name:      "error when execution ID is 0",
-			execution: metadata.NewExecution(&pb.Execution{Id: proto.Int64(0)}),
-			opts: &Options{
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-				RunID:        "run-001",
-			},
-			fingerPrint: "fingerprint-abc",
-			mockClient:  &mockCacheClient{},
-			wantErr:     true,
-		},
-		{
-			name:      "CreateExecutionCache error propagates",
-			execution: metadata.NewExecution(&pb.Execution{Id: proto.Int64(456)}),
-			opts: &Options{
-				PipelineName: "my-pipeline",
-				Namespace:    "default",
-				RunID:        "run-001",
-			},
-			fingerPrint: "fingerprint-def",
-			mockClient: &mockCacheClient{
-				createExecutionCacheFunc: func(ctx context.Context, task *api.Task) error {
-					return fmt.Errorf("rpc error: connection refused")
-				},
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			err := createCache(
-				context.Background(),
-				test.execution,
-				test.opts,
-				1000,
-				test.fingerPrint,
-				test.mockClient,
-			)
-			if test.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+	assert.Equal(t, "ad05e747b67b95e4fc4ce080cdb5850f89744360a85753b90a1a434d46dedd2e", fingerprintA)
+	assert.Equal(t, "3b3a067cac2d9161742542c6afa8a1291699e27c637dd0d5d66cd8b2bdc5ab76", fingerprintB)
+	assert.NotEqual(t, fingerprintA, fingerprintB)
 }

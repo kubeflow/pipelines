@@ -52,7 +52,10 @@ class V2beta1Run(object):
         'recurring_run_id': 'str',
         'state_history': 'list[V2beta1RuntimeStatus]',
         'plugins_input': 'dict(str, object)',
-        'plugins_output': 'dict(str, V2beta1PluginOutput)'
+        'plugins_output': 'dict(str, V2beta1PluginOutput)',
+        'pipeline_reference': 'V2beta1PipelineVersionReference',
+        'task_count': 'int',
+        'tasks': 'list[V2beta1PipelineTask]'
     }
 
     attribute_map = {
@@ -75,10 +78,13 @@ class V2beta1Run(object):
         'recurring_run_id': 'recurring_run_id',
         'state_history': 'state_history',
         'plugins_input': 'plugins_input',
-        'plugins_output': 'plugins_output'
+        'plugins_output': 'plugins_output',
+        'pipeline_reference': 'pipeline_reference',
+        'task_count': 'task_count',
+        'tasks': 'tasks'
     }
 
-    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, experiment_id=None, run_id=None, display_name=None, storage_state=None, description=None, pipeline_version_id=None, pipeline_spec=None, pipeline_version_reference=None, runtime_config=None, service_account=None, created_at=None, scheduled_at=None, finished_at=None, state=None, error=None, run_details=None, recurring_run_id=None, state_history=None, plugins_input=None, plugins_output=None, pipeline_reference=None, task_count=None, tasks=None, local_vars_configuration=None):  # noqa: E501
         """V2beta1Run - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -104,6 +110,9 @@ class V2beta1Run(object):
         self._state_history = None
         self._plugins_input = None
         self._plugins_output = None
+        self._pipeline_reference = None
+        self._task_count = None
+        self._tasks = None
         self.discriminator = None
 
         if experiment_id is not None:
@@ -146,6 +155,12 @@ class V2beta1Run(object):
             self.plugins_input = plugins_input
         if plugins_output is not None:
             self.plugins_output = plugins_output
+        if pipeline_reference is not None:
+            self.pipeline_reference = pipeline_reference
+        if task_count is not None:
+            self.task_count = task_count
+        if tasks is not None:
+            self.tasks = tasks
 
     @property
     def experiment_id(self):
@@ -594,6 +609,69 @@ class V2beta1Run(object):
         """
 
         self._plugins_output = plugins_output
+
+    @property
+    def pipeline_reference(self):
+        """Gets the pipeline_reference of this V2beta1Run.  # noqa: E501
+
+
+        :return: The pipeline_reference of this V2beta1Run.  # noqa: E501
+        :rtype: V2beta1PipelineVersionReference
+        """
+        return self._pipeline_reference
+
+    @pipeline_reference.setter
+    def pipeline_reference(self, pipeline_reference):
+        """Sets the pipeline_reference of this V2beta1Run.
+
+
+        :param pipeline_reference: The pipeline_reference of this V2beta1Run.  # noqa: E501
+        :type pipeline_reference: V2beta1PipelineVersionReference
+        """
+
+        self._pipeline_reference = pipeline_reference
+
+    @property
+    def task_count(self):
+        """Gets the task_count of this V2beta1Run.  # noqa: E501
+
+
+        :return: The task_count of this V2beta1Run.  # noqa: E501
+        :rtype: int
+        """
+        return self._task_count
+
+    @task_count.setter
+    def task_count(self, task_count):
+        """Sets the task_count of this V2beta1Run.
+
+
+        :param task_count: The task_count of this V2beta1Run.  # noqa: E501
+        :type task_count: int
+        """
+
+        self._task_count = task_count
+
+    @property
+    def tasks(self):
+        """Gets the tasks of this V2beta1Run.  # noqa: E501
+
+
+        :return: The tasks of this V2beta1Run.  # noqa: E501
+        :rtype: list[V2beta1PipelineTask]
+        """
+        return self._tasks
+
+    @tasks.setter
+    def tasks(self, tasks):
+        """Sets the tasks of this V2beta1Run.
+
+
+        :param tasks: The tasks of this V2beta1Run.  # noqa: E501
+        :type tasks: list[V2beta1PipelineTask]
+        """
+
+        self._tasks = tasks
 
     def to_dict(self):
         """Returns the model properties as a dict"""

@@ -55,6 +55,7 @@ def get_settings_from_env(controller_port=None,
                           frontend_tag=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
+                          allowed_gcs_universe_domains=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None):
@@ -82,6 +83,10 @@ def get_settings_from_env(controller_port=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+
+    settings["allowed_gcs_universe_domains"] = \
+        allowed_gcs_universe_domains if allowed_gcs_universe_domains is not None \
+            else os.environ.get("ALLOWED_GCS_UNIVERSE_DOMAINS", "googleapis.com")
 
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
@@ -117,6 +122,7 @@ def server_factory(frontend_image,
                    artifact_retention_days,
                    cluster_domain=".svc.cluster.local",
                    object_store_host="seaweedfs",
+                   allowed_gcs_universe_domains="googleapis.com",
                    url="",
                    controller_port=8080):
     """
@@ -266,7 +272,7 @@ def server_factory(frontend_image,
             desired_status = {
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
-                    len(attachments["ConfigMap.v1"]) == 3 and
+                    len(attachments["ConfigMap.v1"]) == 2 and
                     len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
@@ -284,19 +290,6 @@ def server_factory(frontend_image,
                     "data": {
                         "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
                         "clusterDomain": cluster_domain,
-                    },
-                },
-                {
-                    "apiVersion": "v1",
-                    "kind": "ConfigMap",
-                    "metadata": {
-                        "name": "metadata-grpc-configmap",
-                        "namespace": namespace,
-                    },
-                    "data": {
-                        "METADATA_GRPC_SERVICE_HOST":
-                            "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT": "8080",
                     },
                 },
                 {
@@ -404,6 +397,10 @@ def server_factory(frontend_image,
                                             {
                                                 "name": "CLUSTER_DOMAIN",
                                                 "value": cluster_domain,
+                                            },
+                                            {
+                                                "name": "ALLOWED_GCS_UNIVERSE_DOMAINS",
+                                                "value": allowed_gcs_universe_domains,
                                             }
                                         ],
                                         "resources": {

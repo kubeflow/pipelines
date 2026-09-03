@@ -55,7 +55,6 @@ interface PagedTableState {
 
 class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   private _shrinkThreshold = 600;
-  private _config = this.props.configs[0];
   private _rowHeight = 30;
 
   private _css = stylesheet({
@@ -93,12 +92,15 @@ class PagedTable extends Viewer<PagedTableProps, PagedTableState> {
   }
 
   public render(): React.JSX.Element | null {
-    if (!this._config) {
+    const config = this.props.configs[0];
+    if (!config) {
       return null;
     }
 
-    const { data, labels } = this._config;
-    const { order, orderBy, rowsPerPage, page } = this.state;
+    const { data, labels } = config;
+    const { order, orderBy, rowsPerPage } = this.state;
+    const lastPage = Math.max(0, Math.ceil(data.length / rowsPerPage) - 1);
+    const page = Math.min(this.state.page, lastPage);
     const emptyRows = rowsPerPage - Math.min(rowsPerPage, data.length - page * rowsPerPage);
 
     return (

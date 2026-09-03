@@ -14,195 +14,667 @@
  * limitations under the License.
  */
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { dump, loadAll } from 'js-yaml';
+import {
+  ArtifactArtifactType,
+  PipelineTaskTaskPodType,
+  PipelineTaskTaskState,
+  PipelineTaskTaskType,
+  V2beta1PipelineTask,
+} from 'src/apisv2beta1/run';
+import {
+  getTaskDetailsFields,
+  getLogsInfo,
+  LOGS_BANNER_ADDITIONAL_INFO,
+  LOGS_BANNER_MESSAGE,
+  LOGS_DETAILS,
+  RuntimeNodeDetailsV2,
+} from 'src/components/tabs/RuntimeNodeDetailsV2';
+import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
 import { Apis } from 'src/lib/Apis';
-import * as mlmdUtils from 'src/mlmd/MlmdUtils';
+import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
+import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import { testBestPractices } from 'src/TestUtils';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
-import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
-import { Execution, Value } from 'src/third_party/mlmd';
-import TestUtils from 'src/TestUtils';
-import v2PvcYamlString from 'src/data/test/create_mount_delete_dynamic_pvc.yaml?raw';
-import { dump, loadAll } from 'js-yaml';
+import { PlotType } from 'src/components/viewers/Viewer';
 
-const V2_PVC_YAML_STRING = v2PvcYamlString;
-// The templateStr used in RuntimeNodeDetailsV2 is not directly from yaml file.
-// Instead, it is from BE (already been processed).
-const V2_PVC_TEMPLATE_STRING_OBJ = {
-  pipeline_spec: loadAll(V2_PVC_YAML_STRING)[0],
-  platform_spec: loadAll(V2_PVC_YAML_STRING)[1],
-};
-const V2_PVC_TEMPLATE_STRING = dump(V2_PVC_TEMPLATE_STRING_OBJ);
+const V2_PVC_TEMPLATE_STRING = dump({
+  pipeline_spec: loadAll(v2PvcYamlString)[0],
+  platform_spec: loadAll(v2PvcYamlString)[1],
+});
 
 testBestPractices();
 
 describe('RuntimeNodeDetailsV2', () => {
   const TEST_RUN_ID = 'test-run-id';
-  const TEST_EXECUTION = new Execution();
-  const TEST_EXECUTION_NAME = 'test-execution-name';
-  const TEST_EXECUTION_ID = 123;
+  const TEST_TASK_ID = 'test-task-id';
   const TEST_POD_NAME = 'test-pod-name';
   const TEST_NAMESPACE = 'kubeflow';
-  const TSET_MLMD_INFO: NodeMlmdInfo = {
-    execution: TEST_EXECUTION,
-  };
   const TEST_LOG_VIEW_ID = 'logs-view-window';
 
-  beforeEach(() => {
-    vi.spyOn(mlmdUtils, 'getArtifactTypes').mockResolvedValue([]);
-    vi.spyOn(mlmdUtils, 'getLinkedArtifactsByExecution').mockResolvedValue([]);
-    TEST_EXECUTION.setId(TEST_EXECUTION_ID);
-    TEST_EXECUTION.getCustomPropertiesMap().set(
-      'task_name',
-      new Value().setStringValue(TEST_EXECUTION_NAME),
-    );
-    TEST_EXECUTION.getCustomPropertiesMap().set(
-      'pod_name',
-      new Value().setStringValue(TEST_POD_NAME),
-    );
-    TEST_EXECUTION.getCustomPropertiesMap().set(
-      'namespace',
-      new Value().setStringValue(TEST_NAMESPACE),
-    );
-  });
+  afterEach(() => vi.useRealTimers());
 
-  it('shows error when failing to get logs details', async () => {
-    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
-    TestUtils.makeErrorResponseOnce(getPodLogsSpy, 'Failed to retrieve pod logs');
-    // Also mock MLMD artifact retrieval to fail since it's used as fallback
-    const getLinkedArtifactsSpy = vi.spyOn(mlmdUtils, 'getLinkedArtifactsByExecution');
-    getLinkedArtifactsSpy.mockRejectedValueOnce(new Error('MLMD unavailable'));
-    render(
+  const executionElement = {
+    data: { label: 'preprocess' },
+    id: 'task.preprocess',
+    position: { x: 100, y: 100 },
+    type: 'EXECUTION',
+  } as const;
+
+  function createTask(overrides: Partial<V2beta1PipelineTask> = {}): V2beta1PipelineTask {
+    return {
+      task_id: TEST_TASK_ID,
+      run_id: TEST_RUN_ID,
+      name: 'preprocess',
+      display_name: 'Preprocess',
+      type: PipelineTaskTaskType.RUNTIME,
+      state: PipelineTaskTaskState.SUCCEEDED,
+      create_time: new Date('2026-08-11T12:00:00Z'),
+      pods: [{ name: TEST_POD_NAME, type: PipelineTaskTaskPodType.EXECUTOR }],
+      ...overrides,
+    };
+  }
+
+  function renderTask(task: V2beta1PipelineTask, extraProps: Record<string, unknown> = {}) {
+    return render(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
+          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
-          element={{
-            data: {
-              label: 'preprocess',
-            },
-            id: 'task.preprocess',
-            position: { x: 100, y: 100 },
-            type: 'EXECUTION',
-          }}
-          elementMlmdInfo={TSET_MLMD_INFO}
-          namespace={undefined}
-        ></RuntimeNodeDetailsV2>
+          element={executionElement}
+          elementRuntimeInfo={{ task }}
+          namespace={TEST_NAMESPACE}
+          {...extraProps}
+        />
       </CommonTestWrapper>,
     );
+  }
 
-    const logsTab = await screen.findByText('Logs');
-    fireEvent.click(logsTab); // Switch logs tab
+  it('shows an error when pod logs and the native artifact fallback are unavailable', async () => {
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockRejectedValue(new Error('Failed to retrieve pod logs'));
+    renderTask(createTask());
 
-    await waitFor(() => {
-      expect(getPodLogsSpy).toHaveBeenCalled();
-    });
+    fireEvent.click(await screen.findByText('Logs'));
 
-    await waitFor(() => {
-      screen.getByText('Failed to retrieve pod logs.');
-    });
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalled());
+    await screen.findByText('Failed to retrieve pod logs.');
   });
 
-  it('displays logs details on side panel of execution node', async () => {
-    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
-    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
-    render(
-      <CommonTestWrapper>
-        <RuntimeNodeDetailsV2
-          layers={['root']}
-          onLayerChange={(layers) => {}}
-          runId={TEST_RUN_ID}
-          element={{
-            data: {
-              label: 'preprocess',
-            },
-            id: 'task.preprocess',
-            position: { x: 100, y: 100 },
-            type: 'EXECUTION',
-          }}
-          elementMlmdInfo={TSET_MLMD_INFO}
-          namespace={undefined}
-        ></RuntimeNodeDetailsV2>
-      </CommonTestWrapper>,
+  it('displays pod logs on the execution side panel', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('test-logs-details');
+    renderTask(createTask());
+
+    fireEvent.click(await screen.findByText('Logs'));
+
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalled());
+    await screen.findByTestId(TEST_LOG_VIEW_ID);
+  });
+
+  it('retrieves pod logs without an experiment namespace', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('test-logs-details');
+
+    const logsInfo = await getLogsInfo(createTask(), TEST_RUN_ID);
+
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('test-logs-details');
+    expect(getPodLogsSpy).toHaveBeenCalledWith(TEST_RUN_ID, TEST_POD_NAME, '', '2026-08-11');
+  });
+
+  it('falls back to explicitly labeled driver logs when executor output is unavailable', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('driver diagnostics');
+
+    const logsInfo = await getLogsInfo(
+      createTask({ pods: [{ name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER }] }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
     );
 
-    const logsTab = await screen.findByText('Logs');
-    fireEvent.click(logsTab); // Switch logs tab
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      'driver-pod',
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('driver diagnostics');
+    expect(logsInfo.get(LOGS_BANNER_MESSAGE)).toBe(
+      'Showing driver initialization logs. These are not component executor output logs.',
+    );
+  });
 
-    await waitFor(() => {
-      expect(getPodLogsSpy).toHaveBeenCalled();
-    });
+  it('shows the driver-log label alongside driver diagnostics', async () => {
+    vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('driver diagnostics');
+    renderTask(
+      createTask({ pods: [{ name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER }] }),
+    );
 
+    fireEvent.click(await screen.findByText('Logs'));
+
+    await screen.findByText(
+      'Showing driver initialization logs. These are not component executor output logs.',
+    );
     screen.getByTestId(TEST_LOG_VIEW_ID);
   });
 
-  it('shows cached text if the execution is cached', async () => {
-    TEST_EXECUTION.getCustomPropertiesMap().set(
-      'cached_execution_id',
-      new Value().setStringValue('135'),
-    );
-    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs');
-    getPodLogsSpy.mockImplementation(() => 'test-logs-details');
+  it('prefers executor pod logs when both executor and driver pods are available', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor output');
 
-    render(
-      <CommonTestWrapper>
-        <RuntimeNodeDetailsV2
-          layers={['root']}
-          onLayerChange={(layers) => {}}
-          runId={TEST_RUN_ID}
-          element={{
-            data: {
-              label: 'preprocess',
-            },
-            id: 'task.preprocess',
-            position: { x: 100, y: 100 },
-            type: 'EXECUTION',
-          }}
-          elementMlmdInfo={TSET_MLMD_INFO}
-          namespace={undefined}
-        ></RuntimeNodeDetailsV2>
-      </CommonTestWrapper>,
+    const logsInfo = await getLogsInfo(
+      createTask({
+        pods: [
+          { name: 'driver-pod', type: PipelineTaskTaskPodType.DRIVER },
+          { name: TEST_POD_NAME, type: PipelineTaskTaskPodType.EXECUTOR },
+        ],
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
     );
 
-    const logsTab = await screen.findByText('Logs');
-    fireEvent.click(logsTab); // Switch logs tab
-
-    await waitFor(() => {
-      // getPodLogs() won't be called if it's cached execution
-      expect(getPodLogsSpy).toHaveBeenCalledTimes(0);
-    });
-
-    screen.getByTestId(TEST_LOG_VIEW_ID); // Still can load log view window
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      TEST_POD_NAME,
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('executor output');
+    expect(logsInfo.has(LOGS_BANNER_MESSAGE)).toBe(false);
   });
 
-  it('displays volume mounts in details tab on side panel of execution node', async () => {
-    render(
+  it('uses the latest executor pod appended for a retried task', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('latest output');
+
+    await getLogsInfo(
+      createTask({
+        pods: [
+          { name: 'first-attempt-executor', type: PipelineTaskTaskPodType.EXECUTOR },
+          { name: 'retry-executor', type: PipelineTaskTaskPodType.EXECUTOR },
+        ],
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(getPodLogsSpy).toHaveBeenCalledWith(
+      TEST_RUN_ID,
+      'retry-executor',
+      TEST_NAMESPACE,
+      '2026-08-11',
+    );
+  });
+
+  it('keeps prior logs visible while a newly discovered source is loading', async () => {
+    let resolveRetryLogs: ((logs: string) => void) | undefined;
+    const retryLogs = new Promise<string>((resolve) => {
+      resolveRetryLogs = resolve;
+    });
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockResolvedValueOnce('first attempt logs')
+      .mockReturnValueOnce(retryLogs);
+    const initialTask = createTask({ state: PipelineTaskTaskState.RUNNING });
+    const view = renderTask(initialTask);
+
+    fireEvent.click(await screen.findByText('Logs'));
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+
+    view.rerender(
       <CommonTestWrapper>
         <RuntimeNodeDetailsV2
           layers={['root']}
-          onLayerChange={(layers) => {}}
-          pipelineJobString={V2_PVC_TEMPLATE_STRING}
+          onLayerChange={() => {}}
           runId={TEST_RUN_ID}
-          element={{
-            data: {
-              label: 'producer',
-            },
-            id: 'task.producer',
-            position: { x: 100, y: 100 },
-            type: 'EXECUTION',
+          element={executionElement}
+          elementRuntimeInfo={{
+            task: createTask({
+              state: PipelineTaskTaskState.RUNNING,
+              pods: [
+                { name: TEST_POD_NAME, type: PipelineTaskTaskPodType.EXECUTOR },
+                { name: 'retry-pod', type: PipelineTaskTaskPodType.EXECUTOR },
+              ],
+            }),
           }}
-          elementMlmdInfo={TSET_MLMD_INFO}
-          namespace={undefined}
-        ></RuntimeNodeDetailsV2>
+          namespace={TEST_NAMESPACE}
+        />
       </CommonTestWrapper>,
     );
 
-    const detailsTab = await screen.findByText('Task Details');
-    fireEvent.click(detailsTab); // Switch details tab
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+    await act(async () => resolveRetryLogs?.('retry logs'));
+  });
+
+  it('does not show placeholder logs from a previously selected task', async () => {
+    let resolveSecondTaskLogs: ((logs: string) => void) | undefined;
+    const secondTaskLogs = new Promise<string>((resolve) => {
+      resolveSecondTaskLogs = resolve;
+    });
+    const getPodLogsSpy = vi
+      .spyOn(Apis, 'getPodLogs')
+      .mockResolvedValueOnce('first task logs')
+      .mockReturnValueOnce(secondTaskLogs);
+    const view = renderTask(createTask());
+
+    fireEvent.click(await screen.findByText('Logs'));
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+
+    view.rerender(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          runId={TEST_RUN_ID}
+          element={{ ...executionElement, id: 'task.train', data: { label: 'train' } }}
+          elementRuntimeInfo={{
+            task: createTask({
+              task_id: 'second-task-id',
+              name: 'train',
+              pods: [{ name: 'second-pod', type: PipelineTaskTaskPodType.EXECUTOR }],
+            }),
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    await waitFor(() => expect(getPodLogsSpy).toHaveBeenCalledTimes(2));
+    expect(screen.queryByTestId(TEST_LOG_VIEW_ID)).not.toBeInTheDocument();
+
+    await act(async () => resolveSecondTaskLogs?.('second task logs'));
+    expect(await screen.findByTestId(TEST_LOG_VIEW_ID)).toBeVisible();
+  });
+
+  it('stops log polling when the parent run is terminal', async () => {
+    vi.useFakeTimers();
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('final output');
+    renderTask(createTask({ state: PipelineTaskTaskState.RUNNING }), { sourceFinished: true });
+
+    fireEvent.click(screen.getByText('Logs'));
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+
+    await act(async () => vi.advanceTimersByTimeAsync(20_000));
+    expect(getPodLogsSpy).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('falls back to the native executor-logs artifact when pod logs fail', async () => {
+    vi.spyOn(Apis, 'getPodLogs').mockRejectedValue(new Error('Pod logs unavailable'));
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('artifact-log-details');
+    renderTask(
+      createTask({
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'executor-logs',
+              artifacts: [
+                {
+                  artifact_id: 'logs-artifact',
+                  name: 'executor-logs',
+                  type: ArtifactArtifactType.Artifact,
+                  uri: 's3://pipeline-root/logs.txt',
+                  namespace: TEST_NAMESPACE,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    );
+
+    fireEvent.click(await screen.findByText('Logs'));
+
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalled());
+    screen.getByTestId(TEST_LOG_VIEW_ID);
+  });
+
+  it('reports both pod and executor-artifact errors when both log sources fail', async () => {
+    vi.spyOn(Apis, 'getPodLogs').mockRejectedValue(new Error('pod was garbage collected'));
+    vi.spyOn(Apis, 'readFile').mockRejectedValue(new Error('storage credentials expired'));
+    const logsInfo = await getLogsInfo(
+      createTask({
+        outputs: {
+          artifacts: [
+            {
+              artifact_key: 'executor-logs',
+              artifacts: [
+                {
+                  name: 'executor-logs',
+                  uri: 's3://pipeline-root/logs.txt',
+                  metadata: { store_session_info: 'stale-session' } as any,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(logsInfo.get(LOGS_BANNER_MESSAGE)).toBe('Failed to retrieve task logs.');
+    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
+      'Pod logs error: pod was garbage collected',
+    );
+    expect(logsInfo.get(LOGS_BANNER_ADDITIONAL_INFO)).toContain(
+      'Executor logs artifact error: storage credentials expired',
+    );
+    expect(Apis.readFile).toHaveBeenCalledWith({
+      path: {
+        bucket: 'pipeline-root',
+        key: 'logs.txt',
+        keyEncoding: 'storage',
+        source: 's3',
+      },
+      namespace: TEST_NAMESPACE,
+    });
+  });
+
+  it('falls back to the current date when the task creation timestamp is invalid', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-08-22T12:00:00Z'));
+      const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('executor logs');
+
+      const logsInfo = await getLogsInfo(
+        createTask({
+          create_time: new Date('invalid'),
+          pods: [{ name: 'executor-pod', type: PipelineTaskTaskPodType.EXECUTOR }],
+        }),
+        TEST_RUN_ID,
+        TEST_NAMESPACE,
+      );
+
+      expect(logsInfo.get(LOGS_DETAILS)).toBe('executor logs');
+      expect(getPodLogsSpy).toHaveBeenCalledWith(
+        TEST_RUN_ID,
+        'executor-pod',
+        TEST_NAMESPACE,
+        '2026-08-22',
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns cached text without retrieving pod logs', async () => {
+    const getPodLogsSpy = vi.spyOn(Apis, 'getPodLogs').mockResolvedValue('unused');
+    const logsInfo = await getLogsInfo(
+      createTask({ state: PipelineTaskTaskState.CACHED }),
+      TEST_RUN_ID,
+      TEST_NAMESPACE,
+    );
+
+    expect(logsInfo.get(LOGS_DETAILS)).toBe('This step output is taken from cache.');
+    expect(getPodLogsSpy).not.toHaveBeenCalled();
+  });
+
+  it('displays volume mounts in the task details tab', async () => {
+    renderTask(createTask(), {
+      pipelineJobString: V2_PVC_TEMPLATE_STRING,
+      element: {
+        ...executionElement,
+        data: { label: 'producer' },
+        id: 'task.producer',
+      },
+    });
+
+    fireEvent.click(await screen.findByText('Task Details'));
 
     screen.getByText('/data');
     screen.getByText('createpvc');
+  });
+
+  it('does not reparse the pipeline job when task polling rerenders the details tab', async () => {
+    const convertPipelineSpy = vi.spyOn(WorkflowUtils, 'convertYamlToV2PipelineSpec');
+    const convertPlatformSpy = vi.spyOn(WorkflowUtils, 'convertYamlToPlatformSpec');
+    const layers = ['root'];
+    const producerElement = {
+      ...executionElement,
+      data: { label: 'producer' },
+      id: 'task.producer',
+    };
+    const view = (task: V2beta1PipelineTask) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          element={producerElement}
+          elementRuntimeInfo={{ task }}
+          layers={layers}
+          namespace={TEST_NAMESPACE}
+          onLayerChange={() => {}}
+          pipelineJobString={V2_PVC_TEMPLATE_STRING}
+          runId={TEST_RUN_ID}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(createTask({ state: PipelineTaskTaskState.RUNNING })));
+    fireEvent.click(await screen.findByText('Task Details'));
+    const initialPipelineParses = convertPipelineSpy.mock.calls.length;
+    const initialPlatformParses = convertPlatformSpy.mock.calls.length;
+    expect(initialPipelineParses).toBeGreaterThan(0);
+    expect(initialPlatformParses).toBeGreaterThan(0);
+
+    rerender(view(createTask({ state: PipelineTaskTaskState.SUCCEEDED })));
+    expect(convertPipelineSpy).toHaveBeenCalledTimes(initialPipelineParses);
+    expect(convertPlatformSpy).toHaveBeenCalledTimes(initialPlatformParses);
+
+    convertPipelineSpy.mockRestore();
+    convertPlatformSpy.mockRestore();
+  });
+
+  it('formats task timestamps consistently with other details pages', () => {
+    const createdAt = new Date('2026-08-11T12:00:00Z');
+    const finishedAt = new Date('2026-08-11T12:05:00Z');
+
+    expect(
+      getTaskDetailsFields(
+        executionElement,
+        createTask({ create_time: createdAt, end_time: finishedAt }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        ['Created At', createdAt.toLocaleString()],
+        ['Finished At', finishedAt.toLocaleString()],
+      ]),
+    );
+  });
+
+  it('shows native task identity, scope, pod roles, cache identity, and state history', () => {
+    const updatedAt = new Date('2026-08-11T12:01:00Z');
+    const fields = getTaskDetailsFields(
+      executionElement,
+      createTask({
+        cache_fingerprint: 'cache-fingerprint',
+        parent_task_id: 'parent-task',
+        pods: [
+          {
+            name: 'executor-pod',
+            type: PipelineTaskTaskPodType.EXECUTOR,
+            uid: 'executor-uid',
+          },
+        ],
+        scope_path: 'root.preprocess',
+        state_history: [
+          {
+            error: { message: 'image pull delayed' },
+            state: PipelineTaskTaskState.RUNNING,
+            update_time: updatedAt,
+          },
+        ],
+        type_attributes: { iteration_index: '2' },
+      }),
+    );
+
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        ['Task type', PipelineTaskTaskType.RUNTIME],
+        ['Parent task ID', 'parent-task'],
+        ['Scope path', 'root.preprocess'],
+        ['Cache fingerprint', 'cache-fingerprint'],
+        ['Type attributes', '{"iteration_index":"2"}'],
+        ['Pods', 'EXECUTOR · executor-pod · UID executor-uid'],
+        ['State history', `Running · ${updatedAt.toLocaleString()} · image pull delayed`],
+      ]),
+    );
+  });
+
+  it('formats artifact timestamps consistently with other details pages', () => {
+    const createdAt = new Date('2026-08-11T12:00:00Z');
+    const artifactElement = {
+      data: { label: 'model' },
+      id: 'artifact.preprocess.model',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'model',
+              artifacts: [{ name: 'model', created_at: createdAt }],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    screen.getByText(createdAt.toLocaleString());
+  });
+
+  it('uses the native output key to restore legacy UI metadata visualizations', async () => {
+    const loadSpy = vi.spyOn(OutputArtifactLoader, 'loadResult').mockResolvedValue({
+      configs: [{ data: [['restored']], labels: ['value'], type: PlotType.TABLE }],
+      errors: [],
+    });
+    const artifactElement = {
+      data: { label: 'legacy-output' },
+      id: 'artifact.preprocess.mlpipeline-ui-metadata',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+
+    render(
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask(),
+            artifactGroup: {
+              artifact_key: 'mlpipeline-ui-metadata',
+              artifacts: [
+                {
+                  artifact_id: 'legacy-metadata-1',
+                  name: 'legacy-output',
+                  uri: 's3://reports/metadata.json',
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>,
+    );
+
+    fireEvent.click(screen.getByText('Visualization'));
+
+    expect(await screen.findByText('restored')).toBeVisible();
+    expect(loadSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes an artifact visualization when the producing task finishes', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    const artifactElement = {
+      data: { label: 'report' },
+      id: 'artifact.preprocess.report',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    const view = (state: PipelineTaskTaskState) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          layers={['root']}
+          onLayerChange={() => {}}
+          element={artifactElement}
+          elementRuntimeInfo={{
+            task: createTask({ state }),
+            artifactGroup: {
+              artifact_key: 'report',
+              artifacts: [
+                {
+                  artifact_id: 'live-report',
+                  name: 'report',
+                  type: ArtifactArtifactType.HTML,
+                  uri: 's3://reports/output.html',
+                },
+              ],
+            },
+          }}
+          namespace={TEST_NAMESPACE}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(PipelineTaskTaskState.RUNNING));
+    fireEvent.click(screen.getByText('Visualization'));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(PipelineTaskTaskState.SUCCEEDED));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
+  });
+
+  it('finalizes an artifact visualization when the parent run finishes first', async () => {
+    const readFileSpy = vi.spyOn(Apis, 'readFile').mockResolvedValue('<h1>Report</h1>');
+    const artifactElement = {
+      data: { label: 'report' },
+      id: 'artifact.preprocess.report',
+      position: { x: 100, y: 100 },
+      type: 'ARTIFACT',
+    } as const;
+    const view = (sourceFinished: boolean) => (
+      <CommonTestWrapper>
+        <RuntimeNodeDetailsV2
+          element={artifactElement}
+          elementRuntimeInfo={{
+            artifactGroup: {
+              artifact_key: 'report',
+              artifacts: [
+                {
+                  artifact_id: 'live-report',
+                  name: 'report',
+                  type: ArtifactArtifactType.HTML,
+                  uri: 's3://reports/output.html',
+                },
+              ],
+            },
+            task: createTask({ state: PipelineTaskTaskState.RUNNING }),
+          }}
+          layers={['root']}
+          namespace={TEST_NAMESPACE}
+          onLayerChange={() => {}}
+          sourceFinished={sourceFinished}
+        />
+      </CommonTestWrapper>
+    );
+
+    const { rerender } = render(view(false));
+    fireEvent.click(screen.getByText('Visualization'));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(1));
+
+    rerender(view(true));
+    await waitFor(() => expect(readFileSpy).toHaveBeenCalledTimes(2));
   });
 });
