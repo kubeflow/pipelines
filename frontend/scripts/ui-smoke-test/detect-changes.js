@@ -64,6 +64,10 @@ const COMPONENTS = [
     imageTag: 'kfp-ui-smoke/visualization',
     deployment: 'ml-pipeline-visualizationserver',
     container: 'ml-pipeline-visualizationserver',
+    crossRevisionBuildInputs: [
+      'backend/Dockerfile.visualization',
+      'backend/src/apiserver/visualization',
+    ],
   },
   {
     name: 'driver',

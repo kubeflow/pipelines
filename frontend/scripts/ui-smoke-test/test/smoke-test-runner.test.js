@@ -20,6 +20,7 @@ const {
   externalBuildArguments,
   externalInstallArguments,
   fetchedDependencyInputs,
+  findReusableComponents,
   fullSha,
   fullCaptureEnvironment,
   loadUpgradeAdapter,
@@ -82,6 +83,48 @@ function detectedChanges(overrides = {}) {
     ...overrides,
   };
 }
+
+test('cross-revision image reuse requires every declared build input to match', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-reuse-inputs-'));
+  const baseRoot = path.join(root, 'base');
+  const headRoot = path.join(root, 'head');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const component = {
+    crossRevisionBuildInputs: ['Dockerfile', 'src'],
+    name: 'visualization',
+  };
+  for (const revisionRoot of [baseRoot, headRoot]) {
+    fs.mkdirSync(path.join(revisionRoot, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(revisionRoot, 'Dockerfile'), 'FROM python:3.11-slim\n');
+    fs.writeFileSync(path.join(revisionRoot, 'src', 'server.py'), 'print("ready")\n', {
+      mode: 0o755,
+    });
+  }
+
+  assert.deepEqual(
+    findReusableComponents([component], [component], baseRoot, headRoot).map(({ name }) => name),
+    ['visualization'],
+  );
+  assert.deepEqual(
+    findReusableComponents(
+      [{ ...component, buildArgs: { COMMIT_SHA: 'commitSha' } }],
+      [component],
+      baseRoot,
+      headRoot,
+    ),
+    [],
+  );
+
+  fs.writeFileSync(path.join(headRoot, 'src', 'server.py'), 'print("changed")\n', { mode: 0o755 });
+  assert.deepEqual(findReusableComponents([component], [component], baseRoot, headRoot), []);
+
+  fs.writeFileSync(path.join(headRoot, 'src', 'server.py'), 'print("ready")\n', { mode: 0o644 });
+  fs.chmodSync(path.join(headRoot, 'src', 'server.py'), 0o644);
+  assert.deepEqual(findReusableComponents([component], [component], baseRoot, headRoot), []);
+
+  fs.rmSync(path.join(headRoot, 'src', 'server.py'));
+  assert.deepEqual(findReusableComponents([component], [component], baseRoot, headRoot), []);
+});
 
 function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
   const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-orchestration-'));
@@ -1692,15 +1735,15 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
             role,
             async buildComponentImages(components, target, options) {
               record('buildComponentImages', { components, options, target });
+              const images = Object.fromEntries(
+                components.map((component) => [
+                  component.name,
+                  `kfp-ui-smoke/${role}-${component.name}:test`,
+                ]),
+              );
               return {
-                deployments: [
-                  {
-                    container: 'ml-pipeline-api-server',
-                    deployment: 'ml-pipeline',
-                    image: `kfp-ui-smoke/${role}:test`,
-                  },
-                ],
-                images: { apiserver: `kfp-ui-smoke/${role}:test` },
+                deployments: [],
+                images,
                 runtimeEnvironment: {},
               };
             },
@@ -1729,6 +1772,19 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
             loadImageOverrides(imageOverrides, platform, options) {
               record('loadImageOverrides', { imageOverrides, options, platform });
             },
+            reuseComponentImages(components, sourceOverrides, options) {
+              record('reuseComponentImages', { components, options, sourceOverrides });
+              return {
+                deployments: [],
+                images: Object.fromEntries(
+                  components.map((component) => [
+                    component.name,
+                    `kfp-ui-smoke/${role}-${component.name}:reused`,
+                  ]),
+                ),
+                runtimeEnvironment: {},
+              };
+            },
             preflightReleaseImages() {
               throw new Error('arbitrary bases must not use published release images');
             },
@@ -1745,8 +1801,15 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
       combineSemanticManifests(manifests, options) {
         return { manifests, options, schemaVersion: 'ui-smoke-semantic/v3' };
       },
+      findReusableComponents(baseComponents, headComponents) {
+        assert.ok(baseComponents.some(({ name }) => name === 'visualization'));
+        return headComponents.filter(({ name }) => name === 'visualization');
+      },
       componentsForRevision(target) {
-        return [{ name: target.includes('base') ? 'base-apiserver' : 'head-apiserver' }];
+        return [
+          { name: target.includes('base') ? 'base-apiserver' : 'head-apiserver' },
+          { name: 'visualization' },
+        ];
       },
       fullSha(gitRef) {
         if (gitRef === 'origin/master' || gitRef === baseSha) return baseSha;
@@ -1815,11 +1878,26 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   assert.deepEqual(
     stackOperations
       .filter(({ operation }) => operation === 'buildComponentImages')
-      .map(({ role, target }) => ({ role, target })),
+      .map(({ components, role, target }) => ({
+        components: components.map(({ name }) => name),
+        role,
+        target,
+      })),
     [
-      { role: 'base', target: baseWorktree },
-      { role: 'head', target: headWorktree },
+      { components: ['base-apiserver', 'visualization'], role: 'base', target: baseWorktree },
+      { components: ['head-apiserver'], role: 'head', target: headWorktree },
     ],
+  );
+  const reusedImage = stackOperations.find(
+    ({ operation, role }) => operation === 'reuseComponentImages' && role === 'head',
+  );
+  assert.deepEqual(
+    reusedImage.components.map(({ name }) => name),
+    ['visualization'],
+  );
+  assert.equal(
+    reusedImage.sourceOverrides.images.visualization,
+    'kfp-ui-smoke/base-visualization:test',
   );
   const firstCluster = stackOperations.findIndex(({ operation }) => operation === 'createCluster');
   const lastBuild = stackOperations.reduce(

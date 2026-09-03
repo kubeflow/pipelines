@@ -732,6 +732,41 @@ test('arm64 source builds keep the metadata writer on its reviewed amd64 workloa
   assert.match(renderedWithPullPolicy, /imagePullPolicy: IfNotPresent/);
 });
 
+test('byte-identical component images are retagged per stack before normal image loading', (t) => {
+  const calls = [];
+  const stack = createTestStack(t, { runner: deploymentRunner(calls) });
+  const visualization = COMPONENTS.find((component) => component.name === 'visualization');
+  const sourceImage = 'kfp-ui-smoke/visualization:base-source';
+
+  const overrides = stack.reuseComponentImages(
+    [visualization],
+    { deployments: [], images: { visualization: sourceImage }, runtimeEnvironment: {} },
+    { platform: 'linux/arm64', tagSuffix: 'head-sha' },
+  );
+
+  assert.equal(
+    overrides.images.visualization,
+    'kfp-ui-smoke/visualization:ui-smoke-base-test-head-sha',
+  );
+  assert.deepEqual(overrides.deployments, [
+    {
+      container: 'ml-pipeline-visualizationserver',
+      deployment: 'ml-pipeline-visualizationserver',
+      image: overrides.images.visualization,
+    },
+  ]);
+  const tagCall = calls.find(({ command, args }) => command === 'docker' && args[0] === 'image');
+  assert.deepEqual(tagCall.args, ['image', 'tag', sourceImage, overrides.images.visualization]);
+
+  stack.loadImageOverrides(overrides, 'linux/arm64');
+  assert.ok(
+    calls.some(
+      ({ command, args }) =>
+        command === 'docker' && args[0] === 'save' && args.includes(overrides.images.visualization),
+    ),
+  );
+});
+
 test('manifest overlays resolve resources from canonical paths across directory aliases', (t) => {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-overlay-alias-'));
   t.after(() => fs.rmSync(fixtureRoot, { force: true, recursive: true }));
