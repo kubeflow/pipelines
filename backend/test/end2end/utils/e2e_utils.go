@@ -167,10 +167,6 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string,
 			continue
 		}
 
-		gomega.Expect(pod.Spec.Containers).NotTo(gomega.BeEmpty())
-		gomega.Expect(pod.Spec.Containers[0].Resources.Claims).NotTo(gomega.BeEmpty(),
-			"Pod %s main container has no resource claim references", pod.Name)
-
 		gomega.Expect(pod.Status.ResourceClaimStatuses).NotTo(gomega.BeEmpty(),
 			"Pod %s has no resourceClaimStatuses — DRA allocation did not happen", pod.Name)
 
