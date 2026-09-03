@@ -94,7 +94,7 @@ type dockerRunMetadata struct {
 
 type dockerCandidate struct {
 	Kind    string `json:"kind"`
-	Value   string `json:"value"`
+	Value   string `json:"value,omitempty"`
 	Line    int    `json:"line"`
 	Version string `json:"version,omitempty"`
 	Flavor  string `json:"flavor,omitempty"`
@@ -261,9 +261,9 @@ func inspect(input request) (response, error) {
 		metadata.DockerCandidates = candidates
 		metadata.DockerError = parseError
 		if len(candidates) == 1 && candidates[0].Kind == "unsupported-frontend" {
-			metadata.DockerDirectives = []dockerParserDirectiveMetadata{{
-				Name: "syntax", Value: candidates[0].Value, Line: candidates[0].Line,
-			}}
+			if directive, exact := pinnedDockerFrontendMetadata(input.Contents); exact {
+				metadata.DockerDirectives = []dockerParserDirectiveMetadata{directive}
+			}
 			return metadata, nil
 		}
 		if classification != "invalid" {
@@ -284,9 +284,7 @@ func inspect(input request) (response, error) {
 
 func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMetadata, error) {
 	projected := []dockerParserDirectiveMetadata{}
-	if directive, found, err := detectDockerFrontend(contents); err != nil {
-		return nil, err
-	} else if found {
+	if directive, found := pinnedDockerFrontendMetadata(contents); found {
 		projected = append(projected, directive)
 	}
 	directiveParser := parser.DirectiveParser{}
@@ -309,7 +307,7 @@ func projectDockerParserDirectives(contents string) ([]dockerParserDirectiveMeta
 	return projected, nil
 }
 
-func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool, error) {
+func pinnedDockerFrontendMetadata(contents string) (dockerParserDirectiveMetadata, bool) {
 	if _, commandLine, locations, found := parser.DetectSyntax([]byte(contents)); found {
 		line := 1
 		if len(locations) > 0 && locations[0].Start.Line > 0 {
@@ -317,18 +315,26 @@ func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool,
 		}
 		return dockerParserDirectiveMetadata{
 			Name: "syntax", Value: commandLine, Line: line,
-		}, true, nil
+		}, true
 	}
-	return compatibleHashSyntaxDirective(contents)
+	return dockerParserDirectiveMetadata{}, false
 }
 
-// compatibleHashSyntaxDirective recognizes the initial hash-directive preamble
-// accepted by newer supported builders but not by the pinned parser. It is a
-// deliberately small, linear compatibility scanner: it never searches beyond
-// the first blank, ordinary comment, unknown directive, indented line, or
-// instruction. Managed files fail closed on this bounded superset so executor
-// upgrades cannot silently select a different frontend.
-func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetadata, bool, error) {
+func detectDockerFrontend(contents string) (dockerParserDirectiveMetadata, bool) {
+	if frontend, found := pinnedDockerFrontendMetadata(contents); found {
+		return frontend, true
+	}
+	if line, found := compatibleHashFrontendPotential(contents); found {
+		return dockerParserDirectiveMetadata{Name: "syntax", Line: line}, true
+	}
+	return dockerParserDirectiveMetadata{}, false
+}
+
+// compatibleHashFrontendPotential recognizes a bounded superset of initial
+// hash-directive preambles accepted by newer supported builders. It returns
+// only a conservative frontend signal and line number; exact parsing metadata
+// remains owned by the pinned BuildKit parser.
+func compatibleHashFrontendPotential(contents string) (int, bool) {
 	contents = strings.TrimPrefix(contents, "\ufeff")
 	lines := strings.Split(contents, "\n")
 	start := 0
@@ -339,19 +345,16 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 	for index := start; index < len(lines); index++ {
 		rawLine := lines[index]
 		if len(rawLine) >= bufio.MaxScanTokenSize {
-			return dockerParserDirectiveMetadata{}, false, fmt.Errorf(
-				"dockerfile line greater than max allowed size of %d",
-				bufio.MaxScanTokenSize-1,
-			)
+			return index + 1, true
 		}
 		line := strings.TrimSuffix(rawLine, "\r")
 		if line == "" || !strings.HasPrefix(line, "#") {
-			return dockerParserDirectiveMetadata{}, false, nil
+			return 0, false
 		}
 		body := strings.TrimLeftFunc(line[1:], unicode.IsSpace)
 		nameEnd := 0
 		if len(body) == 0 || !isASCIILetter(body[0]) {
-			return dockerParserDirectiveMetadata{}, false, nil
+			return 0, false
 		}
 		for nameEnd < len(body) {
 			character := body[nameEnd]
@@ -363,41 +366,26 @@ func compatibleHashSyntaxDirective(contents string) (dockerParserDirectiveMetada
 		name := strings.ToLower(body[:nameEnd])
 		remainder := strings.TrimLeft(body[nameEnd:], " \t\r\f")
 		if !strings.HasPrefix(remainder, "=") {
-			return dockerParserDirectiveMetadata{}, false, nil
+			return 0, false
 		}
 		rawValue := remainder[1:]
 		if rawValue == "" {
-			return dockerParserDirectiveMetadata{}, false, nil
-		}
-		value := trimDockerDirectiveSpace(rawValue)
-		if value == "" {
-			// Newer BuildKit directive grammars distinguish an absent value
-			// from a value containing Docker whitespace. Preserve BuildKit's
-			// single-byte capture so selection stays visible without copying
-			// an arbitrarily large whitespace run into response metadata.
-			value = rawValue[:1]
+			return 0, false
 		}
 		switch name {
 		case "syntax", "escape", "check":
 			if _, duplicate := seen[name]; duplicate {
-				return dockerParserDirectiveMetadata{}, false, fmt.Errorf(
-					"only one %s parser directive can be used", name)
+				return index + 1, true
 			}
 			seen[name] = struct{}{}
 		default:
-			return dockerParserDirectiveMetadata{}, false, nil
+			return 0, false
 		}
 		if name == "syntax" {
-			return dockerParserDirectiveMetadata{
-				Name: name, Value: value, Line: index + 1,
-			}, true, nil
+			return index + 1, true
 		}
 	}
-	return dockerParserDirectiveMetadata{}, false, nil
-}
-
-func trimDockerDirectiveSpace(value string) string {
-	return strings.Trim(value, " \t\r\f")
+	return 0, false
 }
 
 func isASCIILetter(character byte) bool {
@@ -531,10 +519,7 @@ func resolvedScalar(node *yaml.Node, state *yamlTraversalState) string {
 }
 
 func classifyDockerfile(contents string) (string, []dockerCandidate, string) {
-	frontend, found, err := detectDockerFrontend(contents)
-	if err != nil {
-		return "invalid", nil, err.Error()
-	}
+	frontend, found := detectDockerFrontend(contents)
 	if found {
 		return "unsupported", []dockerCandidate{{
 			Kind: "unsupported-frontend", Value: frontend.Value, Line: frontend.Line,

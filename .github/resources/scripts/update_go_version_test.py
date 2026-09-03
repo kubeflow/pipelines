@@ -2248,7 +2248,13 @@ updater.sync(
                 '#\u00a0syntax=example.com/frontend:latest\n',
                 '#\u00a0escape=   \n'
                 '#\u00a0syntax=example.com/frontend:latest\n',
-                '#\u00a0syntax=   \n'):
+                '#\u00a0syntax=   \n',
+                '#\u00a0check=first\n#\u00a0check=second\n'
+                '#\u00a0syntax=example.com/frontend:latest\n',
+                '#\u00a0escape=\\\n#\u00a0escape=`\n'
+                '#\u00a0syntax=example.com/frontend:latest\n',
+                '#\u00a0check=' + ('x' * (64 * 1024)) + '\n'
+                '#\u00a0syntax=example.com/frontend:latest\n'):
             with self.subTest(prefix=repr(prefix)):
                 contents = prefix + original
                 dockerfile.write_text(contents, encoding='utf-8')

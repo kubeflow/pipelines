@@ -498,7 +498,13 @@ class GoVersionConsistencyTest(unittest.TestCase):
                     '#\u00a0syntax=example.com/frontend:latest\n',
                     '#\u00a0escape=   \n'
                     '#\u00a0syntax=example.com/frontend:latest\n',
-                    '#\u00a0syntax=   \n'):
+                    '#\u00a0syntax=   \n',
+                    '#\u00a0check=first\n#\u00a0check=second\n'
+                    '#\u00a0syntax=example.com/frontend:latest\n',
+                    '#\u00a0escape=\\\n#\u00a0escape=`\n'
+                    '#\u00a0syntax=example.com/frontend:latest\n',
+                    '#\u00a0check=' + ('x' * (64 * 1024)) + '\n'
+                    '#\u00a0syntax=example.com/frontend:latest\n'):
                 with self.subTest(path=relative_path, prefix=repr(prefix)):
                     docker = docker_runtime_classification(prefix + contents)
                     self.assertEqual(docker['classification'], 'unsupported')

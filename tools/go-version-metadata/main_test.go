@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -158,34 +159,34 @@ func TestProjectDockerParserDirectivesUsesBuildKitSemantics(t *testing.T) {
 		name     string
 		contents string
 		line     int
-		value    string
 	}{
-		{name: "Unicode no-break space", contents: "#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1, value: "example.com/frontend:latest"},
-		{name: "Unicode em space", contents: "#\u2003SyNtAx = example.com/frontend:latest\r\nFROM scratch\r\n", line: 1, value: "example.com/frontend:latest"},
-		{name: "BOM", contents: "\ufeff#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1, value: "example.com/frontend:latest"},
-		{name: "shebang", contents: "#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "BOM and shebang", contents: "\ufeff#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "after escape", contents: "# escape=\\\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "after check", contents: "# check=skip=all\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "after whitespace-only escape", contents: "#\u00a0escape=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "after whitespace-only check", contents: "#\u00a0check=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2, value: "example.com/frontend:latest"},
-		{name: "whitespace-only syntax", contents: "#\u00a0syntax=   \ncustom frontend payload\n", line: 1, value: " "},
-		{name: "Unicode value is preserved", contents: "#\u00a0syntax=\u00a0example.com/frontend:latest\nFROM scratch\n", line: 1, value: "\u00a0example.com/frontend:latest"},
+		{name: "Unicode no-break space", contents: "#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1},
+		{name: "Unicode em space", contents: "#\u2003SyNtAx = example.com/frontend:latest\r\nFROM scratch\r\n", line: 1},
+		{name: "BOM", contents: "\ufeff#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 1},
+		{name: "shebang", contents: "#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "BOM and shebang", contents: "\ufeff#!/usr/bin/env dockerfile\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "after escape", contents: "# escape=\\\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "after check", contents: "# check=skip=all\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "after whitespace-only escape", contents: "#\u00a0escape=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "after whitespace-only check", contents: "#\u00a0check=   \n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n", line: 2},
+		{name: "whitespace-only syntax", contents: "#\u00a0syntax=   \ncustom frontend payload\n", line: 1},
+		{name: "Unicode value is not projected", contents: "#\u00a0syntax=\u00a0example.com/frontend:latest\nFROM scratch\n", line: 1},
 	} {
 		t.Run("supported frontend compatibility/"+test.name, func(t *testing.T) {
-			directives, err := projectDockerParserDirectives(test.contents)
+			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
 			if err != nil {
 				t.Fatal(err)
 			}
-			var syntax []dockerParserDirectiveMetadata
-			for _, directive := range directives {
-				if directive.Name == "syntax" {
-					syntax = append(syntax, directive)
-				}
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported", metadata.DockerClassification)
 			}
-			want := []dockerParserDirectiveMetadata{{Name: "syntax", Value: test.value, Line: test.line}}
-			if !reflect.DeepEqual(syntax, want) {
-				t.Fatalf("syntax projection = %#v, want %#v (all directives %#v)", syntax, want, directives)
+			if got, want := metadata.DockerCandidates, []dockerCandidate{{
+				Kind: "unsupported-frontend", Line: test.line,
+			}}; !reflect.DeepEqual(got, want) {
+				t.Fatalf("candidates = %#v, want %#v", got, want)
+			}
+			if len(metadata.DockerDirectives) != 0 || len(metadata.DockerInstructions) != 0 {
+				t.Fatalf("compatibility signal exported exact metadata: %#v", metadata)
 			}
 		})
 	}
@@ -793,13 +794,14 @@ func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
 		contents string
 		value    string
 		line     int
+		exact    bool
 	}{
-		{contents: "# syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 1},
-		{contents: "// syntax=example.com/frontend:latest\n", value: "example.com/frontend:latest", line: 1},
-		{contents: "{\"syntax\":\"example.com/frontend:latest\"}\n", value: "example.com/frontend:latest", line: 1},
+		{contents: "# syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 1, exact: true},
+		{contents: "// syntax=example.com/frontend:latest\n", value: "example.com/frontend:latest", line: 1, exact: true},
+		{contents: "{\"syntax\":\"example.com/frontend:latest\"}\n", value: "example.com/frontend:latest", line: 1, exact: true},
 		{contents: "#\u00a0check=   \n#\u00a0syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 2},
 		{contents: "#\u00a0escape=   \n#\u00a0syntax=example.com/frontend:latest\ncustom frontend payload\n", value: "example.com/frontend:latest", line: 2},
-		{contents: "#\u00a0syntax=   \ncustom frontend payload\n", value: " ", line: 1},
+		{contents: "#\u00a0syntax=   \ncustom frontend payload\n", line: 1},
 	} {
 		t.Run(strings.SplitN(test.contents, "\n", 2)[0], func(t *testing.T) {
 			metadata, err := inspect(request{Path: "Dockerfile", Contents: test.contents})
@@ -809,47 +811,53 @@ func TestFrontendSelectionPrecedesDockerfileGrammar(t *testing.T) {
 			if metadata.DockerClassification != "unsupported" {
 				t.Fatalf("classification = %q, want unsupported (error %q)", metadata.DockerClassification, metadata.DockerError)
 			}
+			expectedValue := ""
+			if test.exact {
+				expectedValue = test.value
+			}
 			if got, want := metadata.DockerCandidates, []dockerCandidate{{
-				Kind: "unsupported-frontend", Value: test.value, Line: test.line,
+				Kind: "unsupported-frontend", Value: expectedValue, Line: test.line,
 			}}; !reflect.DeepEqual(got, want) {
 				t.Fatalf("candidates = %#v, want %#v", got, want)
 			}
 			if len(metadata.DockerInstructions) != 0 {
 				t.Fatalf("frontend-selected payload was projected as Docker instructions: %#v", metadata.DockerInstructions)
 			}
-			if got, want := metadata.DockerDirectives, []dockerParserDirectiveMetadata{{
-				Name: "syntax", Value: test.value, Line: test.line,
-			}}; !reflect.DeepEqual(got, want) {
+			var want []dockerParserDirectiveMetadata
+			if test.exact {
+				want = []dockerParserDirectiveMetadata{{Name: "syntax", Value: test.value, Line: test.line}}
+			}
+			if got := metadata.DockerDirectives; !reflect.DeepEqual(got, want) {
 				t.Fatalf("directives = %#v, want %#v", got, want)
 			}
 		})
 	}
 }
 
-func TestCompatibilityFrontendTerminationMatchesBuildKit(t *testing.T) {
+func TestAmbiguousCompatibilityPreamblesAreConservativelyRejected(t *testing.T) {
 	longCheckPrefix := "#\u00a0check="
 	longCheck := longCheckPrefix + strings.Repeat("x", (64<<10)-len(longCheckPrefix))
 	for _, test := range []struct {
 		name     string
 		contents string
-		error    string
+		line     int
 	}{
 		{
 			name: "duplicate check",
 			contents: "#\u00a0check=first\n#\u00a0check=second\n" +
 				"#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n",
-			error: "only one check parser directive can be used",
+			line: 2,
 		},
 		{
 			name: "duplicate escape",
 			contents: "#\u00a0escape=\\\n#\u00a0escape=`\n" +
 				"#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n",
-			error: "only one escape parser directive can be used",
+			line: 2,
 		},
 		{
 			name:     "oversized directive line",
 			contents: longCheck + "\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n",
-			error:    "dockerfile line greater than max allowed size of 65535",
+			line:     1,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -857,13 +865,18 @@ func TestCompatibilityFrontendTerminationMatchesBuildKit(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if metadata.DockerClassification != "invalid" {
-				t.Fatalf("classification = %q, want invalid", metadata.DockerClassification)
+			if metadata.DockerClassification != "unsupported" {
+				t.Fatalf("classification = %q, want unsupported", metadata.DockerClassification)
 			}
-			if !strings.Contains(metadata.DockerError, test.error) {
-				t.Fatalf("error = %q, want substring %q", metadata.DockerError, test.error)
+			if metadata.DockerError != "" {
+				t.Fatalf("error = %q, want empty conservative rejection", metadata.DockerError)
 			}
-			if len(metadata.DockerCandidates) != 0 || len(metadata.DockerDirectives) != 0 || len(metadata.DockerInstructions) != 0 {
+			if got, want := metadata.DockerCandidates, []dockerCandidate{{
+				Kind: "unsupported-frontend", Line: test.line,
+			}}; !reflect.DeepEqual(got, want) {
+				t.Fatalf("candidates = %#v, want %#v", got, want)
+			}
+			if len(metadata.DockerDirectives) != 0 || len(metadata.DockerInstructions) != 0 {
 				t.Fatalf("terminated input produced metadata: %#v", metadata)
 			}
 		})
@@ -878,14 +891,12 @@ func TestWhitespaceOnlyFrontendOutputIsBounded(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got, want := metadata.DockerCandidates, []dockerCandidate{{
-		Kind: "unsupported-frontend", Value: "\t", Line: 1,
+		Kind: "unsupported-frontend", Line: 1,
 	}}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("candidates = %#v, want %#v", got, want)
 	}
-	if got, want := metadata.DockerDirectives, []dockerParserDirectiveMetadata{{
-		Name: "syntax", Value: "\t", Line: 1,
-	}}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("directives = %#v, want %#v", got, want)
+	if len(metadata.DockerDirectives) != 0 {
+		t.Fatalf("compatibility signal exported directives: %#v", metadata.DockerDirectives)
 	}
 	encoded, err := json.Marshal(metadata)
 	if err != nil {
@@ -893,6 +904,9 @@ func TestWhitespaceOnlyFrontendOutputIsBounded(t *testing.T) {
 	}
 	if len(encoded) >= 1024 {
 		t.Fatalf("metadata response is %d bytes, want less than 1024", len(encoded))
+	}
+	if bytes.Contains(encoded, []byte(`"value"`)) {
+		t.Fatalf("compatibility response exported a value: %s", encoded)
 	}
 }
 

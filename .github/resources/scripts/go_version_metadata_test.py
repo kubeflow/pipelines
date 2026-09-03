@@ -52,20 +52,20 @@ class GoVersionMetadataTest(unittest.TestCase):
                 )
 
     def test_frontend_selector_is_always_runtime_metadata(self):
-        for contents, value, line in (
+        for contents, value, line, exact in (
                 ('# syntax=example.com/golang:latest\ncustom payload\n',
-                 'example.com/golang:latest', 1),
+                 'example.com/golang:latest', 1, True),
                 ('// syntax=example.com/golang:latest\n',
-                 'example.com/golang:latest', 1),
+                 'example.com/golang:latest', 1, True),
                 ('{"syntax":"example.com/golang:latest"}\n',
-                 'example.com/golang:latest', 1),
+                 'example.com/golang:latest', 1, True),
                 ('#\u00a0check=   \n'
                  '#\u00a0syntax=example.com/golang:latest\ncustom payload\n',
-                 'example.com/golang:latest', 2),
+                 '', 2, False),
                 ('#\u00a0escape=   \n'
                  '#\u00a0syntax=example.com/golang:latest\ncustom payload\n',
-                 'example.com/golang:latest', 2),
-                ('#\u00a0syntax=   \ncustom payload\n', ' ', 1)):
+                 '', 2, False),
+                ('#\u00a0syntax=   \ncustom payload\n', '', 1, False)):
             with self.subTest(contents=contents):
                 result = docker_runtime_classification(contents)
                 self.assertEqual(result['classification'], 'unsupported')
@@ -73,36 +73,44 @@ class GoVersionMetadataTest(unittest.TestCase):
                     [candidate['kind'] for candidate in result['candidates']],
                     ['unsupported-frontend'],
                 )
+                if exact:
+                    self.assertEqual(result['candidates'][0]['value'], value)
+                else:
+                    self.assertNotIn('value', result['candidates'][0])
                 self.assertTrue(
                     has_go_runtime_reference(Path('Dockerfile'), contents))
                 projection = docker_buildkit_metadata(contents)
                 self.assertEqual(projection['instructions'], [])
-                self.assertEqual(
-                    projection['directives'], [{
+                expected_directives = []
+                if exact:
+                    expected_directives = [{
                         'name': 'syntax',
                         'value': value,
                         'line': line,
-                    }])
+                    }]
+                self.assertEqual(projection['directives'],
+                                 expected_directives)
 
-    def test_compatibility_directive_termination_matches_buildkit(self):
+    def test_ambiguous_compatibility_preambles_are_rejected(self):
         long_prefix = '#\u00a0check='
         long_check = long_prefix + 'x' * ((64 * 1024) - len(
             long_prefix.encode('utf-8')))
-        for contents, expected_error in (
+        for contents, expected_line in (
                 ('#\u00a0check=first\n#\u00a0check=second\n'
                  '#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
-                 'only one check parser directive can be used'),
+                 2),
                 ('#\u00a0escape=\\\n#\u00a0escape=`\n'
                  '#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
-                 'only one escape parser directive can be used'),
+                 2),
                 (long_check +
                  '\n#\u00a0syntax=example.com/frontend:latest\nFROM scratch\n',
-                 'dockerfile line greater than max allowed size of 65535')):
-            with self.subTest(expected_error=expected_error):
+                 1)):
+            with self.subTest(expected_line=expected_line):
                 result = docker_runtime_classification(contents)
-                self.assertEqual(result['classification'], 'invalid')
-                self.assertIn(expected_error, result['error'])
-                self.assertEqual(result['candidates'], [])
+                self.assertEqual(result['classification'], 'unsupported')
+                self.assertEqual(result['error'], '')
+                self.assertNotIn('value', result['candidates'][0])
+                self.assertEqual(result['candidates'][0]['line'], expected_line)
 
     def test_whitespace_only_frontend_metadata_is_bounded(self):
         prefix = '#\u00a0syntax=' + ('\t' * (32 * 1024)) + '\n'
@@ -111,9 +119,9 @@ class GoVersionMetadataTest(unittest.TestCase):
             len(prefix.encode('utf-8'))))
         result = docker_runtime_classification(contents)
         self.assertEqual(result['classification'], 'unsupported')
-        self.assertEqual(result['candidates'][0]['value'], '\t')
+        self.assertNotIn('value', result['candidates'][0])
         projection = docker_buildkit_metadata(contents)
-        self.assertEqual(projection['directives'][0]['value'], '\t')
+        self.assertEqual(projection['directives'], [])
 
     def test_yaml_block_scalars_are_structural(self):
         contents = ('steps:\n'

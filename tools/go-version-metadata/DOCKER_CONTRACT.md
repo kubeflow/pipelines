@@ -45,15 +45,18 @@ payloads may be arbitrary frontend DSLs and are not projected as Dockerfile
 instructions. Detection uses BuildKit's selector detector plus a bounded
 initial-preamble compatibility scanner for syntax-directive forms accepted by
 newer supported builders. This keeps checker and updater behavior stable when
-the CI executor changes. The compatibility grammar determines whether a value
-is present from the raw bytes after `=` before trimming Docker whitespace:
-an absent value terminates the preamble, while a whitespace-only `check`,
-`escape`, or `syntax` value remains an active directive and its semantic value
-is the first whitespace byte, matching BuildKit's capture. A duplicate
-pre-selector `check` or `escape`, or a pre-selector line at or above BuildKit's
-64-KiB scanner boundary, terminates selection as `invalid`; a later selector is
-not inspected. An `ONBUILD` payload is never managed; payloads that BuildKit
-forbids, including `ONBUILD FROM`, are `invalid`.
+the CI executor changes. The compatibility scanner returns only a conservative
+"potential frontend present" signal and a line number; it never exports a raw
+directive value or claims exact metadata parity with another BuildKit version.
+Malformed or ambiguous preambles, including duplicate pre-selector directives
+and oversized scan lines, may therefore be `unsupported` rather than `invalid`.
+The compatibility invariants are only that an active or ambiguous frontend is
+never accepted as managed, rejected files are never mutated, and scanner work
+and output remain bounded. A compatibility-path defect must demonstrate a
+fail-open result, incorrect mutation or data loss, or a resource-bound violation
+inside this published envelope; exact cross-version metadata or error parity is
+out of scope. An `ONBUILD` payload is never managed; payloads that the pinned
+BuildKit parser forbids, including `ONBUILD FROM`, are `invalid`.
 
 ## What is a Go source
 
