@@ -258,7 +258,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
 				runID := validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
-				e2e_utils.ValidateDRAResourceClaims(k8Client, runClient, *config.Namespace, runID)
+				e2e_utils.ValidateDRAResourceClaims(k8Client, *config.Namespace, runID)
 			})
 		}
 	})
