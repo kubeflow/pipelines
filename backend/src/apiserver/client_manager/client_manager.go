@@ -24,11 +24,13 @@ import (
 	"time"
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
+	awsMiddleware "github.com/aws/aws-sdk-go-v2/aws/middleware"
 	awsv2cfg "github.com/aws/aws-sdk-go-v2/config"
 	awsv2creds "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
+	smithyMiddleware "github.com/aws/smithy-go/middleware"
 	"github.com/cenkalti/backoff"
 	mysqlStd "github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
@@ -1186,10 +1188,17 @@ func newS3BucketClient(ctx context.Context, config *blobStorageConfig) (*s3.Clie
 }
 
 func loadAWSConfig(ctx context.Context, config *blobStorageConfig) (awsv2.Config, error) {
+	tagName := common.GetStringConfigWithDefault("TAG_NAME", "unknown")
+	if tagName == "" {
+		tagName = "unknown"
+	}
 	opts := []func(*awsv2cfg.LoadOptions) error{
 		awsv2cfg.WithRegion(config.region),
 		awsv2cfg.WithRequestChecksumCalculation(awsv2.RequestChecksumCalculationWhenRequired),
 		awsv2cfg.WithResponseChecksumValidation(awsv2.ResponseChecksumValidationWhenRequired),
+		awsv2cfg.WithAPIOptions([]func(*smithyMiddleware.Stack) error{
+			awsMiddleware.AddUserAgentKeyValue("kubeflow-pipelines", tagName),
+		}),
 	}
 	if config.accessKey != "" && config.secretKey != "" {
 		opts = append(opts, awsv2cfg.WithCredentialsProvider(
