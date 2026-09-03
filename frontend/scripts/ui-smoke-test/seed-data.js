@@ -1710,6 +1710,10 @@ async function seedData(options = {}) {
     apiBase = API_BASE,
   } = options;
   const waitForRunsFn = options.waitForRunsFn || waitForRunsStable;
+  const runWaitOptions = {
+    interval: options.runPollInterval,
+    timeout: options.runTimeout,
+  };
   const request =
     options.request ||
     ((method, endpoint, body = null, requestOptions = {}) =>
@@ -1861,6 +1865,13 @@ async function seedData(options = {}) {
           { semanticKey: definition.semanticKey },
         );
         created.runs.push(resource);
+        if (options.waitForCreatedRuns) {
+          await waitForRunsFn(
+            [requireResourceId(resource, ['run_id', 'runId', 'id'], definition.displayName)],
+            request,
+            runWaitOptions,
+          );
+        }
       } catch (error) {
         failures.push(failureRecord('run', definition.displayName, error));
       }
@@ -1937,10 +1948,7 @@ async function seedData(options = {}) {
   }
 
   try {
-    await waitForRunsFn(resources.runIds, request, {
-      interval: options.runPollInterval,
-      timeout: options.runTimeout,
-    });
+    await waitForRunsFn(resources.runIds, request, runWaitOptions);
   } catch (error) {
     return {
       success: false,

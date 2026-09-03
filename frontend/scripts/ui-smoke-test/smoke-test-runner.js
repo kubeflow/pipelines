@@ -2348,10 +2348,12 @@ async function runFullStackComparisonOrchestration({
     services.seedData({
       apiBase: baseUrl,
       manifestPath: baseSeedManifestPath,
+      waitForCreatedRuns: true,
     }),
     services.seedData({
       apiBase: headUrl,
       manifestPath: headSeedManifestPath,
+      waitForCreatedRuns: true,
     }),
   ]);
   if (!baseSeed.success || !headSeed.success) {
