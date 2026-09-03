@@ -97,6 +97,7 @@ func TestConfigConnectParams_ParsesConfiguredValues(t *testing.T) {
 	}
 	if params == nil {
 		t.Fatal("expected connect params")
+		return
 	}
 	if params.Backoff.BaseDelay != 3*time.Second {
 		t.Fatalf("unexpected base delay: %v", params.Backoff.BaseDelay)
@@ -122,6 +123,7 @@ func TestConfigConnectParams_UsesGRPCDefaultsForUnsetFields(t *testing.T) {
 	}
 	if params == nil {
 		t.Fatal("expected connect params")
+		return
 	}
 	if params.Backoff.BaseDelay != 5*time.Second {
 		t.Fatalf("unexpected base delay: %v", params.Backoff.BaseDelay)
