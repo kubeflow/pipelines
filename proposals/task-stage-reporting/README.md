@@ -20,9 +20,12 @@ KFP components can only report status at completion — either success with outp
 2. Malformed Input
     - Risk: User code writes arbitrary data to FD 3.
     - Mitigation: The launcher discards lines that fail JSON parsing. Only recognized fields are forwarded to `StatusMetadata.custom_properties`.
-3. API Server Load
-    - Risk: Sequential processing of many queued updates under high concurrency could strain the API server.
-    - Mitigation: If the sequential approach proves problematic, a future optimization could batch-write multiple updates in a single call.
+3. Failure Path Overwrites Stages
+    - Risk: The launcher's `finalizeExecution` replaces `StatusMetadata` wholesale on failure — setting `StatusMetadata.Message` to the error string and discarding prior content, including accumulated stages.
+    - Mitigation: Change `finalizeExecution` to merge rather than replace: read the existing `custom_properties` from the in-memory map, construct a new `StatusMetadata` with both the error `message` and the accumulated `custom_properties`, then write. This preserves stage history on failed tasks, which is the most useful case for debugging.
+4. API Server Load
+    - Risk: Each stage update triggers an `UpdateTask` call with the full accumulated `custom_properties` map.
+    - Mitigation: The map is small (bounded by the number of stages, typically single digits). The `UpdateTask` write is also selective persisting only non-nil fields. If the per-update call proves problematic under high concurrency load, a future optimization could include batch-writing resulting in less write operations but delayed stages visibility in the GET API calls. 
 
 ## Design Details
 
@@ -40,29 +43,73 @@ This approach:
 
 In `LauncherV2.executeV2()`, before the user command starts, the launcher creates an `os.Pipe()` and passes the write-end to the child via `cmd.ExtraFiles`. After starting the command, it closes the write-end in the parent and starts a reader goroutine.
 
-The reader goroutine scans JSONL from the pipe and enqueues each valid update. Updates are processed sequentially — every update is sent to the API server via `UpdateTask`, none are dropped or overwritten. Malformed lines are silently discarded. On EOF (child exit), any remaining queued updates are flushed.
+The reader goroutine scans JSONL from the pipe. It maintains an in-memory `map[string]*structpb.Value` that accumulates all stages reported so far. On each valid line, the goroutine upserts the stage entry (keyed by the `stage` field) into the map, then calls `UpdateTask` with the full accumulated map nested under `StatusMetadata.custom_properties["stages"]`. Malformed lines are silently discarded. On EOF (child exit), any remaining queued update is flushed.
+
+During execution, no other code path writes to `StatusMetadata` — the launcher only touches it on failure (in `finalizeExecution`) or on plugin start (in the driver), both of which happen outside the user command's runtime window. The goroutine is the sole writer for the duration of the component.
 
 ### Layer 2: SDK (Python)
 
-A public function `kfp.set_task_stage(message, progress=None, **custom)` is exposed at the `kfp` package level. It opens FD 3 lazily, writes a JSON line per call, and flushes immediately. If FD 3 is not available (local mode, tests), it silently no-ops. If the launcher has already exited, `BrokenPipeError` is caught and suppressed.
+A public function `kfp.set_task_stage(stage, message, state="RUNNING", progress=None, **custom)` is exposed at the `kfp` package level. It opens FD 3 lazily, writes a JSON line per call, and flushes immediately. If FD 3 is not available (local mode, tests), it writes the stage-reporting lines to stdout along with the component logs. If the launcher has already exited, `BrokenPipeError` is caught and suppressed.
 
 ### Wire Format
 
 Each line written to FD 3 is a JSON object with the following fields:
 
+- `stage` (string, required): Stage identifier, used as the key in `custom_properties` (e.g., `"load_data"`, `"train"`).
 - `message` (string, required): Human-readable stage description.
-- `progress` (float, optional): Fractional progress in [0.0, 1.0].
-- Additional keys are passed through as-is to `custom_properties`.
+- `state` (string, required): One of `"RUNNING"`, `"COMPLETED"`, `"FAILED"`, `"SKIPPED"`.
+- Additional keys are allowed and passed through as-is into the stage's value dict.
 
-The launcher maps these to `PipelineTask.StatusMetadata.custom_properties` values using the existing proto `map<string, google.protobuf.Value>` field.
+The launcher accumulates these into a `map[string]*structpb.Value` and writes it to `PipelineTask.StatusMetadata.custom_properties` via `UpdateTask` under a single `stages` key. The value of `custom_properties["stages"]` is a `Struct` where each key is a stage name and each value is a `Struct` containing `message`, `state`, and any additional keys.
 
 ### Existing Infrastructure Reused
 
-- **`StatusMetadata.custom_properties`** (`run.proto:467`): Already defined in the proto with the comment "can be used to provide additional status info for a given task during runtime." Already persisted by the task store.
-- **`UpdateTask` RPC** (`run.proto:143`): Fully wired gRPC endpoint with authorization, merge-style partial updates, and automatic `state_history` population.
-- **`TaskStore.UpdateTask`** (`task_store.go:1018`): Handles `StatusMetadata` marshaling at line 1119 with row-level locking for safe concurrent updates.
+- **`StatusMetadata.custom_properties`**: Already defined in the proto with the comment "can be used to provide additional status info for a given task during runtime." Already persisted by the task store.
+- **`UpdateTask` RPC**: Fully wired gRPC endpoint with authorization, merge-style partial updates, and automatic `state_history` population.
+- **`TaskStore.UpdateTask`**: Handles `StatusMetadata` marshaling with row-level locking for safe concurrent updates.
 
 No new proto fields, RPCs, or database columns are needed.
+
+### Stage Retrieval
+
+Stages are retrieved through the existing `GET /apis/v2beta1/runs/{run_id}?view=FULL` endpoint. When called with `view=FULL`, the response includes the full `tasks` list with each task's `status_metadata.custom_properties` populated from the database. No additional endpoint or query parameter is needed.
+
+It is to be discussed whether a new dedicated endpoint for getting stages for a particular task is required and viable to implement and maintain.
+
+The response shape for a task with reported stages:
+
+```json
+{
+  "tasks": [
+    {
+      "task_id": "abc-123",
+      "display_name": "train-model",
+      "state": "RUNNING",
+      "status_metadata": {
+        "custom_properties": {
+          "stages": {
+            "load_data": {
+              "state": "COMPLETED",
+              "message": "Loaded 50k rows"
+            },
+            "validate": {
+              "state": "COMPLETED",
+              "message": "Schema valid"
+            },
+            "train": {
+              "state": "RUNNING",
+              "message": "Epoch 7/50, loss=0.23",
+              "progress": 0.14
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+Tasks that never reported stages have no `stages` key in `custom_properties`. Consumers check for the presence of `custom_properties.stages` to determine whether a component reported any stages. The `UpdateTask` store method writes `StatusMetadata` as a selective column update — only the `StatusMetadata` column is touched, under a row-level lock (`SELECT ... FOR UPDATE`), so stage writes do not interfere with other task mutations.
 
 ## KFP Local Considerations
 
@@ -74,12 +121,13 @@ A future enhancement could have the local runner create the pipe and print stage
 
 1. **Unit tests (Go)**: Test the pipe reader goroutine with mock pipes — valid JSONL, malformed lines, rapid writes (sequential queue ordering), and EOF handling.
 2. **Unit tests (Python)**: Test `set_task_stage()` with a real pipe FD, with a closed FD (BrokenPipeError), and without FD 3 (local mode no-op).
-3. **Integration test**: A pipeline with a component that calls `set_task_stage()`, asserting that `GetTask` returns the expected `custom_properties` values after the component completes.
-4. **Load test**: Multiple concurrent tasks reporting status at high frequency to verify sequential queue processing handles sustained throughput.
+3. **Integration test**: A pipeline with a component that calls `set_task_stage()` for multiple _parallel_ stages, asserting that `GetRun(view=FULL)` returns the expected `custom_properties` map on the task — with all stages present and correct states.
+4. **Failure path test**: A component that reports stages then fails, asserting that the failed task's `status_metadata` contains both the error `message` and the accumulated `custom_properties` stages.
 
 ## Delivery Plan
 
-1. Add the pipe creation and reader goroutine to the launcher.
-2. Add `kfp.set_task_stage()` to the SDK.
-3. Add unit tests for both layers.
-4. Add an integration test with a status-reporting component.
+1. Add the pipe creation and reader goroutine to the launcher, with in-memory stage accumulation and `UpdateTask` persistence.
+2. Merge (not replace) `StatusMetadata` in `finalizeExecution` to preserve stages on failure.
+3. Add `kfp.set_task_stage()` to the SDK.
+4. Add unit tests for both layers, including the failure path merge.
+5. Add an integration test with a multi-stage component, verifying retrieval via `GetRun(view=FULL)`.
