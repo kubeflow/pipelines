@@ -2305,7 +2305,9 @@ async function runFullStackComparisonOrchestration({
   // were already built for the validated target platform while no cluster existed.
   state.phase = 'base_deployment';
   if (Object.keys(baseImageOverrides.images).length > 0) {
-    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform);
+    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform, {
+      removeSourceAfterLoad: true,
+    });
   }
   await baseStack.deployRevision(baseWorktree, {
     ...(baseRelease ? { expectedRelease: baseRelease.version } : {}),
@@ -2315,7 +2317,9 @@ async function runFullStackComparisonOrchestration({
     requireLocalFirstParty: !baseRelease,
   });
   if (Object.keys(headImageOverrides.images).length > 0) {
-    headStack.loadImageOverrides(headImageOverrides, targetPlatform);
+    headStack.loadImageOverrides(headImageOverrides, targetPlatform, {
+      removeSourceAfterLoad: true,
+    });
   }
   state.phase = 'head_deployment';
   await headStack.deployRevision(headRoot, {

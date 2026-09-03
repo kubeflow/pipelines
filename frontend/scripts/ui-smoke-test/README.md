@@ -414,7 +414,9 @@ node smoke-test-runner.js --teardown
    deployment.
 4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
    preflighted for that revision. Exact local image overrides and runtime-image variables are
-   applied to each locally built revision before any workload starts.
+   applied to each locally built revision before any workload starts. After each run-scoped image
+   is imported, its host-side tag is released so the two isolated stacks do not retain a third copy
+   of every locally built image.
 5. Applies the manifests and waits for the deployments actually rendered by that revision.
 6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
    readiness checks, and screenshots all use that deployed UI and its matching in-cluster

@@ -841,6 +841,12 @@ function createKindStack(config = {}) {
         nodePlatform: platform,
         runner,
       });
+      if (options.removeSourceAfterLoad) {
+        requireSuccess(
+          runner('docker', ['image', 'rm', image], commandOptions()),
+          `Failed to release ${image} after loading it into Kind cluster ${clusterName}`,
+        );
+      }
     }
     return images;
   }

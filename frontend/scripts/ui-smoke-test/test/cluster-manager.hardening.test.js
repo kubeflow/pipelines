@@ -705,12 +705,25 @@ test('arm64 source builds keep the metadata writer on its reviewed amd64 workloa
   assert.equal(buildPlatform(metadataWriter), 'linux/amd64');
   assert.equal(buildPlatform(driver), 'linux/arm64');
 
-  stack.loadImageOverrides(overrides, 'linux/arm64');
+  stack.loadImageOverrides(overrides, 'linux/arm64', { removeSourceAfterLoad: true });
   const metadataWriterSave = calls.find(
     ({ args, command }) =>
       command === 'docker' && args[0] === 'save' && args.at(-1) === localMetadataWriterImage,
   );
   assert.deepEqual(metadataWriterSave.args.slice(0, 3), ['save', '--platform', 'linux/amd64']);
+  const metadataWriterLoadIndex = calls.findIndex(
+    ({ args, command }) =>
+      command === 'kind' && args[0] === 'load' && args.includes(metadataWriterSave.args[4]),
+  );
+  const metadataWriterRemovalIndex = calls.findIndex(
+    ({ args, command }) =>
+      command === 'docker' &&
+      args[0] === 'image' &&
+      args[1] === 'rm' &&
+      args[2] === localMetadataWriterImage,
+  );
+  assert.ok(metadataWriterLoadIndex >= 0);
+  assert.ok(metadataWriterRemovalIndex > metadataWriterLoadIndex);
 
   stack.applyKfpManifests(revisionRoot, {
     imageOverrides: overrides,
