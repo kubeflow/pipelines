@@ -4467,6 +4467,29 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 			},
 		},
 		{
+			name: "Existing Resources.Claims matching pod claim - not duplicated",
+			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
+				PodResourceClaims: []*kubernetesplatform.PodResourceClaim{
+					{ResourceClaimTemplateName: "gpu-claim-template"},
+				},
+			},
+			existingContainerClaims: []k8score.ResourceClaim{
+				{Name: "gpu-claim-template"},
+			},
+			expected: &k8score.PodSpec{
+				Containers: []k8score.Container{{
+					Name: "main",
+					Resources: k8score.ResourceRequirements{
+						Claims: []k8score.ResourceClaim{{Name: "gpu-claim-template"}},
+					},
+				}},
+				ResourceClaims: []k8score.PodResourceClaim{{
+					Name:                      "gpu-claim-template",
+					ResourceClaimTemplateName: stringPtr("gpu-claim-template"),
+				}},
+			},
+		},
+		{
 			name: "Nil claim in list - skipped",
 			k8sExecCfg: &kubernetesplatform.KubernetesExecutorConfig{
 				PodResourceClaims: []*kubernetesplatform.PodResourceClaim{

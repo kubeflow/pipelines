@@ -389,11 +389,19 @@ func extendPodSpecPatch(
 
 		if setOnPod[pipelinespec.TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS] {
 			podSpec.ResourceClaims = append(podSpec.ResourceClaims, k8sClaims...)
+			existingContainerClaims := make(map[string]bool, len(podSpec.Containers[0].Resources.Claims))
+			for _, claim := range podSpec.Containers[0].Resources.Claims {
+				existingContainerClaims[claim.Name] = true
+			}
 			for _, rc := range k8sClaims {
+				if existingContainerClaims[rc.Name] {
+					continue
+				}
 				podSpec.Containers[0].Resources.Claims = append(
 					podSpec.Containers[0].Resources.Claims,
 					k8score.ResourceClaim{Name: rc.Name},
 				)
+				existingContainerClaims[rc.Name] = true
 			}
 		}
 	}

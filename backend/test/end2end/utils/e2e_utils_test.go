@@ -56,7 +56,7 @@ func TestUnreferencedResourceClaims(t *testing.T) {
 					{Name: "main"},
 				},
 			}, ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{defaultContainerAnnotation: "main"}}},
-			want: []string{"gpu"},
+			want: nil,
 		},
 		{
 			name: "claim has no annotated default container",
@@ -66,7 +66,7 @@ func TestUnreferencedResourceClaims(t *testing.T) {
 					{Name: "main", Resources: v1.ResourceRequirements{Claims: []v1.ResourceClaim{{Name: "gpu"}}}},
 				},
 			}},
-			want: []string{"gpu"},
+			want: nil,
 		},
 		{
 			name: "one of multiple claims is unreferenced",
@@ -174,5 +174,36 @@ func TestMissingResourceClaims(t *testing.T) {
 				t.Fatalf("missingResourceClaims() = %v, want %v", got, testCase.want)
 			}
 		})
+	}
+}
+
+func TestDRAResourceClaimValidation(t *testing.T) {
+	boundClaimName := "generated-claim"
+	validPod := &v1.Pod{
+		Spec: v1.PodSpec{
+			ResourceClaims: []v1.PodResourceClaim{{Name: "gpu"}},
+			Containers: []v1.Container{
+				{Name: "wait"},
+				{Name: "worker", Resources: v1.ResourceRequirements{
+					Claims: []v1.ResourceClaim{{Name: "gpu"}},
+				}},
+			},
+		},
+		Status: v1.PodStatus{ResourceClaimStatuses: []v1.PodResourceClaimStatus{{
+			Name: "gpu", ResourceClaimName: &boundClaimName,
+		}}},
+	}
+	if got := draResourceClaimValidationErrors(validPod, []string{"gpu"}); got != nil {
+		t.Fatalf("valid pod returned validation errors: %v", got)
+	}
+
+	invalidPod := &v1.Pod{
+		Spec: v1.PodSpec{
+			ResourceClaims: []v1.PodResourceClaim{{Name: "gpu"}},
+			Containers:     []v1.Container{{Name: "worker"}},
+		},
+	}
+	if got := draResourceClaimValidationErrors(invalidPod, []string{"gpu", "nic"}); len(got) != 3 {
+		t.Fatalf("invalid pod returned %v validation errors, want 3: %v", len(got), got)
 	}
 }

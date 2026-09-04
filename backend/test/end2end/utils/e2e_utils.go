@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"sort"
+	"strings"
 	"time"
 
 	runparams "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/run_client/run_service"
@@ -163,35 +164,45 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string,
 	logger.Log("Found %d pod(s) for run %s", len(pods.Items), runID)
 
 	validated := 0
+	var validationFailures []string
 	for i := range pods.Items {
 		pod := &pods.Items[i]
 		if len(pod.Spec.ResourceClaims) == 0 {
 			continue
 		}
 
-		missingClaims := missingResourceClaims(pod, expectedClaims)
-		gomega.Expect(missingClaims).To(gomega.BeEmpty(),
-			"Pod %s is missing expected resource claims: %v", pod.Name, missingClaims)
-
-		unreferencedClaims := unreferencedResourceClaims(pod)
-		gomega.Expect(unreferencedClaims).To(gomega.BeEmpty(),
-			"Pod %s has resource claims not referenced by its annotated default container: %v", pod.Name, unreferencedClaims)
+		validationErrors := draResourceClaimValidationErrors(pod, expectedClaims)
+		if len(validationErrors) > 0 {
+			validationFailures = append(validationFailures,
+				fmt.Sprintf("Pod %s: %s", pod.Name, strings.Join(validationErrors, "; ")))
+			continue
+		}
 
 		for _, claim := range pod.Spec.ResourceClaims {
-			if containerName, found := defaultContainerForResourceClaim(pod, claim.Name); found {
+			if containerName, found := containerForResourceClaim(pod, claim.Name); found {
 				logger.Log("Pod %s: resource claim %s referenced by container %s", pod.Name, claim.Name, containerName)
 			}
 		}
-
-		unallocatedClaims := unallocatedResourceClaims(pod)
-		gomega.Expect(unallocatedClaims).To(gomega.BeEmpty(),
-			"Pod %s has resource claims without a matching bound status: %v", pod.Name, unallocatedClaims)
 
 		validated++
 		logger.Log("Pod %s: DRA resource claims verified (%d claim(s) allocated)", pod.Name, len(pod.Spec.ResourceClaims))
 	}
 	gomega.Expect(validated).To(gomega.BeNumerically(">", 0),
-		"No pods with DRA claims found for run %s", runID)
+		"No pods with complete DRA claims found for run %s: %v", runID, validationFailures)
+}
+
+func draResourceClaimValidationErrors(pod *v1.Pod, expectedClaims []string) []string {
+	var validationErrors []string
+	if missingClaims := missingResourceClaims(pod, expectedClaims); len(missingClaims) > 0 {
+		validationErrors = append(validationErrors, fmt.Sprintf("missing expected resource claims: %v", missingClaims))
+	}
+	if unreferencedClaims := unreferencedResourceClaims(pod); len(unreferencedClaims) > 0 {
+		validationErrors = append(validationErrors, fmt.Sprintf("resource claims not referenced by any container: %v", unreferencedClaims))
+	}
+	if unallocatedClaims := unallocatedResourceClaims(pod); len(unallocatedClaims) > 0 {
+		validationErrors = append(validationErrors, fmt.Sprintf("resource claims without a matching bound status: %v", unallocatedClaims))
+	}
+	return validationErrors
 }
 
 func missingResourceClaims(pod *v1.Pod, expectedClaims []string) []string {
@@ -212,19 +223,15 @@ func missingResourceClaims(pod *v1.Pod, expectedClaims []string) []string {
 func unreferencedResourceClaims(pod *v1.Pod) []string {
 	var unreferenced []string
 	for _, claim := range pod.Spec.ResourceClaims {
-		if _, found := defaultContainerForResourceClaim(pod, claim.Name); !found {
+		if _, found := containerForResourceClaim(pod, claim.Name); !found {
 			unreferenced = append(unreferenced, claim.Name)
 		}
 	}
 	return unreferenced
 }
 
-func defaultContainerForResourceClaim(pod *v1.Pod, claimName string) (string, bool) {
-	defaultContainerName := pod.Annotations[defaultContainerAnnotation]
+func containerForResourceClaim(pod *v1.Pod, claimName string) (string, bool) {
 	for _, container := range pod.Spec.Containers {
-		if container.Name != defaultContainerName {
-			continue
-		}
 		for _, claim := range container.Resources.Claims {
 			if claim.Name == claimName {
 				return container.Name, true

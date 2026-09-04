@@ -16,6 +16,7 @@
 import contextlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
@@ -443,24 +444,12 @@ class ExecutorTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'executor_input':
-                """\
-            {
-              "inputs": {
-                "parameterValues": {
-                  "first": 0.0,
-                  "second": 1.2
-                }
-              },
-              "outputs": {
-                "parameters": {
-                  "Output": {
-                    "outputFile": "gs://some-bucket/output"
-                  }
-                },
-                "outputFile": "%(test_dir)s/output_metadata.json"
-              }
-            }
-            """,
+                """\ { "inputs": { "parameterValues": { "first": 0.0, "second":
+                1.2 } }, "outputs": { "parameters": { "Output": { "outputFile":
+                "gs://some-bucket/output" } }, "outputFile":
+                "%(test_dir)s/output_metadata.json" } }"""
+
+               ,
             'expected_output_metadata': {
                 'parameterValues': {
                     'Output': 1.2
@@ -2264,9 +2253,15 @@ class TestPydanticBaseModelExecutorSupport(parameterized.TestCase):
 class TestTaskConfigDeserialization(parameterized.TestCase):
 
     @classmethod
-    def setUp(cls):
+    def setUpClass(cls):
+        super().setUpClass()
         cls.maxDiff = None
         cls._test_dir = tempfile.mkdtemp()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls._test_dir)
+        super().tearDownClass()
 
     def test_resource_claims_deserialized_from_json(self):
         from kfp.dsl.task_config import TaskConfig
