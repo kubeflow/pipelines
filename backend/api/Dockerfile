@@ -16,6 +16,7 @@
 FROM golang:1.27.0@sha256:4013ae0f9e7994f8535c58c811f8f863fbed38b72e0d51e6592156f758d66146 AS generator
 ENV PROTOC_VERSION=31.1
 ENV GOBIN=/go/bin
+ARG TARGETARCH
 # The googleapis repo doesn't use GitHub releases or version tags,
 # so we pin a specific commit to make the clone reproducible.
 ENV GOOGLEAPIS_COMMIT=68d5196a529174df97c28c70622ffc1c3721815f
@@ -28,7 +29,13 @@ COPY backend/api/tools/go.mod /tmp/api-generator-tools/go.mod
 
 # Install protoc and Java (needed for KFP server API package generation).
 RUN apt-get update -y && apt-get install -y jq sed unzip default-jdk
-RUN curl -L -o protoc.zip https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
+RUN set -eu; \
+    if [ "$TARGETARCH" = "ppc64le" ]; then \
+        PROTOC_ARCH=ppcle_64; \
+    else \
+        PROTOC_ARCH=x86_64; \
+    fi; \
+    curl -L -o protoc.zip "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-${PROTOC_ARCH}.zip"
 RUN unzip -o protoc.zip -d /tmp/protoc && \
     mv /tmp/protoc/bin/protoc /usr/bin/protoc && \
     chmod +x /usr/bin/protoc
@@ -60,6 +67,11 @@ RUN git init /googleapis && \
     git checkout FETCH_HEAD
 # Download go-swagger binary.
 RUN set -eu; \
+    if [ "$TARGETARCH" = "ppc64le" ]; then \
+        SWAGGER_ARCH=ppc64le; \
+    else \
+        SWAGGER_ARCH=amd64; \
+    fi; \
     go_swagger_version="$(cd /tmp/api-generator-tools && go mod edit -json | jq -er '.Require[] | select(.Path == "github.com/go-swagger/go-swagger") | .Version')"; \
     curl -fL -o /usr/bin/swagger "https://github.com/go-swagger/go-swagger/releases/download/${go_swagger_version}/swagger_linux_amd64"; \
     chmod +x /usr/bin/swagger
