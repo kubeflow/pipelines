@@ -15,11 +15,12 @@
 """DRA passthrough check: verifies ResourceClaims are forwarded through
 TaskConfig passthrough and applied to the pod via the dra-example-driver."""
 
-from kfp import compiler, dsl, kubernetes
+from kfp import compiler, dsl
 
 
 @dsl.component(
-    packages_to_install=['kfp>=2.16.1'],
+    base_image='python:3.11',
+    target_image='kfp-dra-sdk:test',
     install_kfp_package=False,
     task_config_passthroughs=[
         dsl.TaskConfigPassthrough(
@@ -45,6 +46,8 @@ def verify_dra_passthrough(task_config: dsl.TaskConfig):
     ),
 )
 def dra_passthrough_check():
+    from kfp import kubernetes
+
     task = verify_dra_passthrough().set_caching_options(False)
     kubernetes.add_resource_claim(
         task, resource_claim_template_name='dra-test-claim')

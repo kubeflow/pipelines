@@ -642,6 +642,90 @@ class Test(unittest.TestCase):
         self.assertTrue(contents.startswith(file_start))
         self.assertRegex(contents, 'RUN pip install --no-cache-dir kfp-*')
 
+    def test_component_builder_preserves_positional_component_filepattern(self):
+        component_source = _make_component(
+            func_name='train',
+            base_image='python:3.11',
+            target_image='custom-image')
+        _write_components('components.py', component_source)
+
+        builder = component.ComponentBuilder(self._working_dir, None,
+                                             'components.py')
+
+        self.assertEqual(builder._target_image, 'custom-image')
+
+    def test_dockerfile_can_contain_additional_local_packages(self):
+        component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', component)
+        kfp_package_dir = self._working_dir / 'kfp-package'
+        pipeline_spec_package_dir = self._working_dir / 'pipeline-spec-package'
+        kubernetes_package_dir = self._working_dir / 'kubernetes-package'
+        kfp_package_dir.mkdir()
+        pipeline_spec_package_dir.mkdir()
+        kubernetes_package_dir.mkdir()
+
+        def build_wheel(command, check):
+            del check
+            wheel_dir = pathlib.Path(command[command.index('--wheel-dir') + 1])
+            package_dir = pathlib.Path(command[-1])
+            wheel_names = {
+                kfp_package_dir:
+                    'kfp-1.2.3-py3-none-any.whl',
+                pipeline_spec_package_dir:
+                    'kfp_pipeline_spec-1.2.3-py3-none-any.whl',
+                kubernetes_package_dir:
+                    'kfp_kubernetes-1.2.3-py3-none-any.whl',
+            }
+            wheel_name = wheel_names[package_dir]
+            (wheel_dir / wheel_name).touch()
+
+        with mock.patch.object(subprocess, 'run', side_effect=build_wheel):
+            result = self.runner.invoke(self.cli, [
+                'build',
+                str(self._working_dir),
+                f'--kfp-package-path={kfp_package_dir}',
+                f'--additional-package-path={pipeline_spec_package_dir}',
+                f'--additional-package-path={kubernetes_package_dir}',
+                '--no-build-image',
+            ])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        dockerfile = (self._working_dir / 'Dockerfile').read_text()
+        self.assertIn(
+            'COPY kfp-1.2.3-py3-none-any.whl kfp-1.2.3-py3-none-any.whl\n'
+            'COPY kfp_pipeline_spec-1.2.3-py3-none-any.whl '
+            'kfp_pipeline_spec-1.2.3-py3-none-any.whl\n'
+            'COPY kfp_kubernetes-1.2.3-py3-none-any.whl '
+            'kfp_kubernetes-1.2.3-py3-none-any.whl\n'
+            'RUN pip install --no-cache-dir '
+            'kfp_pipeline_spec-1.2.3-py3-none-any.whl '
+            'kfp_kubernetes-1.2.3-py3-none-any.whl '
+            'kfp-1.2.3-py3-none-any.whl', dockerfile)
+
+    @mock.patch('kfp.__version__', '1.2.3')
+    def test_additional_package_already_in_context_is_not_copied(self):
+        component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', component)
+        package_path = self._working_dir / 'local_package-1.2.3-py3-none-any.whl'
+        package_path.touch()
+
+        result = self.runner.invoke(self.cli, [
+            'build',
+            str(self._working_dir),
+            f'--additional-package-path={package_path}',
+            '--no-build-image',
+        ])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        dockerfile = (self._working_dir / 'Dockerfile').read_text()
+        self.assertIn(
+            'COPY local_package-1.2.3-py3-none-any.whl '
+            'local_package-1.2.3-py3-none-any.whl\n'
+            'RUN pip install --no-cache-dir '
+            'local_package-1.2.3-py3-none-any.whl kfp==1.2.3', dockerfile)
+
     @mock.patch('kfp.__version__', '1.2.3')
     def test_docker_file_is_created_one_trusted_host(self):
         component = _make_component(

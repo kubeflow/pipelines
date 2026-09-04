@@ -22,29 +22,10 @@ deploymentSpec:
         - --function_to_execute
         - verify_dra_passthrough
         command:
-        - sh
-        - -c
-        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
-          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet --no-warn-script-location 'kfp>=2.16.1'\
-          \ && \"$0\" \"$@\"\n"
-        - sh
-        - -ec
-        - 'program_path=$(mktemp -d)
-
-
-          printf "%s" "$0" > "$program_path/ephemeral_component.py"
-
-          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
-
-          '
-        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef verify_dra_passthrough(task_config: dsl.TaskConfig):\n    assert\
-          \ task_config.resource_claims == [{\n        'name': 'dra-test-claim',\n\
-          \        'resourceClaimTemplateName': 'dra-test-claim',\n    }]\n    print(f\"\
-          resource_claims: {task_config.resource_claims}\")\n    print(\"DRA passthrough\
-          \ check: PASS\")\n\n"
-        image: python:3.11
+        - python3
+        - -m
+        - kfp.dsl.executor_main
+        image: kfp-dra-sdk:test
 pipelineInfo:
   description: Verifies DRA ResourceClaims are forwarded through TaskConfig passthrough
     and applied to the task pod.

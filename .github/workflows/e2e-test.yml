@@ -130,6 +130,32 @@ jobs:
           k8s_version: ${{ matrix.k8s_version }}
           cluster_name: ${{ env.CLUSTER_NAME }}
 
+      - name: Generate DRA SDK packages
+        uses: ./.github/actions/protobuf
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+
+      - name: Build DRA SDK component image
+        shell: bash
+        if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        run: |
+          python3 -m venv "${RUNNER_TEMP}/dra-component-build"
+          source "${RUNNER_TEMP}/dra-component-build/bin/activate"
+          python -m pip install --upgrade pip
+          python -m pip install api/v2alpha1/python/dist/*.whl
+          python -m pip install sdk/python kubernetes_platform/python docker==7.1.0
+
+          BUILD_CONTEXT=$(mktemp -d)
+          cp test_data/sdk_compiled_pipelines/valid/dra/dra_passthrough_check.py "${BUILD_CONTEXT}/"
+
+          source .github/resources/scripts/helper-functions.sh
+          retry 3 30 kfp component build "${BUILD_CONTEXT}" \
+            --component-filepattern dra_passthrough_check.py \
+            --kfp-package-path "${GITHUB_WORKSPACE}/sdk/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/api/v2alpha1/python" \
+            --additional-package-path "${GITHUB_WORKSPACE}/kubernetes_platform/python" \
+            --no-push-image
+          kind --name "${{ env.CLUSTER_NAME }}" load docker-image kfp-dra-sdk:test
+
       - name: Install DRA Example Driver
         uses: ./.github/actions/install-dra-driver
         id: install-dra-driver
