@@ -27,6 +27,7 @@ import { isAllowedResourceName } from '../utils.js';
 
 const DEFAULT_CLUSTER_DOMAIN = '.svc.cluster.local';
 const TENSORBOARD_PROXY_PREFIX = '/apps/tensorboard/proxy/';
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 const UI_SERVER_ROUTE_PREFIXES = [
   '/apis',
   '/apps',
@@ -204,10 +205,15 @@ export function parseTensorboardProxyPayload(
   }
 
   const expectedSignature = signTensorboardProxyPayload(serializedPayload, signingSecret);
-  if (signature.length !== expectedSignature.length) {
+  if (!BASE64URL_PATTERN.test(signature)) {
     return undefined;
   }
-  if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+  const signatureBuffer = Buffer.from(signature, 'ascii');
+  const expectedSignatureBuffer = Buffer.from(expectedSignature, 'ascii');
+  if (signatureBuffer.length !== expectedSignatureBuffer.length) {
+    return undefined;
+  }
+  if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
     return undefined;
   }
 

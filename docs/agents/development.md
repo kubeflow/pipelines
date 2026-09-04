@@ -163,4 +163,5 @@ separately (see `ARTIFACT_RETENTION_DAYS` for object-store artifacts).
 proxy paths. When it is unset, the UI generates a cryptographically random,
 process-local secret at startup. Configure a dedicated random secret of at least
 32 bytes when proxy paths must remain valid across UI restarts or multiple UI
-replicas. The value must not reuse `MINIO_SECRET_KEY`.
+replicas. The standard UI deployment uses `Recreate` so process-local keys never
+overlap during a rollout. The value must not reuse `MINIO_SECRET_KEY`.

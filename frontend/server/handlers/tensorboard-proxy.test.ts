@@ -89,6 +89,36 @@ describe('tensorboard-proxy', () => {
     ).toBeUndefined();
   });
 
+  it('rejects non-base64url signatures without throwing', async () => {
+    const encodedPayload = Buffer.from(
+      JSON.stringify({ namespace: 'test-ns', viewerName: 'viewer-abcdefg' }),
+    ).toString('base64url');
+    const invalidSignature = encodeURIComponent('é'.repeat(43));
+    const invalidToken = `${encodedPayload}.${invalidSignature}`;
+
+    expect(
+      parseTensorboardProxyPayload(invalidToken, TENSORBOARD_PROXY_SIGNING_SECRET),
+    ).toBeUndefined();
+
+    const app = express();
+    const authorizeFn = vi.fn(async () => undefined);
+    registerTensorboardProxy(
+      app,
+      '/pipeline',
+      {
+        clusterDomain: '.svc.cluster.local',
+        proxySigningSecret: TENSORBOARD_PROXY_SIGNING_SECRET,
+        tfImageName: 'tensorflow/tensorflow',
+      },
+      authorizeFn,
+    );
+
+    await requests(app)
+      .get(`/apps/tensorboard/proxy/${invalidToken}/`)
+      .expect(403, 'Invalid TensorBoard proxy target');
+    expect(authorizeFn).not.toHaveBeenCalled();
+  });
+
   it('rejects invalid proxy tokens before proxying upstream traffic', async () => {
     const app = express();
     registerTensorboardProxy(

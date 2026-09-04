@@ -391,6 +391,20 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
   };
 }
 
+export function getConfigsForLogging(configs: UIConfigs) {
+  return {
+    ...configs,
+    artifacts: 'Artifacts config contains credentials, so it is omitted',
+    viewer: {
+      ...configs.viewer,
+      tensorboard: {
+        ...configs.viewer.tensorboard,
+        proxySigningSecret: 'TensorBoard proxy signing secret is omitted',
+      },
+    },
+  };
+}
+
 export interface MinioConfigs {
   accessKey: string;
   secretKey: string;

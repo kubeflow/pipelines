@@ -40,8 +40,10 @@ deployment.
 The frontend signs scoped TensorBoard proxy paths with
 `TENSORBOARD_PROXY_SIGNING_SECRET`. If this variable is unset, each frontend
 server process generates a random signing secret at startup. This default is
-suitable for the standard single-replica deployment, but existing proxy paths
-become invalid after a restart.
+suitable for the standard single-replica deployment, whose `Recreate` strategy
+prevents pods with different process-local secrets from serving concurrently.
+The UI is briefly unavailable during an update, and existing proxy paths become
+invalid whenever the frontend restarts.
 
 Deployments with multiple frontend replicas, or deployments that need proxy
 paths to survive restarts, must provide the same dedicated random secret of at
@@ -56,6 +58,10 @@ env:
         name: ml-pipeline-ui-tensorboard-proxy
         key: signing-secret
 ```
+
+The base deployment uses `Recreate` to protect the process-local default. After
+configuring a shared signing secret, deployments that require uninterrupted
+updates can override `spec.strategy.type` to `RollingUpdate`.
 
 Do not reuse `MINIO_SECRET_KEY` or another application credential for this
 value. The frontend refuses to start when the configured signing secret is

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import * as os from 'os';
-import { loadConfigs } from './configs.js';
+import { getConfigsForLogging, loadConfigs } from './configs.js';
 
 describe('loadConfigs', () => {
   it('should throw error if no static dir provided', () => {
@@ -64,6 +64,20 @@ describe('loadConfigs', () => {
       TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
     });
     expect(configs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
+  });
+
+  it('redacts the tensorboard proxy signing secret from logged configs', () => {
+    const tmpdir = os.tmpdir();
+    const signingSecret = 'dedicated-tensorboard-proxy-secret';
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
+    });
+
+    const loggedConfigs = getConfigsForLogging(configs);
+
+    expect(JSON.stringify(loggedConfigs)).not.toContain(signingSecret);
+    expect(loggedConfigs.viewer.tensorboard.clusterDomain).toBe('.svc.cluster.local');
+    expect(loggedConfigs.viewer.tensorboard.proxySigningSecret).toContain('omitted');
   });
 
   it('rejects a tensorboard proxy signing secret reused from MINIO_SECRET_KEY', () => {
