@@ -21,6 +21,8 @@ import {
   statusToBgColor,
   checkIfTerminated,
   parseNodePhase,
+  parsePodLifecycleFailure,
+  getPodDiagnosticSummary,
 } from './StatusUtils';
 import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
 
@@ -217,4 +219,75 @@ describe('StatusUtils', () => {
       ).toEqual('Succeeded');
     });
   });
+
+  describe('parsePodLifecycleFailure', () => {
+    it('returns null for empty or undefined message', () => {
+      expect(parsePodLifecycleFailure(undefined)).toBeNull();
+      expect(parsePodLifecycleFailure('')).toBeNull();
+    });
+
+    it('identifies OOMKilled failures', () => {
+      expect(parsePodLifecycleFailure('Command failed: OOMKilled')).toEqual('OOMKilled');
+      expect(parsePodLifecycleFailure('Container process terminated: Out of Memory')).toEqual(
+        'OOMKilled',
+      );
+    });
+
+    it('identifies ImagePullBackOff failures', () => {
+      expect(
+        parsePodLifecycleFailure('Back-off pulling image "gcr.io/my-proj/image:v1": ImagePullBackOff'),
+      ).toEqual('ImagePullBackOff');
+    });
+
+    it('identifies ErrImagePull failures', () => {
+      expect(parsePodLifecycleFailure('Error: Image pull failed')).toEqual('ErrImagePull');
+      expect(parsePodLifecycleFailure('ErrImagePull')).toEqual('ErrImagePull');
+    });
+
+    it('identifies CrashLoopBackOff failures', () => {
+      expect(
+        parsePodLifecycleFailure('back-off restarting failed container main in pod'),
+      ).toEqual('CrashLoopBackOff');
+      expect(parsePodLifecycleFailure('CrashLoopBackOff')).toEqual('CrashLoopBackOff');
+    });
+
+    it('identifies NodeLost failures', () => {
+      expect(parsePodLifecycleFailure('Node lost connection to API server')).toEqual('NodeLost');
+      expect(parsePodLifecycleFailure('NodeLost')).toEqual('NodeLost');
+    });
+
+    it('identifies Evicted failures', () => {
+      expect(parsePodLifecycleFailure('Pod evicted due to disk pressure')).toEqual('Evicted');
+    });
+
+    it('returns null for unrecognized messages', () => {
+      expect(parsePodLifecycleFailure('Generic task failure message')).toBeNull();
+    });
+  });
+
+  describe('getPodDiagnosticSummary', () => {
+    it('returns OOMKilled diagnostic guidance', () => {
+      const summary = getPodDiagnosticSummary('OOMKilled');
+      expect(summary.title).toContain('Out of Memory');
+      expect(summary.suggestion).toContain('memory requests/limits');
+    });
+
+    it('returns ImagePullBackOff diagnostic guidance', () => {
+      const summary = getPodDiagnosticSummary('ImagePullBackOff');
+      expect(summary.title).toContain('Image Pull Failure');
+      expect(summary.suggestion).toContain('imagePullSecrets');
+    });
+
+    it('returns CrashLoopBackOff diagnostic guidance', () => {
+      const summary = getPodDiagnosticSummary('CrashLoopBackOff');
+      expect(summary.title).toContain('Crash Loop');
+      expect(summary.suggestion).toContain('execution logs');
+    });
+
+    it('returns fallback summary for unknown failures', () => {
+      const summary = getPodDiagnosticSummary('UnknownFailure');
+      expect(summary.title).toEqual('Pipeline Step Failure');
+    });
+  });
 });
+

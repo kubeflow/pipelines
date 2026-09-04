@@ -26,7 +26,12 @@ import TerminatedIcon from '../icons/statusTerminated';
 import UnknownIcon from '@mui/icons-material/Help';
 import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
-import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
+import {
+  NodePhase,
+  checkIfTerminated,
+  parsePodLifecycleFailure,
+  getPodDiagnosticSummary,
+} from '../lib/StatusUtils';
 import * as metadataStorePb from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
 import { Tooltip } from '@mui/material';
 
@@ -38,20 +43,30 @@ export function statusToIcon(
   mlmdState?: metadataStorePb.Execution.State,
 ): React.JSX.Element {
   status = checkIfTerminated(status, nodeMessage);
+  const failureReason =
+    status === NodePhase.ERROR || status === NodePhase.FAILED
+      ? parsePodLifecycleFailure(nodeMessage)
+      : null;
+  const diagnostic = failureReason ? getPodDiagnosticSummary(failureReason) : null;
+
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
-  let title = 'Unknown status';
+  let title = diagnostic ? diagnostic.title : 'Unknown status';
   switch (status) {
     case NodePhase.ERROR:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
-      title = 'Error while running this resource';
+      if (!diagnostic) {
+        title = nodeMessage || 'Error while running this resource';
+      }
       break;
     case NodePhase.FAILED:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
-      title = 'Resource failed to execute';
+      if (!diagnostic) {
+        title = nodeMessage || 'Resource failed to execute';
+      }
       break;
     case NodePhase.PENDING:
       IconComponent = PendingIcon;
@@ -106,7 +121,12 @@ export function statusToIcon(
       title={
         <div>
           <div>{title}</div>
-          {/* These dates may actually be strings, not a Dates due to a bug in swagger's handling of dates */}
+          {diagnostic && <div style={{ fontSize: '0.85rem', marginTop: 4 }}>{diagnostic.description}</div>}
+          {diagnostic && (
+            <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic' }}>
+              Suggestion: {diagnostic.suggestion}
+            </div>
+          )}
           {startDate && <div>Start: {formatDateString(startDate)}</div>}
           {endDate && <div>End: {formatDateString(endDate)}</div>}
         </div>
@@ -121,3 +141,4 @@ export function statusToIcon(
     </Tooltip>
   );
 }
+
