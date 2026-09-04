@@ -19,6 +19,8 @@ from kfp import compiler, dsl, kubernetes
 
 
 @dsl.component(
+    packages_to_install=['kfp>=2.16.1'],
+    install_kfp_package=False,
     task_config_passthroughs=[
         dsl.TaskConfigPassthrough(
             field=dsl.TaskConfigField.KUBERNETES_RESOURCE_CLAIMS,

@@ -7,17 +7,16 @@ spec:
     parameters:
     - name: kubernetes-comp-verify-dra-passthrough
       value: '{"podResourceClaims":[{"resourceClaimTemplateName":"dra-test-claim"}]}'
-    - name: components-e29938096f034fbe30313a2690f1dccc36d61ec8ae6fd1e996dad99e0ca3e615
+    - name: components-c93ca9ab435d6f14c2b800861a1a7c94d83666e8cdcd57f7b0b03fda0c223811
       value: '{"executorLabel":"exec-verify-dra-passthrough","inputDefinitions":{"parameters":{"task_config":{"isOptional":true,"parameterType":"TASK_CONFIG"}}},"taskConfigPassthroughs":[{"applyToTask":true,"field":"KUBERNETES_RESOURCE_CLAIMS"}]}'
-    - name: implementations-e29938096f034fbe30313a2690f1dccc36d61ec8ae6fd1e996dad99e0ca3e615
+    - name: implementations-c93ca9ab435d6f14c2b800861a1a7c94d83666e8cdcd57f7b0b03fda0c223811
       value: '{"args":["--executor_input","{{$}}","--function_to_execute","verify_dra_passthrough"],"command":["sh","-c","\nif
         ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3
         -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1
-        python3 -m pip install --quiet --no-warn-script-location ''kfp==2.15.2'' ''--no-deps''
-        ''typing-extensions\u003e=3.7.4,\u003c5; python_version\u003c\"3.9\"'' \u0026\u0026
-        \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf \"%s\" \"$0\"
-        \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true python3
-        -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
+        python3 -m pip install --quiet --no-warn-script-location ''kfp\u003e=2.16.1''
+        \u0026\u0026 \"$0\" \"$@\"\n","sh","-ec","program_path=$(mktemp -d)\n\nprintf
+        \"%s\" \"$0\" \u003e \"$program_path/ephemeral_component.py\"\n_KFP_RUNTIME=true
+        python3 -m kfp.dsl.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n","\nimport
         kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef
         verify_dra_passthrough(task_config: dsl.TaskConfig):\n    assert task_config.resource_claims
         == [{\n        ''name'': ''dra-test-claim'',\n        ''resourceClaimTemplateName'':
@@ -271,11 +270,11 @@ spec:
       - arguments:
           parameters:
           - name: component
-            value: '{{workflow.parameters.components-e29938096f034fbe30313a2690f1dccc36d61ec8ae6fd1e996dad99e0ca3e615}}'
+            value: '{{workflow.parameters.components-c93ca9ab435d6f14c2b800861a1a7c94d83666e8cdcd57f7b0b03fda0c223811}}'
           - name: task
             value: '{"cachingOptions":{},"componentRef":{"name":"comp-verify-dra-passthrough"},"taskInfo":{"name":"verify-dra-passthrough"}}'
           - name: container
-            value: '{{workflow.parameters.implementations-e29938096f034fbe30313a2690f1dccc36d61ec8ae6fd1e996dad99e0ca3e615}}'
+            value: '{{workflow.parameters.implementations-c93ca9ab435d6f14c2b800861a1a7c94d83666e8cdcd57f7b0b03fda0c223811}}'
           - name: task-name
             value: verify-dra-passthrough
           - name: parent-dag-id
