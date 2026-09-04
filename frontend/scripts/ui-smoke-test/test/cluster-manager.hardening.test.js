@@ -732,6 +732,74 @@ test('arm64 source builds keep the metadata writer on its reviewed amd64 workloa
   assert.match(renderedWithPullPolicy, /imagePullPolicy: IfNotPresent/);
 });
 
+test('isolated component builds release their private Buildx cache before cluster creation', async (t) => {
+  const calls = [];
+  const stack = createTestStack(t, {
+    isolatedBuildCache: true,
+    runner: (command, args, options) => {
+      calls.push({ args, command, options });
+      return success();
+    },
+  });
+  const selected = [
+    COMPONENTS.find((component) => component.name === 'driver'),
+    COMPONENTS.find((component) => component.name === 'launcher'),
+  ];
+
+  await stack.buildComponentImages(selected, '/repo', {
+    load: false,
+    platform: 'linux/arm64',
+    tagSuffix: 'head-sha',
+  });
+
+  const createIndex = calls.findIndex(
+    ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'create',
+  );
+  const buildCalls = calls.filter(
+    ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'build',
+  );
+  const removalIndex = calls.findIndex(
+    ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'rm',
+  );
+  const lastBuildIndex = calls.findLastIndex(
+    ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'build',
+  );
+  assert.ok(createIndex >= 0 && lastBuildIndex > createIndex && removalIndex > lastBuildIndex);
+  assert.equal(buildCalls.length, 2);
+  assert.ok(buildCalls.every(({ args }) => args.includes('--load')));
+  const builderName = calls[createIndex].args[calls[createIndex].args.indexOf('--name') + 1];
+  assert.ok(buildCalls.every(({ args }) => args[args.indexOf('--builder') + 1] === builderName));
+  assert.equal(calls[removalIndex].args.at(-1), builderName);
+});
+
+test('isolated component builds release their private Buildx cache after a build failure', async (t) => {
+  const calls = [];
+  const stack = createTestStack(t, {
+    isolatedBuildCache: true,
+    runner: (command, args, options) => {
+      calls.push({ args, command, options });
+      if (command === 'docker' && args[0] === 'buildx' && args[1] === 'build') {
+        return { success: false, error: 'injected build failure', output: '' };
+      }
+      return success();
+    },
+  });
+  const driver = COMPONENTS.find((component) => component.name === 'driver');
+
+  await assert.rejects(
+    stack.buildComponentImages([driver], '/repo', {
+      load: false,
+      platform: 'linux/arm64',
+    }),
+    /Failed to build driver/,
+  );
+  assert.ok(
+    calls.some(
+      ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'rm',
+    ),
+  );
+});
+
 test('byte-identical component images are retagged per stack before normal image loading', (t) => {
   const calls = [];
   const stack = createTestStack(t, { runner: deploymentRunner(calls) });
