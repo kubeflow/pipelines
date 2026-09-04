@@ -39,6 +39,11 @@ from kfp.dsl.types.type_annotations import OutputPath
 Alias = Artifact
 artifact_types_alias = artifact_types
 
+
+class CustomArtifact(Artifact):
+    pass
+
+
 try:
     import pydantic
 except ImportError:
@@ -198,6 +203,22 @@ class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
                 'c': aiplatform.VertexDataset,
                 'd': aiplatform.VertexDataset,
             })
+
+    def test_direct_custom_artifact_input(self):
+
+        def func(a: CustomArtifact):
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {'a': CustomArtifact})
+
+    def test_direct_custom_artifact_input_after_wrapped_artifact(self):
+
+        def func(a: Input[Dataset], b: CustomArtifact):
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {'b': CustomArtifact})
 
     def test_return_google_artifact1(self):
         import aiplatform

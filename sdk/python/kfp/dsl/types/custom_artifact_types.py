@@ -55,7 +55,7 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
                 param_to_artifact_cls[name] = artifact_class
         elif type_annotations.issubclass_of_artifact(annotation):
             if annotation not in kfp_artifact_classes:
-                param_to_artifact_cls[name] = artifact_class
+                param_to_artifact_cls[name] = annotation
 
     return_annotation = signature.return_annotation
 
