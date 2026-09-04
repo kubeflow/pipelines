@@ -723,7 +723,7 @@ test('arm64 source builds keep the metadata writer on its reviewed amd64 workloa
       args[2] === localMetadataWriterImage,
   );
   assert.ok(metadataWriterLoadIndex >= 0);
-  assert.ok(metadataWriterRemovalIndex > metadataWriterLoadIndex);
+  assert.ok(metadataWriterRemovalIndex < metadataWriterLoadIndex);
 
   stack.applyKfpManifests(revisionRoot, {
     imageOverrides: overrides,
