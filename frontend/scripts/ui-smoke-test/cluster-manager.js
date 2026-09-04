@@ -494,6 +494,7 @@ function createKindStack(config = {}) {
   const builtImagePlatforms = new Map();
   const builtMixedPlatformWorkloads = new Map();
   const loadedImages = new Set();
+  const preflightedImageIds = new Map();
   const verifiedEmulationPlatforms = new Set();
   let frontendServerProcess = null;
   let seedRuntimeLoaded = false;
@@ -702,6 +703,18 @@ function createKindStack(config = {}) {
 
   function pullImageForPlatform(image, platform, options = {}) {
     const runner = stackRunner(options);
+    const preflightKey = loadedImageKey(image, platform);
+    const expectedImageId = options.reusePreflighted ? preflightedImageIds.get(preflightKey) : null;
+    if (expectedImageId) {
+      const actualImageId = inspectLocalImageId(image, { runner });
+      if (actualImageId !== expectedImageId) {
+        throw new Error(
+          `Image ${image} changed or disappeared after it was preflighted for ${platform}. ` +
+            'Refusing to load an image that was not covered by the successful preflight.',
+        );
+      }
+      return;
+    }
     const result = runner(
       'docker',
       ['pull', '--platform', platform, image],
@@ -710,6 +723,17 @@ function createKindStack(config = {}) {
     if (!result.success) {
       throw platformImageError(image, platform, 'pulled', result, options.nodePlatform || platform);
     }
+  }
+
+  function inspectLocalImageId(image, options = {}) {
+    const result = stackRunner(options)(
+      'docker',
+      ['image', 'inspect', '--format', '{{.Id}}', image],
+      commandOptions({ timeout: 30000 }),
+    );
+    if (!result.success) return null;
+    const imageId = result.output.trim();
+    return /^sha256:[0-9a-f]{64}$/i.test(imageId) ? imageId.toLowerCase() : null;
   }
 
   function exportImageForPlatform(image, imageArchive, platform, options = {}) {
@@ -743,6 +767,10 @@ function createKindStack(config = {}) {
         nodePlatform: options.nodePlatform || platform,
         runner,
       });
+      const imageId = inspectLocalImageId(image, { runner });
+      const preflightKey = loadedImageKey(image, platform);
+      if (imageId) preflightedImageIds.set(preflightKey, imageId);
+      else preflightedImageIds.delete(preflightKey);
     } finally {
       fs.rmSync(imageArchive, { force: true });
     }
@@ -753,7 +781,7 @@ function createKindStack(config = {}) {
     const runner = stackRunner(options);
     const platform = options.platform || getClusterPlatform({ runner });
     validatePlatform(platform, 'Seed image platform');
-    pullImageForPlatform(SEED_RUNTIME_IMAGE, platform, { runner });
+    pullImageForPlatform(SEED_RUNTIME_IMAGE, platform, { reusePreflighted: true, runner });
     saveAndLoadImage(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
     seedRuntimeLoaded = true;
   }
@@ -1483,7 +1511,11 @@ function createKindStack(config = {}) {
     validateMixedPlatformPullPolicies(fs.readFileSync(manifestPath, 'utf8'), imagePlan, platform);
     for (const [index, { image, platform: imagePlatform }] of imagePlan.entries()) {
       if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;
-      pullImageForPlatform(image, imagePlatform, { nodePlatform: platform, runner });
+      pullImageForPlatform(image, imagePlatform, {
+        nodePlatform: platform,
+        reusePreflighted: true,
+        runner,
+      });
       saveAndLoadImage(image, `manifest-image-${index}`, imagePlatform, {
         nodePlatform: platform,
         runner,
