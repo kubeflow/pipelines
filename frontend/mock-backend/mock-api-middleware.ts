@@ -596,7 +596,7 @@ export default (app: express.Application) => {
     res.json(toV2Pipeline(pipeline));
   });
 
-  app.get(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
+  app.get<{ pid: string }>(v2beta1Prefix + '/pipelines/:pid/versions', (req, res) => {
     res.header('Content-Type', 'application/json');
     const versions = sortV2Resources(
       filterV2Resources(getV2PipelineVersions(req.params.pid), getQueryString(req.query.filter)),
@@ -613,15 +613,18 @@ export default (app: express.Application) => {
     res.json(response);
   });
 
-  app.get(v2beta1Prefix + '/pipelines/:pid/versions/:pvid', (req, res) => {
-    res.header('Content-Type', 'application/json');
-    const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
-    if (!version) {
-      res.status(404).send(`No pipeline version was found with ID: ${req.params.pvid}`);
-      return;
-    }
-    res.json(version);
-  });
+  app.get<{ pid: string; pvid: string }>(
+    v2beta1Prefix + '/pipelines/:pid/versions/:pvid',
+    (req, res) => {
+      res.header('Content-Type', 'application/json');
+      const version = getV2PipelineVersion(req.params.pid, req.params.pvid);
+      if (!version) {
+        res.status(404).send(`No pipeline version was found with ID: ${req.params.pvid}`);
+        return;
+      }
+      res.json(version);
+    },
+  );
 
   app.get(v2beta1Prefix + '/runs', (req, res) => {
     res.header('Content-Type', 'application/json');
@@ -896,7 +899,7 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.post(v1beta1Prefix + '/runs/:rid::method', (req, res) => {
+  app.post<{ rid: string; method: string }>(v1beta1Prefix + '/runs/:rid\\::method', (req, res) => {
     if (req.params.method !== 'archive' && req.params.method !== 'unarchive') {
       res.status(500).send('Bad method');
     }
@@ -1050,7 +1053,7 @@ export default (app: express.Application) => {
     res.json(pipeline);
   });
 
-  app.get(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipelines/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
     const pipeline = fixedData.pipelines.find((p) => p.id === req.params.pid);
     if (!pipeline) {
@@ -1075,7 +1078,7 @@ export default (app: express.Application) => {
     res.send(JSON.stringify({ template: fs.readFileSync(filePath, 'utf-8') }));
   });
 
-  app.get(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
+  app.get<{ pid: string }>(v1beta1Prefix + '/pipeline_versions/:pid/templates', (req, res) => {
     res.header('Content-Type', 'text/x-yaml');
 
     // Find v2 pipeline template
@@ -1262,7 +1265,7 @@ export default (app: express.Application) => {
     }, 1000);
   });
 
-  app.all(v1beta1Prefix + '/_proxy/*', (_req, res) => {
+  app.all(/^\/apis\/v1beta1\/_proxy\/.*$/i, (_req, res) => {
     res.status(410).send('The generic /_proxy/ endpoint is deprecated and no longer supported.');
   });
 
@@ -1305,10 +1308,10 @@ export default (app: express.Application) => {
     res.send('mock-project-id');
   });
 
-  app.all(v1beta1Prefix + '*', (req, res) => {
+  app.all(/^\/apis\/v1beta1(?:\/.*)?$/i, (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
-  app.all(v2beta1Prefix + '*', (req, res) => {
+  app.all(/^\/apis\/v2beta1(?:\/.*)?$/i, (req, res) => {
     res.status(404).send('Bad request endpoint.');
   });
 };
