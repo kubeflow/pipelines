@@ -752,50 +752,69 @@ test('isolated component builds release their private Buildx cache before cluste
     tagSuffix: 'head-sha',
   });
 
-  const createIndex = calls.findIndex(
+  const createCalls = calls.filter(
     ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'create',
   );
   const buildCalls = calls.filter(
     ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'build',
   );
-  const removalIndex = calls.findIndex(
+  const removalCalls = calls.filter(
     ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'rm',
   );
-  const lastBuildIndex = calls.findLastIndex(
-    ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'build',
+  assert.deepEqual(
+    calls.map(({ args }) => args.slice(0, 2).join(' ')),
+    ['buildx create', 'buildx build', 'buildx rm', 'buildx create', 'buildx build', 'buildx rm'],
   );
-  assert.ok(createIndex >= 0 && lastBuildIndex > createIndex && removalIndex > lastBuildIndex);
+  assert.equal(createCalls.length, 2);
   assert.equal(buildCalls.length, 2);
+  assert.equal(removalCalls.length, 2);
   assert.ok(buildCalls.every(({ args }) => args.includes('--load')));
-  const builderName = calls[createIndex].args[calls[createIndex].args.indexOf('--name') + 1];
+  const builderName = createCalls[0].args[createCalls[0].args.indexOf('--name') + 1];
+  assert.ok(createCalls.every(({ args }) => args[args.indexOf('--name') + 1] === builderName));
   assert.ok(buildCalls.every(({ args }) => args[args.indexOf('--builder') + 1] === builderName));
-  assert.equal(calls[removalIndex].args.at(-1), builderName);
+  assert.ok(removalCalls.every(({ args }) => args.at(-1) === builderName));
 });
 
-test('isolated component builds release their private Buildx cache after a build failure', async (t) => {
+test('isolated component builds release private caches and completed images after a build failure', async (t) => {
   const calls = [];
+  let buildCount = 0;
   const stack = createTestStack(t, {
     isolatedBuildCache: true,
     runner: (command, args, options) => {
       calls.push({ args, command, options });
       if (command === 'docker' && args[0] === 'buildx' && args[1] === 'build') {
-        return { success: false, error: 'injected build failure', output: '' };
+        buildCount += 1;
+        if (buildCount === 2) {
+          return { success: false, error: 'injected build failure', output: '' };
+        }
       }
       return success();
     },
   });
-  const driver = COMPONENTS.find((component) => component.name === 'driver');
+  const selected = [
+    COMPONENTS.find((component) => component.name === 'driver'),
+    COMPONENTS.find((component) => component.name === 'launcher'),
+  ];
 
   await assert.rejects(
-    stack.buildComponentImages([driver], '/repo', {
+    stack.buildComponentImages(selected, '/repo', {
       load: false,
       platform: 'linux/arm64',
     }),
-    /Failed to build driver/,
+    /Failed to build launcher/,
   );
   assert.ok(
     calls.some(
       ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'rm',
+    ),
+  );
+  assert.ok(
+    calls.some(
+      ({ args, command }) =>
+        command === 'docker' &&
+        args[0] === 'image' &&
+        args[1] === 'rm' &&
+        args[2].includes('/driver:'),
     ),
   );
 });

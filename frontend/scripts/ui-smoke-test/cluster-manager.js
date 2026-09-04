@@ -777,18 +777,7 @@ function createKindStack(config = {}) {
     const platform = options.platform || getClusterPlatform({ runner });
     validatePlatform(platform, 'Backend image platform');
     const tagSuffix = sanitizeImageTagPart(options.tagSuffix || imageScope);
-    if (isolatedBuildCache) {
-      requireSuccess(
-        runner(
-          'docker',
-          ['buildx', 'create', '--name', buildxBuilderName, '--driver', 'docker-container'],
-          commandOptions(),
-        ),
-        `Failed to create isolated Buildx builder ${buildxBuilderName}`,
-      );
-    }
-
-    let buildError;
+    const builtImages = [];
     try {
       for (const component of components) {
         if (!component.dockerfile || !component.imageTag) {
@@ -809,44 +798,85 @@ function createKindStack(config = {}) {
         const buildArguments = componentBuildArguments(component, options.buildMetadata);
         overrides.images[component.name] = image;
         log(`Building ${component.name} as ${image}...`);
-        requireSuccess(
-          runner(
+        const buildImage = () =>
+          requireSuccess(
+            runner(
+              'docker',
+              isolatedBuildCache
+                ? [
+                    'buildx',
+                    'build',
+                    '--builder',
+                    buildxBuilderName,
+                    '--load',
+                    '--platform',
+                    buildPlatform,
+                    '--tag',
+                    image,
+                    '--file',
+                    component.dockerfile,
+                    ...buildArguments,
+                    '.',
+                  ]
+                : [
+                    'build',
+                    '--platform',
+                    buildPlatform,
+                    '--tag',
+                    image,
+                    '--file',
+                    component.dockerfile,
+                    ...buildArguments,
+                    '.',
+                  ],
+              commandOptions({
+                cwd: repoRoot,
+                timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS,
+                stdio: 'inherit',
+              }),
+            ),
+            `Failed to build ${component.name}`,
+          );
+        if (isolatedBuildCache) {
+          requireSuccess(
+            runner(
+              'docker',
+              ['buildx', 'create', '--name', buildxBuilderName, '--driver', 'docker-container'],
+              commandOptions(),
+            ),
+            `Failed to create isolated Buildx builder ${buildxBuilderName}`,
+          );
+          let buildError;
+          try {
+            buildImage();
+          } catch (error) {
+            buildError = error;
+          }
+          const removal = runner(
             'docker',
-            isolatedBuildCache
-              ? [
-                  'buildx',
-                  'build',
-                  '--builder',
-                  buildxBuilderName,
-                  '--load',
-                  '--platform',
-                  buildPlatform,
-                  '--tag',
-                  image,
-                  '--file',
-                  component.dockerfile,
-                  ...buildArguments,
-                  '.',
-                ]
-              : [
-                  'build',
-                  '--platform',
-                  buildPlatform,
-                  '--tag',
-                  image,
-                  '--file',
-                  component.dockerfile,
-                  ...buildArguments,
-                  '.',
-                ],
-            commandOptions({
-              cwd: repoRoot,
-              timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS,
-              stdio: 'inherit',
-            }),
-          ),
-          `Failed to build ${component.name}`,
-        );
+            ['buildx', 'rm', '--force', buildxBuilderName],
+            commandOptions({ timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS, stdio: 'inherit' }),
+          );
+          const cleanupError = removal.success
+            ? undefined
+            : new Error(
+                `Failed to remove isolated Buildx builder ${buildxBuilderName}: ${
+                  removal.error || removal.output || 'unknown error'
+                }`,
+              );
+          if (buildError && cleanupError) {
+            throw new AggregateError(
+              [buildError, cleanupError],
+              `Image build and isolated Buildx cleanup both failed for ${component.name}`,
+            );
+          }
+          if (buildError) throw buildError;
+          builtImages.push(image);
+          if (cleanupError) throw cleanupError;
+        } else {
+          buildImage();
+          builtImages.push(image);
+        }
         builtImagePlatforms.set(image, buildPlatform);
         if (buildPlatform !== platform) {
           builtMixedPlatformWorkloads.set(
@@ -870,32 +900,28 @@ function createKindStack(config = {}) {
         if (component.runtimeEnv) overrides.runtimeEnvironment[component.runtimeEnv] = image;
       }
     } catch (error) {
-      buildError = error;
-    }
-
-    let cleanupError;
-    if (isolatedBuildCache) {
-      const removal = runner(
-        'docker',
-        ['buildx', 'rm', '--force', buildxBuilderName],
-        commandOptions({ timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS, stdio: 'inherit' }),
-      );
-      if (!removal.success) {
-        cleanupError = new Error(
-          `Failed to remove isolated Buildx builder ${buildxBuilderName}: ${
-            removal.error || removal.output || 'unknown error'
-          }`,
-        );
+      const cleanupErrors = [];
+      for (const image of builtImages.reverse()) {
+        const removal = runner('docker', ['image', 'rm', image], commandOptions());
+        if (!removal.success) {
+          cleanupErrors.push(
+            new Error(
+              `Failed to remove incomplete build image ${image}: ${
+                removal.error || removal.output || 'unknown error'
+              }`,
+            ),
+          );
+        } else {
+          builtImagePlatforms.delete(image);
+          builtMixedPlatformWorkloads.delete(image);
+        }
       }
-    }
-    if (buildError && cleanupError) {
+      if (cleanupErrors.length === 0) throw error;
       throw new AggregateError(
-        [buildError, cleanupError],
-        `Component image build and isolated Buildx cleanup both failed for ${clusterName}`,
+        [error, ...cleanupErrors],
+        `Component image build and partial-image cleanup both failed for ${clusterName}`,
       );
     }
-    if (buildError) throw buildError;
-    if (cleanupError) throw cleanupError;
     return overrides;
   }
 
