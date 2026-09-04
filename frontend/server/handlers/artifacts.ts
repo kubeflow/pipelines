@@ -27,8 +27,12 @@ import {
   listObjectsUnderPrefix,
   summarizeDirectoryUnderPrefix,
 } from '../minio-helper.js';
+import type { MinioRequestConfig } from '../minio-helper.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
+import type { IncomingMessage } from 'http';
+import { Readable } from 'stream';
+import { pipeline as pipelinePromise } from 'stream/promises';
 import * as serverInfo from '../helpers/server-info.js';
 import { Handler, Request, Response, NextFunction } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
@@ -64,6 +68,8 @@ interface ArtifactsQueryStrings {
   /** optional provider info to use to query object store */
   providerInfo?: string;
   namespace?: string;
+  /** return the artifact byte-for-byte without archive extraction */
+  download?: string;
 }
 
 type ArtifactSource = ArtifactsQueryStrings['source'];
@@ -76,6 +82,7 @@ const ARTIFACT_QUERY_PARAMETER_NAMES = [
   'providerInfo',
   'namespace',
   'peek',
+  'download',
 ] as const;
 
 export interface S3ProviderInfo {
@@ -98,6 +105,104 @@ export interface GCSProviderInfo {
     secretName?: string;
     tokenKey?: string;
   };
+}
+
+function hardenArtifactResponse(response: Response): void {
+  response.setHeader('X-Content-Type-Options', 'nosniff');
+  response.setHeader('Content-Disposition', 'attachment');
+}
+
+const SAFE_ARTIFACT_PROXY_RESPONSE_HEADERS = new Set([
+  'accept-ranges',
+  'content-encoding',
+  'content-length',
+  'content-range',
+  'etag',
+  'last-modified',
+]);
+
+function hardenArtifactProxyResponse(proxyResponse: IncomingMessage): void {
+  const contentDisposition = hardenUpstreamContentDisposition(
+    proxyResponse.headers['content-disposition'],
+  );
+  for (const header of Object.keys(proxyResponse.headers)) {
+    if (!SAFE_ARTIFACT_PROXY_RESPONSE_HEADERS.has(header.toLowerCase())) {
+      delete proxyResponse.headers[header];
+    }
+  }
+  proxyResponse.headers['content-type'] = 'application/octet-stream';
+  proxyResponse.headers['x-content-type-options'] = 'nosniff';
+  proxyResponse.headers['content-disposition'] = contentDisposition;
+}
+
+export function sendArtifactError(response: Response, status: number, message: string): void {
+  // A stream may fail after successful response headers have already been
+  // committed. Express cannot change the status or MIME type at that point,
+  // so abort the connection. Ending it normally would emit a valid terminating
+  // chunk and make a truncated artifact indistinguishable from a complete one.
+  if (response.headersSent || response.destroyed || response.writableEnded) {
+    console.error(`[artifacts] aborting committed response: ${message}`);
+    response.destroy();
+    return;
+  }
+  hardenArtifactResponse(response);
+  response.status(status).type('text/plain').send(message);
+}
+
+export function pipePreviewResponse(
+  source: Readable,
+  response: Response,
+  peek: number,
+  onError: (error: Error) => void,
+): void {
+  const preview = new PreviewStream({ peek });
+  if (response.destroyed || response.writableEnded) {
+    source.destroy();
+    preview.destroy();
+    return;
+  }
+  let failed = false;
+  const cleanup = () => {
+    source.off('error', failOnce);
+    preview.off('error', failOnce);
+    response.off('error', failOnce);
+    response.off('close', failOnPrematureClose);
+    response.off('finish', cleanup);
+  };
+  const failOnce = (error: Error) => {
+    if (failed) {
+      return;
+    }
+    failed = true;
+    cleanup();
+    source.unpipe(preview);
+    preview.unpipe(response);
+    source.destroy();
+    preview.destroy();
+    onError(error);
+  };
+  const failOnPrematureClose = () => {
+    if (!response.writableFinished) {
+      // The peer has already gone away, so there is no response left to repair
+      // and no storage failure to report. Stop upstream work without routing a
+      // routine client cancellation through the server-error logger.
+      if (failed) {
+        return;
+      }
+      failed = true;
+      cleanup();
+      source.unpipe(preview);
+      preview.unpipe(response);
+      source.destroy();
+      preview.destroy();
+    }
+  };
+  source.once('error', failOnce);
+  preview.once('error', failOnce);
+  response.once('error', failOnce);
+  response.once('close', failOnPrematureClose);
+  response.once('finish', cleanup);
+  source.pipe(preview).pipe(response);
 }
 
 /**
@@ -147,9 +252,10 @@ export function getArtifactsAuthMiddleware(
   envoyAddress?: string,
 ): Handler {
   return async (request: Request, response: Response, next: NextFunction) => {
+    hardenArtifactResponse(response);
     const queryError = validateArtifactQueryParameters(request.query);
     if (queryError) {
-      response.status(queryError.status).send(queryError.message);
+      sendArtifactError(response, queryError.status, queryError.message);
       return;
     }
 
@@ -162,13 +268,17 @@ export function getArtifactsAuthMiddleware(
       console.warn(
         `[SECURITY] Unauthenticated artifact access attempt. Path: ${request.originalUrl}`,
       );
-      response.status(401).send('Authentication required for artifact access');
+      sendArtifactError(response, 401, 'Authentication required for artifact access');
       return;
     }
 
     const namespaceParameter = getOptionalRequestString(request.query.namespace, 'namespace');
     if ('error' in namespaceParameter) {
-      response.status(namespaceParameter.error.status).send(namespaceParameter.error.message);
+      sendArtifactError(
+        response,
+        namespaceParameter.error.status,
+        namespaceParameter.error.message,
+      );
       return;
     }
     const namespace = namespaceParameter.value;
@@ -178,7 +288,11 @@ export function getArtifactsAuthMiddleware(
         `[SECURITY] Missing namespace parameter. ` +
           `User: ${userId}, Path: ${request.originalUrl}`,
       );
-      response.status(400).send('Namespace parameter is required when authentication is enabled');
+      sendArtifactError(
+        response,
+        400,
+        'Namespace parameter is required when authentication is enabled',
+      );
       return;
     }
 
@@ -188,7 +302,7 @@ export function getArtifactsAuthMiddleware(
           `User: ${userId}, ` +
           `Namespace: ${namespace}, Path: ${request.originalUrl}`,
       );
-      response.status(400).send('Invalid namespace format');
+      sendArtifactError(response, 400, 'Invalid namespace format');
       return;
     }
 
@@ -208,7 +322,7 @@ export function getArtifactsAuthMiddleware(
           `Namespace: ${namespace}, Path: ${request.originalUrl}, ` +
           `Reason: ${authError.message}`,
       );
-      response.status(403).send(authError.message);
+      sendArtifactError(response, 403, authError.message);
       return;
     }
 
@@ -219,7 +333,7 @@ export function getArtifactsAuthMiddleware(
           `[SECURITY] Malformed percent-encoding in artifact path. ` +
             `User: ${userId}, Path: ${request.path}`,
         );
-        response.status(400).send('Malformed URL encoding in artifact path');
+        sendArtifactError(response, 400, 'Malformed URL encoding in artifact path');
         return;
       }
       const mlmdTrackedSources = new Set(['minio', 's3', 'gcs', 'http', 'https']);
@@ -236,7 +350,7 @@ export function getArtifactsAuthMiddleware(
               `URI: ${artifactUri}, ` +
               `Path: ${request.path}`,
           );
-          response.status(403).send('Artifact does not belong to the requested namespace');
+          sendArtifactError(response, 403, 'Artifact does not belong to the requested namespace');
           return;
         }
       }
@@ -252,7 +366,9 @@ export function getArtifactsAuthMiddleware(
  * @param artifactsConfigs configs to retrieve the artifacts from the various backend.
  * @param useParameter get bucket and key from parameter instead of query. When true, expect
  *    to be used in a route like `/artifacts/:source/:bucket/*`.
- * @param tryExtract whether the handler try to extract content from *.tar.gz files.
+ * @param tryExtract whether preview responses may extract content from *.tar.gz files.
+ * Download routes pass false so S3 and MinIO archives are returned byte-for-byte
+ * with an attachment filename; preview routes may extract the first tar entry.
  */
 export function getArtifactsHandler({
   artifactsConfigs,
@@ -272,18 +388,32 @@ export function getArtifactsHandler({
 }): Handler {
   const { aws, http, minio, allowedDomain } = artifactsConfigs;
   return async (req, res) => {
+    // Security: artifact bytes are untrusted, user-controlled content. Set the
+    // hardening headers before parsing so every early error and storage path is
+    // protected. Inline previews use fetch(), which ignores Content-Disposition.
+    hardenArtifactResponse(res);
     const artifactRequest = parseArtifactRequest(req, useParameter, options.server.serverNamespace);
     if ('error' in artifactRequest) {
-      res.status(artifactRequest.error.status).send(artifactRequest.error.message);
+      sendArtifactError(res, artifactRequest.error.status, artifactRequest.error.message);
       return;
     }
-    const { source, bucket, key, peek, providerInfo, namespace } = artifactRequest;
+    const { source, bucket, key, peek, providerInfo, namespace, download } = artifactRequest;
+    const keyBaseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
+    const setArtifactFilename = (transformed: boolean) => {
+      res.setHeader(
+        'Content-Disposition',
+        buildAttachmentDisposition(transformed ? 'artifact' : keyBaseName),
+      );
+    };
+    if (source !== 'minio' && source !== 's3') {
+      setArtifactFilename(false);
+    }
     if (!isAllowedResourceName(bucket)) {
-      res.status(500).send('Invalid bucket name');
+      sendArtifactError(res, 500, 'Invalid bucket name');
       return;
     }
     if (key.length > 1024) {
-      res.status(500).send('Object key too long');
+      sendArtifactError(res, 500, 'Object key too long');
       return;
     }
     console.log(`Getting storage artifact at: ${source}: ${bucket}/${key}`);
@@ -318,13 +448,14 @@ export function getArtifactsHandler({
           peek,
           effectiveProviderInfo,
           namespace,
+          useParameter || download,
         )(req, res);
         break;
       case 'minio':
         try {
           client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
         } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for Minio Provider: ${e}`);
+          sendArtifactError(res, 500, `Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -332,7 +463,8 @@ export function getArtifactsHandler({
             bucket,
             client,
             key,
-            tryExtract,
+            tryExtract: tryExtract && !download,
+            onTransformationDetermined: setArtifactFilename,
           },
           peek,
         )(req, res);
@@ -341,7 +473,7 @@ export function getArtifactsHandler({
         try {
           client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
         } catch (e) {
-          res.status(500).send(`Failed to initialize Minio Client for S3 Provider: ${e}`);
+          sendArtifactError(res, 500, `Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;
         }
         await getMinioArtifactHandler(
@@ -349,6 +481,8 @@ export function getArtifactsHandler({
             bucket,
             client,
             key,
+            tryExtract: tryExtract && !download,
+            onTransformationDetermined: setArtifactFilename,
           },
           peek,
         )(req, res);
@@ -357,13 +491,13 @@ export function getArtifactsHandler({
       case 'https': {
         const httpUrl = getHttpUrl(source, http.baseUrl || '', bucket, key);
         if (!httpUrl) {
-          res
-            .status(400)
-            .send(
-              http.baseUrl.trim()
-                ? 'Invalid HTTP artifact path'
-                : 'HTTP artifact base URL is not configured',
-            );
+          sendArtifactError(
+            res,
+            400,
+            http.baseUrl.trim()
+              ? 'Invalid HTTP artifact path'
+              : 'HTTP artifact base URL is not configured',
+          );
           return;
         }
         await getHttpArtifactsHandler(allowedDomain, httpUrl, http.auth, peek)(req, res);
@@ -379,7 +513,7 @@ export function getArtifactsHandler({
         )(req, res);
         break;
       default:
-        res.status(500).send('Unknown storage source');
+        sendArtifactError(res, 500, 'Unknown storage source');
         return;
     }
   };
@@ -393,6 +527,7 @@ type ArtifactRequest =
       peek: number;
       providerInfo: string;
       namespace: string;
+      download: boolean;
     }
   | { error: { status: number; message: string } };
 
@@ -446,6 +581,14 @@ function parseArtifactRequest(
     return peek;
   }
 
+  const download = getOptionalRequestString(req.query.download, 'download');
+  if ('error' in download) {
+    return download;
+  }
+  if (download.value !== undefined && download.value !== 'true' && download.value !== 'false') {
+    return { error: { status: 400, message: 'download must be true or false when provided' } };
+  }
+
   return {
     source: source.value,
     bucket: bucket.value,
@@ -453,6 +596,7 @@ function parseArtifactRequest(
     peek: parsePeekValue(peek.value),
     providerInfo: providerInfo.value ?? '',
     namespace: namespace.value ?? defaultNamespace,
+    download: download.value === 'true',
   };
 }
 
@@ -572,7 +716,7 @@ function getHttpArtifactsHandler(
     for (let hop = 0; ; hop++) {
       const allowedUrl = parseAllowedHttpArtifactUrl(currentUrl, allowedDomain);
       if (!allowedUrl) {
-        res.status(500).send(`Domain not allowed.`);
+        sendArtifactError(res, 500, 'Domain not allowed.');
         return;
       }
       if (new URL(allowedUrl).origin !== credentialOrigin) {
@@ -594,7 +738,7 @@ function getHttpArtifactsHandler(
         await response.body.cancel().catch(() => undefined);
       }
       if (hop >= maxRedirects) {
-        res.status(500).send('Too many redirects while retrieving artifact');
+        sendArtifactError(res, 500, 'Too many redirects while retrieving artifact');
         return;
       }
       // An allowed host can hand back a malformed Location header; resolve it
@@ -603,20 +747,19 @@ function getHttpArtifactsHandler(
       try {
         currentUrl = new URL(location, allowedUrl).toString();
       } catch {
-        res.status(500).send('Invalid redirect location while retrieving artifact');
+        sendArtifactError(res, 500, 'Invalid redirect location while retrieving artifact');
         return;
       }
     }
     if (!response.body) {
-      res.status(500).send('Unable to retrieve artifact: empty response body');
+      sendArtifactError(res, 500, 'Unable to retrieve artifact: empty response body');
       return;
     }
     const { Readable } = await import('stream');
     const nodeStream = Readable.fromWeb(response.body as any);
-    nodeStream
-      .on('error', (err: Error) => res.status(500).send(`Unable to retrieve artifact: ${err}`))
-      .pipe(new PreviewStream({ peek }))
-      .pipe(res);
+    pipePreviewResponse(nodeStream, res, peek, (err) =>
+      sendArtifactError(res, 500, `Unable to retrieve artifact: ${err}`),
+    );
   };
 }
 
@@ -635,56 +778,53 @@ function parseAllowedHttpArtifactUrl(url: string, allowedDomain: string): string
   }
 }
 
-function getMinioArtifactHandler(
-  options: { bucket: string; key: string; client: MinioClient; tryExtract?: boolean },
-  peek: number = 0,
-) {
+function getMinioArtifactHandler(options: MinioRequestConfig, peek: number = 0) {
   return async (_: Request, res: Response) => {
-    try {
-      const stream = await getObjectStream(options);
-      stream
-        .on('error', (err) => res.status(500).send(`Failed to get object in bucket: ${err}`))
-        .pipe(new PreviewStream({ peek }))
-        .pipe(res);
-    } catch (err) {
+    let handlingError = false;
+    const handleObjectFailure = async (err: unknown) => {
+      if (handlingError) {
+        return;
+      }
+      handlingError = true;
       // In KFP v2, output artifacts may be directories (prefixes) rather than
       // single objects. Fall back to packaging the contents of the prefix as
       // a .tar.gz so users can still download them. See
-      // https://github.com/kubeflow/pipelines/issues/7809
-      if (isNoSuchKeyError(err)) {
+      // https://github.com/kubeflow/pipelines/issues/7809. A provider can
+      // surface NoSuchKey either by rejecting getObject or by emitting it on
+      // the returned stream, so both paths converge here.
+      if (isNoSuchKeyError(err) && !res.headersSent) {
         if (peek > 0) {
-          // Preview request (e.g. the run details panel calls
-          // Apis.readFile with a small peek size). We must not stream a
-          // full directory archive here — that would list every object
-          // under the prefix and gzip the whole tree just to render a few
-          // KB of inline text. Instead, answer with a small text summary
-          // backed by one capped ListObjectsV2 call: cost stays bounded
-          // (one round trip, <1KB body) and the user sees that the
-          // artifact is a directory with N files.
           try {
             await previewDirectorySummary(options, res);
-            return;
           } catch (summaryErr) {
             console.error(summaryErr);
-            res.status(500).send(`Failed to summarize directory: ${summaryErr}`);
-            return;
+            sendArtifactError(res, 500, `Failed to summarize directory: ${summaryErr}`);
           }
+          return;
         }
         try {
           await streamDirectoryAsTarGz(options, res);
-          return;
         } catch (tarErr) {
-          console.error(tarErr);
-          if (!res.headersSent) {
-            res.status(500).send(`Failed to get object in bucket: ${tarErr}`);
-          } else {
-            res.end();
+          if (tarErr instanceof ArtifactResponseClosedError) {
+            return;
           }
-          return;
+          console.error(tarErr);
+          sendArtifactError(res, 500, `Failed to get object in bucket: ${tarErr}`);
         }
+        return;
       }
       console.error(err);
-      res.status(500).send(`Failed to get object in bucket: ${err}`);
+      sendArtifactError(res, 500, `Failed to get object in bucket: ${err}`);
+    };
+
+    try {
+      const stream = await getObjectStream({
+        ...options,
+        onError: (err) => void handleObjectFailure(err),
+      });
+      pipePreviewResponse(stream, res, peek, (err) => void handleObjectFailure(err));
+    } catch (err) {
+      await handleObjectFailure(err);
     }
   };
 }
@@ -698,7 +838,7 @@ async function previewDirectorySummary(
   const prefix = key.endsWith('/') ? key : `${key}/`;
   const summary = await summarizeDirectoryUnderPrefix(client, bucket, prefix);
   if (!summary) {
-    res.status(404).send(`No objects found at ${bucket}/${key}`);
+    sendArtifactError(res, 404, `No objects found at ${bucket}/${key}`);
     return;
   }
   const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
@@ -708,30 +848,78 @@ async function previewDirectorySummary(
     .send(`Directory artifact "${baseName}" — ${countLabel} file(s). Download to view contents.\n`);
 }
 
-async function streamDirectoryAsTarGz(
+class ArtifactResponseClosedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ArtifactResponseClosedError';
+  }
+}
+
+export async function streamDirectoryAsTarGz(
   options: { bucket: string; key: string; client: MinioClient },
   res: Response,
 ) {
   const { bucket, key, client } = options;
   // Trailing slash so prefix "foo" doesn't also match sibling key "foobar".
   const prefix = key.endsWith('/') ? key : `${key}/`;
-
-  // Peek the first object before sending headers so an empty prefix can still
-  // produce a 404 instead of an empty 200 tarball.
-  const iterator = listObjectsUnderPrefix(client, bucket, prefix);
-  const first = await iterator.next();
-  if (first.done) {
-    res.status(404).send(`No objects found at ${bucket}/${key}`);
-    return;
+  let pack: ReturnType<typeof tar.pack> | undefined;
+  let responseComplete: Promise<void> | undefined;
+  const archiveAbort = new AbortController();
+  const abortArchive = (error: Error) => {
+    if (!archiveAbort.signal.aborted) {
+      archiveAbort.abort(error);
+    }
+  };
+  const abortOnPrematureClose = () => {
+    if (!res.writableFinished) {
+      abortArchive(
+        new ArtifactResponseClosedError(
+          pack
+            ? 'Artifact response closed before archive streaming completed'
+            : 'Artifact response closed before archive streaming started',
+        ),
+      );
+    }
+  };
+  if (res.destroyed) {
+    abortArchive(
+      new ArtifactResponseClosedError('Artifact response closed before archive streaming started'),
+    );
+  } else {
+    res.once('close', abortOnPrematureClose);
   }
-
+  const iterator = listObjectsUnderPrefix(client, bucket, prefix, archiveAbort.signal);
   const baseName = key.replace(/\/+$/, '').split('/').pop() || 'artifact';
-  res.setHeader('Content-Type', 'application/gzip');
-  res.setHeader('Content-Disposition', buildAttachmentDisposition(`${baseName}.tar.gz`));
 
-  const pack = tar.pack();
-  const gzip = zlib.createGzip();
-  pack.pipe(gzip).pipe(res);
+  const startArchiveResponse = () => {
+    if (pack && responseComplete) {
+      return { pack, responseComplete };
+    }
+    res.setHeader('Content-Type', 'application/gzip');
+    res.setHeader('Content-Disposition', buildAttachmentDisposition(`${baseName}.tar.gz`));
+    pack = tar.pack();
+    const gzip = zlib.createGzip();
+    responseComplete = pipelinePromise(pack, gzip, res);
+    // Observe the archive pipeline exactly once. Per-entry operations wait on
+    // the abort signal below and remove their listener as soon as they settle;
+    // attaching every entry to this archive-lifetime promise would retain two
+    // pending promise reactions per object until the whole archive completed.
+    void responseComplete.then(
+      () => undefined,
+      (error) => {
+        abortArchive(error);
+        pack?.destroy(error);
+      },
+    );
+    return { pack, responseComplete };
+  };
+
+  const getObjectWhileResponseOpen = async (name: string) => {
+    const objectRequest = client.getObject(bucket, name);
+    return waitForArtifactOperation(objectRequest, archiveAbort.signal, (lateStream) =>
+      lateStream.destroy(),
+    );
+  };
 
   const writeEntry = async ({ name, size }: { name: string; size: number }) => {
     const relativeName = name.startsWith(prefix) ? name.slice(prefix.length) : name;
@@ -741,22 +929,113 @@ async function streamDirectoryAsTarGz(
       // sanitize to an empty path.
       return;
     }
-    const objStream = await client.getObject(bucket, name);
-    await new Promise<void>((resolve, reject) => {
-      const entry = pack.entry({ name: safeName, size }, (err) => (err ? reject(err) : resolve()));
-      objStream.on('error', reject);
+    // Resolve the first object before starting the response pipeline. If that
+    // lookup fails, the caller can still return a well-formed HTTP error
+    // instead of discovering that pipeline teardown already destroyed res.
+    const objStream = await getObjectWhileResponseOpen(name);
+    const archive = startArchiveResponse();
+    const entryComplete = new Promise<void>((resolve, reject) => {
+      const entry = archive.pack.entry({ name: safeName, size }, (err) =>
+        err ? reject(err) : resolve(),
+      );
+      objStream.once('error', reject);
       objStream.pipe(entry);
     });
+    try {
+      await waitForArtifactOperation(entryComplete, archiveAbort.signal);
+    } catch (error) {
+      objStream.destroy();
+      throw error;
+    }
   };
 
   try {
+    // Peek the first object before sending headers so an empty prefix can still
+    // produce a 404 instead of an empty 200 tarball. The iterator shares the
+    // response lifecycle signal, including while a listing page is pending.
+    const first = await iterator.next();
+    if (first.done) {
+      sendArtifactError(res, 404, `No objects found at ${bucket}/${key}`);
+      return;
+    }
     await writeEntry(first.value);
     for await (const item of iterator) {
       await writeEntry(item);
     }
+    const archive = startArchiveResponse();
+    archive.pack.finalize();
+    await archive.responseComplete;
+  } catch (error) {
+    const abortReason =
+      archiveAbort.signal.aborted && archiveAbort.signal.reason instanceof Error
+        ? archiveAbort.signal.reason
+        : undefined;
+    pack?.destroy(error as Error);
+    await responseComplete?.catch(() => undefined);
+    throw abortReason ?? error;
   } finally {
-    pack.finalize();
+    res.off('close', abortOnPrematureClose);
   }
+}
+
+/**
+ * Wait for one bounded artifact operation while sharing a single archive
+ * lifecycle signal. The listener is explicitly removed when the operation
+ * settles so a large directory cannot retain one archive-lifetime promise
+ * reaction per object.
+ */
+export function waitForArtifactOperation<T>(
+  operation: Promise<T>,
+  signal: AbortSignal,
+  onLateSuccess?: (value: T) => void,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal.removeEventListener('abort', rejectOnAbort);
+    const rejectOnAbort = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(
+        signal.reason instanceof Error
+          ? signal.reason
+          : new Error('Artifact archive operation was aborted'),
+      );
+    };
+
+    if (signal.aborted) {
+      rejectOnAbort();
+    } else {
+      signal.addEventListener('abort', rejectOnAbort, { once: true });
+    }
+
+    void operation.then(
+      (value) => {
+        if (settled) {
+          try {
+            onLateSuccess?.(value);
+          } catch {
+            // The response is already gone; best-effort cleanup must not
+            // create a new unhandled rejection.
+          }
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(error);
+      },
+    );
+  });
 }
 
 // Builds a `Content-Disposition: attachment` header that is safe to pass to
@@ -779,6 +1058,40 @@ function buildAttachmentDisposition(filename: string): string {
     (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase(),
   );
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${rfc5987Encoded}`;
+}
+
+function hardenUpstreamContentDisposition(value: string | string[] | undefined): string {
+  const disposition = Array.isArray(value) ? value[0] : value;
+  if (!disposition) {
+    return 'attachment';
+  }
+
+  const extended = /filename\*\s*=\s*([^'\s;]+)'[^']*'([^;\r\n]*)/i.exec(disposition);
+  if (extended) {
+    try {
+      const charset = extended[1].toLowerCase();
+      const encoded = extended[2];
+      if (charset === 'utf-8' || charset === 'utf8') {
+        return buildAttachmentDisposition(decodeURIComponent(encoded));
+      }
+      if (charset === 'iso-8859-1' || charset === 'latin1') {
+        if (/%(?![0-9a-f]{2})/i.test(encoded)) {
+          throw new Error('Malformed extended filename');
+        }
+        const decoded = encoded.replace(/%([0-9a-f]{2})/gi, (_, hex: string) =>
+          String.fromCharCode(Number.parseInt(hex, 16)),
+        );
+        return buildAttachmentDisposition(decoded);
+      }
+    } catch {
+      // Fall through to the legacy filename or a bare attachment.
+    }
+  }
+
+  const quoted = /filename\s*=\s*"((?:\\.|[^"\\])*)"/i.exec(disposition)?.[1];
+  const token = /filename\s*=\s*([^;\s\r\n]+)/i.exec(disposition)?.[1];
+  const filename = quoted?.replace(/\\(["\\])/g, '$1') ?? token;
+  return filename ? buildAttachmentDisposition(filename) : 'attachment';
 }
 
 // Sanitizes an object key into a safe relative POSIX path for inclusion in a
@@ -828,18 +1141,18 @@ async function parseGCSProviderInfo(
   }
 }
 
-async function readGCSObjectText(
+async function readGCSObject(
   bucket: string,
   objectName: string,
   client: GCSClient,
   credentials?: CredentialBody,
-): Promise<string> {
+): Promise<Buffer> {
   const stream = await downloadGCSObjectStream({ bucket, objectName, credentials, client });
   const chunks: Buffer[] = [];
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  return Buffer.concat(chunks).toString();
+  return Buffer.concat(chunks);
 }
 
 function getGCSArtifactHandler(
@@ -847,6 +1160,7 @@ function getGCSArtifactHandler(
   peek: number = 0,
   providerInfoString?: string,
   namespace?: string,
+  isDownloadRoute: boolean = false,
 ) {
   const { key, bucket } = options;
   return async (_: Request, res: Response) => {
@@ -856,7 +1170,11 @@ function getGCSArtifactHandler(
         const providerInfo = parseJSONString<GCSProviderInfo>(providerInfoString);
         if (providerInfo && providerInfo.Params.fromEnv === 'false') {
           if (!namespace) {
-            res.status(500).send('Failed to parse provider info. Reason: No namespace provided');
+            sendArtifactError(
+              res,
+              500,
+              'Failed to parse provider info. Reason: No namespace provided',
+            );
             return;
           } else {
             credentials = await parseGCSProviderInfo(providerInfo, namespace);
@@ -888,11 +1206,10 @@ function getGCSArtifactHandler(
 
       if (!matchingFiles.length) {
         console.log('No matching files found.');
-        res.send();
+        res.type('text/plain').send();
         return;
       }
       console.log(`Found ${matchingFiles.length} matching files: `, matchingFiles.join(','));
-      let contents = '';
       // TODO: support peek for concatenated matching files
       if (peek) {
         const stream = await downloadGCSObjectStream({
@@ -901,17 +1218,34 @@ function getGCSArtifactHandler(
           credentials,
           objectName: matchingFiles[0],
         });
-        stream.pipe(new PreviewStream({ peek })).pipe(res);
+        res.type('text/plain');
+        pipePreviewResponse(stream, res, peek, (err) =>
+          sendArtifactError(res, 500, 'Failed to download GCS file(s). Error: ' + err),
+        );
         return;
       }
 
-      // if not peeking, iterate and append all the files
-      for (const fileName of matchingFiles) {
-        contents += (await readGCSObjectText(bucket, fileName, client, credentials)).trim() + '\n';
+      if (isDownloadRoute) {
+        const contents: Buffer[] = [];
+        for (const fileName of matchingFiles) {
+          contents.push(await readGCSObject(bucket, fileName, client, credentials));
+        }
+        // Keep path-based downloads untyped and byte-preserving. Artifact
+        // bytes are untrusted and may not be text; attachment + nosniff
+        // provides the response hardening.
+        res.end(Buffer.concat(contents));
+        return;
       }
-      res.send(contents);
+
+      // Preview wildcard matches are intentionally joined as trimmed text.
+      let contents = '';
+      for (const fileName of matchingFiles) {
+        contents +=
+          (await readGCSObject(bucket, fileName, client, credentials)).toString().trim() + '\n';
+      }
+      res.type('text/plain').send(contents);
     } catch (err) {
-      res.status(500).send('Failed to download GCS file(s). Error: ' + err);
+      sendArtifactError(res, 500, 'Failed to download GCS file(s). Error: ' + err);
     }
   };
 }
@@ -922,12 +1256,12 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
     try {
       const [pod, err] = await serverInfo.getHostPod();
       if (err) {
-        res.status(500).send(err);
+        sendArtifactError(res, 500, String(err));
         return;
       }
 
       if (!pod) {
-        res.status(500).send('Could not get server pod');
+        sendArtifactError(res, 500, 'Could not get server pod');
         return;
       }
 
@@ -940,18 +1274,18 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
       });
       if (parseError) {
         console.log(`Failed to open volume: ${parseError}`);
-        res.status(404).send(`Failed to open volume.`);
+        sendArtifactError(res, 404, 'Failed to open volume.');
         return;
       }
 
       if (!volumeMountPath) {
-        res.status(404).send(`Failed to open volume.`);
+        sendArtifactError(res, 404, 'Failed to open volume.');
         return;
       }
       const [fileHandle, containmentError] = await openFileWithinRoot(filePath, volumeMountPath);
       if (containmentError || !fileHandle) {
         console.log(`Failed to open volume: ${containmentError?.message || 'unknown error'}`);
-        res.status(containmentError?.pathEscaped ? 404 : 500).send(`Failed to open volume.`);
+        sendArtifactError(res, containmentError?.pathEscaped ? 404 : 500, 'Failed to open volume.');
         return;
       }
 
@@ -960,23 +1294,25 @@ function getVolumeArtifactsHandler(options: { bucket: string; key: string }, pee
         const stat = await fileHandle.stat();
         if (stat.isDirectory()) {
           await fileHandle.close();
-          res
-            .status(400)
-            .send(`Failed to open volume file ${filePath} is directory, does not support now`);
+          sendArtifactError(
+            res,
+            400,
+            `Failed to open volume file ${filePath} is directory, does not support now`,
+          );
           return;
         }
 
-        fileHandle
-          .createReadStream({ autoClose: true })
-          .pipe(new PreviewStream({ peek }))
-          .pipe(res);
+        const stream = fileHandle.createReadStream({ autoClose: true });
+        pipePreviewResponse(stream, res, peek, (error) =>
+          sendArtifactError(res, 500, `Failed to open volume: ${error}`),
+        );
       } catch (error) {
         await fileHandle.close().catch(() => undefined);
         throw error;
       }
     } catch (err) {
       console.log(`Failed to open volume: ${err}`);
-      res.status(500).send(`Failed to open volume.`);
+      sendArtifactError(res, 500, 'Failed to open volume.');
     }
   };
 }
@@ -1030,10 +1366,43 @@ export function getArtifactsProxyHandler({
       proxyReq: (proxyReq) => {
         console.log('Proxied artifact request: ', proxyReq.path);
       },
+      // http-proxy-middleware copies upstream headers after this outer handler
+      // starts. Rewrite the proxy response itself so a tenant-side artifact
+      // service cannot replace the attachment guard with `inline` or remove
+      // nosniff while returning active HTML.
+      proxyRes: hardenArtifactProxyResponse,
     },
     pathRewrite: (pathStr, _req) => {
       const url = new URL(pathStr || '', DUMMY_BASE_PATH);
       url.searchParams.delete(QUERIES.NAMESPACE);
+      const source = url.searchParams.getAll('source');
+      const bucket = url.searchParams.getAll('bucket');
+      const key = url.searchParams.getAll('key');
+      const download = url.searchParams.getAll('download');
+      if (
+        url.pathname.endsWith('/artifacts/get') &&
+        source.length === 1 &&
+        bucket.length === 1 &&
+        key.length === 1 &&
+        download.length === 1 &&
+        download[0] === 'true'
+      ) {
+        // Keep the browser-facing request query-based so URL parsers cannot
+        // normalize object-key dot segments. At the final trusted proxy hop,
+        // translate it to the legacy download route understood by old tenant
+        // artifact services during rolling upgrades. Encoding the complete key
+        // as one path segment also keeps embedded slashes and dot segments inert
+        // until Express decodes the wildcard parameter in the tenant service.
+        url.searchParams.delete('source');
+        url.searchParams.delete('bucket');
+        url.searchParams.delete('key');
+        url.searchParams.delete('download');
+        const artifactPath = url.pathname.slice(0, -'get'.length);
+        return (
+          `${artifactPath}${encodeURIComponent(source[0])}/${encodeURIComponent(bucket[0])}/` +
+          `${encodeURIComponent(key[0])}${url.search}`
+        );
+      }
       return url.pathname + url.search;
     },
     router: (req) => {
@@ -1053,9 +1422,10 @@ export function getArtifactsProxyHandler({
     headers: HACK_FIX_HPM_PARTIAL_RESPONSE_HEADERS,
   });
   return (req, res, next) => {
+    hardenArtifactResponse(res);
     const namespace = getNamespaceFromUrl(req.url || '');
     if (namespace && !isAllowedResourceName(namespace)) {
-      res.status(400).send('Invalid namespace');
+      sendArtifactError(res, 400, 'Invalid namespace');
       return;
     }
     proxy(req, res, next);
@@ -1080,3 +1450,7 @@ const DUMMY_BASE_PATH = 'http://dummy-base-path';
 export function getArtifactServiceGetter({ serviceName, servicePort }: ArtifactsProxyConfig) {
   return (namespace: string) => `http://${serviceName}.${namespace}:${servicePort}`;
 }
+
+export const TEST_ONLY = {
+  getMinioArtifactHandler,
+};

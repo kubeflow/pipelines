@@ -179,7 +179,7 @@ describe('/artifacts authorization', () => {
       expect(response.text).toContain('Authentication required');
     });
 
-    it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek'])(
+    it.each(['source', 'bucket', 'key', 'providerInfo', 'namespace', 'peek', 'download'])(
       'rejects duplicate %s parameters before authorization',
       async (parameterName) => {
         const configurations = loadConfigs(argv, {
@@ -207,6 +207,7 @@ describe('/artifacts authorization', () => {
           providerInfo: '{}',
           namespace: 'my-namespace',
           peek: '10',
+          download: 'true',
         });
         query.append(parameterName, 'duplicate');
         const response = await request
@@ -214,6 +215,9 @@ describe('/artifacts authorization', () => {
           .set('kubeflow-userid', 'user@example.com')
           .expect(400);
         expect(response.text).toContain(`${parameterName} must be a single string value`);
+        expect(response.headers['content-type']).toMatch(/^text\/plain/);
+        expect(response.headers['content-disposition']).toBe('attachment');
+        expect(response.headers['x-content-type-options']).toBe('nosniff');
         expect(mockedFetch).not.toHaveBeenCalled();
         expect(mockedValidateArtifactNamespace).not.toHaveBeenCalled();
       },
