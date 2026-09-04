@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,6 +68,7 @@ func TestReportWorkflowV1(t *testing.T) {
 				},
 			},
 		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 	})
 	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
@@ -132,6 +134,7 @@ func TestReportWorkflow(t *testing.T) {
 				},
 			},
 		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 	})
 	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
@@ -140,6 +143,50 @@ func TestReportWorkflow(t *testing.T) {
 	run, err = resourceManager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, run)
+}
+
+func TestReportWorkflow_RejectsStaleTerminalReportWithoutPersistingTasks(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	ctx := context.Background()
+
+	workflowClient := clientManager.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("terminal-version")
+	staleWorkflow := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	staleWorkflow.SetLabels(util.LabelKeyWorkflowRunId, run.UUID)
+	staleWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	_, err = workflowClient.Update(ctx, staleWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	_, err = resourceManager.ReportWorkflowResource(ctx, staleWorkflow)
+	require.NoError(t, err)
+	_, _, _, claimGeneration, err := clientManager.RunStore().ClaimRunForRetry(run.UUID, 0, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), claimGeneration)
+
+	staleWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node-1": {
+			ID:          "node-1",
+			Name:        run.K8SName + ".task",
+			DisplayName: "task",
+			Type:        v1alpha1.NodeTypePod,
+			Phase:       v1alpha1.NodeFailed,
+		},
+	}
+	_, err = NewReportServer(resourceManager).ReportWorkflow(ctx, &apiv2.ReportWorkflowRequest{
+		Workflow: staleWorkflow.ToStringForStore(),
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Contains(t, err.Error(), "Skipping stale workflow report")
+
+	var taskCount int
+	require.NoError(t, clientManager.DB().QueryRow(
+		"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?", run.UUID,
+	).Scan(&taskCount))
+	assert.Zero(t, taskCount)
 }
 
 func TestReportWorkflow_ValidationFailed(t *testing.T) {

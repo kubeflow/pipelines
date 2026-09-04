@@ -97,11 +97,28 @@ func (c *FakeWorkflowClient) Update(ctx context.Context, execSpec util.Execution
 }
 
 func (c *FakeWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
-	_, ok := c.workflows[name]
-	if ok {
-		return nil
+	workflow, ok := c.workflows[name]
+	if !ok {
+		return k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
 	}
-	return k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
+	if options.Preconditions != nil {
+		if options.Preconditions.UID != nil && *options.Preconditions.UID != workflow.UID {
+			return k8errors.NewConflict(
+				k8schema.ParseGroupResource("workflows.argoproj.io"),
+				name,
+				fmt.Errorf("UID precondition %q does not match %q", *options.Preconditions.UID, workflow.UID),
+			)
+		}
+		if options.Preconditions.ResourceVersion != nil && *options.Preconditions.ResourceVersion != workflow.ResourceVersion {
+			return k8errors.NewConflict(
+				k8schema.ParseGroupResource("workflows.argoproj.io"),
+				name,
+				fmt.Errorf("resourceVersion precondition %q does not match %q", *options.Preconditions.ResourceVersion, workflow.ResourceVersion),
+			)
+		}
+	}
+	delete(c.workflows, name)
+	return nil
 }
 
 func (c *FakeWorkflowClient) DeleteCollection(ctx context.Context, options v1.DeleteOptions,
@@ -170,14 +187,37 @@ func applyJSONPatchToFakeWorkflow(workflow *v1alpha1.Workflow, name string, data
 				return nil, k8errors.NewConflict(k8schema.ParseGroupResource("workflows.argoproj.io"), name, fmt.Errorf("json patch test failed for %s", patchOperation.Path))
 			}
 		case "add":
-			if !strings.HasPrefix(patchOperation.Path, "/metadata/labels/") {
+			switch {
+			case patchOperation.Path == "/metadata/annotations":
+				annotations, ok := patchOperation.Value.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("invalid annotations patch value %T", patchOperation.Value)
+				}
+				workflow.Annotations = make(map[string]string, len(annotations))
+				for key, value := range annotations {
+					workflow.Annotations[key] = fmt.Sprint(value)
+				}
+			case strings.HasPrefix(patchOperation.Path, "/metadata/labels/"):
+				labelKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/labels/"))
+				if workflow.Labels == nil {
+					workflow.Labels = map[string]string{}
+				}
+				workflow.Labels[labelKey] = fmt.Sprint(patchOperation.Value)
+			case strings.HasPrefix(patchOperation.Path, "/metadata/annotations/"):
+				annotationKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/annotations/"))
+				if workflow.Annotations == nil {
+					workflow.Annotations = map[string]string{}
+				}
+				workflow.Annotations[annotationKey] = fmt.Sprint(patchOperation.Value)
+			case patchOperation.Path == "/spec/activeDeadlineSeconds":
+				activeDeadlineSeconds, err := strconv.ParseInt(fmt.Sprint(patchOperation.Value), 10, 64)
+				if err != nil {
+					return nil, fmt.Errorf("invalid activeDeadlineSeconds value %q", patchOperation.Value)
+				}
+				workflow.Spec.ActiveDeadlineSeconds = &activeDeadlineSeconds
+			default:
 				return nil, fmt.Errorf("unsupported fake JSON patch add path %q", patchOperation.Path)
 			}
-			labelKey := unescapeJSONPointerPathPart(strings.TrimPrefix(patchOperation.Path, "/metadata/labels/"))
-			if workflow.Labels == nil {
-				workflow.Labels = map[string]string{}
-			}
-			workflow.Labels[labelKey] = fmt.Sprint(patchOperation.Value)
 		default:
 			return nil, fmt.Errorf("unsupported fake JSON patch operation %q", patchOperation.Op)
 		}
@@ -193,6 +233,11 @@ func fakeWorkflowJSONPatchValue(workflow *v1alpha1.Workflow, path string) (strin
 	case "/status/phase":
 		return string(workflow.Status.Phase), true
 	default:
+		if strings.HasPrefix(path, "/metadata/annotations/") {
+			annotationKey := unescapeJSONPointerPathPart(strings.TrimPrefix(path, "/metadata/annotations/"))
+			annotationValue, ok := workflow.Annotations[annotationKey]
+			return annotationValue, ok
+		}
 		return "", false
 	}
 }

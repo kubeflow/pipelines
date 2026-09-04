@@ -61,6 +61,7 @@ func createWorkflowWithArtifact(runUUID, nodeID, artifactName, artifactPath stri
 			}},
 		},
 		Status: v1alpha1.WorkflowStatus{
+			Phase: v1alpha1.WorkflowRunning,
 			Nodes: map[string]v1alpha1.NodeStatus{
 				nodeID: {
 					Outputs: &v1alpha1.Outputs{

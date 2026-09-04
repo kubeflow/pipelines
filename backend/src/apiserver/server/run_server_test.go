@@ -34,11 +34,13 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -268,7 +270,10 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},
 	}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{
+		util.AnnotationKeyRetryGeneration: "0",
+		util.AnnotationKeyRunName:         "run1",
+	}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
@@ -449,7 +454,7 @@ func TestCreateRunV1Patch(t *testing.T) {
 			},
 		},
 		PipelineRuntime: &apiv1beta1.PipelineRuntime{
-			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\",\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/retry-generation\":\"0\",\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\",\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
 
@@ -534,7 +539,10 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},
 	}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
-	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Annotations = map[string]string{
+		util.AnnotationKeyRetryGeneration: "0",
+		util.AnnotationKeyRunName:         "run1",
+	}
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "default-editor" // In multi-user mode, we use default service account.
 	template := expectedRuntimeWorkflow.Spec.Templates[0]
 	expectedRuntimeWorkflow.Spec.Templates[0] = template
@@ -1621,8 +1629,16 @@ func TestDeleteRun(t *testing.T) {
 func TestTerminateRunV1(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
+	ctx := context.Background()
+	workflowClient := clients.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
 	server := createRunServerV1(manager)
-	_, err := server.TerminateRunV1(context.Background(), &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
+	_, err = server.TerminateRunV1(ctx, &apiv1beta1.TerminateRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 
@@ -1638,8 +1654,16 @@ func TestTerminateRunV1_NotFound(t *testing.T) {
 func TestTerminateRun(t *testing.T) {
 	clients, manager, run := initWithOneTimeRun(t)
 	defer clients.Close()
+	ctx := context.Background()
+	workflowClient := clients.ExecClientFake.Execution("ns1")
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.SetVersion("current-version")
+	_, err = workflowClient.Update(ctx, liveWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
 	server := createRunServer(manager)
-	_, err := server.TerminateRun(context.Background(), &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
+	_, err = server.TerminateRun(ctx, &apiv2beta1.TerminateRunRequest{RunId: run.UUID})
 	assert.Nil(t, err)
 }
 

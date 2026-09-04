@@ -20,6 +20,9 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -98,15 +101,75 @@ func TestFakeWorkflowClient_Delete(t *testing.T) {
 	ctx := context.Background()
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "to-delete"},
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "to-delete",
+			UID:             types.UID("current-uid"),
+			ResourceVersion: "current-version",
+		},
 	})
 	if _, err := client.Create(ctx, workflow, v1.CreateOptions{}); err != nil {
 		t.Fatalf("setup: Create() unexpected error: %v", err)
 	}
 
-	err := client.Delete(ctx, "to-delete", v1.DeleteOptions{})
+	uid := types.UID("current-uid")
+	resourceVersion := "current-version"
+	err := client.Delete(ctx, "to-delete", v1.DeleteOptions{
+		Preconditions: &v1.Preconditions{
+			UID:             &uid,
+			ResourceVersion: &resourceVersion,
+		},
+	})
 	if err != nil {
 		t.Fatalf("Delete() unexpected error: %v", err)
+	}
+	if _, err := client.Get(ctx, "to-delete", v1.GetOptions{}); !apierrors.IsNotFound(err) {
+		t.Fatalf("Get() after Delete() error = %v, want NotFound", err)
+	}
+}
+
+func TestFakeWorkflowClient_DeletePreconditionConflict(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		preconditions v1.Preconditions
+	}{
+		{
+			name: "uid",
+			preconditions: v1.Preconditions{
+				UID: func() *types.UID {
+					uid := types.UID("stale-uid")
+					return &uid
+				}(),
+			},
+		},
+		{
+			name: "resource version",
+			preconditions: v1.Preconditions{
+				ResourceVersion: func() *string {
+					resourceVersion := "stale-version"
+					return &resourceVersion
+				}(),
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			workflowClient := NewWorkflowClientFake()
+			ctx := context.Background()
+			workflow := util.NewWorkflow(&v1alpha1.Workflow{
+				ObjectMeta: v1.ObjectMeta{
+					Name:            "still-live",
+					UID:             types.UID("current-uid"),
+					ResourceVersion: "current-version",
+				},
+			})
+			_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+			require.NoError(t, err)
+
+			err = workflowClient.Delete(ctx, "still-live", v1.DeleteOptions{Preconditions: &test.preconditions})
+			require.Error(t, err)
+			assert.True(t, apierrors.IsConflict(err))
+			_, err = workflowClient.Get(ctx, "still-live", v1.GetOptions{})
+			require.NoError(t, err, "a failed precondition must preserve the workflow")
+		})
 	}
 }
 
@@ -216,6 +279,28 @@ func TestFakeWorkflowClient_PatchMetadata(t *testing.T) {
 	if labels[util.LabelKeyWorkflowPersistedFinalState] != "true" {
 		t.Errorf("Patch() did not set persisted final state label, got labels: %v", labels)
 	}
+}
+
+func TestFakeWorkflowClient_JSONPatchAnnotation(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            "annotation-patch",
+			ResourceVersion: "current-version",
+			Annotations:     map[string]string{util.AnnotationKeyRetryGeneration: "7"},
+		},
+	})
+	_, err := client.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	patchData := []byte(`[
+		{"op":"test","path":"/metadata/resourceVersion","value":"current-version"},
+		{"op":"add","path":"/metadata/annotations/pipelines.kubeflow.org~1retry-generation","value":"0"}
+	]`)
+	result, err := client.Patch(ctx, "annotation-patch", types.JSONPatchType, patchData, v1.PatchOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, "0", result.ExecutionObjectMeta().Annotations[util.AnnotationKeyRetryGeneration])
 }
 
 func TestFakeWorkflowClient_Stubs(t *testing.T) {

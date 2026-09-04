@@ -17,6 +17,8 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"sort"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
@@ -115,12 +117,9 @@ var nonArchivedStorageStateStrings = []string{
 }
 
 // RetryClaimGraceSeconds bounds how long a retry claim is trusted without any
-// sign of the retried workflow. Two recovery paths key off it: the reporter
-// accepts a stale-generation terminal report past this age (resource manager),
-// and ClaimRunForRetry allows a new claim to take over an expired one, which
-// covers a crash after the claim committed but before the retried workflow was
-// created (no workflow exists, so no report can ever trigger the reporter
-// path). Variable rather than const so tests can shorten it.
+// sign of the retried workflow. RetryRun reconciles Kubernetes first, then
+// ClaimRunForRetry may atomically take over an expired claim. Variable rather
+// than const so tests can shorten it.
 var RetryClaimGraceSeconds int64 = 600
 
 // archivedStorageStateStrings is the closed set of StorageState values that
@@ -152,6 +151,11 @@ type RunStoreInterface interface {
 	// Updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
+
+	// Updates a run from workflow-derived state if its state has not changed
+	// since it was read and the update does not regress run state. Returns false
+	// without modifying the run when the update is stale.
+	UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
@@ -186,15 +190,18 @@ type RunStoreInterface interface {
 	// Atomically claims a terminal run for retry (database-side CAS).
 	// Returns the original State, Conditions, FinishedAtInSec, and the new
 	// RetryGeneration claim token for rollback and reporter fencing.
-	// takeoverExpiredClaim additionally allows claiming a PENDING row whose
-	// previous claim has aged out; the caller must first reconcile against
-	// Kubernetes and prove the previous claim's workflow was never applied,
-	// otherwise a takeover can restart in-flight work.
-	ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
+	// expectedGeneration binds the claim to the run snapshot from which the
+	// retry workflow was generated. takeoverExpiredClaim additionally requires
+	// that exact generation to remain PENDING and expired after the row is
+	// locked; the caller must first reconcile against Kubernetes and prove its
+	// workflow was never applied. These checks prevent a stale caller from
+	// retrying a newer terminal manifest or taking over a different claim.
+	ClaimRunForRetry(runID string, expectedGeneration int64, takeoverExpiredClaim bool) (originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64, err error)
 
 	// Restores a run's pre-retry state after a failed retry attempt.
-	// The claimGeneration must match the value returned by ClaimRunForRetry
-	// to prevent ABA rollback of a later retry.
+	// The claimGeneration must match the value returned by ClaimRunForRetry,
+	// and the row must still be PENDING, to avoid overwriting a later retry,
+	// cancellation, or workflow report.
 	RollbackRetryClaim(runID string, originalState string, originalConditions string, originalFinishedAtInSec int64, claimGeneration int64) error
 }
 
@@ -713,18 +720,136 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
-	tx, err := s.db.DB.Begin()
-	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+// UpdateRunFromWorkflow applies workflow-derived state atomically against the
+// state observed before the workflow operation or report.
+func (s *RunStore) UpdateRunFromWorkflow(run *model.Run, expectedState model.RuntimeState) (bool, error) {
+	expectedState = expectedState.ToV2()
+	incomingState := run.State.ToV2()
+
+	switch expectedState {
+	case model.RuntimeStatePending:
+		if incomingState == model.RuntimeStateUnspecified {
+			return false, nil
+		}
+	case model.RuntimeStateRunning,
+		model.RuntimeStatePaused:
+		if incomingState == model.RuntimeStateUnspecified || incomingState == model.RuntimeStatePending {
+			return false, nil
+		}
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled:
+		if incomingState != expectedState {
+			return false, nil
+		}
+	case model.RuntimeStateCancelling:
+		switch incomingState {
+		case model.RuntimeStateCancelling,
+			model.RuntimeStateSucceeded,
+			model.RuntimeStateSkipped,
+			model.RuntimeStateFailed,
+			model.RuntimeStateCanceled:
+			// A canceling run may remain canceling or reach a terminal state.
+		default:
+			return false, nil
+		}
 	}
-	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
-			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
+
+	return s.updateRun(run, &expectedState)
+}
+
+// storedRuntimeStates lists the uppercase forms of every known stored
+// representation that normalizes to the given runtime state. Rows predating
+// the State column carry a v1 condition instead, and older writers stored
+// non-canonical spellings, so a compare-and-set that only matched the canonical
+// v2 string would silently match nothing.
+func storedRuntimeStates(state model.RuntimeState) []string {
+	canonical := state.ToV2()
+	candidates := []model.RuntimeState{
+		model.RuntimeStateUnspecified, model.RuntimeStatePending, model.RuntimeStateRunning,
+		model.RuntimeStateSucceeded, model.RuntimeStateSkipped, model.RuntimeStateFailed,
+		model.RuntimeStateCancelling, model.RuntimeStateCanceled, model.RuntimeStatePaused,
+		model.RuntimeStatePendingV1, model.RuntimeStateRunningV1, model.RuntimeStateSucceededV1,
+		model.RuntimeStateSkippedV1, model.RuntimeStateTerminatingV1, model.RuntimeStateFailedV1,
+		model.RuntimeStateErrorV1, model.RuntimeStateUnknownV1,
+		model.RuntimeState(model.LegacyStateNoStatus), model.RuntimeState(model.LegacyStateEnabled),
+		model.RuntimeState(model.LegacyStateDisabled), model.RuntimeState(model.LegacyStateError),
+		model.RuntimeState(model.LegacyStateReady), model.RuntimeState(model.LegacyStateRunning),
+		model.RuntimeState(model.LegacyStateSucceeded), model.RuntimeState(model.LegacyStateDone),
+		model.RuntimeState(model.RunTerminatingConditionsV1),
+	}
+	seen := make(map[string]bool, len(candidates))
+	stored := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		value := strings.ToUpper(string(candidate))
+		if value == "" || seen[value] || candidate.ToV2() != canonical {
+			continue
+		}
+		seen[value] = true
+		stored = append(stored, value)
+	}
+	sort.Strings(stored)
+	return stored
+}
+
+// effectiveStatePredicate matches known stored representations whose runtime
+// state, as model.Run.ToV2 reconstructs it on read, is one of the given states.
+// Rows written before the State column existed leave it NULL or empty and keep
+// their state in Conditions, and a row with neither reads back as unspecified.
+// A predicate that only compared the State column would never match those rows,
+// so an update guarded by one would silently affect nothing.
+func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
+	stored := make([]string, 0, len(states))
+	matchesUnspecified := false
+	for _, state := range states {
+		stored = append(stored, storedRuntimeStates(state)...)
+		if state.ToV2() == model.RuntimeStateUnspecified {
+			matchesUnspecified = true
+		}
+	}
+
+	// storedRuntimeStates never yields an empty string, so an IN comparison
+	// cannot match a row that stores no state at all.
+	stateAbsent := sq.Or{sq.Eq{"State": nil}, sq.Eq{"State": ""}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"UPPER(Conditions)": stored}}}
+	if matchesUnspecified {
+		fromConditions = append(fromConditions, sq.And{
+			stateAbsent,
+			sq.Or{sq.Eq{"Conditions": nil}, sq.Eq{"Conditions": ""}},
 		})
 	}
+
+	return sq.Or{sq.Eq{"UPPER(State)": stored}, fromConditions}
+}
+
+func (s *RunStore) updateRun(run *model.Run, expectedState *model.RuntimeState) (bool, error) {
+	tx, err := s.db.DB.Begin()
+	if err != nil {
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	stateHistory := run.StateHistory
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != run.State {
+		newStatus := &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           run.State,
+		}
+		if expectedState == nil {
+			// Preserve UpdateRun's existing caller-visible mutation, including
+			// when the update later reports that the run does not exist.
+			run.StateHistory = append(run.StateHistory, newStatus)
+			stateHistory = run.StateHistory
+		} else {
+			// A rejected workflow report must not mutate its caller's snapshot.
+			stateHistory = append(append([]*model.RuntimeStatus(nil), stateHistory...), newStatus)
+		}
+	}
 	stateHistoryString := ""
-	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+	if historyString, err := json.Marshal(stateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
 	updateFields := sq.Eq{
@@ -745,43 +870,56 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a
 	// ClaimRunForRetry increment cannot overwrite the claimed row.
-	sql, args, err := sq.
+	updatePredicate := sq.And{
+		sq.Eq{"UUID": run.UUID},
+		sq.Eq{"RetryGeneration": run.RetryGeneration},
+	}
+	if expectedState != nil {
+		updatePredicate = append(updatePredicate, effectiveStatePredicate(*expectedState))
+	}
+	updateBuilder := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.And{
-			sq.Eq{"UUID": run.UUID},
-			sq.Eq{"RetryGeneration": run.RetryGeneration},
-		}).
-		ToSql()
+		Where(updatePredicate)
+	updateSQL, args, err := updateBuilder.ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
-	result, err := tx.Exec(sql, args...)
+	result, err := tx.Exec(updateSQL, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
-	} else if r == 0 {
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+	}
+	if r == 0 {
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		if expectedState != nil {
+			// Every supported database connection reports matched rows for an
+			// UPDATE, including a no-op (MySQL enables ClientFoundRows). A later
+			// SELECT cannot prove this guarded write matched: under READ COMMITTED,
+			// another writer could restore the predicate between statements.
+			return false, nil
+		}
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	run.StateHistory = stateHistory
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given
@@ -928,7 +1066,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	return nil
 }
 
-func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
+func (s *RunStore) ClaimRunForRetry(runID string, expectedGeneration int64, takeoverExpiredClaim bool) (string, string, int64, int64, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
@@ -964,6 +1102,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if nullableState.Valid {
 		originalState = nullableState.String
 	}
+	if currentGeneration != expectedGeneration {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewUnavailableServerError(
+			fmt.Errorf("retry generation changed from %d to %d", expectedGeneration, currentGeneration),
+			"Cannot claim run %s for retry because its retry generation changed - try again",
+			runID,
+		)
+	}
 
 	// RetryRun checks this before taking the lock, but ArchiveExpiredRuns can
 	// commit ARCHIVED between that read and this one. Rejecting here, before any
@@ -982,27 +1128,30 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if !isTerminal && originalState == "" {
 		isTerminal = terminalRunStateValues[originalConditions]
 	}
-	if !isTerminal {
-		// Allow a new claim to take over an expired one, but only when the
-		// caller has explicitly authorized it after reconciling against
-		// Kubernetes (RetryRun proves the previous claim's workflow was
-		// never applied before setting takeoverExpiredClaim). A previous
-		// retry that crashed after committing its claim but before creating
-		// the workflow leaves the row PENDING with no workflow to report it;
-		// without takeover the run would be stuck forever (not terminal, so
-		// not claimable; FinishedAtInSec=0, so invisible to GC). Expiry is
-		// re-checked here under the row lock as defense in depth.
+	if takeoverExpiredClaim {
+		// Takeover authorization was derived from an observed PENDING row and
+		// is not interchangeable with a normal terminal retry. Require that
+		// exact state to remain true under the lock: if the prior claimant
+		// finished meanwhile, the caller's stored manifest is stale and a new
+		// request must rebuild the retry from the terminal result.
 		isAbandonedClaim := takeoverExpiredClaim &&
 			originalState == string(model.RuntimeStatePending) &&
 			currentGeneration > 0 &&
 			(retryClaimedAtInSec == 0 || s.time.Now().Unix()-retryClaimedAtInSec > RetryClaimGraceSeconds)
 		if !isAbandonedClaim {
 			tx.Rollback()
-			return "", "", 0, 0, util.NewBadRequestError(
-				fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
-				"Cannot claim run %s for retry: not in a terminal state", runID)
+			return "", "", 0, 0, util.NewUnavailableServerError(
+				fmt.Errorf("retry takeover snapshot changed: State=%q Conditions=%q Generation=%d", originalState, originalConditions, currentGeneration),
+				"Cannot take over retry claim for run %s because its state changed - try again",
+				runID,
+			)
 		}
 		glog.Warningf("Run %s has an abandoned retry claim (generation %d, claimed at %d); taking it over", runID, currentGeneration, retryClaimedAtInSec)
+	} else if !isTerminal {
+		tx.Rollback()
+		return "", "", 0, 0, util.NewBadRequestError(
+			fmt.Errorf("run is not in a terminal state: State=%q Conditions=%q", originalState, originalConditions),
+			"Cannot claim run %s for retry: not in a terminal state", runID)
 	}
 
 	// Atomically transition to PENDING and increment RetryGeneration.
@@ -1039,12 +1188,15 @@ func (s *RunStore) RollbackRetryClaim(runID string, originalState string, origin
 		Set("State", originalState).
 		Set("Conditions", originalConditions).
 		Set("FinishedAtInSec", originalFinishedAtInSec).
-		// Clear the claim timestamp so the reporter's orphaned-claim
-		// recovery does not treat this restored terminal row as claimed.
+		// Clear the timestamp because this exact pending claim is no longer
+		// active after the terminal row is restored.
 		Set("RetryClaimedAtInSec", 0).
 		Where(sq.And{
 			sq.Eq{"UUID": runID},
 			sq.Eq{"RetryGeneration": claimGeneration},
+			// Cancellation or a workflow report may win after the claim.
+			// Roll back only while this exact claim is still pending.
+			effectiveStatePredicate(model.RuntimeStatePending),
 		}).
 		ToSql()
 	if err != nil {
@@ -1410,18 +1562,28 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 
 func (s *RunStore) TerminateRun(runId string) error {
 	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Conditions": string(model.RuntimeStateCancelling.ToV1()),
+			"State":      model.RuntimeStateCancelling.ToString(),
+		}).
+		Where(sq.Eq{"UUID": runId}).
+		Where(effectiveStatePredicate(
+			model.RuntimeStatePaused,
+			model.RuntimeStatePending,
+			model.RuntimeStateRunning,
+			// ResourceManager persists CANCELING before patching the workflow,
+			// so retries must remain eligible if that patch did not complete.
+			model.RuntimeStateCancelling,
+			model.RuntimeStateUnspecified,
+		)).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to create query to terminate a run %s", runId)
+	}
+	result, err := s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())

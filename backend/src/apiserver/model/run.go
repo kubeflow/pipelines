@@ -335,9 +335,9 @@ type RunDetails struct {
 	RetryGeneration int64 `gorm:"column:RetryGeneration; default:0;"`
 	// RetryClaimedAtInSec records the epoch second when ClaimRunForRetry last
 	// claimed this row. It is a liveness signal only, never a correctness
-	// fence: ReportWorkflowResource uses it to detect a claim orphaned by a
-	// crash between claiming the row and updating the workflow. Both the
-	// write and the read happen on the API server's clock.
+	// fence: RetryRun uses it when deciding whether an expired claim can be
+	// adopted or atomically taken over after Kubernetes reconciliation. Both
+	// the write and the read happen on the API server's clock.
 	RetryClaimedAtInSec int64 `gorm:"column:RetryClaimedAtInSec; default:0;"`
 	// ArchivedAtInSec records the epoch second when this run entered the
 	// ARCHIVED storage state (via user action or the GC archive pass).

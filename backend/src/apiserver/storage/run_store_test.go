@@ -1034,6 +1034,441 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
+func TestUpdateRunFromWorkflow_RejectsZeroRowUpdate(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	// Model a database-side write suppression that makes the guarded UPDATE
+	// affect zero rows even though its predicate still matches afterward. The
+	// zero-row path must fail closed instead of promoting a later read to
+	// evidence that the requested fields were persisted.
+	_, err := db.Exec(`
+		CREATE TRIGGER ignore_workflow_update
+		BEFORE UPDATE ON run_details
+		WHEN NEW.WorkflowRuntimeManifest = 'ignored-workflow'
+		BEGIN
+			SELECT RAISE(IGNORE);
+		END`)
+	require.NoError(t, err)
+
+	reportedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := reportedRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), reportedRun.StateHistory...)
+	reportedRun.State = model.RuntimeStateSucceeded
+	reportedRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	reportedRun.WorkflowRuntimeManifest = "ignored-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(reportedRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, reportedRun.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
+func TestUpdateRunFromWorkflow_AllowsMatchedNoOp(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	run, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := run.State
+	originalHistory := append([]*model.RuntimeStatus(nil), run.StateHistory...)
+
+	updated, err := runStore.UpdateRunFromWorkflow(run, expectedState)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	assert.Equal(t, originalHistory, run.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
+func TestUpdateRunFromWorkflow_RejectsRegressiveActiveReport(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		expectedState model.RuntimeState
+		incomingState model.RuntimeState
+	}{
+		{name: "pending to unspecified", expectedState: model.RuntimeStatePending, incomingState: model.RuntimeStateUnspecified},
+		{name: "running to pending", expectedState: model.RuntimeStateRunning, incomingState: model.RuntimeStatePending},
+		{name: "running to unspecified", expectedState: model.RuntimeStateRunning, incomingState: model.RuntimeStateUnspecified},
+		{name: "paused to pending", expectedState: model.RuntimeStatePaused, incomingState: model.RuntimeStatePending},
+		{name: "paused to unspecified", expectedState: model.RuntimeStatePaused, incomingState: model.RuntimeStateUnspecified},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			currentRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			currentRun.State = test.expectedState
+			currentRun.Conditions = string(test.expectedState.ToV1())
+			currentRun.WorkflowRuntimeManifest = "current-workflow"
+			err = runStore.UpdateRun(currentRun)
+			require.NoError(t, err)
+
+			reportedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			require.Equal(t, test.expectedState, reportedRun.State)
+			originalHistory := append([]*model.RuntimeStatus(nil), reportedRun.StateHistory...)
+
+			reportedRun.State = test.incomingState
+			reportedRun.Conditions = string(test.incomingState.ToV1())
+			reportedRun.WorkflowRuntimeManifest = "stale-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(reportedRun, test.expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedState, persistedRun.State)
+			assert.Equal(t, string(test.expectedState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("current-workflow"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, originalHistory, persistedRun.StateHistory)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_RejectsStaleReportAfterTermination(t *testing.T) {
+	for _, incomingState := range []model.RuntimeState{
+		model.RuntimeStateRunning,
+		model.RuntimeStateUnspecified,
+	} {
+		t.Run(string(incomingState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			staleRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			expectedState := staleRun.State
+
+			require.NoError(t, runStore.TerminateRun("1"))
+
+			staleRun.State = incomingState
+			staleRun.Conditions = string(incomingState.ToV1())
+			staleRun.WorkflowRuntimeManifest = "stale-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, []*model.RuntimeStatus{{
+				UpdateTimeInSec: 1,
+				State:           model.RuntimeStateRunning,
+			}}, persistedRun.StateHistory)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_AllowsTerminalReportAfterTermination(t *testing.T) {
+	for _, terminalState := range []model.RuntimeState{
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled,
+	} {
+		t.Run(string(terminalState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			require.NoError(t, runStore.TerminateRun("1"))
+			cancelingRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			expectedState := cancelingRun.State
+			cancelingRun.State = terminalState
+			cancelingRun.Conditions = string(terminalState.ToV1())
+			cancelingRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(cancelingRun, expectedState)
+			require.NoError(t, err)
+			assert.True(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, terminalState, persistedRun.State)
+			assert.Equal(t, string(terminalState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("terminal-workflow"), persistedRun.WorkflowRuntimeManifest)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_DoesNotRegressTerminalRun(t *testing.T) {
+	for _, terminalState := range []model.RuntimeState{
+		model.RuntimeStateSucceeded,
+		model.RuntimeStateCanceled,
+	} {
+		t.Run(string(terminalState), func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			terminalRun, err := runStore.GetRun("2")
+			require.NoError(t, err)
+			if terminalState != terminalRun.State {
+				terminalRun.State = terminalState
+				terminalRun.Conditions = string(terminalState.ToV1())
+				require.NoError(t, runStore.UpdateRun(terminalRun))
+			}
+
+			expectedState := terminalRun.State
+			terminalRun.State = model.RuntimeStateRunning
+			terminalRun.Conditions = "Running"
+			terminalRun.WorkflowRuntimeManifest = "stale-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(terminalRun, expectedState)
+			require.NoError(t, err)
+			assert.False(t, updated)
+
+			persistedRun, err := runStore.GetRun("2")
+			require.NoError(t, err)
+			assert.Equal(t, terminalState, persistedRun.State)
+			assert.Equal(t, string(terminalState.ToV1()), persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+		})
+	}
+}
+
+// nullifyRunState reproduces a row written before the State column existed,
+// where the run state is recoverable only from Conditions.
+func nullifyRunState(t *testing.T, db *DB, runID string) {
+	t.Helper()
+	_, err := db.Exec("UPDATE run_details SET State = NULL WHERE UUID = ?", runID)
+	require.NoError(t, err)
+}
+
+func TestUpdateRunFromWorkflow_PersistsLegacyStateRepresentations(t *testing.T) {
+	for name, row := range map[string]struct {
+		state      interface{}
+		conditions string
+	}{
+		"null_state_with_legacy_conditions":      {state: nil, conditions: "Running"},
+		"non_canonical_state_spelling":           {state: "Running", conditions: "Running"},
+		"lowercase_state":                        {state: "running", conditions: "Running"},
+		"mixed_case_state":                       {state: "rUnNiNg", conditions: "Running"},
+		"null_state_with_lowercase_conditions":   {state: nil, conditions: "running"},
+		"empty_state_with_mixed_case_conditions": {state: "", conditions: "rUnNiNg"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				row.state, row.conditions, "1")
+			require.NoError(t, err)
+
+			legacyRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			// The stored representation still normalizes to RUNNING on read, so
+			// the reporter compares against that state.
+			require.Equal(t, model.RuntimeStateRunning, legacyRun.State)
+
+			expectedState := legacyRun.State
+			legacyRun.State = model.RuntimeStateSucceeded
+			legacyRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+			legacyRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(legacyRun, expectedState)
+			require.NoError(t, err)
+			require.True(t, updated)
+
+			// A reported update must not be claimed unless it was persisted.
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateSucceeded, persistedRun.State)
+			assert.Equal(t, "Succeeded", persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("terminal-workflow"), persistedRun.WorkflowRuntimeManifest)
+			historyStates := make([]model.RuntimeState, 0, len(persistedRun.StateHistory))
+			for _, status := range persistedRun.StateHistory {
+				historyStates = append(historyStates, status.State)
+			}
+			assert.Equal(t,
+				[]model.RuntimeState{model.RuntimeStateRunning, model.RuntimeStateSucceeded},
+				historyStates)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_RejectsStaleReportForLegacyStateRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	nullifyRunState(t, db, "1")
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedState := staleRun.State
+
+	// A concurrent termination commits CANCELING between the report's read and
+	// its conditional update.
+	require.NoError(t, runStore.TerminateRun("1"))
+
+	staleRun.State = model.RuntimeStateRunning
+	staleRun.Conditions = string(model.RuntimeStateRunning.ToV1())
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+}
+
+func TestUpdateRunFromWorkflow_RejectsStaleRetryGenerationWithUnchangedState(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateRunning, staleRun.State)
+	require.Equal(t, int64(0), staleRun.RetryGeneration)
+	expectedState := staleRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), staleRun.StateHistory...)
+
+	// A retry claim can advance the generation without changing the effective
+	// state. The stale workflow snapshot must still lose the compare-and-set.
+	_, err = db.Exec(
+		"UPDATE run_details SET RetryGeneration = RetryGeneration + 1 WHERE UUID = ?", "1")
+	require.NoError(t, err)
+
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(staleRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, staleRun.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
+	assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
+func TestUpdateRunFromWorkflow_RejectsUnknownStoredState(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	_, err := db.Exec("UPDATE run_details SET State = ? WHERE UUID = ?", "BROKEN", "1")
+	require.NoError(t, err)
+
+	unknownStateRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	require.Equal(t, model.RuntimeStateUnspecified, unknownStateRun.State)
+	expectedState := unknownStateRun.State
+	originalHistory := append([]*model.RuntimeStatus(nil), unknownStateRun.StateHistory...)
+
+	unknownStateRun.State = model.RuntimeStateSucceeded
+	unknownStateRun.Conditions = string(model.RuntimeStateSucceeded.ToV1())
+	unknownStateRun.WorkflowRuntimeManifest = "terminal-workflow"
+
+	updated, err := runStore.UpdateRunFromWorkflow(unknownStateRun, expectedState)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, unknownStateRun.StateHistory)
+
+	var rawState string
+	err = db.QueryRow("SELECT State FROM run_details WHERE UUID = ?", "1").Scan(&rawState)
+	require.NoError(t, err)
+	assert.Equal(t, "BROKEN", rawState)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateUnspecified, persistedRun.State)
+	assert.Equal(t, "Running", persistedRun.Conditions)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalHistory, persistedRun.StateHistory)
+}
+
+func TestStoredRuntimeStates(t *testing.T) {
+	assert.Equal(t,
+		[]string{"ENABLED", "READY", "RUNNING"},
+		storedRuntimeStates(model.RuntimeStateRunning))
+	assert.Equal(t,
+		[]string{"CANCELING", "TERMINATING"},
+		storedRuntimeStates(model.RuntimeStateCancelling))
+	// Callers pass states read back from the store, which may be v1 spellings.
+	assert.Equal(t,
+		storedRuntimeStates(model.RuntimeStateRunning),
+		storedRuntimeStates(model.RuntimeStateRunningV1))
+}
+
+func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
+	for name, row := range map[string]struct {
+		state      interface{}
+		conditions interface{}
+	}{
+		"null_state_with_legacy_conditions":  {state: nil, conditions: "Running"},
+		"empty_state_with_legacy_conditions": {state: "", conditions: "Running"},
+		"non_canonical_state_spelling":       {state: "Running", conditions: "Running"},
+		"lowercase_state":                    {state: "running", conditions: "Running"},
+		"mixed_case_state":                   {state: "rUnNiNg", conditions: "Running"},
+		"null_state_lowercase_conditions":    {state: nil, conditions: "running"},
+		"empty_state_mixed_case_conditions":  {state: "", conditions: "rUnNiNg"},
+		"no_state_and_no_conditions":         {state: nil, conditions: ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				row.state, row.conditions, "1")
+			require.NoError(t, err)
+
+			require.NoError(t, runStore.TerminateRun("1"))
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+		})
+	}
+}
+
+func TestTerminateRun_RejectsLegacyTerminalRun(t *testing.T) {
+	// A legacy row that already finished must stay unterminable; matching the
+	// Conditions column must not widen which states can be canceled.
+	for _, conditions := range []string{"Succeeded", "Failed", "Skipped", "Disabled"} {
+		t.Run(conditions, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = NULL, Conditions = ? WHERE UUID = ?",
+				conditions, "1")
+			require.NoError(t, err)
+
+			err = runStore.TerminateRun("1")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "Row not found")
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, conditions, persistedRun.Conditions)
+		})
+	}
+}
+
 func TestTerminateRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
@@ -2307,7 +2742,7 @@ func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
 	require.Nil(t, err)
 
 	// Claim the run for retry. This bumps RetryGeneration to 1 in the DB.
-	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen", false)
+	_, _, _, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-retry-gen", 0, false)
 	require.Nil(t, claimErr)
 	assert.Equal(t, int64(1), claimGeneration)
 
@@ -2362,7 +2797,7 @@ func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
 	_, err = db.Exec(`UPDATE run_details SET State = NULL WHERE UUID = ?`, "run-legacy-conditions")
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-legacy-conditions", 0, false)
 	require.Nil(t, claimErr, "legacy v1 terminal rows must be claimable for retry")
 	assert.Equal(t, "", originalState)
 	assert.Equal(t, string(model.RuntimeStateFailedV1), originalConditions)
@@ -2397,7 +2832,7 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", false)
+	originalState, originalConditions, originalFinishedAt, claimGeneration, claimErr := runStore.ClaimRunForRetry("run-rollback-claim", 0, false)
 	require.Nil(t, claimErr)
 
 	claimed, err := runStore.GetRun("run-rollback-claim")
@@ -2412,6 +2847,30 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	assert.Equal(t, int64(100), restored.FinishedAtInSec)
 	assert.Equal(t, int64(0), restored.RetryClaimedAtInSec, "rollback must clear the claim timestamp")
 	assert.Equal(t, claimGeneration, restored.RetryGeneration, "generation must stay monotonic across rollback")
+}
+
+func TestRollbackRetryClaim_DoesNotOverwriteCancellation(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	originalState, originalConditions, originalFinishedAt, claimGeneration, err := runStore.ClaimRunForRetry("2", 0, false)
+	require.NoError(t, err)
+	require.NoError(t, runStore.TerminateRun("2"))
+
+	require.NoError(t, runStore.RollbackRetryClaim(
+		"2",
+		originalState,
+		originalConditions,
+		originalFinishedAt,
+		claimGeneration,
+	))
+
+	persistedRun, err := runStore.GetRun("2")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, string(model.RuntimeStateCancelling.ToV1()), persistedRun.Conditions)
+	assert.Equal(t, int64(0), persistedRun.FinishedAtInSec)
+	assert.Equal(t, claimGeneration, persistedRun.RetryGeneration)
 }
 
 // Regression: ArchiveExpiredRuns can commit ARCHIVED between RetryRun's
@@ -2442,7 +2901,7 @@ func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
 	require.Nil(t, err)
 	require.Nil(t, runStore.ArchiveRun("run-archived-claim"))
 
-	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", false)
+	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", 0, false)
 	require.NotNil(t, claimErr)
 	userError := claimErr.(*util.UserError)
 	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
@@ -2463,7 +2922,7 @@ func TestClaimRunForRetry_RunNotFound(t *testing.T) {
 	defer db.Close()
 	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
 
-	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", false)
+	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", 0, false)
 	require.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -2575,27 +3034,79 @@ func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, firstGeneration, claimErr := runStore.ClaimRunForRetry("run-abandoned-claim", 0, false)
 	require.Nil(t, claimErr)
 	require.Equal(t, int64(1), firstGeneration)
 
 	// A fresh claim is protected: the row is PENDING with a recent timestamp.
 	// Even with takeover authorized, a fresh claim is protected.
-	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, _, secondErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, true)
 	require.NotNil(t, secondErr, "a fresh claim must not be taken over")
-	assert.Contains(t, secondErr.Error(), "not in a terminal state")
+	assert.Contains(t, secondErr.Error(), "state changed")
 
 	// Simulate the crash aftermath: claim timestamp gone (or aged out).
 	_, err = db.Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, "run-abandoned-claim")
 	require.Nil(t, err)
 
 	// Without caller authorization the expired claim still cannot be taken.
-	_, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", false)
+	_, _, _, _, unauthorizedErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, false)
 	require.NotNil(t, unauthorizedErr, "takeover must require explicit caller authorization")
 
-	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", true)
+	_, _, _, takeoverGeneration, takeoverErr := runStore.ClaimRunForRetry("run-abandoned-claim", firstGeneration, true)
 	require.Nil(t, takeoverErr, "an abandoned claim must be recoverable by a new retry")
 	assert.Equal(t, int64(2), takeoverGeneration, "takeover must advance the generation")
+}
+
+func TestClaimRunForRetry_TakeoverSnapshotCannotBecomeTerminalRetry(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-takeover-terminal-race",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-takeover-terminal-race",
+		DisplayName:  "run-takeover-terminal-race",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf0",
+		},
+	})
+	require.NoError(t, err)
+
+	_, _, _, firstGeneration, err := runStore.ClaimRunForRetry("run-takeover-terminal-race", 0, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), firstGeneration)
+	_, err = db.Exec(`UPDATE run_details SET State = ?, Conditions = ?, FinishedAtInSec = ?, RetryClaimedAtInSec = 0 WHERE UUID = ?`,
+		model.RuntimeStateFailed, model.RuntimeStateFailedV1, 200, "run-takeover-terminal-race")
+	require.NoError(t, err)
+
+	// The caller authorized takeover while observing PENDING generation 1,
+	// but the locked row is now terminal. It must refetch that terminal
+	// manifest instead of silently turning the stale request into generation 2.
+	_, _, _, _, err = runStore.ClaimRunForRetry("run-takeover-terminal-race", firstGeneration, true)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	unchanged, err := runStore.GetRun("run-takeover-terminal-race")
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
+	assert.Equal(t, int64(1), unchanged.RetryGeneration)
+
+	// A stale generation is rejected even in normal terminal-claim mode.
+	_, _, _, _, err = runStore.ClaimRunForRetry("run-takeover-terminal-race", 0, false)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	_, _, _, secondGeneration, err := runStore.ClaimRunForRetry("run-takeover-terminal-race", firstGeneration, false)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), secondGeneration)
 }
 
 // Regression: the delete pass selects candidates with two index-aligned

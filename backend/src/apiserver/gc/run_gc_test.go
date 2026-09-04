@@ -74,7 +74,10 @@ func (f *fakeRunStore) GetRun(_ string) (*model.Run, error)        { return nil,
 func (f *fakeRunStore) ListRuns(_ *model.FilterContext, _ *list.Options) ([]*model.Run, int, string, error) {
 	return nil, 0, "", nil
 }
-func (f *fakeRunStore) UpdateRun(_ *model.Run) error                              { return nil }
+func (f *fakeRunStore) UpdateRun(_ *model.Run) error { return nil }
+func (f *fakeRunStore) UpdateRunFromWorkflow(_ *model.Run, _ model.RuntimeState) (bool, error) {
+	return false, nil
+}
 func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) error { return nil }
 func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
 func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }
@@ -84,7 +87,7 @@ func (f *fakeRunStore) TerminateRun(_ string) error                             
 func (f *fakeRunStore) GetRunByRecurringRunIDAndDisplayName(_, _ string) (string, error) {
 	return "", nil
 }
-func (f *fakeRunStore) ClaimRunForRetry(_ string, _ bool) (string, string, int64, int64, error) {
+func (f *fakeRunStore) ClaimRunForRetry(_ string, _ int64, _ bool) (string, string, int64, int64, error) {
 	return "", "", 0, 0, nil
 }
 func (f *fakeRunStore) RollbackRetryClaim(_ string, _ string, _ string, _ int64, _ int64) error {
