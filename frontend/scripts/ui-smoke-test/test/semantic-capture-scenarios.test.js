@@ -281,6 +281,73 @@ test('scenario resolution binds canonical pair keys to revision-specific journey
   }
 });
 
+test('legacy Executions readiness waits for a rendered numeric execution identity', (t) => {
+  const originalDocument = global.document;
+  t.after(() => {
+    global.document = originalDocument;
+  });
+  const predicate = byKey(resolveSemanticScenarios('base', SEED_VALUES), 'executions-to-runs')
+    .actions[0].predicate;
+  const row = (id, linkText = id) => ({
+    getAttribute: (name) => (name === 'data-row-id' ? id : null),
+    querySelectorAll: (selector) => (selector === 'a' ? [{ textContent: linkText }] : []),
+  });
+  const installDocument = ({ error = false, loading = false, rows = [] } = {}) => {
+    global.document = {
+      querySelector: (selector) => (selector === '[role="alert"]' && error ? {} : null),
+      querySelectorAll: (selector) => {
+        if (selector.includes('circularprogress')) return loading ? [{}] : [];
+        if (selector === '[data-testid="table-row"]') return rows;
+        return [];
+      },
+    };
+  };
+
+  installDocument({ rows: [row('run-1')] });
+  assert.equal(predicate(), false);
+  installDocument({ rows: [row('73', 'write-metrics')] });
+  assert.equal(predicate(), false);
+  installDocument({ rows: [row('73')] });
+  assert.equal(predicate(), true);
+  installDocument({ loading: true, rows: [row('73')] });
+  assert.equal(predicate(), false);
+  installDocument({ error: true, rows: [row('73')] });
+  assert.equal(predicate(), false);
+});
+
+test('legacy ROC comparison readiness requires the complete aggregated three-run chart', (t) => {
+  const originalDocument = global.document;
+  t.after(() => {
+    global.document = originalDocument;
+  });
+  const predicate = byKey(
+    resolveSemanticScenarios('base', SEED_VALUES),
+    'compare-roc-selection',
+  ).actions.at(-1).predicate;
+  const seriesCard = () => ({
+    querySelector: (selector) =>
+      selector === '[title]' || selector === '.recharts-line-curve' ? {} : null,
+    querySelectorAll: () => [],
+  });
+  const aggregateCard = (curveCount) => ({
+    querySelector: (selector) => (selector === '[title="Aggregated view"]' ? {} : null),
+    querySelectorAll: (selector) =>
+      selector === '.recharts-line-curve' ? Array.from({ length: curveCount }, () => ({})) : [],
+  });
+  const installDocument = (cards) => {
+    global.document = {
+      querySelectorAll: (selector) => (selector === '#root .plotCard' ? cards : []),
+    };
+  };
+
+  installDocument([aggregateCard(2), seriesCard(), seriesCard(), seriesCard()]);
+  assert.equal(predicate(), false);
+  installDocument([aggregateCard(3), seriesCard(), seriesCard()]);
+  assert.equal(predicate(), false);
+  installDocument([aggregateCard(3), seriesCard(), seriesCard(), seriesCard()]);
+  assert.equal(predicate(), true);
+});
+
 test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
   const base = resolveSemanticScenarios('base', SEED_VALUES);
   const head = resolveSemanticScenarios('head', SEED_VALUES);

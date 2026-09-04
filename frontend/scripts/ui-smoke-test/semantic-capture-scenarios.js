@@ -159,6 +159,26 @@ function seededListReady() {
   return !hasError && !isLoading && hasRows;
 }
 
+function legacyExecutionListReady() {
+  const hasError = !!document.querySelector('[role="alert"]');
+  const isLoading =
+    document.querySelectorAll('[role="circularprogress"], .MuiCircularProgress-root').length > 0;
+  const rows = Array.from(document.querySelectorAll('[data-testid="table-row"]'));
+  return (
+    !hasError &&
+    !isLoading &&
+    rows.some((row) => {
+      const executionId = row.getAttribute('data-row-id') || '';
+      return (
+        /^[1-9]\d*$/.test(executionId) &&
+        Array.from(row.querySelectorAll('a')).some(
+          (link) => link.textContent?.trim() === executionId,
+        )
+      );
+    })
+  );
+}
+
 function graphReady() {
   const legacyNodes = document.querySelectorAll('.graphNode');
   if (legacyNodes.length > 0) return true;
@@ -185,6 +205,25 @@ function rocReady() {
     !text.includes('no ROC') &&
     !text.includes('No ROC') &&
     !!document.querySelector('.recharts-wrapper .recharts-line-curve, .rv-xy-plot')
+  );
+}
+
+function legacyComparisonRocReady() {
+  const cards = Array.from(document.querySelectorAll('#root .plotCard'));
+  const aggregateCard = cards.find(
+    (card) => card.querySelector('[title="Aggregated view"]') !== null,
+  );
+  const labeledSeriesCards = cards.filter(
+    (card) =>
+      card !== aggregateCard &&
+      card.querySelector('[title]') !== null &&
+      card.querySelector('.recharts-line-curve') !== null,
+  );
+  return (
+    !!aggregateCard &&
+    aggregateCard.querySelectorAll('.recharts-line-curve').length ===
+      COMPARISON_RUN_FIXTURES.length &&
+    labeledSeriesCards.length === COMPARISON_RUN_FIXTURES.length
   );
 }
 
@@ -287,7 +326,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: { kind: 'direct', path: '/executions' },
         semanticIdNormalization: EXECUTION_LIST_ID_NORMALIZATION,
         waitFor: '#root',
-        actions: waitForList,
+        actions: [{ type: 'waitForFunction', predicate: legacyExecutionListReady }],
       },
       head: {
         path: '/#/executions',
@@ -549,7 +588,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
           { type: 'click', selector: tabSelector('ROC Curve') },
-          { type: 'waitForFunction', predicate: rocReady },
+          { type: 'waitForFunction', predicate: legacyComparisonRocReady },
         ],
       },
       head: {
