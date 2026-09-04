@@ -159,6 +159,56 @@ class PipelineChannelTest(parameterized.TestCase):
         params = pipeline_channel.extract_pipeline_channels_from_any(payload)
         self.assertListEqual([p1, p2, p3], params)
 
+    def test_union_channel_preserves_order_and_type(self):
+        first = pipeline_channel.PipelineArtifactChannel(
+            name='model',
+            channel_type='system.Model@0.0.1',
+            task_name='train-first',
+            is_artifact_list=False,
+        )
+        second = pipeline_channel.PipelineArtifactChannel(
+            name='model',
+            channel_type='system.Model@0.0.1',
+            task_name='train-second',
+            is_artifact_list=False,
+        )
+
+        union = dsl.UnionChannel(first, second)
+
+        self.assertEqual(union.channels, [first, second])
+        self.assertEqual(union.channel_type, 'system.Model@0.0.1')
+        self.assertTrue(union.is_artifact_list)
+
+    def test_union_channel_rejects_mixed_artifact_types(self):
+        model = pipeline_channel.PipelineArtifactChannel(
+            name='model',
+            channel_type='system.Model@0.0.1',
+            task_name='train-model',
+            is_artifact_list=False,
+        )
+        dataset = pipeline_channel.PipelineArtifactChannel(
+            name='dataset',
+            channel_type='system.Dataset@0.0.1',
+            task_name='create-dataset',
+            is_artifact_list=False,
+        )
+
+        with self.assertRaisesRegex(TypeError,
+                                    'must be the same artifact type'):
+            dsl.UnionChannel(model, dataset)
+
+    def test_union_channel_rejects_artifact_lists(self):
+        artifact_list = pipeline_channel.PipelineArtifactChannel(
+            name='models',
+            channel_type='system.Model@0.0.1',
+            task_name='train-models',
+            is_artifact_list=True,
+        )
+
+        with self.assertRaisesRegex(
+                TypeError, 'only accepts individual artifact channels'):
+            dsl.UnionChannel(artifact_list)
+
 
 @dsl.component
 def string_comp() -> str:

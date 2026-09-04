@@ -3791,6 +3791,102 @@ class TestOutputDefinitionsPresentWhenCompilingComponents(unittest.TestCase):
 
 class TestListOfArtifactsInterfaceCompileAndLoad(unittest.TestCase):
 
+    def test_fan_in_independent_artifact_outputs(self):
+
+        @dsl.component
+        def produce_model(name: str, model: Output[Model]):
+            pass
+
+        @dsl.component
+        def evaluate_models(models: Input[List[Model]]):
+            pass
+
+        @dsl.pipeline
+        def fan_in_pipeline():
+            first = produce_model(name='svc')
+            second = produce_model(name='xgb')
+            third = produce_model(name='lr')
+            evaluate_models(models=[
+                first.outputs['model'],
+                second.outputs['model'],
+                third.outputs['model'],
+            ])
+
+        sources = fan_in_pipeline.pipeline_spec.root.dag.tasks[
+            'evaluate-models'].inputs.artifacts[
+                'models'].artifact_sources.artifacts
+
+        self.assertEqual(
+            [(source.task_output_artifact.producer_task,
+              source.task_output_artifact.output_artifact_key)
+             for source in sources],
+            [
+                ('produce-model', 'model'),
+                ('produce-model-2', 'model'),
+                ('produce-model-3', 'model'),
+            ],
+        )
+        self.assertCountEqual(
+            fan_in_pipeline.pipeline_spec.root.dag.tasks['evaluate-models']
+            .dependent_tasks,
+            ['produce-model', 'produce-model-2', 'produce-model-3'],
+        )
+
+    def test_fan_in_explicit_union_channel(self):
+
+        @dsl.component
+        def produce_model(model: Output[Model]):
+            pass
+
+        @dsl.component
+        def evaluate_models(models: Input[List[Model]]):
+            pass
+
+        @dsl.pipeline
+        def fan_in_pipeline():
+            first = produce_model()
+            second = produce_model()
+            evaluate_models(
+                models=dsl.UnionChannel(first.output, second.output))
+
+        sources = fan_in_pipeline.pipeline_spec.root.dag.tasks[
+            'evaluate-models'].inputs.artifacts[
+                'models'].artifact_sources.artifacts
+        self.assertEqual(len(sources), 2)
+
+    def test_fan_in_across_nested_dag_boundary(self):
+
+        @dsl.component
+        def produce_model(model: Output[Model]):
+            pass
+
+        @dsl.component
+        def evaluate_models(models: Input[List[Model]]):
+            pass
+
+        @dsl.pipeline
+        def fan_in_pipeline(run_evaluation: bool = True):
+            first = produce_model()
+            second = produce_model()
+            with dsl.If(run_evaluation == True):
+                evaluate_models(models=[first.output, second.output])
+
+        condition_task = next(
+            task for name, task in
+            fan_in_pipeline.pipeline_spec.root.dag.tasks.items()
+            if name.startswith('condition-'))
+        self.assertEqual(len(condition_task.inputs.artifacts), 2)
+
+        condition_component = fan_in_pipeline.pipeline_spec.components[
+            condition_task.component_ref.name]
+        sources = condition_component.dag.tasks[
+            'evaluate-models'].inputs.artifacts[
+                'models'].artifact_sources.artifacts
+        self.assertEqual(
+            [source.WhichOneof('kind') for source in sources],
+            ['component_input_artifact', 'component_input_artifact'],
+        )
+
     def test_python_component(self):
 
         @dsl.component

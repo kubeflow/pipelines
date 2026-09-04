@@ -141,9 +141,9 @@ class PipelineTask:
         from kfp.dsl.tasks_group import TasksGroup
         self.state = TaskState.FUTURE
         self.parent_task_group: Union[None, TasksGroup] = None
-        args = args or {}
+        args = dict(args or {})
 
-        for input_name, argument_value in args.items():
+        for input_name, argument_value in list(args.items()):
 
             if input_name not in component_spec.inputs:
                 raise ValueError(
@@ -151,6 +151,21 @@ class PipelineTask:
                     f' {input_name!r}.')
 
             input_spec = component_spec.inputs[input_name]
+
+            if input_spec.is_artifact_list and isinstance(argument_value, list):
+                artifact_channels = [
+                    value for value in argument_value if isinstance(
+                        value, pipeline_channel.PipelineArtifactChannel)
+                ]
+                if artifact_channels and len(artifact_channels) != len(
+                        argument_value):
+                    raise TypeError(
+                        f'Incompatible argument passed to the input {input_name!r} of component {component_spec.name!r}: artifact list inputs cannot mix artifact channels with literal values.'
+                    )
+                if artifact_channels:
+                    argument_value = pipeline_channel.UnionChannel(
+                        *artifact_channels)
+                    args[input_name] = argument_value
 
             type_utils.verify_type_compatibility(
                 given_value=argument_value,
@@ -211,13 +226,15 @@ class PipelineTask:
 
         self._inputs = args
 
-        self._channel_inputs = [
-            value for _, value in args.items()
-            if isinstance(value, pipeline_channel.PipelineChannel)
-        ] + pipeline_channel.extract_pipeline_channels_from_any([
-            value for _, value in args.items()
-            if not isinstance(value, pipeline_channel.PipelineChannel)
-        ])
+        self._channel_inputs = []
+        for value in args.values():
+            if isinstance(value, pipeline_channel.UnionArtifact):
+                self._channel_inputs.extend(value.channels)
+            elif isinstance(value, pipeline_channel.PipelineChannel):
+                self._channel_inputs.append(value)
+            else:
+                self._channel_inputs.extend(
+                    pipeline_channel.extract_pipeline_channels_from_any(value))
 
         if execute_locally:
             self._execute_locally(args=args)
