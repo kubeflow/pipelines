@@ -243,9 +243,18 @@ def _is_container_recipe(path: Path) -> bool:
             path.name.startswith('Containerfile'))
 
 
+def _has_symlink_component(repo_root: Path, relative_path: Path) -> bool:
+    path = repo_root
+    for component in relative_path.parts:
+        path /= component
+        if path.is_symlink():
+            return True
+    return False
+
+
 def _read_text(repo_root: Path, relative_path: Path) -> str:
     path = repo_root / relative_path
-    if path.is_symlink() or not path.is_file():
+    if _has_symlink_component(repo_root, relative_path) or not path.is_file():
         raise PolicyError(f'{relative_path} must be a regular file')
     try:
         return path.read_text(encoding='utf-8')
@@ -329,7 +338,8 @@ def _validate_inventory(repo_root: Path, tracked_paths: Set[Path],
         if not _is_container_recipe(relative_path):
             continue
         path = repo_root / relative_path
-        if not path.exists() and not path.is_symlink():
+        if (not path.exists() and
+                not _has_symlink_component(repo_root, relative_path)):
             continue
         contents = _read_text(repo_root, relative_path)
         if (GO_IMAGE_LITERAL_PATTERN.search(contents) or
@@ -357,7 +367,8 @@ def _validate_inventory(repo_root: Path, tracked_paths: Set[Path],
         if relative_path.suffix not in {'.yaml', '.yml'}:
             continue
         path = repo_root / relative_path
-        if not path.exists() and not path.is_symlink():
+        if (not path.exists() and
+                not _has_symlink_component(repo_root, relative_path)):
             continue
         contents = _read_text(repo_root, relative_path)
         if 'actions/setup-go@' in contents:
