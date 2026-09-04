@@ -1416,6 +1416,9 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
         if (scope.mappingStrategy === 'ordered-label-cards') {
           if (labelItems.length !== sourceColors.length) ambiguous = true;
           labelItems.forEach((item, index) => {
+            // The visible label proves identity and component order pairs the card with its curve.
+            // Inline-styled descendants are presentation-only; recolor all that exist without
+            // treating their incidental count as semantic evidence.
             const styledElements = [
               ...(item.matches('[style]') ? [item] : []),
               ...item.querySelectorAll('[style]'),
@@ -1424,14 +1427,14 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
               return color && color !== 'rgba(0,0,0,0)' && color !== 'transparent';
             });
             const matchingSeries = matchingSeriesFor(item);
-            if (styledElements.length !== 1 || matchingSeries.length !== 1) {
+            if (matchingSeries.length !== 1) {
               ambiguous = true;
               return;
             }
-            seenCompanions.add(styledElements[0]);
+            seenCompanions.add(item);
             orderedMappings.push({
               elementIndex: index,
-              elements: [styledElements[0]],
+              elements: styledElements,
               semanticId: matchingSeries[0].semanticId,
               sourceColor: normalizedColor(sourceColors[index]),
             });
