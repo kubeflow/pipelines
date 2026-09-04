@@ -2,6 +2,8 @@ module github.com/kubeflow/pipelines
 
 go 1.27.0
 
+toolchain go1.27.1
+
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/VividCortex/mysqlerr v1.0.0
