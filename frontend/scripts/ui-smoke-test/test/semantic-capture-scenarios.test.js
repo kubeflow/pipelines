@@ -118,7 +118,7 @@ function fakeTextPage(textValues, selector = '#root') {
   };
 }
 
-function fakeDerivedColorPage(series, { orderedLabels = false } = {}) {
+function fakeDerivedColorPage(series, { labelDecorationCount = 1, orderedLabels = false } = {}) {
   const styledElement = (sourceColor, parentText = '') => {
     const properties = new Map();
     return {
@@ -141,14 +141,17 @@ function fakeDerivedColorPage(series, { orderedLabels = false } = {}) {
     };
     return curve;
   });
-  const labelSwatches = series.map(({ color, labelColor }) => styledElement(labelColor || color));
+  const labelSwatchesByItem = series.map(({ color, labelColor }) =>
+    Array.from({ length: labelDecorationCount }, () => styledElement(labelColor || color)),
+  );
+  const labelSwatches = labelSwatchesByItem.flat();
   const labelItems = series.map(({ label }, index) => ({
     matches: () => false,
     querySelector: (selector) =>
       orderedLabels && selector === '[title]'
         ? { getAttribute: (name) => (name === 'title' ? label : null) }
         : null,
-    querySelectorAll: (selector) => (selector === '[style]' ? [labelSwatches[index]] : []),
+    querySelectorAll: (selector) => (selector === '[style]' ? labelSwatchesByItem[index] : []),
     textContent: orderedLabels ? '' : label,
   }));
   const internalSwatches = series.map(({ color }, index) =>
@@ -964,6 +967,26 @@ test('ROC series colors normalize by visible semantic label instead of generated
     legacyPage.internalSwatches.every((swatch) => swatch.properties.has('background-color')),
     true,
   );
+
+  for (const labelDecorationCount of [0, 2]) {
+    const orderedPage = fakeDerivedColorPage(
+      [
+        { color: 'rgb(220,0,0)', label: 'Training Run Z' },
+        { color: 'rgb(0,0,220)', label: 'Training Run A' },
+      ],
+      { labelDecorationCount, orderedLabels: true },
+    );
+    const normalized = await capture.normalizeSemanticDerivedColors(
+      orderedPage.page,
+      orderedConfig,
+      catalog,
+    );
+    assert.deepEqual(projection(normalized), projection(base));
+    assert.equal(
+      orderedPage.labelSwatches.every((swatch) => swatch.properties.has('background-color')),
+      true,
+    );
+  }
 
   await assert.rejects(
     capture.normalizeSemanticDerivedColors(
