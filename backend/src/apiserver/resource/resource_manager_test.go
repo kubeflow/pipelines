@@ -17,6 +17,7 @@ package resource
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -47,6 +48,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
+	dto "github.com/prometheus/client_model/go"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,6 +64,24 @@ import (
 
 // v1AllowedNamespaces mirrors the unexported constant in backend/src/common/util/v1_support.go.
 const v1AllowedNamespaces = "V1_ALLOWED_NAMESPACES"
+
+type duplicateRecurringRunStore struct {
+	storage.RunStoreInterface
+	firstGet    bool
+	existingRun *model.Run
+}
+
+func (s *duplicateRecurringRunStore) GetRun(string) (*model.Run, error) {
+	if s.firstGet {
+		s.firstGet = false
+		return nil, util.NewResourceNotFoundError("run", "concurrent-run")
+	}
+	return s.existingRun, nil
+}
+
+func (s *duplicateRecurringRunStore) CreateRun(*model.Run) (*model.Run, error) {
+	return s.existingRun, nil
+}
 
 func initEnvVars() {
 	viper.Set(common.PodNamespace, "ns1")
@@ -502,6 +522,35 @@ func initWithOneTimeRun(t *testing.T) (*FakeClientManager, *ResourceManager, *mo
 	return store, manager, runDetail
 }
 
+func syncWorkflowReportWithFakeCluster(t *testing.T, store *FakeClientManager, workflow *util.Workflow) {
+	t.Helper()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(workflow.ExecutionNamespace())
+	liveWorkflow, err := workflowClient.Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	if util.IsNotFound(err) {
+		_, err = workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+		require.NoError(t, err)
+		return
+	}
+	require.NoError(t, err)
+	workflow.ExecutionObjectMeta().UID = liveWorkflow.ExecutionObjectMeta().UID
+	workflow.SetVersion(liveWorkflow.Version())
+	_, err = workflowClient.Update(ctx, workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+}
+
+func storedWorkflowUID(t *testing.T, run *model.Run) types.UID {
+	t.Helper()
+	manifest := run.WorkflowRuntimeManifest
+	if manifest == "" {
+		manifest = run.PipelineRuntimeManifest
+	}
+	workflow, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(manifest))
+	require.NoError(t, err)
+	require.NoError(t, workflow.Decompress())
+	return workflow.ExecutionObjectMeta().UID
+}
+
 func initWithOneTimeRunV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Run) {
 	store, manager, exp := initWithExperiment(t)
 	apiRun := &model.Run{
@@ -552,6 +601,7 @@ func initWithOneTimeFailedRun(t *testing.T) (*FakeClientManager, *ResourceManage
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed}}
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -577,6 +627,7 @@ func initWithOneTimeFailedRunCompressed(t *testing.T) (*FakeClientManager, *Reso
 	nodeData, err := json.Marshal(nodes)
 	assert.Nil(t, err)
 	updatedWorkflow.Status.CompressedNodes = file.CompressEncodeString(ctx, string(nodeData))
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -599,6 +650,7 @@ func initWithOneTimeFailedRunOffloaded(t *testing.T) (*FakeClientManager, *Resou
 	updatedWorkflow.SetLabels(util.LabelKeyWorkflowRunId, runDetail.UUID)
 	updatedWorkflow.Status.Phase = v1alpha1.WorkflowFailed
 	updatedWorkflow.Status.OffloadNodeStatusVersion = "offload-hash"
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
 	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
 	assert.Nil(t, err)
 	return store, manager, runDetail
@@ -714,6 +766,139 @@ func (c *retryableUpdateFailureWorkflowClient) Create(ctx context.Context, execS
 type genericUpdateFailureWorkflowClient struct {
 	*client.FakeWorkflowClient
 	createCalls int
+}
+
+type deleteFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+}
+
+func (c *deleteFailureWorkflowClient) Delete(context.Context, string, v1.DeleteOptions) error {
+	return errors.New("failed to delete workflow")
+}
+
+type countingWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getCalls int
+}
+
+func (c *countingWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	c.getCalls++
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+type transientDeleteFailureWorkflowClient struct {
+	*client.FakeWorkflowClient
+	deleteFailuresRemaining int
+	deleteCalls             int
+}
+
+func (c *transientDeleteFailureWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
+	c.deleteCalls++
+	if c.deleteFailuresRemaining > 0 {
+		c.deleteFailuresRemaining--
+		return apierrors.NewServiceUnavailable("apiserver temporarily unavailable")
+	}
+	return c.FakeWorkflowClient.Delete(ctx, name, options)
+}
+
+type disappearBeforeDeleteLookupWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getCalls int
+}
+
+func (c *disappearBeforeDeleteLookupWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	c.getCalls++
+	if c.getCalls == 2 {
+		if err := c.Delete(ctx, name, v1.DeleteOptions{}); err != nil {
+			return nil, err
+		}
+	}
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+type notFoundOnOrphanDeleteWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getCalls    int
+	deleteCalls int
+}
+
+func (c *notFoundOnOrphanDeleteWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	c.getCalls++
+	return c.FakeWorkflowClient.Get(ctx, name, options)
+}
+
+func (c *notFoundOnOrphanDeleteWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
+	c.deleteCalls++
+	if err := c.FakeWorkflowClient.Delete(ctx, name, options); err != nil {
+		return err
+	}
+	return apierrors.NewNotFound(
+		schema.GroupResource{Group: "argoproj.io", Resource: "workflows"}, name)
+}
+
+type updateBeforeFirstDeleteWorkflowClient struct {
+	*client.FakeWorkflowClient
+	deleteCalls int
+}
+
+func (c *updateBeforeFirstDeleteWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
+	c.deleteCalls++
+	if c.deleteCalls == 1 {
+		workflow, err := c.Get(ctx, name, v1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if _, err := c.Update(ctx, workflow, v1.UpdateOptions{}); err != nil {
+			return err
+		}
+	}
+	return c.FakeWorkflowClient.Delete(ctx, name, options)
+}
+
+type replaceBeforeOrphanDeleteLookupWorkflowClient struct {
+	*client.FakeWorkflowClient
+	getCalls int
+}
+
+func (c *replaceBeforeOrphanDeleteLookupWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+	c.getCalls++
+	if c.getCalls != 2 {
+		return c.FakeWorkflowClient.Get(ctx, name, options)
+	}
+
+	current, err := c.FakeWorkflowClient.Get(ctx, name, options)
+	if err != nil {
+		return nil, err
+	}
+	metadata := current.ExecutionObjectMeta()
+	if err := c.Delete(ctx, name, v1.DeleteOptions{}); err != nil {
+		return nil, err
+	}
+	replacement := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              name,
+			Namespace:         current.ExecutionNamespace(),
+			Labels:            metadata.Labels,
+			CreationTimestamp: metadata.CreationTimestamp,
+		},
+	})
+	return c.Create(ctx, replacement, v1.CreateOptions{})
+}
+
+type retryBeforeDeleteWorkflowClient struct {
+	*client.FakeWorkflowClient
+	manager        *ResourceManager
+	runID          string
+	retryAttempted bool
+	retryErr       error
+}
+
+func (c *retryBeforeDeleteWorkflowClient) Delete(ctx context.Context, name string, options v1.DeleteOptions) error {
+	if !c.retryAttempted {
+		c.retryAttempted = true
+		c.retryErr = c.manager.RetryRun(ctx, c.runID)
+	}
+	return c.FakeWorkflowClient.Delete(ctx, name, options)
 }
 
 func (c *genericUpdateFailureWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
@@ -2312,6 +2497,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -2328,6 +2514,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -2401,6 +2588,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	expectedExperimentUUID := runDetail.ExperimentId
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -2417,6 +2605,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -2451,6 +2640,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	store, manager, runDetail := initWithPatchedRun(t)
 	expectedExperimentUUID := runDetail.ExperimentId
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -2467,6 +2657,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -2559,6 +2750,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -2576,6 +2768,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "sa1",
 		StorageState:   model.StorageStateAvailable,
 		PipelineSpec: model.PipelineSpec{
@@ -2641,6 +2834,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
 	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
@@ -2658,6 +2852,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		ExperimentId:   experiment.UUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "sa1",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -2912,12 +3107,138 @@ func TestCreateRun_NoMLflowConfig(t *testing.T) {
 func TestDeleteRun(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
+	manager.storedWorkflowIdentities.loadOrStore(runDetail.UUID, storedWorkflowIdentity{
+		name: runDetail.K8SName,
+		uid:  types.UID(runDetail.UUID),
+	})
 	err := manager.DeleteRun(context.Background(), runDetail.UUID)
 	assert.Nil(t, err)
 
 	_, err = manager.GetRun(runDetail.UUID)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "not found")
+	_, found := manager.storedWorkflowIdentities.load(runDetail.UUID)
+	assert.False(t, found)
+}
+
+func TestStoredWorkflowIdentityCacheIsBounded(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	for index := 0; index < storedWorkflowIdentityCacheCapacity; index++ {
+		runID := fmt.Sprintf("run-%d", index)
+		cache.loadOrStore(runID, storedWorkflowIdentity{name: runID, uid: types.UID(runID)})
+	}
+
+	_, found := cache.load("run-0")
+	require.True(t, found)
+	cache.loadOrStore("overflow", storedWorkflowIdentity{name: "overflow", uid: "overflow"})
+
+	cache.mu.Lock()
+	assert.Len(t, cache.entries, storedWorkflowIdentityCacheCapacity)
+	cache.mu.Unlock()
+	_, found = cache.load("run-0")
+	assert.True(t, found, "recently used identity should remain cached")
+	_, found = cache.load("run-1")
+	assert.False(t, found, "least recently used identity should be evicted")
+}
+
+func TestStoredWorkflowIdentityCacheRejectsOlderRetryGenerationReplacement(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	current := storedWorkflowIdentity{name: "workflow", uid: "new-uid", retryGeneration: 2}
+	stale := storedWorkflowIdentity{name: "workflow", uid: "old-uid", retryGeneration: 1}
+
+	cache.loadOrStore("run", current)
+	actual := cache.loadOrStore("run", stale)
+
+	assert.Equal(t, current, actual)
+	cached, found := cache.load("run")
+	require.True(t, found)
+	assert.Equal(t, current, cached)
+}
+
+func TestStoredWorkflowIdentityCacheRefreshesSameGenerationManifest(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	stale := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "old-uid",
+		retryGeneration: 1,
+		manifestDigest:  sha256.Sum256([]byte("old-manifest")),
+	}
+	current := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "new-uid",
+		retryGeneration: 1,
+		manifestDigest:  sha256.Sum256([]byte("new-manifest")),
+	}
+
+	cache.loadOrStore("run", stale)
+	actual := cache.loadOrStore("run", current)
+
+	assert.Equal(t, current, actual)
+	cached, found := cache.load("run")
+	require.True(t, found)
+	assert.Equal(t, current, cached)
+}
+
+func TestStoredWorkflowIdentityCacheRefreshesAfterPersistedAdoption(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	oldIdentity := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "old-uid",
+		retryGeneration: 1,
+		manifestDigest:  sha256.Sum256([]byte("old-manifest")),
+	}
+	adoptedIdentity := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "new-uid",
+		retryGeneration: 1,
+		manifestDigest:  sha256.Sum256([]byte("adopted-manifest")),
+	}
+
+	cache.loadOrStore("run", oldIdentity)
+	cache.replaceAfterPersist("run", oldIdentity.manifestDigest, adoptedIdentity)
+
+	actual, found := cache.load("run")
+	require.True(t, found)
+	assert.Equal(t, adoptedIdentity, actual)
+}
+
+func TestStoredWorkflowIdentityCacheReplaceRejectsOlderRetryGeneration(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	current := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "new-uid",
+		retryGeneration: 2,
+		manifestDigest:  sha256.Sum256([]byte("current-manifest")),
+	}
+	stale := storedWorkflowIdentity{
+		name:            "workflow",
+		uid:             "old-uid",
+		retryGeneration: 1,
+		manifestDigest:  sha256.Sum256([]byte("stale-manifest")),
+	}
+
+	cache.replaceAfterPersist("run", sha256.Sum256([]byte("initial-manifest")), current)
+	cache.replaceAfterPersist("run", sha256.Sum256([]byte("initial-manifest")), stale)
+
+	cached, found := cache.load("run")
+	require.True(t, found)
+	assert.Equal(t, current, cached)
+}
+
+func TestStoredWorkflowIdentityCacheDelayedRefreshDoesNotReplaceNewerManifest(t *testing.T) {
+	cache := storedWorkflowIdentityCache{}
+	initial := storedWorkflowIdentity{retryGeneration: 1, manifestDigest: sha256.Sum256([]byte("manifest-0"))}
+	first := storedWorkflowIdentity{retryGeneration: 1, manifestDigest: sha256.Sum256([]byte("manifest-1"))}
+	second := storedWorkflowIdentity{retryGeneration: 1, manifestDigest: sha256.Sum256([]byte("manifest-2"))}
+
+	cache.loadOrStore("run", initial)
+	cache.replaceAfterPersist("run", initial.manifestDigest, first)
+	cache.replaceAfterPersist("run", first.manifestDigest, second)
+	cache.replaceAfterPersist("run", initial.manifestDigest, first)
+
+	cached, found := cache.load("run")
+	require.True(t, found)
+	assert.Equal(t, second, cached)
 }
 
 func TestDeleteRun_RunNotExist(t *testing.T) {
@@ -3017,7 +3338,11 @@ func TestTerminateRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
 
-	isTerminated, err := store.ExecClientFake.IsTerminated(runDetail.K8SName)
+	workflowNamespace := runDetail.Namespace
+	if manager.IsEmptyNamespace(workflowNamespace) {
+		workflowNamespace = common.GetPodNamespace()
+	}
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(workflowNamespace, runDetail.K8SName)
 	assert.Nil(t, err)
 	assert.True(t, isTerminated)
 }
@@ -3056,6 +3381,22 @@ func TestRetryRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Contains(t, string(actualRunDetail.WorkflowRuntimeManifest), "Running")
 	assert.Equal(t, actualRunDetail.RunDetails.State, model.RuntimeStateRunning)
+}
+
+func TestRetryRun_RefreshesDivergentWorkflowName(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	expectedWorkflowName := runDetail.K8SName
+
+	storedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	storedRun.K8SName = "stale-workflow-name"
+	require.NoError(t, manager.runStore.UpdateRun(storedRun))
+
+	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	retriedRun, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, expectedWorkflowName, retriedRun.K8SName)
 }
 
 func TestRetryRun_RetriesWorkflowUpdateConflict(t *testing.T) {
@@ -4058,12 +4399,14 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 			Namespace: "ns1",
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 	run, err = manager.GetRun(run.UUID)
@@ -4073,6 +4416,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		ExperimentId:   expectedExperimentUUID,
 		DisplayName:    "run1",
 		K8SName:        "workflow-name",
+		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		StorageState:   model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
@@ -4100,6 +4444,559 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
+func TestReportWorkflowResource_UsesLiveWorkflowState(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	_, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	forgedReport := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	forgedReport.Status.Phase = v1alpha1.WorkflowFailed
+	_, err = manager.ReportWorkflowResource(ctx, forgedReport)
+	require.NoError(t, err)
+
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State,
+		"request-controlled status must not override the live Workflow")
+}
+
+func TestReportWorkflowResource_AdoptsLegacyEmptyWorkflowName(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	_, err := store.DB().Exec(`UPDATE run_details SET Name = '' WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	_, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, run.K8SName, updatedRun.K8SName)
+}
+
+func TestReportWorkflowResource_RepairsDivergentWorkflowName(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	_, err := store.DB().Exec(`UPDATE run_details SET Name = ? WHERE UUID = ?`, "stale-workflow-name", run.UUID)
+	require.NoError(t, err)
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	liveWorkflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, run.K8SName, updatedRun.K8SName)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State)
+}
+
+func TestReportWorkflowResource_NamespaceMismatch_Rejected(t *testing.T) {
+	store, manager, exp := initWithExperiment(t)
+	defer store.Close()
+	apiRun := &model.Run{
+		DisplayName: "run1",
+		Namespace:   "ns1",
+		PipelineSpec: model.PipelineSpec{
+			WorkflowSpecManifest: model.LargeText(testWorkflow.ToStringForStore()),
+			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+		},
+		ExperimentId: exp.UUID,
+	}
+	run, err := manager.CreateRun(context.Background(), apiRun)
+	assert.Nil(t, err)
+	// The run must have a namespace for the cross-namespace guard to apply.
+	run, err = manager.GetRun(run.UUID)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, run.Namespace)
+	runBeforeReport := run.ToV1()
+
+	// A workflow reported from a different namespace must not be allowed to
+	// overwrite this run, even though it carries the run's ID label.
+	spoofed := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name: run.K8SName,
+			UID:  types.UID(run.UUID),
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+			Namespace: "attacker-ns",
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err = manager.ReportWorkflowResource(context.Background(), spoofed)
+	assert.NotNil(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported namespace does not match owning resource", err.(*util.UserError).ExternalMessage())
+	assert.NotContains(t, err.Error(), run.Namespace)
+	runAfterReport, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, runBeforeReport, runAfterReport.ToV1())
+
+	// A workflow reported from the run's own namespace still succeeds.
+	legit := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Namespace: run.Namespace,
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, legit)
+	_, err = manager.ReportWorkflowResource(context.Background(), legit)
+	assert.Nil(t, err)
+}
+
+func TestReportWorkflowResource_PersistedRunNamespaceInMultiUserMode(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	experiment, err := manager.GetExperiment(run.ExperimentId)
+	require.NoError(t, err)
+	assert.Equal(t, experiment.Namespace, run.Namespace)
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, experiment.Namespace, persistedRun.Namespace)
+	require.Equal(t, "ns1", experiment.Namespace)
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	spoofed := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			Namespace: "attacker-ns",
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+
+	_, err = manager.ReportWorkflowResource(context.Background(), spoofed)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported namespace does not match owning resource", err.(*util.UserError).ExternalMessage())
+	assert.NotContains(t, err.Error(), "ns1")
+
+	legitimate := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: experiment.Namespace,
+			UID:       types.UID(run.UUID),
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, legitimate)
+	_, err = manager.ReportWorkflowResource(context.Background(), legitimate)
+	require.NoError(t, err)
+}
+
+func TestReportWorkflowResource_NoNamespaceRunUsesStoredWorkflowNamespaceInSingleUserMode(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	// Simulate a legacy row which used the namespace sentinel before the
+	// Kubernetes execution namespace was persisted on runs.
+	_, err := store.DB().Exec(`UPDATE run_details SET Namespace = ? WHERE UUID = ?`, model.NoNamespace, run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+	// The API server may have moved since this legacy workflow was submitted.
+	// The created runtime manifest remains the authoritative mapping and avoids
+	// both stranding the run and accepting a replacement in another namespace.
+	previousPodNamespace := viper.GetString(common.PodNamespace)
+	viper.Set(common.PodNamespace, "new-api-server-namespace")
+	t.Cleanup(func() { viper.Set(common.PodNamespace, previousPodNamespace) })
+
+	workflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		context.Background(), run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	workflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		context.Background(), workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, run.Namespace, updatedRun.Namespace)
+}
+
+func TestReportWorkflowResource_NoNamespaceRunAdoptsMissingStoredUID(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	legacyManifest := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	legacyManifest.UID = ""
+	legacyManifest.Namespace = ""
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET Namespace = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`,
+		model.NoNamespace, legacyManifest.ToStringForStore(), run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, run.Namespace, updatedRun.Namespace)
+	assert.Equal(t, liveWorkflow.ExecutionObjectMeta().UID, storedWorkflowUID(t, updatedRun))
+}
+
+func TestReportWorkflowResource_RefreshesIdentityCacheAfterAnotherReplicaRepairsLegacyRun(t *testing.T) {
+	store, firstManager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	secondManager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	legacyManifest := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	legacyManifest.UID = ""
+	legacyManifest.Namespace = ""
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET Namespace = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`,
+		model.NoNamespace, legacyManifest.ToStringForStore(), run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	legacyRun, err := firstManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	legacyIdentity, err := firstManager.storedWorkflowIdentityForRun(legacyRun)
+	require.NoError(t, err)
+	require.Empty(t, legacyIdentity.uid)
+
+	_, err = secondManager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err, "a second replica should repair the persisted workflow identity")
+	repairedRun, err := firstManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Equal(t, run.Namespace, repairedRun.Namespace)
+	require.Equal(t, liveWorkflow.ExecutionObjectMeta().UID, storedWorkflowUID(t, repairedRun))
+
+	_, err = firstManager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.NoError(t, err, "the first replica must refresh its cache from the repaired manifest")
+	refreshedIdentity, found := firstManager.storedWorkflowIdentities.load(run.UUID)
+	require.True(t, found)
+	assert.Equal(t, liveWorkflow.ExecutionObjectMeta().UID, refreshedIdentity.uid)
+	assert.NotEqual(t, legacyIdentity.manifestDigest, refreshedIdentity.manifestDigest)
+}
+
+func TestReportWorkflowResource_RejectsStaleLegacyIdentityAfterConcurrentRepair(t *testing.T) {
+	store, staleManager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	repairManager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	original, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	legacyManifest := util.NewWorkflow(original.(*util.Workflow).DeepCopy())
+	legacyManifest.UID = ""
+	legacyManifest.Namespace = ""
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET Namespace = ?, WorkflowRuntimeManifest = ? WHERE UUID = ?`,
+		model.NoNamespace, legacyManifest.ToStringForStore(), run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	staleRun, err := staleManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Empty(t, storedWorkflowUID(t, staleRun))
+
+	_, err = repairManager.ReportWorkflowResource(ctx, original)
+	require.NoError(t, err)
+	repairedRun, err := staleManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	originalUID := original.ExecutionObjectMeta().UID
+	require.Equal(t, originalUID, storedWorkflowUID(t, repairedRun))
+	repairedIdentity, err := staleManager.storedWorkflowIdentityForRun(repairedRun)
+	require.NoError(t, err)
+	require.Equal(t, originalUID, repairedIdentity.uid)
+
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	replacement, err := workflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotEqual(t, originalUID, replacement.ExecutionObjectMeta().UID)
+
+	_, err = staleManager.ReportWorkflowResourceWithRun(ctx, replacement, staleRun)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
+	afterConflict, err := staleManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, afterConflict))
+	refreshedIdentity, found := staleManager.storedWorkflowIdentities.load(run.UUID)
+	require.True(t, found)
+	assert.Equal(t, originalUID, refreshedIdentity.uid)
+
+	_, err = staleManager.ReportWorkflowResource(ctx, replacement)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument), "got %v", err)
+	unchangedRun, err := staleManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
+}
+
+func TestReportWorkflowResource_RefreshesIdentityCacheAfterOrdinaryUpdate(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	storedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.Empty(t, storedRun.WorkflowRuntimeManifest)
+	require.NotEmpty(t, storedRun.PipelineRuntimeManifest)
+	initialIdentity, err := manager.storedWorkflowIdentityForRun(storedRun)
+	require.NoError(t, err)
+
+	if liveWorkflow.ExecutionObjectMeta().Annotations == nil {
+		liveWorkflow.ExecutionObjectMeta().Annotations = map[string]string{}
+	}
+	liveWorkflow.ExecutionObjectMeta().Annotations["cache-refresh"] = "ordinary-report"
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	updatedWorkflow, err := workflowClient.Update(ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, updatedWorkflow)
+	require.NoError(t, err)
+
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.NotEmpty(t, updatedRun.WorkflowRuntimeManifest)
+	updatedIdentity, found := manager.storedWorkflowIdentities.load(run.UUID)
+	require.True(t, found)
+	assert.Equal(t, sha256.Sum256([]byte(updatedRun.WorkflowRuntimeManifest)), updatedIdentity.manifestDigest)
+	assert.NotEqual(t, initialIdentity.manifestDigest, updatedIdentity.manifestDigest)
+	assert.Equal(t, updatedWorkflow.ExecutionName(), updatedIdentity.name)
+	assert.Equal(t, updatedWorkflow.ExecutionNamespace(), updatedIdentity.namespace)
+	assert.Equal(t, updatedWorkflow.ExecutionObjectMeta().UID, updatedIdentity.uid)
+	assert.Equal(t, updatedRun.RetryGeneration, updatedIdentity.retryGeneration)
+}
+
+func TestReportWorkflowResource_RejectsStaleReportAfterRunIDRecreation(t *testing.T) {
+	store, manager, originalRun := initWithOneTimeRunV2(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(originalRun.Namespace)
+	originalLiveWorkflow, err := workflowClient.Get(ctx, originalRun.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	staleReport := util.NewWorkflow(originalLiveWorkflow.(*util.Workflow).DeepCopy())
+	if staleReport.Labels == nil {
+		staleReport.Labels = map[string]string{}
+	}
+	staleReport.Labels[util.LabelKeyWorkflowPersistedFinalState] = "true"
+	staleReport.Status.Phase = v1alpha1.WorkflowSucceeded
+	staleReport.Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+
+	staleRun, err := manager.GetRun(originalRun.UUID)
+	require.NoError(t, err)
+	require.Empty(t, staleRun.WorkflowRuntimeManifest)
+	require.NotEmpty(t, staleRun.PipelineRuntimeManifest)
+	require.NoError(t, manager.DeleteRun(ctx, originalRun.UUID))
+
+	replacementRun, err := manager.CreateRun(ctx, &model.Run{
+		UUID:         originalRun.UUID,
+		DisplayName:  originalRun.DisplayName,
+		ExperimentId: originalRun.ExperimentId,
+		Namespace:    originalRun.Namespace,
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.Empty(t, replacementRun.WorkflowRuntimeManifest)
+	require.NotEmpty(t, replacementRun.PipelineRuntimeManifest)
+	require.NotEqual(t, staleRun.PipelineRuntimeManifest, replacementRun.PipelineRuntimeManifest)
+	require.NotEqual(t, storedWorkflowUID(t, staleRun), storedWorkflowUID(t, replacementRun))
+	replacementBeforeReport, err := manager.GetRun(replacementRun.UUID)
+	require.NoError(t, err)
+	replacementLiveWorkflow, err := workflowClient.Get(ctx, replacementRun.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResourceWithRun(ctx, staleReport, staleRun)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
+
+	replacementAfterReport, err := manager.GetRun(replacementRun.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, replacementBeforeReport, replacementAfterReport)
+	stillLive, err := workflowClient.Get(ctx, replacementRun.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, replacementLiveWorkflow.ExecutionObjectMeta().UID, stillLive.ExecutionObjectMeta().UID)
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(
+		replacementRun.Namespace,
+		replacementRun.K8SName,
+	))
+}
+
+func TestReportWorkflowResource_NoNamespaceRunRejectsSameNameReplacementUID(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	_, err := store.DB().Exec(`UPDATE run_details SET Namespace = ? WHERE UUID = ?`, model.NoNamespace, run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	original, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	replacement, err := workflowClient.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotEqual(t, original.ExecutionObjectMeta().UID, replacement.ExecutionObjectMeta().UID)
+
+	_, err = manager.ReportWorkflowResource(ctx, replacement)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported identity does not match the stored workflow", err.(*util.UserError).ExternalMessage())
+}
+
+func TestReportWorkflowResource_NoNamespaceRunRejectsDifferentWorkflowNamespace(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	_, err := store.DB().Exec(`UPDATE run_details SET Namespace = ? WHERE UUID = ?`, model.NoNamespace, run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	replacement := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: "replacement-namespace",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, replacement)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), replacement)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported namespace does not match owning resource", err.(*util.UserError).ExternalMessage())
+}
+
+func TestGetNamespaceFromRunID_PrefersPersistedRunNamespace(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	_, err := store.DB().Exec(`UPDATE run_details SET Namespace = ? WHERE UUID = ?`, "run-namespace", run.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		run.UUID,
+		model.RunResourceType,
+		model.NamespaceResourceType,
+	)
+	require.NoError(t, err)
+
+	namespace, err := manager.getNamespaceFromRunId(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, "run-namespace", namespace)
+}
+
+func TestValidateWorkflowReportNamespace_EmptyNamespaceFailsPermanently(t *testing.T) {
+	manager := &ResourceManager{}
+	err := manager.validateWorkflowReportNamespace("recurring run", "job-id", "", "attacker-ns", "workflow")
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: owning namespace cannot be determined", err.(*util.UserError).ExternalMessage())
+}
+
+func TestResolveWorkflowReportNamespace_MultiUserEmptyExperimentIsRetryable(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	store, manager, _ := initWithExperiment(t)
+	defer store.Close()
+
+	_, err := manager.resolveWorkflowReportNamespace("run", "run-id", "", "", "attacker-ns")
+	require.Error(t, err)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "Failed to determine namespace")
+
+	_, err = manager.resolveWorkflowReportNamespace("run", "run-id", "", "missing-experiment", "attacker-ns")
+	require.Error(t, err)
+	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
+}
+
 func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
@@ -4108,18 +5005,19 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "MY_NAME",
-			Namespace: "MY_NAMESPACE",
+			Namespace: job.Namespace,
 			UID:       "WORKFLOW_1",
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "WORKFLOW_1"},
 			OwnerReferences: []v1.OwnerReference{{
 				APIVersion: "kubeflow.org/v1beta1",
 				Kind:       "ScheduledWorkflow",
-				Name:       "SCHEDULE_NAME",
+				Name:       job.K8SName,
 				UID:        types.UID(job.UUID),
 			}},
 			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
 		},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
@@ -4136,10 +5034,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		RecurringRunId: job.UUID,
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: model.LargeText(workflow.GetExecutionSpec().ToStringForStore()),
-			PipelineSpecManifest: job.PipelineSpec.PipelineSpecManifest,
-			PipelineId:           job.PipelineSpec.PipelineId,
-			PipelineName:         job.PipelineSpec.PipelineName,
-			PipelineVersionId:    job.PipelineSpec.PipelineVersionId,
+			PipelineSpecManifest: job.PipelineSpecManifest,
+			PipelineId:           job.PipelineId,
+			PipelineName:         job.PipelineName,
+			PipelineVersionId:    job.PipelineVersionId,
 		},
 		RunDetails: model.RunDetails{
 			WorkflowRuntimeManifest: model.LargeText(workflow.ToStringForStore()),
@@ -4157,6 +5055,774 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 		},
 	}
 	assert.Equal(t, expectedRunDetail.ToV1(), runDetail.ToV1())
+}
+
+func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatch_Rejected(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "spoofed-run",
+			Namespace: "attacker-ns",
+			UID:       "spoofed-run-id",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "spoofed-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "spoofed-schedule",
+				UID:        types.UID(job.UUID),
+			}},
+		},
+	})
+
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported namespace does not match owning resource", err.(*util.UserError).ExternalMessage())
+	assert.NotContains(t, err.Error(), job.Namespace)
+	_, err = manager.GetRun("spoofed-run-id")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+}
+
+func TestReportWorkflowResource_ExistingRunNameMismatchDoesNotDeleteWorkflow(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowNamespace := run.Namespace
+	if manager.IsEmptyNamespace(workflowNamespace) {
+		workflowNamespace = common.GetPodNamespace()
+	}
+
+	decoy := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "same-namespace-decoy",
+			Namespace: workflowNamespace,
+			UID:       "same-namespace-decoy-id",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               run.UUID,
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := store.ExecClient().Execution(workflowNamespace).Create(ctx, decoy, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, decoy)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported name does not match owning run", err.(*util.UserError).ExternalMessage())
+	_, err = store.ExecClient().Execution(workflowNamespace).Get(ctx, decoy.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflowNamespace, decoy.ExecutionName()))
+}
+
+func TestReportWorkflowResource_DuplicateRecurringRunOwnershipMismatchRejected(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	store.runStore = &duplicateRecurringRunStore{
+		RunStoreInterface: store.runStore,
+		firstGet:          true,
+		existingRun: &model.Run{
+			UUID:           "shared-run-id",
+			ExperimentId:   "other-experiment",
+			RecurringRunId: "other-recurring-run",
+			K8SName:        "other-workflow",
+			Namespace:      "other-namespace",
+		},
+	}
+	manager.runStore = store.runStore
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "legitimate-workflow",
+			Namespace: job.Namespace,
+			UID:       "shared-run-id",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "shared-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: persisted run ownership does not match recurring run", err.(*util.UserError).ExternalMessage())
+}
+
+func TestReportWorkflowResource_DuplicateRecurringRunIdentityMismatchRejected(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	storedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "legitimate-workflow",
+			Namespace: job.Namespace,
+			UID:       "persisted-workflow-uid",
+		},
+	})
+	store.runStore = &duplicateRecurringRunStore{
+		RunStoreInterface: store.runStore,
+		firstGet:          true,
+		existingRun: &model.Run{
+			UUID:           "shared-run-id",
+			ExperimentId:   job.ExperimentId,
+			RecurringRunId: job.UUID,
+			K8SName:        storedWorkflow.ExecutionName(),
+			Namespace:      job.Namespace,
+			RunDetails: model.RunDetails{
+				WorkflowRuntimeManifest: model.LargeText(storedWorkflow.ToStringForStore()),
+			},
+		},
+	}
+	manager.runStore = store.runStore
+
+	replacement := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      storedWorkflow.ExecutionName(),
+			Namespace: job.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "shared-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, replacement)
+	require.NotEqual(t, storedWorkflow.ExecutionObjectMeta().UID, replacement.ExecutionObjectMeta().UID)
+
+	_, err := manager.ReportWorkflowResource(ctx, replacement)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported identity does not match the stored workflow", err.(*util.UserError).ExternalMessage())
+	_, getErr := store.ExecClient().Execution(job.Namespace).Get(ctx, replacement.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, getErr, "identity rejection must not delete the replacement workflow")
+}
+
+func TestReportWorkflowResource_ExistingRecurringRunOwnershipMismatchRejected(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	store.runStore = &duplicateRecurringRunStore{
+		RunStoreInterface: store.runStore,
+		existingRun: &model.Run{
+			UUID:           "shared-run-id",
+			ExperimentId:   job.ExperimentId,
+			RecurringRunId: "other-recurring-run",
+			K8SName:        "legitimate-workflow",
+			Namespace:      job.Namespace,
+		},
+	}
+	manager.runStore = store.runStore
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "legitimate-workflow",
+			Namespace: job.Namespace,
+			UID:       "shared-run-id",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "shared-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported owner does not match owning run", err.(*util.UserError).ExternalMessage())
+}
+
+func TestReportWorkflowResource_OrphanedRecurringWorkflowSucceeds(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.CreateRun(ctx, &model.Run{
+		DisplayName:    "orphaned-recurring-workflow",
+		ExperimentId:   job.ExperimentId,
+		RecurringRunId: job.UUID,
+		Namespace:      job.Namespace,
+		PipelineSpec:   job.PipelineSpec,
+	})
+	require.NoError(t, err)
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+
+	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	orphanedWorkflow.ExecutionObjectMeta().OwnerReferences = nil
+	orphanedWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowSucceeded
+	_, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, orphanedWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, orphanedWorkflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, updatedRun.State)
+}
+
+func TestReportWorkflowResource_MissingRecurringOwnerWithExistingJobIsPermanent(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+	manager.options.CollectMetrics = true
+
+	run, err := manager.CreateRun(ctx, &model.Run{
+		DisplayName:    "owner-stripped-recurring-workflow",
+		ExperimentId:   job.ExperimentId,
+		RecurringRunId: job.UUID,
+		Namespace:      job.Namespace,
+		PipelineSpec:   job.PipelineSpec,
+	})
+	require.NoError(t, err)
+
+	workflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow.ExecutionObjectMeta().OwnerReferences = nil
+	workflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowSucceeded
+	workflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	rejectionCounter := workflowReportRejectedCounter.WithLabelValues(workflowReportRejectionIdentityMismatch)
+	metric := &dto.Metric{}
+	require.NoError(t, rejectionCounter.Write(metric))
+	rejectionsBefore := metric.GetCounter().GetValue()
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument), "got %v", err)
+	assert.Contains(t, err.Error(), "recurring-run owner is missing")
+
+	metric.Reset()
+	require.NoError(t, rejectionCounter.Write(metric))
+	assert.Equal(t, rejectionsBefore+1, metric.GetCounter().GetValue())
+}
+
+func TestReportWorkflowResource_ExistingRunRejectsSameNameReplacementUID(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	originalManifest := run.WorkflowRuntimeManifest
+	originalUID := storedWorkflowUID(t, run)
+
+	require.NoError(t, store.ExecClient().Execution(run.Namespace).Delete(
+		ctx, run.K8SName, v1.DeleteOptions{}))
+	replacement := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			UID:       "same-name-replacement-uid",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
+	})
+	_, err := store.ExecClient().Execution(run.Namespace).Create(
+		ctx, replacement, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, replacement)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+	assert.Contains(t, err.Error(), "reported identity does not match the stored workflow")
+
+	unchangedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, originalManifest, unchangedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, originalUID, storedWorkflowUID(t, unchangedRun))
+	assert.NotEqual(t, replacement.ExecutionObjectMeta().UID, storedWorkflowUID(t, unchangedRun))
+}
+
+func TestReportWorkflowResource_AdoptsRecreatedWorkflowForActiveRetryClaim(t *testing.T) {
+	store, manager, runDetail := initWithOneTimeFailedRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.GetRun(runDetail.UUID)
+	require.NoError(t, err)
+	originalUID := storedWorkflowUID(t, run)
+	_, _, _, claimGeneration, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), claimGeneration)
+
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	require.NoError(t, err)
+	require.NoError(t, execSpec.Decompress())
+	retryExecSpec, _, err := execSpec.GenerateRetryExecution()
+	require.NoError(t, err)
+	retryExecSpec.SetAnnotations(util.AnnotationKeyRetryGeneration, strconv.FormatInt(claimGeneration, 10))
+	retryExecSpec.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+	require.NoError(t, workflowClient.Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	recreatedWorkflow, err := workflowClient.Create(ctx, retryExecSpec, v1.CreateOptions{})
+	require.NoError(t, err)
+	require.NotEqual(t, originalUID, recreatedWorkflow.ExecutionObjectMeta().UID)
+
+	_, err = manager.ReportWorkflowResource(ctx, recreatedWorkflow)
+	require.NoError(t, err)
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, updatedRun.State)
+	assert.Equal(t, recreatedWorkflow.ExecutionObjectMeta().UID, storedWorkflowUID(t, updatedRun))
+
+	_, err = manager.ReportWorkflowResource(ctx, recreatedWorkflow)
+	require.NoError(t, err, "the adopted identity must remain valid for later workflow reports")
+}
+
+func TestReportWorkflowResource_FinalizesDeletedOrphanedRecurringWorkflow(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	run, err := manager.CreateRun(ctx, &model.Run{
+		DisplayName:    "deleted-orphaned-recurring-workflow",
+		ExperimentId:   job.ExperimentId,
+		RecurringRunId: job.UUID,
+		Namespace:      job.Namespace,
+		PipelineSpec:   job.PipelineSpec,
+	})
+	require.NoError(t, err)
+	require.NoError(t, manager.DeleteJob(ctx, job.UUID, apiv2beta1.DeletePropagationPolicy_ORPHAN))
+
+	orphanedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	orphanedWorkflow.ExecutionObjectMeta().OwnerReferences = nil
+	orphanedWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowSucceeded
+	orphanedWorkflow.(*util.Workflow).Status.FinishedAt = v1.NewTime(time.Unix(456, 0))
+	_, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, orphanedWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	require.NoError(t, store.ExecClient().Execution(run.Namespace).Delete(
+		ctx, run.K8SName, v1.DeleteOptions{}))
+
+	_, err = manager.ReportWorkflowResource(ctx, orphanedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound), "got %v", err)
+
+	updatedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateSucceeded, updatedRun.State)
+	assert.Equal(t, int64(456), updatedRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_PersistedRecurringWorkflowCreatesMissingRunBeforeDelete(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "persisted-recurring-workflow",
+			Namespace: job.Namespace,
+			UID:       "persisted-recurring-run-id",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "persisted-recurring-run-id",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"persisted-recurring-run-id",
+		reportedWorkflow.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId],
+	)
+	createdRun, err := manager.GetRun("persisted-recurring-run-id")
+	require.NoError(t, err)
+	assert.Equal(t, job.UUID, createdRun.RecurringRunId)
+	assert.Equal(t, job.Namespace, createdRun.Namespace)
+	_, err = store.ExecClient().Execution(job.Namespace).Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	assert.True(t, util.IsNotFound(err))
+}
+
+func TestReportWorkflowResource_RecurringRunRejectsStaleWorkflowUID(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+	const runID = "replacement-recurring-run-id"
+
+	liveWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "replacement-recurring-workflow",
+			Namespace: job.Namespace,
+			UID:       "replacement-workflow-uid",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: runID},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := store.ExecClient().Execution(job.Namespace).Create(
+		ctx, liveWorkflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	staleReport := util.NewWorkflow(liveWorkflow.DeepCopy())
+	staleReport.UID = "stale-workflow-uid"
+
+	_, err = manager.ReportWorkflowResource(ctx, staleReport)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+	_, err = manager.GetRun(runID)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	_, err = store.ExecClient().Execution(job.Namespace).Get(
+		ctx, liveWorkflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(
+		job.Namespace, liveWorkflow.ExecutionName()))
+}
+
+func TestCreateOrUpdateTasks_RejectsWorkflowNamespaceMismatch(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	_, err := manager.CreateOrUpdateTasks(
+		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "attacker-task"}},
+		run.UUID,
+		"attacker-ns",
+	)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+}
+
+func TestCreateOrUpdateTasks_RejectsTaskRunIDMismatch(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	_, err := manager.CreateOrUpdateTasks(
+		[]*model.Task{{RunID: "another-run", Namespace: run.Namespace, PodName: "mismatched-task"}},
+		run.UUID,
+		run.Namespace,
+	)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "does not match owning run")
+}
+
+func TestCreateOrUpdateTasks_RejectsTaskNamespaceMismatch(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+
+	_, err := manager.CreateOrUpdateTasks(
+		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "mismatched-task"}},
+		run.UUID,
+		run.Namespace,
+	)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Contains(t, err.Error(), "task namespace does not match owning run")
+}
+
+func TestCreateOrUpdateTasksForRun_RejectsTasksAfterRunIDRecreation(t *testing.T) {
+	store, manager, originalRun := initWithOneTimeRunV2(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(originalRun.Namespace)
+	originalWorkflow, err := workflowClient.Get(ctx, originalRun.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+
+	staleRun, err := manager.GetRun(originalRun.UUID)
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResourceWithRun(ctx, originalWorkflow, staleRun)
+	require.NoError(t, err)
+	require.NotEmpty(t, staleRun.WorkflowRuntimeManifest)
+	staleIdentity, found := manager.storedWorkflowIdentities.load(originalRun.UUID)
+	require.True(t, found)
+	assert.Equal(t, storedWorkflowUID(t, staleRun), staleIdentity.uid)
+
+	// Recreate the run through another manager so this manager retains A's
+	// cached identity until the guarded task write detects B and refreshes it.
+	replacementManager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	require.NoError(t, replacementManager.DeleteRun(ctx, originalRun.UUID))
+
+	// Fake workflow clients allocate UIDs per namespace, while Kubernetes UIDs
+	// are cluster-wide. Advance the replacement namespace once so this fixture
+	// preserves the production invariant that recreated objects have new UIDs.
+	_, err = store.ExecClient().Execution("ns2").Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "uid-seed"},
+	}), v1.CreateOptions{})
+	require.NoError(t, err)
+	replacementRun, err := replacementManager.CreateRun(ctx, &model.Run{
+		UUID:         originalRun.UUID,
+		DisplayName:  originalRun.DisplayName,
+		ExperimentId: originalRun.ExperimentId,
+		Namespace:    "ns2",
+		PipelineSpec: model.PipelineSpec{
+			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"text\":\"world\"}",
+			},
+		},
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, storedWorkflowUID(t, staleRun), storedWorkflowUID(t, replacementRun))
+	replacementBeforeTasks, err := replacementManager.GetRun(replacementRun.UUID)
+	require.NoError(t, err)
+	replacementWorkflow, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
+		ctx,
+		replacementRun.K8SName,
+		v1.GetOptions{},
+	)
+	require.NoError(t, err)
+
+	staleTask := &model.Task{
+		RunID:     staleRun.UUID,
+		Namespace: staleRun.Namespace,
+		PodName:   "stale-run-task",
+		State:     model.RuntimeStateRunning,
+	}
+	_, err = manager.CreateOrUpdateTasksForRun(
+		[]*model.Task{staleTask},
+		staleRun,
+		staleRun.Namespace,
+	)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
+	assert.Empty(t, staleTask.UUID, "a rejected task report must not mutate task identity")
+
+	var taskCount int
+	require.NoError(t, store.DB().QueryRow(
+		"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?",
+		replacementRun.UUID,
+	).Scan(&taskCount))
+	assert.Zero(t, taskCount)
+	replacementAfterTasks, err := replacementManager.GetRun(replacementRun.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, replacementBeforeTasks, replacementAfterTasks)
+	stillLive, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
+		ctx,
+		replacementRun.K8SName,
+		v1.GetOptions{},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, stillLive.ExecutionObjectMeta().UID)
+	refreshedIdentity, found := manager.storedWorkflowIdentities.load(replacementRun.UUID)
+	require.True(t, found)
+	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, refreshedIdentity.uid)
+	assert.Equal(t, replacementRun.Namespace, refreshedIdentity.namespace)
+	assert.Equal(t,
+		sha256.Sum256([]byte(replacementBeforeTasks.PipelineRuntimeManifest)),
+		refreshedIdentity.manifestDigest,
+	)
+}
+
+func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatchDoesNotDeletePersistedWorkflow(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "spoofed-persisted-run",
+			Namespace: "attacker-ns",
+			UID:       "spoofed-persisted-run-id",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "spoofed-persisted-run-id",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "spoofed-schedule",
+				UID:        types.UID(job.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
+	})
+	_, err := store.ExecClient().Execution("attacker-ns").Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
+	assert.Equal(t, "Failed to report workflow: reported namespace does not match owning resource", err.(*util.UserError).ExternalMessage())
+	assert.NotContains(t, err.Error(), job.Namespace)
+
+	storedWorkflow, err := store.ExecClient().Execution("attacker-ns").Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotNil(t, storedWorkflow)
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflow.ExecutionNamespace(), workflow.ExecutionName()))
+	_, err = manager.GetRun("spoofed-persisted-run-id")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+}
+
+func TestReportWorkflowResource_MissingRecurringExperimentReferenceDoesNotDeleteWorkflow(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	// Simulate an inconsistent legacy row: the recurring run still exists, but
+	// neither its denormalized experiment column nor its experiment ownership
+	// reference can identify the tenant. This is not proof that the workflow is
+	// orphaned and therefore must never enter the orphan-GC path.
+	_, err := store.DB().Exec(`UPDATE jobs SET ExperimentUUID = ? WHERE UUID = ?`, "", job.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ResourceType = ? AND ReferenceType = ?`,
+		job.UUID,
+		model.JobResourceType,
+		model.ExperimentResourceType,
+	)
+	require.NoError(t, err)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "inconsistent-owner-run",
+			Namespace: "ns1",
+			UID:       "inconsistent-owner-run-id",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "inconsistent-owner-run-id",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "inconsistent-schedule",
+				UID:        types.UID(job.UUID),
+			}},
+		},
+	})
+	_, err = store.ExecClient().Execution("ns1").Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Internal))
+	assert.Contains(t, err.Error(), "Failed to retrieve the experiment ID")
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflow.ExecutionNamespace(), workflow.ExecutionName()))
+	_, err = store.ExecClient().Execution("ns1").Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+}
+
+func TestReportWorkflowResource_MissingRecurringOwnerDoesNotDeletePersistedWorkflow(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	defer store.Close()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "orphaned-persisted-run",
+			Namespace: "ns1",
+			UID:       "orphaned-persisted-run-id",
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "orphaned-persisted-run-id",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "missing-schedule",
+				UID:        "missing-job-id",
+			}},
+		},
+	})
+	_, err := store.ExecClient().Execution("ns1").Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflow.ExecutionNamespace(), workflow.ExecutionName()))
+}
+
+func TestReportWorkflowResource_MissingRecurringOwnerDoesNotDeleteYoungWorkflow(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	defer store.Close()
+	ctx := context.Background()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "young-orphaned-run",
+			Namespace:         "ns1",
+			UID:               "young-orphaned-run-id",
+			CreationTimestamp: v1.NewTime(store.Time().Now()),
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "young-orphaned-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       "missing-schedule",
+				UID:        "missing-job-id",
+			}},
+		},
+	})
+	_, err := store.ExecClient().Execution("ns1").Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflow.ExecutionNamespace(), workflow.ExecutionName()))
+}
+
+func TestReportWorkflowResource_ScheduledWorkflowNoNamespaceResolvedFromExperiment(t *testing.T) {
+	store, manager, job := initWithJob(t)
+	defer store.Close()
+	// Simulate a legacy job row which stored the namespace sentinel and must
+	// recover its Kubernetes namespace from the owning experiment.
+	_, err := store.DB().Exec(`UPDATE jobs SET Namespace = ? WHERE UUID = ?`, model.NoNamespace, job.UUID)
+	require.NoError(t, err)
+	experiment, err := manager.GetExperiment(job.ExperimentId)
+	require.NoError(t, err)
+	require.Equal(t, "ns1", experiment.Namespace)
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "legacy-run",
+			Namespace: "ns1",
+			UID:       "legacy-run-id",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "legacy-run-id"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+	run, err := manager.GetRun("legacy-run-id")
+	require.NoError(t, err)
+	assert.Equal(t, "ns1", run.Namespace)
 }
 
 func TestReportWorkflowResource_WorkflowMissingRunID(t *testing.T) {
@@ -4183,15 +5849,208 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "obsolete",
 			Namespace:         "kubeflow",
+			UID:               "obsolete-workflow-uid",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
 			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
 		},
 	})
-	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
-	_, err := manager.ReportWorkflowResource(ctx, workflow)
+	_, err := store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
-	assert.Contains(t, err.Error(), "Run run-id-not-exist not found")
+	assert.Contains(t, err.Error(), "Deleted orphaned workflow")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(workflow.ExecutionNamespace(), workflow.ExecutionName()))
+	_, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	assert.True(t, util.IsNotFound(getErr))
+}
+
+func TestReportWorkflowResource_RunNotFoundRetriesTransientDeleteFailure(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "obsolete-after-transient-delete-failure",
+			Namespace:         "kubeflow",
+			UID:               "obsolete-after-transient-delete-failure-uid",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "missing-run-id"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+		},
+	})
+	workflowClient := &transientDeleteFailureWorkflowClient{
+		FakeWorkflowClient:      client.NewWorkflowClientFake(),
+		deleteFailuresRemaining: 1,
+	}
+	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "Deleted orphaned workflow")
+	assert.Equal(t, 2, workflowClient.deleteCalls)
+	_, getErr := workflowClient.Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	assert.True(t, util.IsNotFound(getErr))
+}
+
+func TestReportWorkflowResource_RunNotFoundTreatsMissingDeleteLookupAsSuccess(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "obsolete-before-delete-lookup",
+			Namespace:         "kubeflow",
+			UID:               "obsolete-before-delete-lookup-uid",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "missing-run-id"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+		},
+	})
+	workflowClient := &disappearBeforeDeleteLookupWorkflowClient{
+		FakeWorkflowClient: client.NewWorkflowClientFake(),
+	}
+	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "Deleted orphaned workflow")
+	assert.Equal(t, 2, workflowClient.getCalls, "a missing workflow must not consume the delete backoff budget")
+}
+
+func TestReportWorkflowResource_RunNotFoundTreatsDeleteNotFoundAsSuccess(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "obsolete-during-delete",
+			Namespace:         "kubeflow",
+			UID:               "obsolete-during-delete-uid",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "missing-run-id"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+		},
+	})
+	workflowClient := &notFoundOnOrphanDeleteWorkflowClient{
+		FakeWorkflowClient: client.NewWorkflowClientFake(),
+	}
+	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "Deleted orphaned workflow")
+	assert.Equal(t, 2, workflowClient.getCalls, "a NotFound delete response must not be retried")
+	assert.Equal(t, 1, workflowClient.deleteCalls)
+}
+
+func TestReportWorkflowResource_RunNotFoundRefreshesWorkflowBeforeDeleteRetry(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "obsolete-after-concurrent-update",
+			Namespace:         "kubeflow",
+			UID:               "obsolete-after-concurrent-update-uid",
+			ResourceVersion:   "initial",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "missing-run-id"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+		},
+	})
+	workflowClient := &updateBeforeFirstDeleteWorkflowClient{
+		FakeWorkflowClient: client.NewWorkflowClientFake(),
+	}
+	_, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+	assert.Contains(t, err.Error(), "Deleted orphaned workflow")
+	assert.Equal(t, 2, workflowClient.deleteCalls)
+	_, getErr := workflowClient.Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	assert.True(t, util.IsNotFound(getErr))
+}
+
+func TestReportWorkflowResource_RunNotFoundStopsRetryingReplacementIdentityMismatch(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "obsolete-before-replacement",
+			Namespace:         "kubeflow",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "missing-run-id"},
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+		},
+	})
+	workflowClient := &replaceBeforeOrphanDeleteLookupWorkflowClient{
+		FakeWorkflowClient: client.NewWorkflowClientFake(),
+	}
+	reportedWorkflow, err := workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	reportedUID := reportedWorkflow.ExecutionObjectMeta().UID
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, reportedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument), "got %v", err)
+	assert.Equal(t, 2, workflowClient.getCalls,
+		"a permanent replacement-identity mismatch must not consume the delete backoff budget")
+
+	replacement, getErr := workflowClient.Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, getErr)
+	assert.NotEqual(t, reportedUID, replacement.ExecutionObjectMeta().UID)
+}
+
+func TestReportWorkflowResource_MissingOneTimeRunRejectsStaleWorkflowUID(t *testing.T) {
+	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
+	ctx := context.Background()
+	defer store.Close()
+
+	liveWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "unowned-persisted-workflow",
+			Namespace:         "attacker-ns",
+			UID:               "replacement-workflow-uid",
+			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Minute)),
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId:               "missing-run-id",
+				util.LabelKeyWorkflowPersistedFinalState: "true",
+			},
+		},
+	})
+	_, err := store.ExecClient().Execution("attacker-ns").Create(ctx, liveWorkflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	staleWorkflow := util.NewWorkflow(liveWorkflow.DeepCopy())
+	staleWorkflow.ExecutionObjectMeta().UID = "stale-workflow-uid"
+
+	_, err = manager.ReportWorkflowResource(ctx, staleWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(liveWorkflow.ExecutionNamespace(), liveWorkflow.ExecutionName()))
+	storedWorkflow, getErr := store.ExecClient().Execution("attacker-ns").Get(ctx, liveWorkflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, getErr)
+	assert.NotNil(t, storedWorkflow)
 }
 
 func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
@@ -4209,6 +6068,7 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "young-workflow",
 			Namespace:         "kubeflow",
+			UID:               "young-workflow-uid",
 			Labels:            map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
 			CreationTimestamp: v1.NewTime(store.Time().Now().Add(-10 * time.Second)),
 		},
@@ -4219,7 +6079,7 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 	// Should be UNAVAILABLE (retryable), not NOT_FOUND (permanent).
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable),
 		"Expected Unavailable error for young workflow within grace period, got: %v", err)
-	assert.Contains(t, err.Error(), "GC grace period")
+	assert.Contains(t, err.Error(), "run-creation grace period")
 
 	// Verify the workflow was NOT deleted by checking it's still accessible.
 	wf, getErr := store.ExecClient().Execution("kubeflow").Get(ctx, "young-workflow", v1.GetOptions{})
@@ -4229,7 +6089,7 @@ func TestReportWorkflowResource_RunNotFound_WithinGracePeriod(t *testing.T) {
 
 func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	namespace := "kubeflow"
+	namespace := common.GetPodNamespace()
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -4241,6 +6101,7 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
@@ -4339,6 +6200,7 @@ func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalRep
 	namespace := "ns1"
 	ctx := context.Background()
 	defer store.Close()
+	require.NoError(t, store.ExecClient().Execution(namespace).Delete(ctx, run.K8SName, v1.DeleteOptions{}))
 
 	// Report a terminal workflow whose CR no longer exists, simulating a
 	// deletion between the persistence agent's read and this report. The run
@@ -4346,9 +6208,9 @@ func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalRep
 	// signal that stops further retries.
 	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:            run.K8SName + "-deleted",
+			Name:            run.K8SName,
 			Namespace:       namespace,
-			UID:             types.UID(run.UUID),
+			UID:             storedWorkflowUID(t, run),
 			ResourceVersion: "terminal-version",
 			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
@@ -4361,13 +6223,118 @@ func TestReportWorkflowResource_FinalizesRunWhenWorkflowDeletedBeforeTerminalRep
 	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
 	require.Error(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
-		"caller should receive the NotFound signal so the persistence agent stops retrying")
+		"caller should receive the NotFound signal so the persistence agent stops retrying, got %v", err)
 	assert.Nil(t, reportedWorkflow)
 
 	currentRun, err := manager.GetRun(run.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
 	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+}
+
+func TestReportWorkflowResource_FinalizesLegacyEmptyNameRunWhenWorkflowDeletedBeforeTerminalReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+	reportedName := run.K8SName
+	reportedUID := storedWorkflowUID(t, run)
+	require.NoError(t, store.ExecClient().Execution(namespace).Delete(ctx, reportedName, v1.DeleteOptions{}))
+	_, err := store.DB().Exec(
+		`UPDATE run_details SET Name = '', Namespace = '' WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+
+	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            reportedName,
+			Namespace:       namespace,
+			UID:             reportedUID,
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"caller should receive the NotFound signal after the legacy run is finalized, got %v", err)
+	assert.Nil(t, reportedWorkflow)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
+	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+	assert.Equal(t, reportedName, currentRun.K8SName)
+	assert.Equal(t, namespace, currentRun.Namespace)
+}
+
+func TestReportWorkflowResource_FinalizesV2RunWhenWorkflowDeletedBeforeFirstReport(t *testing.T) {
+	store, manager, run := initWithOneTimeRunV2(t)
+	namespace := "ns1"
+	ctx := context.Background()
+	defer store.Close()
+	require.Empty(t, run.WorkflowRuntimeManifest)
+	require.NotEmpty(t, run.PipelineRuntimeManifest)
+	require.NoError(t, store.ExecClient().Execution(namespace).Delete(ctx, run.K8SName, v1.DeleteOptions{}))
+	manager.options.CollectMetrics = true
+	rejectionCounter := workflowReportRejectedCounter.WithLabelValues(workflowReportRejectionOwnershipUnresolved)
+	counterValue := func() float64 {
+		metric := &dto.Metric{}
+		require.NoError(t, rejectionCounter.Write(metric))
+		return metric.GetCounter().GetValue()
+	}
+	rejectionsBefore := counterValue()
+
+	deletedWorkflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:            run.K8SName,
+			Namespace:       namespace,
+			UID:             storedWorkflowUID(t, run),
+			ResourceVersion: "terminal-version",
+			Labels:          map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.NewTime(time.Unix(123, 0)),
+		},
+	})
+
+	reportedWorkflow, err := manager.ReportWorkflowResource(ctx, deletedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound),
+		"caller should receive the NotFound signal so the persistence agent stops retrying, got %v", err)
+	assert.Nil(t, reportedWorkflow)
+
+	currentRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, currentRun.State)
+	assert.Equal(t, int64(123), currentRun.FinishedAtInSec)
+	assert.NotEmpty(t, currentRun.WorkflowRuntimeManifest)
+	assert.Equal(t, rejectionsBefore, counterValue(),
+		"an accepted stored-identity fallback must not be counted as a rejected report")
+}
+
+func TestRecordWorkflowReportLiveLookupRejectionIgnoresRetryableErrors(t *testing.T) {
+	manager := &ResourceManager{options: &ResourceManagerOptions{CollectMetrics: true}}
+	counter := workflowReportRejectedCounter.WithLabelValues(workflowReportRejectionOwnershipUnresolved)
+	counterValue := func() float64 {
+		metric := &dto.Metric{}
+		require.NoError(t, counter.Write(metric))
+		return metric.GetCounter().GetValue()
+	}
+	before := counterValue()
+
+	manager.recordWorkflowReportLiveLookupRejection(util.NewUnavailableServerError(
+		errors.New("temporary Kubernetes outage"), "will retry"))
+	assert.Equal(t, before, counterValue())
+
+	manager.recordWorkflowReportLiveLookupRejection(util.NewNotFoundError(
+		errors.New("workflow missing"), "cannot apply report"))
+	assert.Equal(t, before+1, counterValue())
 }
 
 func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDuringPluginSync(t *testing.T) {
@@ -4401,6 +6368,7 @@ func TestReportWorkflowResource_SkipsPersistedFinalStateLabelWhenRunRetriedDurin
 			FinishedAt: v1.NewTime(time.Unix(123, 0)),
 		},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 
 	reportedWorkflow, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.Error(t, err)
@@ -4472,6 +6440,7 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err,
 		"an unavailable MLflow config is a permanent plugin failure and must not block run finalization")
@@ -4490,11 +6459,13 @@ func TestReportWorkflow_WithMLflowOnRunEnd(t *testing.T) {
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	require.NoError(t, store.ExecClient().Execution(common.GetPodNamespace()).Delete(
+		context.Background(), run.K8SName, v1.DeleteOptions{}))
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "non-existent-workflow",
-			Namespace: "kubeflow",
-			UID:       types.UID(run.UUID),
+			Name:      run.K8SName,
+			Namespace: common.GetPodNamespace(),
+			UID:       storedWorkflowUID(t, run),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
@@ -4518,18 +6489,191 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted(t *testing
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
-	assert.Nil(t, err)
+	require.NoError(t, err)
+	_, err = store.ExecClient().Execution("ns1").Get(context.Background(), workflow.ExecutionName(), v1.GetOptions{})
+	assert.True(t, util.IsNotFound(err))
+}
+
+func TestReportWorkflowResource_StaleNonterminalReportDoesNotPoisonRetriedWorkflowIdentity(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+	workflowClient := store.ExecClient().Execution(run.Namespace)
+
+	liveWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	staleNonterminal := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	require.False(t, staleNonterminal.ExecutionStatus().IsInFinalState())
+
+	terminalWorkflow := util.NewWorkflow(liveWorkflow.(*util.Workflow).DeepCopy())
+	terminalWorkflow.Status.Phase = v1alpha1.WorkflowFailed
+	terminalWorkflow.Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+	terminalWorkflow.SetLabels(util.LabelKeyWorkflowPersistedFinalState, "true")
+	updatedTerminal, err := workflowClient.Update(ctx, terminalWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	oldUID := updatedTerminal.ExecutionObjectMeta().UID
+
+	// The submitted snapshot is stale and non-terminal, but identity resolution
+	// replaces it with the live terminal workflow and deletes that workflow.
+	_, err = manager.ReportWorkflowResource(ctx, staleNonterminal)
+	require.NoError(t, err)
+	_, err = workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.True(t, util.IsNotFound(err))
+	_, found := manager.storedWorkflowIdentities.load(run.UUID)
+	assert.False(t, found, "effective terminal cleanup must invalidate the stored identity cache")
+
+	// RetryRun must also invalidate any entry that predates the recreated
+	// workflow identity, including one left by an overlapping report.
+	manager.storedWorkflowIdentities.loadOrStore(run.UUID, storedWorkflowIdentity{
+		name: run.K8SName,
+		uid:  oldUID,
+	})
+	require.NoError(t, manager.RetryRun(ctx, run.UUID))
+	_, found = manager.storedWorkflowIdentities.load(run.UUID)
+	assert.False(t, found, "retry persistence must invalidate the previous workflow identity")
+	// Model an overlapping report that loaded the pre-retry row and reaches the
+	// cache after RetryRun invalidated it. Its generation-zero identity must not
+	// poison reports for the generation-one workflow.
+	manager.storedWorkflowIdentities.loadOrStore(run.UUID, storedWorkflowIdentity{
+		name:            run.K8SName,
+		uid:             oldUID,
+		retryGeneration: 0,
+	})
+
+	retriedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.NotEqual(t, oldUID, retriedWorkflow.ExecutionObjectMeta().UID)
+	_, err = manager.ReportWorkflowResource(ctx, retriedWorkflow)
+	require.NoError(t, err, "reports from the recreated retry must validate against its new UID")
+	cachedIdentity, found := manager.storedWorkflowIdentities.load(run.UUID)
+	require.True(t, found)
+	assert.Equal(t, retriedWorkflow.ExecutionObjectMeta().UID, cachedIdentity.uid)
+	assert.Equal(t, int64(1), cachedIdentity.retryGeneration)
+}
+
+func TestReportWorkflowResource_PersistedFinalStateDoesNotDeleteConcurrentRetry(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	workflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowFailed
+	workflow.(*util.Workflow).Status.FinishedAt = v1.NewTime(time.Unix(123, 0))
+	workflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+
+	persistedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.True(t, persistedWorkflow.PersistedFinalState())
+	workflowClient, ok := store.ExecClientFake.Execution(run.Namespace).(*client.FakeWorkflowClient)
+	require.True(t, ok)
+	interleavingClient := &retryBeforeDeleteWorkflowClient{
+		FakeWorkflowClient: workflowClient,
+		manager:            manager,
+		runID:              run.UUID,
+	}
+	manager.execClient = &retryWorkflowExecClient{workflowClient: interleavingClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, persistedWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
+	assert.Contains(t, err.Error(), "workflow changed before persisted-final-state cleanup")
+	require.NoError(t, interleavingClient.retryErr)
+
+	retriedWorkflow, err := workflowClient.Get(ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, string(v1alpha1.WorkflowRunning), string(retriedWorkflow.ExecutionStatus().Condition()))
+	assert.False(t, retriedWorkflow.PersistedFinalState())
+	retriedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateRunning, retriedRun.State)
+}
+
+func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersistedReusesLiveLookup(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	createdWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	workflow := util.NewWorkflow(createdWorkflow.(*util.Workflow).DeepCopy())
+	workflow.Status.Phase = v1alpha1.WorkflowFailed
+	workflow.SetLabels(util.LabelKeyWorkflowPersistedFinalState, "true")
+	workflow.SetVersion("current-version")
+
+	workflowClient := &countingWorkflowClient{FakeWorkflowClient: client.NewWorkflowClientFake()}
+	_, err = workflowClient.Create(ctx, workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+
+	_, err = manager.ReportWorkflowResource(ctx, workflow)
+	require.NoError(t, err)
+	assert.Equal(t, 1, workflowClient.getCalls,
+		"version, identity, and persisted-final-state checks should share one live lookup")
+}
+
+func TestReportWorkflowResource_PersistedFinalStateRestoresAbandonedRetryBeforeDelete(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	terminal := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      run.K8SName,
+			Namespace: run.Namespace,
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Phase:      v1alpha1.WorkflowFailed,
+			FinishedAt: v1.Time{Time: time.Unix(500, 0)},
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, terminal)
+	_, err := manager.ReportWorkflowResource(ctx, terminal)
+	require.NoError(t, err)
+	_, _, _, generation, err := store.RunStore().ClaimRunForRetry(run.UUID, false)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), generation)
+	_, err = store.DB().Exec(
+		`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, run.UUID)
+	require.NoError(t, err)
+
+	persistedWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	require.True(t, persistedWorkflow.PersistedFinalState())
+	_, err = manager.ReportWorkflowResource(ctx, persistedWorkflow)
+	require.NoError(t, err)
+
+	recoveredRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, recoveredRun.State,
+		"persisted final state must repair an abandoned retry claim before cleanup")
+	assert.NotZero(t, recoveredRun.FinishedAtInSec)
+	_, err = store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	assert.True(t, util.IsNotFound(err))
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNotFound(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
+	require.NoError(t, store.ExecClient().Execution(common.GetPodNamespace()).Delete(
+		context.Background(), run.K8SName, v1.DeleteOptions{}))
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "non-existent-workflow",
-			Namespace: "kubeflow",
-			UID:       types.UID(run.UUID),
+			Name:      run.K8SName,
+			Namespace: common.GetPodNamespace(),
+			UID:       storedWorkflowUID(t, run),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID, util.LabelKeyWorkflowPersistedFinalState: "true"},
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
@@ -4542,7 +6686,6 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -4554,7 +6697,12 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFail
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
-	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	workflowClient := &deleteFailureWorkflowClient{FakeWorkflowClient: client.NewWorkflowClientFake()}
+	_, err := workflowClient.Create(context.Background(), workflow, v1.CreateOptions{})
+	require.NoError(t, err)
+	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "failed to delete workflow")
 }
@@ -6021,6 +8169,7 @@ func TestReportWorkflowResource_SkipsStaleTerminalReportDuringRetryClaim(t *test
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
 
 	// Drive the run terminal, then claim it for retry.
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
@@ -6055,6 +8204,7 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, terminal)
 	_, err := manager.ReportWorkflowResource(context.Background(), terminal)
 	require.Nil(t, err)
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
@@ -6072,6 +8222,7 @@ func TestReportWorkflowResource_AcceptsRetriedWorkflowReport(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowSucceeded},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, retried)
 	_, err = manager.ReportWorkflowResource(context.Background(), retried)
 	assert.Nil(t, err)
 
@@ -6096,6 +8247,7 @@ func TestReportWorkflowResource_RecoversOrphanedRetryClaim(t *testing.T) {
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
 	require.Nil(t, err)
 	_, _, _, _, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
@@ -6178,6 +8330,7 @@ func TestRetryRun_AdoptsAppliedWorkflowInsteadOfRollingBack(t *testing.T) {
 func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
+	expectedWorkflowName := runDetail.K8SName
 
 	// Simulate a retry that crashed after claiming generation 1 and creating
 	// the workflow, but before persisting the run row: claim via the store
@@ -6186,7 +8339,9 @@ func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(runDetail.UUID, false)
 	require.NoError(t, claimErr)
 	require.Equal(t, int64(1), claimGeneration)
-	_, err := store.DB().Exec(`UPDATE run_details SET RetryClaimedAtInSec = 0 WHERE UUID = ?`, runDetail.UUID)
+	_, err := store.DB().Exec(
+		`UPDATE run_details SET RetryClaimedAtInSec = 0, Name = ? WHERE UUID = ?`,
+		"stale-workflow-name", runDetail.UUID)
 	require.NoError(t, err)
 
 	run, err := manager.GetRun(runDetail.UUID)
@@ -6201,14 +8356,26 @@ func TestRetryRun_ExpiredClaimWithLiveWorkflowIsAdoptedNotTakenOver(t *testing.T
 	_, err = workflowClient.Create(context.Background(), retryExecSpec, v1.CreateOptions{})
 	require.NoError(t, err)
 	manager.execClient = &retryWorkflowExecClient{workflowClient: workflowClient}
+	manager.storedWorkflowIdentities.loadOrStore(runDetail.UUID, storedWorkflowIdentity{
+		name: runDetail.K8SName,
+		uid:  storedWorkflowUID(t, run),
+	})
 
 	require.NoError(t, manager.RetryRun(context.Background(), runDetail.UUID))
+	_, found := manager.storedWorkflowIdentities.load(runDetail.UUID)
+	assert.False(t, found, "adopting a live retry must invalidate the previous workflow identity")
 
 	adopted, err := manager.GetRun(runDetail.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), adopted.RetryGeneration,
 		"live generation-1 workflow must be adopted; a takeover to generation 2 would restart in-flight work")
 	assert.NotEqual(t, model.RuntimeStatePending, adopted.State, "adoption must persist the live workflow's state")
+	assert.Equal(t, expectedWorkflowName, adopted.K8SName)
+
+	liveWorkflow, err := workflowClient.Get(context.Background(), expectedWorkflowName, v1.GetOptions{})
+	require.NoError(t, err)
+	_, err = manager.ReportWorkflowResource(context.Background(), liveWorkflow)
+	require.NoError(t, err, "reports for the adopted workflow must use the repaired run name")
 }
 
 // Regression: takeover happens only when the previous claim's workflow is
@@ -6271,6 +8438,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 		},
 		Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowFailed},
 	})
+	syncWorkflowReportWithFakeCluster(t, store, staleWorkflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), staleWorkflow)
 	require.Nil(t, err)
 	_, _, _, claimGeneration, claimErr := store.RunStore().ClaimRunForRetry(run.UUID, false)
@@ -6285,6 +8453,8 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	liveWorkflow, err := wfClient.Get(context.Background(), run.K8SName, v1.GetOptions{})
 	require.Nil(t, err)
 	liveWorkflow.SetAnnotations(util.AnnotationKeyRetryGeneration, "1")
+	delete(liveWorkflow.ExecutionObjectMeta().Labels, util.LabelKeyWorkflowPersistedFinalState)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
 	_, err = wfClient.Update(context.Background(), liveWorkflow, v1.UpdateOptions{})
 	require.Nil(t, err)
 
@@ -6294,8 +8464,8 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 	assert.Nil(t, err)
 	claimed, err := manager.GetRun(run.UUID)
 	require.Nil(t, err)
-	assert.Equal(t, model.RuntimeStatePending, claimed.State,
-		"a lower-generation report must never be age-accepted while the claimed generation is live")
+	assert.Equal(t, model.RuntimeStateRunning, claimed.State,
+		"the live claimed generation must win over the stale terminal report")
 
 	// A stale snapshot carrying persistedFinalState must not delete the
 	// live retried workflow either: the fence runs before the deletion.
@@ -6303,7 +8473,7 @@ func TestReportWorkflowResource_NeverAgeAcceptsWhileClaimedGenerationLive(t *tes
 		ObjectMeta: v1.ObjectMeta{
 			Name:      run.K8SName,
 			Namespace: "ns1",
-			UID:       types.UID(run.UUID),
+			UID:       liveWorkflow.ExecutionObjectMeta().UID,
 			Labels: map[string]string{
 				util.LabelKeyWorkflowRunId:               run.UUID,
 				util.LabelKeyWorkflowPersistedFinalState: "true",
