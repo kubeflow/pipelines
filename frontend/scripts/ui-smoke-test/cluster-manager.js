@@ -93,9 +93,9 @@ const DIAGNOSTIC_LIMITS = Object.freeze({
   tailLines: 200,
 });
 // A cold frontend image build performs three nested npm installs before lint, typecheck, and the
-// production bundle. Ten minutes is too close to the observed cold-cache floor on arm64 hosts, so
+// production bundle. Twenty minutes can expire during the final image export on arm64 hosts, so
 // keep a bounded per-component allowance that still terminates a genuinely stuck build.
-const COMPONENT_IMAGE_BUILD_TIMEOUT_MS = 20 * 60 * 1000;
+const COMPONENT_IMAGE_BUILD_TIMEOUT_MS = 30 * 60 * 1000;
 
 // Kept for compatibility with callers that display the historical inventory. Readiness is now
 // based on the Deployments rendered by the selected revision.

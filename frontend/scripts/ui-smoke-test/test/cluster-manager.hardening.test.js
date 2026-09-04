@@ -1550,7 +1550,7 @@ test('revision image builds require and forward exact frontend provenance', asyn
 
   const build = calls.find((call) => call.command === 'docker' && call.args[0] === 'build');
   assert.ok(build);
-  assert.equal(build.options.timeout, 20 * 60 * 1000);
+  assert.equal(build.options.timeout, 30 * 60 * 1000);
   for (const expected of [
     `COMMIT_HASH=${BUILD_METADATA.commitSha}`,
     `TAG_NAME=${BUILD_METADATA.tagName}`,
