@@ -638,6 +638,7 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 			Env:       proxy.GetConfig().GetEnvVars(),
 		},
 	}
+	ConfigureKFPLauncherConfigMap(template)
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
 

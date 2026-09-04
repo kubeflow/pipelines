@@ -185,3 +185,29 @@ func TestDAGDriverTemplate_IncludesPipelineJobCreateTimeArg(t *testing.T) {
 	assert.Contains(t, tmpl.Container.Args, "--pipeline_job_create_time_utc")
 	assert.Contains(t, tmpl.Container.Args, runCreationTimeUTC())
 }
+
+func TestDAGDriverTemplate_IncludesKFPLauncherConfigMapVolumeMount(t *testing.T) {
+	proxy.InitializeConfigWithEmptyForTests()
+
+	c := &workflowCompiler{
+		templates: make(map[string]*wfapi.Template),
+		wf: &wfapi.Workflow{
+			Spec: wfapi.WorkflowSpec{
+				Templates: []wfapi.Template{},
+			},
+		},
+		spec: &pipelinespec.PipelineSpec{
+			PipelineInfo: &pipelinespec.PipelineInfo{
+				Name: "test-pipeline",
+			},
+		},
+		job: &pipelinespec.PipelineJob{
+			DisplayName: "test-pipeline-run",
+		},
+	}
+
+	name := c.addDAGDriverTemplate()
+	tmpl, exists := c.templates[name]
+	require.True(t, exists, "system-dag-driver template should exist")
+	assertKFPLauncherConfigMapMounted(t, tmpl)
+}
