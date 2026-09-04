@@ -1054,6 +1054,24 @@ function legacyRunObject(response) {
   return response && typeof response === 'object' ? response : {};
 }
 
+function pipelineVersionReference(response) {
+  const run = legacyRunObject(response);
+  return run.pipeline_version_reference || run.pipelineVersionReference;
+}
+
+function withRunTasks(response, tasks) {
+  if (response?.run?.run && typeof response.run.run === 'object') {
+    return {
+      ...response,
+      run: { ...response.run, run: { ...response.run.run, tasks } },
+    };
+  }
+  if (response?.run && typeof response.run === 'object') {
+    return { ...response, run: { ...response.run, tasks } };
+  }
+  return { ...response, tasks };
+}
+
 function legacyTaskDetails(response) {
   const run = legacyRunObject(response);
   const details = run.run_details || run.runDetails || {};
@@ -1494,16 +1512,16 @@ async function fetchRunBindingResponse(runId, request = apiRequest, options = {}
   if (detectRevisionFlavor(fullResponse) === REVISION_FLAVORS.LEGACY) {
     return hydrateLegacyRunArtifacts(fullResponse, request, { ...options, requestedRunId: runId });
   }
-  // Native run responses expose tasks through a revision-specific paginated endpoint, even when
-  // task_count makes the run response itself look native.
+  // A native FULL response may replace pipeline_version_reference with an embedded pipeline_spec
+  // so runtime pods do not need permission to fetch the version. Semantic fixture identity still
+  // needs the non-FULL reference, while the FULL response remains the authoritative task snapshot.
   const embeddedTasks =
     fullResponse?.tasks || fullResponse?.run?.tasks || fullResponse?.run?.run?.tasks;
-  if (Array.isArray(embeddedTasks) && embeddedTasks.length > 0) return fullResponse;
 
   let detailResponse;
   let detailError;
   try {
-    detailResponse = fullResponse || (await request('GET', endpoint));
+    detailResponse = await request('GET', endpoint);
   } catch (error) {
     detailError = error;
   }
@@ -1520,18 +1538,13 @@ async function fetchRunBindingResponse(runId, request = apiRequest, options = {}
     throw new Error(`Run detail request failed: ${detailError.message}${fullMessage}`);
   }
 
+  if (Array.isArray(embeddedTasks) && embeddedTasks.length > 0) {
+    return withRunTasks(runResponse, embeddedTasks);
+  }
+
   try {
     const tasks = await listAll(`${endpoint}/tasks`, ['tasks'], request);
-    if (runResponse?.run?.run && typeof runResponse.run.run === 'object') {
-      return {
-        ...runResponse,
-        run: { ...runResponse.run, run: { ...runResponse.run.run, tasks } },
-      };
-    }
-    if (runResponse?.run && typeof runResponse.run === 'object') {
-      return { ...runResponse, run: { ...runResponse.run, tasks } };
-    }
-    return { ...runResponse, tasks };
+    return withRunTasks(runResponse, tasks);
   } catch (taskError) {
     throw new Error(`Native task API request failed for run ${runId}: ${taskError.message}`);
   }
@@ -1569,7 +1582,7 @@ async function fetchRunBindingResponses(selections, request = apiRequest, option
         options,
       );
       const run = legacyRunObject(response);
-      const reference = run.pipeline_version_reference || run.pipelineVersionReference;
+      const reference = pipelineVersionReference(response);
       const observedPipelineId = resourceId(reference, ['pipeline_id', 'pipelineId']);
       const observedPipelineVersionId = resourceId(reference, [
         'pipeline_version_id',
@@ -1580,7 +1593,7 @@ async function fetchRunBindingResponses(selections, request = apiRequest, option
         observedPipelineVersionId !== expectedPipelineVersionId
       ) {
         throw new Error(
-          `Semantic run ${semanticKey} does not reference selected pipeline version ${expectedPipelineId}/${expectedPipelineVersionId}.`,
+          `Semantic run ${semanticKey} references pipeline version ${observedPipelineId || '<missing>'}/${observedPipelineVersionId || '<missing>'}, not selected version ${expectedPipelineId}/${expectedPipelineVersionId}.`,
         );
       }
       return { pipelineSpec: structuredClone(pipelineSpec), response, semanticKey };
