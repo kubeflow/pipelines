@@ -48,7 +48,7 @@ jobs:
           fi
 
           config_changed=true
-          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml; then
+          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml .golangci.yaml; then
             config_changed=false
           fi
 

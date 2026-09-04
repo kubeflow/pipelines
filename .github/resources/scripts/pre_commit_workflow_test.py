@@ -72,6 +72,11 @@ class PreCommitWorkflowTest(unittest.TestCase):
         self.assertIn(
             "if: steps.pre-commit-range.outputs.config-changed == 'true'",
             self.workflow)
+        self.assertIn(
+            'git diff --quiet "${base_sha}" HEAD -- '
+            '.pre-commit-config.yaml .golangci.yaml',
+            self.workflow,
+        )
         for representative_file in (
                 '.pre-commit-config.yaml',
                 '.github/workflows/pre-commit.yml',
