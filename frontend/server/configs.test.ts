@@ -33,6 +33,13 @@ describe('loadConfigs', () => {
     expect(configs.viewer.tensorboard.clusterDomain).toBe('.svc.cluster.local');
   });
 
+  it('default archive key format matches the namespace-scoped Argo manifest layout', () => {
+    const configs = loadConfigs(['node', 'dist/server.js', os.tmpdir()], {});
+    expect(configs.argo.keyFormat).toBe(
+      'private-artifacts/{{workflow.namespace}}/{{workflow.name}}/{{workflow.creationTimestamp.Y}}/{{workflow.creationTimestamp.m}}/{{workflow.creationTimestamp.d}}/{{pod.name}}',
+    );
+  });
+
   it('clusterDomain should use CLUSTER_DOMAIN env var when set', () => {
     const tmpdir = os.tmpdir();
     const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
