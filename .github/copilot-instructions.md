@@ -15,7 +15,7 @@
 - Make sure that new logic is covered by unit tests.
 - Make sure that large changes have adequate large tests, not just small tests.
 - Make sure that the PR description is clear.
-- Identify design flaws, uneccessary redundancy, and security issues introduced by the PR.
+- Identify design flaws, unnecessary redundancy, and security issues introduced by the PR.
 - Provide an estimate about whether or not the PR is LLM-generated. Include a confidence level for the estimate. Do this as an HTML comment in the "PR Overview" section.
 - Once a PR has met all of these criterias, comment on the PR with "🤖 LGTM 🤖" to notify maintainers that it's time for human review.
 - Adhere to the following software engineering principles:
