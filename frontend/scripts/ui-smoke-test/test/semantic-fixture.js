@@ -23,11 +23,18 @@ function artifactBinding(role, runKey, artifactKey, rich) {
         )
       : [generatedValue(role, runKey, artifactKey.replace('artifact.', 'artifact-'))];
   const uri = `s3://ui-smoke/${role}/${runKey}/${artifactKey}`;
+  const isNativeValueArtifact =
+    role === 'head' &&
+    (artifactKey === 'artifact.scalar-metrics' || artifactKey === 'artifact.roc-curve');
   const binding = {
     artifactIds,
     records: artifactIds.map((artifactId, index) => ({
       artifactId,
-      uri: artifactIds.length === 1 ? uri : `${uri}/${scalarMetricKeys[index]}`,
+      uri: isNativeValueArtifact
+        ? null
+        : artifactIds.length === 1
+          ? uri
+          : `${uri}/${scalarMetricKeys[index]}`,
     })),
   };
   if (artifactKey === 'artifact.html-report' || artifactKey === 'artifact.markdown-report') {
@@ -130,6 +137,8 @@ function runBinding(role, definition) {
     if (role === 'base') {
       retry.failedMainJobs = ['retry-attempt-0'];
     } else {
+      taskInstances['task.parallel-loop'][0].iterationCount =
+        RUN_PROFILES['rich-topology'].loop.iterations;
       retry.podBindings = [
         {
           name: 'retry-attempt-0',
@@ -148,10 +157,10 @@ function runBinding(role, definition) {
       ...structuredClone(RUN_PROFILES['rich-topology'].relationships).map((relationship) => ({
         ...relationship,
         evidence:
-          role === 'head'
-            ? 'native-task-api'
-            : relationship.kind === 'depends-on'
-              ? 'pipeline-version-spec'
+          relationship.kind === 'depends-on'
+            ? 'pipeline-version-spec'
+            : role === 'head'
+              ? 'native-task-api'
               : relationship.kind === 'contains'
                 ? 'mlmd-parent-dag'
                 : 'mlmd-event',
@@ -269,26 +278,10 @@ function runBinding(role, definition) {
       },
     ];
   }
-  const scopeInstances =
-    role === 'head' && rich
-      ? {
-          'task.parallel-loop': RUN_PROFILES['rich-topology'].loop.iterationIndexes.map(
-            (iterationIndex) => ({
-              iterationIndex,
-              parentTaskId: taskInstances['task.parallel-loop'][0].taskId,
-              taskId: generatedValue(
-                role,
-                runKey,
-                `task-parallel-loop-iteration-${iterationIndex}`,
-              ),
-              type: '8',
-            }),
-          ),
-        }
-      : {};
+  const scopeInstances = {};
   if (role === 'head' && rich) {
-    for (const [iterationIndex, worker] of taskInstances['task.loop-worker'].entries()) {
-      worker.parentTaskId = scopeInstances['task.parallel-loop'][iterationIndex].taskId;
+    for (const worker of taskInstances['task.loop-worker']) {
+      worker.parentTaskId = taskInstances['task.parallel-loop'][0].taskId;
     }
   }
   return {

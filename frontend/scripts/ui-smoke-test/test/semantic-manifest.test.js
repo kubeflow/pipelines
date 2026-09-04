@@ -42,11 +42,11 @@ test('combined semantic fixture validation recomputes required bindings instead 
 
   const missingUri = structuredClone(manifest);
   missingUri.deployments.head.bindings.runs['run.training-2'].artifacts[
-    'artifact.roc-curve'
+    'artifact.html-report'
   ].records[0].uri = '';
   assert.throws(
     () => validateCombinedSemanticManifest(missingUri),
-    /artifact\.roc-curve is missing a native artifact URI/,
+    /artifact\.html-report is missing a native artifact URI/,
   );
 
   const wrongLabel = structuredClone(manifest);
@@ -476,40 +476,35 @@ test('strict combined validation requires an exact two-pod native retry', () => 
   );
 });
 
-test('strict combined validation requires exact native ParallelFor iteration scopes', () => {
+test('strict combined validation requires exact native ParallelFor runtime evidence', () => {
   const cases = [
     {
-      mutate: (run) => run.scopeInstances['task.parallel-loop'].pop(),
-      name: 'missing iteration scope',
-      pattern: /must contain exactly 2 native iteration scope\(s\)/,
+      mutate: (run) => {
+        delete run.taskInstances['task.parallel-loop'][0].iterationCount;
+      },
+      name: 'missing loop iteration count',
+      pattern: /iteration count undefined did not match 2/,
     },
     {
       mutate: (run) => {
-        run.scopeInstances['task.parallel-loop'][0].type = 'RUNTIME';
+        run.taskInstances['task.parallel-loop'][0].iterationCount = 3;
       },
-      name: 'iteration represented by a runtime task',
-      pattern: /iteration scope 0 must be a native DAG with a task ID/,
+      name: 'wrong loop iteration count',
+      pattern: /iteration count 3 did not match 2/,
     },
     {
       mutate: (run) => {
-        run.scopeInstances['task.parallel-loop'][0].parentTaskId = 'wrong-parent';
+        run.taskInstances['task.loop-worker'][1].iterationIndex = 0;
       },
-      name: 'iteration with wrong outer loop',
-      pattern: /iteration scopes must be children of the outer loop task/,
+      name: 'duplicate worker iteration index',
+      pattern: /task\.loop-worker iteration indexes \[0,0\] did not match \[0,1\]/,
     },
     {
       mutate: (run) => {
-        run.scopeInstances['task.parallel-loop'][1].iterationIndex = 0;
+        run.taskInstances['task.loop-worker'][1].parentTaskId = 'wrong-loop';
       },
-      name: 'duplicate iteration index',
-      pattern: /duplicate native iteration scope 0/,
-    },
-    {
-      mutate: (run) => {
-        run.taskInstances['task.loop-worker'][1].parentTaskId = 'wrong-scope';
-      },
-      name: 'worker with wrong iteration parent',
-      pattern: /tasks must be children of their matching native iteration scopes/,
+      name: 'worker with wrong loop parent',
+      pattern: /tasks must be direct children of the native loop task/,
     },
   ];
 
@@ -776,7 +771,7 @@ test('strict combined validation permits only deterministic native executor-log 
       mutate: (manifest) => {
         const run = manifest.deployments.head.bindings.runs['run.training-1'];
         const retryGroup = run.taskInstances['task.retry-once'][0].artifactReferences.outputs[0];
-        retryGroup.artifacts[0].uri = run.artifacts['artifact.roc-curve'].records[0].uri;
+        retryGroup.artifacts[0].uri = run.artifacts['artifact.html-report'].records[0].uri;
       },
       name: 'executor log URI collides with declared artifact',
       pattern: /uri collides with a declared semantic artifact/,
@@ -931,7 +926,6 @@ function nativeRocArtifact(artifactId = 'roc-artifact') {
     artifact_id: artifactId,
     metadata: { confidenceMetrics: structuredClone(EXPECTED_ROC_POINTS) },
     name: 'roc_curve',
-    uri: 's3://fixtures/roc-curve',
   };
 }
 
@@ -1032,10 +1026,9 @@ function nativeRichRun() {
   const response = {
     display_name: 'Rich Visual Run',
     run_id: 'native-rich-run',
-    task_count: 10,
+    task_count: 8,
     tasks: [
       {
-        child_tasks: [{ name: 'consume-metrics', task_id: 'native-consume' }],
         name: 'write-metrics',
         outputs: {
           artifacts: [
@@ -1046,13 +1039,11 @@ function nativeRichRun() {
                   artifact_id: 'metric-accuracy',
                   name: 'accuracy',
                   number_value: 0.92,
-                  uri: 's3://fixtures/scalar-metrics/accuracy',
                 },
                 {
                   artifact_id: 'metric-loss',
                   name: 'loss',
                   number_value: 0.08,
-                  uri: 's3://fixtures/scalar-metrics/loss',
                 },
               ],
             },
@@ -1090,7 +1081,6 @@ function nativeRichRun() {
         type: 'RUNTIME',
       },
       {
-        child_tasks: [{ name: 'nested-dag', task_id: 'native-nested' }],
         inputs: {
           artifacts: [
             {
@@ -1100,13 +1090,11 @@ function nativeRichRun() {
                   artifact_id: 'metric-accuracy',
                   name: 'accuracy',
                   number_value: 0.92,
-                  uri: 's3://fixtures/scalar-metrics/accuracy',
                 },
                 {
                   artifact_id: 'metric-loss',
                   name: 'loss',
                   number_value: 0.08,
-                  uri: 's3://fixtures/scalar-metrics/loss',
                 },
               ],
             },
@@ -1119,7 +1107,6 @@ function nativeRichRun() {
         type: 'RUNTIME',
       },
       {
-        child_tasks: [{ name: 'nested-dag', task_id: 'native-nested' }],
         name: 'retry-once',
         pods: [
           { name: 'retry-driver', type: 1, uid: 'retry-driver-uid' },
@@ -1132,7 +1119,10 @@ function nativeRichRun() {
         type: 'RUNTIME',
       },
       {
-        child_tasks: [{ name: 'nested-dag', task_id: 'native-nested' }],
+        child_tasks: [
+          { name: 'loop-worker', task_id: 'native-loop-worker-0' },
+          { name: 'loop-worker', task_id: 'native-loop-worker-1' },
+        ],
         name: 'parallel-loop',
         scope_path: 'root.parallel-loop',
         state: 'SUCCEEDED',
@@ -1141,28 +1131,8 @@ function nativeRichRun() {
         type_attributes: { iteration_count: 2 },
       },
       {
-        display_name: 'parallel-loop',
-        name: 'parallel-loop-0',
-        parent_task_id: 'native-loop',
-        scope_path: 'root.parallel-loop.parallel-loop-0',
-        state: 'SUCCEEDED',
-        task_id: 'native-loop-scope-0',
-        type: 'DAG',
-        type_attributes: { iteration_index: 0 },
-      },
-      {
-        display_name: 'parallel-loop',
-        name: 'parallel-loop-1',
-        parent_task_id: 'native-loop',
-        scope_path: 'root.parallel-loop.parallel-loop-1',
-        state: 'SUCCEEDED',
-        task_id: 'native-loop-scope-1',
-        type: 'DAG',
-        type_attributes: { iteration_index: 1 },
-      },
-      {
         name: 'loop-worker',
-        parent_task_id: 'native-loop-scope-0',
+        parent_task_id: 'native-loop',
         scope_path: 'root.parallel-loop.loop-worker',
         state: 'SUCCEEDED',
         task_id: 'native-loop-worker-0',
@@ -1171,7 +1141,7 @@ function nativeRichRun() {
       },
       {
         name: 'loop-worker',
-        parent_task_id: 'native-loop-scope-1',
+        parent_task_id: 'native-loop',
         scope_path: 'root.parallel-loop.loop-worker',
         state: 'SUCCEEDED',
         task_id: 'native-loop-worker-1',
@@ -1179,6 +1149,7 @@ function nativeRichRun() {
         type_attributes: { iteration_index: 1 },
       },
       {
+        child_tasks: [{ name: 'nested-worker', task_id: 'native-nested-worker' }],
         name: 'nested-dag',
         scope_path: 'root.nested-dag',
         state: 'SUCCEEDED',
@@ -1394,7 +1365,7 @@ test('requires deterministic HTML and Markdown artifacts in each revision', () =
   });
   const nativeSemantic = buildSemanticDeployment({
     logical,
-    runResponses: [{ response: native, semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(native)],
   });
 
   assert.equal(legacySemantic.validation.valid, false);
@@ -1425,11 +1396,11 @@ test('rejects native tasks without stable IDs and file artifacts with wrong meta
 
   const missingTaskIdSemantic = buildSemanticDeployment({
     logical,
-    runResponses: [{ response: missingTaskId, semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(missingTaskId)],
   });
   const invalidFileSemantic = buildSemanticDeployment({
     logical,
-    runResponses: [{ response: invalidFiles, semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(invalidFiles)],
   });
 
   assert.equal(missingTaskIdSemantic.validation.valid, false);
@@ -1477,7 +1448,7 @@ test('maps rich legacy and native topology to instance groups and semantic relat
   });
   const native = buildSemanticDeployment({
     logical,
-    runResponses: [{ response: nativeRichRun(), semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(nativeRichRun())],
   });
 
   assert.equal(legacy.validation.valid, true, legacy.validation.errors.join('; '));
@@ -1503,28 +1474,7 @@ test('maps rich legacy and native topology to instance groups and semantic relat
     { name: 'retry-attempt-0', type: 'EXECUTOR', uid: 'retry-uid-0' },
     { name: 'retry-attempt-1', type: 'EXECUTOR', uid: 'retry-uid-1' },
   ]);
-  assert.deepEqual(
-    native.bindings.runs['run.rich'].scopeInstances['task.parallel-loop'].map((scope) => ({
-      iterationIndex: scope.iterationIndex,
-      parentTaskId: scope.parentTaskId,
-      taskId: scope.taskId,
-      type: scope.type,
-    })),
-    [
-      {
-        iterationIndex: 0,
-        parentTaskId: 'native-loop',
-        taskId: 'native-loop-scope-0',
-        type: 'DAG',
-      },
-      {
-        iterationIndex: 1,
-        parentTaskId: 'native-loop',
-        taskId: 'native-loop-scope-1',
-        type: 'DAG',
-      },
-    ],
-  );
+  assert.deepEqual(native.bindings.runs['run.rich'].scopeInstances, {});
   assert.ok(
     native.bindings.runs['run.rich'].relationships.some(
       (relationship) =>
@@ -1540,41 +1490,44 @@ test('maps rich legacy and native topology to instance groups and semantic relat
     ).occurrences,
     2,
   );
-  assert.deepEqual(
-    legacy.bindings.runs['run.rich'].relationships.filter(
-      (relationship) => relationship.kind === 'depends-on',
-    ),
-    [
-      {
-        evidence: 'pipeline-version-spec',
-        kind: 'depends-on',
-        occurrences: 1,
-        source: 'task.consume-metrics',
-        target: 'task.nested-dag',
-      },
-      {
-        evidence: 'pipeline-version-spec',
-        kind: 'depends-on',
-        occurrences: 1,
-        source: 'task.parallel-loop',
-        target: 'task.nested-dag',
-      },
-      {
-        evidence: 'pipeline-version-spec',
-        kind: 'depends-on',
-        occurrences: 1,
-        source: 'task.retry-once',
-        target: 'task.nested-dag',
-      },
-      {
-        evidence: 'pipeline-version-spec',
-        kind: 'depends-on',
-        occurrences: 1,
-        source: 'task.write-metrics',
-        target: 'task.consume-metrics',
-      },
-    ],
-  );
+  const expectedDependencies = [
+    {
+      evidence: 'pipeline-version-spec',
+      kind: 'depends-on',
+      occurrences: 1,
+      source: 'task.consume-metrics',
+      target: 'task.nested-dag',
+    },
+    {
+      evidence: 'pipeline-version-spec',
+      kind: 'depends-on',
+      occurrences: 1,
+      source: 'task.parallel-loop',
+      target: 'task.nested-dag',
+    },
+    {
+      evidence: 'pipeline-version-spec',
+      kind: 'depends-on',
+      occurrences: 1,
+      source: 'task.retry-once',
+      target: 'task.nested-dag',
+    },
+    {
+      evidence: 'pipeline-version-spec',
+      kind: 'depends-on',
+      occurrences: 1,
+      source: 'task.write-metrics',
+      target: 'task.consume-metrics',
+    },
+  ];
+  for (const deployment of [legacy, native]) {
+    assert.deepEqual(
+      deployment.bindings.runs['run.rich'].relationships.filter(
+        (relationship) => relationship.kind === 'depends-on',
+      ),
+      expectedDependencies,
+    );
+  }
 });
 
 test('does not backfill missing legacy dependencies from the expected semantic profile', () => {
@@ -1654,7 +1607,7 @@ test('normalizes executor-log references by deterministic URI attempt suffix', (
   );
 });
 
-test('requires a URI-bearing record for every logical metric and ROC Artifact', () => {
+test('requires legacy metric URIs while accepting native value-only metrics', () => {
   const logical = buildLogicalFixtures(RICH_RESOURCE_DEFINITIONS);
   const legacyResponse = legacyRichRun();
   delete legacyResponse.semanticArtifacts.find((artifact) => artifact.artifactId === '81').uri;
@@ -1669,18 +1622,20 @@ test('requires a URI-bearing record for every logical metric and ROC Artifact', 
   );
 
   const nativeResponse = nativeRichRun();
-  const scalarArtifacts = nativeResponse.tasks
-    .find((task) => task.name === 'write-metrics')
-    .outputs.artifacts.find((group) => group.artifact_key === 'scalar_metrics').artifacts;
-  delete scalarArtifacts[1].uri;
   const native = buildSemanticDeployment({
     logical,
-    runResponses: [{ response: nativeResponse, semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(nativeResponse)],
   });
-  assert.equal(native.validation.valid, false);
-  assert.match(
-    native.validation.errors.join('\n'),
-    /artifact\.scalar-metrics is missing a native artifact URI/,
+  assert.equal(native.validation.valid, true, native.validation.errors.join('; '));
+  assert.deepEqual(
+    native.bindings.runs['run.rich'].artifacts['artifact.scalar-metrics'].records.map(
+      (record) => record.uri,
+    ),
+    [null, null],
+  );
+  assert.equal(
+    native.bindings.runs['run.rich'].artifacts['artifact.roc-curve'].records[0].uri,
+    null,
   );
 });
 
@@ -1697,7 +1652,7 @@ test('rejects rich topology with collapsed loops, missing retry evidence, or bro
 
   const semantic = buildSemanticDeployment({
     logical,
-    runResponses: [{ response, semanticKey: 'run.rich' }],
+    runResponses: [richRunObservation(response)],
   });
 
   assert.equal(semantic.validation.valid, false);

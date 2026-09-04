@@ -105,7 +105,6 @@ function nativeRichRunResponse(
     taskCount: 8,
     tasks: [
       {
-        childTasks: [{ name: 'consume-metrics', taskId: 'task-consume-metrics' }],
         name: 'write-metrics',
         outputs: {
           artifacts: [
@@ -116,13 +115,11 @@ function nativeRichRunResponse(
                   artifactId: 'metric-loss',
                   name: 'loss',
                   numberValue: 0.08,
-                  uri: 's3://fixtures/scalar-metrics/loss',
                 },
                 {
                   artifactId: 'metric-accuracy',
                   name: 'accuracy',
                   numberValue: 0.92,
-                  uri: 's3://fixtures/scalar-metrics/accuracy',
                 },
               ],
             },
@@ -133,7 +130,6 @@ function nativeRichRunResponse(
                   artifactId: 'roc-artifact',
                   metadata: rocMetadata,
                   name: 'roc_curve',
-                  uri: 's3://fixtures/roc-curve',
                 },
               ],
             },
@@ -167,7 +163,6 @@ function nativeRichRunResponse(
         type: 'RUNTIME',
       },
       {
-        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
         inputs: {
           artifacts: [
             {
@@ -177,13 +172,11 @@ function nativeRichRunResponse(
                   artifactId: 'metric-loss',
                   name: 'loss',
                   numberValue: 0.08,
-                  uri: 's3://fixtures/scalar-metrics/loss',
                 },
                 {
                   artifactId: 'metric-accuracy',
                   name: 'accuracy',
                   numberValue: 0.92,
-                  uri: 's3://fixtures/scalar-metrics/accuracy',
                 },
               ],
             },
@@ -196,7 +189,6 @@ function nativeRichRunResponse(
         type: 'RUNTIME',
       },
       {
-        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
         name: 'retry-once',
         pods: [
           { name: 'retry-0', type: 'EXECUTOR', uid: 'retry-0-uid' },
@@ -208,7 +200,10 @@ function nativeRichRunResponse(
         type: 'RUNTIME',
       },
       {
-        childTasks: [{ name: 'nested-dag', taskId: 'task-nested' }],
+        childTasks: [
+          { name: 'loop-worker', taskId: 'task-loop-worker-0' },
+          { name: 'loop-worker', taskId: 'task-loop-worker-1' },
+        ],
         name: 'parallel-loop',
         scopePath: 'root.parallel-loop',
         state: 'SUCCEEDED',
@@ -217,28 +212,8 @@ function nativeRichRunResponse(
         typeAttributes: { iterationCount: 2 },
       },
       {
-        displayName: 'parallel-loop',
-        name: 'parallel-loop-0',
-        parentTaskId: 'task-loop',
-        scopePath: 'root.parallel-loop.parallel-loop-0',
-        state: 'SUCCEEDED',
-        taskId: 'task-loop-scope-0',
-        type: 'DAG',
-        typeAttributes: { iterationIndex: 0 },
-      },
-      {
-        displayName: 'parallel-loop',
-        name: 'parallel-loop-1',
-        parentTaskId: 'task-loop',
-        scopePath: 'root.parallel-loop.parallel-loop-1',
-        state: 'SUCCEEDED',
-        taskId: 'task-loop-scope-1',
-        type: 'DAG',
-        typeAttributes: { iterationIndex: 1 },
-      },
-      {
         name: 'loop-worker',
-        parentTaskId: 'task-loop-scope-0',
+        parentTaskId: 'task-loop',
         scopePath: 'root.parallel-loop.loop-worker',
         state: 'SUCCEEDED',
         taskId: 'task-loop-worker-0',
@@ -247,7 +222,7 @@ function nativeRichRunResponse(
       },
       {
         name: 'loop-worker',
-        parentTaskId: 'task-loop-scope-1',
+        parentTaskId: 'task-loop',
         scopePath: 'root.parallel-loop.loop-worker',
         state: 'SUCCEEDED',
         taskId: 'task-loop-worker-1',
@@ -255,6 +230,7 @@ function nativeRichRunResponse(
         typeAttributes: { iterationIndex: 1 },
       },
       {
+        childTasks: [{ name: 'nested-worker', taskId: 'task-nested-worker' }],
         name: 'nested-dag',
         scopePath: 'root.nested-dag',
         state: 'SUCCEEDED',
@@ -2106,13 +2082,11 @@ test('polls semantic bindings until eventually consistent task and artifact data
                       artifactId: 'accuracy-1',
                       name: 'accuracy',
                       numberValue: 0.92,
-                      uri: 's3://fixtures/scalar-metrics/accuracy',
                     },
                     {
                       artifactId: 'loss-1',
                       name: 'loss',
                       numberValue: 0.08,
-                      uri: 's3://fixtures/scalar-metrics/loss',
                     },
                   ],
                 },
@@ -2125,7 +2099,6 @@ test('polls semantic bindings until eventually consistent task and artifact data
                         METRICS_EXECUTOR_OUTPUT.artifacts.roc_curve.artifacts[0].metadata,
                       ),
                       name: 'roc_curve',
-                      uri: 's3://fixtures/roc-curve',
                     },
                   ],
                 },

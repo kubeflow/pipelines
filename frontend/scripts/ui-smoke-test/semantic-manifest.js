@@ -486,17 +486,8 @@ function legacyFailedMainJobs(task) {
   return sortedUnique(arrayField(executor, 'failed_main_jobs', 'failedMainJobs'));
 }
 
-function taskChildReferences(task) {
-  return arrayField(task, 'child_tasks', 'childTasks').map((child) => ({
-    name: stringValue(field(child, 'name')),
-    podName: stringValue(field(child, 'pod_name', 'podName')),
-    taskId: stringValue(field(child, 'task_id', 'taskId', 'id')),
-  }));
-}
-
 function normalizeTaskBinding(task, flavor, hydratedArtifacts = []) {
   const binding = {
-    childTaskReferences: taskChildReferences(task),
     displayName: stringValue(field(task, 'display_name', 'displayName')),
     name: stringValue(field(task, 'name')),
     parentTaskId: stringValue(field(task, 'parent_task_id', 'parentTaskId')),
@@ -877,13 +868,13 @@ function addLegacyExecutionRelationships(relationships, executionInstances, prof
   }
 }
 
-function addLegacyPipelineSpecDependencies(relationships, pipelineSpec, profile) {
+function addPipelineSpecDependencies(relationships, pipelineSpec, profile) {
   const expectedDependencyCount = (profile?.relationships || []).filter(
     (relationship) => relationship.kind === 'depends-on',
   ).length;
   if (expectedDependencyCount === 0) return;
   if (!pipelineSpec || typeof pipelineSpec !== 'object' || Array.isArray(pipelineSpec)) {
-    throw new Error('Legacy dependency evidence requires the selected pipeline version spec.');
+    throw new Error('Dependency evidence requires the selected pipeline version spec.');
   }
 
   const dagTasks = [];
@@ -940,67 +931,31 @@ function addRelationship(relationships, kind, source, target, evidence = null) {
   });
 }
 
-function argoNodeIdentitySuffix(value) {
-  const match = String(value || '').match(/-([a-z0-9]{5,})$/i);
-  return match ? match[1] : null;
-}
-
-function nativeLoopScopeSemanticKey(task, flavor) {
-  if (flavor !== REVISION_FLAVORS.NATIVE) return null;
-  const semanticKey = taskCandidateSemanticKey(task);
-  if (
-    semanticKey &&
-    TASK_FIXTURES[semanticKey]?.kind === 'loop' &&
-    nativeTaskTypeMatches(field(task, 'type'), 'dag')
-  ) {
-    return semanticKey;
-  }
-  return null;
-}
-
 function buildTaskBindings(tasks, flavor, hydratedArtifacts = []) {
   const allObservations = tasks.map((task) => ({
     binding: normalizeTaskBinding(task, flavor, hydratedArtifacts),
-    candidateSemanticKey: taskCandidateSemanticKey(task),
-    scopeSemanticKey: nativeLoopScopeSemanticKey(task, flavor),
     semanticKey: taskSemanticKey(task),
   }));
   const observations = allObservations.filter((observation) => observation.semanticKey);
-  const scopeObservations = allObservations.filter((observation) => observation.scopeSemanticKey);
-  const scopeInstances = {};
   const taskInstances = {};
   const semanticByIdentity = new Map();
-  const semanticByArgoSuffix = new Map();
 
-  for (const observation of allObservations) {
-    const { binding, candidateSemanticKey, scopeSemanticKey, semanticKey } = observation;
-    const identitySemanticKey = semanticKey || scopeSemanticKey || candidateSemanticKey;
+  for (const observation of observations) {
+    const { binding, semanticKey } = observation;
     for (const identity of [binding.taskId, binding.podName]) {
-      if (identity && identitySemanticKey) {
-        semanticByIdentity.set(identity, identitySemanticKey);
-        const suffix = argoNodeIdentitySuffix(identity);
-        if (suffix) {
-          const existing = semanticByArgoSuffix.get(suffix);
-          semanticByArgoSuffix.set(
-            suffix,
-            existing === undefined || existing === identitySemanticKey ? identitySemanticKey : null,
-          );
-        }
-      }
+      if (identity) semanticByIdentity.set(identity, semanticKey);
     }
   }
   for (const { binding, semanticKey } of observations) {
     if (!taskInstances[semanticKey]) taskInstances[semanticKey] = [];
     taskInstances[semanticKey].push(binding);
   }
-  for (const { binding, scopeSemanticKey } of scopeObservations) {
-    if (!scopeInstances[scopeSemanticKey]) scopeInstances[scopeSemanticKey] = [];
-    scopeInstances[scopeSemanticKey].push(binding);
-  }
   for (const instances of Object.values(taskInstances)) instances.sort(compareTaskInstances);
-  for (const instances of Object.values(scopeInstances)) instances.sort(compareTaskInstances);
 
   const relationships = new Map();
+  // The API converter currently builds child_tasks from ParentTaskUUID, so those records describe
+  // containment rather than PipelineSpec dependentTasks. Use parent_task_id for the runtime
+  // hierarchy here; declared dependency edges are added from the selected pipeline spec below.
   for (const observation of observations) {
     const { binding, semanticKey } = observation;
     const parentKey = semanticByIdentity.get(binding.parentTaskId);
@@ -1013,18 +968,6 @@ function buildTaskBindings(tasks, flavor, hydratedArtifacts = []) {
         flavor === REVISION_FLAVORS.LEGACY ? 'legacy-task-api' : 'native-task-api',
       );
     }
-    if (flavor === REVISION_FLAVORS.LEGACY) continue;
-    for (const child of binding.childTaskReferences || []) {
-      const childSuffix = argoNodeIdentitySuffix(child.taskId || child.podName);
-      const childKey =
-        semanticByIdentity.get(child.taskId) ||
-        semanticByIdentity.get(child.podName) ||
-        (childSuffix ? semanticByArgoSuffix.get(childSuffix) : null) ||
-        taskSemanticKey(child);
-      if (childKey) {
-        addRelationship(relationships, 'depends-on', semanticKey, childKey, 'native-task-api');
-      }
-    }
   }
 
   const compatibilityTasks = {};
@@ -1033,7 +976,9 @@ function buildTaskBindings(tasks, flavor, hydratedArtifacts = []) {
   }
   return {
     relationships,
-    scopeInstances: sortObject(scopeInstances),
+    // ParallelFor iterations are rendered scopes, but the native backend persists each body task
+    // directly under the LOOP task with its own iteration_index; there is no iteration DAG row.
+    scopeInstances: {},
     taskInstances: sortObject(taskInstances),
     tasks: sortObject(compatibilityTasks),
   };
@@ -1059,8 +1004,8 @@ function extractRunBinding(response, semanticKey, options = {}) {
       : {};
   if (flavor === REVISION_FLAVORS.LEGACY) {
     addLegacyExecutionRelationships(taskBindings.relationships, executionInstances, profile);
-    addLegacyPipelineSpecDependencies(taskBindings.relationships, options.pipelineSpec, profile);
   }
+  addPipelineSpecDependencies(taskBindings.relationships, options.pipelineSpec, profile);
   const artifacts = {};
   for (const [artifactKey, definition] of Object.entries(ARTIFACT_FIXTURES)) {
     artifacts[artifactKey] = buildArtifactBinding(rawTasks, flavor, definition, hydratedArtifacts);
@@ -1219,6 +1164,7 @@ function validateArtifactRecordArray(
   errors,
   expectedIds,
   expectedCount,
+  requireUri = true,
 ) {
   if (!Array.isArray(value)) {
     errors.push(`${label} must be an array`);
@@ -1239,10 +1185,12 @@ function validateArtifactRecordArray(
     } else {
       recordIds.push(artifactId);
     }
+    const hasUri = record.uri !== null && record.uri !== undefined;
     if (
-      typeof record.uri !== 'string' ||
-      record.uri.length === 0 ||
-      record.uri.trim() !== record.uri
+      (requireUri || hasUri) &&
+      (typeof record.uri !== 'string' ||
+        record.uri.length === 0 ||
+        record.uri.trim() !== record.uri)
     ) {
       errors.push(`${label}[${index}].uri must be a nonempty string`);
     }
@@ -1461,9 +1409,7 @@ function validateTaskArtifactReferences(
         (Array.isArray(expectedBinding?.records) ? expectedBinding.records : [])
           .filter(isRecordValue)
           .map((record) => [canonicalIdentifier(record.artifactId, allowLegacyNumeric), record.uri])
-          .filter(([identifier, uri]) =>
-            Boolean(identifier && typeof uri === 'string' && uri.length > 0),
-          ),
+          .filter(([identifier]) => Boolean(identifier)),
       );
       const expectedCount = isExecutorLogs
         ? expectedExecutorLogCount
@@ -1518,13 +1464,15 @@ function validateTaskArtifactReferences(
         } else {
           observedGroupIds.push(artifactId);
         }
-        if (
-          typeof record.uri !== 'string' ||
-          record.uri.length === 0 ||
-          record.uri.trim() !== record.uri
-        ) {
-          errors.push(`${recordLabel}.uri must be a nonempty string`);
-        } else if (isExecutorLogs) {
+        if (isExecutorLogs) {
+          if (
+            typeof record.uri !== 'string' ||
+            record.uri.length === 0 ||
+            record.uri.trim() !== record.uri
+          ) {
+            errors.push(`${recordLabel}.uri must be a nonempty string`);
+            continue;
+          }
           if (declaredUris.has(record.uri)) {
             errors.push(`${recordLabel}.uri collides with a declared semantic artifact`);
           }
@@ -1583,8 +1531,6 @@ function expectedLegacyExecutionCounts(profile) {
 }
 
 function validateRunBindingClosure(runKey, binding, profile, errors) {
-  const expectedScopeKeys =
-    binding.revisionFlavor === REVISION_FLAVORS.NATIVE && profile.loop ? [profile.loop.task] : [];
   errors.push(
     ...exactKeySetErrors(
       `${runKey}: taskInstances`,
@@ -1592,7 +1538,7 @@ function validateRunBindingClosure(runKey, binding, profile, errors) {
       Object.keys(profile.tasks || {}),
     ),
     ...exactKeySetErrors(`${runKey}: artifacts`, binding.artifacts, profile.artifacts || []),
-    ...exactKeySetErrors(`${runKey}: scopeInstances`, binding.scopeInstances, expectedScopeKeys),
+    ...exactKeySetErrors(`${runKey}: scopeInstances`, binding.scopeInstances, []),
   );
 
   const allowLegacyNumeric = binding.revisionFlavor === REVISION_FLAVORS.LEGACY;
@@ -1964,6 +1910,10 @@ function validateRunBinding(runKey, binding, profile, errors) {
       expectedArtifactCount,
     );
     const records = Array.isArray(artifactBinding.records) ? artifactBinding.records : [];
+    const requiresUri =
+      binding.revisionFlavor === REVISION_FLAVORS.LEGACY ||
+      definition?.kind === 'html' ||
+      definition?.kind === 'markdown';
     validateArtifactRecordArray(
       `${runKey}: ${artifactKey}.records`,
       artifactBinding.records,
@@ -1971,15 +1921,17 @@ function validateRunBinding(runKey, binding, profile, errors) {
       errors,
       artifactIds,
       expectedArtifactCount,
+      requiresUri,
     );
     for (const record of records.filter(isRecordValue)) {
       if (canonicalIdentifier(record.artifactId, allowLegacyNumeric) === null) {
         errors.push(`${runKey}: ${artifactKey} is missing a ${sourceLabel} artifact ID`);
       }
       if (
-        typeof record.uri !== 'string' ||
-        record.uri.length === 0 ||
-        record.uri.trim() !== record.uri
+        requiresUri &&
+        (typeof record.uri !== 'string' ||
+          record.uri.length === 0 ||
+          record.uri.trim() !== record.uri)
       ) {
         errors.push(`${runKey}: ${artifactKey} is missing a ${sourceLabel} artifact URI`);
       }
@@ -2147,42 +2099,10 @@ function validateRunBinding(runKey, binding, profile, errors) {
   if (profile.loop && binding.revisionFlavor === REVISION_FLAVORS.NATIVE) {
     const loopTasks = binding.taskInstances[profile.loop.task] || [];
     const loopTaskId = canonicalIdentifier(loopTasks[0]?.taskId);
-    const rawScopes = binding.scopeInstances?.[profile.loop.task];
-    const scopes = Array.isArray(rawScopes) ? rawScopes : [];
-    if (scopes.length !== profile.loop.iterations) {
+    if (loopTasks[0]?.iterationCount !== profile.loop.iterations) {
       errors.push(
-        `${runKey}: ${profile.loop.task} must contain exactly ${profile.loop.iterations} native iteration scope(s)`,
+        `${runKey}: ${profile.loop.task} iteration count ${String(loopTasks[0]?.iterationCount)} did not match ${profile.loop.iterations}`,
       );
-    }
-    const scopeIndexes = scopes
-      .map((instance) => (isRecordValue(instance) ? instance.iterationIndex : null))
-      .filter((value) => value !== null && value !== undefined)
-      .sort((left, right) => left - right);
-    if (!sameValues(scopeIndexes, profile.loop.iterationIndexes)) {
-      errors.push(
-        `${runKey}: ${profile.loop.task} iteration scope indexes ${JSON.stringify(scopeIndexes)} did not match ${JSON.stringify(profile.loop.iterationIndexes)}`,
-      );
-    }
-    const scopeIdsByIndex = new Map();
-    for (const [scopeIndex, scope] of scopes.entries()) {
-      const scopeId = canonicalIdentifier(scope?.taskId);
-      if (!isRecordValue(scope) || scopeId === null || !nativeTaskTypeMatches(scope.type, 'dag')) {
-        errors.push(
-          `${runKey}: ${profile.loop.task} iteration scope ${scopeIndex} must be a native DAG with a task ID`,
-        );
-        continue;
-      }
-      if (canonicalIdentifier(scope.parentTaskId) !== loopTaskId) {
-        errors.push(
-          `${runKey}: ${profile.loop.task} iteration scopes must be children of the outer loop task`,
-        );
-      }
-      if (scopeIdsByIndex.has(scope.iterationIndex)) {
-        errors.push(
-          `${runKey}: ${profile.loop.task} has duplicate native iteration scope ${scope.iterationIndex}`,
-        );
-      }
-      scopeIdsByIndex.set(scope.iterationIndex, scopeId);
     }
     const workers = binding.taskInstances[profile.loop.worker] || [];
     const indexes = workers
@@ -2194,14 +2114,9 @@ function validateRunBinding(runKey, binding, profile, errors) {
         `${runKey}: ${profile.loop.worker} iteration indexes ${JSON.stringify(indexes)} did not match ${JSON.stringify(profile.loop.iterationIndexes)}`,
       );
     }
-    if (
-      workers.some(
-        (worker) =>
-          canonicalIdentifier(worker?.parentTaskId) !== scopeIdsByIndex.get(worker?.iterationIndex),
-      )
-    ) {
+    if (workers.some((worker) => canonicalIdentifier(worker?.parentTaskId) !== loopTaskId)) {
       errors.push(
-        `${runKey}: ${profile.loop.worker} tasks must be children of their matching native iteration scopes`,
+        `${runKey}: ${profile.loop.worker} tasks must be direct children of the native loop task`,
       );
     }
   }
