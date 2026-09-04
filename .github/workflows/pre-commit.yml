@@ -31,6 +31,8 @@ jobs:
         with:
           python-version: '3.13'
       - uses: ./.github/actions/setup-go
+      - name: Check repository Go version policy
+        run: make check-go-version
 
       - name: Configure pre-commit range
         id: pre-commit-range
