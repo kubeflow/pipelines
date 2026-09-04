@@ -16,6 +16,7 @@ const BUILD_METADATA = Object.freeze({
   nodeVersion: '24.14.0',
   tagName: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
 });
+const TEST_IMAGE_ID = `sha256:${'a'.repeat(64)}`;
 
 class FakeChild extends EventEmitter {
   constructor(id = '') {
@@ -182,6 +183,9 @@ function deploymentRunner(calls, options = {}) {
     if (command === 'kubectl' && args.includes('nodes')) return success(architecture);
     if (command === 'docker' && args[0] === 'info' && args.includes('--format')) {
       return success(`linux/${architecture}`);
+    }
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
+      return success(TEST_IMAGE_ID);
     }
     if (command === 'kubectl' && args[0] === 'kustomize') {
       const outputPath = args[args.indexOf('--output') + 1];
@@ -484,11 +488,66 @@ test('seed runtime architecture is preflighted without creating or loading a clu
     [
       ['pull', '--platform', 'linux/amd64'],
       ['save', '--platform', 'linux/amd64'],
+      ['image', 'inspect', '--format'],
     ],
   );
   assert.equal(
     calls.some(({ command }) => command === 'kind'),
     false,
+  );
+});
+
+test('deployment reuses only the unchanged image proven by preflight', (t) => {
+  const calls = [];
+  const image = 'docker.io/library/alpine:3.23';
+  const stack = createTestStack(t, {
+    runner: deploymentRunner(calls, { manifest: renderedManifest([image]) }),
+  });
+  const manifestPath = path.join(stack.archiveDir, 'preflighted.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, renderedManifest([image]));
+
+  stack.preflightReleaseImages('/revision', { platform: 'linux/amd64' });
+  const pullsAfterPreflight = calls.filter(
+    ({ args, command }) => command === 'docker' && args[0] === 'pull',
+  ).length;
+  stack.preloadManifestImages(manifestPath, 'linux/amd64');
+
+  assert.equal(
+    calls.filter(({ args, command }) => command === 'docker' && args[0] === 'pull').length,
+    pullsAfterPreflight,
+  );
+  assert.ok(
+    calls.some(
+      ({ args, command }) => command === 'docker' && args[0] === 'save' && args.at(-1) === image,
+    ),
+  );
+  assert.ok(calls.some(({ command }) => command === 'kind'));
+});
+
+test('deployment rejects a mutable image tag changed after preflight', (t) => {
+  const calls = [];
+  const image = 'docker.io/library/alpine:3.23';
+  let imageId = TEST_IMAGE_ID;
+  const delegate = deploymentRunner(calls, { manifest: renderedManifest([image]) });
+  const runner = (command, args, options) => {
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
+      calls.push({ args, command, options });
+      return success(imageId);
+    }
+    return delegate(command, args, options);
+  };
+  const stack = createTestStack(t, { runner });
+  const manifestPath = path.join(stack.archiveDir, 'changed-after-preflight.yaml');
+  fs.mkdirSync(stack.archiveDir, { recursive: true });
+  fs.writeFileSync(manifestPath, renderedManifest([image]));
+
+  stack.preflightReleaseImages('/revision', { platform: 'linux/amd64' });
+  imageId = `sha256:${'b'.repeat(64)}`;
+
+  assert.throws(
+    () => stack.preloadManifestImages(manifestPath, 'linux/amd64'),
+    /changed or disappeared after it was preflighted.*not covered by the successful preflight/,
   );
 });
 
