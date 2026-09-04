@@ -35,6 +35,32 @@ just like this example in [sync.py](https://github.com/kubeflow/pipelines/blob/b
 the entry is identical to the environment variable instruction in Standalone Kubeflow Pipelines
 deployment.
 
+### TensorBoard proxy signing secret
+
+The frontend signs scoped TensorBoard proxy paths with
+`TENSORBOARD_PROXY_SIGNING_SECRET`. If this variable is unset, each frontend
+server process generates a random signing secret at startup. This default is
+suitable for the standard single-replica deployment, but existing proxy paths
+become invalid after a restart.
+
+Deployments with multiple frontend replicas, or deployments that need proxy
+paths to survive restarts, must provide the same dedicated random secret of at
+least 32 bytes to every `ml-pipeline-ui` replica. Store it in a Kubernetes
+Secret and reference it from the deployment, for example:
+
+```yaml
+env:
+  - name: TENSORBOARD_PROXY_SIGNING_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: ml-pipeline-ui-tensorboard-proxy
+        key: signing-secret
+```
+
+Do not reuse `MINIO_SECRET_KEY` or another application credential for this
+value. The frontend refuses to start when the configured signing secret is
+shorter than 32 bytes or matches `MINIO_SECRET_KEY`.
+
 ## Proxy
 
 Since KFP 2.5, you can set a server-scoped proxy configuration for the backend by setting any of the following environment variables (in uppercase) in the 

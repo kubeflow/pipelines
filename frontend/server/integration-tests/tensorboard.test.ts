@@ -19,7 +19,7 @@ import { Server } from 'http';
 import * as path from 'path';
 import requests from 'supertest';
 import { UIServer } from '../app.js';
-import { loadConfigs } from '../configs.js';
+import { loadConfigs as loadApplicationConfigs, type ProcessEnv } from '../configs.js';
 import { createTensorboardProxyPath } from '../handlers/tensorboard-proxy.js';
 import { TEST_ONLY as K8S_TEST_EXPORT } from '../k8s-helper.js';
 import { buildQuery, commonSetup, mkTempDir } from './test-helper.js';
@@ -32,10 +32,11 @@ beforeEach(() => {
 
 describe('/apps/tensorboard', () => {
   let app: UIServer;
+  const tensorboardProxySigningSecret = 'tensorboard-proxy-test-secret-at-least-32-bytes';
   const existingTensorboardProxyPath = createTensorboardProxyPath(
     'test-ns',
     'viewer-abcdefg',
-    'minio123',
+    tensorboardProxySigningSecret,
   );
   afterEach(async () => {
     if (app) {
@@ -45,6 +46,13 @@ describe('/apps/tensorboard', () => {
   const tagName = '1.0.0';
   const commitHash = 'abcdefg';
   const { argv } = commonSetup({ tagName, commitHash });
+
+  function loadConfigs(argv: string[], env: ProcessEnv) {
+    return loadApplicationConfigs(argv, {
+      TENSORBOARD_PROXY_SIGNING_SECRET: tensorboardProxySigningSecret,
+      ...env,
+    });
+  }
 
   const POD_TEMPLATE_SPEC = {
     spec: {
