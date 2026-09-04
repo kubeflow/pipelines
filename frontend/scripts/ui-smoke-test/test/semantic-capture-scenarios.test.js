@@ -335,6 +335,38 @@ test('serialized base V2 ROC readiness requires three curves and three provenanc
   assert.equal(evaluateSerializedPredicate(3, 3), true);
 });
 
+test('serialized head ROC selection waits for each committed provenance state', () => {
+  const actions = byKey(
+    resolveSemanticScenarios('head', SEED_VALUES),
+    'compare-roc-selection',
+  ).actions;
+  const optionActions = actions.filter(
+    (action) => action.selector === '[role="option"]:has-text("UI Smoke Training Run 1")',
+  );
+  const transitionPredicates = actions
+    .filter(
+      (action) =>
+        action.type === 'waitForFunction' &&
+        ['twoSelectedRocCurvesReady', 'threeSelectedRocCurvesReady'].includes(
+          action.predicate?.name,
+        ),
+    )
+    .map((action) => action.predicate);
+  const evaluateSerializedPredicate = (predicate, itemCount) =>
+    vm.runInNewContext(`(${predicate.toString()})()`, {
+      document: {
+        querySelectorAll: () => Array.from({ length: itemCount }, () => ({})),
+      },
+    });
+
+  assert.equal(optionActions.length, 2);
+  assert.equal(transitionPredicates.length, 2);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 2), true);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 3), false);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[1], 2), false);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[1], 3), true);
+});
+
 test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
   const base = resolveSemanticScenarios('base', SEED_VALUES);
   const head = resolveSemanticScenarios('head', SEED_VALUES);
@@ -401,7 +433,12 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     headRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
     'ordered-label-cards',
   );
-  assert.equal(headRoc.actions.filter((action) => action.selector === '[role="option"]').length, 2);
+  assert.equal(
+    headRoc.actions.filter(
+      (action) => action.selector === '[role="option"]:has-text("UI Smoke Training Run 1")',
+    ).length,
+    2,
+  );
 
   const headParallelFor = byKey(head, 'topology-parallel-for');
   assert.equal(
