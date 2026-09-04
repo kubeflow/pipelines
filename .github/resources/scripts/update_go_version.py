@@ -530,6 +530,10 @@ def update_repository(repo_root: Path, target_text: str,
                       docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
                       setup_actions: Sequence[Path] =
                       MANAGED_SETUP_GO_ACTIONS) -> List[Path]:
+    # Plan first so rerunning a completed update is a no-op even while that
+    # update's managed-file diff is still uncommitted. Digest resolution is
+    # part of deciding whether the plan is unchanged; writes still require a
+    # clean-path check after resolution.
     plan = plan_update(repo_root, target_text, digest_resolver, docker_pins,
                        setup_actions)
     if not plan.changed_paths:

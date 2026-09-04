@@ -279,7 +279,11 @@ class GoVersionUpdaterTest(unittest.TestCase):
 
     def test_update_is_consistent_and_idempotent(self):
         fixture = RepositoryFixture(self)
-        resolver = lambda _tag: NEW_DIGESTS['1.27.1-alpine']
+        resolver_calls = []
+
+        def resolver(tag):
+            resolver_calls.append(tag)
+            return NEW_DIGESTS['1.27.1-alpine']
 
         changed = fixture.update('1.27.1', resolver)
         self.assertEqual(
@@ -290,6 +294,8 @@ class GoVersionUpdaterTest(unittest.TestCase):
 
         self.assertEqual(fixture.update('1.27.1', resolver), [])
         fixture.check()
+        self.assertEqual(resolver_calls,
+                         ['1.27.1-alpine', '1.27.1-alpine'])
 
     def test_update_rejects_dirty_managed_paths_but_allows_unrelated_changes(self):
         dirty_managed = RepositoryFixture(self)
