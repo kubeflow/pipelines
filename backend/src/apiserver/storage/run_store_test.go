@@ -69,7 +69,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
@@ -90,7 +90,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			ScheduledAtInSec:        2,
 			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
@@ -162,7 +162,7 @@ func TestListRuns_Pagination(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -202,7 +202,7 @@ func TestListRuns_Pagination(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -268,7 +268,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -307,7 +307,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -526,7 +526,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -565,7 +565,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -635,7 +635,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				ScheduledAtInSec:        1,
 				State:                   model.RuntimeStateRunning,
 				Conditions:              "Running",
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -672,7 +672,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				ScheduledAtInSec:        2,
 				State:                   model.RuntimeStateSucceeded,
 				Conditions:              "Succeeded",
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -736,7 +736,7 @@ func TestGetRun(t *testing.T) {
 		Namespace:    "n1",
 		StorageState: model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
@@ -804,7 +804,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 1,
@@ -978,7 +978,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 		ExperimentId: defaultFakeExpId,
 		Namespace:    "n1",
 		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
@@ -1005,7 +1005,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateRunning,
 		},
 		Metrics: []*model.RunMetric{
@@ -1052,7 +1052,7 @@ func TestTerminateRun(t *testing.T) {
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Terminating",
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateCancelling,
 			StateHistory: []*model.RuntimeStatus{
 				{
@@ -1215,7 +1215,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -1254,7 +1254,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -1396,7 +1396,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -1720,7 +1720,7 @@ func TestCreateRunWithPluginsFields(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"my-exp"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"entries":{"root_run_id":{"value":"abc123"}},"state":"PLUGIN_SUCCEEDED","stateMessage":"ok"}}`),
 		},
@@ -1752,7 +1752,7 @@ func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 	}
 	_, err := runStore.CreateRun(run)
@@ -1790,7 +1790,7 @@ func TestUpdateRunPreservesPluginsFields(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"preserved"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_RUNNING"}}`),
 		},
@@ -1884,7 +1884,7 @@ func TestListRunsReturnsPluginsFields(t *testing.T) {
 			CreatedAtInSec:          200,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"list-exp"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_RUNNING"}}`),
 		},
@@ -2639,3 +2639,4 @@ func TestDeleteExpiredArchivedRuns_LegacyAndCurrentCandidates(t *testing.T) {
 	_, err = runStore.GetRun("run-fresh-archived")
 	assert.Nil(t, err, "recently archived run must survive its observation window")
 }
+
