@@ -63,6 +63,10 @@ expected content before changing managed files, resolves one immutable digest
 per image flavor, and is idempotent. Expected validation or resolution errors
 occur before writes begin.
 
+A real update requires managed files to be clean. An immediate no-op rerun may
+leave the updater's previous diff uncommitted; digest resolution therefore
+occurs before the tool decides whether a clean-path check is necessary.
+
 ## Explicit non-goals
 
 The automation does not:
