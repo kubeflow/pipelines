@@ -41,13 +41,6 @@ const css = stylesheet({
     display: 'flex',
     justifyContent: 'space-between',
   },
-  separater: {
-    width: 20, // There's minimum 20px separation between URI and view button.
-    display: 'inline-block',
-  },
-  viewLink: {
-    whiteSpace: 'nowrap',
-  },
 });
 
 export interface ArtifactPreviewProps extends ValueComponentProps<string> {
@@ -98,17 +91,12 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
     providerInfo,
     isDownload: true,
   });
-  const artifactViewUrl = Apis.buildReadFileUrl({ path: storage, namespace, providerInfo });
 
   return (
     <div className={css.root}>
       <div className={css.topDiv}>
         <ExternalLink download href={artifactDownloadUrl} title={linkText}>
           {linkText}
-        </ExternalLink>
-        <span className={css.separater} />
-        <ExternalLink href={artifactViewUrl} className={css.viewLink}>
-          View All
         </ExternalLink>
       </div>
       {isError && (
