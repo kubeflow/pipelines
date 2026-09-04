@@ -38,6 +38,8 @@ def dra_static_claim_check():
     task = verify_dra_static().set_caching_options(False)
     kubernetes.add_resource_claim(
         task, resource_claim_template_name='dra-test-claim')
+    kubernetes.add_resource_claim(
+        task, resource_claim_template_name='dra-test-claim-secondary')
 
 
 if __name__ == "__main__":

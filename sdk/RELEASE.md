@@ -2,6 +2,12 @@
 
 ## Features
 
+* Add Kubernetes Dynamic Resource Allocation support. This feature requires
+  Kubernetes 1.31 or later with the `DynamicResourceAllocation` feature gate
+  enabled (GA and enabled by default in Kubernetes 1.34), an installed DRA
+  driver, and the KFP backend from the same release as this SDK. Older backends
+  reject pipelines containing the new DRA platform field.
+
 ## Breaking changes
 
 ## Deprecations

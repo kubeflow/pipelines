@@ -145,3 +145,34 @@ func TestUnallocatedResourceClaims(t *testing.T) {
 		})
 	}
 }
+
+func TestMissingResourceClaims(t *testing.T) {
+	testCases := []struct {
+		name     string
+		pod      *v1.Pod
+		expected []string
+		want     []string
+	}{
+		{
+			name:     "all expected claims are present",
+			pod:      &v1.Pod{Spec: v1.PodSpec{ResourceClaims: []v1.PodResourceClaim{{Name: "gpu"}, {Name: "nic"}}}},
+			expected: []string{"gpu", "nic"},
+			want:     nil,
+		},
+		{
+			name:     "one expected claim is missing",
+			pod:      &v1.Pod{Spec: v1.PodSpec{ResourceClaims: []v1.PodResourceClaim{{Name: "gpu"}}}},
+			expected: []string{"gpu", "nic"},
+			want:     []string{"nic"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			got := missingResourceClaims(testCase.pod, testCase.expected)
+			if !slices.Equal(got, testCase.want) {
+				t.Fatalf("missingResourceClaims() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}

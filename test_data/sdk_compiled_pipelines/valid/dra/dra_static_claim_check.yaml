@@ -37,3 +37,4 @@ platforms:
         exec-verify-dra-static:
           podResourceClaims:
           - resourceClaimTemplateName: dra-test-claim
+          - resourceClaimTemplateName: dra-test-claim-secondary

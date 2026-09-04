@@ -6,7 +6,7 @@ spec:
   arguments:
     parameters:
     - name: kubernetes-comp-verify-dra-static
-      value: '{"podResourceClaims":[{"resourceClaimTemplateName":"dra-test-claim"}]}'
+      value: '{"podResourceClaims":[{"resourceClaimTemplateName":"dra-test-claim"},{"resourceClaimTemplateName":"dra-test-claim-secondary"}]}'
     - name: components-d97b65ccbd0f50e69a1c033202865af8b29e805efc791324bb82c6db5f20d9ab
       value: '{"executorLabel":"exec-verify-dra-static"}'
     - name: implementations-d97b65ccbd0f50e69a1c033202865af8b29e805efc791324bb82c6db5f20d9ab

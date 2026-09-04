@@ -24,6 +24,11 @@ from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 class ResourceClaimConfig(dict):
     """Typed configuration for a DRA resource claim.
 
+    Requires Kubernetes 1.31 or later with the ``DynamicResourceAllocation``
+    feature gate enabled (GA and enabled by default in Kubernetes 1.34), an
+    installed DRA driver, and a compatible KFP backend from the same release as
+    the SDK support.
+
     Args:
         resource_claim_template_name: Name of a ResourceClaimTemplate in the
             same namespace.
@@ -49,6 +54,12 @@ def add_resource_claim(
     resource_claim_template_name: str,
 ) -> PipelineTask:
     """Add a DRA resource claim to a task.
+
+    Requires Kubernetes 1.31 or later with the ``DynamicResourceAllocation``
+    feature gate enabled (GA and enabled by default in Kubernetes 1.34), an
+    installed DRA driver, and a compatible KFP backend from the same release as
+    the SDK support. The referenced ``ResourceClaimTemplate`` must be in the
+    task's namespace.
 
     Args:
         task: Pipeline task.
@@ -79,6 +90,12 @@ def add_resource_claim_json(
                                List['ResourceClaimConfig']],
 ) -> PipelineTask:
     """Add a DRA resource claim in JSON form to a task.
+
+    Requires Kubernetes 1.31 or later with the ``DynamicResourceAllocation``
+    feature gate enabled (GA and enabled by default in Kubernetes 1.34), an
+    installed DRA driver, and a compatible KFP backend from the same release as
+    the SDK support. Referenced ``ResourceClaimTemplate`` objects must be in the
+    task's namespace.
 
     Args:
         task: Pipeline task.

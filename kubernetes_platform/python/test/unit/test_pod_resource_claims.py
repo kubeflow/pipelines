@@ -15,6 +15,7 @@
 from google.protobuf import json_format
 from kfp import dsl
 from kfp import kubernetes
+from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp_server_api import V2beta1RuntimeConfig
 from kfp_server_api.api_client import ApiClient
 import pytest
@@ -323,6 +324,9 @@ class TestResourceClaimJSON:
                 resource_claim_json=t2.output,
             )
 
+        assert my_pipeline.pipeline_spec.components[
+            'comp-comp-with-output'].output_definitions.parameters[
+                'Output'].parameter_type == pipeline_spec_pb2.ParameterType.STRUCT
         assert json_format.MessageToDict(my_pipeline.platform_spec) == {
             'platforms': {
                 'kubernetes': {
@@ -412,5 +416,5 @@ def comp():
 
 
 @dsl.component()
-def comp_with_output() -> str:
-    pass
+def comp_with_output() -> dict:
+    return {'resourceClaimTemplateName': 'gpu-claim-template'}

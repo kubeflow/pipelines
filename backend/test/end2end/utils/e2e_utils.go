@@ -151,9 +151,9 @@ func CapturePodLogsForUnsuccessfulTasks(k8Client *kubernetes.Clientset, testCont
 	}
 }
 
-// ValidateDRAResourceClaims verifies that at least one workflow pod has
-// DRA resource claims referenced by its workload container and that allocation happened.
-func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string, runID string) {
+// ValidateDRAResourceClaims verifies that at least one workflow pod has all
+// expected DRA resource claims referenced by its workload container and allocated.
+func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string, runID string, expectedClaims []string) {
 	logger.Log("Validating DRA resource claims for run %s", runID)
 
 	pods, err := k8Client.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{
@@ -168,6 +168,10 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string,
 		if len(pod.Spec.ResourceClaims) == 0 {
 			continue
 		}
+
+		missingClaims := missingResourceClaims(pod, expectedClaims)
+		gomega.Expect(missingClaims).To(gomega.BeEmpty(),
+			"Pod %s is missing expected resource claims: %v", pod.Name, missingClaims)
 
 		unreferencedClaims := unreferencedResourceClaims(pod)
 		gomega.Expect(unreferencedClaims).To(gomega.BeEmpty(),
@@ -188,6 +192,21 @@ func ValidateDRAResourceClaims(k8Client *kubernetes.Clientset, namespace string,
 	}
 	gomega.Expect(validated).To(gomega.BeNumerically(">", 0),
 		"No pods with DRA claims found for run %s", runID)
+}
+
+func missingResourceClaims(pod *v1.Pod, expectedClaims []string) []string {
+	present := make(map[string]bool, len(pod.Spec.ResourceClaims))
+	for _, claim := range pod.Spec.ResourceClaims {
+		present[claim.Name] = true
+	}
+
+	var missing []string
+	for _, claimName := range expectedClaims {
+		if !present[claimName] {
+			missing = append(missing, claimName)
+		}
+	}
+	return missing
 }
 
 func unreferencedResourceClaims(pod *v1.Pod) []string {

@@ -258,7 +258,11 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		for _, pipelineFile := range pipelineFiles {
 			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
 				runID := validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
-				e2e_utils.ValidateDRAResourceClaims(k8Client, *config.Namespace, runID)
+				expectedClaims := []string{"dra-test-claim"}
+				if pipelineFile == "dra_static_claim_check.yaml" {
+					expectedClaims = append(expectedClaims, "dra-test-claim-secondary")
+				}
+				e2e_utils.ValidateDRAResourceClaims(k8Client, *config.Namespace, runID, expectedClaims)
 			})
 		}
 	})
