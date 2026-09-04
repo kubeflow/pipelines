@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const capture = require('../capture-screenshots.js');
 const comparison = require('../generate-comparison.js');
@@ -312,30 +313,24 @@ test('legacy Executions readiness waits for a rendered numeric execution identit
   assert.equal(predicate(), false);
 });
 
-test('base V2 ROC readiness requires three curves and three visible provenance rows', (t) => {
-  const originalDocument = global.document;
-  t.after(() => {
-    global.document = originalDocument;
-  });
+test('serialized base V2 ROC readiness requires three curves and three provenance rows', () => {
   const predicate = byKey(
     resolveSemanticScenarios('base', SEED_VALUES),
     'compare-roc-selection',
   ).actions.at(-1).predicate;
-  const installDocument = (curveCount, rowCount) => {
-    global.document = {
-      querySelectorAll: (selector) => {
-        const count = selector.includes('recharts-line') ? curveCount : rowCount;
-        return Array.from({ length: count }, () => ({}));
+  const evaluateSerializedPredicate = (curveCount, rowCount) =>
+    vm.runInNewContext(`(${predicate.toString()})()`, {
+      document: {
+        querySelectorAll: (selector) => {
+          const count = selector.includes('recharts-line') ? curveCount : rowCount;
+          return Array.from({ length: count }, () => ({}));
+        },
       },
-    };
-  };
+    });
 
-  installDocument(2, 3);
-  assert.equal(predicate(), false);
-  installDocument(3, 2);
-  assert.equal(predicate(), false);
-  installDocument(3, 3);
-  assert.equal(predicate(), true);
+  assert.equal(evaluateSerializedPredicate(2, 3), false);
+  assert.equal(evaluateSerializedPredicate(3, 2), false);
+  assert.equal(evaluateSerializedPredicate(3, 3), true);
 });
 
 test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
@@ -343,12 +338,11 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   const head = resolveSemanticScenarios('head', SEED_VALUES);
 
   assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v2');
-  assert.deepEqual(byKey(base, 'executions-to-runs').semanticIdNormalization.scopes[0].kinds, [
-    'execution',
-  ]);
-  assert.deepEqual(byKey(base, 'executions-to-runs').semanticIdNormalization.scopes[1].kinds, [
-    'run',
-  ]);
+  const executionListScopes = byKey(base, 'executions-to-runs').semanticIdNormalization.scopes;
+  assert.deepEqual(executionListScopes[0].kinds, ['execution']);
+  assert.equal(executionListScopes[0].minReplacements, 1);
+  assert.deepEqual(executionListScopes[1].kinds, ['run']);
+  assert.equal(executionListScopes[1].minReplacements, 0);
   const baseArtifactList = byKey(base, 'artifact-list-evolution');
   const headArtifactList = byKey(head, 'artifact-list-evolution');
   assert.deepEqual(
