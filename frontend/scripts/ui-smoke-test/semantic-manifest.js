@@ -2267,7 +2267,101 @@ function expectedDeploymentResourceBindings() {
   return sortObject(expected);
 }
 
-function validateCombinedSemanticManifest(manifest) {
+function validateSemanticDeployment(manifest, role, errors) {
+  const isRecord = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+  const deployment = manifest.deployments?.[role];
+  const expectedFlavor = role === 'base' ? REVISION_FLAVORS.LEGACY : REVISION_FLAVORS.NATIVE;
+  if (!isRecord(deployment)) {
+    errors.push(`${role} deployment is missing`);
+    return;
+  }
+  if (deployment.revisionFlavor !== expectedFlavor) {
+    errors.push(`${role} deployment revisionFlavor must be ${expectedFlavor}`);
+  }
+  if (
+    deployment.validation?.valid !== true ||
+    !Array.isArray(deployment.validation?.errors) ||
+    deployment.validation.errors.length !== 0
+  ) {
+    errors.push(`${role} deployment does not attest successful fixture validation`);
+  }
+  if (!isRecord(deployment.bindings?.resources) || !isRecord(deployment.bindings?.runs)) {
+    errors.push(`${role} deployment bindings are missing`);
+    return;
+  }
+
+  const expectedResources = expectedDeploymentResourceBindings();
+  errors.push(
+    ...exactKeySetErrors(
+      `${role} deployment resource bindings`,
+      deployment.bindings.resources,
+      Object.keys(expectedResources),
+    ),
+    ...exactKeySetErrors(
+      `${role} deployment run bindings`,
+      deployment.bindings.runs,
+      RUN_RESOURCE_DEFINITIONS.map((definition) => definition.semanticKey),
+    ),
+  );
+  const resourceIds = new Map();
+  for (const [semanticKey, expected] of Object.entries(expectedResources)) {
+    const resource = deployment.bindings.resources[semanticKey];
+    if (!isRecord(resource)) {
+      errors.push(`${role} deployment is missing resource binding ${semanticKey}`);
+      continue;
+    }
+    const resourceId = canonicalIdentifier(resource.id);
+    if (resourceId === null) {
+      errors.push(`${role} resource binding ${semanticKey} has an invalid generated ID`);
+    } else {
+      resourceIds.set(semanticKey, resourceId);
+    }
+    if (Object.entries(expected).some(([fieldName, value]) => resource[fieldName] !== value)) {
+      errors.push(`${role} resource binding ${semanticKey} does not match its logical resource`);
+    }
+  }
+
+  const rawRunIds = new Set();
+  for (const definition of RUN_RESOURCE_DEFINITIONS) {
+    const { semanticKey } = definition;
+    const resource = deployment.bindings.resources[semanticKey];
+    const run = deployment.bindings.runs[semanticKey];
+    const rawRunId = resourceIds.get(semanticKey);
+    if (!isRecord(resource) || !rawRunId) {
+      continue;
+    }
+    if (resource.kind !== 'run' || resource.displayName !== definition.displayName) {
+      errors.push(`${role} resource binding ${semanticKey} has invalid kind or display name`);
+    }
+    if (rawRunIds.has(rawRunId)) {
+      errors.push(`${role} deployment reuses generated run ID ${rawRunId}`);
+    }
+    rawRunIds.add(rawRunId);
+    if (!isRecord(run)) {
+      errors.push(`${role} deployment is missing run binding ${semanticKey}`);
+      continue;
+    }
+    const boundRunId = canonicalIdentifier(run.runId);
+    if (
+      boundRunId === null ||
+      boundRunId !== rawRunId ||
+      run.displayName !== definition.displayName ||
+      run.fixtureProfile !== definition.fixtureProfile ||
+      run.revisionFlavor !== expectedFlavor ||
+      (expectedFlavor === REVISION_FLAVORS.LEGACY && run.lineageComplete !== true) ||
+      !isRecord(run.taskInstances) ||
+      !isRecord(run.artifacts)
+    ) {
+      errors.push(`${role} run binding ${semanticKey} does not match its logical resource`);
+      continue;
+    }
+    const runErrors = [];
+    validateRunBinding(semanticKey, run, RUN_PROFILES[definition.fixtureProfile], runErrors);
+    errors.push(...runErrors.map((error) => `${role} ${error}`));
+  }
+}
+
+function validateSemanticManifestContract(manifest, roles) {
   const errors = [];
   const isRecord = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value));
   if (!isRecord(manifest)) {
@@ -2296,103 +2390,50 @@ function validateCombinedSemanticManifest(manifest) {
     }
   }
 
-  for (const role of ['base', 'head']) {
-    const deployment = manifest.deployments?.[role];
-    const expectedFlavor = role === 'base' ? REVISION_FLAVORS.LEGACY : REVISION_FLAVORS.NATIVE;
-    if (!isRecord(deployment)) {
-      errors.push(`${role} deployment is missing`);
-      continue;
-    }
-    if (deployment.revisionFlavor !== expectedFlavor) {
-      errors.push(`${role} deployment revisionFlavor must be ${expectedFlavor}`);
-    }
-    if (
-      deployment.validation?.valid !== true ||
-      !Array.isArray(deployment.validation?.errors) ||
-      deployment.validation.errors.length !== 0
-    ) {
-      errors.push(`${role} deployment does not attest successful fixture validation`);
-    }
-    if (!isRecord(deployment.bindings?.resources) || !isRecord(deployment.bindings?.runs)) {
-      errors.push(`${role} deployment bindings are missing`);
-      continue;
-    }
-
-    const expectedResources = expectedDeploymentResourceBindings();
-    errors.push(
-      ...exactKeySetErrors(
-        `${role} deployment resource bindings`,
-        deployment.bindings.resources,
-        Object.keys(expectedResources),
-      ),
-      ...exactKeySetErrors(
-        `${role} deployment run bindings`,
-        deployment.bindings.runs,
-        RUN_RESOURCE_DEFINITIONS.map((definition) => definition.semanticKey),
-      ),
-    );
-    const resourceIds = new Map();
-    for (const [semanticKey, expected] of Object.entries(expectedResources)) {
-      const resource = deployment.bindings.resources[semanticKey];
-      if (!isRecord(resource)) {
-        errors.push(`${role} deployment is missing resource binding ${semanticKey}`);
-        continue;
-      }
-      const resourceId = canonicalIdentifier(resource.id);
-      if (resourceId === null) {
-        errors.push(`${role} resource binding ${semanticKey} has an invalid generated ID`);
-      } else {
-        resourceIds.set(semanticKey, resourceId);
-      }
-      if (Object.entries(expected).some(([fieldName, value]) => resource[fieldName] !== value)) {
-        errors.push(`${role} resource binding ${semanticKey} does not match its logical resource`);
-      }
-    }
-
-    const rawRunIds = new Set();
-    for (const definition of RUN_RESOURCE_DEFINITIONS) {
-      const { semanticKey } = definition;
-      const resource = deployment.bindings.resources[semanticKey];
-      const run = deployment.bindings.runs[semanticKey];
-      const rawRunId = resourceIds.get(semanticKey);
-      if (!isRecord(resource) || !rawRunId) {
-        continue;
-      }
-      if (resource.kind !== 'run' || resource.displayName !== definition.displayName) {
-        errors.push(`${role} resource binding ${semanticKey} has invalid kind or display name`);
-      }
-      if (rawRunIds.has(rawRunId)) {
-        errors.push(`${role} deployment reuses generated run ID ${rawRunId}`);
-      }
-      rawRunIds.add(rawRunId);
-      if (!isRecord(run)) {
-        errors.push(`${role} deployment is missing run binding ${semanticKey}`);
-        continue;
-      }
-      const boundRunId = canonicalIdentifier(run.runId);
-      if (
-        boundRunId === null ||
-        boundRunId !== rawRunId ||
-        run.displayName !== definition.displayName ||
-        run.fixtureProfile !== definition.fixtureProfile ||
-        run.revisionFlavor !== expectedFlavor ||
-        (expectedFlavor === REVISION_FLAVORS.LEGACY && run.lineageComplete !== true) ||
-        !isRecord(run.taskInstances) ||
-        !isRecord(run.artifacts)
-      ) {
-        errors.push(`${role} run binding ${semanticKey} does not match its logical resource`);
-        continue;
-      }
-      const runErrors = [];
-      validateRunBinding(semanticKey, run, RUN_PROFILES[definition.fixtureProfile], runErrors);
-      errors.push(...runErrors.map((error) => `${role} ${error}`));
-    }
-  }
+  for (const role of roles) validateSemanticDeployment(manifest, role, errors);
 
   if (errors.length > 0) {
     throw new Error(`Semantic fixture manifest failed strict validation: ${errors.join('; ')}`);
   }
   return manifest;
+}
+
+function validateCombinedSemanticManifest(manifest) {
+  return validateSemanticManifestContract(manifest, ['base', 'head']);
+}
+
+function validateRevisionSemanticManifest(manifest, role) {
+  if (role !== 'base' && role !== 'head') {
+    throw new Error(`Semantic revision manifest role must be base or head, received ${role}.`);
+  }
+  return validateSemanticManifestContract(manifest, [role]);
+}
+
+function semanticManifestForRevision(seedManifest, role, revision = {}) {
+  if (role !== 'base' && role !== 'head') {
+    throw new Error(`Semantic revision manifest role must be base or head, received ${role}.`);
+  }
+  const semantic = semanticSection(seedManifest);
+  if (!semantic?.logical) {
+    throw new Error(`${role} seed manifest must contain semantic logical fixtures.`);
+  }
+  const manifest = {
+    deployments: {
+      [role]: {
+        apiBase: seedManifest.apiBase || null,
+        bindings: cloneSorted(semantic.bindings || {}),
+        defaults: cloneSorted(seedManifest.defaults || {}),
+        resources: cloneSorted(seedManifest.resources || {}),
+        revision: cloneSorted({ ...(seedManifest.revision || {}), ...revision, role }),
+        revisionFlavor: semantic.revisionFlavor || REVISION_FLAVORS.UNKNOWN,
+        validation: cloneSorted(semantic.validation || { errors: [], valid: false }),
+      },
+    },
+    fixtureSet: semantic.fixtureSet || SEMANTIC_FIXTURE_SET,
+    logical: cloneSorted(semantic.logical),
+    schemaVersion: SEMANTIC_SCHEMA_VERSION,
+  };
+  return validateSemanticManifestContract(manifest, [role]);
 }
 
 function buildSemanticDeployment({ logical, resourceBindings = {}, runResponses = [] }) {
@@ -2507,6 +2548,28 @@ function combineSemanticManifests(manifestsOrBase, optionalHeadOrOptions, option
   };
 }
 
+function combineRevisionSemanticManifests(baseManifest, headManifest) {
+  validateRevisionSemanticManifest(baseManifest, 'base');
+  validateRevisionSemanticManifest(headManifest, 'head');
+  const combined = {
+    deployments: {
+      base: cloneSorted(baseManifest.deployments.base),
+      head: cloneSorted(headManifest.deployments.head),
+    },
+    fixtureSet: baseManifest.fixtureSet,
+    logical: cloneSorted(baseManifest.logical),
+    schemaVersion: SEMANTIC_SCHEMA_VERSION,
+  };
+  if (
+    headManifest.schemaVersion !== combined.schemaVersion ||
+    headManifest.fixtureSet !== combined.fixtureSet ||
+    stableStringify(headManifest.logical) !== stableStringify(combined.logical)
+  ) {
+    throw new Error('Base and head semantic revision manifests use different fixture contracts.');
+  }
+  return validateCombinedSemanticManifest(combined);
+}
+
 module.exports = {
   ARTIFACT_FIXTURES,
   COMPARISON_RUN_FIXTURES,
@@ -2521,9 +2584,12 @@ module.exports = {
   buildLogicalFixtures,
   buildSemanticDeployment,
   cloneSorted,
+  combineRevisionSemanticManifests,
   combineSemanticManifests,
   detectRevisionFlavor,
   extractRunBinding,
   field,
+  semanticManifestForRevision,
   validateCombinedSemanticManifest,
+  validateRevisionSemanticManifest,
 };

@@ -364,6 +364,28 @@ async function createPair(t, results) {
   return root;
 }
 
+function scopeCaptureToRevisionSemanticManifest(root, role) {
+  const manifestPath = path.join(root, role, 'manifest.json');
+  const captureManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const combined = strictSemanticFixtureManifest();
+  const semanticManifest = {
+    deployments: { [role]: combined.deployments[role] },
+    fixtureSet: combined.fixtureSet,
+    logical: combined.logical,
+    schemaVersion: combined.schemaVersion,
+  };
+  const semanticPath = captureManifest.inputs.semanticManifest.path;
+  const contents = `${JSON.stringify(semanticManifest)}\n`;
+  fs.writeFileSync(semanticPath, contents);
+  captureManifest.inputs.semanticManifest = {
+    path: semanticPath,
+    schemaVersion: semanticManifest.schemaVersion,
+    sha256: sha256(contents),
+    sizeBytes: Buffer.byteLength(contents),
+  };
+  fs.writeFileSync(manifestPath, `${JSON.stringify(captureManifest, null, 2)}\n`);
+}
+
 function writeScenarioConfig(root, scenarios, revisionPair = null) {
   const configPath = path.join(root, 'scenario-config.json');
   fs.writeFileSync(
@@ -383,6 +405,25 @@ function writeScenarioConfig(root, scenarios, revisionPair = null) {
   );
   return configPath;
 }
+
+test('comparison accepts separately attested revision semantic manifests', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  const root = await createPair(t, [
+    {
+      base: captureResult(filename),
+      baseColor: '#222222',
+      head: captureResult(filename),
+      headColor: '#222222',
+    },
+  ]);
+  scopeCaptureToRevisionSemanticManifest(root, 'base');
+  scopeCaptureToRevisionSemanticManifest(root, 'head');
+
+  const run = await comparison.runComparison(options(root));
+
+  assert.equal(run.exitCode, 0, run.summary.fatalErrors.join('; '));
+  assert.equal(run.summary.stats.failed, 0);
+});
 
 test('scenario policy binds revisions and emits five attested managed artifacts', async (t) => {
   const filename = 'executions-to-runs-10x10.png';
@@ -586,7 +627,7 @@ test('comparison rejects swapped roles, provenance drift, and browser instabilit
       mutate: (manifest) => {
         manifest.inputs.semanticManifest.sha256 = 'e'.repeat(64);
       },
-      expected: /different semanticManifest inputs/,
+      expected: /semanticManifest does not match its capture attestation/,
     },
     {
       name: 'browser version drift',

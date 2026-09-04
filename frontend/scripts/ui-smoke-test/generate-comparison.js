@@ -28,7 +28,10 @@ const {
   semanticIdNormalizationRenderingContract,
   semanticIdToken,
 } = require('./semantic-id-normalization');
-const { validateCombinedSemanticManifest } = require('./semantic-manifest');
+const {
+  combineRevisionSemanticManifests,
+  validateRevisionSemanticManifest,
+} = require('./semantic-manifest');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
@@ -2302,7 +2305,7 @@ function loadAttestedJsonArtifact(attestation, description) {
 function validateSemanticNormalizationAgainstCatalog(manifest, role, semanticManifest) {
   let catalog;
   try {
-    validateCombinedSemanticManifest(semanticManifest);
+    validateRevisionSemanticManifest(semanticManifest, role);
     catalog = require('./capture-screenshots').buildSemanticIdentifierCatalog(
       semanticManifest,
       role,
@@ -2387,7 +2390,6 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       'manifest',
     );
   }
-  assertMatchingPairInput(base.semanticManifest, head.semanticManifest, 'semanticManifest');
   assertMatchingPairInput(base.sourceProvenance, head.sourceProvenance, 'sourceProvenance');
   if (Boolean(base.semanticManifest) !== Boolean(base.sourceProvenance)) {
     throw new ComparisonError(
@@ -2406,12 +2408,11 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       headManifest.inputs.semanticManifest,
       'Head semanticManifest',
     );
-    if (
-      JSON.stringify(canonicalizeJson(baseSemanticManifest)) !==
-      JSON.stringify(canonicalizeJson(headSemanticManifest))
-    ) {
+    try {
+      combineRevisionSemanticManifests(baseSemanticManifest, headSemanticManifest);
+    } catch (error) {
       throw new ComparisonError(
-        'Base and head semanticManifest artifacts do not contain the same fixture mapping.',
+        `Base and head semantic manifests do not form a valid fixture pair: ${error.message}`,
         'manifest',
       );
     }
