@@ -22,6 +22,7 @@ on:
       - '.github/resources/buildkitd.toml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/*.py'
+      - '.github/resources/scripts/*.js'
       # The observability shell scripts are covered by Python-driven tests.
       - '.github/resources/scripts/*.sh'
       - '.github/resources/scripts/kfp-readiness/**'
@@ -40,6 +41,7 @@ on:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/ci-scripts-tests.yml'
       - '.github/workflows/gh-workflow-approve.yml'
+      - '.github/workflows/sync-maintainer-project-label.yml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-configmap-patch.yaml'
       - 'manifests/kustomize/third-party/argo/base/workflow-controller-deployment-patch.yaml'
       - 'manifests/kustomize/third-party/argo/base/kustomization.yaml'
@@ -69,6 +71,9 @@ jobs:
       - name: Run Python script unit tests
         working-directory: .github/resources/scripts
         run: python3 -m unittest discover -v -p '*_test.py'
+      - name: Run JavaScript script unit tests
+        working-directory: .github/resources/scripts
+        run: node --test '*_test.js'
       - name: Run JUnit summary action unit tests
         working-directory: .github/actions/junit-summary
         run: python3 -m unittest discover -v -p '*_test.py'
