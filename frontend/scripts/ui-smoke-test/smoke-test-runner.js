@@ -12,7 +12,7 @@ const clusterManager = require('./cluster-manager');
 const { COMPONENTS, detectChanges } = require('./detect-changes');
 const { SEED_FIXTURE_RUNTIME_REQUIREMENTS, seedData } = require('./seed-data');
 const { SEMANTIC_ID_NORMALIZATION_MODES } = require('./semantic-id-normalization');
-const { combineSemanticManifests } = require('./semantic-manifest');
+const { combineSemanticManifests, semanticManifestForRevision } = require('./semantic-manifest');
 const {
   CAPTURE_VALIDITY,
   CONTRACT_VERSION: UPGRADE_CONTRACT_VERSION,
@@ -1696,74 +1696,42 @@ function fullCaptureEnvironment(options, env = process.env) {
   return captureEnvironment;
 }
 
-async function capturePair({
-  baseUrl,
-  headUrl,
-  screenshotsDir,
-  labels,
-  options,
-  baseSeedManifestPath,
-  headSeedManifestPath,
-  semanticManifestPath,
+async function captureRevision({
+  label,
   normalizationMode,
+  options,
+  outputDir,
+  revisionRole,
   seedManifestPath,
+  semanticManifestPath,
   sourceProvenancePath,
+  runChildImpl = runChild,
+  url,
+}) {
+  return runChildImpl(
+    process.execPath,
+    captureArguments(url, outputDir, label, seedManifestPath, {
+      normalizationMode,
+      revisionRole,
+      semanticManifestPath,
+      sourceProvenancePath,
+    }),
+    {
+      cwd: SCRIPT_DIR,
+      env: fullCaptureEnvironment(options),
+    },
+  );
+}
+
+async function generateComparison({
+  screenshotsDir,
+  options,
   runChildImpl = runChild,
   scenarioCatalog = null,
   writeScenarioConfig = null,
 }) {
-  const resolvedBaseSeedManifest = baseSeedManifestPath || seedManifestPath;
-  const resolvedHeadSeedManifest = headSeedManifestPath || seedManifestPath;
-  if (!resolvedBaseSeedManifest || !resolvedHeadSeedManifest) {
-    throw new Error('Both base and head seed manifests are required for paired capture.');
-  }
-  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(normalizationMode)) {
-    throw new Error('Paired capture requires an explicit semantic ID normalization mode.');
-  }
-  if (
-    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK &&
-    (!semanticManifestPath || !sourceProvenancePath)
-  ) {
-    throw new Error('Semantic full-stack capture requires semantic and source provenance.');
-  }
-  if (
-    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY &&
-    (semanticManifestPath || sourceProvenancePath)
-  ) {
-    throw new Error('Browser-compatibility capture cannot accept semantic or source provenance.');
-  }
-  const captureEnvironment = fullCaptureEnvironment(options);
   const baseDir = path.join(screenshotsDir, 'base');
   const headDir = path.join(screenshotsDir, 'head');
-  const [baseCapture, headCapture] = await Promise.all([
-    runChildImpl(
-      process.execPath,
-      captureArguments(baseUrl, baseDir, labels.base, resolvedBaseSeedManifest, {
-        normalizationMode,
-        revisionRole: 'base',
-        semanticManifestPath,
-        sourceProvenancePath,
-      }),
-      {
-        cwd: SCRIPT_DIR,
-        env: captureEnvironment,
-      },
-    ),
-    runChildImpl(
-      process.execPath,
-      captureArguments(headUrl, headDir, labels.head, resolvedHeadSeedManifest, {
-        normalizationMode,
-        revisionRole: 'head',
-        semanticManifestPath,
-        sourceProvenancePath,
-      }),
-      {
-        cwd: SCRIPT_DIR,
-        env: captureEnvironment,
-      },
-    ),
-  ]);
-
   const scenarioConfigPath = path.join(screenshotsDir, 'scenario-config.json');
   const writeConfig =
     writeScenarioConfig || require('./generate-comparison').writeBoundScenarioConfig;
@@ -1807,7 +1775,79 @@ async function capturePair({
     { cwd: SCRIPT_DIR },
   );
 
-  return { baseCapture, comparison, comparisonDir, headCapture, scenarioConfigPath };
+  return { comparison, comparisonDir, scenarioConfigPath };
+}
+
+async function capturePair({
+  baseUrl,
+  headUrl,
+  screenshotsDir,
+  labels,
+  options,
+  baseSeedManifestPath,
+  headSeedManifestPath,
+  semanticManifestPath,
+  normalizationMode,
+  seedManifestPath,
+  sourceProvenancePath,
+  runChildImpl = runChild,
+  scenarioCatalog = null,
+  writeScenarioConfig = null,
+}) {
+  const resolvedBaseSeedManifest = baseSeedManifestPath || seedManifestPath;
+  const resolvedHeadSeedManifest = headSeedManifestPath || seedManifestPath;
+  if (!resolvedBaseSeedManifest || !resolvedHeadSeedManifest) {
+    throw new Error('Both base and head seed manifests are required for paired capture.');
+  }
+  if (!Object.values(SEMANTIC_ID_NORMALIZATION_MODES).includes(normalizationMode)) {
+    throw new Error('Paired capture requires an explicit semantic ID normalization mode.');
+  }
+  if (
+    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK &&
+    (!semanticManifestPath || !sourceProvenancePath)
+  ) {
+    throw new Error('Semantic full-stack capture requires semantic and source provenance.');
+  }
+  if (
+    normalizationMode === SEMANTIC_ID_NORMALIZATION_MODES.BROWSER_COMPATIBILITY &&
+    (semanticManifestPath || sourceProvenancePath)
+  ) {
+    throw new Error('Browser-compatibility capture cannot accept semantic or source provenance.');
+  }
+  const [baseCapture, headCapture] = await Promise.all([
+    captureRevision({
+      label: labels.base,
+      normalizationMode,
+      options,
+      outputDir: path.join(screenshotsDir, 'base'),
+      revisionRole: 'base',
+      runChildImpl,
+      seedManifestPath: resolvedBaseSeedManifest,
+      semanticManifestPath,
+      sourceProvenancePath,
+      url: baseUrl,
+    }),
+    captureRevision({
+      label: labels.head,
+      normalizationMode,
+      options,
+      outputDir: path.join(screenshotsDir, 'head'),
+      revisionRole: 'head',
+      runChildImpl,
+      seedManifestPath: resolvedHeadSeedManifest,
+      semanticManifestPath,
+      sourceProvenancePath,
+      url: headUrl,
+    }),
+  ]);
+  const comparisonResult = await generateComparison({
+    options,
+    runChildImpl,
+    scenarioCatalog,
+    screenshotsDir,
+    writeScenarioConfig,
+  });
+  return { baseCapture, headCapture, ...comparisonResult };
 }
 
 async function publishReport(options, comparisonDir) {
@@ -1864,6 +1904,7 @@ function comparisonServices(overrides = {}) {
     buildExternalFrontend,
     buildTrustedFrontend,
     capturePair,
+    captureRevision,
     clusterManager,
     combineSemanticManifests,
     componentsForRevision,
@@ -1874,6 +1915,7 @@ function comparisonServices(overrides = {}) {
     fullSha,
     findReusableComponents,
     gitOutput,
+    generateComparison,
     loadUpgradeAdapter,
     materializeTrustedHeadSnapshot,
     orchestrateUpgrade,
@@ -1888,6 +1930,7 @@ function comparisonServices(overrides = {}) {
     resolvePublishedReleaseCommit,
     scriptDir: SCRIPT_DIR,
     seedData,
+    semanticManifestForRevision,
     shortSha,
     spawnManaged,
     stackConfiguration,
@@ -2365,17 +2408,6 @@ async function runFullStackComparisonOrchestration({
           tagSuffix: `${run.runId}-base`,
         })
       : { deployments: [], images: {}, runtimeEnvironment: {} };
-
-  state.phase = 'head_image_build';
-  const builtHeadImageOverrides =
-    headComponentsToBuild.length > 0
-      ? await headStack.buildComponentImages(headComponentsToBuild, headRoot, {
-          buildMetadata: headBuildMetadata,
-          load: false,
-          platform: targetPlatform,
-          tagSuffix: `${run.runId}-head`,
-        })
-      : { deployments: [], images: {}, runtimeEnvironment: {} };
   const reusedHeadImageOverrides =
     reusableHeadComponents.length > 0
       ? headStack.reuseComponentImages(reusableHeadComponents, baseImageOverrides, {
@@ -2383,7 +2415,6 @@ async function runFullStackComparisonOrchestration({
           tagSuffix: `${run.runId}-head`,
         })
       : { deployments: [], images: {}, runtimeEnvironment: {} };
-  const headImageOverrides = mergeImageOverrides(builtHeadImageOverrides, reusedHeadImageOverrides);
   if (reusableHeadComponents.length > 0) {
     log(
       `Reused byte-identical base images for head: ${reusableHeadComponents
@@ -2392,98 +2423,57 @@ async function runFullStackComparisonOrchestration({
     );
   }
 
-  state.phase = 'cluster_creation';
-  await Promise.all([baseStack.createCluster(), headStack.createCluster()]);
-  for (const stack of [baseStack, headStack]) {
+  const dirty = services.gitOutput(['status', '--porcelain'], headRoot) ? '+dirty' : '';
+  const displayNumber = options.displayPrNumber;
+  const snapshotLabel = sourceFingerprintLabel(sourceProvenance);
+  const headIdentity = `${expectedHeadSha}${dirty}${snapshotLabel ? `; ${snapshotLabel}` : ''}`;
+  const labels = {
+    base: `base: ${changes.baseRef} (${baseCommitSha}) [isolated full stack]`,
+    head: displayNumber
+      ? `PR #${displayNumber} (${headIdentity}) [isolated full stack]`
+      : `HEAD (${headIdentity}) [isolated full stack]`,
+  };
+  const screenshotsDir = path.join(run.runDir, 'screenshots');
+  const seedManifestPaths = {
+    base: path.join(run.runDir, 'seed', 'base.json'),
+    head: path.join(run.runDir, 'seed', 'head.json'),
+  };
+  const revisionSemanticManifestPaths = {
+    base: path.join(run.runDir, 'semantic', 'base.json'),
+    head: path.join(run.runDir, 'semantic', 'head.json'),
+  };
+
+  const createValidatedCluster = async (stack, role) => {
+    state.phase = `${role}_cluster_creation`;
+    await stack.createCluster();
     const actualPlatform = stack.getClusterPlatform();
     if (actualPlatform !== targetPlatform) {
       throw new Error(
         `Kind cluster ${stack.clusterName} uses ${actualPlatform}, but images were preflighted for ${targetPlatform}.`,
       );
     }
-  }
-  // Establish the pinned base stack before starting any head workload. All reviewed local images
-  // were already built for the validated target platform while no cluster existed.
-  state.phase = 'base_deployment';
-  if (Object.keys(baseImageOverrides.images).length > 0) {
-    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform, {
-      removeSourceAfterLoad: true,
-    });
-  }
-  await baseStack.deployRevision(baseWorktree, {
-    ...(baseRelease ? { expectedRelease: baseRelease.version } : {}),
-    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
-    imageOverrides: baseImageOverrides,
-    platform: targetPlatform,
-    requireLocalFirstParty: !baseRelease,
-  });
-  if (Object.keys(headImageOverrides.images).length > 0) {
-    headStack.loadImageOverrides(headImageOverrides, targetPlatform, {
-      removeSourceAfterLoad: true,
-    });
-  }
-  state.phase = 'head_deployment';
-  await headStack.deployRevision(headRoot, {
-    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
-    imageOverrides: headImageOverrides,
-    platform: targetPlatform,
-    requireLocalFirstParty: true,
-    tagSuffix: `${run.runId}-head`,
-  });
-  state.phase = 'ui_readiness';
-  const [[baseUiForward], [headUiForward]] = await Promise.all([
-    baseStack.ensureDeployedUiPortForwarding(),
-    headStack.ensureDeployedUiPortForwarding(),
-  ]);
-  const baseUrl = baseStack.deployedUiUrl;
-  const headUrl = headStack.deployedUiUrl;
-  await Promise.all([
-    services.waitForUrl(baseUrl, baseUiForward),
-    services.waitForUrl(headUrl, headUiForward),
-  ]);
+  };
 
-  state.phase = 'fixture_seeding';
-  const baseSeedManifestPath = path.join(run.runDir, 'seed', 'base.json');
-  const headSeedManifestPath = path.join(run.runDir, 'seed', 'head.json');
-  const [baseSeed, headSeed] = await Promise.all([
-    services.seedData({
-      apiBase: baseUrl,
-      manifestPath: baseSeedManifestPath,
+  const seedValidateAndCapture = async ({ configuration, role, stack }) => {
+    state.phase = `${role}_ui_readiness`;
+    const [uiForward] = await stack.ensureDeployedUiPortForwarding();
+    const url = stack.deployedUiUrl;
+    await services.waitForUrl(url, uiForward);
+    state.phase = `${role}_fixture_seeding`;
+    const seedResult = await services.seedData({
+      apiBase: url,
+      manifestPath: seedManifestPaths[role],
       waitForCreatedRuns: true,
-    }),
-    services.seedData({
-      apiBase: headUrl,
-      manifestPath: headSeedManifestPath,
-      waitForCreatedRuns: true,
-    }),
-  ]);
-  if (!baseSeed.success || !headSeed.success) {
-    const failures = [
-      !baseSeed.success ? `base: ${baseSeed.error || 'unknown error'}` : null,
-      !headSeed.success ? `head: ${headSeed.error || 'unknown error'}` : null,
-    ].filter(Boolean);
-    const seedCategories = [baseSeed, headSeed]
-      .filter((seed) => !seed.success)
-      .map(seedFailureCategory);
-    const category = seedCategories.includes('api_incompatibility')
-      ? 'api_incompatibility'
-      : seedCategories.includes('missing_fixture')
-        ? 'missing_fixture'
-        : 'seed_failure';
-    throw categorizedFullStackError(
-      category,
-      `Revision-aware fixture seeding failed (${failures.join('; ')}).`,
-      { base: baseSeed, head: headSeed },
-    );
-  }
-
-  state.phase = 'fixture_validation';
-  const baseSeedManifest = loadJson(baseSeedManifestPath);
-  const headSeedManifest = loadJson(headSeedManifestPath);
-  for (const [role, manifest, configuration] of [
-    ['base', baseSeedManifest, baseConfiguration],
-    ['head', headSeedManifest, headConfiguration],
-  ]) {
+    });
+    if (!seedResult.success) {
+      throw categorizedFullStackError(
+        seedFailureCategory(seedResult),
+        `Revision-aware fixture seeding failed (${role}: ${seedResult.error || 'unknown error'}).`,
+        { [role]: seedResult },
+      );
+    }
+    state.phase = `${role}_fixture_validation`;
+    const manifest = loadJson(seedManifestPaths[role]);
     if (manifest.semantic?.validation?.valid !== true) {
       const errors = manifest.semantic?.validation?.errors || ['semantic validation was absent'];
       throw categorizedFullStackError(
@@ -2499,11 +2489,93 @@ async function runFullStackComparisonOrchestration({
         `${role} revision data model mismatch: expected ${expectedFlavor}, received ${manifest.semantic.revisionFlavor || 'unknown'}.`,
       );
     }
+    const revision =
+      role === 'base'
+        ? { commit: baseCommitSha, ref: changes.baseDisplayRef || changes.baseRef }
+        : {
+            commit: expectedHeadSha,
+            ref: 'HEAD',
+            sourceFingerprint: sourceProvenance?.fingerprint || null,
+            tree: sourceProvenance?.revision?.tree || null,
+          };
+    services.writeJson(
+      revisionSemanticManifestPaths[role],
+      services.semanticManifestForRevision(manifest, role, revision),
+    );
+    state.phase = `${role}_capture`;
+    const capture = await services.captureRevision({
+      label: labels[role],
+      normalizationMode: SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK,
+      options,
+      outputDir: path.join(screenshotsDir, role),
+      revisionRole: role,
+      seedManifestPath: seedManifestPaths[role],
+      semanticManifestPath: revisionSemanticManifestPaths[role],
+      sourceProvenancePath,
+      url,
+    });
+    state.captureResults = { ...(state.captureResults || {}), [`${role}Capture`]: capture };
+    state.phase = `${role}_cleanup`;
+    await stack.cleanup();
+    await requireStackDestroyed(stack);
+    return { capture, manifest };
+  };
+
+  await createValidatedCluster(baseStack, 'base');
+  state.phase = 'base_deployment';
+  if (Object.keys(baseImageOverrides.images).length > 0) {
+    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform, {
+      removeSourceAfterLoad: true,
+    });
   }
+  await baseStack.deployRevision(baseWorktree, {
+    ...(baseRelease ? { expectedRelease: baseRelease.version } : {}),
+    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
+    imageOverrides: baseImageOverrides,
+    platform: targetPlatform,
+    requireLocalFirstParty: !baseRelease,
+  });
+  const baseResult = await seedValidateAndCapture({
+    configuration: baseConfiguration,
+    role: 'base',
+    stack: baseStack,
+  });
+
+  state.phase = 'head_image_build';
+  const builtHeadImageOverrides =
+    headComponentsToBuild.length > 0
+      ? await headStack.buildComponentImages(headComponentsToBuild, headRoot, {
+          buildMetadata: headBuildMetadata,
+          load: false,
+          platform: targetPlatform,
+          tagSuffix: `${run.runId}-head`,
+        })
+      : { deployments: [], images: {}, runtimeEnvironment: {} };
+  const headImageOverrides = mergeImageOverrides(builtHeadImageOverrides, reusedHeadImageOverrides);
+  await createValidatedCluster(headStack, 'head');
+  if (Object.keys(headImageOverrides.images).length > 0) {
+    headStack.loadImageOverrides(headImageOverrides, targetPlatform, {
+      removeSourceAfterLoad: true,
+    });
+  }
+  state.phase = 'head_deployment';
+  await headStack.deployRevision(headRoot, {
+    fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
+    imageOverrides: headImageOverrides,
+    platform: targetPlatform,
+    requireLocalFirstParty: true,
+    tagSuffix: `${run.runId}-head`,
+  });
+  const headResult = await seedValidateAndCapture({
+    configuration: headConfiguration,
+    role: 'head',
+    stack: headStack,
+  });
+
   const semanticManifest = services.combineSemanticManifests(
     {
-      base: baseSeedManifest,
-      head: headSeedManifest,
+      base: baseResult.manifest,
+      head: headResult.manifest,
     },
     {
       revisions: {
@@ -2520,31 +2592,17 @@ async function runFullStackComparisonOrchestration({
   const semanticManifestPath = path.join(run.runDir, 'semantic-fixtures.json');
   services.writeJson(semanticManifestPath, semanticManifest);
 
-  const dirty = services.gitOutput(['status', '--porcelain'], headRoot) ? '+dirty' : '';
-  const displayNumber = options.displayPrNumber;
-  const snapshotLabel = sourceFingerprintLabel(sourceProvenance);
-  const headIdentity = `${expectedHeadSha}${dirty}${snapshotLabel ? `; ${snapshotLabel}` : ''}`;
-  const headLabel = displayNumber
-    ? `PR #${displayNumber} (${headIdentity}) [isolated full stack]`
-    : `HEAD (${headIdentity}) [isolated full stack]`;
-  state.phase = 'capture';
-  const results = await services.capturePair({
-    baseSeedManifestPath,
-    baseUrl,
-    headSeedManifestPath,
-    headUrl,
-    labels: {
-      base: `base: ${changes.baseRef} (${baseCommitSha}) [isolated full stack]`,
-      head: headLabel,
-    },
-    options,
-    screenshotsDir: path.join(run.runDir, 'screenshots'),
-    semanticManifestPath,
-    normalizationMode: SEMANTIC_ID_NORMALIZATION_MODES.SEMANTIC_FULL_STACK,
-    sourceProvenancePath,
-  });
-  state.captureResults = results;
   state.phase = 'comparison';
+  const comparisonResult = await services.generateComparison({
+    options,
+    screenshotsDir,
+  });
+  const results = {
+    baseCapture: baseResult.capture,
+    headCapture: headResult.capture,
+    ...comparisonResult,
+  };
+  state.captureResults = results;
   const success = await finishComparison(options, services, results, headRoot, expectedHeadSha);
 
   if (!results.baseCapture.success || !results.headCapture.success) {
@@ -2556,10 +2614,6 @@ async function runFullStackComparisonOrchestration({
       state,
     });
   }
-
-  state.phase = 'cleanup';
-  await Promise.all([baseStack.cleanup(), headStack.cleanup()]);
-  await Promise.all([requireStackDestroyed(baseStack), requireStackDestroyed(headStack)]);
 
   log(`Semantic fixture map: ${semanticManifestPath}`);
   log(`Run artifacts: ${run.runDir}`);
@@ -2940,6 +2994,7 @@ module.exports = {
   assertNodeVersion,
   assertNpmVersion,
   capturePair,
+  captureRevision,
   componentsForRevision,
   comparisonServices,
   createRunDirectory,
@@ -2950,6 +3005,7 @@ module.exports = {
   findReusableComponents,
   fullSha,
   fullCaptureEnvironment,
+  generateComparison,
   helpText,
   loadUpgradeAdapter,
   materializeTrustedHeadSnapshot,

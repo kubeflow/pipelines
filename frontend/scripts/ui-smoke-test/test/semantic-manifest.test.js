@@ -10,9 +10,11 @@ const {
   SEMANTIC_SCHEMA_VERSION,
   buildLogicalFixtures,
   buildSemanticDeployment,
+  combineRevisionSemanticManifests,
   combineSemanticManifests,
   detectRevisionFlavor,
   extractRunBinding,
+  semanticManifestForRevision,
   validateCombinedSemanticManifest,
 } = require('../semantic-manifest');
 const { RICH_PIPELINE_YAML } = require('../seed-data');
@@ -52,6 +54,40 @@ test('combined semantic fixture validation recomputes required bindings instead 
   assert.throws(
     () => validateCombinedSemanticManifest(wrongLabel),
     /run\.evaluation has invalid kind or display name/,
+  );
+});
+
+test('revision semantic manifests recombine into the exact validated fixture pair', () => {
+  const combined = strictSemanticFixtureManifest();
+  const seedManifest = (role) => ({
+    defaults: combined.deployments[role].defaults,
+    resources: combined.deployments[role].resources,
+    semantic: {
+      bindings: combined.deployments[role].bindings,
+      fixtureSet: combined.fixtureSet,
+      logical: combined.logical,
+      revisionFlavor: combined.deployments[role].revisionFlavor,
+      validation: combined.deployments[role].validation,
+    },
+  });
+  const base = semanticManifestForRevision(seedManifest('base'), 'base', {
+    commit: 'base-commit',
+  });
+  const head = semanticManifestForRevision(seedManifest('head'), 'head', {
+    commit: 'head-commit',
+  });
+  const recombined = combineRevisionSemanticManifests(base, head);
+
+  assert.deepEqual(recombined.deployments.base.bindings, combined.deployments.base.bindings);
+  assert.deepEqual(recombined.deployments.head.bindings, combined.deployments.head.bindings);
+  assert.equal(recombined.deployments.base.revision.commit, 'base-commit');
+  assert.equal(recombined.deployments.head.revision.commit, 'head-commit');
+  assert.equal(validateCombinedSemanticManifest(recombined), recombined);
+
+  head.logical.resources['run.training-1'].displayName = 'Drifted';
+  assert.throws(
+    () => combineRevisionSemanticManifests(base, head),
+    /logical\.resources does not match the deterministic fixture contract/,
   );
 });
 

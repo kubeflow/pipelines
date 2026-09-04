@@ -202,6 +202,10 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
         headCapture: { success: true },
       };
     },
+    async captureRevision(options) {
+      calls.capture.push(options);
+      return { success: true };
+    },
     clusterManager: cluster,
     detectChanges(baseRef, headRef, options) {
       calls.detect.push({ baseRef, headRef, options });
@@ -218,6 +222,13 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
       return gitRef === changes.baseRef || gitRef.startsWith('refs/tags/')
         ? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
         : 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    },
+    async generateComparison(options) {
+      return {
+        comparison: { success: true },
+        comparisonDir: path.join(options.screenshotsDir, 'comparison'),
+        scenarioConfigPath: path.join(options.screenshotsDir, 'scenario-config.json'),
+      };
     },
     gitOutput() {
       return '';
@@ -257,6 +268,21 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
     async seedData(options) {
       calls.seed.push(options);
       return { success: true };
+    },
+    semanticManifestForRevision(manifest, role, revision) {
+      return {
+        deployments: {
+          [role]: {
+            bindings: manifest.semantic?.bindings || {},
+            revision,
+            revisionFlavor: manifest.semantic?.revisionFlavor,
+            validation: manifest.semantic?.validation,
+          },
+        },
+        fixtureSet: manifest.semantic?.fixtureSet || 'ui-smoke-deterministic-v3',
+        logical: manifest.semantic?.logical || {},
+        schemaVersion: 'ui-smoke-semantic/v3',
+      };
     },
     shortSha(gitRef) {
       return `sha-${gitRef}`;
@@ -1648,19 +1674,26 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
       { child: { role: 'head' }, url: 'http://127.0.0.1:3201' },
     ],
   );
-  assert.equal(calls.capture[0].baseUrl, 'http://127.0.0.1:3101');
-  assert.equal(calls.capture[0].headUrl, 'http://127.0.0.1:3201');
-  assert.equal(calls.capture[0].baseSeedManifestPath, calls.seed[0].manifestPath);
-  assert.equal(calls.capture[0].headSeedManifestPath, calls.seed[1].manifestPath);
+  assert.equal(calls.capture.length, 2);
+  assert.equal(calls.capture[0].revisionRole, 'base');
+  assert.equal(calls.capture[0].url, 'http://127.0.0.1:3101');
+  assert.equal(calls.capture[0].seedManifestPath, calls.seed[0].manifestPath);
+  assert.equal(calls.capture[1].revisionRole, 'head');
+  assert.equal(calls.capture[1].url, 'http://127.0.0.1:3201');
+  assert.equal(calls.capture[1].seedManifestPath, calls.seed[1].manifestPath);
   assert.equal(
     calls.capture[0].semanticManifestPath,
-    path.join(run.runDir, 'semantic-fixtures.json'),
+    path.join(run.runDir, 'semantic', 'base.json'),
+  );
+  assert.equal(
+    calls.capture[1].semanticManifestPath,
+    path.join(run.runDir, 'semantic', 'head.json'),
   );
   assert.equal(
     calls.capture[0].sourceProvenancePath,
     path.join(run.runDir, 'source-provenance.json'),
   );
-  assert.match(calls.capture[0].labels.head, /source cccccccccccc/);
+  assert.match(calls.capture[1].label, /source cccccccccccc/);
   assert.ok(fs.existsSync(path.join(run.runDir, 'source-provenance.json')));
   assert.ok(fs.existsSync(path.join(run.runDir, 'semantic-fixtures.json')));
   const semanticManifest = JSON.parse(
@@ -1715,6 +1748,8 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   const baseSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
   const headSha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
   const stackOperations = [];
+  let activeClusters = 0;
+  let peakActiveClusters = 0;
   const { calls, repoRoot, run, services } = orchestrationHarness(
     t,
     {
@@ -1751,12 +1786,15 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
               record('cleanup');
             },
             async createCluster() {
+              activeClusters += 1;
+              peakActiveClusters = Math.max(peakActiveClusters, activeClusters);
               record('createCluster');
             },
             async deployRevision(target, options) {
               record('deployRevision', { options, target });
             },
             async destroyCluster() {
+              activeClusters -= 1;
               record('destroyCluster');
               return true;
             },
@@ -1864,6 +1902,8 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   );
 
   assert.equal(calls.detect[0].baseRef, baseSha);
+  assert.equal(peakActiveClusters, 1);
+  assert.equal(activeClusters, 0);
   assert.deepEqual(calls.worktrees, [{ gitRef: baseSha, target: baseWorktree }]);
   assert.deepEqual(calls.snapshots, [{ sourceRoot: repoRoot, targetRoot: headWorktree }]);
   assert.deepEqual(
@@ -1899,12 +1939,19 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
     reusedImage.sourceOverrides.images.visualization,
     'kfp-ui-smoke/base-visualization:test',
   );
-  const firstCluster = stackOperations.findIndex(({ operation }) => operation === 'createCluster');
-  const lastBuild = stackOperations.reduce(
-    (index, entry, current) => (entry.operation === 'buildComponentImages' ? current : index),
-    -1,
+  const operationIndex = (operation, role) =>
+    stackOperations.findIndex(
+      (entry) => entry.operation === operation && (role === undefined || entry.role === role),
+    );
+  assert.ok(
+    operationIndex('buildComponentImages', 'base') < operationIndex('createCluster', 'base'),
   );
-  assert.ok(lastBuild >= 0 && lastBuild < firstCluster);
+  assert.ok(
+    operationIndex('destroyCluster', 'base') < operationIndex('buildComponentImages', 'head'),
+  );
+  assert.ok(
+    operationIndex('buildComponentImages', 'head') < operationIndex('createCluster', 'head'),
+  );
   assert.deepEqual(
     stackOperations
       .filter(({ operation }) => operation === 'deployRevision')
@@ -2036,7 +2083,7 @@ test('full-stack seed failures persist categorized JSON, HTML, and stack diagnos
   assert.equal(diagnostic.schemaVersion, 'ui-smoke-full-stack-diagnostics/v1');
   assert.equal(diagnostic.category, 'seed_failure');
   assert.equal(diagnostic.captureValidity, 'seed_failure');
-  assert.equal(diagnostic.phase, 'fixture_seeding');
+  assert.equal(diagnostic.phase, 'base_fixture_seeding');
   assert.equal(diagnostic.stacks.length, 2);
   assert.deepEqual(
     collected.map(({ options, role }) => ({
@@ -2065,49 +2112,51 @@ test('incomplete full-stack captures retain browser diagnostics and attribute se
     t,
     { backendChanged: true, baseRef: '2.17.1' },
     {
-      async capturePair(options) {
-        for (const role of ['base', 'head']) {
-          const directory = path.join(options.screenshotsDir, role);
-          fs.mkdirSync(directory, { recursive: true });
-          const degraded = role === 'head';
-          fs.writeFileSync(
-            path.join(directory, 'manifest.json'),
-            JSON.stringify({
-              browserDiagnostics: degraded
-                ? {
-                    consoleErrors: ['render failed'],
-                    failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
-                  }
-                : { consoleErrors: [], failedRequests: [] },
-              complete: !degraded,
-              fatalErrors: [],
-              results: [
-                {
-                  captureValidity: degraded ? 'selector_drift' : 'valid',
-                  diagnostics: degraded
-                    ? {
-                        consoleErrors: ['route component failed'],
-                        droppedConsoleErrors: 3,
-                        droppedFailedRequests: 2,
-                        failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
-                      }
-                    : { consoleErrors: [], failedRequests: [] },
-                  filename: 'runs-1280x800.png',
-                  page: 'runs',
-                  required: true,
-                  status: degraded ? 'degraded' : 'success',
-                  viewport: { height: 800, width: 1280 },
-                },
-              ],
-              summary: { complete: !degraded },
-            }),
-          );
-        }
+      async captureRevision(options) {
+        const role = options.revisionRole;
+        fs.mkdirSync(options.outputDir, { recursive: true });
+        const degraded = role === 'head';
+        fs.writeFileSync(
+          path.join(options.outputDir, 'manifest.json'),
+          JSON.stringify({
+            browserDiagnostics: degraded
+              ? {
+                  consoleErrors: ['render failed'],
+                  failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+                }
+              : { consoleErrors: [], failedRequests: [] },
+            complete: !degraded,
+            fatalErrors: [],
+            results: [
+              {
+                captureValidity: degraded ? 'selector_drift' : 'valid',
+                diagnostics: degraded
+                  ? {
+                      consoleErrors: ['route component failed'],
+                      droppedConsoleErrors: 3,
+                      droppedFailedRequests: 2,
+                      failedRequests: [{ method: 'GET', status: 500, url: '/apis/v2beta1/runs' }],
+                    }
+                  : { consoleErrors: [], failedRequests: [] },
+                filename: 'runs-1280x800.png',
+                page: 'runs',
+                required: true,
+                status: degraded ? 'degraded' : 'success',
+                viewport: { height: 800, width: 1280 },
+              },
+            ],
+            summary: { complete: !degraded },
+          }),
+        );
         return {
-          baseCapture: { success: true },
+          success: !degraded,
+        };
+      },
+      async generateComparison(options) {
+        return {
           comparison: { success: false },
           comparisonDir: path.join(options.screenshotsDir, 'comparison'),
-          headCapture: { success: false },
+          scenarioConfigPath: path.join(options.screenshotsDir, 'scenario-config.json'),
         };
       },
       clusterManager: {

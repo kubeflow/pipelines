@@ -33,7 +33,7 @@ const {
   SEMANTIC_FIXTURE_SET,
   SEMANTIC_SCHEMA_VERSION,
   TASK_FIXTURES,
-  validateCombinedSemanticManifest,
+  validateRevisionSemanticManifest,
 } = require('./semantic-manifest.js');
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
@@ -1018,7 +1018,7 @@ function loadSemanticIdentifierCatalog(manifestPath, revisionRole) {
   }
   try {
     const manifest = loadAttestedJsonInput(manifestPath, 'Semantic fixture manifest').value;
-    validateCombinedSemanticManifest(manifest);
+    validateRevisionSemanticManifest(manifest, revisionRole);
     return buildSemanticIdentifierCatalog(manifest, revisionRole);
   } catch (error) {
     if (CAPTURE_VALIDITIES.has(error?.captureValidity)) throw error;
@@ -2749,7 +2749,7 @@ async function captureScreenshots(options, dependencies = {}) {
         options.semanticManifestPath,
         'Semantic fixture manifest',
       );
-      validateCombinedSemanticManifest(semanticManifestInput.value);
+      validateRevisionSemanticManifest(semanticManifestInput.value, options.revisionRole);
       if (filteredPages.some((page) => page.semanticIdNormalization)) {
         semanticIdentifierCatalog = buildSemanticIdentifierCatalog(
           semanticManifestInput.value,
