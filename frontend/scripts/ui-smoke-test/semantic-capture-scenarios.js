@@ -169,12 +169,7 @@ function legacyExecutionListReady() {
     !isLoading &&
     rows.some((row) => {
       const executionId = row.getAttribute('data-row-id') || '';
-      return (
-        /^[1-9]\d*$/.test(executionId) &&
-        Array.from(row.querySelectorAll('a')).some(
-          (link) => link.textContent?.trim() === executionId,
-        )
-      );
+      return /^[1-9]\d*$/.test(executionId);
     })
   );
 }
@@ -208,22 +203,14 @@ function rocReady() {
   );
 }
 
-function legacyComparisonRocReady() {
-  const cards = Array.from(document.querySelectorAll('#root .plotCard'));
-  const aggregateCard = cards.find(
-    (card) => card.querySelector('[title="Aggregated view"]') !== null,
-  );
-  const labeledSeriesCards = cards.filter(
-    (card) =>
-      card !== aggregateCard &&
-      card.querySelector('[title]') !== null &&
-      card.querySelector('.recharts-line-curve') !== null,
+function baseV2ComparisonRocReady() {
+  const curves = document.querySelectorAll('#root .recharts-line .recharts-line-curve');
+  const labeledRows = document.querySelectorAll(
+    '#root [data-testid="table-row"]:has([style*="background-color"])',
   );
   return (
-    !!aggregateCard &&
-    aggregateCard.querySelectorAll('.recharts-line-curve').length ===
-      COMPARISON_RUN_FIXTURES.length &&
-    labeledSeriesCards.length === COMPARISON_RUN_FIXTURES.length
+    curves.length === COMPARISON_RUN_FIXTURES.length &&
+    labeledRows.length === COMPARISON_RUN_FIXTURES.length
   );
 }
 
@@ -577,18 +564,16 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
         semanticIdNormalization: rocComparisonColorNormalization({
-          containerSelector: '#root .plotCard:has([title="Aggregated view"])',
-          labelItemSelector:
-            '#root .plotCard:has(.recharts-line-curve):not(:has([title="Aggregated view"]))',
-          mappingStrategy: 'ordered-label-cards',
-          selector:
-            '#root .plotCard:has([title="Aggregated view"]) .recharts-line .recharts-line-curve',
+          containerSelector: '#root',
+          labelItemSelector: '#root [data-testid="table-row"]:has([style*="background-color"])',
+          mappingStrategy: 'color-backed-labels',
+          selector: '#root .recharts-line .recharts-line-curve',
         }),
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
           { type: 'click', selector: tabSelector('ROC Curve') },
-          { type: 'waitForFunction', predicate: legacyComparisonRocReady },
+          { type: 'waitForFunction', predicate: baseV2ComparisonRocReady },
         ],
       },
       head: {
