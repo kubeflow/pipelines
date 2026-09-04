@@ -665,6 +665,12 @@ function createKindStack(config = {}) {
         nodePlatform: options.nodePlatform || platform,
         runner,
       });
+      if (options.removeSourceAfterExport) {
+        requireSuccess(
+          runner('docker', ['image', 'rm', image], commandOptions()),
+          `Failed to release ${image} after exporting it for Kind cluster ${clusterName}`,
+        );
+      }
       requireSuccess(
         runner(
           'kind',
@@ -876,14 +882,9 @@ function createKindStack(config = {}) {
       if (loadedImages.has(loadedImageKey(image, imagePlatform))) continue;
       saveAndLoadImage(image, `local-image-${index}`, imagePlatform, {
         nodePlatform: platform,
+        removeSourceAfterExport: options.removeSourceAfterLoad,
         runner,
       });
-      if (options.removeSourceAfterLoad) {
-        requireSuccess(
-          runner('docker', ['image', 'rm', image], commandOptions()),
-          `Failed to release ${image} after loading it into Kind cluster ${clusterName}`,
-        );
-      }
     }
     return images;
   }
