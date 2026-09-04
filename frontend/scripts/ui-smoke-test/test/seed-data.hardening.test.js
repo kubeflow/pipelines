@@ -1641,6 +1641,17 @@ test('hydrates native semantic bindings through the paginated Task/Artifact API'
     if (endpoint === '/apis/v2beta1/runs/native%2Frun?view=FULL') {
       return { displayName: native.displayName, runId: native.runId, taskCount: tasks.length };
     }
+    if (endpoint === '/apis/v2beta1/runs/native%2Frun') {
+      return {
+        displayName: native.displayName,
+        pipelineVersionReference: {
+          pipelineId: 'pipeline-existing',
+          pipelineVersionId: 'version-existing',
+        },
+        runId: native.runId,
+        taskCount: tasks.length,
+      };
+    }
     if (endpoint === '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100') {
       return { tasks: tasks.slice(0, 4), next_page_token: 'next page' };
     }
@@ -1654,6 +1665,7 @@ test('hydrates native semantic bindings through the paginated Task/Artifact API'
   assert.deepEqual(response.tasks, tasks);
   assert.deepEqual(calls, [
     '/apis/v2beta1/runs/native%2Frun?view=FULL',
+    '/apis/v2beta1/runs/native%2Frun',
     '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100',
     '/apis/v2beta1/runs/native%2Frun/tasks?page_size=100&page_token=next+page',
   ]);
@@ -1695,7 +1707,9 @@ test('binds run observations to the selected pipeline spec and rejects missing p
     tasks: [{ name: 'write-metrics', task_id: 'task-1', type: 'RUNTIME' }],
   };
   const request = async (_method, endpoint) => {
-    assert.equal(endpoint, '/apis/v2beta1/runs/run-1?view=FULL');
+    assert.ok(
+      endpoint === '/apis/v2beta1/runs/run-1?view=FULL' || endpoint === '/apis/v2beta1/runs/run-1',
+    );
     return structuredClone(runResponse);
   };
 
@@ -1725,21 +1739,21 @@ test('binds run observations to the selected pipeline spec and rejects missing p
     [
       'missing run reference',
       ({ response }) => delete response.pipeline_version_reference,
-      /does not reference selected pipeline version pipeline-1\/version-1/,
+      /references pipeline version <missing>\/<missing>, not selected version pipeline-1\/version-1/,
     ],
     [
       'mismatched pipeline reference',
       ({ response }) => {
         response.pipeline_version_reference.pipeline_id = 'other-pipeline';
       },
-      /does not reference selected pipeline version pipeline-1\/version-1/,
+      /references pipeline version other-pipeline\/version-1, not selected version pipeline-1\/version-1/,
     ],
     [
       'mismatched version reference',
       ({ response }) => {
         response.pipeline_version_reference.pipeline_version_id = 'other-version';
       },
-      /does not reference selected pipeline version pipeline-1\/version-1/,
+      /references pipeline version pipeline-1\/other-version, not selected version pipeline-1\/version-1/,
     ],
   ]) {
     const selected = structuredClone(selections);
@@ -1794,6 +1808,9 @@ test('fills each missing deterministic resource type instead of skipping on part
       return { ...body, recurring_run_id: 'recurring-created' };
     }
     if (method === 'GET' && endpoint === '/apis/v2beta1/runs/run-created?view=FULL') {
+      return nativeRichRunResponse();
+    }
+    if (method === 'GET' && endpoint === '/apis/v2beta1/runs/run-created') {
       return nativeRichRunResponse();
     }
     if (method === 'GET') return {};
@@ -2166,6 +2183,36 @@ test('polls semantic bindings until eventually consistent task and artifact data
   assert.equal(detailRequests, 2);
   assert.equal(taskRequests, 2);
   assert.equal(semantic.validation.valid, true);
+});
+
+test('combines a FULL task snapshot with the non-FULL pipeline version reference', async () => {
+  const endpoints = [];
+  const response = await fetchRunBindingResponse('run-1', async (_method, endpoint) => {
+    endpoints.push(endpoint);
+    if (endpoint.endsWith('?view=FULL')) {
+      return {
+        pipeline_spec: structuredClone(MINIMAL_PIPELINE_SPEC),
+        run_id: 'run-1',
+        tasks: [{ name: 'write-metrics', task_id: 'task-1' }],
+      };
+    }
+    assert.equal(endpoint, '/apis/v2beta1/runs/run-1');
+    return {
+      pipeline_version_reference: {
+        pipeline_id: 'pipeline-1',
+        pipeline_version_id: 'version-1',
+      },
+      run_id: 'run-1',
+      task_count: 1,
+    };
+  });
+
+  assert.deepEqual(endpoints, ['/apis/v2beta1/runs/run-1?view=FULL', '/apis/v2beta1/runs/run-1']);
+  assert.deepEqual(response.pipeline_version_reference, {
+    pipeline_id: 'pipeline-1',
+    pipeline_version_id: 'version-1',
+  });
+  assert.deepEqual(response.tasks, [{ name: 'write-metrics', task_id: 'task-1' }]);
 });
 
 test('attributes semantic discovery timeouts to missing fixtures or API incompatibility', async () => {
