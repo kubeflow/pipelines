@@ -362,12 +362,13 @@ func (r *ResourceManager) DeletePipeline(pipelineId string, cascade bool) error 
 			glog.Infof("Successfully deleted pipeline version %v during cascade delete of pipeline %v", pipelineVersion.UUID, pipelineId)
 		}
 	} else {
-		// Check if it has no pipeline versions in Ready state
-		latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
-		if latestPipelineVersion != nil {
-			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, latestPipelineVersion.UUID)
-		} else if err.(*util.UserError).ExternalStatusCode() != codes.NotFound {
+		// Any version blocks the delete, regardless of whether the default resolves.
+		pipelineVersions, _, _, err := r.pipelineStore.ListPipelineVersions(pipelineId, list.EmptyOptions(), nil)
+		if err != nil {
 			return util.Wrapf(err, "Failed to delete pipeline with id %v as it failed to check existing pipeline versions", pipelineId)
+		}
+		if len(pipelineVersions) > 0 {
+			return util.NewInvalidInputError("Failed to delete pipeline with id %v as it has existing pipeline versions (e.g. %v). Set cascade=true to delete all versions", pipelineId, pipelineVersions[0].UUID)
 		}
 	}
 
@@ -600,8 +601,7 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 		return nil, util.Wrap(err, "Failed to get the latest template as pipeline was not found")
 	}
 
-	// Get the latest pipeline version
-	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
+	latestPipelineVersion, err := r.pipelineStore.GetDefaultPipelineVersion(pipelineId)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to get the latest template for a pipeline")
 	}
@@ -1420,7 +1420,7 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 // Fetches or creates a new pipeline version based on internal PipelineSpec representation.
 // Returns a pipeline version if any of the following is present in pipeline spec:
 // 1. Pipeline version with the given pipeline version id
-// 2. The latest pipeline version with given pipeline id
+// 2. The default pipeline version for the given pipeline id
 // 3. Repeats 1 and 2 for pipeline version id and pipeline id parsed from the pipeline name
 func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec model.PipelineSpec) (*model.PipelineVersion, error) {
 	// Fetch or create a pipeline version
@@ -1436,7 +1436,7 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		}
 		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineId != "" {
-		pipelineVersion, err := r.GetLatestPipelineVersion(pipelineSpec.PipelineId)
+		pipelineVersion, err := r.GetDefaultPipelineVersion(pipelineSpec.PipelineId)
 		if err != nil {
 			return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v", pipelineSpec.PipelineId)
 		}
@@ -1453,7 +1453,7 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 			}
 			return pipelineVersion, nil
 		} else {
-			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
+			pipelineVersion, err := r.GetDefaultPipelineVersion(resourceNames["PipelineId"])
 			if err != nil {
 				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames["PipelineId"])
 			}
@@ -2508,20 +2508,19 @@ func (r *ResourceManager) GetPipelineVersionByName(pipelineID, versionName strin
 	return pipelineVersion, nil
 }
 
-// GetLatestPipelineVersion returns the latest pipeline version for a specified pipeline id. Tags are loaded at the store level.
-func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
+// GetDefaultPipelineVersion returns the version used when a run does not name one. Tags are loaded at the store level.
+func (r *ResourceManager) GetDefaultPipelineVersion(pipelineID string) (*model.PipelineVersion, error) {
 	// Verify pipeline exists
-	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	_, err := r.pipelineStore.GetPipeline(pipelineID)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest pipeline version as pipeline was not found")
+		return nil, util.Wrap(err, "Failed to get the default pipeline version as pipeline was not found")
 	}
 
-	// Get the latest pipeline version
-	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
+	defaultPipelineVersion, err := r.pipelineStore.GetDefaultPipelineVersion(pipelineID)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to get the latest pipeline version for a pipeline")
+		return nil, util.Wrap(err, "Failed to get the default pipeline version for a pipeline")
 	}
-	return latestPipelineVersion, nil
+	return defaultPipelineVersion, nil
 }
 
 // ListPipelineVersions returns a list of pipeline versions. Tags are loaded at the store level.
