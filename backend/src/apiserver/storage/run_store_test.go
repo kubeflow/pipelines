@@ -891,6 +891,119 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
 }
 
+func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "manifest-cas-run",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "manifest-cas-run",
+		DisplayName:  "manifest-cas-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "legacy-manifest",
+		},
+	})
+	require.NoError(t, err)
+
+	staleRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	currentRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	currentRun.WorkflowRuntimeManifest = "adopted-manifest"
+	require.NoError(t, runStore.UpdateRun(currentRun))
+
+	staleRun.WorkflowRuntimeManifest = "replacement-manifest"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		"legacy-manifest",
+		staleRun.PipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	persistedRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("adopted-manifest"), persistedRun.WorkflowRuntimeManifest)
+
+	persistedRun.WorkflowRuntimeManifest = "next-manifest"
+	updated, err = runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		persistedRun,
+		"adopted-manifest",
+		persistedRun.PipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	persistedRun, err = runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("next-manifest"), persistedRun.WorkflowRuntimeManifest)
+}
+
+func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	const runID = "runtime-manifest-aba-run"
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         runID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "original-workflow",
+		DisplayName:  "original-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: "",
+			PipelineRuntimeManifest: "original-runtime-manifest",
+		},
+	})
+	require.NoError(t, err)
+	staleRun, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+
+	require.NoError(t, runStore.DeleteRun(runID))
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         runID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "replacement-workflow",
+		DisplayName:  "replacement-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          2,
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: "",
+			PipelineRuntimeManifest: "replacement-runtime-manifest",
+		},
+	})
+	require.NoError(t, err)
+	replacementBeforeReport, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+
+	staleRun.K8SName = "stale-terminal-workflow"
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = "Succeeded"
+	staleRun.WorkflowRuntimeManifest = "stale-terminal-manifest"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		"",
+		"original-runtime-manifest",
+	)
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	replacementAfterReport, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+	assert.Equal(t, replacementBeforeReport, replacementAfterReport)
+}
+
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()

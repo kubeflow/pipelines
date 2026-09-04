@@ -74,7 +74,14 @@ func (f *fakeRunStore) GetRun(_ string) (*model.Run, error)        { return nil,
 func (f *fakeRunStore) ListRuns(_ *model.FilterContext, _ *list.Options) ([]*model.Run, int, string, error) {
 	return nil, 0, "", nil
 }
-func (f *fakeRunStore) UpdateRun(_ *model.Run) error                              { return nil }
+func (f *fakeRunStore) UpdateRun(_ *model.Run) error { return nil }
+func (f *fakeRunStore) UpdateRunIfRuntimeManifestsUnchanged(
+	_ *model.Run,
+	_ model.LargeText,
+	_ model.LargeText,
+) (bool, error) {
+	return true, nil
+}
 func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) error { return nil }
 func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
 func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }
