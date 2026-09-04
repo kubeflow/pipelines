@@ -133,6 +133,8 @@ jobs:
       - name: Generate DRA SDK packages
         uses: ./.github/actions/protobuf
         if: ${{ matrix.test_label == 'dra-check' && steps.create-cluster.outcome == 'success' }}
+        with:
+          generate_golang_proto: "true"
 
       - name: Build DRA SDK component image
         shell: bash
