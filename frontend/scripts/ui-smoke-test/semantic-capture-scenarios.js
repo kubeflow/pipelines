@@ -60,7 +60,10 @@ const EXECUTION_LIST_ID_NORMALIZATION = {
   scopes: [
     exactScope({ kinds: ['execution'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
     {
-      ...exactScope({ kinds: ['run'], minReplacements: 1, selector: TABLE_ROW_SELECTOR }),
+      // Legacy Execution rows always render their numeric execution ID, but do not guarantee that
+      // the owning run ID is visible. Normalize a visible run identity when present without making
+      // that optional column part of the capture's acceptance contract.
+      ...exactScope({ kinds: ['run'], minReplacements: 0, selector: TABLE_ROW_SELECTOR }),
       match: 'substring',
     },
   ],
@@ -204,14 +207,13 @@ function rocReady() {
 }
 
 function baseV2ComparisonRocReady() {
+  // This predicate is serialized into the browser, so keep its expected fixture cardinality local.
+  const expectedSeriesCount = 3;
   const curves = document.querySelectorAll('#root .recharts-line .recharts-line-curve');
   const labeledRows = document.querySelectorAll(
     '#root [data-testid="table-row"]:has([style*="background-color"])',
   );
-  return (
-    curves.length === COMPARISON_RUN_FIXTURES.length &&
-    labeledRows.length === COMPARISON_RUN_FIXTURES.length
-  );
+  return curves.length === expectedSeriesCount && labeledRows.length === expectedSeriesCount;
 }
 
 function legacyLineageReady() {
