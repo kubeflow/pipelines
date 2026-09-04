@@ -1728,7 +1728,11 @@ async function seedData(options = {}) {
   const request =
     options.request ||
     ((method, endpoint, body = null, requestOptions = {}) =>
-      apiRequest(method, endpoint, body, { apiBase, ...requestOptions }));
+      apiRequest(method, endpoint, body, {
+        apiBase,
+        timeout: options.requestTimeout,
+        ...requestOptions,
+      }));
   const targets = {
     pipelines: targetCount(pipelines, RESOURCE_DEFINITIONS.pipelines),
     experiments: targetCount(experiments, RESOURCE_DEFINITIONS.experiments),
