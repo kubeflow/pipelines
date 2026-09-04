@@ -210,6 +210,35 @@ class GoVersionUpdaterTest(unittest.TestCase):
             fixture.plan('1.27.1', lambda tag: NEW_DIGESTS[tag])
         self.assertEqual(fixture.snapshot(), before)
 
+    def test_missing_tracked_module_is_rejected(self):
+        fixture = RepositoryFixture(self)
+        (fixture.root / 'nested/go.mod').unlink()
+        resolver_calls = []
+
+        with self.assertRaisesRegex(updater.PolicyError,
+                                    'nested/go.mod must be a regular file'):
+            fixture.check()
+        with self.assertRaisesRegex(updater.PolicyError,
+                                    'nested/go.mod must be a regular file'):
+            fixture.update(
+                '1.27.1',
+                lambda tag: resolver_calls.append(tag) or OLD_DIGEST,
+            )
+        self.assertEqual(resolver_calls, [])
+
+    def test_symlinked_tracked_module_is_rejected(self):
+        for target in ('../go.mod', 'missing.mod'):
+            with self.subTest(target=target):
+                fixture = RepositoryFixture(self)
+                module = fixture.root / 'nested/go.mod'
+                module.unlink()
+                module.symlink_to(target)
+
+                with self.assertRaisesRegex(
+                        updater.PolicyError,
+                        'nested/go.mod must be a regular file'):
+                    fixture.check()
+
     def test_docker_pin_validation_and_update(self):
         pin = updater.DockerPin(Path('Dockerfile'), '-alpine', 'builder')
         original = _dockerfile('1.26.6', pin)
@@ -315,6 +344,18 @@ class GoVersionUpdaterTest(unittest.TestCase):
             '1.27.1', lambda _tag: NEW_DIGESTS['1.27.1-alpine'])
         self.assertEqual(
             dirty_unrelated.read(Path('README.md')), 'unrelated local edit\n')
+
+    def test_check_ignores_missing_unregistered_scan_candidates(self):
+        fixture = RepositoryFixture(self)
+        fixture.update('1.26.6', lambda _tag: OLD_DIGEST)
+        fixture.write(Path('Dockerfile.unrelated'), 'FROM scratch\n')
+        fixture.write(Path('.github/workflows/unrelated.yml'), 'name: Other\n')
+        fixture.commit('add unrelated scan candidates')
+
+        (fixture.root / 'Dockerfile.unrelated').unlink()
+        (fixture.root / '.github/workflows/unrelated.yml').unlink()
+
+        fixture.check()
 
     def test_update_rechecks_managed_paths_after_digest_resolution(self):
         fixture = RepositoryFixture(self)

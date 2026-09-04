@@ -57,6 +57,8 @@ Builder images with the same flavor must use the same tag and digest.
 The inventory guards are deliberately lexical. A literal Go source or setup-go
 marker in a Dockerfile/YAML comment or heredoc is still reported so a maintainer
 can remove or register it. The tool does not decide whether that text executes.
+Managed paths must be present regular files; missing unregistered Docker/YAML
+scan candidates are ignored, and symlinked candidates are rejected.
 
 The updater accepts an exact stable `1.X.Y` target, computes and validates all
 expected content before changing managed files, resolves one immutable digest

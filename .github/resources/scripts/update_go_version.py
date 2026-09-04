@@ -164,10 +164,7 @@ def _version_text(version: Version) -> str:
 
 def _tracked_paths(repo_root: Path) -> Set[Path]:
     output = _run(('git', 'ls-files', '-z'), repo_root).stdout
-    return {
-        Path(value) for value in output.split('\0')
-        if value and (repo_root / value).exists()
-    }
+    return {Path(value) for value in output.split('\0') if value}
 
 
 def _module_paths(tracked_paths: Iterable[Path]) -> List[Path]:
@@ -178,6 +175,7 @@ def _module_paths(tracked_paths: Iterable[Path]) -> List[Path]:
 
 
 def _module_metadata(repo_root: Path, relative_path: Path) -> ModuleMetadata:
+    _read_text(repo_root, relative_path)
     result = _run(('go', 'mod', 'edit', '-json', str(relative_path)), repo_root)
     try:
         data = json.loads(result.stdout)
@@ -330,6 +328,9 @@ def _validate_inventory(repo_root: Path, tracked_paths: Set[Path],
     for relative_path in tracked_paths:
         if not _is_container_recipe(relative_path):
             continue
+        path = repo_root / relative_path
+        if not path.exists() and not path.is_symlink():
+            continue
         contents = _read_text(repo_root, relative_path)
         if (GO_IMAGE_LITERAL_PATTERN.search(contents) or
                 GO_DOWNLOAD_LITERAL_PATTERN.search(contents)):
@@ -354,6 +355,9 @@ def _validate_inventory(repo_root: Path, tracked_paths: Set[Path],
     setup_use_paths = set()
     for relative_path in tracked_paths:
         if relative_path.suffix not in {'.yaml', '.yml'}:
+            continue
+        path = repo_root / relative_path
+        if not path.exists() and not path.is_symlink():
             continue
         contents = _read_text(repo_root, relative_path)
         if 'actions/setup-go@' in contents:
