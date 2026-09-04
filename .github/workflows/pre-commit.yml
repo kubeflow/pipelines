@@ -24,6 +24,8 @@ jobs:
         run: git fetch origin ${{ github.base_ref || github.ref_name }}
       - uses: actions/setup-python@v7
       - uses: ./.github/actions/setup-go
+      - name: Check repository Go version policy
+        run: make check-go-version
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:

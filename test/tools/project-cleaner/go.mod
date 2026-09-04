@@ -1,6 +1,6 @@
 module github.com/kubeflow/pipelines/test/tools/project-cleaner
 
-go 1.25.0
+go 1.27.0
 
 require (
 	cloud.google.com/go/compute v1.66.0

@@ -7,6 +7,18 @@
 check-diff:
 	python3 .github/resources/scripts/check_generated_diff.py
 
+.PHONY: check-go-version
+check-go-version:
+	python3 .github/resources/scripts/update_go_version.py --check
+
+.PHONY: update-go-version
+update-go-version:
+	@if [ -z "$(GO_VERSION)" ]; then \
+		echo "GO_VERSION is required; run make update-go-version GO_VERSION=1.X.Y" >&2; \
+		exit 2; \
+	fi
+	python3 .github/resources/scripts/update_go_version.py --version "$(GO_VERSION)"
+
 # Tools
 BIN_DIR ?= $(CURDIR)/bin
 
