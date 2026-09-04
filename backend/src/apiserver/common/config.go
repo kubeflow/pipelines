@@ -49,6 +49,7 @@ const (
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
+	PipelineURLAllowedCIDRs                 string = "PIPELINE_URL_ALLOWED_CIDRS"
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
