@@ -640,7 +640,16 @@ func (c *Client) do(req *http.Request) ([]byte, error) {
 	}
 
 	apiErr := &APIError{StatusCode: resp.StatusCode}
-	_ = json.Unmarshal(body, apiErr)
+	if err := json.Unmarshal(body, apiErr); err != nil {
+		const maxErrorBodyBytes = 4 * 1024
+		errorBody := body
+		truncationMarker := ""
+		if len(errorBody) > maxErrorBodyBytes {
+			errorBody = errorBody[:maxErrorBodyBytes]
+			truncationMarker = " (truncated)"
+		}
+		apiErr.Message = fmt.Sprintf("(failed to parse error body: %v) response body%s: %q", err, truncationMarker, string(errorBody))
+	}
 	return nil, apiErr
 }
 
