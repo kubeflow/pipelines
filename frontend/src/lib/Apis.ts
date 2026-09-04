@@ -346,10 +346,15 @@ export class Apis {
   }) {
     const { source, bucket, key } = path;
     if (isDownload) {
-      return `artifacts/${source}/${bucket}/${key}${buildQuery({
+      // Keep object keys in the query so browsers do not normalize standalone dot path segments.
+      return `artifacts/get${buildQuery({
+        source,
         namespace,
         providerInfo,
         peek,
+        bucket,
+        key,
+        download: 'true',
       })}`;
     } else {
       return `artifacts/get${buildQuery({ source, namespace, providerInfo, peek, bucket, key })}`;
