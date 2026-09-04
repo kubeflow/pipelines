@@ -27,6 +27,10 @@ from kfp import compiler, dsl, kubernetes
     ],
 )
 def verify_dra_passthrough(task_config: dsl.TaskConfig):
+    assert task_config.resource_claims == [{
+        'name': 'dra-test-claim',
+        'resourceClaimTemplateName': 'dra-test-claim',
+    }]
     print(f"resource_claims: {task_config.resource_claims}")
     print("DRA passthrough check: PASS")
 

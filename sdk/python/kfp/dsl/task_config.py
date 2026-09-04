@@ -49,6 +49,13 @@ class TaskConfig:
 
             train_job_script = "with open('/kfp-workspace/model', 'w') as f: f.write('hello')"
 
+            container_resources = dict(task_config.resources or {})
+            if task_config.resource_claims:
+                container_resources["claims"] = [
+                    {"name": claim["name"]}
+                    for claim in task_config.resource_claims
+                ]
+
             dataset_path = os.path.join(workspace_path, "dataset")
             with open(dataset_path, "w") as f:
                 f.write("Prepare dataset here...")
@@ -73,6 +80,7 @@ class TaskConfig:
                                     {
                                         "name": "node",
                                         "volumeMounts": task_config.volume_mounts,
+                                        "resources": container_resources,
                                     }
                                 ],
                                 "nodeSelector": task_config.node_selector,
