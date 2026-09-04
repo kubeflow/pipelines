@@ -302,10 +302,11 @@ func TestBuildCreateBucketInput_DefaultRegion(t *testing.T) {
 }
 
 type fakeS3HTTPServer struct {
-	t       *testing.T
-	server  *httptest.Server
-	buckets map[string]bool
-	log     []string
+	t          *testing.T
+	server     *httptest.Server
+	buckets    map[string]bool
+	log        []string
+	userAgents []string
 }
 
 func newFakeS3HTTPServer(t *testing.T) *fakeS3HTTPServer {
@@ -323,6 +324,7 @@ func (f *fakeS3HTTPServer) endpoint() string {
 }
 
 func (f *fakeS3HTTPServer) handle(w http.ResponseWriter, r *http.Request) {
+	f.userAgents = append(f.userAgents, r.Header.Get("User-Agent"))
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"), "/")
 	if len(parts) == 0 || parts[0] == "" {
 		http.Error(w, "missing bucket", http.StatusBadRequest)
@@ -358,6 +360,10 @@ func (f *fakeS3HTTPServer) setBucket(name string) {
 
 func (f *fakeS3HTTPServer) requestLog() []string {
 	return f.log
+}
+
+func (f *fakeS3HTTPServer) requestUserAgents() []string {
+	return f.userAgents
 }
 
 func TestEnsureBucketExists_IntegrationCreatesBucket(t *testing.T) {
@@ -399,6 +405,28 @@ func TestEnsureBucketExists_IntegrationBucketAlreadyExists(t *testing.T) {
 	log := server.requestLog()
 	require.Len(t, log, 1)
 	assert.Equal(t, "HEAD:existing-bucket", log[0])
+}
+
+func TestNewS3BucketClient_AppendsUserAgent(t *testing.T) {
+	server := newFakeS3HTTPServer(t)
+	server.setBucket("user-agent-bucket")
+
+	cfg := &blobStorageConfig{
+		bucketName: "user-agent-bucket",
+		endpoint:   server.endpoint(),
+		region:     "us-east-1",
+		secure:     false,
+		accessKey:  "key",
+		secretKey:  "secret",
+	}
+
+	err := ensureBucketExists(context.Background(), cfg)
+	require.NoError(t, err)
+
+	userAgents := server.requestUserAgents()
+	require.Len(t, userAgents, 1)
+	assert.Contains(t, userAgents[0], "aws-sdk-go-v2/")
+	assert.Contains(t, userAgents[0], userAgentKey+"/unknown")
 }
 
 func TestLoadAWSConfig_EmptyCredentials(t *testing.T) {
