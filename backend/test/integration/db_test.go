@@ -49,6 +49,7 @@ func (s *DBTestSuite) TestInitDBClient_MySQL() {
 	viper.Set("DBConfig.MySQLConfig.DBName", "mlpipeline")
 	// The default port-forwarding IP address that test uses is different compared to production
 	viper.Set("DBConfig.MySQLConfig.Host", "localhost")
+	viper.Set("DBConfig.MySQLConfig.ExtraParams", map[string]string{"tls": "false"})
 	duration, _ := time.ParseDuration("1m")
 	db, _ := cm.InitDBClient(duration)
 	assert.NotNil(t, db)
