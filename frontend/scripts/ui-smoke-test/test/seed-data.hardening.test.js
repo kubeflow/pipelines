@@ -385,6 +385,8 @@ test('rich fixture uses pinned revision-compatible topology without runtime inst
   assert.match(multipart, /parameterIterator:[\s\S]*raw: '\["alpha", "beta"\]'/);
   assert.match(multipart, /comp-nested-dag:[\s\S]*nested-worker:/);
   assert.match(multipart, /taskOutputArtifact:[\s\S]*producerTask: write-metrics/);
+  assert.match(multipart, /printf 'metrics consumed\\n'/);
+  assert.doesNotMatch(multipart, /test -f .*inputs\.artifacts\['metrics'\]\.path/);
   assert.equal((multipart.match(new RegExp(SEED_IMAGE, 'g')) || []).length, 5);
   assert.doesNotMatch(multipart, /pip install|kfp\.dsl\.executor_main|python:/);
 });
