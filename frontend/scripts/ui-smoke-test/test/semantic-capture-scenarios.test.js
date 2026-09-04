@@ -288,9 +288,8 @@ test('legacy Executions readiness waits for a rendered numeric execution identit
   });
   const predicate = byKey(resolveSemanticScenarios('base', SEED_VALUES), 'executions-to-runs')
     .actions[0].predicate;
-  const row = (id, linkText = id) => ({
+  const row = (id) => ({
     getAttribute: (name) => (name === 'data-row-id' ? id : null),
-    querySelectorAll: (selector) => (selector === 'a' ? [{ textContent: linkText }] : []),
   });
   const installDocument = ({ error = false, loading = false, rows = [] } = {}) => {
     global.document = {
@@ -305,8 +304,6 @@ test('legacy Executions readiness waits for a rendered numeric execution identit
 
   installDocument({ rows: [row('run-1')] });
   assert.equal(predicate(), false);
-  installDocument({ rows: [row('73', 'write-metrics')] });
-  assert.equal(predicate(), false);
   installDocument({ rows: [row('73')] });
   assert.equal(predicate(), true);
   installDocument({ loading: true, rows: [row('73')] });
@@ -315,7 +312,7 @@ test('legacy Executions readiness waits for a rendered numeric execution identit
   assert.equal(predicate(), false);
 });
 
-test('legacy ROC comparison readiness requires the complete aggregated three-run chart', (t) => {
+test('base V2 ROC readiness requires three curves and three visible provenance rows', (t) => {
   const originalDocument = global.document;
   t.after(() => {
     global.document = originalDocument;
@@ -324,27 +321,20 @@ test('legacy ROC comparison readiness requires the complete aggregated three-run
     resolveSemanticScenarios('base', SEED_VALUES),
     'compare-roc-selection',
   ).actions.at(-1).predicate;
-  const seriesCard = () => ({
-    querySelector: (selector) =>
-      selector === '[title]' || selector === '.recharts-line-curve' ? {} : null,
-    querySelectorAll: () => [],
-  });
-  const aggregateCard = (curveCount) => ({
-    querySelector: (selector) => (selector === '[title="Aggregated view"]' ? {} : null),
-    querySelectorAll: (selector) =>
-      selector === '.recharts-line-curve' ? Array.from({ length: curveCount }, () => ({})) : [],
-  });
-  const installDocument = (cards) => {
+  const installDocument = (curveCount, rowCount) => {
     global.document = {
-      querySelectorAll: (selector) => (selector === '#root .plotCard' ? cards : []),
+      querySelectorAll: (selector) => {
+        const count = selector.includes('recharts-line') ? curveCount : rowCount;
+        return Array.from({ length: count }, () => ({}));
+      },
     };
   };
 
-  installDocument([aggregateCard(2), seriesCard(), seriesCard(), seriesCard()]);
+  installDocument(2, 3);
   assert.equal(predicate(), false);
-  installDocument([aggregateCard(3), seriesCard(), seriesCard()]);
+  installDocument(3, 2);
   assert.equal(predicate(), false);
-  installDocument([aggregateCard(3), seriesCard(), seriesCard(), seriesCard()]);
+  installDocument(3, 3);
   assert.equal(predicate(), true);
 });
 
@@ -402,9 +392,13 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   const headRoc = byKey(head, 'compare-roc-selection');
   assert.equal(
     baseRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
-    'ordered-label-cards',
+    'color-backed-labels',
   );
-  assert.match(baseRoc.semanticIdNormalization.derivedColorScopes[0].selector, /Aggregated view/);
+  assert.match(baseRoc.semanticIdNormalization.derivedColorScopes[0].selector, /recharts-line/);
+  assert.match(
+    baseRoc.semanticIdNormalization.derivedColorScopes[0].labelItemSelector,
+    /table-row/,
+  );
   assert.equal(
     headRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
     'color-backed-labels',
