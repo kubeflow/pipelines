@@ -17,7 +17,7 @@ import os
 from typing import Any, Callable, Dict, List, Optional, Union
 import warnings
 
-from kfp import dsl
+from kfp.dsl.types.artifact_types import Artifact
 from kfp.dsl import task_final_status
 from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
@@ -47,9 +47,8 @@ class Executor:
         artifact_types.CONTAINER_TASK_ROOT = os.path.split(
             self.executor_output_path)[0]
 
-        self.input_artifacts: Dict[str, Union[dsl.Artifact,
-                                              List[dsl.Artifact]]] = {}
-        self.output_artifacts: Dict[str, dsl.Artifact] = {}
+        self.input_artifacts: Dict[str, Union[Artifact, List[Artifact]]] = {}
+        self.output_artifacts: Dict[str, Artifact] = {}
         self.assign_input_and_output_artifacts()
 
         self.return_annotation = inspect.signature(self.func).return_annotation
@@ -163,10 +162,10 @@ class Executor:
         return create_artifact_instance(
             runtime_artifact, fallback_artifact_cls=artifact_cls)
 
-    def get_input_artifact(self, name: str) -> Optional[dsl.Artifact]:
+    def get_input_artifact(self, name: str) -> Optional[Artifact]:
         return self.input_artifacts.get(name)
 
-    def get_output_artifact(self, name: str) -> Optional[dsl.Artifact]:
+    def get_output_artifact(self, name: str) -> Optional[Artifact]:
         return self.output_artifacts.get(name)
 
     def get_input_parameter_value(
@@ -485,7 +484,7 @@ class Executor:
 
 def create_artifact_instance(
     runtime_artifact: Dict,
-    fallback_artifact_cls=dsl.Artifact,
+    fallback_artifact_cls=Artifact,
 ) -> type:
     """Creates an artifact class instances from a runtime artifact
     dictionary."""
