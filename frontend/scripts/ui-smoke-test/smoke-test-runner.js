@@ -39,6 +39,7 @@ const NODE_VERSION = '24.14.0';
 const NPM_VERSION = '11.17.0';
 const NODE_IMAGE = `node:${NODE_VERSION}-bookworm`;
 const PROCESS_TIMEOUT = 10 * 60 * 1000;
+const FULL_STACK_SEED_REQUEST_TIMEOUT_MS = 60 * 1000;
 const LOOKS_SAME_TOLERANCE = 2.3;
 const LOOKS_SAME_CLUSTER_SIZE = 8;
 const EXTERNAL_TOOL_CACHE = '.ui-smoke-tool-cache';
@@ -2464,6 +2465,7 @@ async function runFullStackComparisonOrchestration({
     const seedResult = await services.seedData({
       apiBase: url,
       manifestPath: seedManifestPaths[role],
+      requestTimeout: FULL_STACK_SEED_REQUEST_TIMEOUT_MS,
       waitForCreatedRuns: true,
     });
     if (!seedResult.success) {
