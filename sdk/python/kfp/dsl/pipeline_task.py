@@ -331,6 +331,9 @@ class PipelineTask:
             raise ValueError(
                 '_extract_container_spec_and_convert_placeholders used incorrectly. ComponentSpec.implementation.container is None.'
             )
+        container_spec.image = (
+            placeholders.convert_command_line_element_to_string(
+                container_spec.image))
         container_spec.command = [
             placeholders.convert_command_line_element_to_string(e)
             for e in container_spec.command or []
