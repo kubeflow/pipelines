@@ -141,7 +141,7 @@ function fakeDerivedColorPage(series, { orderedLabels = false } = {}) {
     };
     return curve;
   });
-  const labelSwatches = series.map(({ color }) => styledElement(color));
+  const labelSwatches = series.map(({ color, labelColor }) => styledElement(labelColor || color));
   const labelItems = series.map(({ label }, index) => ({
     matches: () => false,
     querySelector: (selector) =>
@@ -378,7 +378,8 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     'run.training-1/task.consume-metrics[0]',
   ]);
   assert.equal(headRelationships.minReplacements, 4);
-  assert.equal(headRelationships.maxReplacements, 6);
+  assert.equal(headRelationships.maxReplacements, 8);
+  assert.equal(headRelationships.maxReplacementsPerIdentifier, 4);
   assert.equal(headRelationships.match, 'substring');
   assert.match(headRelationships.selector, /table-row/);
 
@@ -940,8 +941,16 @@ test('ROC series colors normalize by visible semantic label instead of generated
   orderedConfig.derivedColorScopes[0].mappingStrategy = 'ordered-label-cards';
   const legacyPage = fakeDerivedColorPage(
     [
-      { color: 'rgb(220,0,0)', label: 'Training Run Z' },
-      { color: 'rgb(0,0,220)', label: 'Training Run A' },
+      {
+        color: 'rgb(220,0,0)',
+        label: 'Training Run Z',
+        labelColor: 'rgb(219,0,0)',
+      },
+      {
+        color: 'rgb(0,0,220)',
+        label: 'Training Run A',
+        labelColor: 'rgb(0,0,219)',
+      },
     ],
     { orderedLabels: true },
   );

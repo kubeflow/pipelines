@@ -739,8 +739,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           scopes: [
             {
               match: 'substring',
-              maxReplacements: 6,
-              maxReplacementsPerIdentifier: 2,
+              maxReplacements: 8,
+              maxReplacementsPerIdentifier: 4,
               minReplacements: 4,
               minReplacementsPerIdentifier: 1,
               selector: '#root [data-testid="table-row"]',

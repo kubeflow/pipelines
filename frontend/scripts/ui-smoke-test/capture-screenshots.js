@@ -1385,7 +1385,11 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
           if (normalized) sourceColorIndexes.set(normalized, index);
         });
         const mappingBySourceColor = new Map();
-        let ambiguous = sourceColorIndexes.size !== sourceColors.length;
+        const orderedMappings = [];
+        let ambiguous =
+          scope.mappingStrategy === 'ordered-label-cards'
+            ? false
+            : sourceColorIndexes.size !== sourceColors.length;
         const seenCompanions = new Set();
         const labelItems = Array.from(document.querySelectorAll(scope.labelItemSelector));
         const matchingSeriesFor = (item) => {
@@ -1419,12 +1423,18 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
               const color = normalizedColor(getComputedStyle(element).backgroundColor);
               return color && color !== 'rgba(0,0,0,0)' && color !== 'transparent';
             });
-            if (styledElements.length !== 1) ambiguous = true;
-            bindSourceColor(
-              normalizedColor(sourceColors[index]),
-              matchingSeriesFor(item),
-              styledElements[0] || null,
-            );
+            const matchingSeries = matchingSeriesFor(item);
+            if (styledElements.length !== 1 || matchingSeries.length !== 1) {
+              ambiguous = true;
+              return;
+            }
+            seenCompanions.add(styledElements[0]);
+            orderedMappings.push({
+              elementIndex: index,
+              elements: [styledElements[0]],
+              semanticId: matchingSeries[0].semanticId,
+              sourceColor: normalizedColor(sourceColors[index]),
+            });
           });
         } else {
           for (const item of labelItems) {
@@ -1444,11 +1454,16 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
         const seriesOrder = new Map(
           scope.series.map((series, index) => [series.semanticId, index]),
         );
-        const mappings = [...mappingBySourceColor.entries()]
-          .map(([sourceColor, mapping]) => ({ ...mapping, sourceColor }))
-          .sort(
-            (left, right) => seriesOrder.get(left.semanticId) - seriesOrder.get(right.semanticId),
-          );
+        const mappings = (
+          scope.mappingStrategy === 'ordered-label-cards'
+            ? orderedMappings
+            : [...mappingBySourceColor.entries()].map(([sourceColor, mapping]) => ({
+                ...mapping,
+                sourceColor,
+              }))
+        ).sort(
+          (left, right) => seriesOrder.get(left.semanticId) - seriesOrder.get(right.semanticId),
+        );
         if (new Set(mappings.map((mapping) => mapping.semanticId)).size !== mappings.length) {
           ambiguous = true;
         }
@@ -1462,7 +1477,10 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
           }
         });
         elements.forEach((element, index) => {
-          const color = paletteBySourceColor.get(normalizedColor(sourceColors[index]));
+          const orderedMapping = orderedMappings.find((mapping) => mapping.elementIndex === index);
+          const color = orderedMapping
+            ? palette[seriesOrder.get(orderedMapping.semanticId) % palette.length]
+            : paletteBySourceColor.get(normalizedColor(sourceColors[index]));
           if (!color) return;
           element.setAttribute('stroke', color);
           element.style.setProperty('stroke', color, 'important');
