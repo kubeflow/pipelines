@@ -6,8 +6,7 @@
   },
   "tags": [
     {
-      "name": "DummyFilterService",
-      "description": "This dummy service is required so that grpc-gateway will generate Swagger\ndefinitions for the Filter message. Otherwise, it does not get generated\nsince Filter itself is not used in any of the RPC calls - only a serialized\nencoded version of it is used."
+      "name": "DummyFilterService"
     }
   ],
   "consumes": [
