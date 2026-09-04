@@ -713,7 +713,7 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
-	tx, err := s.db.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return util.NewInternalServerError(err, "transaction creation failed")
 	}
@@ -1409,13 +1409,67 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 }
 
 func (s *RunStore) TerminateRun(runId string) error {
-	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
+	tx, err := s.db.DB.Begin() //nolint:staticcheck // QF1008
+	if err != nil {
+		return util.NewInternalServerError(err, "transaction creation failed")
+	}
+
+	// Load the current state history inside the transaction so we can append the
+	// RuntimeStateCancelling transition, mirroring CreateRun/UpdateRun which record every
+	// state change in StateHistory. The state guard matches the UPDATE below so a
+	// run that is not in a terminable state (or does not exist) yields no row.
+	//
+	// The row is locked for the read: opening a transaction alone does not stop a
+	// concurrent writer, so without the lock the persistence path could commit a
+	// state change between this SELECT and the UPDATE and have its history entry
+	// overwritten by the stale JSON read here.
+	var stateHistoryString sql.NullString
+	err = tx.QueryRow(s.db.SelectForUpdate(`
+		SELECT StateHistory FROM run_details
+		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`),
+		runId,
+		model.RuntimeStatePaused.ToString(),
+		model.RuntimeStatePending.ToString(),
+		model.RuntimeStateRunning.ToString(),
+		model.RuntimeStateUnspecified.ToString(),
+	).Scan(&stateHistoryString)
+	if err != nil {
+		tx.Rollback()
+		if err == sql.ErrNoRows {
+			return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+		}
+		return util.NewInternalServerError(err,
+			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
+	}
+
+	stateHistory := []*model.RuntimeStatus{}
+	if stateHistoryString.Valid && stateHistoryString.String != "" {
+		if err := json.Unmarshal([]byte(stateHistoryString.String), &stateHistory); err != nil {
+			tx.Rollback()
+			return util.NewInternalServerError(err,
+				"Failed to unmarshal state history while terminating run %s", runId)
+		}
+	}
+	if len(stateHistory) == 0 || stateHistory[len(stateHistory)-1].State != model.RuntimeStateCancelling {
+		stateHistory = append(stateHistory, &model.RuntimeStatus{
+			UpdateTimeInSec: s.time.Now().Unix(),
+			State:           model.RuntimeStateCancelling,
+		})
+	}
+	newStateHistoryString, err := json.Marshal(stateHistory)
+	if err != nil {
+		tx.Rollback()
+		return util.NewInternalServerError(err,
+			"Failed to marshal state history while terminating run %s", runId)
+	}
+
+	result, err := tx.Exec(`
 		UPDATE run_details
-		SET Conditions = ?, State = ?
+		SET Conditions = ?, State = ?, StateHistory = ?
 		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
 		string(model.RuntimeStateCancelling.ToV1()),
 		model.RuntimeStateCancelling.ToString(),
+		string(newStateHistoryString),
 		runId,
 		model.RuntimeStatePaused.ToString(),
 		model.RuntimeStatePending.ToString(),
@@ -1423,12 +1477,17 @@ func (s *RunStore) TerminateRun(runId string) error {
 		model.RuntimeStateUnspecified.ToString(),
 	)
 	if err != nil {
+		tx.Rollback()
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
 	}
-
 	if r, _ := result.RowsAffected(); r != 1 {
+		tx.Rollback()
 		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return util.NewInternalServerError(err, "failed to commit transaction to terminate run %s", runId)
 	}
 	return nil
 }
