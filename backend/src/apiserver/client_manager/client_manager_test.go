@@ -31,6 +31,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 )
@@ -85,7 +86,7 @@ func TestRunPreflightLengthChecks_FailOnTooLong(t *testing.T) {
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	}
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, specs)
 	t.Logf("FULL ERR:\n%+v", err)
 	require.Error(t, err)
@@ -98,7 +99,7 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	// no long rows
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	})
@@ -477,4 +478,65 @@ func TestAutoMigrateSucceeds(t *testing.T) {
 	assertColumnExists("run_metrics", "RunUUID")
 	assertColumnExists("tasks", "RunUUID")
 	assertColumnExists("resource_references", "ResourceUUID")
+}
+
+func TestExpressionIndexStatements_UseConcurrently(t *testing.T) {
+	d := dialect.NewDBDialect("pgx")
+
+	tests := []struct {
+		spec       expressionIndexSpec
+		wantCreate string
+		wantDrop   string
+	}{
+		{
+			spec:       expressionIndexSpec{name: "idx_experiments_lower_name", table: "experiments", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_experiments_lower_name" ON "experiments" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_experiments_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipelines_lower_name", table: "pipelines", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipelines_lower_name" ON "pipelines" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipelines_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipeline_versions_lower_name", table: "pipeline_versions", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipeline_versions_lower_name" ON "pipeline_versions" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipeline_versions_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_experiments_lower_name_namespace_uniq", table: "experiments", column: "Name", scopeColumn: "Namespace", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_experiments_lower_name_namespace_uniq" ON "experiments" (LOWER("Name"), "Namespace")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_experiments_lower_name_namespace_uniq"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipelines_lower_name_namespace_uniq", table: "pipelines", column: "Name", scopeColumn: "Namespace", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipelines_lower_name_namespace_uniq" ON "pipelines" (LOWER("Name"), "Namespace")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipelines_lower_name_namespace_uniq"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipeline_versions_lower_name_pipelineid_uniq", table: "pipeline_versions", column: "Name", scopeColumn: "PipelineId", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipeline_versions_lower_name_pipelineid_uniq" ON "pipeline_versions" (LOWER("Name"), "PipelineId")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipeline_versions_lower_name_pipelineid_uniq"`,
+		},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.wantCreate, expressionIndexCreateStmt(d, tc.spec))
+		assert.Equal(t, tc.wantDrop, expressionIndexDropStmt(d, tc.spec))
+	}
+
+	// Guards the exact regression this test exists for: a plain CREATE/DROP
+	// INDEX (without CONCURRENTLY) takes a SHARE lock that blocks writes for
+	// the duration of the index build.
+	for _, spec := range expressionIndexes {
+		assert.Contains(t, expressionIndexCreateStmt(d, spec), "CONCURRENTLY")
+		assert.Contains(t, expressionIndexDropStmt(d, spec), "CONCURRENTLY")
+	}
+}
+
+func TestCreateExpressionIndexes_NonPostgresNoop(t *testing.T) {
+	db := getTestSQLite(t)
+	assert.NotPanics(t, func() {
+		createExpressionIndexes(db, dialect.NewDBDialect("sqlite"))
+	})
 }

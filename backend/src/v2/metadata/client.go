@@ -1428,6 +1428,9 @@ func (c *Client) getOrInsertContext(ctx context.Context, name string, contextTyp
 	if err != nil {
 		return nil, fmt.Errorf("Failed GetContext(name=%q, type=%q): %w", name, contextType.GetName(), err)
 	}
+	if getCtxRes.GetContext() == nil {
+		return nil, fmt.Errorf("getOrInsertContext(name=%q, type=%q): context not found immediately after insert", name, contextType.GetName())
+	}
 	return getCtxRes.GetContext(), nil
 }
 

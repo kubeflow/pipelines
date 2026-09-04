@@ -108,6 +108,14 @@ func (t Task) GetField(name string) (string, string, bool) {
 	return "", "", false
 }
 
+var taskCaseInsensitiveFields = map[string]struct{}{
+	"display_name": {},
+}
+
+func (t Task) CaseInsensitiveFields() map[string]struct{} {
+	return taskCaseInsensitiveFields
+}
+
 func (t Task) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
