@@ -48,16 +48,25 @@ class DependabotConfigTest(unittest.TestCase):
         cls.ci_scripts_workflow = CI_SCRIPTS_WORKFLOW_PATH.read_text(
             encoding='utf-8')
 
-    def update_block(self, ecosystem: str) -> str:
-        block_match = re.search(
-            rf'^  - package-ecosystem: {re.escape(ecosystem)}\n'
+    def update_blocks(self) -> list[tuple[str, str]]:
+        return re.findall(
+            r'^  - package-ecosystem: (\S+)\n'
             r'(.*?)(?=^  - package-ecosystem:|\Z)',
             self.config,
             flags=re.MULTILINE | re.DOTALL,
         )
-        self.assertIsNotNone(block_match,
-                             f'missing Dependabot ecosystem {ecosystem}')
-        return block_match.group(1)
+
+    def update_block(self, ecosystem: str) -> str:
+        matching_blocks = [
+            block for configured_ecosystem, block in self.update_blocks()
+            if configured_ecosystem == ecosystem
+        ]
+        self.assertEqual(
+            len(matching_blocks),
+            1,
+            f'expected exactly one Dependabot ecosystem {ecosystem}',
+        )
+        return matching_blocks[0]
 
     def configured_directories(self, ecosystem: str) -> set[str]:
         block = self.update_block(ecosystem)
@@ -75,18 +84,66 @@ class DependabotConfigTest(unittest.TestCase):
             directories_match,
             f'missing directories for Dependabot ecosystem {ecosystem}',
         )
-        return set(re.findall(r'^      - "([^"]+)"$',
-                              directories_match.group(1), re.MULTILINE))
-
-    def test_all_supported_repository_ecosystems_are_configured(self):
-        configured_ecosystems = set(
-            re.findall(r'^  - package-ecosystem: (\S+)$', self.config,
+        return set(
+            re.findall(r'^      - "([^"]+)"$', directories_match.group(1),
                        re.MULTILINE))
 
-        self.assertEqual(
-            configured_ecosystems,
-            {'gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'},
+    def configured_labels(self, ecosystem: str) -> list[str]:
+        block = self.update_block(ecosystem)
+        label_keys = re.findall(
+            r'^    (?:labels|[\'\"]labels[\'\"])\s*:',
+            block,
+            flags=re.MULTILINE,
         )
+        self.assertEqual(
+            len(label_keys),
+            1,
+            f'expected exactly one labels key for ecosystem {ecosystem}',
+        )
+        label_blocks = re.findall(
+            r'^    labels:\n((?:      - "[^"]+"\n)+)',
+            block,
+            flags=re.MULTILINE,
+        )
+        self.assertEqual(
+            len(label_blocks),
+            1,
+            f'expected exactly one labels block for ecosystem {ecosystem}',
+        )
+        return re.findall(r'^      - "([^"]+)"$', label_blocks[0], re.MULTILINE)
+
+    def test_all_supported_repository_ecosystems_are_configured(self):
+        configured_ecosystems = [
+            ecosystem for ecosystem, _ in self.update_blocks()
+        ]
+
+        self.assertCountEqual(
+            configured_ecosystems,
+            ('gomod', 'docker', 'npm', 'pip', 'github-actions', 'pre-commit'))
+        self.assertEqual(
+            len(configured_ecosystems), len(set(configured_ecosystems)))
+
+    def test_version_and_security_updates_start_held_with_defaults_preserved(
+            self):
+        ecosystem_labels = {
+            'gomod': 'go',
+            'docker': 'docker',
+            'npm': 'javascript',
+            'pip': 'python',
+            'github-actions': 'github_actions',
+            'pre-commit': 'pre_commit',
+        }
+
+        for ecosystem, ecosystem_label in ecosystem_labels.items():
+            with self.subTest(ecosystem=ecosystem):
+                self.assertNotRegex(
+                    self.update_block(ecosystem),
+                    r'(?m)^    (?:target-branch|[\'\"]target-branch[\'\"])\s*:',
+                )
+                self.assertEqual(
+                    self.configured_labels(ecosystem),
+                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                )
 
     def test_all_go_modules_are_covered(self):
         module_directories = {
@@ -131,16 +188,15 @@ class DependabotConfigTest(unittest.TestCase):
             if repository_directory(path) not in GENERATED_PYTHON_CLIENTS
         }
 
-        self.assertEqual(self.configured_directories('pip'),
-                         python_directories)
+        self.assertEqual(self.configured_directories('pip'), python_directories)
 
     def test_workflows_and_reusable_actions_are_covered(self):
         configured_directories = self.configured_directories('github-actions')
         self.assertIn('/', configured_directories)
         action_directories = {
             repository_directory(path)
-            for path in (REPOSITORY_ROOT / '.github/actions').rglob(
-                'action.y*ml')
+            for path in (REPOSITORY_ROOT /
+                         '.github/actions').rglob('action.y*ml')
         }
 
         self.assertTrue(action_directories)
@@ -169,14 +225,14 @@ class DependabotConfigTest(unittest.TestCase):
         self.assertIn("      - '.github/dependabot.yml'",
                       self.ci_scripts_workflow)
         for manifest_pattern in (
-            '**/go.mod',
-            '**/package.json',
-            '**/requirements*.txt',
-            '**/setup.py',
-            '**/pyproject.toml',
-            '**/action.yml',
-            '**/action.yaml',
-            '.pre-commit-config.yaml',
+                '**/go.mod',
+                '**/package.json',
+                '**/requirements*.txt',
+                '**/setup.py',
+                '**/pyproject.toml',
+                '**/action.yml',
+                '**/action.yaml',
+                '.pre-commit-config.yaml',
         ):
             with self.subTest(manifest_pattern=manifest_pattern):
                 self.assertIn(f"      - '{manifest_pattern}'",
