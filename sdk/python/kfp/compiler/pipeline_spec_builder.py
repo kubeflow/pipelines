@@ -50,7 +50,8 @@ group_type_to_dsl_class = {
 }
 
 
-def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
+def to_protobuf_value(
+        value: Optional[type_utils.PARAMETER_TYPES]) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
 
@@ -64,7 +65,9 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
         ValueError if the given value is not one of the parameter types.
     """
     # bool check must be above (int, float) check because bool is a subclass of int so isinstance(True, int) == True
-    if isinstance(value, bool):
+    if value is None:
+        return struct_pb2.Value(null_value=struct_pb2.NULL_VALUE)
+    elif isinstance(value, bool):
         return struct_pb2.Value(bool_value=value)
     elif isinstance(value, str):
         return struct_pb2.Value(string_value=value)
@@ -81,7 +84,7 @@ def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
                 values=[to_protobuf_value(v) for v in value]))
     else:
         raise ValueError('Value must be one of the following types: '
-                         'str, int, float, bool, dict, and list. Got: '
+                         'str, int, float, bool, dict, list, and None. Got: '
                          f'"{value}" of type "{type(value)}".')
 
 

@@ -36,6 +36,12 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
     def setUp(self):
         self.maxDiff = None
 
+    def test_to_protobuf_value_none(self):
+        self.assertEqual(
+            struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+            pipeline_spec_builder.to_protobuf_value(None),
+        )
+
     @parameterized.parameters(
         {
             'parameter_type': pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
@@ -84,6 +90,33 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
         },
         {
             'parameter_type':
+                pipeline_spec_pb2.ParameterType.STRUCT,
+            'default_value': {
+                'a': None,
+                'b': {
+                    'c': None,
+                },
+            },
+            'expected':
+                struct_pb2.Value(
+                    struct_value=struct_pb2.Struct(
+                        fields={
+                            'a':
+                                struct_pb2.Value(
+                                    null_value=struct_pb2.NULL_VALUE),
+                            'b':
+                                struct_pb2.Value(
+                                    struct_value=struct_pb2.Struct(
+                                        fields={
+                                            'c':
+                                                struct_pb2.Value(
+                                                    null_value=struct_pb2
+                                                    .NULL_VALUE),
+                                        })),
+                        })),
+        },
+        {
+            'parameter_type':
                 pipeline_spec_pb2.ParameterType.LIST,
             'default_value': ['a', 'b'],
             'expected':
@@ -91,6 +124,26 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
                     list_value=struct_pb2.ListValue(values=[
                         struct_pb2.Value(string_value='a'),
                         struct_pb2.Value(string_value='b'),
+                    ])),
+        },
+        {
+            'parameter_type':
+                pipeline_spec_pb2.ParameterType.LIST,
+            'default_value': ['a', None, {
+                'b': None
+            }],
+            'expected':
+                struct_pb2.Value(
+                    list_value=struct_pb2.ListValue(values=[
+                        struct_pb2.Value(string_value='a'),
+                        struct_pb2.Value(null_value=struct_pb2.NULL_VALUE),
+                        struct_pb2.Value(
+                            struct_value=struct_pb2.Struct(
+                                fields={
+                                    'b':
+                                        struct_pb2.Value(
+                                            null_value=struct_pb2.NULL_VALUE),
+                                })),
                     ])),
         },
         {
