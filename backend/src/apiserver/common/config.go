@@ -50,6 +50,7 @@ const (
 	BlockV1Pipelines                        string = "BLOCK_V1_PIPELINES"
 	V1NamespaceWhitelist                    string = "V1_ALLOWED_NAMESPACES"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
+	PipelineURLAllowedCIDRs                 string = "PIPELINE_URL_ALLOWED_CIDRS"
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"

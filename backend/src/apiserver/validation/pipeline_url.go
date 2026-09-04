@@ -70,6 +70,7 @@ var defaultPorts = map[string]string{
 
 var (
 	blockedNets    []*net.IPNet
+	allowedNets    []*net.IPNet
 	allowedDomains []*regexp.Regexp
 	urlConfigInit  sync.Once
 )
@@ -83,6 +84,20 @@ func initURLConfig() {
 				blockedNets = append(blockedNets, ipNet)
 			} else {
 				glog.Warningf("Failed to parse blocked CIDR %q: %v", cidr, err)
+			}
+		}
+
+		// Parse operator-configured CIDRs that override the blocklist, so a
+		// deployment can fetch pipelines from hosts on an internal network.
+		userCIDRs := common.GetStringConfigWithDefault(common.PipelineURLAllowedCIDRs, "")
+		for _, c := range strings.Split(userCIDRs, ",") {
+			if c = strings.TrimSpace(c); c == "" {
+				continue
+			}
+			if _, ipNet, err := net.ParseCIDR(c); err == nil {
+				allowedNets = append(allowedNets, ipNet)
+			} else {
+				glog.Warningf("Failed to parse allowed CIDR %q: %v", c, err)
 			}
 		}
 
@@ -184,6 +199,12 @@ func validateResolvedIPs(host string) error {
 }
 
 func isBlockedIP(ip net.IP) bool {
+	// An operator-configured CIDR overrides the blocklist.
+	for _, ipNet := range allowedNets {
+		if ipNet.Contains(ip) {
+			return false
+		}
+	}
 	for _, ipNet := range blockedNets {
 		if ipNet.Contains(ip) {
 			return true
