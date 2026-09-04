@@ -85,6 +85,26 @@ func NewGenericScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	}, nil
 }
 
+// NewReferenceScheduledWorkflow builds a ScheduledWorkflow that references a pipeline
+// (version) instead of embedding a compiled workflow. The ScheduledWorkflow controller
+// resolves the referenced pipeline through the CreateRun API at trigger time.
+func NewReferenceScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+	scheduledWorkflow, err := NewGenericScheduledWorkflow(modelJob)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a recurring run during scheduled workflow creation")
+	}
+
+	parameters, err := StringMapToCRDParameters(string(modelJob.RuntimeConfig.Parameters))
+	if err != nil {
+		return nil, util.Wrap(err, "Converting runtime config's parameters to CDR parameters failed")
+	}
+
+	scheduledWorkflow.Spec.Workflow = &scheduledworkflow.WorkflowResource{
+		Parameters: parameters, PipelineRoot: string(modelJob.PipelineRoot),
+	}
+	return scheduledWorkflow, nil
+}
+
 func (t *V2Spec) PipelineSpec() *pipelinespec.PipelineSpec {
 	return t.spec
 }
