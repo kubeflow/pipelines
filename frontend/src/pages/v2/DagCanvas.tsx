@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { MouseEvent as ReactMouseEvent, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
@@ -24,6 +23,9 @@ import {
   MiniMap,
   Node,
   OnNodeDrag,
+  useNodesState,
+  applyNodeChanges,
+  NodeChange,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
@@ -63,7 +65,7 @@ export default function DagCanvas({
     [layers, onLayersUpdate],
   );
 
-  const nodes = useMemo(
+  const initialNodes = useMemo(
     () =>
       elements
         .filter(isNode)
@@ -96,12 +98,31 @@ export default function DagCanvas({
     [onElementClick],
   );
 
+  const [nodes, setNodes] = useNodesState<PipelineNode>(initialNodes);
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange<PipelineNode>[]) => {
+      const dimensionChanges = changes.filter(
+        change => change.type === 'dimensions',
+      );
+
+      if (dimensionChanges.length > 0) {
+        setNodes(currentNodes =>
+          applyNodeChanges(dimensionChanges, currentNodes),
+        );
+      }
+    },
+    [setNodes],
+  );
+
   return (
     <>
       <SubDagLayer layers={layers} onLayersUpdate={onLayersUpdate}></SubDagLayer>
       <div data-testid='DagCanvas' style={{ width: '100%', height: '100%' }}>
         <ReactFlowProvider>
-          {/* onNodesChange/onEdgesChange are intentionally omitted: this DAG viewer
+          {/* onNodesChange is only used to handle ReactFlow's internal dimension changes 
+              so that measurement-dependent components such as MinMap can be rendered correctly
+              It emits any dimension changes when measuring nodes - DAG viewer
               does not need keyboard deletion, multi-select, or internal selection
               tracking. Drag persistence is handled via onNodeDragStop only. */}
           <ReactFlow<PipelineNode, Edge>
@@ -116,6 +137,7 @@ export default function DagCanvas({
             onNodeClick={handleNodeClick}
             onEdgeClick={handleEdgeClick}
             onNodeDragStop={nodesDraggable ? onNodeDragStop : undefined}
+            onNodesChange={onNodesChange}
           >
             <MiniMap />
             <Controls />
