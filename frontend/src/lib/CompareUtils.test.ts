@@ -274,6 +274,49 @@ describe('CompareUtils', () => {
         yLabels: ['some-metric', 'another-metric'],
       });
     });
+
+    it('returns all values when a run has duplicate metric names', () => {
+      const runs = [
+        {
+          metrics: [
+            { name: 'some-metric', number_value: 0.33 },
+            { name: 'some-metric', number_value: 0.66 },
+          ],
+          name: 'run1',
+        } as ApiRun,
+      ];
+
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual({
+        rows: [['0.330'], ['0.660']],
+        xLabels: ['run1'],
+        yLabels: ['some-metric', 'some-metric (2)'],
+      });
+    });
+
+    it('returns duplicate metric values based on the maximum occurrences in a run', () => {
+      const runs = [
+        {
+          metrics: [
+            { name: 'some-metric', number_value: 0.33 },
+            { name: 'some-metric', number_value: 0.66 },
+          ],
+          name: 'run1',
+        } as ApiRun,
+        {
+          metrics: [{ name: 'some-metric', number_value: 0.99 }],
+          name: 'run2',
+        } as ApiRun,
+      ];
+
+      expect(CompareUtils.multiRunMetricsCompareProps(runs)).toEqual({
+        rows: [
+          ['0.330', '0.990'],
+          ['0.660', ''],
+        ],
+        xLabels: ['run1', 'run2'],
+        yLabels: ['some-metric', 'some-metric (2)'],
+      });
+    });
   });
 
   describe('singleRunToMetricsCompareProps', () => {
