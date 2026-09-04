@@ -15,12 +15,13 @@
 from typing import List, Union
 
 from google.protobuf import json_format
-from kfp.dsl import PipelineTask, pipeline_channel
+from kfp.dsl import pipeline_channel
+from kfp.dsl import PipelineTask
 from kfp.kubernetes import common
 from kfp.kubernetes import kubernetes_executor_config_pb2 as pb
 
 
-class ResourceClaimConfig:
+class ResourceClaimConfig(dict):
     """Typed configuration for a DRA resource claim.
 
     Args:
@@ -32,12 +33,15 @@ class ResourceClaimConfig:
         if not resource_claim_template_name:
             raise ValueError(
                 'resource_claim_template_name must be a non-empty string.')
-        self.resource_claim_template_name = resource_claim_template_name
+        super().__init__(
+            resourceClaimTemplateName=resource_claim_template_name,)
+
+    @property
+    def resource_claim_template_name(self) -> str:
+        return self['resourceClaimTemplateName']
 
     def to_dict(self) -> dict:
-        return {
-            'resourceClaimTemplateName': self.resource_claim_template_name,
-        }
+        return dict(self)
 
 
 def add_resource_claim(

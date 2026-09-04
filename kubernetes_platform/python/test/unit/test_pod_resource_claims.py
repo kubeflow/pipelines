@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
 from google.protobuf import json_format
 from kfp import dsl
 from kfp import kubernetes
+from kfp_server_api import V2beta1RuntimeConfig
+from kfp_server_api.api_client import ApiClient
+import pytest
 
 
 class TestResourceClaim:
@@ -368,6 +370,40 @@ class TestResourceClaimConfig:
         assert config.to_dict() == {
             'resourceClaimTemplateName': 'gpu-claim-template',
         }
+
+    @pytest.mark.parametrize(
+        'config, expected',
+        [
+            pytest.param(
+                kubernetes.ResourceClaimConfig('gpu-claim-template'),
+                {'resourceClaimTemplateName': 'gpu-claim-template'},
+                id='single-claim',
+            ),
+            pytest.param(
+                [
+                    kubernetes.ResourceClaimConfig('gpu-claim-template'),
+                    kubernetes.ResourceClaimConfig('nic-claim-template'),
+                ],
+                [
+                    {
+                        'resourceClaimTemplateName': 'gpu-claim-template'
+                    },
+                    {
+                        'resourceClaimTemplateName': 'nic-claim-template'
+                    },
+                ],
+                id='claim-list',
+            ),
+        ],
+    )
+    def test_serializes_as_runtime_parameter(self, config, expected):
+        runtime_config = V2beta1RuntimeConfig(
+            parameters={'resource_claim': config},)
+
+        with ApiClient() as api_client:
+            serialized = api_client.sanitize_for_serialization(runtime_config)
+
+        assert serialized['parameters']['resource_claim'] == expected
 
 
 @dsl.component
