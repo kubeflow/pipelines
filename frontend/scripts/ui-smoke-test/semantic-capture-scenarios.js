@@ -583,7 +583,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
         semanticIdNormalization: rocComparisonColorNormalization({
           labelItemSelector: '#root [aria-label="Selected ROC curve provenance"] > li',
-          mappingStrategy: 'color-backed-labels',
+          mappingStrategy: 'ordered-label-cards',
         }),
         waitFor: '#root',
         actions: [
@@ -739,7 +739,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           scopes: [
             {
               match: 'substring',
-              maxReplacements: 4,
+              maxReplacements: 6,
               maxReplacementsPerIdentifier: 2,
               minReplacements: 4,
               minReplacementsPerIdentifier: 1,
@@ -857,7 +857,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: headTaskPanelActions('parallel-loop', 'Task Details'),
+        actions: headTaskPanelActions('Loop', 'Task Details'),
       },
     },
   },

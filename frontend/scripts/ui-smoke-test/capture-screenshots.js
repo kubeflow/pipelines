@@ -1412,7 +1412,19 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
         if (scope.mappingStrategy === 'ordered-label-cards') {
           if (labelItems.length !== sourceColors.length) ambiguous = true;
           labelItems.forEach((item, index) => {
-            bindSourceColor(normalizedColor(sourceColors[index]), matchingSeriesFor(item));
+            const styledElements = [
+              ...(item.matches('[style]') ? [item] : []),
+              ...item.querySelectorAll('[style]'),
+            ].filter((element) => {
+              const color = normalizedColor(getComputedStyle(element).backgroundColor);
+              return color && color !== 'rgba(0,0,0,0)' && color !== 'transparent';
+            });
+            if (styledElements.length !== 1) ambiguous = true;
+            bindSourceColor(
+              normalizedColor(sourceColors[index]),
+              matchingSeriesFor(item),
+              styledElements[0] || null,
+            );
           });
         } else {
           for (const item of labelItems) {
