@@ -206,6 +206,18 @@ function rocReady() {
   );
 }
 
+function twoSelectedRocCurvesReady() {
+  return (
+    document.querySelectorAll('[aria-label="Selected ROC curve provenance"] > li').length === 2
+  );
+}
+
+function threeSelectedRocCurvesReady() {
+  return (
+    document.querySelectorAll('[aria-label="Selected ROC curve provenance"] > li').length === 3
+  );
+}
+
 function baseV2ComparisonRocReady() {
   // This predicate is serialized into the browser, so keep its expected fixture cardinality local.
   const expectedSeriesCount = 3;
@@ -591,8 +603,16 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'click', selector: tabSelector('Classification Metrics') },
           { type: 'waitForSelector', selector: '[aria-label="ROC curves"]' },
           { type: 'click', selector: '[aria-label="ROC curves"]' },
-          { type: 'click', selector: '[role="option"]' },
-          { type: 'click', selector: '[role="option"]' },
+          {
+            type: 'click',
+            selector: '[role="option"]:has-text("UI Smoke Training Run 1")',
+          },
+          { type: 'waitForFunction', predicate: twoSelectedRocCurvesReady },
+          {
+            type: 'click',
+            selector: '[role="option"]:has-text("UI Smoke Training Run 1")',
+          },
+          { type: 'waitForFunction', predicate: threeSelectedRocCurvesReady },
           { type: 'press', key: 'Escape' },
           { type: 'waitForFunction', predicate: rocReady },
         ],

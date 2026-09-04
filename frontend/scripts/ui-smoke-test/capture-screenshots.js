@@ -1504,6 +1504,7 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
           ambiguous,
           companionCount: seenCompanions.size,
           elementCount: elements.length,
+          labelCount: labelItems.length,
           mappings: mappings.map(({ semanticId, sourceColor }) => ({ semanticId, sourceColor })),
         };
       });
@@ -1516,6 +1517,7 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
       ambiguous: true,
       companionCount: 0,
       elementCount: 0,
+      labelCount: 0,
       mappings: [],
     };
     if (
@@ -1535,7 +1537,8 @@ async function normalizeSemanticDerivedColors(page, config, catalog) {
       result.companionCount < result.elementCount
     ) {
       throw semanticIdNormalizationError(
-        `Semantic derived-color normalization ${scope.key} could not map each curve to one visible semantic label.`,
+        `Semantic derived-color normalization ${scope.key} could not map each curve to one visible semantic label ` +
+          `(curves=${result.elementCount}, labels=${result.labelCount}, mappings=${result.mappings.length}, companions=${result.companionCount}).`,
         'selector_drift',
       );
     }
