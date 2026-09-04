@@ -799,6 +799,17 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
       }
     }
 
+    if (run.revisionFlavor === REVISION_FLAVORS.NATIVE && runProfile?.loop) {
+      const loopTask = run.taskInstances?.[runProfile.loop.task]?.[0];
+      for (const iterationIndex of runProfile.loop.iterationIndexes || []) {
+        const scopeSemanticId = `${runKey}/${runProfile.loop.task}/iteration[${iterationIndex}]`;
+        add('task', `${scopeSemanticId}/task`, `task.${loopTask?.name}.${iterationIndex}`, {
+          tokenKind: 'task',
+          tokenSemanticId: scopeSemanticId,
+        });
+      }
+    }
+
     for (const [scopeKey, instances] of Object.entries(run?.scopeInstances || {}).sort(
       ([left], [right]) => left.localeCompare(right),
     )) {
