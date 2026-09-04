@@ -702,13 +702,16 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
       for (const [index, instance] of (Array.isArray(instances) ? instances : []).entries()) {
         const taskSemanticId = taskVisualSemanticId(runKey, taskKey, index);
         const equivalenceClass = unjoinableLegacyTaskEquivalence(manifest, runKey, taskKey);
+        const taskExecutions = run?.executionInstances?.[taskKey] || [];
+        const matchingLegacyExecution = instance?.mlmdExecutionId
+          ? taskExecutions.find((execution) => execution?.executionId === instance.mlmdExecutionId)
+          : undefined;
         add('task', taskSemanticId, instance?.taskId, {
           ...(equivalenceClass ? { equivalenceClass } : {}),
           tokenKind: 'task',
           tokenSemanticId: equivalenceClass || taskSemanticId,
         });
         if (instance?.mlmdExecutionId) {
-          const taskExecutions = run?.executionInstances?.[taskKey] || [];
           const legacyExecutionIndex = taskExecutions.findIndex(
             (execution) => execution?.executionId === instance.mlmdExecutionId,
           );
@@ -747,7 +750,19 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
           });
         }
         const taskPodRole = TASK_FIXTURES[taskKey]?.kind === 'runtime' ? 'executor' : 'driver';
-        const taskPodIndex = taskKey === runProfile?.retry?.task ? failedMainJobs.length : 0;
+        const legacyRetryAttemptIndex =
+          run.revisionFlavor === REVISION_FLAVORS.LEGACY
+            ? Math.max(
+                0,
+                ...(matchingLegacyExecution?.executorLogs || [])
+                  .map((record) => executorLogAttemptIndex(record?.uri))
+                  .filter(Number.isSafeInteger),
+              )
+            : 0;
+        const taskPodIndex =
+          taskKey === runProfile?.retry?.task
+            ? Math.max(failedMainJobs.length, legacyRetryAttemptIndex)
+            : 0;
         const taskPodSemanticId = `${taskSemanticId}/pod.${taskPodRole}[${taskPodIndex}]`;
         add('pod', `${taskPodSemanticId}/name`, instance?.podName, {
           tokenKind: 'pod',

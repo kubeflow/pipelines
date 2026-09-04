@@ -1997,6 +1997,155 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   });
 });
 
+test('an incomplete base capture tears down its stack before any head build begins', async (t) => {
+  const stackOperations = [];
+  let activeClusters = 0;
+  const { run, services } = orchestrationHarness(
+    t,
+    { backendChanged: true, baseRef: '2.17.1' },
+    {
+      async captureRevision(options) {
+        fs.mkdirSync(options.outputDir, { recursive: true });
+        fs.writeFileSync(
+          path.join(options.outputDir, 'manifest.json'),
+          JSON.stringify({
+            complete: false,
+            fatalErrors: [],
+            results: [
+              {
+                captureValidity: 'selector_drift',
+                filename: 'runs-1280x800.png',
+                page: 'runs',
+                required: true,
+                status: 'degraded',
+                viewport: { height: 800, width: 1280 },
+              },
+            ],
+            summary: { complete: false },
+          }),
+        );
+        return { success: false };
+      },
+      clusterManager: {
+        createKindStack(configuration) {
+          const { role } = configuration;
+          const record = (operation) => stackOperations.push({ operation, role });
+          return {
+            clusterName: configuration.clusterName,
+            deployedUiUrl: `http://127.0.0.1:${configuration.ports.frontendServer}`,
+            role,
+            async buildComponentImages(components) {
+              record('buildComponentImages');
+              return {
+                deployments: [],
+                images: Object.fromEntries(
+                  components.map((component) => [component.name, `${component.name}:test`]),
+                ),
+                runtimeEnvironment: {},
+              };
+            },
+            async cleanup() {
+              record('cleanup');
+            },
+            async collectDiagnostics() {
+              return { clusterName: configuration.clusterName, collected: true, role };
+            },
+            async createCluster() {
+              activeClusters += 1;
+              record('createCluster');
+            },
+            async deployRevision() {
+              record('deployRevision');
+            },
+            async destroyCluster() {
+              activeClusters -= 1;
+              record('destroyCluster');
+              return true;
+            },
+            async ensureDeployedUiPortForwarding() {
+              return [{}];
+            },
+            getClusterPlatform() {
+              return 'linux/amd64';
+            },
+            getDockerPlatform() {
+              return 'linux/amd64';
+            },
+            loadImageOverrides() {
+              record('loadImageOverrides');
+            },
+            preflightReleaseImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+            preflightSeedRuntimeImage(options) {
+              return { image: 'seed-image', platform: options.platform };
+            },
+            preflightThirdPartyImages(_target, options) {
+              return { images: [], platform: options.platform };
+            },
+          };
+        },
+      },
+      componentsForRevision(target) {
+        return [{ name: target.includes('base') ? 'base-apiserver' : 'head-apiserver' }];
+      },
+      findReusableComponents() {
+        return [];
+      },
+      revisionUsesMetadataService(target) {
+        return target.includes('base');
+      },
+      async seedData(options) {
+        fs.mkdirSync(path.dirname(options.manifestPath), { recursive: true });
+        fs.writeFileSync(
+          options.manifestPath,
+          JSON.stringify({
+            semantic: {
+              revisionFlavor: 'legacy-mlmd',
+              validation: { errors: [], valid: true },
+            },
+          }),
+        );
+        return { success: true };
+      },
+    },
+  );
+
+  await assert.rejects(
+    runComparison(
+      comparisonOptions({
+        fullStack: true,
+        headCheckout: '/reviewed/head',
+        prNumber: null,
+        trustLocalHead: true,
+        trustPrCode: false,
+      }),
+      run,
+      services,
+    ),
+    /base full-stack capture was incomplete/,
+  );
+
+  assert.equal(activeClusters, 0);
+  assert.deepEqual(
+    stackOperations.filter(({ operation }) => operation === 'buildComponentImages'),
+    [],
+  );
+  assert.deepEqual(
+    stackOperations.filter(({ operation }) => operation === 'createCluster'),
+    [{ operation: 'createCluster', role: 'base' }],
+  );
+  assert.deepEqual(
+    stackOperations.filter(({ operation }) => operation === 'destroyCluster'),
+    [{ operation: 'destroyCluster', role: 'base' }],
+  );
+  const diagnostic = JSON.parse(
+    fs.readFileSync(path.join(run.runDir, 'full-stack-diagnostics.json'), 'utf8'),
+  );
+  assert.equal(diagnostic.category, 'selector_drift');
+  assert.equal(diagnostic.phase, 'base_capture');
+});
+
 test('full-stack seed failures persist categorized JSON, HTML, and stack diagnostics', async (t) => {
   const collected = [];
   const { run, services } = orchestrationHarness(
@@ -2229,8 +2378,8 @@ test('incomplete full-stack captures retain browser diagnostics and attribute se
     },
   );
 
-  assert.equal(
-    await runComparison(
+  await assert.rejects(
+    runComparison(
       comparisonOptions({
         fullStack: true,
         headCheckout: '/reviewed/head',
@@ -2241,7 +2390,7 @@ test('incomplete full-stack captures retain browser diagnostics and attribute se
       run,
       services,
     ),
-    false,
+    /head full-stack capture was incomplete/,
   );
 
   const diagnostic = JSON.parse(

@@ -780,6 +780,32 @@ test('revision-specific Artifact URIs and pod identities normalize to stable sem
     podEvidence.scopes[0].entries.every((entry) => entry.kind === 'pod'),
     true,
   );
+
+  const legacyRetryManifest = strictSemanticFixtureManifest();
+  const legacyRetryRun = legacyRetryManifest.deployments.base.bindings.runs['run.training-1'];
+  const legacyRetryTask = legacyRetryRun.taskInstances['task.retry-once'][0];
+  const legacyRetryExecution = legacyRetryRun.executionInstances['task.retry-once'][0];
+  legacyRetryTask.failedMainJobs = [];
+  legacyRetryTask.podName = 'retry-attempt-1-generated';
+  legacyRetryExecution.podName = 'retry-attempt-1-generated';
+  const legacyRetryCatalog = capture.buildSemanticIdentifierCatalog(legacyRetryManifest, 'base');
+  assert.equal(
+    legacyRetryCatalog.find(
+      (entry) =>
+        entry.kind === 'pod' &&
+        entry.semanticId === 'run.training-1/task.retry-once[0]/pod.executor[1]/name',
+    )?.value,
+    'retry-attempt-1-generated',
+  );
+  assert.equal(
+    legacyRetryCatalog.some(
+      (entry) =>
+        entry.kind === 'pod' &&
+        entry.semanticId === 'run.training-1/task.retry-once[0]/pod.executor[0]/name' &&
+        entry.value === 'retry-attempt-1-generated',
+    ),
+    false,
+  );
 });
 
 test('ROC series colors normalize by visible semantic label instead of generated ID order', async () => {

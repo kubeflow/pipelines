@@ -2518,6 +2518,10 @@ async function runFullStackComparisonOrchestration({
     state.phase = `${role}_cleanup`;
     await stack.cleanup();
     await requireStackDestroyed(stack);
+    if (!capture.success) {
+      state.phase = `${role}_capture`;
+      throw new Error(`${role} full-stack capture was incomplete.`);
+    }
     return { capture, manifest };
   };
 
