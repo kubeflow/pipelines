@@ -1748,6 +1748,7 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   const baseSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
   const headSha = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
   const stackOperations = [];
+  const stackConfigurations = [];
   let activeClusters = 0;
   let peakActiveClusters = 0;
   const { calls, repoRoot, run, services } = orchestrationHarness(
@@ -1761,6 +1762,7 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
     {
       clusterManager: {
         createKindStack(configuration) {
+          stackConfigurations.push(configuration);
           const { role } = configuration;
           const record = (operation, detail = {}) =>
             stackOperations.push({ operation, role, ...detail });
@@ -1902,6 +1904,13 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   );
 
   assert.equal(calls.detect[0].baseRef, baseSha);
+  assert.deepEqual(
+    stackConfigurations.map(({ isolatedBuildCache, role }) => ({ isolatedBuildCache, role })),
+    [
+      { isolatedBuildCache: true, role: 'base' },
+      { isolatedBuildCache: true, role: 'head' },
+    ],
+  );
   assert.equal(peakActiveClusters, 1);
   assert.equal(activeClusters, 0);
   assert.deepEqual(calls.worktrees, [{ gitRef: baseSha, target: baseWorktree }]);

@@ -480,6 +480,11 @@ function createKindStack(config = {}) {
   const role = sanitizeImageTagPart(config.role || 'stack');
   const revision = sanitizeImageTagPart(config.revision || 'local');
   const imageScope = sanitizeImageTagPart(config.imageScope || `${role}-${revision}`);
+  const isolatedBuildCache = config.isolatedBuildCache === true;
+  const buildxBuilderName = validateName(
+    `${clusterName.slice(0, 54).replace(/[.-]+$/, '')}-build`,
+    'Buildx builder name',
+  );
   const archiveDir = path.resolve(
     config.archiveDir || path.join(path.dirname(kubeconfigPath), 'image-archives'),
   );
@@ -772,66 +777,125 @@ function createKindStack(config = {}) {
     const platform = options.platform || getClusterPlatform({ runner });
     validatePlatform(platform, 'Backend image platform');
     const tagSuffix = sanitizeImageTagPart(options.tagSuffix || imageScope);
-    for (const component of components) {
-      if (!component.dockerfile || !component.imageTag) {
-        throw new Error(`Component ${component.name} is missing Docker build metadata.`);
-      }
-      const image = scopedImageTag(component, tagSuffix);
-      const mixedPlatformWorkload = MIXED_PLATFORM_WORKLOADS.find(
-        (workload) =>
-          workload.component === component.name &&
-          workload.deployment === component.deployment &&
-          workload.container === component.container,
-      );
-      const buildPlatform =
-        platform === 'linux/arm64' && mixedPlatformWorkload
-          ? mixedPlatformWorkload.platform
-          : platform;
-      validatePlatform(buildPlatform, `Build platform for ${component.name}`);
-      const buildArguments = componentBuildArguments(component, options.buildMetadata);
-      overrides.images[component.name] = image;
-      log(`Building ${component.name} as ${image}...`);
+    if (isolatedBuildCache) {
       requireSuccess(
         runner(
           'docker',
-          [
-            'build',
-            '--platform',
-            buildPlatform,
-            '--tag',
-            image,
-            '--file',
-            component.dockerfile,
-            ...buildArguments,
-            '.',
-          ],
-          commandOptions({
-            cwd: repoRoot,
-            timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS,
-            stdio: 'inherit',
-          }),
+          ['buildx', 'create', '--name', buildxBuilderName, '--driver', 'docker-container'],
+          commandOptions(),
         ),
-        `Failed to build ${component.name}`,
+        `Failed to create isolated Buildx builder ${buildxBuilderName}`,
       );
-      builtImagePlatforms.set(image, buildPlatform);
-      if (buildPlatform !== platform) {
-        builtMixedPlatformWorkloads.set(image, Object.freeze({ ...mixedPlatformWorkload, image }));
-      }
-      if (options.load !== false) {
-        saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, buildPlatform, {
-          nodePlatform: platform,
-          runner,
-        });
-      }
-      if (component.deployment) {
-        overrides.deployments.push({
-          container: component.container,
-          deployment: component.deployment,
-          image,
-        });
-      }
-      if (component.runtimeEnv) overrides.runtimeEnvironment[component.runtimeEnv] = image;
     }
+
+    let buildError;
+    try {
+      for (const component of components) {
+        if (!component.dockerfile || !component.imageTag) {
+          throw new Error(`Component ${component.name} is missing Docker build metadata.`);
+        }
+        const image = scopedImageTag(component, tagSuffix);
+        const mixedPlatformWorkload = MIXED_PLATFORM_WORKLOADS.find(
+          (workload) =>
+            workload.component === component.name &&
+            workload.deployment === component.deployment &&
+            workload.container === component.container,
+        );
+        const buildPlatform =
+          platform === 'linux/arm64' && mixedPlatformWorkload
+            ? mixedPlatformWorkload.platform
+            : platform;
+        validatePlatform(buildPlatform, `Build platform for ${component.name}`);
+        const buildArguments = componentBuildArguments(component, options.buildMetadata);
+        overrides.images[component.name] = image;
+        log(`Building ${component.name} as ${image}...`);
+        requireSuccess(
+          runner(
+            'docker',
+            isolatedBuildCache
+              ? [
+                  'buildx',
+                  'build',
+                  '--builder',
+                  buildxBuilderName,
+                  '--load',
+                  '--platform',
+                  buildPlatform,
+                  '--tag',
+                  image,
+                  '--file',
+                  component.dockerfile,
+                  ...buildArguments,
+                  '.',
+                ]
+              : [
+                  'build',
+                  '--platform',
+                  buildPlatform,
+                  '--tag',
+                  image,
+                  '--file',
+                  component.dockerfile,
+                  ...buildArguments,
+                  '.',
+                ],
+            commandOptions({
+              cwd: repoRoot,
+              timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS,
+              stdio: 'inherit',
+            }),
+          ),
+          `Failed to build ${component.name}`,
+        );
+        builtImagePlatforms.set(image, buildPlatform);
+        if (buildPlatform !== platform) {
+          builtMixedPlatformWorkloads.set(
+            image,
+            Object.freeze({ ...mixedPlatformWorkload, image }),
+          );
+        }
+        if (options.load !== false) {
+          saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, buildPlatform, {
+            nodePlatform: platform,
+            runner,
+          });
+        }
+        if (component.deployment) {
+          overrides.deployments.push({
+            container: component.container,
+            deployment: component.deployment,
+            image,
+          });
+        }
+        if (component.runtimeEnv) overrides.runtimeEnvironment[component.runtimeEnv] = image;
+      }
+    } catch (error) {
+      buildError = error;
+    }
+
+    let cleanupError;
+    if (isolatedBuildCache) {
+      const removal = runner(
+        'docker',
+        ['buildx', 'rm', '--force', buildxBuilderName],
+        commandOptions({ timeout: COMPONENT_IMAGE_BUILD_TIMEOUT_MS, stdio: 'inherit' }),
+      );
+      if (!removal.success) {
+        cleanupError = new Error(
+          `Failed to remove isolated Buildx builder ${buildxBuilderName}: ${
+            removal.error || removal.output || 'unknown error'
+          }`,
+        );
+      }
+    }
+    if (buildError && cleanupError) {
+      throw new AggregateError(
+        [buildError, cleanupError],
+        `Component image build and isolated Buildx cleanup both failed for ${clusterName}`,
+      );
+    }
+    if (buildError) throw buildError;
+    if (cleanupError) throw cleanupError;
     return overrides;
   }
 

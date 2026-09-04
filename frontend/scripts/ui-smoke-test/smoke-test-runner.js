@@ -1211,6 +1211,7 @@ function stackConfiguration(run, role, revision, options = {}) {
   return {
     archiveDir: path.join(run.runDir, 'images', role),
     clusterName: `ui-smoke-${role}-${digest}`,
+    isolatedBuildCache: true,
     kubeconfigPath: path.join(run.runDir, 'kubeconfigs', `${role}.yaml`),
     ports,
     revision,
