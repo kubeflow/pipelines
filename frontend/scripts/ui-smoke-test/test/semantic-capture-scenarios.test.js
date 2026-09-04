@@ -148,8 +148,7 @@ function fakeDerivedColorPage(series, { orderedLabels = false } = {}) {
       orderedLabels && selector === '[title]'
         ? { getAttribute: (name) => (name === 'title' ? label : null) }
         : null,
-    querySelectorAll: (selector) =>
-      !orderedLabels && selector === '[style]' ? [labelSwatches[index]] : [],
+    querySelectorAll: (selector) => (selector === '[style]' ? [labelSwatches[index]] : []),
     textContent: orderedLabels ? '' : label,
   }));
   const internalSwatches = series.map(({ color }, index) =>
@@ -379,6 +378,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     'run.training-1/task.consume-metrics[0]',
   ]);
   assert.equal(headRelationships.minReplacements, 4);
+  assert.equal(headRelationships.maxReplacements, 6);
   assert.equal(headRelationships.match, 'substring');
   assert.match(headRelationships.selector, /table-row/);
 
@@ -395,9 +395,20 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   );
   assert.equal(
     headRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
-    'color-backed-labels',
+    'ordered-label-cards',
   );
   assert.equal(headRoc.actions.filter((action) => action.selector === '[role="option"]').length, 2);
+
+  const headParallelFor = byKey(head, 'topology-parallel-for');
+  assert.equal(
+    headParallelFor.actions.some(
+      (action) =>
+        action.type === 'waitForSelector' &&
+        action.selector.includes(':has-text("Loop")') &&
+        action.selector.includes('execution-icon-active'),
+    ),
+    true,
+  );
 
   for (const roleScenarios of [base, head]) {
     for (const scenario of roleScenarios) {
