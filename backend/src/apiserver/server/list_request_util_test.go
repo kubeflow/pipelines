@@ -360,6 +360,15 @@ func (f *fakeListable) GetKeyFieldPrefix() string {
 	return ""
 }
 
+func (f *fakeListable) IsRegularField(name string) bool {
+	for _, field := range fakeAPIToModelMap {
+		if field == name {
+			return true
+		}
+	}
+	return false
+}
+
 func TestValidatedListOptions_Errors(t *testing.T) {
 	opts, err := list.NewOptions(&fakeListable{}, 10, "name asc", nil)
 	if err != nil {

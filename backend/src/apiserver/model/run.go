@@ -424,7 +424,12 @@ func (r *Run) GetField(name string) (string, string, bool) {
 		return field, field, true
 	}
 	if strings.HasPrefix(name, "metric:") {
-		return name[7:], MetricSortSQLAlias, true
+		metricName := name[7:]
+		// Reject a metric literally named after MetricSortSQLAlias to avoid collision.
+		if metricName == MetricSortSQLAlias {
+			return "", "", false
+		}
+		return metricName, MetricSortSQLAlias, true
 	}
 	return "", "", false
 }
@@ -474,12 +479,7 @@ func (r *Run) GetFieldValue(name string) interface{} {
 // Non-regular fields are the run metrics for now. Could have other non-regular
 // sorting fields later.
 func (r *Run) IsRegularField(name string) bool {
-	for _, field := range runAPIToModelFieldMap {
-		if field == name {
-			return true
-		}
-	}
-	return false
+	return isRegularFieldIn(r.APIToModelFieldMap(), name)
 }
 
 func (r *Run) GetSortByFieldPrefix(name string) string {
