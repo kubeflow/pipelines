@@ -71,6 +71,7 @@ rules:
   - unarchive
   - reportMetrics
   - readArtifact
+  - readLog
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
@@ -133,6 +134,7 @@ rules:
   - get
   - list
   - readArtifact
+  - readLog
 - apiGroups:
   - kubeflow.org
   resources:

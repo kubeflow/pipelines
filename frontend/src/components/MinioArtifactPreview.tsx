@@ -38,13 +38,6 @@ const css = stylesheet({
     display: 'flex',
     justifyContent: 'space-between',
   },
-  separater: {
-    width: 20, // There's minimum 20px separation between URI and view button.
-    display: 'inline-block',
-  },
-  viewLink: {
-    whiteSpace: 'nowrap',
-  },
 });
 
 /**
@@ -137,19 +130,14 @@ const MinioArtifactPreview: React.FC<MinioArtifactPreviewProps> = ({
     namespace,
     isDownload: true,
   });
-  const artifactViewUrl = Apis.buildReadFileUrl({ path: storagePath, namespace });
 
   // Opens in new window safely
   // TODO use ArtifactLink instead (but it need to support namespace)
   return (
     <div className={css.root}>
       <div className={css.topDiv}>
-        <ExternalLink href={artifactDownloadUrl} title={linkText}>
+        <ExternalLink download href={artifactDownloadUrl} title={linkText}>
           {linkText}
-        </ExternalLink>
-        <span className={css.separater}></span>
-        <ExternalLink href={artifactViewUrl} className={css.viewLink}>
-          View All
         </ExternalLink>
       </div>
       {content?.data && (

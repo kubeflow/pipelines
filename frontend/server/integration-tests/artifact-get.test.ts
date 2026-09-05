@@ -102,14 +102,155 @@ describe('/artifacts', () => {
       });
     });
 
+    it('treats download=false as preview mode', async () => {
+      app = new UIServer(loadConfigs(argv, {}));
+
+      await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt&download=false')
+        .expect(200, artifactContent);
+    });
+
+    it('preserves standalone dot segments in query-based download keys', async () => {
+      const getObject = vi.fn(async () => {
+        const objectStream = new PassThrough();
+        objectStream.end(artifactContent);
+        return objectStream;
+      });
+      const mockedMinioClient = MinioClient as any;
+      mockedMinioClient.mockImplementation(function () {
+        return { getObject };
+      });
+      app = new UIServer(loadConfigs(argv, {}));
+
+      await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=reports%2F..%2F.%2Fsecret.txt&download=true',
+        )
+        .expect(200, artifactContent);
+
+      expect(getObject).toHaveBeenCalledWith('ml-pipeline', 'reports/.././secret.txt');
+    });
+
+    it('returns archives byte-for-byte in query-based download mode', async () => {
+      const tarGzBuffer = Buffer.from(
+        'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==',
+        'base64',
+      );
+      const mockedMinioClient = MinioClient as any;
+      mockedMinioClient.mockImplementation(function () {
+        return {
+          getObject: async () => {
+            const objectStream = new PassThrough();
+            objectStream.end(tarGzBuffer);
+            return objectStream;
+          },
+        };
+      });
+      app = new UIServer(loadConfigs(argv, {}));
+
+      const response = await requests(app.app)
+        .get(
+          '/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.tar.gz&download=true',
+        )
+        .expect(200, tarGzBuffer.toString());
+
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="world.tar.gz"; filename*=UTF-8\'\'world.tar.gz',
+      );
+    });
+
     it('rejects artifact requests with multi-valued query parameters', async () => {
       const configs = loadConfigs(argv, {});
       app = new UIServer(configs);
 
       const request = requests(app.app);
-      await request
+      const response = await request
         .get('/artifacts/get?source=minio&source=s3&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(400, 'source must be a single string value');
+      expect(response.headers['content-type']).toMatch(/^text\/plain/);
+      expect(response.headers['content-disposition']).toBe('attachment');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
+    });
+
+    it('serves raw artifacts with hardening headers so they cannot render on the UI origin (security)', async () => {
+      // Artifact bytes are untrusted user content. An HTML artifact opened via
+      // the same-origin "View" link must download, not execute as a document in
+      // the KFP UI session (stored XSS). The raw single-object response must be
+      // a non-renderable type, non-sniffable, and marked as an attachment.
+      const configs = loadConfigs(argv, {
+        MINIO_ACCESS_KEY: 'minio',
+        MINIO_HOST: 'seaweedfs',
+        MINIO_NAMESPACE: 'kubeflow',
+        MINIO_PORT: '9000',
+        MINIO_SECRET_KEY: 'minio123',
+        MINIO_SSL: 'false',
+      });
+      app = new UIServer(configs);
+
+      const request = requests(app.app);
+      const res = await request
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.txt')
+        .expect(200);
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
+      expect(res.headers['content-disposition']).toBe(
+        'attachment; filename="world.txt"; filename*=UTF-8\'\'world.txt',
+      );
+    });
+
+    it('does not label an extracted tar member with the source archive filename', async () => {
+      artifactContent = Buffer.from(
+        'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==',
+        'base64',
+      );
+      const mockedMinioClient = MinioClient as any;
+      mockedMinioClient.mockImplementation(function () {
+        return {
+          getObject: async () => {
+            const objectStream = new PassThrough();
+            objectStream.end(artifactContent);
+            return objectStream;
+          },
+        };
+      });
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const response = await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.tar.gz')
+        .expect(200, 'hello world\n');
+
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="artifact"; filename*=UTF-8\'\'artifact',
+      );
+      expect(response.headers['content-disposition']).not.toContain('world.tar.gz');
+    });
+
+    it('does not label an extracted uncompressed tar member with the archive filename', async () => {
+      const tarGzBuffer = Buffer.from(
+        'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==',
+        'base64',
+      );
+      artifactContent = zlib.gunzipSync(tarGzBuffer);
+      const mockedMinioClient = MinioClient as any;
+      mockedMinioClient.mockImplementation(function () {
+        return {
+          getObject: async () => {
+            const objectStream = new PassThrough();
+            objectStream.end(artifactContent);
+            return objectStream;
+          },
+        };
+      });
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const response = await requests(app.app)
+        .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=hello%2Fworld.tar')
+        .expect(200, 'hello world\n');
+
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="artifact"; filename*=UTF-8\'\'artifact',
+      );
     });
 
     it('responds with artifact if source is AWS S3, and creds are sourced from Env', async () => {
@@ -587,6 +728,26 @@ describe('/artifacts', () => {
       });
     });
 
+    it('preserves a raw HTTP archive filename because HTTP responses are not extracted', async () => {
+      mockedFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          body: toWebStream('raw archive bytes'),
+        }),
+      );
+      const configs = loadConfigs(argv, {
+        HTTP_BASE_URL: 'foo.bar/',
+      });
+      app = new UIServer(configs);
+
+      const response = await requests(app.app)
+        .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.gz')
+        .expect(200, 'raw archive bytes');
+
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="world.gz"; filename*=UTF-8\'\'world.gz',
+      );
+    });
+
     it('rejects http artifacts with a request-controlled host and default allowlist', async () => {
       mockedFetch.mockClear();
       const configs = loadConfigs(argv, {});
@@ -726,6 +887,9 @@ describe('/artifacts', () => {
         .get('/artifacts/get?source=http&bucket=ml-pipeline&key=hello%2Fworld.txt')
         .expect(500);
       expect(res.text).toBe('Domain not allowed.');
+      expect(res.headers['content-type']).toMatch(/^text\/plain/);
+      expect(res.headers['content-disposition']).toBe('attachment');
+      expect(res.headers['x-content-type-options']).toBe('nosniff');
       expect(res.text).not.toContain('SECRET');
       // The internal target is never fetched.
       expect(mockedFetch).not.toHaveBeenCalledWith(internalUrl, expect.anything());
@@ -962,6 +1126,39 @@ describe('/artifacts', () => {
       });
     });
 
+    it('preserves binary path-based GCS downloads and leaves them untyped', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      const stream = new PassThrough();
+      const artifactContent = Buffer.from([0x20, 0x00, 0xff, 0x0a]);
+      stream.end(artifactContent);
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockResolvedValueOnce(stream);
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const response = await requests(app.app)
+        .get('/artifacts/gcs/ml-pipeline/hello/world.txt')
+        .buffer(true)
+        .parse((incoming, callback) => {
+          const chunks: Buffer[] = [];
+          incoming.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+          incoming.on('end', () => callback(null, Buffer.concat(chunks)));
+          incoming.on('error', callback);
+        })
+        .expect(200);
+
+      expect(response.body).toEqual(artifactContent);
+      expect(response.headers['content-type']).toBeUndefined();
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="world.txt"; filename*=UTF-8\'\'world.txt',
+      );
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
+    });
+
     it('responds with a partial gcs artifact if peek=5 is set', async () => {
       const artifactContent = 'hello world';
       const mockedGetGCSClient: Mock = getGCSClient as any;
@@ -993,6 +1190,26 @@ describe('/artifacts', () => {
         credentials: undefined,
         objectName: 'hello/world.txt',
       });
+    });
+
+    it('returns a controlled error when a GCS preview stream fails', async () => {
+      const mockedGetGCSClient: Mock = getGCSClient as any;
+      const mockedListGCSObjectNames: Mock = listGCSObjectNames as any;
+      const mockedDownloadGCSObjectStream: Mock = downloadGCSObjectStream as any;
+      const client = { request: vi.fn() };
+      mockedGetGCSClient.mockResolvedValueOnce(client);
+      mockedListGCSObjectNames.mockResolvedValueOnce(['hello/world.txt']);
+      mockedDownloadGCSObjectStream.mockImplementationOnce(async () => {
+        const stream = new PassThrough();
+        setImmediate(() => stream.destroy(new Error('storage connection reset')));
+        return stream;
+      });
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      await requests(app.app)
+        .get('/artifacts/get?source=gcs&bucket=ml-pipeline&key=hello%2Fworld.txt&peek=5')
+        .expect(500, 'Failed to download GCS file(s). Error: Error: storage connection reset');
     });
 
     it('responds with concatenated gcs artifacts for wildcard keys and reuses one auth client', async () => {
@@ -1364,9 +1581,12 @@ describe('/artifacts', () => {
       app = new UIServer(configs);
 
       const request = requests(app.app);
-      await request
+      const response = await request
         .get(`/artifacts/get?source=volume&bucket=artifact&key=subartifact/notxist.csv`)
         .expect(500, 'Failed to open volume.');
+      expect(response.headers['content-type']).toMatch(/^text\/plain/);
+      expect(response.headers['content-disposition']).toBe('attachment');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
     });
 
     it('rejects keys longer than 1024 characters', async () => {
@@ -1376,12 +1596,15 @@ describe('/artifacts', () => {
       });
       app = new UIServer(configs);
       const request = requests(app.start());
-      await request
+      const response = await request
         .get(
           '/artifacts/get?source=s3&namespace=test&peek=256&bucket=ml-pipeline&key=' +
             'a'.repeat(1025),
         )
         .expect(500, 'Object key too long');
+      expect(response.headers['content-type']).toMatch(/^text\/plain/);
+      expect(response.headers['content-disposition']).toBe('attachment');
+      expect(response.headers['x-content-type-options']).toBe('nosniff');
     });
 
     // KFP v2 stores some output artifacts as object-store directories
@@ -1471,6 +1694,26 @@ describe('/artifacts', () => {
         });
       }
 
+      it.each([
+        ['directory preview', '&peek=256'],
+        ['directory download', ''],
+      ])('serves an empty %s 404 as plain text', async (_name, querySuffix) => {
+        mockMinioForDirectory({});
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const request = requests(app.app);
+        const response = await request
+          .get(
+            `/artifacts/get?source=minio&bucket=ml-pipeline&key=%3Cscript%3Ealert(1)%3C%2Fscript%3E${querySuffix}`,
+          )
+          .expect(404);
+
+        expect(response.headers['content-type']).toMatch(/^text\/plain/);
+        expect(response.headers['x-content-type-options']).toBe('nosniff');
+        expect(response.text).toContain('<script>alert(1)</script>');
+      });
+
       it('packages the prefix as a tar.gz when getObject returns NoSuchKey', async () => {
         mockMinioForDirectory({
           'directory/file1.txt': 'first file contents',
@@ -1492,6 +1735,68 @@ describe('/artifacts', () => {
         expect(Array.from(entries.keys()).sort()).toEqual(['file1.txt', 'sub/file2.txt']);
         expect(entries.get('file1.txt')!.toString()).toBe('first file contents');
         expect(entries.get('sub/file2.txt')!.toString()).toBe('second file contents');
+      });
+
+      it('packages the prefix when NoSuchKey is emitted by the object stream', async () => {
+        const files = {
+          'directory/file.txt': 'stream fallback contents',
+        };
+        const getObject = vi.fn(async (_bucket: string, key: string) => {
+          const stream = new PassThrough();
+          if (key === 'directory') {
+            setImmediate(() => stream.destroy(makeNoSuchKeyError()));
+          } else {
+            stream.end(files[key as keyof typeof files]);
+          }
+          return stream;
+        });
+        const listObjectsV2Query = vi.fn(async (_bucket: string, prefix: string) => ({
+          objects: Object.entries(files)
+            .filter(([name]) => name.startsWith(prefix))
+            .map(([name, content]) => ({ name, size: content.length })),
+          isTruncated: false,
+          nextContinuationToken: '',
+        }));
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const res = await captureBinaryResponse(
+          requests(app.app).get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory'),
+        ).expect(200);
+        const entries = await readTarGzEntries(res.body as Buffer);
+        expect(entries.get('file.txt')?.toString()).toBe('stream fallback contents');
+      });
+
+      it('returns a 500 when the first object in a directory cannot be fetched', async () => {
+        const getObject = vi.fn(async (_bucket: string, key: string) => {
+          if (key === 'directory') {
+            throw makeNoSuchKeyError();
+          }
+          throw new Error('first directory object unavailable');
+        });
+        const listObjectsV2Query = vi.fn(async () => ({
+          objects: [{ name: 'directory/file.txt', size: 4 }],
+          isTruncated: false,
+          nextContinuationToken: '',
+        }));
+        const mockedMinioClient = minio.Client as any;
+        mockedMinioClient.mockImplementation(function () {
+          return { getObject, listObjectsV2Query };
+        });
+        const configs = loadConfigs(argv, minioConfigEnv);
+        app = new UIServer(configs);
+
+        const response = await requests(app.app)
+          .get('/artifacts/get?source=minio&bucket=ml-pipeline&key=directory')
+          .expect(500);
+
+        expect(response.headers['content-type']).toMatch(/^text\/plain/);
+        expect(response.headers['content-disposition']).toBe('attachment');
+        expect(response.text).toContain('first directory object unavailable');
       });
 
       it('returns a small text summary for preview requests instead of streaming the archive', async () => {
@@ -1703,6 +2008,33 @@ describe('/artifacts', () => {
       await request
         .get('/artifacts/minio/ml-pipeline/hello/world.txt') // url
         .expect(200, tarGzBuffer.toString());
+    });
+
+    it('downloads an S3 tarball as-is with its archive filename', async () => {
+      const tarGzBuffer = Buffer.from(
+        'H4sIAFa7DV4AA+3PSwrCMBRG4Y5dxV1BuSGPridgwcItkTZSl++johNBJ0WE803OIHfwZ87j0fq2nmuzGVVNIcitXYqPpntXLojzSb33MToVdTG5rhHdbtLLaa55uk5ZBrMhj23ty9u7T+/rT+TZP3HozYosZbL97tdbAAAAAAAAAAAAAAAAAADfuwAyiYcHACgAAA==',
+        'base64',
+      );
+      const mockedMinioClient = MinioClient as any;
+      mockedMinioClient.mockImplementation(function () {
+        return {
+          getObject: async () => {
+            const objectStream = new PassThrough();
+            objectStream.end(tarGzBuffer);
+            return objectStream;
+          },
+        };
+      });
+      const configs = loadConfigs(argv, {});
+      app = new UIServer(configs);
+
+      const response = await requests(app.app)
+        .get('/artifacts/s3/ml-pipeline/hello/world.tar.gz')
+        .expect(200, tarGzBuffer.toString());
+
+      expect(response.headers['content-disposition']).toBe(
+        'attachment; filename="world.tar.gz"; filename*=UTF-8\'\'world.tar.gz',
+      );
     });
 
     it('downloads an s3-compatible artifact using secret-backed providerInfo from the query string', async () => {

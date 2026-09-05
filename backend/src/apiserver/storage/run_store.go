@@ -63,6 +63,45 @@ var runColumns = []string{
 	"ArchivedAtInSec",
 }
 
+// runListColumns is a lightweight version of runColumns for List endpoints.
+// It explicitly omits multi-megabyte JSON/YAML blob fields (manifests) that are
+// not used by the ListRuns API. This prevents massive database over-fetching and
+// OOM crashes in the API server when requesting up to 200 runs with large pipelines.
+var runListColumns = []string{
+	"UUID",
+	"ExperimentUUID",
+	"DisplayName",
+	"Name",
+	"StorageState",
+	"Namespace",
+	"ServiceAccount",
+	"Description",
+	"CreatedAtInSec",
+	"ScheduledAtInSec",
+	"FinishedAtInSec",
+	"Conditions",
+	"PipelineId",
+	"PipelineVersionId",
+	"PipelineName",
+	"PipelineSpecManifest",
+	"WorkflowSpecManifest",
+	"Parameters",
+	"RuntimeParameters",
+	"PipelineRoot",
+	"'' AS PipelineRuntimeManifest",
+	"'' AS WorkflowRuntimeManifest",
+	"JobUUID",
+	"State",
+	"StateHistory",
+	"PluginsInput",
+	"PluginsOutput",
+	"PipelineContextId",
+	"PipelineRunContextId",
+	"RetryGeneration",
+	"RetryClaimedAtInSec",
+	"ArchivedAtInSec",
+}
+
 var runMetricsColumns = []string{
 	"RunUUID",
 	"NodeID",
@@ -131,6 +170,14 @@ var archivedStorageStateStrings = []string{
 	model.LegacyStateDisabled,
 }
 
+// NewArchivedRunRetryError is shared by the RetryRun pre-check and the recheck
+// inside ClaimRunForRetry's row lock so both report the archived run the same way.
+func NewArchivedRunRetryError(runID string) error {
+	return util.NewFailedPreconditionError(
+		errors.New("Archived runs are garbage collection candidates, so retrying one would race the collector"),
+		"Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runID)
+}
+
 type RunStoreInterface interface {
 	// Creates a run entry. Does not create children tasks.
 	CreateRun(run *model.Run) (*model.Run, error)
@@ -144,6 +191,17 @@ type RunStoreInterface interface {
 	// Updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
+
+	// Updates a run only when its persisted workflow runtime manifest and retry
+	// generation still match the values loaded by the caller. Before a V2 run's
+	// first report, when that manifest is empty, its pipeline runtime manifest is
+	// also checked as an incarnation fence. Returns false without mutating the
+	// row when another writer changed any guarded value.
+	UpdateRunIfRuntimeManifestsUnchanged(
+		run *model.Run,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+	) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
@@ -273,6 +331,20 @@ func (s *RunStore) ListRuns(
 	return runs[:opts.PageSize], totalSize, npt, err
 }
 
+func getRunListColumns(opts *list.Options) []string {
+	columns := make([]string, len(runListColumns))
+	copy(columns, runListColumns)
+
+	if opts != nil && opts.SortByFieldName == "PipelineRuntimeManifest" {
+		for i, col := range columns {
+			if col == "'' AS PipelineRuntimeManifest" {
+				columns[i] = "PipelineRuntimeManifest"
+			}
+		}
+	}
+	return columns
+}
+
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	filterContext *model.FilterContext,
 ) (string, []interface{}, error) {
@@ -283,13 +355,13 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
-		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", getRunListColumns(opts),
 			selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", getRunListColumns(opts),
 			selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", getRunListColumns(opts),
 			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
@@ -705,9 +777,111 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
+	run *model.Run,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: run.RetryGeneration,
+	})
+}
+
+type runRuntimeManifestPrecondition struct {
+	workflow        model.LargeText
+	pipeline        model.LargeText
+	retryGeneration int64
+	namespace       *string
+}
+
+func lockRunForRuntimeManifestWrite(
+	tx *sql.Tx,
+	db *DB,
+	runID string,
+	expected runRuntimeManifestPrecondition,
+) (bool, bool, error) {
+	lockColumns := []string{"WorkflowRuntimeManifest"}
+	checkPipelineRuntimeManifest := expected.workflow == ""
+	if checkPipelineRuntimeManifest {
+		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
+	}
+	if expected.namespace != nil {
+		lockColumns = append(lockColumns, "Namespace")
+	}
+	lockColumns = append(lockColumns, "RetryGeneration")
+	lockSQL, lockArgs, err := sq.
+		Select(lockColumns...).
+		From("run_details").
+		Where(sq.Eq{"UUID": runID}).
+		ToSql()
+	if err != nil {
+		return false, false, err
+	}
+	var currentWorkflowRuntimeManifest model.LargeText
+	var currentPipelineRuntimeManifest model.LargeText
+	var currentNamespace string
+	var currentRetryGeneration sql.NullInt64
+	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
+	if checkPipelineRuntimeManifest {
+		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
+	}
+	if expected.namespace != nil {
+		lockScanTargets = append(lockScanTargets, &currentNamespace)
+	}
+	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
+	if err := tx.QueryRow(db.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		return false, false, err
+	}
+	matches := currentWorkflowRuntimeManifest == expected.workflow &&
+		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
+		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
+		currentRetryGeneration.Int64 == expected.retryGeneration
+	return true, matches, nil
+}
+
+func (s *RunStore) updateRun(
+	run *model.Run,
+	expectedRuntimeManifests *runRuntimeManifestPrecondition,
+) (bool, error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+		return false, util.NewInternalServerError(err, "transaction creation failed")
+	}
+	if expectedRuntimeManifests != nil {
+		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
+			tx,
+			s.db,
+			run.UUID,
+			*expectedRuntimeManifests,
+		)
+		if lockError != nil {
+			tx.Rollback()
+			return false, util.NewInternalServerError(
+				lockError,
+				"Failed to lock run %s before updating",
+				run.UUID,
+			)
+		}
+		if !runExists {
+			tx.Rollback()
+			return false, util.Wrap(
+				util.NewResourceNotFoundError("Run", run.UUID),
+				"Failed to update run",
+			)
+		}
+		if !preconditionMatches {
+			tx.Rollback()
+			return false, nil
+		}
 	}
 	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
 		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
@@ -726,6 +900,12 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		"FinishedAtInSec":         run.FinishedAtInSec,
 		"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
 	}
+	if run.K8SName != "" {
+		updateFields["Name"] = run.K8SName
+	}
+	if run.Namespace != "" {
+		updateFields["Namespace"] = run.Namespace
+	}
 	// PluginsOutput is only updated when explicitly set by the caller (e.g.
 	// MLflow terminal sync, retry). A nil pointer means "leave unchanged" so
 	// that normal state-update callers don't accidentally overwrite it.
@@ -737,43 +917,48 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a
 	// ClaimRunForRetry increment cannot overwrite the claimed row.
+	updatePredicate := sq.And{
+		sq.Eq{"UUID": run.UUID},
+		sq.Eq{"RetryGeneration": run.RetryGeneration},
+	}
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.And{
-			sq.Eq{"UUID": run.UUID},
-			sq.Eq{"RetryGeneration": run.RetryGeneration},
-		}).
+		Where(updatePredicate).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
+		if expectedRuntimeManifests != nil {
+			tx.Rollback()
+			return false, nil
+		}
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given
@@ -929,7 +1114,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	// Lock the row and read current state. Use sql.NullString for State
 	// because legacy runs intentionally have State NULL.
 	selectSQL, selectArgs, err := sq.
-		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec").
+		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec", "StorageState").
 		From("run_details").
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
@@ -943,7 +1128,9 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	var originalFinishedAtInSec int64
 	var currentGeneration int64
 	var retryClaimedAtInSec int64
-	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec); err != nil {
+	// Legacy rows predate the column, so it can still be NULL.
+	var nullableStorageState sql.NullString
+	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec, &nullableStorageState); err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
@@ -953,6 +1140,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	originalState := ""
 	if nullableState.Valid {
 		originalState = nullableState.String
+	}
+
+	// RetryRun checks this before taking the lock, but ArchiveExpiredRuns can
+	// commit ARCHIVED between that read and this one. Rejecting here, before any
+	// mutation, keeps a run from ending up RUNNING and ARCHIVED at once.
+	if model.StorageState(nullableStorageState.String).ToV2() == model.StorageStateArchived {
+		tx.Rollback()
+		return "", "", 0, 0, NewArchivedRunRetryError(runID)
 	}
 
 	// Verify the locked row is still in a terminal state. Between the

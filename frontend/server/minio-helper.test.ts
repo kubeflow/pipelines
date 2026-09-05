@@ -253,9 +253,11 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
-      });
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
     });
 
     it('unpacks a uncompressed tarball', async () => {
@@ -263,12 +265,68 @@ describe('minio-helper', () => {
       objStream.end(tarBuffer);
       mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
 
-      const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
-      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+      const onTransformationDetermined = vi.fn();
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onTransformationDetermined,
       });
+      expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+      expect(onTransformationDetermined).toHaveBeenCalledWith(true);
     });
+
+    it('reports decompression even when the decompressed object is not a tarball', async () => {
+      const objStream = new PassThrough();
+      objStream.end(zlib.gzipSync(Buffer.from('hello world')));
+      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      const onTransformationDetermined = vi.fn();
+
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onTransformationDetermined,
+      });
+      const chunks: Buffer[] = [];
+      stream.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      await new Promise<void>((resolve, reject) => {
+        stream.once('end', resolve);
+        stream.once('error', reject);
+      });
+
+      expect(Buffer.concat(chunks).toString()).toBe('hello world');
+      expect(onTransformationDetermined).toHaveBeenCalledWith(true);
+    });
+
+    it.each([0, 6, 9])(
+      'keeps transformation detection aligned with gunzip-maybe for deflate level %i',
+      async (level) => {
+        const objStream = new PassThrough();
+        objStream.end(zlib.deflateSync(Buffer.from('hello world'), { level }));
+        mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+        const onTransformationDetermined = vi.fn();
+
+        const stream = await getObjectStream({
+          bucket: 'bucket',
+          key: 'key',
+          client: minioClient,
+          onTransformationDetermined,
+        });
+        const chunks: Buffer[] = [];
+        for await (const chunk of stream) {
+          chunks.push(Buffer.from(chunk));
+        }
+
+        expect(Buffer.concat(chunks).toString()).toBe('hello world');
+        expect(onTransformationDetermined).toHaveBeenCalledWith(true);
+      },
+    );
 
     it('returns the content as a stream', async () => {
       const objStream = new PassThrough();
@@ -277,9 +335,49 @@ describe('minio-helper', () => {
 
       const stream = await getObjectStream({ bucket: 'bucket', key: 'key', client: minioClient });
       expect(mockedMinioGetObject).toBeCalledWith('bucket', 'key');
-      stream.on('finish', () => {
-        expect(stream.read().toString().trim()).toBe('hello world');
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString().trim()).toBe('hello world');
+    });
+
+    it('forwards errors from the underlying object stream', async () => {
+      const objStream = new PassThrough();
+      mockedMinioGetObject.mockResolvedValueOnce(Promise.resolve(objStream));
+      const stream = await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        tryExtract: false,
       });
+      const streamError = new Error('storage connection reset');
+      const receivedError = new Promise<Error>((resolve) => stream.once('error', resolve));
+
+      objStream.write('partial artifact');
+      objStream.destroy(streamError);
+
+      await expect(receivedError).resolves.toBe(streamError);
+    });
+
+    it('installs the supplied error handler before the source can fail', async () => {
+      const streamError = new Error('immediate storage failure');
+      mockedMinioGetObject.mockImplementationOnce(async () => {
+        const objStream = new PassThrough();
+        setImmediate(() => objStream.destroy(streamError));
+        return objStream;
+      });
+      const onError = vi.fn();
+
+      await getObjectStream({
+        bucket: 'bucket',
+        key: 'key',
+        client: minioClient,
+        onError,
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+
+      expect(onError).toHaveBeenCalledWith(streamError);
     });
   });
 
@@ -424,6 +522,30 @@ describe('minio-helper', () => {
       const client = {} as unknown as MinioClient;
       const iter = listObjectsUnderPrefix(client, 'bucket', 'p/');
       await expect(iter.next()).rejects.toThrow(/listObjectsV2Query/);
+    });
+
+    it('stops waiting for a paginated listing when its signal is aborted', async () => {
+      const controller = new AbortController();
+      const listObjectsV2Query = vi
+        .fn()
+        .mockResolvedValueOnce({
+          objects: [{ name: 'page1-a', size: 1 }],
+          isTruncated: true,
+          nextContinuationToken: 'tok-1',
+        })
+        .mockImplementationOnce(() => new Promise(() => undefined));
+      const client = { listObjectsV2Query } as unknown as MinioClient;
+      const iter = listObjectsUnderPrefix(client, 'bucket', 'p/', controller.signal);
+
+      await expect(iter.next()).resolves.toEqual({
+        done: false,
+        value: { name: 'page1-a', size: 1 },
+      });
+      const next = iter.next();
+      await vi.waitFor(() => expect(listObjectsV2Query).toHaveBeenCalledTimes(2));
+      controller.abort(new Error('response closed'));
+
+      await expect(next).rejects.toThrow('response closed');
     });
   });
 

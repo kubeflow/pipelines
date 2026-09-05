@@ -69,7 +69,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
@@ -90,7 +90,7 @@ func initializeRunStore() (*DB, *RunStore) {
 			ScheduledAtInSec:        2,
 			Conditions:              "Succeeded",
 			State:                   model.RuntimeStateSucceeded,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 		PipelineSpec: model.PipelineSpec{
 			RuntimeConfig: model.RuntimeConfig{
@@ -162,7 +162,7 @@ func TestListRuns_Pagination(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -202,7 +202,7 @@ func TestListRuns_Pagination(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -268,7 +268,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -307,7 +307,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -526,7 +526,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -565,7 +565,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -635,7 +635,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				ScheduledAtInSec:        1,
 				State:                   model.RuntimeStateRunning,
 				Conditions:              "Running",
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -672,7 +672,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 				ScheduledAtInSec:        2,
 				State:                   model.RuntimeStateSucceeded,
 				Conditions:              "Succeeded",
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -713,6 +713,85 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	assert.Empty(t, nextPageToken)
 }
 
+func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	require.Nil(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	// Insert three runs with manifests 'z', 'm', 'a'
+	runs := []*model.Run{
+		{
+			UUID:         "100",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run100",
+			RunDetails: model.RunDetails{
+				PipelineRuntimeManifest: "a",
+				CreatedAtInSec:          1,
+			},
+		},
+		{
+			UUID:         "101",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run101",
+			RunDetails: model.RunDetails{
+				PipelineRuntimeManifest: "m",
+				CreatedAtInSec:          2,
+			},
+		},
+		{
+			UUID:         "102",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run102",
+			RunDetails: model.RunDetails{
+				PipelineRuntimeManifest: "z",
+				CreatedAtInSec:          3,
+			},
+		},
+	}
+
+	for _, r := range runs {
+		r.StateHistory = []*model.RuntimeStatus{{UpdateTimeInSec: r.CreatedAtInSec, State: model.RuntimeStateSucceeded}}
+		_, err := runStore.CreateRun(r)
+		require.Nil(t, err)
+	}
+
+	opts, err := list.NewOptions(&model.Run{}, 1, "runtime_details desc", nil)
+	require.Nil(t, err)
+
+	// Page 1
+	page1, _, token1, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.Nil(t, err)
+	require.Len(t, page1, 1)
+	assert.Equal(t, "102", page1[0].UUID)
+	assert.Equal(t, model.LargeText("z"), page1[0].PipelineRuntimeManifest) // should project actual value
+	assert.NotEmpty(t, token1)
+
+	// Page 2
+	opts, err = list.NewOptionsFromToken(token1, 1)
+	require.Nil(t, err)
+
+	page2, _, token2, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.Nil(t, err)
+	require.Len(t, page2, 1)
+	assert.Equal(t, "101", page2[0].UUID)
+	assert.Equal(t, model.LargeText("m"), page2[0].PipelineRuntimeManifest)
+	assert.NotEmpty(t, token2)
+
+	// Page 3
+	opts, err = list.NewOptionsFromToken(token2, 1)
+	require.Nil(t, err)
+
+	page3, _, token3, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	require.Nil(t, err)
+	require.Len(t, page3, 1)
+	assert.Equal(t, "100", page3[0].UUID)
+	assert.Equal(t, model.LargeText("a"), page3[0].PipelineRuntimeManifest)
+	assert.Empty(t, token3) // Last page should have empty token
+}
+
 func TestListRunsError(t *testing.T) {
 	db, runStore := initializeRunStore()
 	db.Close()
@@ -736,7 +815,7 @@ func TestGetRun(t *testing.T) {
 		Namespace:    "n1",
 		StorageState: model.StorageStateAvailable,
 		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
@@ -804,7 +883,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			StateHistory: []*model.RuntimeStatus{
 				{
 					UpdateTimeInSec: 1,
@@ -889,6 +968,119 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 	runDetail, err = runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+}
+
+func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "manifest-cas-run",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "manifest-cas-run",
+		DisplayName:  "manifest-cas-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			Conditions:              "Running",
+			State:                   model.RuntimeStateRunning,
+			WorkflowRuntimeManifest: "legacy-manifest",
+		},
+	})
+	require.NoError(t, err)
+
+	staleRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	currentRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	currentRun.WorkflowRuntimeManifest = "adopted-manifest"
+	require.NoError(t, runStore.UpdateRun(currentRun))
+
+	staleRun.WorkflowRuntimeManifest = "replacement-manifest"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		"legacy-manifest",
+		staleRun.PipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	persistedRun, err := runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("adopted-manifest"), persistedRun.WorkflowRuntimeManifest)
+
+	persistedRun.WorkflowRuntimeManifest = "next-manifest"
+	updated, err = runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		persistedRun,
+		"adopted-manifest",
+		persistedRun.PipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	persistedRun, err = runStore.GetRun("manifest-cas-run")
+	require.NoError(t, err)
+	assert.Equal(t, model.LargeText("next-manifest"), persistedRun.WorkflowRuntimeManifest)
+}
+
+func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	const runID = "runtime-manifest-aba-run"
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         runID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "original-workflow",
+		DisplayName:  "original-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: "",
+			PipelineRuntimeManifest: "original-runtime-manifest",
+		},
+	})
+	require.NoError(t, err)
+	staleRun, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+
+	require.NoError(t, runStore.DeleteRun(runID))
+	_, err = runStore.CreateRun(&model.Run{
+		UUID:         runID,
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "replacement-workflow",
+		DisplayName:  "replacement-run",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          2,
+			Conditions:              "Pending",
+			State:                   model.RuntimeStatePending,
+			WorkflowRuntimeManifest: "",
+			PipelineRuntimeManifest: "replacement-runtime-manifest",
+		},
+	})
+	require.NoError(t, err)
+	replacementBeforeReport, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+
+	staleRun.K8SName = "stale-terminal-workflow"
+	staleRun.State = model.RuntimeStateSucceeded
+	staleRun.Conditions = "Succeeded"
+	staleRun.WorkflowRuntimeManifest = "stale-terminal-manifest"
+	updated, err := runStore.UpdateRunIfRuntimeManifestsUnchanged(
+		staleRun,
+		"",
+		"original-runtime-manifest",
+	)
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	replacementAfterReport, err := runStore.GetRun(runID)
+	require.NoError(t, err)
+	assert.Equal(t, replacementBeforeReport, replacementAfterReport)
 }
 
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
@@ -978,7 +1170,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 		ExperimentId: defaultFakeExpId,
 		Namespace:    "n1",
 		RunDetails: model.RunDetails{
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
@@ -1005,7 +1197,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Running",
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateRunning,
 		},
 		Metrics: []*model.RunMetric{
@@ -1052,7 +1244,7 @@ func TestTerminateRun(t *testing.T) {
 			CreatedAtInSec:          1,
 			ScheduledAtInSec:        1,
 			Conditions:              "Terminating",
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateCancelling,
 			StateHistory: []*model.RuntimeStatus{
 				{
@@ -1215,7 +1407,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -1254,7 +1446,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 				ScheduledAtInSec:        2,
 				Conditions:              "Succeeded",
 				State:                   model.RuntimeStateSucceeded,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 2,
@@ -1396,7 +1588,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 				ScheduledAtInSec:        1,
 				Conditions:              "Running",
 				State:                   model.RuntimeStateRunning,
-				WorkflowRuntimeManifest: "workflow1",
+				WorkflowRuntimeManifest: "",
 				StateHistory: []*model.RuntimeStatus{
 					{
 						UpdateTimeInSec: 1,
@@ -1720,7 +1912,7 @@ func TestCreateRunWithPluginsFields(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"my-exp"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"entries":{"root_run_id":{"value":"abc123"}},"state":"PLUGIN_SUCCEEDED","stateMessage":"ok"}}`),
 		},
@@ -1752,7 +1944,7 @@ func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 		},
 	}
 	_, err := runStore.CreateRun(run)
@@ -1790,7 +1982,7 @@ func TestUpdateRunPreservesPluginsFields(t *testing.T) {
 			CreatedAtInSec:          100,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"preserved"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_RUNNING"}}`),
 		},
@@ -1884,7 +2076,7 @@ func TestListRunsReturnsPluginsFields(t *testing.T) {
 			CreatedAtInSec:          200,
 			Conditions:              "Running",
 			State:                   model.RuntimeStateRunning,
-			WorkflowRuntimeManifest: "workflow1",
+			WorkflowRuntimeManifest: "",
 			PluginsInputString:      testLargeTextPtr(`{"mlflow":{"experiment_name":"list-exp"}}`),
 			PluginsOutputString:     testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_RUNNING"}}`),
 		},
@@ -2412,6 +2604,50 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 	assert.Equal(t, int64(100), restored.FinishedAtInSec)
 	assert.Equal(t, int64(0), restored.RetryClaimedAtInSec, "rollback must clear the claim timestamp")
 	assert.Equal(t, claimGeneration, restored.RetryGeneration, "generation must stay monotonic across rollback")
+}
+
+// Regression: ArchiveExpiredRuns can commit ARCHIVED between RetryRun's
+// pre-check and this claim taking its row lock. The locked read must catch it,
+// otherwise the claim leaves the row PENDING and ARCHIVED at the same time.
+func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+
+	_, err := runStore.CreateRun(&model.Run{
+		UUID:         "run-archived-claim",
+		ExperimentId: defaultFakeExpId,
+		K8SName:      "run-archived-claim",
+		DisplayName:  "run-archived-claim",
+		Namespace:    "ns1",
+		StorageState: model.StorageStateAvailable,
+		RunDetails: model.RunDetails{
+			CreatedAtInSec:          1,
+			FinishedAtInSec:         100,
+			State:                   model.RuntimeStateFailed,
+			Conditions:              string(model.RuntimeStateFailedV1),
+			WorkflowRuntimeManifest: "wf1",
+		},
+	})
+	require.Nil(t, err)
+	require.Nil(t, runStore.ArchiveRun("run-archived-claim"))
+
+	_, _, _, _, claimErr := runStore.ClaimRunForRetry("run-archived-claim", false)
+	require.NotNil(t, claimErr)
+	userError := claimErr.(*util.UserError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		"Failed to retry run run-archived-claim as it is archived. Unarchive the run first to allow it to be retried",
+		userError.ExternalMessage())
+
+	unchanged, err := runStore.GetRun("run-archived-claim")
+	require.Nil(t, err)
+	assert.Equal(t, model.RuntimeStateFailed, unchanged.State)
+	assert.Equal(t, int64(100), unchanged.FinishedAtInSec)
+	assert.Equal(t, int64(0), unchanged.RetryGeneration)
+	assert.Equal(t, int64(0), unchanged.RetryClaimedAtInSec)
 }
 
 func TestClaimRunForRetry_RunNotFound(t *testing.T) {

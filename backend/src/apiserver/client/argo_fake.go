@@ -15,23 +15,33 @@
 package client
 
 import (
+	"sync"
+
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 )
 
 type FakeExecClient struct {
-	workflowClientFake *FakeWorkflowClient
+	mu              sync.RWMutex
+	workflowClients map[string]*FakeWorkflowClient
 }
 
 func NewFakeExecClient() *FakeExecClient {
-	return &FakeExecClient{NewWorkflowClientFake()}
+	return &FakeExecClient{workflowClients: make(map[string]*FakeWorkflowClient)}
 }
 
 func (c *FakeExecClient) Execution(namespace string) util.ExecutionInterface {
 	if len(namespace) == 0 {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
-	return c.workflowClientFake
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	workflowClient, ok := c.workflowClients[namespace]
+	if !ok {
+		workflowClient = NewWorkflowClientFake()
+		c.workflowClients[namespace] = workflowClient
+	}
+	return workflowClient
 }
 
 func (c *FakeExecClient) Compare(old, new interface{}) bool {
@@ -39,19 +49,55 @@ func (c *FakeExecClient) Compare(old, new interface{}) bool {
 }
 
 func (c *FakeExecClient) GetWorkflowCount() int {
-	return len(c.workflowClientFake.workflows)
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	count := 0
+	for _, workflowClient := range c.workflowClients {
+		workflowClient.mu.RLock()
+		count += len(workflowClient.workflows)
+		workflowClient.mu.RUnlock()
+	}
+	return count
 }
 
-func (c *FakeExecClient) GetWorkflowKeys() map[string]bool {
+func (c *FakeExecClient) GetWorkflowKeysInNamespace(namespace string) map[string]bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	result := map[string]bool{}
-	for key := range c.workflowClientFake.workflows {
+	workflowClient, ok := c.workflowClients[namespace]
+	if !ok {
+		return result
+	}
+	workflowClient.mu.RLock()
+	defer workflowClient.mu.RUnlock()
+	for key := range workflowClient.workflows {
 		result[key] = true
 	}
 	return result
 }
 
-func (c *FakeExecClient) IsTerminated(name string) (bool, error) {
-	workflow, ok := c.workflowClientFake.workflows[name]
+func (c *FakeExecClient) GetWorkflowDeleteCountInNamespace(namespace, name string) int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	workflowClient, ok := c.workflowClients[namespace]
+	if !ok {
+		return 0
+	}
+	workflowClient.mu.RLock()
+	defer workflowClient.mu.RUnlock()
+	return workflowClient.deleteCalls[name]
+}
+
+func (c *FakeExecClient) IsTerminatedInNamespace(namespace, name string) (bool, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	workflowClient, ok := c.workflowClients[namespace]
+	if !ok {
+		return false, errors.New("No workflow found with name: " + name)
+	}
+	workflowClient.mu.RLock()
+	defer workflowClient.mu.RUnlock()
+	workflow, ok := workflowClient.workflows[name]
 	if !ok {
 		return false, errors.New("No workflow found with name: " + name)
 	}

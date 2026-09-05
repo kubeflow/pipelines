@@ -22,9 +22,11 @@ import (
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,8 +48,8 @@ func TestReportWorkflowV1(t *testing.T) {
 			APIVersion: "argoproj.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "run1",
-			Namespace: "default",
+			Name:      run.K8SName,
+			Namespace: common.GetPodNamespace(),
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
@@ -68,7 +70,11 @@ func TestReportWorkflowV1(t *testing.T) {
 			},
 		},
 	})
-	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
+	liveWorkflow, err := clientManager.ExecClient().Execution(common.GetPodNamespace()).Get(
+		context.Background(), run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
+	_, err = reportServer.ReportWorkflowV1(context.Background(), &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -111,8 +117,8 @@ func TestReportWorkflow(t *testing.T) {
 			APIVersion: "argoproj.io/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "run1",
-			Namespace: "default",
+			Name:      run.K8SName,
+			Namespace: common.GetPodNamespace(),
 			UID:       types.UID(run.UUID),
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
 		},
@@ -133,7 +139,11 @@ func TestReportWorkflow(t *testing.T) {
 			},
 		},
 	})
-	_, err := reportServer.ReportWorkflow(nil, &apiv2.ReportWorkflowRequest{
+	liveWorkflow, err := clientManager.ExecClient().Execution(common.GetPodNamespace()).Get(
+		context.Background(), run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
+	_, err = reportServer.ReportWorkflow(context.Background(), &apiv2.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
