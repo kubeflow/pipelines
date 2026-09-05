@@ -190,12 +190,15 @@ def create_context_with_type(
 def get_context_by_name(
     store,
     context_name: str,
+    type_name: str,
 ) -> metadata_store_pb2.Context:
-    matching_contexts = [context for context in store.get_contexts() if context.name == context_name]
-    assert len(matching_contexts) <= 1
-    if len(matching_contexts) == 0:
+    context = store.get_context_by_type_and_name(
+        type_name=type_name,
+        context_name=context_name,
+    )
+    if context is None:
         raise ValueError('Context with name "{}" was not found'.format(context_name))
-    return matching_contexts[0]
+    return context
 
 
 def get_or_create_context_with_type(
@@ -207,8 +210,8 @@ def get_or_create_context_with_type(
     custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     try:
-        context = get_context_by_name(store, context_name)
-    except:
+        context = get_context_by_name(store, context_name, type_name)
+    except ValueError:
         context = create_context_with_type(
             store=store,
             context_name=context_name,
