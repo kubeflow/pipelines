@@ -610,7 +610,10 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForFunction', predicate: twoSelectedRocCurvesReady },
           {
             type: 'click',
-            selector: '[role="option"]:has-text("UI Smoke Training Run 1")',
+            // Native comparison data can expose both the root-propagated and concrete producer
+            // artifact from Training Run 1. Replace that duplicate default with the missing run so
+            // the final chart proves one visible curve for each comparison fixture.
+            selector: '[role="option"]:has-text("UI Smoke Evaluation Run")',
           },
           { type: 'waitForFunction', predicate: threeSelectedRocCurvesReady },
           { type: 'press', key: 'Escape' },
