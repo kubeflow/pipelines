@@ -340,9 +340,7 @@ test('serialized head ROC selection waits for each committed provenance state', 
     resolveSemanticScenarios('head', SEED_VALUES),
     'compare-roc-selection',
   ).actions;
-  const optionActions = actions.filter(
-    (action) => action.selector === '[role="option"]:has-text("UI Smoke Training Run 1")',
-  );
+  const optionActions = actions.filter((action) => action.selector?.startsWith('[role="option"]'));
   const transitionPredicates = actions
     .filter(
       (action) =>
@@ -360,6 +358,13 @@ test('serialized head ROC selection waits for each committed provenance state', 
     });
 
   assert.equal(optionActions.length, 2);
+  assert.deepEqual(
+    optionActions.map((action) => action.selector),
+    [
+      '[role="option"]:has-text("UI Smoke Training Run 1")',
+      '[role="option"]:has-text("UI Smoke Evaluation Run")',
+    ],
+  );
   assert.equal(transitionPredicates.length, 2);
   assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 2), true);
   assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 3), false);
@@ -433,11 +438,14 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     headRoc.semanticIdNormalization.derivedColorScopes[0].mappingStrategy,
     'ordered-label-cards',
   );
-  assert.equal(
-    headRoc.actions.filter(
-      (action) => action.selector === '[role="option"]:has-text("UI Smoke Training Run 1")',
-    ).length,
-    2,
+  assert.deepEqual(
+    headRoc.actions.filter((action) => action.type === 'click').map((action) => action.selector),
+    [
+      '[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")',
+      '[aria-label="ROC curves"]',
+      '[role="option"]:has-text("UI Smoke Training Run 1")',
+      '[role="option"]:has-text("UI Smoke Evaluation Run")',
+    ],
   );
 
   const headParallelFor = byKey(head, 'topology-parallel-for');
