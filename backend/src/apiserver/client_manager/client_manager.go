@@ -44,6 +44,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -506,6 +507,12 @@ func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool
 		// upgrades between >=2.15 versions.
 		util.TerminateIfError(autoMigrate(db))
 	}
+
+	// Runs on both paths: a deployment that took the legacy upgrade before this
+	// backfill existed is no longer detected as legacy, but can still hold
+	// reference-only rows. Recorded in migration_statuses once complete, so
+	// later startups return before touching run_details.
+	util.TerminateIfError(backfillPipelineRefsToRunTable(db, dialect))
 
 	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
 	// the connection pool with the returned *storage.DB. The GC loop calls
@@ -1393,6 +1400,158 @@ func initPipelineVersionsFromPipelines(db *gorm.DB) {
 	tx.Exec("update pipelines set DefaultVersionId=UUID;")
 
 	tx.Commit()
+}
+
+// backfillPipelineRefsMigration names the one-time data migration recorded in
+// migration_statuses.
+const backfillPipelineRefsMigration = "backfill_pipeline_refs_to_run_details"
+
+// backfillPipelineRefsToRunTable populates run_details.PipelineId and
+// PipelineVersionId for legacy runs that recorded them only as resource
+// references. scanRowsToRuns reconstructs those values after the query returns,
+// so without this the columns and the reported values disagree, breaking the
+// pipeline_id filter and sorting, whose page token holds the reconstructed
+// value.
+//
+// The work is guarded by migration_statuses so it runs once for a database
+// rather than on every replica startup: the UPDATEs scan run_details, and a
+// zero-row rerun still takes locks that block concurrent run writes.
+func backfillPipelineRefsToRunTable(db *gorm.DB, dialect SQLDialect) error {
+	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
+	if err != nil {
+		return err
+	}
+	if applied {
+		return nil
+	}
+
+	// The marker is claimed inside the same transaction as the UPDATEs, so
+	// replicas starting together during a rolling upgrade do not all run the
+	// scan: the first to claim proceeds, the rest block briefly, see the
+	// conflict and skip. A crash rolls back the marker with the work, leaving
+	// the migration pending rather than recorded but incomplete.
+	return db.Transaction(func(tx *gorm.DB) error {
+		claimed, err := claimMigration(tx, backfillPipelineRefsMigration)
+		if err != nil {
+			return err
+		}
+		if !claimed {
+			return nil
+		}
+		// Statements go through tx, not tx.DB(): the latter hands back the
+		// shared pool, which would run them on another connection and outside
+		// this transaction.
+		//
+		// Direct references first, mirroring the two reconstruction branches in
+		// scanRowsToRuns, then the parent pipeline of a version-only run. The
+		// last statement reads the column the second one writes, so the order
+		// matters, and it only fills rows the first one left empty.
+		for _, c := range []struct {
+			column  string
+			refType model.ResourceType
+		}{
+			{"PipelineId", model.PipelineResourceType},
+			{"PipelineVersionId", model.PipelineVersionResourceType},
+		} {
+			if err := tx.Exec(backfillRunRefColumnSQL(dialect, c.column, c.refType)).Error; err != nil {
+				return fmt.Errorf("backfill %s: %w", c.column, err)
+			}
+		}
+		if err := tx.Exec(backfillRunPipelineIDFromVersionSQL(dialect)).Error; err != nil {
+			return fmt.Errorf("backfill PipelineId from pipeline version: %w", err)
+		}
+		return nil
+	})
+}
+
+// migrationApplied reports whether a one-time data migration has already run.
+// A missing table means AutoMigrate has not created it yet, which can only
+// happen before the first run, so the migration is treated as pending.
+func migrationApplied(db *gorm.DB, name string) (bool, error) {
+	if !db.Migrator().HasTable(&model.MigrationStatus{}) {
+		return false, nil
+	}
+	// The condition goes through gorm as a map so the column is quoted for the
+	// dialect: a literal "Name" is a string, not an identifier, on MySQL.
+	var count int64
+	if err := db.Model(&model.MigrationStatus{}).Where(map[string]any{"Name": name}).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("read migration status %q: %w", name, err)
+	}
+	return count > 0, nil
+}
+
+// claimMigration records the migration and reports whether this caller won the
+// claim. A conflict means another replica is running or has run it, so the
+// caller skips rather than duplicating the scan.
+func claimMigration(tx *gorm.DB, name string) (bool, error) {
+	res := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&model.MigrationStatus{
+		Name:           name,
+		AppliedAtInSec: time.Now().Unix(),
+	})
+	if res.Error != nil {
+		return false, fmt.Errorf("claim migration %q: %w", name, res.Error)
+	}
+	return res.RowsAffected > 0, nil
+}
+
+// backfillRunRefColumnSQL updates only run_details while its subqueries read
+// resource_references, so MySQL's restriction on selecting from the table being
+// updated does not apply. The (ResourceUUID, ResourceType, ReferenceType) key
+// means at most one row matches per run, keeping the subquery scalar.
+func backfillRunRefColumnSQL(dialect SQLDialect, column string, refType model.ResourceType) string {
+	// Bare mixed-case identifiers fold to lower case on PostgreSQL.
+	q := dialect.QuoteIdentifier
+	refPredicate := fmt.Sprintf(
+		`rr.%s = run_details.%s AND rr.%s = '%s' AND rr.%s = '%s' AND rr.%s <> ''`,
+		q("ResourceUUID"), q("UUID"),
+		q("ResourceType"), model.RunResourceType,
+		q("ReferenceType"), refType,
+		q("ReferenceUUID"),
+	)
+	return fmt.Sprintf(`
+		UPDATE run_details
+		SET %s = (
+			SELECT rr.%s FROM resource_references rr WHERE %s
+		)
+		WHERE (run_details.%s = '' OR run_details.%s IS NULL)
+			AND EXISTS (
+				SELECT 1 FROM resource_references rr WHERE %s
+			)`,
+		q(column),
+		q("ReferenceUUID"), refPredicate,
+		q(column), q(column),
+		refPredicate,
+	)
+}
+
+// backfillRunPipelineIDFromVersionSQL fills PipelineId for runs whose only
+// pipeline link is their pipeline version, resolving the parent through
+// pipeline_versions.PipelineId. It reads run_details.PipelineVersionId rather
+// than the resource reference, so it covers both legacy runs whose version came
+// from a reference (already copied into the column by the preceding statement)
+// and runs that only ever stored the version id. Without this they keep an
+// empty key: pipeline_id EQUALS the parent would omit them and NOT_EQUALS would
+// return them.
+func backfillRunPipelineIDFromVersionSQL(dialect SQLDialect) string {
+	q := dialect.QuoteIdentifier
+	source := fmt.Sprintf(
+		`SELECT pv.%s FROM pipeline_versions pv
+			WHERE pv.%s = run_details.%s AND pv.%s <> ''`,
+		q("PipelineId"),
+		q("UUID"), q("PipelineVersionId"), q("PipelineId"),
+	)
+	return fmt.Sprintf(`
+		UPDATE run_details
+		SET %s = (%s)
+		WHERE (run_details.%s = '' OR run_details.%s IS NULL)
+			AND run_details.%s IS NOT NULL
+			AND run_details.%s <> ''
+			AND EXISTS (%s)`,
+		q("PipelineId"), source,
+		q("PipelineId"), q("PipelineId"),
+		q("PipelineVersionId"), q("PipelineVersionId"),
+		source,
+	)
 }
 
 func backfillExperimentIDToRunTable(db *gorm.DB) error {

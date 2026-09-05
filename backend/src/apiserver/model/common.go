@@ -87,5 +87,6 @@ func AllModels() []any {
 		&RunMetric{},
 		&Task{},
 		&ResourceReference{},
+		&MigrationStatus{},
 	}
 }
