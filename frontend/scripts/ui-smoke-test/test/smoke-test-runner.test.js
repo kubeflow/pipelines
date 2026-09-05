@@ -1628,6 +1628,24 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
     stackOperations.indexOf(releasePreflight) <
       stackOperations.findIndex(({ operation }) => operation === 'createCluster'),
   );
+  const baseCleanupIndex = stackOperations.findIndex(
+    ({ operation, role }) => operation === 'cleanup' && role === 'base',
+  );
+  const headSeedPreflightIndex = stackOperations.findIndex(
+    ({ operation, role }) => operation === 'preflightSeedRuntimeImage' && role === 'head',
+  );
+  const headDependencyPreflightIndex = stackOperations.findIndex(
+    ({ operation, role }) => operation === 'preflightThirdPartyImages' && role === 'head',
+  );
+  const headBuildIndex = stackOperations.findIndex(
+    ({ operation, role }) => operation === 'buildComponentImages' && role === 'head',
+  );
+  assert.ok(
+    baseCleanupIndex >= 0 &&
+      baseCleanupIndex < headSeedPreflightIndex &&
+      headSeedPreflightIndex < headDependencyPreflightIndex &&
+      headDependencyPreflightIndex < headBuildIndex,
+  );
   assert.deepEqual(
     stackOperations
       .filter(({ operation }) => operation === 'deployRevision:start')
@@ -1661,6 +1679,7 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
     assert.deepEqual(deployment.options.fixtureRequirements, {
       argoRetryPolicy: 'OnFailure',
     });
+    assert.equal(deployment.options.removePreflightedSourcesAfterLoad, true);
   }
   assert.equal(calls.seed.length, 2);
   assert.notEqual(calls.seed[0].apiBase, calls.seed[1].apiBase);

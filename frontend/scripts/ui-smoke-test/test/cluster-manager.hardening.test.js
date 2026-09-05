@@ -434,6 +434,65 @@ test('deployRevision loads single-platform archives before applying revision man
   );
 });
 
+test('full-stack deployment releases only preflight images pulled by the stack', async (t) => {
+  const calls = [];
+  const initiallyPresent = new Set(['mysql:8.4']);
+  const present = new Set(initiallyPresent);
+  const delegate = deploymentRunner(calls, {
+    manifest: renderedManifest(['docker.io/library/alpine:3.23', 'mysql:8.4']),
+  });
+  const runner = (command, args, options) => {
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
+      calls.push({ args, command, options });
+      return present.has(args.at(-1))
+        ? success(TEST_IMAGE_ID)
+        : { error: 'No such image', output: '', success: false };
+    }
+    if (command === 'docker' && args[0] === 'pull') {
+      present.add(args.at(-1));
+    }
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'rm') {
+      present.delete(args.at(-1));
+    }
+    return delegate(command, args, options);
+  };
+  const stack = createTestStack(t, { runner });
+  const revisionRoot = createRevisionRoot(stack);
+
+  stack.preflightSeedRuntimeImage({ platform: 'linux/amd64' });
+  stack.preflightThirdPartyImages(revisionRoot, { platform: 'linux/amd64' });
+  await stack.deployRevision(revisionRoot, {
+    platform: 'linux/amd64',
+    removePreflightedSourcesAfterLoad: true,
+  });
+
+  const removals = calls
+    .filter(({ args, command }) => command === 'docker' && args[0] === 'image' && args[1] === 'rm')
+    .map(({ args }) => args.at(-1));
+  assert.deepEqual(
+    removals.sort(),
+    [cluster.SEED_RUNTIME_IMAGE, 'docker.io/library/alpine:3.23'].sort(),
+  );
+  assert.equal(removals.includes('mysql:8.4'), false);
+  assert.equal(present.has('mysql:8.4'), true);
+
+  for (const image of removals) {
+    const removalIndex = calls.findIndex(
+      ({ args, command }) =>
+        command === 'docker' && args[0] === 'image' && args[1] === 'rm' && args.at(-1) === image,
+    );
+    const saveIndex = calls.findLastIndex(
+      ({ args, command }, index) =>
+        index < removalIndex && command === 'docker' && args[0] === 'save' && args.at(-1) === image,
+    );
+    const archive = calls[saveIndex].args[calls[saveIndex].args.indexOf('--output') + 1];
+    const loadIndex = calls.findIndex(
+      ({ args, command }) => command === 'kind' && args[0] === 'load' && args.includes(archive),
+    );
+    assert.ok(saveIndex >= 0 && saveIndex < removalIndex && removalIndex < loadIndex);
+  }
+});
+
 test('deployRevision applies fixture runtime requirements only to its rendered manifest', async (t) => {
   const calls = [];
   let appliedManifest = null;
@@ -486,6 +545,7 @@ test('seed runtime architecture is preflighted without creating or loading a clu
   assert.deepEqual(
     dockerCalls.map(({ args }) => args.slice(0, 3)),
     [
+      ['image', 'inspect', '--format'],
       ['pull', '--platform', 'linux/amd64'],
       ['save', '--platform', 'linux/amd64'],
       ['image', 'inspect', '--format'],
