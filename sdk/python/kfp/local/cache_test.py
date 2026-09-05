@@ -150,6 +150,23 @@ class LocalCacheKeyTest(unittest.TestCase):
         )
         self.assertNotEqual(k1, k2)
 
+    def test_artifact_argument_same_filename_different_temp_dir(self):
+        a1 = dsl.Artifact(name='a', uri='/tmp/dir1/art.txt')
+        a2 = dsl.Artifact(name='a', uri='/tmp/dir2/art.txt')
+        k1 = self.cache.compute_key(
+            component_name='c',
+            image='img',
+            full_command=[],
+            arguments={'art': a1},
+        )
+        k2 = self.cache.compute_key(
+            component_name='c',
+            image='img',
+            full_command=[],
+            arguments={'art': a2},
+        )
+        self.assertEqual(k1, k2)
+
 
 class LocalCachePutGetTest(unittest.TestCase):
 
@@ -203,6 +220,25 @@ class LocalCachePutGetTest(unittest.TestCase):
         got = self.cache.get('k')
         self.assertIsNotNone(got)
         self.assertEqual(got['out_art'].uri, 'gs://bucket/a')
+
+    def test_heterogeneous_artifact_list_roundtrip(self):
+        artifact_path = os.path.join(self.tmpdir, 'art.txt')
+        with open(artifact_path, 'w') as f:
+            f.write('hi')
+        art = dsl.Artifact(name='a', uri=artifact_path)
+        outputs = {'out_list': [None, art, 42]}
+        self.cache.put('k_mixed', outputs)
+        got = self.cache.get('k_mixed')
+        self.assertIsNotNone(got)
+        self.assertIsNone(got['out_list'][0])
+        self.assertIsInstance(got['out_list'][1], dsl.Artifact)
+        self.assertEqual(got['out_list'][2], 42)
+
+    def test_corrupt_cache_file_treated_as_miss(self):
+        entry_path = os.path.join(self.tmpdir, 'corrupt_key.json')
+        with open(entry_path, 'w') as f:
+            f.write('{"out_art": {"__kfp_artifact__": true, "uri": "/non/existent/corrupt/path.txt"}}')
+        self.assertIsNone(self.cache.get('corrupt_key'))
 
     def test_atomic_write_no_partial(self):
         # Concurrent writers should not corrupt entries.
