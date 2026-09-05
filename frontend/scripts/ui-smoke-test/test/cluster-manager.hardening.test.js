@@ -445,6 +445,31 @@ test('deployRevision loads single-platform archives before applying revision man
   assert.ok(calls.indexOf(mysqlFinalServerWait) > calls.indexOf(workloadWait));
 });
 
+for (const writable of [true, false]) {
+  test(`deployment requires writable SeaweedFS before seeding: ${writable}`, async (t) => {
+    const calls = [];
+    const delegate = deploymentRunner(calls, { deployments: 'ml-pipeline\nseaweedfs' });
+    const runner = (command, args, options) => {
+      const result = delegate(command, args, options);
+      if (args.includes('exec') && args.includes('deployment/seaweedfs')) {
+        return writable ? result : { success: false, error: 'No writable volumes', output: '' };
+      }
+      return result;
+    };
+    const stack = createTestStack(t, { runner });
+    if (writable) await stack.ensureCluster('/revision');
+    else await assert.rejects(stack.ensureCluster('/revision'), /Artifact storage is not writable/);
+    const waitIndex = calls.findIndex((call) => call.args.includes('--timeout=10m'));
+    const probeIndex = calls.findIndex(
+      (call) => call.args.includes('exec') && call.args.includes('deployment/seaweedfs'),
+    );
+    assert.ok(probeIndex > waitIndex);
+    assert.match(calls[probeIndex].args.at(-1), /--aws-sigv4/);
+    assert.match(calls[probeIndex].args.at(-1), /-X PUT/);
+    assert.match(calls[probeIndex].args.at(-1), /-X DELETE/);
+  });
+}
+
 test('full-stack deployment releases only preflight images pulled by the stack', async (t) => {
   const calls = [];
   const initiallyPresent = new Set(['mysql:8.4']);
@@ -1881,7 +1906,15 @@ test('stack diagnostics are bounded and always use the run-scoped kubeconfig and
         args.includes('pods') &&
         args.some((argument) => argument.startsWith('jsonpath='))
       ) {
-        return success('workflow-task-z\nml-pipeline-a\nmysql-b\nml-pipeline-ui-z\n');
+        return success('workflow-task-z\nml-pipeline-a\nmysql-b\nml-pipeline-ui-z\nseaweedfs-a\n');
+      }
+      if (command === 'kubectl' && args.includes('df')) {
+        return success(
+          'Filesystem Size Used Available Use% Mounted on\n/dev/sda 100G 99G 1G 99% /data',
+        );
+      }
+      if (command === 'kubectl' && args.includes('wget')) {
+        return { success: false, output: '', error: 'master is unavailable' };
       }
       if (command === 'kubectl' && args.includes('logs')) {
         return success(
@@ -1909,6 +1942,28 @@ test('stack diagnostics are bounded and always use the run-scoped kubeconfig and
   );
   assert.ok(diagnostic.logs.every((entry) => entry.truncated));
   assert.ok(diagnostic.logs.every((entry) => entry.bytes < 1600));
+  const diskSpace = diagnostic.status.find((entry) => entry.name === 'seaweedfs-disk-space');
+  assert.ok(diskSpace.success);
+  assert.match(diskSpace.preview, /99% \/data/);
+  assert.deepEqual(diskSpace.command.slice(-8), [
+    'exec',
+    'pod/seaweedfs-a',
+    '-c',
+    'seaweedfs',
+    '--',
+    'df',
+    '-h',
+    '/data',
+  ]);
+  const volumeStatus = diagnostic.status.find((entry) => entry.name === 'seaweedfs-volume-status');
+  assert.equal(volumeStatus.success, false);
+  assert.match(volumeStatus.preview, /master is unavailable/);
+  assert.deepEqual(volumeStatus.command.slice(-3), [
+    'wget',
+    '-qO-',
+    'http://127.0.0.1:9333/dir/status',
+  ]);
+  assert.ok(diagnostic.status.every((entry) => !Object.hasOwn(entry, 'diagnosticOutput')));
   assert.ok(
     calls
       .filter((call) => call.command === 'kubectl')

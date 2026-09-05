@@ -420,6 +420,9 @@ node smoke-test-runner.js --teardown
    is imported, its host-side tag is released so the two isolated stacks do not retain a third copy
    of every locally built image.
 5. Applies the manifests and waits for the deployments actually rendered by that revision.
+   SeaweedFS must also pass a bounded, authenticated S3 write/read/delete round trip in the
+   fixture bucket. A healthy listener or existing bucket alone does not prove writable storage;
+   seeding is stopped if the object store cannot persist and return the probe content.
 6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
    readiness checks, and screenshots all use that deployed UI and its matching in-cluster
    frontend-server/backend; full-stack mode does not substitute a host-side server or static proxy.
@@ -449,7 +452,9 @@ directory before owned clusters are removed. Capture validity uses one explicit 
 degraded captures are never converted into visual-difference percentages.
 
 For each cluster created by the run, failure collection records bounded Deployment and Pod status,
-namespace events, and tail-limited logs from known KFP service Pods. Every `kubectl` request carries
+namespace events, and tail-limited logs from known KFP service Pods. SeaweedFS diagnostics also
+include `/data` disk usage and the master's volume topology, even when the Pod log limit is reached.
+Every `kubectl` request carries
 that stack's explicit run-scoped kubeconfig and context. Diagnostics never request Secret objects
 or container environment values; common credentials, authorization headers, cookies, tokens, and
 credential-bearing URLs are redacted. Individual text artifacts live under
