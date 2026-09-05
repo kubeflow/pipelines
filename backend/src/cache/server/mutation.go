@@ -242,7 +242,15 @@ func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[str
 			if skeletonValue == nil {
 				result[key] = value
 			} else {
-				result[key] = intersectStructureWithSkeleton(value.(map[string]interface{}), skeletonValue.(map[string]interface{}))
+				valueMap, valueIsMap := value.(map[string]interface{})
+				skeletonMap, skeletonIsMap := skeletonValue.(map[string]interface{})
+				if !valueIsMap || !skeletonIsMap {
+					// The template value does not match the expected object shape
+					// (e.g. a user-supplied ARGO_TEMPLATE whose "container" is not a
+					// JSON object); skip the key instead of panicking the webhook.
+					continue
+				}
+				result[key] = intersectStructureWithSkeleton(valueMap, skeletonMap)
 			}
 		}
 	}
