@@ -1,20 +1,27 @@
 module github.com/kubeflow/pipelines
 
-go 1.26.5
+go 1.27.0
 
-toolchain go1.26.6
+toolchain go1.27.1
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/VividCortex/mysqlerr v1.0.0
 	github.com/argoproj/argo-workflows/v4 v4.1.2
+	github.com/aws/aws-sdk-go-v2 v1.43.7
+	github.com/aws/aws-sdk-go-v2/config v1.32.38
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.37
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.3
+	github.com/aws/smithy-go v1.27.8
 	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/eapache/go-resiliency v1.7.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-openapi/errors v0.22.8
 	github.com/go-openapi/runtime v0.33.1
 	github.com/go-openapi/strfmt v0.27.0
-	github.com/go-openapi/swag v0.29.1 // indirect
+	github.com/go-openapi/swag/conv v0.29.1
+	github.com/go-openapi/swag/jsonutils v0.29.1
+	github.com/go-openapi/swag/typeutils v0.29.1
 	github.com/go-openapi/validate v0.26.3
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/golang/glog v1.2.5
@@ -24,6 +31,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	// Should match GRPC_GATEWAY_VERSION in backend/api/Dockerfile
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0
 	github.com/jackc/pgx/v5 v5.10.0
@@ -61,29 +69,17 @@ require (
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/yaml.v3 v3.0.1
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/driver/postgres v1.6.2
+	gorm.io/driver/sqlite v1.6.0
+	gorm.io/gorm v1.31.2
 	k8s.io/api v0.36.4
+	k8s.io/apiextensions-apiserver v0.36.4
 	k8s.io/apimachinery v0.36.4
 	k8s.io/client-go v0.36.4
 	k8s.io/code-generator v0.36.4
 	sigs.k8s.io/controller-runtime v0.24.1
 	sigs.k8s.io/yaml v1.6.0
-)
-
-require (
-	github.com/aws/aws-sdk-go-v2 v1.43.7
-	github.com/aws/aws-sdk-go-v2/config v1.32.38
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.37
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.3
-	github.com/aws/smithy-go v1.27.8
-	github.com/go-openapi/swag/conv v0.29.1
-	github.com/go-openapi/swag/jsonutils v0.29.1
-	github.com/go-openapi/swag/typeutils v0.29.1
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	gorm.io/driver/mysql v1.6.0
-	gorm.io/driver/postgres v1.6.2
-	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.31.2
-	k8s.io/apiextensions-apiserver v0.36.4
 )
 
 require (
@@ -149,6 +145,7 @@ require (
 	github.com/go-openapi/loads v0.25.1 // indirect
 	github.com/go-openapi/runtime/server-middleware v0.33.1 // indirect
 	github.com/go-openapi/spec v0.22.9 // indirect
+	github.com/go-openapi/swag v0.29.1 // indirect
 	github.com/go-openapi/swag/cmdutils v0.29.1 // indirect
 	github.com/go-openapi/swag/fileutils v0.29.1 // indirect
 	github.com/go-openapi/swag/loading v0.29.1 // indirect
