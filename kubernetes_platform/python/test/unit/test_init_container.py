@@ -134,6 +134,21 @@ class TestAddInitContainer:
                     image='busybox:1.36',
                 )
 
+    def test_add_init_container_reserved_oci_prepull_name(self):
+        with pytest.raises(
+                ValueError,
+                match=r'Init container names matching "oci-prepull-<N>" are reserved',
+        ):
+
+            @dsl.pipeline
+            def my_pipeline():
+                task = print_greeting()
+                kubernetes.add_init_container(
+                    task,
+                    name='oci-prepull-0',
+                    image='busybox:1.36',
+                )
+
     def test_add_init_container_empty_name(self):
         with pytest.raises(
                 ValueError,
