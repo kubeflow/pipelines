@@ -18,7 +18,6 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client/artifactclient"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 type PipelineClientFake struct {
