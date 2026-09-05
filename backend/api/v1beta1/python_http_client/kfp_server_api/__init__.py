@@ -14,7 +14,7 @@
 
 from __future__ import absolute_import
 
-__version__ = "2.17.1"
+__version__ = "2.17.2"
 
 # import apis into sdk package
 from kfp_server_api.api.experiment_service_api import ExperimentServiceApi
@@ -71,4 +71,3 @@ from kfp_server_api.models.report_run_metrics_response_report_run_metric_result 
 from kfp_server_api.models.report_run_metrics_response_report_run_metric_result_status import ReportRunMetricsResponseReportRunMetricResultStatus
 from kfp_server_api.models.run_metric_format import RunMetricFormat
 from kfp_server_api.models.run_service_report_run_metrics_v1_body import RunServiceReportRunMetricsV1Body
-
