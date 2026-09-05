@@ -1,0 +1,28 @@
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: smoke-test-gpu
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.example.com
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dra-smoke-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test
+    image: busybox:1.36
+    command: ["sh", "-c", "echo 'DRA smoke test: PASS' && sleep infinity"]
+    resources:
+      claims:
+      - name: gpu
+  resourceClaims:
+  - name: gpu
+    resourceClaimTemplateName: smoke-test-gpu

@@ -23,12 +23,15 @@ __all__ = [
     'add_node_affinity_json',
     'add_pod_annotation',
     'add_pod_label',
+    'add_resource_claim',
+    'add_resource_claim_json',
     'add_toleration',
     'add_toleration_json',
     'CreatePVC',
     'DeletePVC',
     'empty_dir_mount',
     'mount_pvc',
+    'ResourceClaimConfig',
     'set_image_pull_policy',
     'use_field_path_as_env',
     'set_image_pull_secrets',
@@ -53,6 +56,9 @@ from kfp.kubernetes.node_affinity import add_node_affinity
 from kfp.kubernetes.node_affinity import add_node_affinity_json
 from kfp.kubernetes.pod_metadata import add_pod_annotation
 from kfp.kubernetes.pod_metadata import add_pod_label
+from kfp.kubernetes.pod_resource_claim import add_resource_claim
+from kfp.kubernetes.pod_resource_claim import add_resource_claim_json
+from kfp.kubernetes.pod_resource_claim import ResourceClaimConfig
 from kfp.kubernetes.security_context import set_security_context
 from kfp.kubernetes.secret import use_secret_as_env
 from kfp.kubernetes.secret import use_secret_as_volume

@@ -192,6 +192,8 @@ const (
 	// This is useful when the task prepares a shared volume for the external workload or defines output artifact
 	// (e.g. dsl.Model) that is created by the external workload.
 	TaskConfigPassthroughType_KUBERNETES_VOLUMES TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum = 6
+	// Indicates that DRA resource claims should be passed through to the external workload.
+	TaskConfigPassthroughType_KUBERNETES_RESOURCE_CLAIMS TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum = 7
 )
 
 // Enum value maps for TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum.
@@ -204,15 +206,17 @@ var (
 		4: "KUBERNETES_TOLERATIONS",
 		5: "KUBERNETES_NODE_SELECTOR",
 		6: "KUBERNETES_VOLUMES",
+		7: "KUBERNETES_RESOURCE_CLAIMS",
 	}
 	TaskConfigPassthroughType_TaskConfigPassthroughTypeEnum_value = map[string]int32{
-		"NONE":                     0,
-		"RESOURCES":                1,
-		"ENV":                      2,
-		"KUBERNETES_AFFINITY":      3,
-		"KUBERNETES_TOLERATIONS":   4,
-		"KUBERNETES_NODE_SELECTOR": 5,
-		"KUBERNETES_VOLUMES":       6,
+		"NONE":                       0,
+		"RESOURCES":                  1,
+		"ENV":                        2,
+		"KUBERNETES_AFFINITY":        3,
+		"KUBERNETES_TOLERATIONS":     4,
+		"KUBERNETES_NODE_SELECTOR":   5,
+		"KUBERNETES_VOLUMES":         6,
+		"KUBERNETES_RESOURCE_CLAIMS": 7,
 	}
 )
 
@@ -5885,8 +5889,8 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\n" +
 	"\x06STRUCT\x10\x06\x12\x15\n" +
 	"\x11TASK_FINAL_STATUS\x10\a\x12\x0f\n" +
-	"\vTASK_CONFIG\x10\b\"\xca\x01\n" +
-	"\x19TaskConfigPassthroughType\"\xac\x01\n" +
+	"\vTASK_CONFIG\x10\b\"\xea\x01\n" +
+	"\x19TaskConfigPassthroughType\"\xcc\x01\n" +
 	"\x1dTaskConfigPassthroughTypeEnum\x12\b\n" +
 	"\x04NONE\x10\x00\x12\r\n" +
 	"\tRESOURCES\x10\x01\x12\a\n" +
@@ -5894,7 +5898,8 @@ const file_pipeline_spec_proto_rawDesc = "" +
 	"\x13KUBERNETES_AFFINITY\x10\x03\x12\x1a\n" +
 	"\x16KUBERNETES_TOLERATIONS\x10\x04\x12\x1c\n" +
 	"\x18KUBERNETES_NODE_SELECTOR\x10\x05\x12\x16\n" +
-	"\x12KUBERNETES_VOLUMES\x10\x06\"\x98\x01\n" +
+	"\x12KUBERNETES_VOLUMES\x10\x06\x12\x1e\n" +
+	"\x1aKUBERNETES_RESOURCE_CLAIMS\x10\a\"\x98\x01\n" +
 	"\x15TaskConfigPassthrough\x12[\n" +
 	"\x05field\x18\x01 \x01(\x0e2E.ml_pipelines.TaskConfigPassthroughType.TaskConfigPassthroughTypeEnumR\x05field\x12\"\n" +
 	"\rapply_to_task\x18\x02 \x01(\bR\vapplyToTask\"\xfe\n" +

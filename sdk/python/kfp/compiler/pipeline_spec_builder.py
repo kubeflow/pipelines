@@ -722,6 +722,11 @@ def build_container_spec_for_task(
                 _raise_passthrough_error(
                     task, TaskConfigField.KUBERNETES_VOLUMES.name)
 
+        if _has_any(k8s_cfg, ['podResourceClaims']):
+            if TaskConfigField.KUBERNETES_RESOURCE_CLAIMS not in allowed_fields:
+                _raise_passthrough_error(
+                    task, TaskConfigField.KUBERNETES_RESOURCE_CLAIMS.name)
+
     _validate_task_config_passthroughs_for_kubernetes_settings(task)
 
     def convert_to_placeholder(input_value: str) -> str:

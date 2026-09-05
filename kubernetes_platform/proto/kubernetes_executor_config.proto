@@ -42,6 +42,7 @@ message KubernetesExecutorConfig {
     repeated EmptyDirMount empty_dir_mounts = 17;
     SecurityContext security_context = 18;
     repeated InitContainer init_containers = 19;
+    repeated PodResourceClaim pod_resource_claims = 20;
 }
 
 message EnabledSharedMemory {
@@ -314,6 +315,17 @@ message EmptyDirMount {
     string mount_path = 2;
     optional string medium = 3;
     optional string size_limit = 4;
+}
+
+// Pod-level resource claim for Dynamic Resource Allocation.
+// Maps to corev1.PodResourceClaim.
+message PodResourceClaim {
+    // Name of a ResourceClaimTemplate in the same namespace.
+    string resource_claim_template_name = 1;
+
+    // JSON parameter for runtime-resolved claims.
+    // When set, takes precedence over the static field above.
+    ml_pipelines.TaskInputsSpec.InputParameterSpec resource_claim_json = 2;
 }
 
 // Init container that runs to completion before the main container starts.
