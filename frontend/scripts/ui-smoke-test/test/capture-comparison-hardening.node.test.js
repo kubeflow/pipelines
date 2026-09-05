@@ -311,6 +311,61 @@ test('waitForFunction actions invoke the supplied predicate', async () => {
   assert.equal(invoked, true);
 });
 
+test('capture scroll normalization resets and verifies the document viewport', async () => {
+  const calls = [];
+  let x = 17;
+  let y = 29;
+  const page = {
+    evaluate: async (runner) => {
+      const source = String(runner);
+      if (source.includes('window.scrollTo')) {
+        calls.push('reset');
+        x = 0;
+        y = 0;
+        return undefined;
+      }
+      calls.push('read');
+      return { x, y };
+    },
+    waitForFunction: async (runner, argument, options) => {
+      calls.push('assert');
+      assert.equal(argument, undefined);
+      assert.deepEqual(options, { timeout: 10000 });
+      assert.match(String(runner), /scrollingElement\.scrollTop === 0/);
+    },
+  };
+
+  assert.deepEqual(await capture.normalizeDocumentScroll(page), { x: 0, y: 0 });
+  assert.deepEqual(calls, ['reset', 'assert', 'read']);
+});
+
+test('comparison fails closed when paired document scroll positions differ', async (t) => {
+  const root = fixtureDirectory(t);
+  const mainDir = path.join(root, 'main');
+  const prDir = path.join(root, 'pr');
+  const outputDir = path.join(root, 'comparison');
+  fs.mkdirSync(mainDir);
+  fs.mkdirSync(prDir);
+  const filename = 'pipelines-10x10.png';
+  await Promise.all([writePng(path.join(mainDir, filename)), writePng(path.join(prDir, filename))]);
+  writeCaptureManifest(
+    mainDir,
+    [captureResult(filename, { documentScroll: { x: 0, y: 0 } })],
+    'base',
+  );
+  writeCaptureManifest(
+    prDir,
+    [captureResult(filename, { documentScroll: { x: 0, y: 40 } })],
+    'head',
+  );
+
+  const result = await comparison.runComparison(comparisonOptions(mainDir, prDir, outputDir));
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.summary.stats.failed, 1);
+  assert.match(result.summary.results[0].error, /document scroll position differs/);
+  assert.equal(result.summary.results[0].thresholdsEvaluated, false);
+});
+
 test('compare capture readiness rejects loaders and error states', (t) => {
   const originalDocument = global.document;
   t.after(() => {

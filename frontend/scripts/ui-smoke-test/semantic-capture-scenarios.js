@@ -246,6 +246,11 @@ const nodeDataSelector = (name, testId) =>
   `.react-flow__node:has-text("${name}") [data-testid="${testId}"], ` +
   `.graphNode:has-text("${name}") [data-testid="${testId}"]`;
 const tabSelector = (name) => `[role="tab"]:has-text("${name}"), button:has-text("${name}")`;
+const selectedTabSelector = (name) => `[role="tab"][aria-selected="true"]:has-text("${name}")`;
+const fitGraphAction = Object.freeze({
+  type: 'click',
+  selector: '.react-flow__controls-fitview',
+});
 const waitForHydratedGraph = Object.freeze([
   ...waitForGraph,
   {
@@ -264,14 +269,8 @@ const taskPanelActions = (taskName, tabName, extraActions = []) => [
   { type: 'click', selector: nodeSelector(taskName) },
   { type: 'waitForSelector', selector: '[aria-label="close"]' },
   ...(tabName ? [{ type: 'click', selector: tabSelector(tabName) }] : []),
-  ...extraActions,
-];
-
-const headTaskPanelActions = (taskName, tabName, extraActions = []) => [
-  ...waitForGraph,
-  { type: 'waitForSelector', selector: nodeDataSelector(taskName, 'execution-icon-active') },
-  { type: 'waitForSelector', selector: '[aria-label="close"]' },
-  ...(tabName ? [{ type: 'click', selector: tabSelector(tabName) }] : []),
+  ...(tabName ? [{ type: 'waitForSelector', selector: selectedTabSelector(tabName) }] : []),
+  fitGraphAction,
   ...extraActions,
 ];
 
@@ -294,6 +293,7 @@ const baseComparisonSelection = (kind, ordinal, runIndex) => [
 const baseFileComparisonActions = (kind, readyAction) => [
   { type: 'waitForFunction', predicate: seededListReady },
   { type: 'click', selector: tabSelector(kind) },
+  { type: 'waitForSelector', selector: selectedTabSelector(kind) },
   ...baseComparisonSelection(kind, 'first', 0),
   ...baseComparisonSelection(kind, 'second', 1),
   { ...readyAction, minCount: 2 },
@@ -311,6 +311,7 @@ const headComparisonSelection = (label, optionIndex) => [
 const headFileComparisonActions = (kind, readyAction) => [
   { type: 'waitForFunction', predicate: seededListReady },
   { type: 'click', selector: tabSelector(kind) },
+  { type: 'waitForSelector', selector: selectedTabSelector(kind) },
   ...headComparisonSelection('First', 0),
   ...headComparisonSelection('Second', 1),
   { ...readyAction, minCount: 2 },
@@ -399,14 +400,11 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         actions: taskPanelActions('write-metrics', 'Input/Output'),
       },
       head: {
-        path: '/#/runs/details/{seed.richRunId}?task={seed.writeMetricsTaskId}',
-        routeExpectation: {
-          kind: 'direct',
-          path: '/runs/details/{seed.richRunId}?task={seed.writeMetricsTaskId}',
-        },
+        path: '/#/runs/details/{seed.richRunId}',
+        routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
         semanticIdNormalization: ARTIFACT_URI_NORMALIZATION,
         waitFor: '#root',
-        actions: headTaskPanelActions('write-metrics', 'Input/Output'),
+        actions: taskPanelActions('write-metrics', 'Input/Output'),
       },
     },
   },
@@ -425,13 +423,10 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         ]),
       },
       head: {
-        path: '/#/runs/details/{seed.richRunId}?task={seed.retryTaskId}',
-        routeExpectation: {
-          kind: 'direct',
-          path: '/runs/details/{seed.richRunId}?task={seed.retryTaskId}',
-        },
+        path: '/#/runs/details/{seed.richRunId}',
+        routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
         waitFor: '#root',
-        actions: headTaskPanelActions('retry-once', 'Logs', [
+        actions: taskPanelActions('retry-once', 'Logs', [
           { type: 'waitForText', text: 'retry completed' },
         ]),
       },
@@ -808,14 +803,11 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('retry-once', 'Input/Output'),
+        actions: taskPanelActions('retry-once', 'Task Details'),
       },
       head: {
-        path: '/#/runs/details/{seed.richRunId}?task={seed.retryTaskId}',
-        routeExpectation: {
-          kind: 'direct',
-          path: '/runs/details/{seed.richRunId}?task={seed.retryTaskId}',
-        },
+        path: '/#/runs/details/{seed.richRunId}',
+        routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
         semanticIdNormalization: {
           scopes: [
             exactScope({
@@ -829,7 +821,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: headTaskPanelActions('retry-once', 'Task Details'),
+        actions: taskPanelActions('retry-once', 'Task Details'),
       },
     },
   },
@@ -856,14 +848,11 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('parallel-loop', null),
+        actions: taskPanelActions('parallel-loop', 'Task Details'),
       },
       head: {
-        path: '/#/runs/details/{seed.richRunId}?task={seed.parallelTaskId}',
-        routeExpectation: {
-          kind: 'direct',
-          path: '/runs/details/{seed.richRunId}?task={seed.parallelTaskId}',
-        },
+        path: '/#/runs/details/{seed.richRunId}',
+        routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
         semanticIdNormalization: {
           scopes: [
             exactScope({
@@ -880,7 +869,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: headTaskPanelActions('Loop', 'Task Details'),
+        actions: taskPanelActions('Loop', 'Task Details'),
       },
     },
   },
@@ -904,14 +893,11 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('nested-dag', null),
+        actions: taskPanelActions('nested-dag', 'Task Details'),
       },
       head: {
-        path: '/#/runs/details/{seed.richRunId}?task={seed.nestedDagTaskId}',
-        routeExpectation: {
-          kind: 'direct',
-          path: '/runs/details/{seed.richRunId}?task={seed.nestedDagTaskId}',
-        },
+        path: '/#/runs/details/{seed.richRunId}',
+        routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
         semanticIdNormalization: {
           scopes: [
             exactScope({
@@ -925,7 +911,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: headTaskPanelActions('nested-dag', 'Task Details'),
+        actions: taskPanelActions('nested-dag', 'Task Details'),
       },
     },
   },
