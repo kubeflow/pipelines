@@ -494,6 +494,7 @@ function createKindStack(config = {}) {
   const builtImagePlatforms = new Map();
   const builtMixedPlatformWorkloads = new Map();
   const loadedImages = new Set();
+  const ownedPreflightedImages = new Set();
   const preflightedImageIds = new Map();
   const verifiedEmulationPlatforms = new Set();
   let frontendServerProcess = null;
@@ -757,6 +758,8 @@ function createKindStack(config = {}) {
   function verifyImageForPlatform(image, stem, platform, options = {}) {
     const runner = stackRunner(options);
     const imageArchive = imageArchivePath(`preflight-${stem}`, platform);
+    const preflightKey = loadedImageKey(image, platform);
+    const imageExistedBeforePreflight = inspectLocalImageId(image, { runner }) !== null;
     fs.mkdirSync(archiveDir, { recursive: true });
     try {
       pullImageForPlatform(image, platform, {
@@ -768,9 +771,9 @@ function createKindStack(config = {}) {
         runner,
       });
       const imageId = inspectLocalImageId(image, { runner });
-      const preflightKey = loadedImageKey(image, platform);
       if (imageId) preflightedImageIds.set(preflightKey, imageId);
       else preflightedImageIds.delete(preflightKey);
+      if (!imageExistedBeforePreflight && imageId) ownedPreflightedImages.add(preflightKey);
     } finally {
       fs.rmSync(imageArchive, { force: true });
     }
@@ -782,7 +785,17 @@ function createKindStack(config = {}) {
     const platform = options.platform || getClusterPlatform({ runner });
     validatePlatform(platform, 'Seed image platform');
     pullImageForPlatform(SEED_RUNTIME_IMAGE, platform, { reusePreflighted: true, runner });
-    saveAndLoadImage(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, { runner });
+    const preflightKey = loadedImageKey(SEED_RUNTIME_IMAGE, platform);
+    const releaseSource =
+      options.removeSourceAfterLoad === true && ownedPreflightedImages.has(preflightKey);
+    saveAndLoadImage(SEED_RUNTIME_IMAGE, 'seed-runtime', platform, {
+      removeSourceAfterExport: releaseSource,
+      runner,
+    });
+    if (releaseSource) {
+      ownedPreflightedImages.delete(preflightKey);
+      preflightedImageIds.delete(preflightKey);
+    }
     seedRuntimeLoaded = true;
   }
 
@@ -1516,10 +1529,18 @@ function createKindStack(config = {}) {
         reusePreflighted: true,
         runner,
       });
+      const preflightKey = loadedImageKey(image, imagePlatform);
+      const releaseSource =
+        options.removeSourceAfterLoad === true && ownedPreflightedImages.has(preflightKey);
       saveAndLoadImage(image, `manifest-image-${index}`, imagePlatform, {
         nodePlatform: platform,
+        removeSourceAfterExport: releaseSource,
         runner,
       });
+      if (releaseSource) {
+        ownedPreflightedImages.delete(preflightKey);
+        preflightedImageIds.delete(preflightKey);
+      }
     }
     verifyAmd64WorkloadEmulation(imagePlan, platform, { runner });
     return images;
@@ -1782,7 +1803,10 @@ function createKindStack(config = {}) {
       }
       // Pull and archive every rendered runtime image before any workload is created. A missing
       // architecture therefore fails explicitly instead of surfacing as an opaque ImagePullBackOff.
-      preloadManifestImages(rendered.renderedPath, platform, { runner });
+      preloadManifestImages(rendered.renderedPath, platform, {
+        removeSourceAfterLoad: options.removePreflightedSourcesAfterLoad,
+        runner,
+      });
       requireSuccess(
         runner(
           'kubectl',
@@ -1930,6 +1954,7 @@ function createKindStack(config = {}) {
     preloadSeedRuntimeImage({
       force: options.forceSeedRuntime,
       platform,
+      removeSourceAfterLoad: options.removePreflightedSourcesAfterLoad,
       runner,
     });
     const builtOverrides = options.components
@@ -1947,6 +1972,7 @@ function createKindStack(config = {}) {
       imageOverrides,
       platform,
       requireLocalFirstParty: options.requireLocalFirstParty,
+      removePreflightedSourcesAfterLoad: options.removePreflightedSourcesAfterLoad,
       runner,
     });
     return { ...result, images: imageOverrides.images };

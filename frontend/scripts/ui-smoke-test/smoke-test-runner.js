@@ -2367,13 +2367,6 @@ async function runFullStackComparisonOrchestration({
     throw new Error('Base image preflight did not preserve the selected Kind target platform.');
   }
 
-  const headDependencyPreflight = headStack.preflightThirdPartyImages(headRoot, {
-    platform: targetPlatform,
-  });
-  if (headDependencyPreflight.platform !== targetPlatform) {
-    throw new Error('Head image preflight did not preserve the selected Kind target platform.');
-  }
-
   const baseComponents = baseRelease
     ? []
     : services.componentsForRevision(baseWorktree, services.components, baseManifestSources);
@@ -2540,6 +2533,7 @@ async function runFullStackComparisonOrchestration({
     fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
     imageOverrides: baseImageOverrides,
     platform: targetPlatform,
+    removePreflightedSourcesAfterLoad: true,
     requireLocalFirstParty: !baseRelease,
   });
   const baseResult = await seedValidateAndCapture({
@@ -2547,6 +2541,22 @@ async function runFullStackComparisonOrchestration({
     role: 'base',
     stack: baseStack,
   });
+
+  state.phase = 'head_image_preflight';
+  const headSeedRuntimePreflight = headStack.preflightSeedRuntimeImage({
+    platform: targetPlatform,
+  });
+  if (headSeedRuntimePreflight.platform !== targetPlatform) {
+    throw new Error(
+      'Head seed runtime preflight did not preserve the selected Kind target platform.',
+    );
+  }
+  const headDependencyPreflight = headStack.preflightThirdPartyImages(headRoot, {
+    platform: targetPlatform,
+  });
+  if (headDependencyPreflight.platform !== targetPlatform) {
+    throw new Error('Head image preflight did not preserve the selected Kind target platform.');
+  }
 
   state.phase = 'head_image_build';
   const builtHeadImageOverrides =
@@ -2570,6 +2580,7 @@ async function runFullStackComparisonOrchestration({
     fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
     imageOverrides: headImageOverrides,
     platform: targetPlatform,
+    removePreflightedSourcesAfterLoad: true,
     requireLocalFirstParty: true,
     tagSuffix: `${run.runId}-head`,
   });
