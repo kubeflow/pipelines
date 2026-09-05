@@ -1837,6 +1837,29 @@ async function executeActions(page, actions) {
   }
 }
 
+async function normalizeDocumentScroll(page) {
+  await page.evaluate(() => {
+    const scrollingElement = document.scrollingElement || document.documentElement;
+    scrollingElement.scrollLeft = 0;
+    scrollingElement.scrollTop = 0;
+    window.scrollTo(0, 0);
+  });
+  await page.waitForFunction(
+    () => {
+      const scrollingElement = document.scrollingElement || document.documentElement;
+      return (
+        window.scrollX === 0 &&
+        window.scrollY === 0 &&
+        scrollingElement.scrollLeft === 0 &&
+        scrollingElement.scrollTop === 0
+      );
+    },
+    undefined,
+    { timeout: 10000 },
+  );
+  return page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+}
+
 function comparePageReadyPredicate() {
   const bodyText = document.body.innerText;
   const hasError =
@@ -2186,9 +2209,7 @@ const SEMANTICALLY_REPLACED_PAGE_NAMES = new Set([
   'run-details-seeded-sidepanel',
 ]);
 const ORDINARY_REVISION_AWARE_PAGE_NAMES = new Set(
-  PAGES.filter((page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name)).map(
-    (page) => page.name,
-  ),
+  PAGES.filter((page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name)).map((page) => page.name),
 );
 const REVISION_AWARE_PAGE_ALIASES = Object.freeze({
   'artifact-lineage-from-list': 'artifact-related-tasks',
@@ -3020,6 +3041,7 @@ async function captureScreenshots(options, dependencies = {}) {
               semanticIdNormalizationEnabled ? pageConfig.semanticIdNormalization : null,
               semanticIdentifierCatalog,
             );
+            const documentScroll = await normalizeDocumentScroll(page);
             await page.screenshot({
               animations: 'disabled',
               fullPage: false,
@@ -3043,6 +3065,7 @@ async function captureScreenshots(options, dependencies = {}) {
               captureValidity,
               capturedAt,
               diagnostics,
+              documentScroll,
               expectedChange: pageConfig.expectedChange || null,
               filename,
               font: fontStatus,
@@ -3277,6 +3300,7 @@ module.exports = {
   loadSeedValues,
   loadSemanticIdentifierCatalog,
   normalizeDynamicText,
+  normalizeDocumentScroll,
   normalizeSemanticDerivedColors,
   normalizeSemanticIds,
   normalizeBaseUrl,

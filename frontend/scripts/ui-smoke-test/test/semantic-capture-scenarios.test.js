@@ -268,12 +268,23 @@ test('scenario resolution binds canonical pair keys to revision-specific journey
   const baseTask = byKey(base, 'run-details-task-panel');
   const headTask = byKey(head, 'run-details-task-panel');
   assert.equal(baseTask.path, '/#/runs/details/run-1');
-  assert.equal(headTask.path, '/#/runs/details/run-1?task=write-1');
-  assert.match(
-    baseTask.actions.find((action) => action.type === 'click').selector,
-    /write-metrics/,
-  );
-  assert.ok(headTask.actions.some((action) => action.selector?.includes('Input/Output')));
+  assert.equal(headTask.path, '/#/runs/details/run-1');
+  for (const task of [baseTask, headTask]) {
+    assert.match(task.actions.find((action) => action.type === 'click').selector, /write-metrics/);
+    assert.ok(
+      task.actions.some(
+        (action) =>
+          action.type === 'waitForSelector' &&
+          action.selector.includes('aria-selected="true"') &&
+          action.selector.includes('Input/Output'),
+      ),
+    );
+    assert.ok(
+      task.actions.some(
+        (action) => action.type === 'click' && action.selector === '.react-flow__controls-fitview',
+      ),
+    );
+  }
 
   for (const graph of [
     byKey(base, 'run-details-rich-graph'),
@@ -1329,6 +1340,19 @@ test('HTML and Markdown scenarios positively wait for deterministic rendered fix
       assert.ok(readiness);
       if (key === 'compare-markdown') assert.equal(readiness.minCount, 2);
     }
+    for (const [key, tab] of [
+      ['compare-html', 'HTML'],
+      ['compare-markdown', 'Markdown'],
+    ]) {
+      assert.ok(
+        byKey(resolved, key).actions.some(
+          (action) =>
+            action.type === 'waitForSelector' &&
+            action.selector.includes('aria-selected="true"') &&
+            action.selector.includes(tab),
+        ),
+      );
+    }
   }
 
   const baseHtml = byKey(resolveSemanticScenarios('base', SEED_VALUES), 'compare-html');
@@ -1364,6 +1388,48 @@ test('HTML and Markdown scenarios positively wait for deterministic rendered fix
       .map((action) => action.index),
     [0, 1],
   );
+});
+
+test('task comparisons use equivalent node-click, tab, and fit-view state', () => {
+  const base = resolveSemanticScenarios('base', SEED_VALUES);
+  const head = resolveSemanticScenarios('head', SEED_VALUES);
+  const expectedTabs = new Map([
+    ['run-details-task-panel', 'Input/Output'],
+    ['run-details-task-logs', 'Logs'],
+    ['topology-retried-task', 'Task Details'],
+    ['topology-parallel-for', 'Task Details'],
+    ['topology-nested-dag', 'Task Details'],
+  ]);
+
+  for (const [key, expectedTab] of expectedTabs) {
+    const variants = [byKey(base, key), byKey(head, key)];
+    assert.equal(variants[0].path, variants[1].path, `${key} must use the same entry route`);
+    for (const variant of variants) {
+      assert.equal(variant.path.includes('?task='), false, `${key} must select from the graph`);
+      assert.ok(
+        variant.actions.some(
+          (action) => action.type === 'click' && action.selector?.includes('react-flow__node'),
+        ),
+        `${key} must click its graph node`,
+      );
+      assert.ok(
+        variant.actions.some(
+          (action) =>
+            action.type === 'waitForSelector' &&
+            action.selector.includes('aria-selected="true"') &&
+            action.selector.includes(expectedTab),
+        ),
+        `${key} must confirm ${expectedTab}`,
+      );
+      assert.ok(
+        variant.actions.some(
+          (action) =>
+            action.type === 'click' && action.selector === '.react-flow__controls-fitview',
+        ),
+        `${key} must fit the graph after opening the panel`,
+      );
+    }
+  }
 });
 
 test('Artifact Details binds HTML while relationships bind a produced and consumed metric', () => {

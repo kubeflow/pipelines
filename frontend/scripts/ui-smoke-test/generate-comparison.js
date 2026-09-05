@@ -1994,6 +1994,7 @@ function captureRecordEvidence(record, label) {
         ? null
         : sanitizeCaptureDiagnosticText(record.reason),
     diagnostics: normalizeCaptureDiagnostics(record.diagnostics, `${label} diagnostics`),
+    documentScroll: record.documentScroll || null,
     globalVisualNormalization: record.globalVisualNormalization || null,
     semanticIdNormalization: record.semanticIdNormalization || null,
   };
@@ -2087,6 +2088,17 @@ function validateCaptureManifest(manifest, manifestPath) {
     ) {
       throw new ComparisonError(
         `Capture result ${result.page} in ${manifestPath} has invalid semanticScenario.`,
+        'manifest',
+      );
+    }
+    if (
+      result.documentScroll !== undefined &&
+      (!result.documentScroll ||
+        !Number.isSafeInteger(result.documentScroll.x) ||
+        !Number.isSafeInteger(result.documentScroll.y))
+    ) {
+      throw new ComparisonError(
+        `Capture result ${result.page} in ${manifestPath} has invalid documentScroll evidence.`,
         'manifest',
       );
     }
@@ -2545,6 +2557,12 @@ function scenarioMetadata(mainRecord, prRecord, filename) {
   const headScenario = prRecord?.semanticScenario || prRecord?.page || null;
   const semanticScenario = baseScenario || headScenario || fallbackPage;
   const semanticMismatch = Boolean(baseScenario && headScenario && baseScenario !== headScenario);
+  const documentScrollMismatch = Boolean(
+    mainRecord?.documentScroll &&
+    prRecord?.documentScroll &&
+    (mainRecord.documentScroll.x !== prRecord.documentScroll.x ||
+      mainRecord.documentScroll.y !== prRecord.documentScroll.y),
+  );
   const baseTitle = mainRecord?.scenarioTitle || null;
   const headTitle = prRecord?.scenarioTitle || null;
   const scenarioTitle =
@@ -2561,6 +2579,7 @@ function scenarioMetadata(mainRecord, prRecord, filename) {
       : expectedChanges;
   return {
     semanticMismatch,
+    documentScrollMismatch,
     semanticScenario,
     scenarioTitle,
     expectedChange,
@@ -2677,6 +2696,9 @@ function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
 
     if (metadata.semanticMismatch) {
       problems.push('semantic scenario differs between captures');
+    }
+    if (metadata.documentScrollMismatch) {
+      problems.push('document scroll position differs between captures');
     }
 
     if (
