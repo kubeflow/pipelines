@@ -924,13 +924,17 @@ func dropLegacyIndexesMySQL(db *gorm.DB) error {
 			}
 			has := false
 			if err := rows.Err(); err != nil {
-				_ = rows.Close()
+				if closeErr := rows.Close(); closeErr != nil {
+					glog.Warningf("%s failed to close rows: %v", ixLogPrefix, closeErr)
+				}
 				return fmt.Errorf("iterate pipeline_versions indices failed: %w", err)
 			}
 			if rows.Next() {
 				has = true
 			}
-			_ = rows.Close()
+			if closeErr := rows.Close(); closeErr != nil {
+				glog.Warningf("%s failed to close rows: %v", ixLogPrefix, closeErr)
+			}
 			if has {
 				glog.Infof("%s dropping legacy composite unique index idx_pipeline_version_uuid_name on pipeline_versions", ixLogPrefix)
 				if err := db.Exec("DROP INDEX `idx_pipeline_version_uuid_name` ON `pipeline_versions`").Error; err != nil {
