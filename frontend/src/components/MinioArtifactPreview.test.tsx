@@ -96,23 +96,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/s3/foo/bar"
+              download=""
+              href="artifacts/get?source=s3&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="s3://foo/bar"
             >
               s3://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=s3&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -153,23 +143,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar"
+              download=""
+              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -210,23 +190,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar?namespace=namespace"
+              download=""
+              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&namespace=namespace&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -267,23 +237,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar"
+              download=""
+              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
         </div>
@@ -318,23 +278,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar"
+              download=""
+              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -380,23 +330,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar"
+              download=""
+              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -413,7 +353,7 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
-    expect(queryByText('View All')).toBeTruthy();
+    expect(queryByText('minio://foo/bar')).toBeTruthy();
   });
 
   it('handles artifact that previews with maxbytes', async () => {
@@ -442,23 +382,13 @@ describe('MinioArtifactPreview', () => {
           >
             <a
               class="link_f1fk43bf"
-              href="artifacts/minio/foo/bar"
+              download=""
+              href="artifacts/get?source=minio&bucket=foo&key=bar&download=true"
               rel="noopener"
               target="_blank"
               title="minio://foo/bar"
             >
               minio://foo/bar
-            </a>
-            <span
-              class="separater_f1lhp8th"
-            />
-            <a
-              class="link_f1fk43bf viewLink_fheif50"
-              href="artifacts/get?source=minio&bucket=foo&key=bar"
-              rel="noopener"
-              target="_blank"
-            >
-              View All
             </a>
           </div>
           <div
@@ -476,6 +406,6 @@ describe('MinioArtifactPreview', () => {
         </div>
       </div>
     `);
-    expect(queryByText('View All')).toBeTruthy();
+    expect(queryByText('minio://foo/bar')).toBeTruthy();
   });
 });
