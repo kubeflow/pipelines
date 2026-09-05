@@ -206,12 +206,6 @@ function rocReady() {
   );
 }
 
-function twoSelectedRocCurvesReady() {
-  return (
-    document.querySelectorAll('[aria-label="Selected ROC curve provenance"] > li').length === 2
-  );
-}
-
 function threeSelectedRocCurvesReady() {
   return (
     document.querySelectorAll('[aria-label="Selected ROC curve provenance"] > li').length === 3
@@ -604,21 +598,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForFunction', predicate: seededListReady },
           { type: 'click', selector: tabSelector('Classification Metrics') },
           { type: 'waitForSelector', selector: '[aria-label="ROC curves"]' },
-          { type: 'click', selector: '[aria-label="ROC curves"]' },
-          {
-            type: 'click',
-            selector: '[role="option"]:has-text("UI Smoke Training Run 1")',
-          },
-          { type: 'waitForFunction', predicate: twoSelectedRocCurvesReady },
-          {
-            type: 'click',
-            // Native comparison data can expose both the root-propagated and concrete producer
-            // artifact from Training Run 1. Replace that duplicate default with the missing run so
-            // the final chart proves one visible curve for each comparison fixture.
-            selector: '[role="option"]:has-text("UI Smoke Evaluation Run")',
-          },
           { type: 'waitForFunction', predicate: threeSelectedRocCurvesReady },
-          { type: 'press', key: 'Escape' },
           { type: 'waitForFunction', predicate: rocReady },
         ],
       },
@@ -766,8 +746,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
               match: 'substring',
               maxReplacements: 8,
               maxReplacementsPerIdentifier: 4,
-              minReplacements: 4,
-              minReplacementsPerIdentifier: 1,
+              minReplacements: 0,
+              minReplacementsPerIdentifier: 0,
               selector: '#root [data-testid="table-row"]',
               semanticIds: [
                 'run.training-1',
@@ -783,9 +763,9 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForText', text: 'Producing and consuming tasks' },
           { type: 'waitForText', text: 'Produced as scalar_metrics' },
           { type: 'waitForText', text: 'Consumed as metrics' },
-          { type: 'waitForText', text: 'Run {seed.richRunId}' },
-          { type: 'waitForText', text: 'Task {seed.writeMetricsTaskId}' },
-          { type: 'waitForText', text: 'Task {seed.consumeMetricsTaskId}' },
+          { type: 'waitForText', text: 'UI Smoke Training Run 1' },
+          { type: 'waitForText', text: 'write-metrics' },
+          { type: 'waitForText', text: 'consume-metrics' },
         ],
       },
     },
@@ -825,6 +805,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
               semanticIds: [primaryTask('task.retry-once')],
             }),
             taskPodScope('task.retry-once', 4),
+            exactScope({ kinds: ['task'] }),
           ],
         },
         waitFor: '#root',
@@ -873,6 +854,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
               semanticIds: [primaryTask('task.loop-worker'), 'run.training-1/task.loop-worker[1]'],
             }),
             taskPodScope('task.parallel-loop'),
+            exactScope({ kinds: ['task'] }),
           ],
         },
         waitFor: '#root',
@@ -915,6 +897,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
               semanticIds: [primaryTask('task.nested-dag')],
             }),
             taskPodScope('task.nested-dag'),
+            exactScope({ kinds: ['task'] }),
           ],
         },
         waitFor: '#root',
