@@ -274,9 +274,9 @@ test('scenario resolution binds canonical pair keys to revision-specific journey
     assert.ok(
       task.actions.some(
         (action) =>
-          action.type === 'waitForSelector' &&
-          action.selector.includes('aria-selected="true"') &&
-          action.selector.includes('Input/Output'),
+          action.type === 'waitForSelectedTab' &&
+          action.selector === '[role="tab"], button' &&
+          action.text === 'Input/Output',
       ),
     );
     assert.ok(
@@ -1347,9 +1347,9 @@ test('HTML and Markdown scenarios positively wait for deterministic rendered fix
       assert.ok(
         byKey(resolved, key).actions.some(
           (action) =>
-            action.type === 'waitForSelector' &&
-            action.selector.includes('aria-selected="true"') &&
-            action.selector.includes(tab),
+            action.type === 'waitForSelectedTab' &&
+            action.selector === '[role="tab"], button' &&
+            action.text === tab,
         ),
       );
     }
@@ -1415,9 +1415,9 @@ test('task comparisons use equivalent node-click, tab, and fit-view state', () =
       assert.ok(
         variant.actions.some(
           (action) =>
-            action.type === 'waitForSelector' &&
-            action.selector.includes('aria-selected="true"') &&
-            action.selector.includes(expectedTab),
+            action.type === 'waitForSelectedTab' &&
+            action.selector === '[role="tab"], button' &&
+            action.text === expectedTab,
         ),
         `${key} must confirm ${expectedTab}`,
       );

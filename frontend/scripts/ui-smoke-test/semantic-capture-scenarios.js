@@ -246,7 +246,11 @@ const nodeDataSelector = (name, testId) =>
   `.react-flow__node:has-text("${name}") [data-testid="${testId}"], ` +
   `.graphNode:has-text("${name}") [data-testid="${testId}"]`;
 const tabSelector = (name) => `[role="tab"]:has-text("${name}"), button:has-text("${name}")`;
-const selectedTabSelector = (name) => `[role="tab"][aria-selected="true"]:has-text("${name}")`;
+const waitForSelectedTab = (name) => ({
+  type: 'waitForSelectedTab',
+  selector: '[role="tab"], button',
+  text: name,
+});
 const fitGraphAction = Object.freeze({
   type: 'click',
   selector: '.react-flow__controls-fitview',
@@ -269,7 +273,7 @@ const taskPanelActions = (taskName, tabName, extraActions = []) => [
   { type: 'click', selector: nodeSelector(taskName) },
   { type: 'waitForSelector', selector: '[aria-label="close"]' },
   ...(tabName ? [{ type: 'click', selector: tabSelector(tabName) }] : []),
-  ...(tabName ? [{ type: 'waitForSelector', selector: selectedTabSelector(tabName) }] : []),
+  ...(tabName ? [waitForSelectedTab(tabName)] : []),
   fitGraphAction,
   ...extraActions,
 ];
@@ -293,7 +297,7 @@ const baseComparisonSelection = (kind, ordinal, runIndex) => [
 const baseFileComparisonActions = (kind, readyAction) => [
   { type: 'waitForFunction', predicate: seededListReady },
   { type: 'click', selector: tabSelector(kind) },
-  { type: 'waitForSelector', selector: selectedTabSelector(kind) },
+  waitForSelectedTab(kind),
   ...baseComparisonSelection(kind, 'first', 0),
   ...baseComparisonSelection(kind, 'second', 1),
   { ...readyAction, minCount: 2 },
@@ -311,7 +315,7 @@ const headComparisonSelection = (label, optionIndex) => [
 const headFileComparisonActions = (kind, readyAction) => [
   { type: 'waitForFunction', predicate: seededListReady },
   { type: 'click', selector: tabSelector(kind) },
-  { type: 'waitForSelector', selector: selectedTabSelector(kind) },
+  waitForSelectedTab(kind),
   ...headComparisonSelection('First', 0),
   ...headComparisonSelection('Second', 1),
   { ...readyAction, minCount: 2 },
