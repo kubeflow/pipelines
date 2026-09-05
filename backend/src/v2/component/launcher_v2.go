@@ -1050,6 +1050,9 @@ func fetchNonDefaultBuckets(
 
 func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, args []string) (string, []string, error) {
 	placeholders, err := getPlaceholders(executorInput)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to get placeholders: %w", err)
+	}
 
 	executorInputJSON, err := protojson.Marshal(executorInput)
 	if err != nil {
@@ -1061,7 +1064,7 @@ func compileCmdAndArgs(executorInput *pipelinespec.ExecutorInput, cmd string, ar
 	compiledCmd := strings.ReplaceAll(cmd, executorInputJSONKey, executorInputJSONString)
 	compiledArgs := make([]string, 0, len(args))
 	for placeholder, replacement := range placeholders {
-		cmd = strings.ReplaceAll(cmd, placeholder, replacement)
+		compiledCmd = strings.ReplaceAll(compiledCmd, placeholder, replacement)
 	}
 	for _, arg := range args {
 		compiledArgTemplate := strings.ReplaceAll(arg, executorInputJSONKey, executorInputJSONString)
