@@ -950,6 +950,45 @@ test('comparison binds normalization evidence to the canonical scenario and revi
   assert.equal(renamedRun.summary.stats.thresholdEvaluations, 0);
 });
 
+test('semantic normalization contract validation permits ordinary capture pages', () => {
+  const emptyNormalization = {
+    complete: true,
+    derivedColorScopes: [],
+    schemaVersion: 'ui-smoke-id-normalization/v1',
+    scopes: [],
+    totalReplacementCount: 0,
+  };
+  const manifest = {
+    inputs: { semanticManifest: {} },
+    results: [
+      {
+        filename: 'pipelines-1280x800.png',
+        page: 'pipelines',
+        scenarioTitle: 'pipelines',
+        semanticIdNormalization: emptyNormalization,
+        semanticScenario: 'pipelines',
+        status: 'success',
+      },
+    ],
+  };
+
+  assert.doesNotThrow(() =>
+    comparison.validateSemanticIdNormalizationScenarioContracts(manifest, 'base'),
+  );
+  manifest.results[0].semanticScenario = 'artifact-details';
+  assert.throws(
+    () => comparison.validateSemanticIdNormalizationScenarioContracts(manifest, 'base'),
+    /does not bind canonical semantic scenario pipelines/,
+  );
+  manifest.results[0].semanticScenario = 'forged-page';
+  manifest.results[0].scenarioTitle = 'forged-page';
+  manifest.results[0].page = 'forged-page';
+  assert.throws(
+    () => comparison.validateSemanticIdNormalizationScenarioContracts(manifest, 'base'),
+    /does not bind canonical semantic scenario forged-page/,
+  );
+});
+
 test('comparison distinguishes semantic full-stack normalization from browser compatibility', async (t) => {
   const filename = 'run-details-rich-graph-10x10.png';
   const root = await createPair(t, [
