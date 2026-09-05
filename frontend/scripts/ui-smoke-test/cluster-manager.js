@@ -15,6 +15,7 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const { applyFixtureRuntimeRequirements } = require('./fixture-runtime-requirements');
+const { STORAGE_READINESS_SCRIPT, STORAGE_READINESS_TIMEOUT_MS } = require('./storage-readiness');
 
 const CLUSTER_NAME = 'ui-smoke-test';
 const KUBE_CONTEXT = `kind-${CLUSTER_NAME}`;
@@ -1735,6 +1736,31 @@ function createKindStack(config = {}) {
     ]
       .filter((name) => /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(name))
       .sort();
+    // Bucket existence and HTTP health do not prove that the master has writable volumes.
+    // Capture capacity and topology even when the bounded pod-log list excludes SeaweedFS.
+    const storagePod = allPodNames.find(
+      (name) => name === 'seaweedfs' || name.startsWith('seaweedfs-'),
+    );
+    if (storagePod) {
+      const storageExecArgs = [
+        '-n',
+        namespace,
+        'exec',
+        `pod/${storagePod}`,
+        '-c',
+        'seaweedfs',
+        '--',
+      ];
+      diagnostic.status.push(
+        diagnosticCommand('seaweedfs-disk-space', [...storageExecArgs, 'df', '-h', '/data']),
+        diagnosticCommand('seaweedfs-volume-status', [
+          ...storageExecArgs,
+          'wget',
+          '-qO-',
+          'http://127.0.0.1:9333/dir/status',
+        ]),
+      );
+    }
     const podNames = allPodNames
       .filter((name) =>
         PLATFORM_DEPLOYMENTS.some(
@@ -1885,6 +1911,27 @@ function createKindStack(config = {}) {
             commandOptions({ timeout: MYSQL_FINAL_SERVER_TIMEOUT_MS + 10000 }),
           ),
           'MySQL did not finish first-run initialization',
+        );
+      }
+      if (deployments.includes('seaweedfs')) {
+        requireSuccess(
+          runner(
+            'kubectl',
+            kubectlArgs(
+              '-n',
+              namespace,
+              'exec',
+              'deployment/seaweedfs',
+              '-c',
+              'seaweedfs',
+              '--',
+              'sh',
+              '-c',
+              STORAGE_READINESS_SCRIPT,
+            ),
+            commandOptions({ timeout: STORAGE_READINESS_TIMEOUT_MS }),
+          ),
+          'Artifact storage is not writable; SeaweedFS S3 write/read/delete readiness failed',
         );
       }
       return { deployments, renderedImages };
