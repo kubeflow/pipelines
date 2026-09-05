@@ -512,6 +512,44 @@ func insertLegacyRunWithPipelineRef(t *testing.T, db *gorm.DB, runID, pipelineID
 	}).Error)
 }
 
+// insertVersionOnlyRun writes a run whose only pipeline link is a
+// PipelineVersion reference, with no direct run to pipeline reference.
+func insertVersionOnlyRun(t *testing.T, db *gorm.DB, runID, versionID, parentPipelineID string) {
+	t.Helper()
+	require.NoError(t, db.Create(&model.Run{
+		UUID:         runID,
+		DisplayName:  runID,
+		K8SName:      runID,
+		Namespace:    "ns",
+		ExperimentId: "exp-1",
+		StorageState: model.StorageStateAvailable,
+	}).Error)
+	require.NoError(t, db.Create(&model.Pipeline{
+		UUID:        parentPipelineID,
+		Name:        parentPipelineID,
+		DisplayName: parentPipelineID,
+		Description: "",
+		Status:      model.PipelineReady,
+		Namespace:   "ns",
+	}).Error)
+	require.NoError(t, db.Create(&model.PipelineVersion{
+		UUID:         versionID,
+		Name:         versionID,
+		DisplayName:  versionID,
+		PipelineId:   parentPipelineID,
+		Status:       model.PipelineVersionReady,
+		PipelineSpec: "spec",
+	}).Error)
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID:  runID,
+		ResourceType:  model.RunResourceType,
+		ReferenceUUID: versionID,
+		ReferenceName: versionID,
+		ReferenceType: model.PipelineVersionResourceType,
+		Relationship:  model.CreatorRelationship,
+	}).Error)
+}
+
 func storedRunColumn(t *testing.T, db *gorm.DB, column, runID string) string {
 	t.Helper()
 	var got string
@@ -602,4 +640,97 @@ func TestBackfillRunRefColumnSQL_QuotesPerDialect(t *testing.T) {
 			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
 		})
 	}
+}
+
+func TestBackfillPipelineRefs_VersionOnlyReference(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	insertVersionOnlyRun(t, db, "run-version-only", "pv-1", "pipeline-parent")
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+
+	assert.Equal(t, "pipeline-parent", storedRunColumn(t, db, "PipelineId", "run-version-only"),
+		"a run linked only through a pipeline version must resolve its parent pipeline, "+
+			"otherwise pipeline_id EQUALS parent omits it and NOT_EQUALS parent returns it")
+	assert.Equal(t, "pv-1", storedRunColumn(t, db, "PipelineVersionId", "run-version-only"))
+}
+
+func TestBackfillPipelineRefs_DirectReferenceWinsOverVersionParent(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	insertVersionOnlyRun(t, db, "run-both", "pv-2", "pipeline-parent")
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID:  "run-both",
+		ResourceType:  model.RunResourceType,
+		ReferenceUUID: "pipeline-direct",
+		ReferenceName: "pipeline-direct",
+		ReferenceType: model.PipelineResourceType,
+		Relationship:  model.OwnerRelationship,
+	}).Error)
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+
+	assert.Equal(t, "pipeline-direct", storedRunColumn(t, db, "PipelineId", "run-both"),
+		"a direct pipeline reference must take precedence over the version's parent")
+}
+
+func TestBackfillPipelineRefs_RunsOnceThenSkips(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	dialect := GetDialect("sqlite")
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+
+	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
+	require.NoError(t, err)
+	assert.True(t, applied, "a completed backfill must be recorded so replicas do not rerun it")
+
+	// A row inserted after the migration is recorded must be left alone: the
+	// gate has to skip the scan entirely rather than run a zero-row UPDATE.
+	insertLegacyRunWithPipelineRef(t, db, "run-after", "pipeline-after")
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+	assert.Equal(t, "", storedRunColumn(t, db, "PipelineId", "run-after"),
+		"the second call must skip without touching run_details")
+}
+
+func TestClaimMigration_OnlyOneCallerWins(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+
+	won, err := claimMigration(db, "m1")
+	require.NoError(t, err)
+	assert.True(t, won, "the first caller must win the claim and run the backfill")
+
+	won, err = claimMigration(db, "m1")
+	require.NoError(t, err)
+	assert.False(t, won, "a replica that loses the claim must skip rather than rerun the scan")
+
+	var count int64
+	require.NoError(t, db.Model(&model.MigrationStatus{}).Where(map[string]any{"Name": "m1"}).Count(&count).Error)
+	assert.Equal(t, int64(1), count)
+}
+
+// A run that stored its version id directly, with no resource reference at all,
+// must still resolve its parent pipeline: v2 creation takes both ids from the
+// same pipeline_version_reference, so pipeline_id can be left empty.
+func TestBackfillPipelineRefs_VersionIdColumnWithoutReference(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	require.NoError(t, db.Create(&model.Pipeline{
+		UUID: "pipe-parent", Name: "pp", DisplayName: "pp",
+		Description: "", Status: model.PipelineReady, Namespace: "ns",
+	}).Error)
+	require.NoError(t, db.Create(&model.PipelineVersion{
+		UUID: "pv-col", Name: "pvcol", DisplayName: "pvcol", PipelineId: "pipe-parent",
+		Status: model.PipelineVersionReady, PipelineSpec: "s",
+	}).Error)
+	require.NoError(t, db.Create(&model.Run{
+		UUID: "run-col", DisplayName: "run-col", K8SName: "run-col", Namespace: "ns",
+		ExperimentId: "exp-1", StorageState: model.StorageStateAvailable,
+		PipelineSpec: model.PipelineSpec{PipelineVersionId: "pv-col"},
+	}).Error)
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+
+	assert.Equal(t, "pipe-parent", storedRunColumn(t, db, "PipelineId", "run-col"))
 }
