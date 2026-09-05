@@ -303,12 +303,15 @@ const baseFileComparisonActions = (kind, readyAction) => [
   { ...readyAction, minCount: 2 },
 ];
 
-const headComparisonSelection = (label, optionIndex) => [
+const headComparisonSelection = (label, runLabel) => [
   { type: 'click', selector: `[aria-label="${label} comparison artifact"]` },
   {
     type: 'click',
-    selector: '[role="option"]:not(:has-text("Choose an artifact"))',
-    index: optionIndex,
+    selector: `[role="option"]:not(:has-text("Choose an artifact")):has-text("${runLabel}")`,
+  },
+  {
+    type: 'waitForSelector',
+    selector: `[aria-label="${label} comparison artifact"]:has-text("${runLabel}")`,
   },
 ];
 
@@ -316,8 +319,8 @@ const headFileComparisonActions = (kind, readyAction) => [
   { type: 'waitForFunction', predicate: seededListReady },
   { type: 'click', selector: tabSelector(kind) },
   waitForSelectedTab(kind),
-  ...headComparisonSelection('First', 0),
-  ...headComparisonSelection('Second', 1),
+  ...headComparisonSelection('First', 'UI Smoke Training Run 1'),
+  ...headComparisonSelection('Second', 'UI Smoke Training Run 2'),
   { ...readyAction, minCount: 2 },
 ];
 
