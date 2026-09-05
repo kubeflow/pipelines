@@ -420,8 +420,14 @@ node smoke-test-runner.js --teardown
    is imported, its host-side tag is released so the two isolated stacks do not retain a third copy
    of every locally built image.
 5. Applies the manifests and waits for the deployments actually rendered by that revision.
+   Rendered smoke manifests set SeaweedFS `-volume.max=8` and `-master.volumeSizeLimitMB=64`.
+   Its image entrypoint otherwise auto-sizes volume slots from available disk space, which can
+   leave only one slot on a small Kind disk. The bucket and default collections need distinct
+   slots, so a successful bucket write alone does not prove fixture storage is ready. These
+   smoke-only settings preserve source manifests, unrelated arguments, and free-space safeguards.
    SeaweedFS must also pass a bounded, authenticated S3 write/read/delete round trip in the
-   fixture bucket. A healthy listener or existing bucket alone does not prove writable storage;
+   fixture bucket, plus a filer write/read/delete check for its separate collection.
+   A healthy listener or existing bucket alone does not prove writable storage;
    seeding is stopped if the object store cannot persist and return the probe content.
 6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
    readiness checks, and screenshots all use that deployed UI and its matching in-cluster
