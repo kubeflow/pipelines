@@ -1385,9 +1385,24 @@ test('HTML and Markdown scenarios positively wait for deterministic rendered fix
   assert.deepEqual(
     headHtml.actions
       .filter((action) => action.selector?.includes('[role="option"]'))
-      .map((action) => action.index),
-    [0, 1],
+      .map((action) => action.selector),
+    [
+      '[role="option"]:not(:has-text("Choose an artifact")):has-text("UI Smoke Training Run 1")',
+      '[role="option"]:not(:has-text("Choose an artifact")):has-text("UI Smoke Training Run 2")',
+    ],
   );
+  for (const [label, runLabel] of [
+    ['First', 'UI Smoke Training Run 1'],
+    ['Second', 'UI Smoke Training Run 2'],
+  ]) {
+    assert.ok(
+      headHtml.actions.some(
+        (action) =>
+          action.type === 'waitForSelector' &&
+          action.selector === `[aria-label="${label} comparison artifact"]:has-text("${runLabel}")`,
+      ),
+    );
+  }
 });
 
 test('task comparisons use equivalent node-click, tab, and fit-view state', () => {
