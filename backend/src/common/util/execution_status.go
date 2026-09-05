@@ -26,6 +26,7 @@ type NodeStatus struct {
 	ID          string
 	DisplayName string
 	State       string
+	Message     string
 	StartTime   int64
 	CreateTime  int64
 	FinishTime  int64
