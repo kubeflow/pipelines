@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: metadata-envoy-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: metadata-envoy
+spec:
+  ports:
+    - name: md-envoy
+      port: 9090
+      targetPort: md-envoy
+  selector:
+    component: metadata-envoy

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    component: metadata-grpc-server
+  name: metadata-grpc-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  METADATA_GRPC_SERVICE_HOST: metadata-grpc-service
+  METADATA_GRPC_SERVICE_PORT: "8080"
