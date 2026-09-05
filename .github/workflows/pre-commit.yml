@@ -13,25 +13,64 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SKIP: no-commit-to-branch
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - name: Fetch base branch
-        run: git fetch origin ${{ github.base_ref || github.ref_name }}
+          persist-credentials: false
       - uses: actions/setup-python@v7
-      - uses: ./.github/actions/setup-go
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.10
-          args: --new --new-from-merge-base=origin/${{ github.base_ref || github.ref_name }}
-    #- uses: pre-commit/action@v3.0.1
-    #  # This is set to only run the golangci-lint pre-commit hooks
-    #  # Remove in a later PR to run all hooks
-    #  with:
-    #    go-version: '>=1.24.2'
-    #    extra_args: golangci-lint --all-files
+          python-version: '3.13'
+      - uses: ./.github/actions/setup-go
+
+      - name: Configure pre-commit range
+        id: pre-commit-range
+        shell: bash
+        env:
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -euo pipefail
+
+          base_sha="${EVENT_BASE_SHA}"
+          if [[ -z "${base_sha}" ]] ||
+              ! git cat-file -e "${base_sha}^{commit}" 2>/dev/null; then
+            echo "::error::Unable to resolve the event base commit"
+            exit 1
+          fi
+
+          config_changed=true
+          if git diff --quiet "${base_sha}" HEAD -- .pre-commit-config.yaml .golangci.yaml; then
+            config_changed=false
+          fi
+
+          echo "base-sha=${base_sha}" >> "${GITHUB_OUTPUT}"
+          echo "config-changed=${config_changed}" >> "${GITHUB_OUTPUT}"
+          echo "PRE_COMMIT_FROM_REF=${base_sha}" >> "${GITHUB_ENV}"
+
+      - name: Run pre-commit on changed files
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --from-ref ${{ steps.pre-commit-range.outputs.base-sha }} --to-ref HEAD
+
+      - name: Smoke-test applicable hooks after configuration changes
+        if: steps.pre-commit-range.outputs.config-changed == 'true'
+        run: >-
+          pre-commit run
+          --show-diff-on-failure
+          --color=always
+          --files
+          .pre-commit-config.yaml
+          .github/workflows/pre-commit.yml
+          .golangci.yaml
+          frontend/package.json
+          sdk/python/kfp/cli/__init__.py
+          backend/src/common/types.go
