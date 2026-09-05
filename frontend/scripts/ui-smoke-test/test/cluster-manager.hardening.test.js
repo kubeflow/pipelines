@@ -432,6 +432,17 @@ test('deployRevision loads single-platform archives before applying revision man
     workloadWait.args.filter((argument) => argument.startsWith('deployment/')),
     ['deployment/ml-pipeline', 'deployment/mysql'],
   );
+  const mysqlFinalServerWait = calls.find(
+    (call) =>
+      call.command === 'kubectl' &&
+      call.args.includes('exec') &&
+      call.args.includes('deployment/mysql'),
+  );
+  assert.ok(mysqlFinalServerWait);
+  assert.ok(mysqlFinalServerWait.args.includes('mysql'));
+  assert.match(mysqlFinalServerWait.args.at(-1), /\/proc\/1\/comm/);
+  assert.match(mysqlFinalServerWait.args.at(-1), /= mysqld/);
+  assert.ok(calls.indexOf(mysqlFinalServerWait) > calls.indexOf(workloadWait));
 });
 
 test('full-stack deployment releases only preflight images pulled by the stack', async (t) => {

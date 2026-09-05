@@ -96,6 +96,16 @@ const DIAGNOSTIC_LIMITS = Object.freeze({
 // production bundle. Twenty minutes can expire during the final image export on arm64 hosts, so
 // keep a bounded per-component allowance that still terminates a genuinely stuck build.
 const COMPONENT_IMAGE_BUILD_TIMEOUT_MS = 30 * 60 * 1000;
+const MYSQL_FINAL_SERVER_TIMEOUT_MS = 5 * 60 * 1000;
+const MYSQL_FINAL_SERVER_WAIT_SCRIPT = [
+  'attempt=0',
+  'while [ "$attempt" -lt 300 ]; do',
+  '  [ "$(cat /proc/1/comm 2>/dev/null)" = mysqld ] && exit 0',
+  '  attempt=$((attempt + 1))',
+  '  sleep 1',
+  'done',
+  'exit 1',
+].join('\n');
 
 // Kept for compatibility with callers that display the historical inventory. Readiness is now
 // based on the Deployments rendered by the selected revision.
@@ -1853,6 +1863,30 @@ function createKindStack(config = {}) {
         ),
         'Platform-agnostic KFP deployments did not all become available',
       );
+      if (deployments.includes('mysql')) {
+        // The official image exposes a temporary initialization server before its entrypoint execs
+        // the final mysqld. Deployment availability and the API health endpoint can both pass in
+        // that window, after which fixture writes fail while the temporary server shuts down.
+        requireSuccess(
+          runner(
+            'kubectl',
+            kubectlArgs(
+              '-n',
+              namespace,
+              'exec',
+              'deployment/mysql',
+              '-c',
+              'mysql',
+              '--',
+              'sh',
+              '-c',
+              MYSQL_FINAL_SERVER_WAIT_SCRIPT,
+            ),
+            commandOptions({ timeout: MYSQL_FINAL_SERVER_TIMEOUT_MS + 10000 }),
+          ),
+          'MySQL did not finish first-run initialization',
+        );
+      }
       return { deployments, renderedImages };
     } finally {
       cleanRenderedManifests(rendered);
