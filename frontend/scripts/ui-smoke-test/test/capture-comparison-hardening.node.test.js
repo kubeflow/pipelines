@@ -408,6 +408,38 @@ test('capture resets nested overflow containers even when the document never scr
   ]);
 });
 
+test('capture preserves the auto-follow log viewport while resetting app scrolling', async (t) => {
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  t.after(() => {
+    global.document = originalDocument;
+    global.window = originalWindow;
+  });
+  const app = { scrollTop: 82, scrollLeft: 12 };
+  const logs = {
+    get scrollTop() {
+      return 430;
+    },
+    set scrollTop(value) {
+      assert.fail('must not fight log auto-follow');
+    },
+    scrollLeft: 0,
+  };
+  global.document = {
+    scrollingElement: { scrollTop: 0, scrollLeft: 0 },
+    querySelectorAll: (selector) =>
+      selector === '*:not(#logViewer, #logViewer *)' ? [app] : [app, logs],
+  };
+  global.window = { scrollX: 0, scrollY: 0, scrollTo() {} };
+  const page = {
+    evaluate: async (runner) => runner(),
+    waitForFunction: async (runner) => assert.equal(runner(), true),
+  };
+  assert.deepEqual(await capture.normalizeDocumentScroll(page), { x: 0, y: 0 });
+  assert.deepEqual(app, { scrollTop: 0, scrollLeft: 0 });
+  assert.equal(logs.scrollTop, 430);
+});
+
 test('capture clears pointer hover before settling and resetting the viewport', async () => {
   const events = [];
   const page = {

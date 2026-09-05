@@ -1868,7 +1868,9 @@ async function executeActions(page, actions) {
 async function normalizeDocumentScroll(page) {
   await page.evaluate(() => {
     // Clicks can scroll the app's overflow containers without moving the document.
-    for (const element of document.querySelectorAll('*')) {
+    // The log viewer owns its virtualized, follow-to-end scroll position. Resetting it
+    // fights the widget and changes the scenario's selected log content.
+    for (const element of document.querySelectorAll('*:not(#logViewer, #logViewer *)')) {
       if (element.scrollLeft !== 0) element.scrollLeft = 0;
       if (element.scrollTop !== 0) element.scrollTop = 0;
     }
@@ -1885,7 +1887,7 @@ async function normalizeDocumentScroll(page) {
         window.scrollY === 0 &&
         scrollingElement.scrollLeft === 0 &&
         scrollingElement.scrollTop === 0 &&
-        Array.from(document.querySelectorAll('*')).every(
+        Array.from(document.querySelectorAll('*:not(#logViewer, #logViewer *)')).every(
           (element) => element.scrollLeft === 0 && element.scrollTop === 0,
         )
       );
