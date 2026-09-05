@@ -18,15 +18,16 @@ dsl.ParallelFor."""
 import concurrent.futures
 import enum
 import logging
-import re
 from typing import Any, Dict, List, Set, Tuple
 
 from kfp.local import config
 from kfp.local import graph_utils
 from kfp.local import io
+from kfp.local import logging_utils
 from kfp.local import status
 from kfp.pipeline_spec import pipeline_spec_pb2
 
+from . import cel
 from . import task_executor
 from . import task_spec_utils
 from .orchestrator_utils import OrchestratorUtils
@@ -44,164 +45,36 @@ class TaskKind(str, enum.Enum):
 
 
 class ConditionEvaluator:
-    """Evaluates condition expressions for dsl.Condition support."""
+    """Evaluates compiler-emitted CEL condition expressions.
 
-    @staticmethod
-    def _extract_pipeline_channels(condition: str) -> List[str]:
-        """Extract pipeline channel references from condition string.
-
-        Args:
-            condition: The condition expression
-
-        Returns:
-            List of pipeline channel references found
-        """
-        # Look for patterns like pipelinechannel--task-name-output-name
-        pattern = r'pipelinechannel--[a-zA-Z0-9_\-]+'
-        return re.findall(pattern, condition)
-
-    @staticmethod
-    def _resolve_pipeline_channel(channel_ref: str,
-                                  io_store: io.IOStore) -> Any:
-        """Resolve a pipeline channel reference to its actual value.
-
-        Args:
-            channel_ref: The pipeline channel reference string
-            io_store: IOStore containing values
-
-        Returns:
-            The resolved value
-        """
-        # Remove the pipelinechannel-- prefix
-        actual_ref = channel_ref.replace('pipelinechannel--', '')
-
-        # Check if this is a task output reference
-        if '-Output' in actual_ref or '--' in actual_ref:
-            # Parse task output reference: task-name-Output or task-name--output-name
-            if '--' in actual_ref:
-                parts = actual_ref.split('--')
-                output_task_name = parts[0]
-                output_key = parts[1] if len(parts) > 1 else 'Output'
-            else:
-                parts = actual_ref.split('-Output')
-                output_task_name = parts[0]
-                output_key = 'Output'
-
-            try:
-                return io_store.get_task_output(output_task_name, output_key)
-            except Exception:
-                logging.warning(
-                    f'Could not resolve task output: {output_task_name}.{output_key}'
-                )
-                return None
-        else:
-            # This is a parent input parameter
-            # Try both the stripped name and the full pipelinechannel name
-            # since IOStore keys may use either format depending on how
-            # the sub-DAG's inputs are defined
-            for key in [
-                    actual_ref, f'pipelinechannel--{actual_ref}', channel_ref
-            ]:
-                try:
-                    return io_store.get_parent_input(key)
-                except (ValueError, KeyError):
-                    continue
-            logging.warning(f'Could not resolve parent input: {actual_ref}')
-            return None
+    The Kubeflow Pipelines compiler emits conditions of the form
+    ``inputs.parameter_values['pipelinechannel--<name>'] <op> <literal>`` plus
+    ``&&`` / ``||`` / ``!`` combinators. We evaluate them via the CEL subset
+    parser in :mod:`kfp.local.orchestrator.cel`, resolving the parameter
+    references from the task's already-resolved input arguments.
+    """
 
     @staticmethod
     def evaluate_condition(
         condition: str,
-        io_store: io.IOStore,
+        task_arguments: Dict[str, Any],
     ) -> bool:
-        """Evaluates a condition string using available values from IOStore.
-
-        Handles both simple pipeline channel references and CEL-style
-        expressions like inputs.parameter_values['param_name'].
+        """Evaluate a CEL condition using a task's resolved inputs.
 
         Args:
-            condition: The condition expression to evaluate
-            io_store: IOStore containing available values
+            condition: The condition expression.
+            task_arguments: The task's resolved input parameters — the same
+                dict produced by
+                :meth:`OrchestratorUtils.make_task_arguments`. Keys are the
+                ``pipelinechannel--<name>`` identifiers the compiler uses in
+                the expression.
 
         Returns:
-            True if condition evaluates to True, False otherwise
+            ``True`` if the condition evaluates truthy. Raises the underlying
+            :class:`cel.CELError` on parse/eval failure so the caller can fail
+            the pipeline instead of silently skipping.
         """
-        if not condition or not condition.strip():
-            return True
-
-        try:
-            safe_condition = condition
-
-            # Handle CEL-style inputs.parameter_values['param_name'] references
-            cel_pattern = r"inputs\.parameter_values\['([^']+)'\]"
-            cel_matches = re.findall(cel_pattern, condition)
-            for param_name in cel_matches:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    param_name, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        replacement = f"'{value}'"
-                    else:
-                        replacement = str(value)
-                    safe_condition = safe_condition.replace(
-                        f"inputs.parameter_values['{param_name}']", replacement)
-                else:
-                    logging.warning(
-                        f'Could not resolve CEL parameter: {param_name}')
-                    return False
-
-            # Also handle direct pipeline channel references
-            pipeline_channels = ConditionEvaluator._extract_pipeline_channels(
-                safe_condition)
-            for channel_ref in pipeline_channels:
-                value = ConditionEvaluator._resolve_pipeline_channel(
-                    channel_ref, io_store)
-                if value is not None:
-                    if isinstance(value, str):
-                        safe_condition = safe_condition.replace(
-                            channel_ref, f"'{value}'")
-                    else:
-                        safe_condition = safe_condition.replace(
-                            channel_ref, str(value))
-                else:
-                    logging.warning(
-                        f'Could not resolve channel reference: {channel_ref}')
-                    return False
-
-            # Convert CEL syntax to Python syntax
-            safe_condition = safe_condition.replace('&&', ' and ')
-            safe_condition = safe_condition.replace('||', ' or ')
-            # Convert CEL negation !(...) to Python not (...)
-            safe_condition = re.sub(r'!\s*\(', 'not (', safe_condition)
-
-            # Use a restricted evaluation environment for safety.
-            # CEL uses lowercase `true`/`false`; expose them as aliases so
-            # evaluating a raw CEL condition doesn't NameError.
-            allowed_names = {
-                '__builtins__': {},
-                'True': True,
-                'False': False,
-                'true': True,
-                'false': False,
-                'None': None,
-                'null': None,
-                'not': lambda x: not x,
-                'int': int,
-                'float': float,
-                'str': str,
-                'bool': bool,
-                'len': len,
-                'min': min,
-                'max': max,
-            }
-
-            result = eval(safe_condition, allowed_names, {})
-            return bool(result)
-
-        except Exception as e:
-            logging.warning(
-                f'Condition evaluation failed for "{condition}": {e}')
-            return False
+        return cel.evaluate(condition, parameter_values=task_arguments)
 
 
 class ParallelExecutor:
@@ -549,8 +422,12 @@ def run_enhanced_dag(
     # Track overall body status for exit handler support, plus the set of
     # task names that have failed (or were skipped because their upstream
     # failed). failed_tasks feeds the dependency-failure gating below.
+    # skipped_tasks is the analog for dsl.Condition skips: a task whose
+    # upstream was skipped is itself skipped (and emits a SKIPPED log),
+    # rather than failing or trying to read a non-existent output.
     body_failed = False
     failed_tasks: Set[str] = set()
+    skipped_tasks: Set[str] = set()
 
     condition_evaluator = ConditionEvaluator()
     parallel_executor = ParallelExecutor()
@@ -562,6 +439,24 @@ def run_enhanced_dag(
             task_name = sorted_body_tasks.pop()
             task_spec = body_tasks[task_name]
             kind = task_kinds[task_name]
+
+            # Skip-propagation gating. If any upstream was skipped (false
+            # condition or transitively skipped), this task is skipped too
+            # — except for ignore_upstream_failure() tasks, which opt in
+            # to running on completion regardless of upstream state.
+            skipped_deps = [
+                dep for dep in task_spec.dependent_tasks if dep in skipped_tasks
+            ]
+            if skipped_deps and (
+                    task_spec.trigger_policy.strategy
+                    != TRIGGER_STRATEGY.ALL_UPSTREAM_TASKS_COMPLETED):
+                _mark_skipped(
+                    task_name,
+                    io_store,
+                    skipped_tasks,
+                    reason=f'upstream task(s) {sorted(skipped_deps)} skipped',
+                )
+                continue
 
             # Dependency-failure gating. A task whose upstream failed is
             # skipped unless it explicitly opts in to running on completion
@@ -608,12 +503,31 @@ def run_enhanced_dag(
 
             elif kind == TaskKind.CONDITION:
                 condition_expr = task_spec.trigger_policy.condition
-                should_execute = condition_evaluator.evaluate_condition(
-                    condition_expr, io_store)
+                # Resolve the condition task's own inputs through the
+                # standard parameter-resolution path, then evaluate the CEL
+                # expression against the resulting dict. No string
+                # substitution into the expression and no eval().
+                try:
+                    condition_arguments = OrchestratorUtils.make_task_arguments(
+                        task_spec.inputs, io_store)
+                    should_execute = condition_evaluator.evaluate_condition(
+                        condition_expr, condition_arguments)
+                except cel.CELError as e:
+                    logging.error(f"Failed to evaluate condition for task "
+                                  f"'{task_name}': {e}")
+                    fail_stack.append(task_name)
+                    failed_tasks.add(task_name)
+                    io_store.put_task_status(task_name, 'FAILED')
+                    body_failed = True
+                    continue
 
                 if not should_execute:
-                    logging.info(f'Skipping conditional task {task_name} '
-                                 '(condition evaluated to False)')
+                    _mark_skipped(
+                        task_name,
+                        io_store,
+                        skipped_tasks,
+                        reason=f'condition evaluated to False: {condition_expr}',
+                    )
                     continue
 
                 outputs, task_status = execute_task(
@@ -764,3 +678,26 @@ def execute_task(
             unique_pipeline_id=unique_pipeline_id,
             fail_stack=fail_stack,
         )
+
+
+def _mark_skipped(
+    task_name: str,
+    io_store: io.IOStore,
+    skipped_tasks: Set[str],
+    reason: str,
+) -> None:
+    """Record a skipped task and emit a SKIPPED log line.
+
+    Skips happen for two reasons:
+        * a dsl.Condition evaluated to False, so its body must not run;
+        * a task's upstream was itself skipped (transitive propagation).
+    Either way, downstream consumers see the producer's outputs as the
+    :data:`io.SKIPPED` sentinel rather than failing on a missing output.
+    """
+    io_store.mark_task_skipped(task_name)
+    skipped_tasks.add(task_name)
+    with logging_utils.local_logger_context():
+        logging.info(
+            f'Task {logging_utils.format_task_name(task_name)} finished with '
+            f'status {logging_utils.format_status(status.Status.SKIPPED)}'
+            f' ({reason})')

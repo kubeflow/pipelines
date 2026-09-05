@@ -17,6 +17,33 @@ import collections
 from typing import Any, Dict, Optional
 
 
+class _Skipped:
+    """Sentinel marking a task output that was skipped due to a false condition
+    or a skipped upstream."""
+
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
+    def __repr__(self) -> str:
+        return '<SKIPPED>'
+
+    def __bool__(self) -> bool:
+        return False
+
+
+SKIPPED = _Skipped()
+
+# Status string the orchestrator stamps on tasks that were skipped due to
+# a false dsl.Condition or a skipped upstream. Kept as a module constant so
+# producers and consumers stay in sync without each having to know the
+# upstream :class:`kfp.local.status.Status` enum.
+SKIPPED_STATUS = 'SKIPPED'
+
+
 class IOStore:
     """In-memory store of a DAG's parameter/artifact state.
 
@@ -81,12 +108,20 @@ class IOStore:
     ) -> Any:
         """Get the value of an upstream task output.
 
+        If the producer was marked SKIPPED (false dsl.Condition or
+        transitively skipped), returns the :data:`SKIPPED` sentinel
+        rather than raising — downstream consumers can then propagate
+        the skip via the orchestrator's dependency map.
+
         Walks up the enclosing DAG chain on miss. Compiled IR normally
         surfaces cross-scope task outputs as DAG inputs, but some items
         resolution paths (e.g. ParallelFor over an outer task's output)
         walk directly from a task name — the chain keeps that path
         working.
         """
+        if self._lookup_task_status(task_name) == SKIPPED_STATUS:
+            return SKIPPED
+
         common_exception_string = (
             f"Tried to get output '{key}' from task '{task_name}'")
 
@@ -133,3 +168,26 @@ class IOStore:
         if self._parent is not None:
             return self._parent.get_task_status(task_name)
         raise ValueError(f"Status for task '{task_name}' not found.")
+
+    # --- skip helpers -------------------------------------------------------
+    # Skipping is a special case of "task has a final status"; we model it
+    # on top of put_task_status / get_task_status so there's only one
+    # source of truth for terminal task state and the parent-chain walk
+    # already covers cross-scope visibility.
+
+    def mark_task_skipped(self, task_name: str) -> None:
+        """Record that a task was skipped (e.g. condition was false)."""
+        self.put_task_status(task_name, SKIPPED_STATUS)
+
+    def is_task_skipped(self, task_name: str) -> bool:
+        return self._lookup_task_status(task_name) == SKIPPED_STATUS
+
+    def is_skipped(self, value: Any) -> bool:
+        return value is SKIPPED
+
+    def _lookup_task_status(self, task_name: str) -> Optional[str]:
+        """Best-effort status read; returns None if not recorded anywhere."""
+        try:
+            return self.get_task_status(task_name)
+        except ValueError:
+            return None
