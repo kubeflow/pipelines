@@ -1759,6 +1759,22 @@ async function executeActions(page, actions) {
           }
           await page.waitForFunction(action.predicate, undefined, { timeout });
           break;
+        case 'waitForSelectedTab':
+          await page.waitForFunction(
+            ({ selector, text }) => {
+              const normalize = (value) => (value || '').replace(/\s+/g, ' ').trim();
+              const tab = Array.from(document.querySelectorAll(selector)).find(
+                (candidate) => normalize(candidate.textContent) === text,
+              );
+              if (!tab) return false;
+              if (tab.getAttribute('aria-selected') === 'true') return true;
+              const fontWeight = getComputedStyle(tab).fontWeight;
+              return fontWeight === 'bold' || fontWeight === 'bolder' || Number(fontWeight) >= 600;
+            },
+            { selector: action.selector, text: action.text },
+            { timeout },
+          );
+          break;
         case 'waitForText':
           await page
             .getByText(action.text, { exact: false })

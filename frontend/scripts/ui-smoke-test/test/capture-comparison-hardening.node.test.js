@@ -311,6 +311,48 @@ test('waitForFunction actions invoke the supplied predicate', async () => {
   assert.equal(invoked, true);
 });
 
+test('waitForSelectedTab accepts ARIA tabs and styled MD2Tabs buttons', async (t) => {
+  const originalDocument = global.document;
+  const originalGetComputedStyle = global.getComputedStyle;
+  t.after(() => {
+    global.document = originalDocument;
+    global.getComputedStyle = originalGetComputedStyle;
+  });
+
+  const candidates = [
+    { getAttribute: () => null, textContent: 'Input/Output' },
+    { getAttribute: () => 'true', textContent: 'Logs' },
+  ];
+  global.document = {
+    querySelectorAll: (selector) => {
+      assert.equal(selector, '[role="tab"], button');
+      return candidates;
+    },
+  };
+  global.getComputedStyle = (candidate) => ({
+    fontWeight: candidate === candidates[0] ? '700' : '400',
+  });
+
+  const observed = [];
+  const page = {
+    locator: () => ({ first: () => ({}) }),
+    waitForFunction: async (runner, argument, options) => {
+      observed.push(runner(argument));
+      assert.deepEqual(options, { timeout: 10000 });
+    },
+  };
+
+  await capture.executeActions(page, [
+    {
+      type: 'waitForSelectedTab',
+      selector: '[role="tab"], button',
+      text: 'Input/Output',
+    },
+    { type: 'waitForSelectedTab', selector: '[role="tab"], button', text: 'Logs' },
+  ]);
+  assert.deepEqual(observed, [true, true]);
+});
+
 test('capture scroll normalization resets and verifies the document viewport', async () => {
   const calls = [];
   let x = 17;
