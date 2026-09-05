@@ -142,7 +142,7 @@ exports[`Status > statusToIcon > handles CANCELING state 1`] = `
       width="18"
     >
       <g
-        fill="#4285f4"
+        fill="#f9ab00"
         fill-rule="nonzero"
         transform="translate(-450, -307)"
       >
@@ -395,7 +395,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: CANCELI
       width="18"
     >
       <g
-        fill="#4285f4"
+        fill="#f9ab00"
         fill-rule="nonzero"
         transform="translate(-450, -307)"
       >
