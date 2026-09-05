@@ -552,6 +552,90 @@ test('deployRevision applies fixture runtime requirements only to its rendered m
   assert.doesNotMatch(renderedManifestWithWorkflowDefaults(), /retryPolicy: OnFailure/);
 });
 
+test('storage configuration leaves revisions without SeaweedFS unchanged', async (t) => {
+  const manifest = renderedManifest();
+  const delegate = deploymentRunner([], { manifest });
+  let appliedManifest;
+  const stack = createTestStack(t, {
+    runner(command, args, options) {
+      if (command === 'kubectl' && args.includes('apply') && args.includes('-f')) {
+        appliedManifest = fs.readFileSync(args.at(-1), 'utf8');
+      }
+      return delegate(command, args, options);
+    },
+  });
+  await stack.deployRevision('/revision', { platform: 'linux/amd64' });
+  assert.equal(appliedManifest, manifest);
+});
+
+test('deployment reserves small SeaweedFS volumes only in rendered smoke manifests', async (t) => {
+  for (const existingFlags of [
+    [],
+    ['-volume.max=0', '-master.volumeSizeLimitMB=1024'],
+    ['--volume.max', '1', '--master.volumeSizeLimitMB', '128'],
+  ]) {
+    await t.test(JSON.stringify(existingFlags), async (t) => {
+      const preservedArgs = [
+        'server',
+        '-dir=/data',
+        '-s3',
+        '-master.volumePreallocate=false',
+        '-volume.minFreeSpacePercent=5',
+      ];
+      const seaweed = {
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: { name: 'seaweedfs' },
+        spec: {
+          template: {
+            spec: {
+              containers: [
+                {
+                  name: 'seaweedfs',
+                  image: 'ghcr.io/chrislusf/seaweedfs:4.34',
+                  args: [...preservedArgs, ...existingFlags],
+                },
+                { name: 'unrelated', image: 'docker.io/library/alpine:3.23', args: ['unchanged'] },
+              ],
+            },
+          },
+        },
+      };
+      const manifest = `${renderedManifest()}\n---\n${JSON.stringify(seaweed)}\n`;
+      const delegate = deploymentRunner([], { manifest });
+      let appliedManifest;
+      const stack = createTestStack(t, {
+        runner(command, args, options) {
+          if (command === 'kubectl' && args.includes('apply') && args.includes('-f')) {
+            appliedManifest = fs.readFileSync(args.at(-1), 'utf8');
+          }
+          return delegate(command, args, options);
+        },
+      });
+
+      await stack.deployRevision('/revision', { platform: 'linux/amd64' });
+
+      const resources = parseAllDocuments(appliedManifest).map((document) => document.toJS());
+      const actual = resources.find((resource) => resource.metadata.name === 'seaweedfs');
+      const expected = structuredClone(seaweed);
+      expected.spec.template.spec.containers[0].args = [
+        ...preservedArgs,
+        '-volume.max=8',
+        '-master.volumeSizeLimitMB=64',
+      ];
+      assert.deepEqual(actual, expected);
+      assert.deepEqual(
+        resources.slice(0, 2),
+        parseAllDocuments(renderedManifest()).map((document) => document.toJS()),
+      );
+      assert.deepEqual(seaweed.spec.template.spec.containers[0].args, [
+        ...preservedArgs,
+        ...existingFlags,
+      ]);
+    });
+  }
+});
+
 test('fixture runtime requirements fail before any Kubernetes resource is applied', async (t) => {
   const calls = [];
   const stack = createTestStack(t, { runner: deploymentRunner(calls) });

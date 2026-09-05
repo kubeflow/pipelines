@@ -1271,6 +1271,56 @@ function createKindStack(config = {}) {
     }
   }
 
+  function applySmokeStorageConfiguration(manifestContents) {
+    const { parseAllDocuments } = require('yaml');
+    const documents = parseAllDocuments(manifestContents, { maxAliasCount: 100 });
+    let changed = false;
+    for (const document of documents) {
+      if (document.errors.length > 0) {
+        throw new Error(
+          `Rendered revision manifests are invalid YAML: ${document.errors[0].message}`,
+        );
+      }
+      if (
+        document.get('kind') !== 'Deployment' ||
+        document.getIn(['metadata', 'name']) !== 'seaweedfs'
+      )
+        continue;
+      const containersPath = ['spec', 'template', 'spec', 'containers'];
+      const containers = document.getIn(containersPath)?.toJSON();
+      const index = Array.isArray(containers)
+        ? containers.findIndex((container) => container.name === 'seaweedfs')
+        : -1;
+      const args = containers?.[index]?.args;
+      if (
+        !Array.isArray(args) ||
+        args[0] !== 'server' ||
+        args.some((arg) => typeof arg !== 'string')
+      ) {
+        throw new Error('Smoke storage configuration requires SeaweedFS server arguments.');
+      }
+      // The image entrypoint otherwise auto-sizes volume slots from free disk space. A single
+      // slot cannot serve both bucket and default collections, even when the S3 probe passes.
+      const configuredArgs = [];
+      for (let argumentIndex = 0; argumentIndex < args.length; argumentIndex += 1) {
+        const argument = args[argumentIndex];
+        if (/^--?(?:master\.volumeSizeLimitMB|volume\.max)=/.test(argument)) continue;
+        if (/^--?(?:master\.volumeSizeLimitMB|volume\.max)$/.test(argument)) {
+          if (!/^\d+$/.test(args[argumentIndex + 1] || '')) {
+            throw new Error(`SeaweedFS ${argument} requires an integer argument.`);
+          }
+          argumentIndex += 1;
+          continue;
+        }
+        configuredArgs.push(argument);
+      }
+      configuredArgs.push('-volume.max=8', '-master.volumeSizeLimitMB=64');
+      document.setIn([...containersPath, index, 'args'], configuredArgs);
+      changed = true;
+    }
+    return changed ? documents.map((document) => String(document)).join('') : manifestContents;
+  }
+
   function renderRevisionManifestsForPlatform(
     repoRoot,
     imageOverrides,
@@ -1298,7 +1348,7 @@ function createKindStack(config = {}) {
         images = patchedImages;
       }
       const configuredManifest = applyFixtureRuntimeRequirements(
-        manifestContents,
+        applySmokeStorageConfiguration(manifestContents),
         options.fixtureRequirements,
       );
       if (configuredManifest !== manifestContents) {
@@ -1931,7 +1981,7 @@ function createKindStack(config = {}) {
             ),
             commandOptions({ timeout: STORAGE_READINESS_TIMEOUT_MS }),
           ),
-          'Artifact storage is not writable; SeaweedFS S3 write/read/delete readiness failed',
+          'Artifact storage is not writable; SeaweedFS S3/filer write/read/delete readiness failed',
         );
       }
       return { deployments, renderedImages };
