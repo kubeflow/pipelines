@@ -28,6 +28,24 @@ const richRunObservation = (response) => ({
   semanticKey: 'run.rich',
 });
 
+test('native root identity requires an explicit parentless ROOT row and remains optional', () => {
+  const response = nativeRichRun();
+  assert.equal(extractRunBinding(response, 'run.rich').rootTask, undefined);
+  response.tasks.push({ task_id: 'native-root', type: 'ROOT', name: 'Rich Visual Run' });
+  assert.deepEqual(extractRunBinding(response, 'run.rich').rootTask, {
+    taskId: 'native-root',
+    type: 'ROOT',
+  });
+  response.tasks.at(-1).parent_task_id = 'other';
+  assert.throws(
+    () => extractRunBinding(response, 'run.rich'),
+    /ROOT task must have an ID and no parent/,
+  );
+  delete response.tasks.at(-1).parent_task_id;
+  response.tasks.push({ task_id: 'second-root', type: 'ROOT' });
+  assert.throws(() => extractRunBinding(response, 'run.rich'), /multiple ROOT/);
+});
+
 test('combined semantic fixture validation recomputes required bindings instead of trusting flags', () => {
   const manifest = strictSemanticFixtureManifest();
   assert.deepEqual(manifest.logical, buildLogicalFixtures(SEMANTIC_RESOURCE_DEFINITIONS));

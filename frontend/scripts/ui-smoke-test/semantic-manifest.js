@@ -997,6 +997,13 @@ function extractRunBinding(response, semanticKey, options = {}) {
     ...(run === response ? [] : arrayField(run, 'semantic_executions', 'semanticExecutions')),
   ];
   const taskBindings = buildTaskBindings(rawTasks, flavor, hydratedArtifacts);
+  const rootTasks = rawTasks.filter((task) => field(task, 'type') === 'ROOT');
+  if (rootTasks.length > 1) throw new Error('Native fixture has multiple ROOT tasks.');
+  const rootTask = rootTasks[0];
+  const rootTaskId = rootTask && stringValue(field(rootTask, 'task_id', 'taskId'));
+  if (rootTask && (!rootTaskId || field(rootTask, 'parent_task_id', 'parentTaskId'))) {
+    throw new Error('Native fixture ROOT task must have an ID and no parent.');
+  }
   const profile = RUN_PROFILES[options.fixtureProfile || DEFAULT_RUN_PROFILE];
   const executionInstances =
     flavor === REVISION_FLAVORS.LEGACY
@@ -1037,6 +1044,7 @@ function extractRunBinding(response, semanticKey, options = {}) {
       ),
     ),
     revisionFlavor: flavor,
+    ...(rootTaskId ? { rootTask: { taskId: rootTaskId, type: 'ROOT' } } : {}),
     runId: stringValue(field(run, 'run_id', 'runId', 'id')),
     scopeInstances: taskBindings.scopeInstances,
     semanticKey,

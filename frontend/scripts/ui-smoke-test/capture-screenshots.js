@@ -695,6 +695,18 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
     });
     const taskArtifactReferences = [];
     const runProfile = manifest.logical?.runProfiles?.[run.fixtureProfile];
+    if (run.rootTask) {
+      const isObservedParent = Object.values(run.taskInstances || {}).some((instances) =>
+        instances.some((task) => task.parentTaskId === run.rootTask.taskId),
+      );
+      if (run.rootTask.type !== 'ROOT' || !isObservedParent) {
+        throw semanticIdNormalizationError(
+          `Root task ${runKey} must be an explicit ROOT row referenced by a fixture task.`,
+          'missing_fixture',
+        );
+      }
+      add('task', `${runKey}/task.root[0]`, run.rootTask.taskId);
+    }
 
     for (const [taskKey, instances] of Object.entries(run?.taskInstances || {}).sort(
       ([left], [right]) => left.localeCompare(right),
@@ -1855,6 +1867,11 @@ async function executeActions(page, actions) {
 
 async function normalizeDocumentScroll(page) {
   await page.evaluate(() => {
+    // Clicks can scroll the app's overflow containers without moving the document.
+    for (const element of document.querySelectorAll('*')) {
+      if (element.scrollLeft !== 0) element.scrollLeft = 0;
+      if (element.scrollTop !== 0) element.scrollTop = 0;
+    }
     const scrollingElement = document.scrollingElement || document.documentElement;
     scrollingElement.scrollLeft = 0;
     scrollingElement.scrollTop = 0;
@@ -1867,13 +1884,43 @@ async function normalizeDocumentScroll(page) {
         window.scrollX === 0 &&
         window.scrollY === 0 &&
         scrollingElement.scrollLeft === 0 &&
-        scrollingElement.scrollTop === 0
+        scrollingElement.scrollTop === 0 &&
+        Array.from(document.querySelectorAll('*')).every(
+          (element) => element.scrollLeft === 0 && element.scrollTop === 0,
+        )
       );
     },
     undefined,
     { timeout: 10000 },
   );
   return page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+}
+
+async function prepareCaptureViewport(page) {
+  // Moving outside the viewport removes chart and MUI hover state without clicking or blurring
+  // an intentionally selected control. Wait for leave handlers before freezing visible text.
+  await page.mouse.move(-1, -1);
+  await page.waitForTimeout(350);
+  for (const frame of page.frames()) {
+    if (frame !== page.mainFrame()) await normalizeDocumentScroll(frame);
+  }
+  return normalizeDocumentScroll(page);
+}
+
+async function sortFixtureList(page, label) {
+  const header = page.locator('.MuiTableSortLabel-root').filter({ hasText: label });
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const ascending = await header.evaluate(
+      (element) =>
+        element.classList.contains('Mui-active') &&
+        !!element.querySelector('.MuiTableSortLabel-iconDirectionAsc'),
+    );
+    if (ascending) return;
+    if (attempt === 2) break;
+    await header.click();
+    await page.waitForLoadState('networkidle');
+  }
+  throw new Error(`Unable to select ascending ${label} order for capture.`);
 }
 
 function comparePageReadyPredicate() {
@@ -1964,6 +2011,7 @@ function pipelineDetailsGraphReadyPredicate() {
 const PAGES = [
   {
     name: 'pipelines',
+    sortFixtureListBy: 'Pipeline name',
     path: '/#/pipelines',
     waitFor: '#root',
     actions: [
@@ -1996,6 +2044,7 @@ const PAGES = [
   },
   {
     name: 'experiments',
+    sortFixtureListBy: 'Experiment name',
     path: '/#/experiments',
     waitFor: '#root',
     actions: [
@@ -2111,6 +2160,7 @@ const PAGES = [
   { name: 'runs-new', path: '/#/runs/new', waitFor: '#choosePipelineBtn' },
   {
     name: 'runs-new-pipeline-dialog',
+    sortFixtureListBy: 'Pipeline name',
     path: '/#/runs/new',
     waitFor: '#choosePipelineBtn',
     actions: [
@@ -2138,6 +2188,7 @@ const PAGES = [
   },
   {
     name: 'recurring-runs',
+    sortFixtureListBy: 'Recurring Run Name',
     path: '/#/recurringruns',
     waitFor: '#root',
     actions: [
@@ -2483,9 +2534,10 @@ async function normalizeDynamicText(page) {
     ({ fixedDate, fixedDateTime, fixedDuration }) => {
       const dateTimePatterns = [
         /\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\b/g,
-        /\b\d{1,2}\/\d{1,2}\/\d{4}, \d{1,2}:\d{2}:\d{2} [AP]M\b/g,
+        /\b\d{1,2}\/\d{1,2}\/\d{4},\s*\d{1,2}:\d{2}:\d{2}\s+[AP]M\b/g,
+        /\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{1,2} \d{4} \d{2}:\d{2}:\d{2} GMT[+-]\d{4}(?: \([^\n)]*\))?/g,
       ];
-      const durationPattern = /(?<![\d:])-?\d+:\d{2}:\d{2}(?![\d:])/g;
+      const durationPattern = /(?<![\w:])-?\d+:\d{2}:\d{2}(?![\w:]|\s*(?:[AP]M|GMT))/g;
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       for (let node = walker.nextNode(); node; node = walker.nextNode()) {
         const parentName = node.parentElement?.tagName;
@@ -2493,6 +2545,7 @@ async function normalizeDynamicText(page) {
         let value = node.nodeValue || '';
         value = value.replace(dateTimePatterns[0], fixedDateTime);
         value = value.replace(dateTimePatterns[1], fixedDate);
+        value = value.replace(dateTimePatterns[2], new Date(fixedDateTime).toString());
         value = value.replace(durationPattern, fixedDuration);
         node.nodeValue = value;
       }
@@ -3051,13 +3104,16 @@ async function captureScreenshots(options, dependencies = {}) {
               main: await assertDeterministicFont(page),
             };
             await page.waitForTimeout(pageConfig.waitForTimeoutMs || 2000);
+            if (pageConfig.sortFixtureListBy) {
+              await sortFixtureList(page, pageConfig.sortFixtureListBy);
+            }
+            const documentScroll = await prepareCaptureViewport(page);
             await normalizeDynamicText(page);
             semanticIdNormalization = await normalizeSemanticIds(
               page,
               semanticIdNormalizationEnabled ? pageConfig.semanticIdNormalization : null,
               semanticIdentifierCatalog,
             );
-            const documentScroll = await normalizeDocumentScroll(page);
             await page.screenshot({
               animations: 'disabled',
               fullPage: false,
@@ -3317,6 +3373,8 @@ module.exports = {
   loadSemanticIdentifierCatalog,
   normalizeDynamicText,
   normalizeDocumentScroll,
+  prepareCaptureViewport,
+  sortFixtureList,
   normalizeSemanticDerivedColors,
   normalizeSemanticIds,
   normalizeBaseUrl,

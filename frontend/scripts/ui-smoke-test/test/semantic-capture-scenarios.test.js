@@ -346,7 +346,7 @@ test('serialized base V2 ROC readiness requires three curves and three provenanc
   assert.equal(evaluateSerializedPredicate(3, 3), true);
 });
 
-test('serialized head ROC selection waits for each committed provenance state', () => {
+test('serialized head ROC capture requires three default curves without repairing selections', () => {
   const actions = byKey(
     resolveSemanticScenarios('head', SEED_VALUES),
     'compare-roc-selection',
@@ -368,19 +368,10 @@ test('serialized head ROC selection waits for each committed provenance state', 
       },
     });
 
-  assert.equal(optionActions.length, 2);
-  assert.deepEqual(
-    optionActions.map((action) => action.selector),
-    [
-      '[role="option"]:has-text("UI Smoke Training Run 1")',
-      '[role="option"]:has-text("UI Smoke Evaluation Run")',
-    ],
-  );
-  assert.equal(transitionPredicates.length, 2);
-  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 2), true);
-  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 3), false);
-  assert.equal(evaluateSerializedPredicate(transitionPredicates[1], 2), false);
-  assert.equal(evaluateSerializedPredicate(transitionPredicates[1], 3), true);
+  assert.equal(optionActions.length, 0);
+  assert.equal(transitionPredicates.length, 1);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 2), false);
+  assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 3), true);
 });
 
 test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
@@ -428,7 +419,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     'run.training-1/task.write-metrics[0]',
     'run.training-1/task.consume-metrics[0]',
   ]);
-  assert.equal(headRelationships.minReplacements, 4);
+  assert.equal(headRelationships.minReplacements, 0);
   assert.equal(headRelationships.maxReplacements, 8);
   assert.equal(headRelationships.maxReplacementsPerIdentifier, 4);
   assert.equal(headRelationships.match, 'substring');
@@ -451,12 +442,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   );
   assert.deepEqual(
     headRoc.actions.filter((action) => action.type === 'click').map((action) => action.selector),
-    [
-      '[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")',
-      '[aria-label="ROC curves"]',
-      '[role="option"]:has-text("UI Smoke Training Run 1")',
-      '[role="option"]:has-text("UI Smoke Evaluation Run")',
-    ],
+    ['[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")'],
   );
 
   const headParallelFor = byKey(head, 'topology-parallel-for');
@@ -479,6 +465,36 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
       }
     }
   }
+});
+
+test('explicit root catalog normalizes only a proven fixture parent', async () => {
+  const manifest = strictSemanticFixtureManifest();
+  const run = manifest.deployments.head.bindings.runs['run.training-1'];
+  run.rootTask = { type: 'ROOT', taskId: 'native-explicit-root' };
+  run.taskInstances['task.write-metrics'][0].parentTaskId = 'native-explicit-root';
+  const catalog = capture.buildSemanticIdentifierCatalog(manifest, 'head');
+  const page = fakeTextPage(['native-explicit-root', 'unrelated-parent']);
+  await capture.normalizeSemanticIds(
+    page.page,
+    {
+      scopes: [
+        {
+          match: 'exact',
+          selector: '#root',
+          kinds: ['task'],
+          minReplacements: 1,
+        },
+      ],
+    },
+    catalog,
+  );
+  assert.equal(page.nodes[0].nodeValue, '[ui-id:task:training-1:root:0]');
+  assert.equal(page.nodes[1].nodeValue, 'unrelated-parent');
+  run.rootTask.taskId = 'unproven-root';
+  assert.throws(
+    () => capture.buildSemanticIdentifierCatalog(manifest, 'head'),
+    /referenced by a fixture task/,
+  );
 });
 
 test('different generated run, task, and Artifact IDs normalize to identical semantic tokens', async () => {
@@ -1468,9 +1484,9 @@ test('Artifact Details binds HTML while relationships bind a produced and consum
         : [
             'Produced as scalar_metrics',
             'Consumed as metrics',
-            'Run run-1',
-            'Task write-1',
-            'Task consume-1',
+            'UI Smoke Training Run 1',
+            'write-metrics',
+            'consume-metrics',
           ];
     for (const text of expectedText) {
       assert.ok(

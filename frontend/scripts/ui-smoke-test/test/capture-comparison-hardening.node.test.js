@@ -381,6 +381,100 @@ test('capture scroll normalization resets and verifies the document viewport', a
   assert.deepEqual(calls, ['reset', 'assert', 'read']);
 });
 
+test('capture resets nested overflow containers even when the document never scrolled', async (t) => {
+  const originalDocument = global.document;
+  const originalWindow = global.window;
+  t.after(() => {
+    global.document = originalDocument;
+    global.window = originalWindow;
+  });
+  const nested = [
+    { scrollTop: 430, scrollLeft: 0 },
+    { scrollTop: 82, scrollLeft: 12 },
+  ];
+  global.document = {
+    scrollingElement: { scrollTop: 0, scrollLeft: 0 },
+    querySelectorAll: () => nested,
+  };
+  global.window = { scrollX: 0, scrollY: 0, scrollTo() {} };
+  const page = {
+    evaluate: async (runner) => runner(),
+    waitForFunction: async (runner) => assert.equal(runner(), true),
+  };
+  assert.deepEqual(await capture.normalizeDocumentScroll(page), { x: 0, y: 0 });
+  assert.deepEqual(nested, [
+    { scrollTop: 0, scrollLeft: 0 },
+    { scrollTop: 0, scrollLeft: 0 },
+  ]);
+});
+
+test('capture clears pointer hover before settling and resetting the viewport', async () => {
+  const events = [];
+  const page = {
+    mouse: { move: async (x, y) => events.push(['pointer', x, y]) },
+    waitForTimeout: async (ms) => events.push(['settle', ms]),
+    frames: () => [],
+    evaluate: async (runner) => {
+      events.push(['scroll']);
+      return { x: 0, y: 0 };
+    },
+    waitForFunction: async () => {},
+  };
+  await capture.prepareCaptureViewport(page);
+  assert.deepEqual(events.slice(0, 3), [['pointer', -1, -1], ['settle', 350], ['scroll']]);
+});
+
+test('fixture list sorting uses the application control and waits for its response', async () => {
+  let ascending = false;
+  let clicks = 0;
+  let waits = 0;
+  const page = {
+    locator: () => ({
+      filter: () => ({
+        evaluate: async () => ascending,
+        click: async () => {
+          clicks += 1;
+          ascending = true;
+        },
+      }),
+    }),
+    waitForLoadState: async () => {
+      waits += 1;
+    },
+  };
+  await capture.sortFixtureList(page, 'Pipeline name');
+  assert.equal(clicks, 1);
+  assert.equal(waits, 1);
+  await capture.sortFixtureList(page, 'Pipeline name');
+  assert.equal(clicks, 1);
+});
+
+test('timestamp normalization accepts Intl nonbreaking spaces without masking fixture labels', async (t) => {
+  const originalDocument = global.document;
+  const originalNodeFilter = global.NodeFilter;
+  t.after(() => {
+    global.document = originalDocument;
+    global.NodeFilter = originalNodeFilter;
+  });
+  const nodes = [
+    { nodeValue: '9/5/2026, 11:01:00\u202fAM' },
+    { nodeValue: 'UI Smoke Training Run 1 — accuracy 0.95' },
+    { nodeValue: 'Sat Sep 05 2026 11:01:00 GMT+0000 (Coordinated Universal Time)' },
+    { nodeValue: '2026-09-05T11:01:00Z duration 00:01:22' },
+  ];
+  let index = 0;
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.document = {
+    body: {},
+    createTreeWalker: () => ({ nextNode: () => nodes[index++] }),
+  };
+  await capture.normalizeDynamicText({ evaluate: async (runner, arg) => runner(arg) });
+  assert.equal(nodes[0].nodeValue, '1/2/2030, 3:04:05 AM');
+  assert.equal(nodes[1].nodeValue, 'UI Smoke Training Run 1 — accuracy 0.95');
+  assert.equal(nodes[2].nodeValue, new Date('2030-01-02T03:04:05.000Z').toString());
+  assert.equal(nodes[3].nodeValue, '2030-01-02T03:04:05.000Z duration 00:00:42');
+});
+
 test('comparison fails closed when paired document scroll positions differ', async (t) => {
   const root = fixtureDirectory(t);
   const mainDir = path.join(root, 'main');
@@ -822,6 +916,8 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
             events.push('new-page');
             let navigationCount = 0;
             return {
+              mouse: { move: async () => events.push('neutral-pointer') },
+              frames: () => [],
               emulateMedia: async () => events.push('reduced-motion'),
               addInitScript: async () => events.push('init-css'),
               goto: async (url) => {
