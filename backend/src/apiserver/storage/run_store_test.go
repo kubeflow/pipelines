@@ -1226,12 +1226,145 @@ func TestUpdateRun_RunNotExist(t *testing.T) {
 	assert.Contains(t, err.Error(), "not found")
 }
 
+func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
+	for _, test := range []struct {
+		name                string
+		terminateBeforeRead bool
+		incomingState       model.RuntimeState
+	}{
+		{name: "termination after read with running report", incomingState: model.RuntimeStateRunning},
+		{name: "termination after read with unspecified report", incomingState: model.RuntimeStateUnspecified},
+		{name: "termination before read with running report", terminateBeforeRead: true, incomingState: model.RuntimeStateRunning},
+		{name: "termination before read with unspecified report", terminateBeforeRead: true, incomingState: model.RuntimeStateUnspecified},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			if test.terminateBeforeRead {
+				require.NoError(t, runStore.TerminateRun("1"))
+			}
+			staleRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			expectedState := staleRun.State
+			expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
+			expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
+			originalHistory := append([]*model.RuntimeStatus(nil), staleRun.StateHistory...)
+			if !test.terminateBeforeRead {
+				require.NoError(t, runStore.TerminateRun("1"))
+			}
+
+			staleRun.State = test.incomingState
+			staleRun.Conditions = string(test.incomingState.ToV1())
+			staleRun.WorkflowRuntimeManifest = "stale-workflow"
+			updated, err := runStore.UpdateRunFromWorkflow(
+				staleRun,
+				expectedState,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+			)
+			require.NoError(t, err)
+			assert.False(t, updated)
+			assert.Equal(t, originalHistory, staleRun.StateHistory)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, []*model.RuntimeStatus{{
+				UpdateTimeInSec: 1,
+				State:           model.RuntimeStateRunning,
+			}}, persistedRun.StateHistory)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		state      interface{}
+		conditions string
+	}{
+		{name: "canonical state", state: "RUNNING", conditions: "Running"},
+		{name: "mixed-case state", state: "rUnNiNg", conditions: "Running"},
+		{name: "null state", state: nil, conditions: "rUnNiNg"},
+		{name: "empty state", state: "", conditions: "Ready"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				test.state,
+				test.conditions,
+				"1",
+			)
+			require.NoError(t, err)
+
+			reportedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			require.Equal(t, model.RuntimeStateRunning, reportedRun.State)
+			expectedWorkflowRuntimeManifest := reportedRun.WorkflowRuntimeManifest
+			expectedPipelineRuntimeManifest := reportedRun.PipelineRuntimeManifest
+			reportedRun.Conditions = "Running"
+			reportedRun.WorkflowRuntimeManifest = "fresh-workflow"
+
+			updated, err := runStore.UpdateRunFromWorkflow(
+				reportedRun,
+				model.RuntimeStateRunning,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+			)
+			require.NoError(t, err)
+			require.True(t, updated)
+
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
+			assert.Equal(t, model.LargeText("fresh-workflow"), persistedRun.WorkflowRuntimeManifest)
+		})
+	}
+}
+
+func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
+	db, runStore := initializeRunStore()
+	defer db.Close()
+
+	staleRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
+	expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
+	originalHistory := append([]*model.RuntimeStatus(nil), staleRun.StateHistory...)
+	_, err = db.Exec("UPDATE run_details SET RetryGeneration = RetryGeneration + 1 WHERE UUID = ?", "1")
+	require.NoError(t, err)
+
+	staleRun.WorkflowRuntimeManifest = "stale-workflow"
+	updated, err := runStore.UpdateRunFromWorkflow(
+		staleRun,
+		model.RuntimeStateRunning,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+	require.NoError(t, err)
+	assert.False(t, updated)
+	assert.Equal(t, originalHistory, staleRun.StateHistory)
+
+	persistedRun, err := runStore.GetRun("1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
+	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+}
+
 func TestTerminateRun(t *testing.T) {
 	db, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("1")
 	assert.Nil(t, err)
+	err = runStore.TerminateRun("1")
+	assert.Nil(t, err, "terminating an already-canceling run should be idempotent")
 
 	expectedRun := &model.Run{
 		UUID:         "1",
@@ -1273,6 +1406,37 @@ func TestTerminateRun(t *testing.T) {
 	runDetail, err := runStore.GetRun("1")
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRun.ToV1(), runDetail.ToV1())
+}
+
+func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		state      interface{}
+		conditions string
+	}{
+		{name: "mixed-case state", state: "rUnNiNg", conditions: "Running"},
+		{name: "null state", state: nil, conditions: "rUnNiNg"},
+		{name: "empty state", state: "", conditions: "Ready"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db, runStore := initializeRunStore()
+			defer db.Close()
+
+			_, err := db.Exec(
+				"UPDATE run_details SET State = ?, Conditions = ? WHERE UUID = ?",
+				test.state,
+				test.conditions,
+				"1",
+			)
+			require.NoError(t, err)
+
+			require.NoError(t, runStore.TerminateRun("1"))
+			persistedRun, err := runStore.GetRun("1")
+			require.NoError(t, err)
+			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+			assert.Equal(t, "Terminating", persistedRun.Conditions)
+		})
+	}
 }
 
 func TestTerminateRun_RunDoesNotExist(t *testing.T) {

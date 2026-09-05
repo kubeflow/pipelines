@@ -4468,6 +4468,103 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	assert.Equal(t, expectedRun.ToV1(), run.ToV1())
 }
 
+type runStoreWithBeforeWorkflowUpdateHook struct {
+	storage.RunStoreInterface
+	beforeUpdate func()
+}
+
+func (s *runStoreWithBeforeWorkflowUpdateHook) UpdateRunFromWorkflow(
+	run *model.Run,
+	expectedState model.RuntimeState,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	if s.beforeUpdate != nil {
+		beforeUpdate := s.beforeUpdate
+		s.beforeUpdate = nil
+		beforeUpdate()
+	}
+	return s.RunStoreInterface.UpdateRunFromWorkflow(
+		run,
+		expectedState,
+		expectedWorkflowRuntimeManifest,
+		expectedPipelineRuntimeManifest,
+	)
+}
+
+func TestReportWorkflowResource_DoesNotOverwriteConcurrentTermination(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	liveWorkflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	beforeTermination, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	runStore := manager.runStore.(*storage.RunStore)
+	manager.runStore = &runStoreWithBeforeWorkflowUpdateHook{
+		RunStoreInterface: runStore,
+		beforeUpdate: func() {
+			require.NoError(t, runStore.TerminateRun(run.UUID))
+		},
+	}
+
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Contains(t, err.Error(), "stored run changed concurrently")
+
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, "Terminating", persistedRun.Conditions)
+	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+
+	// Model a retry after the first request committed CANCELING but exited
+	// before patching the Workflow. The repeated termination must finish it.
+	require.NoError(t, manager.TerminateRun(ctx, run.UUID))
+	isTerminated, err := store.ExecClientFake.IsTerminatedInNamespace(run.Namespace, run.K8SName)
+	require.NoError(t, err)
+	assert.True(t, isTerminated)
+}
+
+func TestReportWorkflowResource_DoesNotOverwriteExistingCancellation(t *testing.T) {
+	store, manager, run := initWithOneTimeRun(t)
+	defer store.Close()
+	ctx := context.Background()
+
+	liveWorkflow, err := store.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, v1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	liveWorkflow, err = store.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+
+	beforeTermination, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	require.NoError(t, manager.runStore.TerminateRun(run.UUID))
+
+	_, err = manager.ReportWorkflowResource(ctx, liveWorkflow)
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+	assert.Contains(t, err.Error(), "stored run changed concurrently")
+
+	persistedRun, err := manager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+	assert.Equal(t, "Terminating", persistedRun.Conditions)
+	assert.Equal(t, beforeTermination.WorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, beforeTermination.StateHistory, persistedRun.StateHistory)
+}
+
 func TestReportWorkflowResource_UsesLiveWorkflowState(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
 	defer store.Close()
