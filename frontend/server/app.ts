@@ -59,7 +59,13 @@ function getRegisterHandler(app: Application, basePath: string) {
     handler: express.Handler,
   ) => {
     func.call(app, route, handler);
-    return func.call(app, `${basePath}${route}`, handler);
+    // Prefix each route on its own. Interpolating an array collapses it into a
+    // single comma-joined path that matches no request, which would leave the
+    // base path copy of a multi-route registration effectively unregistered.
+    const basePathRoute = Array.isArray(route)
+      ? route.map((singleRoute) => `${basePath}${singleRoute}`)
+      : `${basePath}${route}`;
+    return func.call(app, basePathRoute, handler);
   };
 }
 
