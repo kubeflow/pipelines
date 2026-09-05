@@ -94,6 +94,8 @@ describe('ArtifactDetails', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    vi.spyOn(Apis.runServiceApiV2, 'getRun').mockResolvedValue({ run_id: 'run-1' });
+    vi.spyOn(Apis.runServiceApiV2, 'tasks').mockResolvedValue({ tasks: [] });
     vi.spyOn(Apis.artifactServiceApiV2, 'artifact_1').mockResolvedValue(artifact);
     vi.spyOn(Apis.artifactServiceApiV2, 'artifactTasks').mockResolvedValue({
       artifact_tasks: [
@@ -503,6 +505,47 @@ describe('ArtifactDetails', () => {
       10,
       'id asc',
     );
+  });
+
+  it('shares run and task name lookups across related rows while preserving task destinations', async () => {
+    vi.mocked(Apis.runServiceApiV2.getRun).mockResolvedValue({ display_name: 'Training run' });
+    vi.mocked(Apis.runServiceApiV2.tasks).mockResolvedValue({
+      tasks: [
+        { task_id: 'task-1', display_name: 'Train model' },
+        { task_id: 'task-2', name: 'evaluate-model' },
+      ],
+    });
+    vi.mocked(Apis.artifactServiceApiV2.artifactTasks).mockResolvedValue({
+      artifact_tasks: ['task-1', 'task-2'].map((taskId) => ({
+        id: taskId,
+        run_id: 'run-1',
+        task_id: taskId,
+        key: 'model',
+      })),
+    });
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    const trainLink = await screen.findByRole('link', { name: 'Training run · Train model' });
+    expect(trainLink).toHaveAttribute('href', '/runs/details/run-1?task=task-1');
+    expect(trainLink).toHaveAttribute('title', 'Run run-1 · Task task-1');
+    expect(
+      await screen.findByRole('link', { name: 'Training run · evaluate-model' }),
+    ).toHaveAttribute('href', '/runs/details/run-1?task=task-2');
+    expect(Apis.runServiceApiV2.getRun).toHaveBeenCalledTimes(1);
+    expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1);
+  });
+
+  it('retains navigable ID fallbacks when related run and task names cannot be loaded', async () => {
+    vi.mocked(Apis.runServiceApiV2.getRun).mockRejectedValue(new Error('Run unavailable'));
+    vi.mocked(Apis.runServiceApiV2.tasks).mockRejectedValue(new Error('Tasks unavailable'));
+
+    renderPage(`/artifacts/${TEST_ARTIFACT_ID}/lineage`);
+
+    const link = await screen.findByRole('link', { name: 'Run run-1 · Task task-1' });
+    await waitFor(() => expect(Apis.runServiceApiV2.tasks).toHaveBeenCalledTimes(1));
+    expect(link).toHaveAttribute('href', '/runs/details/run-1?task=task-1');
+    expect(screen.getByText('Produced as dataset')).toBeVisible();
   });
 
   it('requests and renders one relationship page at a time', async () => {

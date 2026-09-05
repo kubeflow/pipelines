@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
+import { PipelineTaskTaskType, V2beta1PipelineTask, V2beta1Run } from 'src/apisv2beta1/run';
 import { Apis } from 'src/lib/Apis';
 import { listAllPages } from './PaginationUtils';
 
@@ -33,6 +33,9 @@ export function listAllRunTasks(runId: string): Promise<V2beta1PipelineTask[]> {
 }
 
 export function getTaskDisplayName(task: V2beta1PipelineTask, fallback = 'Task'): string {
+  if (task.type === PipelineTaskTaskType.LOOP && task.display_name === 'Loop' && task.name) {
+    return `${task.name} (Loop)`;
+  }
   return task.display_name || task.name || fallback;
 }
 

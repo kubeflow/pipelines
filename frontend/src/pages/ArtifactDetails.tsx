@@ -50,6 +50,7 @@ import {
   LEGACY_UI_METADATA_ARTIFACT_KEYS,
 } from 'src/lib/v2/RuntimeArtifactUtils';
 import { PageTokenTracker } from 'src/lib/v2/PaginationUtils';
+import { getTaskDisplayName, listAllRunTasks } from 'src/lib/v2/RunTaskUtils';
 import { Page, PageProps } from 'src/pages/Page';
 import { classes } from 'typestyle';
 
@@ -466,20 +467,46 @@ function buildArtifactTaskRows(response: ArtifactTasksResponse, pageToken?: stri
 
 function RelatedTaskLink({ value }: CustomRendererProps<V2beta1ArtifactTask>) {
   const artifactTask = value;
+  const producerName =
+    artifactTask && isOutputArtifactTaskType(artifactTask.type)
+      ? artifactTask.producer?.task_name
+      : undefined;
+  const runId = artifactTask?.run_id || '';
+  const run = useQuery({
+    queryKey: queryKeys.v2RunDetail(runId),
+    queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    enabled: !!runId,
+    staleTime: 60_000,
+    retry: false,
+  });
+  // Rows in the same run share one paginated task query, including in-flight requests.
+  const tasks = useQuery({
+    queryKey: queryKeys.runTasks(runId),
+    queryFn: () => listAllRunTasks(runId),
+    enabled: !!runId && !!artifactTask?.task_id,
+    staleTime: 60_000,
+    retry: false,
+  });
   if (!artifactTask?.run_id) {
-    return <>{artifactTask?.task_id || '-'}</>;
+    return <>{producerName || artifactTask?.task_id || '-'}</>;
   }
+  const task = tasks.data?.find((candidate) => candidate.task_id === artifactTask.task_id);
+  const runName = run.data?.display_name || `Run ${runId}`;
+  const taskName = task
+    ? getTaskDisplayName(task, `Task ${artifactTask.task_id}`)
+    : producerName || `Task ${artifactTask.task_id}`;
   return (
     <Link
       className={commonCss.link}
+      title={`Run ${runId}${artifactTask.task_id ? ` · Task ${artifactTask.task_id}` : ''}`}
       to={
         artifactTask.task_id
           ? RoutePageFactory.runDetailsTask(artifactTask.run_id, artifactTask.task_id)
           : RoutePageFactory.runDetails(artifactTask.run_id)
       }
     >
-      Run {artifactTask.run_id}
-      {artifactTask.task_id ? ` · Task ${artifactTask.task_id}` : ''}
+      {runName}
+      {artifactTask.task_id ? ` · ${taskName}` : ''}
     </Link>
   );
 }

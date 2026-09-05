@@ -42,6 +42,31 @@ const rootTask: V2beta1PipelineTask = {
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
+    it('preserves the spec identity when the loop runtime display name is generic', () => {
+      const graph = updateFlowElementsState(
+        ['root'],
+        [
+          {
+            id: 'task.parallel-loop',
+            type: NodeTypeNames.SUB_DAG,
+            position: { x: 0, y: 0 },
+            data: { label: 'parallel-loop' },
+          },
+        ],
+        [
+          rootTask,
+          {
+            task_id: 'loop-task',
+            parent_task_id: rootTask.task_id,
+            name: 'parallel-loop',
+            display_name: 'Loop',
+            type: PipelineTaskTaskType.LOOP,
+          },
+        ],
+      );
+      expect(graph[0].data?.label).toBe('parallel-loop (Loop)');
+    });
+
     it('updates task and artifact nodes from hydrated task data', () => {
       const preprocessTask: V2beta1PipelineTask = {
         task_id: 'preprocess-task',

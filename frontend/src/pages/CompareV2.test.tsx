@@ -469,6 +469,89 @@ describe('CompareV2', () => {
     });
   });
 
+  it('compares producer artifacts once when root and nested DAG outputs propagate them', () => {
+    const outputs = {
+      artifacts: [
+        {
+          artifact_key: 'report',
+          artifacts: [
+            {
+              artifact_id: 'html-1',
+              name: 'report',
+              type: ArtifactArtifactType.HTML,
+              uri: 's3://reports/result',
+            },
+            {
+              artifact_id: 'metric-1',
+              name: 'accuracy',
+              type: ArtifactArtifactType.Metric,
+              number_value: 0.9,
+            },
+          ],
+        },
+      ],
+    };
+    const tasks: V2beta1PipelineTask[] = [
+      { task_id: 'root', name: 'First run', type: PipelineTaskTaskType.ROOT, outputs },
+      {
+        task_id: 'dag',
+        parent_task_id: 'root',
+        name: 'evaluate',
+        type: PipelineTaskTaskType.DAG,
+        outputs,
+      },
+      {
+        task_id: 'producer',
+        parent_task_id: 'dag',
+        name: 'write-metrics',
+        type: PipelineTaskTaskType.RUNTIME,
+        outputs,
+      },
+    ];
+    for (const orderedTasks of [tasks, [...tasks].reverse()]) {
+      const data = [{ run: runs[0], tasks: orderedTasks }];
+      expect(collectRuntimeComparisonArtifacts(data).map(({ label }) => label)).toEqual([
+        'First run / write-metrics / report',
+        'First run / write-metrics / accuracy',
+      ]);
+      expect(buildScalarMetricsTableProps(data)).toEqual({
+        xLabels: ['First run'],
+        yLabels: ['write-metrics / accuracy'],
+        rows: [['0.9']],
+      });
+    }
+    // Missing ancestry must retain the only available output; a later producer keeps its own key.
+    expect(collectRuntimeComparisonArtifacts([{ run: runs[0], tasks: [tasks[0]] }])).toHaveLength(
+      2,
+    );
+  });
+
+  it('retains distinct artifacts sharing a URI and independent sibling producers', () => {
+    const tasks: V2beta1PipelineTask[] = [
+      {
+        task_id: 'root',
+        outputs: {
+          artifacts: [
+            {
+              artifacts: [{ artifact_id: 'root-only', name: 'report', uri: 's3://reports/shared' }],
+            },
+          ],
+        },
+      },
+      ...['first', 'second'].map((name) => ({
+        task_id: name,
+        parent_task_id: 'root',
+        name,
+        outputs: {
+          artifacts: [
+            { artifacts: [{ artifact_id: 'shared', name: 'report', uri: 's3://reports/shared' }] },
+          ],
+        },
+      })),
+    ];
+    expect(collectRuntimeComparisonArtifacts([{ run: runs[0], tasks }])).toHaveLength(3);
+  });
+
   it('builds stable native comparison labels with run, task, and artifact provenance', () => {
     const comparisonData = runs.map((run, index) => ({
       run,

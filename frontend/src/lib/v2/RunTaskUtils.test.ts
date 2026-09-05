@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { Apis } from 'src/lib/Apis';
+import { PipelineTaskTaskType } from 'src/apisv2beta1/run';
 import { getRunDisplayName, getTaskDisplayName, listAllRunTasks } from './RunTaskUtils';
 
 describe('listAllRunTasks', () => {
@@ -64,6 +65,22 @@ describe('listAllRunTasks', () => {
 });
 
 describe('runtime display names', () => {
+  it('retains a loop task identity beside its generic runtime label', () => {
+    expect(
+      getTaskDisplayName({
+        type: PipelineTaskTaskType.LOOP,
+        display_name: 'Loop',
+        name: 'parallel-loop',
+      }),
+    ).toBe('parallel-loop (Loop)');
+    expect(
+      getTaskDisplayName({
+        type: PipelineTaskTaskType.LOOP,
+        display_name: 'Train models',
+        name: 'parallel-loop',
+      }),
+    ).toBe('Train models');
+  });
   it('prefers task display name, then name, then the supplied fallback', () => {
     expect(getTaskDisplayName({ display_name: 'Display', name: 'name' })).toBe('Display');
     expect(getTaskDisplayName({ name: 'name' })).toBe('name');

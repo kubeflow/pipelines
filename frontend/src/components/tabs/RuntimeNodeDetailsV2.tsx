@@ -237,6 +237,7 @@ function TaskNodeDetail({
         {selectedTab === 1 && (
           <div className={padding(20)}>
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, task)} />
+            <TaskPodsDetails pods={task?.pods} />
             <TaskVolumeMountsDetails
               element={element}
               layers={layers}
@@ -293,19 +294,14 @@ export function getTaskDetailsFields(
   if (task.type_attributes && Object.keys(task.type_attributes).length) {
     details.push(['Type attributes', JSON.stringify(task.type_attributes)]);
   }
-  if (task.status_metadata?.message) {
+  // Successful retries can retain the failed attempt's status metadata. Errors remain
+  // available alongside their original state and timestamp in state history.
+  if (
+    task.status_metadata?.message &&
+    task.state !== PipelineTaskTaskState.SUCCEEDED &&
+    task.state !== PipelineTaskTaskState.CACHED
+  ) {
     details.push(['Message', task.status_metadata.message]);
-  }
-  const podDetails = (task.pods || [])
-    .map((pod) =>
-      [pod.type || 'UNKNOWN', pod.name || '-', pod.uid ? `UID ${pod.uid}` : undefined]
-        .filter(Boolean)
-        .join(' · '),
-    )
-    .filter(Boolean)
-    .join(', ');
-  if (podDetails) {
-    details.push(['Pods', podDetails]);
   }
   const stateHistory = (task.state_history || [])
     .map((status) => {
@@ -317,6 +313,27 @@ export function getTaskDetailsFields(
     details.push(['State history', stateHistory]);
   }
   return details;
+}
+
+function TaskPodsDetails({ pods = [] }: { pods?: PipelineTaskTaskPod[] }) {
+  if (!pods.length) return null;
+  // The API preserves pod order but exposes no attempt number. Keep that order
+  // without inferring retry numbers from potentially missing driver/executor pods.
+  return (
+    <details>
+      <summary className={commonCss.header2}>Pods ({pods.length})</summary>
+      {pods.map((pod, index) => (
+        <DetailsTable
+          key={pod.uid || `${pod.type}-${pod.name}-${index}`}
+          title={`Pod ${index + 1} · ${pod.type || 'Unknown'}`}
+          fields={[
+            ['Name', pod.name || '-'],
+            ['UID', pod.uid || '-'],
+          ]}
+        />
+      ))}
+    </details>
+  );
 }
 
 function formatTaskState(state?: PipelineTaskTaskState): string {
@@ -579,6 +596,7 @@ function SubDAGNodeDetail({
         {selectedTab === 1 && (
           <div className={padding(20)}>
             <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, task)} />
+            <TaskPodsDetails pods={task?.pods} />
           </div>
         )}
       </div>

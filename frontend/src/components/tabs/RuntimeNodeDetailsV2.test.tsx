@@ -517,10 +517,47 @@ describe('RuntimeNodeDetailsV2', () => {
         ['Scope path', 'root.preprocess'],
         ['Cache fingerprint', 'cache-fingerprint'],
         ['Type attributes', '{"iteration_index":"2"}'],
-        ['Pods', 'EXECUTOR · executor-pod · UID executor-uid'],
         ['State history', `Running · ${updatedAt.toLocaleString()} · image pull delayed`],
       ]),
     );
+  });
+
+  it('keeps pod identities behind a collapsed section in their recorded order', async () => {
+    renderTask(
+      createTask({
+        pods: [
+          { name: 'driver-first', uid: 'driver-uid', type: PipelineTaskTaskPodType.DRIVER },
+          { name: 'executor-first', uid: 'first-uid', type: PipelineTaskTaskPodType.EXECUTOR },
+          { name: 'executor-retry', uid: 'retry-uid', type: PipelineTaskTaskPodType.EXECUTOR },
+        ],
+      }),
+    );
+    fireEvent.click(await screen.findByText('Task Details'));
+    const section = screen.getByText('Pods (3)').closest('details');
+    expect(section).not.toHaveAttribute('open');
+    expect(section).toHaveTextContent('Pod 1 · DRIVER');
+    expect(section).toHaveTextContent('driver-first');
+    expect(section).toHaveTextContent('Pod 3 · EXECUTOR');
+    expect(section).toHaveTextContent('executor-retry');
+    expect(section).toHaveTextContent('retry-uid');
+    fireEvent.click(screen.getByText('Pods (3)'));
+    expect(section).toHaveAttribute('open');
+  });
+
+  it('retains a failed retry error in history without displaying it as the successful task message', () => {
+    const task = createTask({
+      status_metadata: { message: 'failed to execute component: exit status 1' },
+      state_history: [
+        { state: PipelineTaskTaskState.FAILED, error: { message: 'attempt failed' } },
+        { state: PipelineTaskTaskState.SUCCEEDED },
+      ],
+    });
+    const fields = getTaskDetailsFields(executionElement, task);
+    expect(fields.some(([name]) => name === 'Message')).toBe(false);
+    expect(fields.find(([name]) => name === 'State history')?.[1]).toContain('attempt failed');
+    expect(
+      getTaskDetailsFields(executionElement, { ...task, state: PipelineTaskTaskState.FAILED }),
+    ).toContainEqual(['Message', 'failed to execute component: exit status 1']);
   });
 
   it('formats artifact timestamps consistently with other details pages', () => {

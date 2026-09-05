@@ -528,13 +528,40 @@ function NativeArtifactComparison({
 }
 
 function collectOutputArtifacts(tasks: V2beta1PipelineTask[]): RunArtifactEntry[] {
+  const tasksById = new Map(
+    tasks.filter((task) => task.task_id).map((task) => [task.task_id, task]),
+  );
+  const propagatedArtifacts = new Map<string, Set<string>>();
+  // A DAG exposes its descendants' outputs too. Suppress only proven ancestor aliases of the
+  // same artifact ID; equal names or URIs do not establish that two measurements are identical.
+  for (const task of tasks) {
+    const artifactIds = flattenArtifactGroups(task.outputs?.artifacts)
+      .map(({ artifact }) => artifact.artifact_id)
+      .filter((id): id is string => !!id);
+    const visited = new Set([task.task_id]);
+    let parentId = task.parent_task_id;
+    while (parentId && !visited.has(parentId)) {
+      visited.add(parentId);
+      const ids = propagatedArtifacts.get(parentId) || new Set<string>();
+      artifactIds.forEach((id) => ids.add(id));
+      propagatedArtifacts.set(parentId, ids);
+      parentId = tasksById.get(parentId)?.parent_task_id;
+    }
+  }
   return tasks.flatMap((task, taskIndex) =>
-    flattenArtifactGroups(task.outputs?.artifacts).map((entry) => ({
-      ...entry,
-      sourceFinished: isTaskFinished(task.state),
-      taskKey: task.task_id || task.name || String(taskIndex),
-      taskName: getTaskComparisonLabel(task),
-    })),
+    flattenArtifactGroups(task.outputs?.artifacts)
+      .filter(
+        ({ artifact }) =>
+          !artifact.artifact_id ||
+          !task.task_id ||
+          !propagatedArtifacts.get(task.task_id)?.has(artifact.artifact_id),
+      )
+      .map((entry) => ({
+        ...entry,
+        sourceFinished: isTaskFinished(task.state),
+        taskKey: task.task_id || task.name || String(taskIndex),
+        taskName: getTaskComparisonLabel(task),
+      })),
   );
 }
 
