@@ -177,7 +177,13 @@ func TestReadArtifactV1_RunNotFound(t *testing.T) {
 
 	runArtifactServer.ReadArtifactV1(rr, req)
 
-	require.NotEqual(t, http.StatusOK, rr.Code)
+	require.Equal(t, http.StatusNotFound, rr.Code)
+
+	var errorResponse api.Error
+	err := json.Unmarshal(rr.Body.Bytes(), &errorResponse)
+	require.NoError(t, err)
+	require.Contains(t, errorResponse.ErrorMessage, "not found")
+	require.NotContains(t, errorResponse.ErrorMessage, "<nil>")
 }
 
 // TestReadArtifactV1_ChunkedResponse validates that the HTTP endpoint
@@ -310,7 +316,51 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 
 	runArtifactServer.ReadArtifactV1(rr, req)
 
-	require.NotEqual(t, http.StatusOK, rr.Code)
+	require.Equal(t, http.StatusNotFound, rr.Code)
+
+	var errorResponse api.Error
+	err = json.Unmarshal(rr.Body.Bytes(), &errorResponse)
+	require.NoError(t, err)
+	require.Contains(t, errorResponse.ErrorMessage, "not found")
+	require.NotContains(t, errorResponse.ErrorMessage, "<nil>")
+}
+
+func TestReadArtifactV1_ArtifactNameNotFoundInManifest(t *testing.T) {
+	resourceManager, manager, run := initWithOneTimeRun(t)
+	defer resourceManager.Close()
+
+	defer func() {
+		if err := manager.DeleteRun(context.Background(), run.UUID); err != nil {
+			t.Logf("Failed to clean up test run: %v", err)
+		}
+	}()
+
+	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", "test/artifact.txt")
+	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err, "Failed to report workflow resource")
+
+	runArtifactServer := NewRunArtifactServer(manager)
+
+	url := fmt.Sprintf("/apis/v1beta1/runs/%s/nodes/node-1/artifacts/nonexistent-artifact:read", run.UUID)
+	req := httptest.NewRequest("GET", url, nil)
+
+	req = mux.SetURLVars(req, map[string]string{
+		"run_id":        run.UUID,
+		"node_id":       "node-1",
+		"artifact_name": "nonexistent-artifact",
+	})
+
+	rr := httptest.NewRecorder()
+
+	runArtifactServer.ReadArtifactV1(rr, req)
+
+	require.Equal(t, http.StatusNotFound, rr.Code)
+
+	var errorResponse api.Error
+	err = json.Unmarshal(rr.Body.Bytes(), &errorResponse)
+	require.NoError(t, err)
+	require.Contains(t, errorResponse.ErrorMessage, "not found")
+	require.NotContains(t, errorResponse.ErrorMessage, "<nil>")
 }
 
 func TestReadArtifactV1_MissingParameters(t *testing.T) {
