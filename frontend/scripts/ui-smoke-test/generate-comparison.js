@@ -32,6 +32,7 @@ const {
   combineRevisionSemanticManifests,
   validateRevisionSemanticManifest,
 } = require('./semantic-manifest');
+const { ORDINARY_REVISION_AWARE_PAGE_NAMES } = require('./capture-screenshots');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
@@ -1878,6 +1879,18 @@ function validateSemanticIdNormalizationScenarioContracts(manifest, role) {
     const pageContract = getSemanticIdNormalizationContract(role, result.page);
     const semanticScenario = result.semanticScenario || result.page;
     const semanticContract = getSemanticIdNormalizationContract(role, semanticScenario);
+    if (
+      !pageContract &&
+      !semanticContract &&
+      ORDINARY_REVISION_AWARE_PAGE_NAMES.has(result.page) &&
+      semanticScenario === result.page &&
+      result.scenarioTitle === result.page
+    ) {
+      // Ordinary route captures participate in the visual comparison without claiming one of the
+      // canonical semantic scenarios. Keep this exception bound to the capture catalog and the
+      // page's self-attested identity so renamed or unknown semantic captures still fail closed.
+      continue;
+    }
     if (!pageContract || !semanticContract || semanticScenario !== result.page) {
       throw new ComparisonError(
         `Capture result ${result.filename} does not bind canonical semantic scenario ${result.page}.`,

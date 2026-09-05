@@ -2185,6 +2185,11 @@ const SEMANTICALLY_REPLACED_PAGE_NAMES = new Set([
   'run-details-seeded',
   'run-details-seeded-sidepanel',
 ]);
+const ORDINARY_REVISION_AWARE_PAGE_NAMES = new Set(
+  PAGES.filter((page) => !SEMANTICALLY_REPLACED_PAGE_NAMES.has(page.name)).map(
+    (page) => page.name,
+  ),
+);
 const REVISION_AWARE_PAGE_ALIASES = Object.freeze({
   'artifact-lineage-from-list': 'artifact-related-tasks',
   artifacts: 'artifact-list-evolution',
@@ -3251,6 +3256,7 @@ module.exports = {
   PIPELINE_DETAILS_GRAPH_SELECTOR,
   PIPELINE_DETAILS_ROOT_SELECTOR,
   PIPELINE_DETAILS_WRITE_METRICS_SELECTOR,
+  ORDINARY_REVISION_AWARE_PAGE_NAMES,
   SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
   PAGES,
   applyGlobalVisualNormalizations,
