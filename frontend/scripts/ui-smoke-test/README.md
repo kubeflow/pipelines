@@ -1,394 +1,537 @@
-# UI Smoke Test Tool
+# UI smoke-test utility
 
-Visual regression testing for Kubeflow Pipelines frontend. Captures screenshots of key UI pages and generates side-by-side comparisons between branches using a live Kind backend.
+This utility compares fresh screenshots of the Kubeflow Pipelines UI at a base Git ref and a
+local or fetched pull-request head. Its full-stack mode runs each UI with its matching
+frontend-server, backend images, manifests, database, object store, metadata system, cache, and
+Kubernetes state. It creates a manifest for every capture and fails closed when a required page is
+missing, degraded, stale, corrupt, or different beyond the configured threshold.
 
 ## Prerequisites
 
-Install these before first use:
+- Node.js `24.14.0` and npm `11.17.0`, matching `frontend/.nvmrc` and
+  `frontend/package.json`
+- Git, Docker, Kind, and `kubectl` for comparisons
+- `gh`, authenticated to the target repository, only when `--comment` is used
 
-| Tool | Required For | Install |
-|------|-------------|---------|
-| Node.js >= 18 | All workflows | `brew install node` or [nodejs.org](https://nodejs.org/) |
-| git >= 2.5 | All workflows | `brew install git` or [git-scm.com](https://git-scm.com/) |
-| Docker | `--compare` | [Docker Desktop](https://www.docker.com/products/docker-desktop/) |
-| kind | `--compare` | `brew install kind` or [kind.sigs.k8s.io](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) |
-| kubectl | `--compare` | `brew install kubectl` or [kubernetes.io](https://kubernetes.io/docs/tasks/tools/) |
-| gh CLI | `--pr` | `brew install gh` or [cli.github.com](https://cli.github.com/) |
+Before creating a cluster, the runner renders both revision overlays, verifies and exports every
+dependency image for an explicit platform, and builds every reviewed first-party image required by
+a locally built revision for the Kind node's native platform. On arm64, the two known amd64-only
+workloads in the 2.17.1 manifest are pulled and loaded explicitly as amd64 without changing the
+Kind node architecture. A Kubernetes canary verifies workload emulation before either revision is
+deployed. Any other missing-platform image fails closed instead of silently falling back to a
+foreign architecture.
 
-The tool checks these at startup and fails fast with actionable install commands if anything is missing.
-
-## First-Time Setup
+Install the utility's pinned dependencies and browser once:
 
 ```bash
-# 1. Navigate to the tool directory
 cd frontend/scripts/ui-smoke-test
-
-# 2. Install tool dependencies (playwright, sharp, looks-same)
-npm install
-
-# 3. Install Chromium for screenshot capture
+npm ci
 npx playwright install chromium
-
-# 4. (For --compare) Ensure Docker is running
-open -a Docker  # macOS
-
-# 5. Run your first comparison
-node smoke-test-runner.js --compare master
 ```
 
-The first `--compare` run takes 5-10 minutes because it creates a Kind cluster and deploys Kubeflow Pipelines. Subsequent runs reuse the existing cluster and are much faster.
+Before a capture run, the runner restores this nested package exactly with `npm ci` and installs
+the pinned Chromium build when it is absent. Help, teardown, and an upgrade capability check that
+fails before capture do not install dependencies. An explicit install is useful for warming those
+caches.
 
-## Quick Reference
+## Compare local changes
+
+From `frontend/scripts/ui-smoke-test`:
 
 ```bash
-# Most common: compare your branch against master with live backend
-node smoke-test-runner.js --compare master
-
-# Frontend-only PR? Skip the slow backend rebuild
-node smoke-test-runner.js --compare master --skip-backend
-
-# Fail if any non-zero visual diff is detected (default behavior)
-node smoke-test-runner.js --compare master --fail-threshold 0
-
-# Keep local HEAD but label screenshots as a specific PR
-node smoke-test-runner.js --compare master --pr-number 12793
-
-# Screenshot your running dev server (fastest)
-node smoke-test-runner.js --current-only --use-existing --url http://localhost:3000
+node smoke-test-runner.js --compare origin/master
 ```
 
-## `--compare` Workflow
+This comparison includes committed, staged, unstaged, and untracked local files. Change detection
+uses the merge base with the selected base ref and handles rename sources as deletes, so moving a
+file out of a sensitive tree cannot hide it.
 
-The primary workflow. Compares your working tree (or a specific PR) against a base ref with a live Kind backend.
-By default, any non-zero visual diff fails (`--fail-threshold 0`) so every change is reviewed.
+When only browser code changed, the default comparison uses the base runtime for both bundles. A
+change to the frontend-server, backend, or manifests stops that compatibility workflow. For a
+revision-matched comparison, explicitly select a reviewed local checkout:
 
 ```bash
-# Compare against master (most common)
-node smoke-test-runner.js --compare master
-
-# Compare against the latest release tag
-node smoke-test-runner.js --compare release
-
-# Compare against a specific tag
-node smoke-test-runner.js --compare 2.15.0
-
-# Skip backend rebuild for frontend-only changes
-node smoke-test-runner.js --compare master --skip-backend
-
-# Label local HEAD comparisons as a PR in screenshot headers
-node smoke-test-runner.js --compare master --pr-number 12793
-
-# Delete the Kind cluster when done
-node smoke-test-runner.js --teardown
+node smoke-test-runner.js \
+  --compare 2.17.1 \
+  --full-stack \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --pr-number 13986
 ```
 
-### What happens (step by step)
+The selected path must be the root of a worktree belonging to the same repository. Dirty local
+changes are supported, including changed lockfiles, frontend-server, backend, and manifests. The
+runner snapshots the selected commit plus its staged, unstaged, and non-ignored untracked files
+into a detached run-scoped worktree, records a cryptographic source fingerprint, and aborts if the
+source changes while the snapshot is being made. Symlinks cannot escape the checkout. The trust
+flag is required because this mode installs dependencies, builds images, starts servers, and
+deploys manifests from that immutable snapshot.
 
-The runner shows numbered progress like `[3/12] Building 2 backend component(s)...`:
+When the base is a release such as `2.17.1`, the runner resolves the fully qualified release tag
+from the canonical `kubeflow/pipelines` repository, verifies that the local tag peels to the same
+commit, and pins all base work to that verified commit SHA. A moved or counterfeit local release
+tag is rejected.
 
-1. **Check port availability** — fails fast if ports are in use
-2. **Detect changes** — `git diff --name-only <base>..<head>` mapped to backend components
-3. **Ensure Kind cluster** — starts one if not already running
-4. **Build changed backend components** — only the ones that changed, loads into Kind, restarts deployments
-5. **Re-apply manifests** — if `manifests/` files changed
-6. **Set up port forwarding + frontend server** — proxies API calls to K8s services
-7. **Seed test data** — creates sample pipelines, experiments, runs
-8. **Fetch PR code** — if `--pr` is specified, fetches via git
-9. **Build base frontend** — via git worktree (fast, offline)
-10. **Build PR frontend** — current tree or fetched PR
-11. **Start proxy servers** — ports 4001 (base) and 4002 (PR)
-12. **Capture screenshots + generate comparison** — Playwright headless Chrome
-
-Steps that aren't needed (e.g., no backend changes) are shown as `[4/12] Backend rebuild (skipped)`.
-
-## Testing Someone Else's PR
-
-Use `--pr` with `--compare` to test a PR you don't have checked out locally:
+To compare the MLMD-removal checkout against a non-release base such as current `main`, explicitly
+trust both local revision inputs:
 
 ```bash
-# Fetch PR #12756 and compare it against master
-node smoke-test-runner.js --compare master --pr 12756
-
-# Same but skip backend rebuild
-node smoke-test-runner.js --compare master --pr 12756 --skip-backend
+node smoke-test-runner.js \
+  --compare origin/master \
+  --full-stack \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --trust-base-code \
+  --pr-number 13986
 ```
 
-This fetches the PR ref via `git fetch origin pull/<N>/head:pr-<N>`, creates a git worktree for the PR code, builds its frontend, and uses it as the "PR" side of the comparison. The change detection diff is also done against the PR ref (not your local HEAD).
+The runner resolves the base ref to an immutable SHA before snapshotting the head, creates a
+separate detached base worktree, and builds all first-party components used by each revision. The
+extra base trust flag is required because a branch or arbitrary commit is executable input rather
+than a verified published release. Each resulting UI is served by its own matching
+frontend-server, backend, manifests, and isolated state.
 
-## Command Reference
-
-### Flags
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--compare <ref>` | **Primary workflow.** Compare HEAD (or `--pr`) against a base ref with live backend | (none) |
-| `--fail-threshold <percent>` | Exit non-zero when any page diff is above this percentage | `0` |
-| `--diff-threshold <percent>` | Only mark pages as `[diff]` in summary when above this percentage | `0` |
-| `--skip-backend` | Force-skip backend rebuild and manifest re-apply even if changes are detected (auto-skipped when no backend changes) | off |
-| `--pr <number>` | In `--compare` mode: fetch and test this PR instead of local HEAD. In legacy mode: PR number for branch comparison | (none) |
-| `--pr-number <number>` | Label screenshots as `PR #<number>` without fetching that PR (useful when comparing local HEAD). If omitted, runner tries best-effort GH auto-detection from current `HEAD` SHA. | (none) |
-| `--teardown` | Delete the Kind cluster and exit | off |
-| `--current-only` | Screenshot current build only (no branch comparison) | off |
-| `--use-existing` | Use an already-running server instead of building/serving | off |
-| `--url <url>` | URL of existing server (requires `--use-existing`) | `http://localhost:3000` |
-| `--proxy` | Proxy API calls to a real backend when serving static builds | off |
-| `--backend <url>` | Backend URL for proxy mode | `http://localhost:3000` |
-| `--base <branch>` | Base branch for legacy comparison | `master` |
-| `--repo <owner/repo>` | GitHub repository | `kubeflow/pipelines` |
-| `--mode <mode>` | Backend mode: `auto`, `cluster`, `mock`, `static` | `auto` |
-| `--start-cluster` | Start a Kind cluster if none is running (legacy mode) | off |
-| `--seed-data` | Seed sample data (cluster mode) | off |
-| `--skip-seed` | Skip automatic data seeding | off |
-| `--skip-build` | Skip the `npm ci && npm run build` step | off |
-| `--skip-upload` | Skip uploading results to PR | off |
-| `--keep-servers` | Don't kill servers on exit (for debugging) | off |
-| `--verbose` | Show all command output | off |
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `UI_SMOKE_PAGES` | Comma-separated list of pages to capture | all pages |
-| `UI_SMOKE_VIEWPORT` | Viewport dimensions as `WIDTHxHEIGHT` | `1280x800` |
-| `UI_SMOKE_PR_NUMBER` | PR number used for screenshot labels when `--pr` is not used | (none) |
-| `UI_SMOKE_FAIL_THRESHOLD` | Default fail threshold percentage for comparison | `0` |
-| `UI_SMOKE_DIFF_THRESHOLD` | Default summary marker threshold percentage | `0` |
-| `API_BASE` | API base URL for data seeding | `http://localhost:3001` |
-
-### Individual Scripts
-
-Each script can be run standalone:
+To make an explicitly scoped browser-only comparison that ignores changed runtime surfaces:
 
 ```bash
-# Detect which backend components changed vs master
-node detect-changes.js --base master
-
-# Capture screenshots from a running server
-node capture-screenshots.js --port 3000 --output ./my-screenshots --label "my-branch"
-
-# Generate side-by-side comparisons from two sets of screenshots
-node generate-comparison.js --main ./screenshots/main --pr ./screenshots/pr --output ./comparison --fail-threshold 0
-
-# Post comparison results to a GitHub PR
-node upload-to-pr.js --pr 12756 --repo kubeflow/pipelines --screenshots ./comparison
-
-# Start the proxy server standalone
-node proxy-server.js --build ../../build --port 4001 --backend http://localhost:3000
-
-# Seed test data into a running KFP API
-node seed-data.js              # skip if data exists
-node seed-data.js --force      # overwrite existing data
-
-# Filter specific pages
-UI_SMOKE_PAGES=pipelines,runs node capture-screenshots.js --port 3000 --output ./screenshots
+node smoke-test-runner.js --compare origin/master --browser-only
 ```
 
-## Troubleshooting
+The head label and report record every ignored surface. This result is a browser compatibility
+signal only; it says nothing about the changed server, backend, deployment, or migration behavior.
+In particular, it cannot validate pages that require #13986's native Task or Artifact endpoints;
+use the revision-matched full-stack mode for those scenarios.
 
-### Port conflicts
-
-```
-Port 3001 is in use by node (PID 12345)
-```
-
-The tool checks all required ports before starting and fails fast if any are in use. Fix by killing the process:
+To label local screenshots for an existing pull request:
 
 ```bash
-kill 12345
-# or find what's using a port:
-lsof -i :3001
+node smoke-test-runner.js --compare origin/master --pr-number 12345
 ```
 
-Ports used: 3001 (frontend server), 3002 (ml-pipeline proxy), 4001 (base proxy), 4002 (PR proxy), 9000 (minio), 9090 (metadata-envoy).
+The label does not change the compared code and does not post anything to GitHub.
 
-### Stale worktrees from a previous failed run
-
-The tool auto-cleans stale worktrees at startup. If you see git worktree errors:
+## Compare a fetched pull request
 
 ```bash
-git worktree remove .ui-smoke-test/base --force
-git worktree remove .ui-smoke-test/pr-branch --force
-git worktree prune
+node smoke-test-runner.js \
+  --compare origin/master \
+  --pr 12345 \
+  --repo kubeflow/pipelines \
+  --trust-pr-code
 ```
 
-### Docker is not running
+The runner fetches the GitHub pull ref into a unique temporary ref and creates detached, per-run
+worktrees. `--trust-pr-code` is required because the browser build executes scripts from the PR.
+Host credentials and the Docker socket are not mounted. Containers have dropped capabilities,
+resource limits, a read-only root filesystem, and only the fetched worktree as writable storage.
 
-```
-Docker is not running. Start Docker Desktop or run: sudo systemctl start docker
-```
+Dependency installation and code execution are separated. The online phase runs `npm ci
+--ignore-scripts` for the root, server, and mock-backend packages into a run-scoped cache. The build
+phase performs the exact npm install and build offline with `--network none`. A fetched PR that
+changes an npm lockfile, `npm-shrinkwrap.json`, `.npmrc`, or `.corepack.env` is rejected before
+installation. Review and check out such a PR locally instead.
 
-The `--compare` workflow requires Docker for Kind. Start Docker Desktop or your Docker daemon. If you only need screenshots without a backend, use `--current-only`.
-
-### Slow backend rebuild
-
-Backend rebuilds (`make image_apiserver`, etc.) can take several minutes each. If your PR only changes frontend code:
+Fetched server, backend, or manifest changes are never executed by this tool. They stop the run
+unless the caller explicitly requests the same browser-only scope described above:
 
 ```bash
-node smoke-test-runner.js --compare master --skip-backend
+node smoke-test-runner.js \
+  --compare origin/master \
+  --pr 12345 \
+  --repo kubeflow/pipelines \
+  --trust-pr-code \
+  --browser-only
 ```
 
-This forces steps 4-5 (build/deploy, manifests) to be skipped. Note: these steps auto-skip when change detection finds no backend changes, so you typically only need `--skip-backend` when change detection incorrectly flags backend files (e.g., during a rebase).
+Fetched PRs cannot use `--full-stack` or `--upgrade`. Review and check out the target locally, then
+select it with `--head-checkout --trust-local-head`.
 
-### Kind cluster in bad state
+## Upgrade a populated installation
 
-If the cluster is misbehaving, tear it down and start fresh:
+Upgrade mode exercises a different invariant from two clean stacks: base data and persistent
+volume identities must survive while the same environment is migrated and upgraded.
 
 ```bash
-node smoke-test-runner.js --teardown
-node smoke-test-runner.js --compare master
+node smoke-test-runner.js \
+  --compare 2.17.1 \
+  --upgrade \
+  --head-checkout /path/to/reviewed/head \
+  --trust-local-head \
+  --pr-number 13986
 ```
 
-### Ctrl+C doesn't clean up
+The fail-closed lifecycle is: deploy base, seed base, capture base, freeze writers, inventory PVCs
+and semantic fixtures, run and validate the migration's durable marker, deploy head into the same
+environment, validate the startup gate, prove PVC and fixture continuity, prune only explicitly
+allowed non-persistent resources, capture head, and generate the attested comparison and HTML
+report. A reviewed target advertises matching migration and startup-gate versions in
+`.ui-smoke-upgrade.json` and names an in-checkout adapter that supplies those lifecycle operations.
+Adapter paths cannot escape the selected checkout. The adapter factory must be side-effect-free,
+and the adapter must provide `cleanupEnvironment`; the runner registers cleanup before invoking
+any deployment operation. A cleanup failure invalidates an otherwise successful result.
 
-The tool registers cleanup actions (worktree removal, ml-pipeline-ui restore) that run on SIGINT. If cleanup didn't complete, manually fix:
+PR #13986 does not yet contain the MLMD-to-native migration or startup gate tracked by #14029.
+Against that head, upgrade mode writes `upgrade-result.json` with
+`captureValidity: "migration_unavailable"` and invokes no cluster or head-mutation callback. This
+is an intentional release-blocker result, not a successful visual comparison. Capability
+discovery happens before Docker, Kind, or nested package setup, so an unavailable migration cannot
+mutate the host or cluster as a side effect of preflight.
+
+## Capture an existing UI
+
+To capture a development server without creating a cluster or building another ref:
 
 ```bash
-# Remove worktrees
-git worktree remove .ui-smoke-test/base --force 2>/dev/null
-git worktree remove .ui-smoke-test/pr-branch --force 2>/dev/null
-git worktree prune
-
-# Restore ml-pipeline-ui
-kubectl -n kubeflow scale deployment/ml-pipeline-ui --replicas=1
+node smoke-test-runner.js \
+  --current-only \
+  --use-existing \
+  --url https://127.0.0.1:3000/my/base/path
 ```
 
-## Pages Captured
+The complete URL is preserved, including scheme, hostname, port, and path. The runner requires an
+HTTP 2xx or 3xx response before capture. Seed-ID-dependent detail pages are omitted by default in
+this mode; set `UI_SMOKE_PAGES` to select a different list.
 
-| Page | Route | Wait Condition | Description |
-|------|-------|----------------|-------------|
-| pipelines | `/#/pipelines` | Table rows + pipeline links | Pipeline list |
-| pipeline-details-seeded | `/#/pipelines/details/{seed.pipelineId}` | Root + details content | Seeded pipeline details (default view) |
-| pipeline-details-seeded-sidepanel | `/#/pipelines/details/{seed.pipelineId}` | Side panel close button visible | Seeded pipeline details with side panel open |
-| experiments | `/#/experiments` | Table rows + experiment links | Experiment list |
-| runs | `/#/runs` | Table rows + run links | Run history |
-| run-details-seeded | `/#/runs/details/{seed.runId}` | Root + graph/details content | Seeded run details (default view) |
-| run-details-seeded-sidepanel | `/#/runs/details/{seed.runId}` | Side panel close button visible | Seeded run details with side panel open |
-| recurring-runs | `/#/recurringruns` | Table rows | Scheduled runs |
-| artifacts | `/#/artifacts` | Table rows | ML artifacts |
-| executions | `/#/executions` | Table rows + execution links | Execution history |
-| pipeline-create | `/#/pipeline/create` | Input field | Create pipeline form |
-| experiment-create | `/#/experiments/new` | Input field | Create experiment form |
+## Thresholds and viewports
 
-## Output
-
-Results are saved to `.ui-smoke-test/` at the repo root (gitignored):
-
+```bash
+node smoke-test-runner.js \
+  --compare origin/master \
+  --viewports 1280x800,390x844 \
+  --diff-threshold 0 \
+  --fail-threshold 0.1
 ```
+
+- `--viewports` is a comma-separated `WIDTHxHEIGHT` list. The default is `1280x800`.
+- `--diff-threshold` controls when changed regions are drawn on a comparison image.
+- `--fail-threshold` controls the maximum accepted changed-pixel percentage. The default is `0`, so
+  every visual change requires review.
+
+Each viewport is declared in the capture manifest. Comparison rejects missing pairs and dimension
+mismatches. Before each screenshot, the browser disables animations and transitions, waits for web
+fonts, and executes each configured readiness predicate rather than merely evaluating its function
+object. Full-stack semantic captures also pin Chromium through the nested lockfile, use a device
+scale factor of 2, UTC, `en-US`, a light color scheme, reduced motion, and embedded Roboto 5.3.0
+WOFF2 assets at weights 400, 500, and 700. Each font digest is attested in the capture manifest.
+They freeze the browser clock, disable long polling timers, normalize rendered timestamps and
+durations, and apply the same deterministic styles inside artifact frames. Semantic full-stack
+captures also hide exactly the base revision's `#executionsBtn` and assert that the head revision
+has no such element. This removes the reviewed sidebar/footer displacement without masking any
+other navigation pixels; selector counts, the applied rule, and its expected-change annotation are
+attested in every capture record. Scenario-declared run,
+task, execution, Artifact, Artifact URI, pod-name, and pod-UID values are first validated at their
+real generated values, then replaced inside narrowly scoped text nodes with stable semantic tokens
+immediately before the screenshot. When 2.17.1 exposes repeated uncached `ParallelFor` task rows
+without an execution or iteration identity, their task UUIDs use one explicit visual equivalence
+token in both revisions. Every source task keeps its exact semantic path and raw-ID digest in the
+capture evidence. Independently identified MLMD executions and native iteration scopes remain
+distinct by iteration, and the separately observed parent DAGs, pods, and logs remain exact.
+ROC series whose colors are derived from generated IDs are rebound to fixed palette slots by
+semantic run identity after matching manifest-bound display names. Every declared ROC fixture must
+be present. The capture manifest records the source kind and semantic path separately from the
+cross-revision visual-token identity, plus replacement counts and SHA-256 digests of original
+values and source colors without recording raw generated identities. It never applies a page-wide
+UUID or numeric regex, and a missing, ambiguous, or unexpectedly repeated required replacement is
+a capture failure.
+
+Full-stack captures must explicitly request and attest `semantic-full-stack`; browser-only captures
+must explicitly request `disabled-browser-compatibility` and cannot provide semantic or source
+provenance. Comparison re-reads the attested semantic manifest, recomputes its fixture validation,
+and verifies every normalized source-ID digest against it. A missing pinned font is an
+infrastructure failure instead of a host-dependent screenshot.
+
+For reviewed per-scenario exceptions, pass `--scenario-policy /path/to/policy.json`. The policy is
+operator input and is not allowed for non-comparison workflows. The runner combines it with the
+trusted semantic scenario catalog only after both captures finish, writes a run-scoped
+`scenario-config.json`, and binds that config to both capture IDs and exact manifest SHA-256
+digests. A stale policy binding is rejected before image analysis. Policy rules use schema
+`ui-smoke-comparison-policy/v1` and may override `diffThreshold`, `failThreshold` (including
+`null` to disable it), `looksSameTolerance`, `expectedChange`, and rectangular `masks` for a
+semantic scenario. An optional `{ "width": 1280, "height": 800 }` viewport makes a rule specific
+to that capture size. Mask coordinates are non-negative physical PNG pixels, must stay within the
+image, and cannot cover the entire image. Viewport qualifiers use CSS pixels; masks use physical
+pixels, so the default device scale factor of 2 makes a `1280x800` screenshot `2560x1600`. A
+viewport-specific rule inherits the scenario-wide mask set when `masks` is omitted, clears it with
+`"masks": []`, and replaces it when a non-empty mask array is supplied. `expectedChange` is an
+annotation and does not waive a failure threshold; set `failThreshold` to `null` when the reviewed
+change should remain informational.
+
+```json
+{
+  "schemaVersion": "ui-smoke-comparison-policy/v1",
+  "scenarios": [
+    {
+      "semanticScenario": "run-details-task-logs",
+      "viewport": { "width": 1280, "height": 800 },
+      "diffThreshold": 0.02,
+      "failThreshold": 0.1,
+      "looksSameTolerance": 2.3,
+      "expectedChange": "Reviewed log-toolbar layout change",
+      "masks": [{ "x": 2300, "y": 40, "width": 180, "height": 60, "reason": "provider badge" }]
+    }
+  ]
+}
+```
+
+The clean-stack catalog keys are `executions-to-runs`, `artifact-list-evolution`,
+`run-details-rich-graph`, `run-details-task-panel`, `run-details-task-logs`,
+`run-details-scalar-metrics`, `run-details-html`, `run-details-markdown`, `run-details-roc`,
+`compare-runs`, `compare-roc-selection`, `compare-html`, `compare-markdown`, `artifact-details`,
+`artifact-related-tasks`, `topology-retried-task`, `topology-parallel-for`,
+and `topology-nested-dag`.
+
+Full-stack seeding creates the same logical pipeline, run, metrics, ROC data, artifacts, retry,
+two-item `ParallelFor`, and nested DAG in each revision through that revision's supported APIs.
+The artifact set includes deterministic scalar metrics, classification metrics, HTML, and Markdown
+contents plus producer and consumer relationships. The retry fixture declares that it requires
+Argo `retryPolicy: OnFailure`; the runner applies that requirement only to each rendered disposable
+stack and verifies the target ConfigMap shape before deployment. Repository manifests are not
+modified.
+
+The 2.17.1 Argo reporter does not populate a complete task/Artifact projection. Legacy hydration
+therefore resolves the exact `system.PipelineRun` MLMD context by the KFP run ID, loads every
+execution, Artifact, and Event in that context, and reconstructs only the fixture's declared
+producer/consumer ports from actual `INPUT` and `OUTPUT` Events. Any context ID exposed by GetRun is
+treated as a cross-check, not as the source of truth. MLMD execution names, pod identities,
+iteration indexes, parent DAG IDs, and executor-log Events provide complete task, retry, lineage,
+and containment coverage without guessing between repeated task names. The legacy task API stores
+dependency children as unjoinable Argo node IDs, so `depends-on` edges are explicitly marked as
+`pipeline-version-spec` evidence parsed from the exact PipelineVersion referenced by the observed
+run; containment and Artifact consumer edges remain independently backed by MLMD. Missing,
+ambiguous, undeclared, version-mismatched,
+cross-context, or GetRun/MLMD-conflicting evidence fails seeding. Executor-log Events are accepted
+only when the referenced MLMD Artifact has type `system.Artifact`, custom display name
+`executor-logs`, and a deterministic attempt-suffixed URI. Native runs page
+through `/apis/v2beta1/runs/{run-id}/tasks` and preserve the returned Task and Artifact
+relationships. Both revisions retain launcher-managed `executor-logs-N` Artifacts, order retry logs
+by their URI suffix rather than API response order, and map their IDs and URIs to the same semantic
+attempt identities without admitting other undeclared Artifacts.
+
+The resulting `semantic-fixtures.json` maps stable fixture keys to each revision's generated IDs, so
+routes and selectors do not need identical IDs.
+
+Capture scenarios are semantic journeys rather than a shared list of URLs. The base and head may
+use different routes, tabs, selectors, and actions for the same scenario. The clean-stack catalog
+covers Executions to Runs, grouped to native Artifact lists, Run Details graph/task/logs and all
+seeded visualizations, Compare selections, Artifact Details and relationships, retries,
+`ParallelFor`, and nested DAGs. The clean-stack catalog deliberately omits the former historical
+Artifact scenario because no historical identity exists there; it belongs in upgrade mode once an
+adapter can discover and attest the migrated native Artifact identity.
+
+## PR comments
+
+GitHub is never modified by default. Add `--comment` to a comparison that has `--pr` or
+`--pr-number`:
+
+```bash
+node smoke-test-runner.js \
+  --compare origin/master \
+  --pr 12345 \
+  --trust-pr-code \
+  --comment
+```
+
+The reporter validates `summary.json`, uses argument-array subprocess calls, and creates or updates
+only the uniquely marked comment authored by the authenticated GitHub user. The comment records the
+full base and head SHAs, diff configuration, and failed, skipped, or threshold-exceeding results.
+Immediately before posting, the runner verifies that the pull request still points to the captured
+head SHA. Local `--pr-number --comment` runs additionally require a clean working tree whose HEAD
+matches the PR. Images remain local; the utility does not claim that CI uploaded an artifact.
+
+## Output and cleanup
+
+Every invocation gets its own directory, so concurrent and previous runs cannot supply stale
+screenshots:
+
+```text
 .ui-smoke-test/
-  base/                      # git worktree checkout (--compare mode)
-  pr-branch/                 # git worktree for --pr mode
-  screenshots/
-    main/                    # Screenshots from base branch
-      pipelines.png
-      experiments.png
-      manifest.json          # Capture metadata (timestamp, viewport, etc.)
-    pr/                      # Screenshots from PR / current branch
-      pipelines.png
-      experiments.png
-      manifest.json
-    comparison/              # Side-by-side comparisons
-      pipelines.png          # Left = main, Right = PR, with labels
-      experiments.png
-      summary.json           # Diff percentages per page
+  latest-run.txt
+  runs/
+    <timestamp>-<pid>-<random>/
+      semantic-fixtures.json
+      source-provenance.json
+      seed/
+        base.json
+        head.json
+      kubeconfigs/
+        base.yaml
+        head.yaml
+      upgrade-result.json        # upgrade mode, including fail-closed blockers
+      screenshots/
+        scenario-config.json      # policy bound to both exact capture manifests
+        base/manifest.json        # includes seed, semantic, and source attestations
+        head/manifest.json
+        comparison/<scenario>-<viewport>--base.png
+        comparison/<scenario>-<viewport>--head.png
+        comparison/<scenario>-<viewport>--overlay.png
+        comparison/<scenario>-<viewport>--raw-diff.png
+        comparison/<scenario>-<viewport>.png # highlighted side-by-side diff
+        comparison/summary.json
+        comparison/report.html   # self-contained base/head/diff browser report
+      worktrees/
 ```
 
-## Architecture
+`latest-run.txt` contains the absolute path of the newest run. Worktrees, temporary Git refs,
+proxies, port-forwards, local servers, and owned clusters are cleaned up on ordinary success or
+failure. The runner also requests cleanup on `SIGINT` and `SIGTERM`, but an uncatchable termination
+can leave run-scoped resources that must be removed by exact name. Completed screenshots and
+reports are retained. Other runs are never automatically deleted.
 
-### Port Layout (`--compare` mode)
+Comparison thresholds are evaluated only for complete, cryptographically attested semantic pairs.
+Missing, degraded, corrupt, and stale results remain distinct from pixel-diff failures. A verified,
+successfully captured expected removal is still analyzed and keeps all five image artifacts for
+review. Its trusted scenario default disables the failure threshold, while a reviewed policy may
+supply a numeric threshold that is enforced normally. Every emitted PNG is listed in the
+managed-output marker and recorded with its SHA-256 digest and byte size in the summary and
+self-contained report. Base and head capture manifests must also carry the same versioned semantic
+ID normalization policy; malformed or incomplete per-screenshot replacement evidence is rejected
+before pixel thresholds are evaluated.
 
+Full-stack comparisons create unique `ui-smoke-base-*` and `ui-smoke-head-*` clusters. Each has its
+own kubeconfig, context, database, object store, cache, Kubernetes resources, image scope, ports,
+and child processes. The runner never changes or depends on the global `current-context`.
+Run-scoped clusters are destroyed during cleanup so their state cannot leak into another run.
+
+The compatibility workflow retains the historical fixed `ui-smoke-test` cluster behavior. To
+delete that legacy managed cluster:
+
+```bash
+node smoke-test-runner.js --teardown
 ```
-Kind Cluster (K8s)
-  ├── ml-pipeline service :8888
-  ├── metadata-envoy-service :9090
-  └── minio-service :9000
 
-Port Forwards (kubectl)
-  ├── localhost:3002 → ml-pipeline:8888
-  ├── localhost:9090 → metadata-envoy:9090
-  └── localhost:9000 → minio:9000
+## What a full-stack comparison does
 
-Node.js Frontend Server (localhost:3001)
-  └── Proxies API calls to :3002, :9090, :9000
+1. Validates the reviewed checkout, dependencies, tools, both non-overlapping port sets, and either
+   an exact release-tag base such as `2.17.1` or an explicitly trusted non-release base ref. A
+   release base must use first-party images carrying that exact tag; a non-release base is pinned
+   and built locally.
+2. Creates unique run state and a detached base worktree, then renders only each revision's actual
+   platform-agnostic overlay. Workload and optional-service discovery never scans unrelated YAML.
+3. Verifies and exports every rendered dependency image and builds the selected head's—and, when
+   applicable, the non-release base's—revision-compatible frontend, frontend-server, backend, and
+   runtime images for the explicit Kind node platform. The known 2.17.1 amd64-only workloads use
+   narrow workload-level overrides on arm64; unknown architecture or build failures occur before
+   deployment. When a component declares its complete build inputs and those inputs are byte-for-byte
+   identical across two local revisions, the exact base image is retagged for the head instead of
+   being rebuilt.
+4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
+   preflighted for that revision. Exact local image overrides and runtime-image variables are
+   applied to each locally built revision before any workload starts. After each run-scoped image
+   is imported, its host-side tag is released so the two isolated stacks do not retain a third copy
+   of every locally built image.
+5. Applies the manifests and waits for the deployments actually rendered by that revision.
+   Rendered smoke manifests set SeaweedFS `-volume.max=8` and `-master.volumeSizeLimitMB=64`.
+   Its image entrypoint otherwise auto-sizes volume slots from available disk space, which can
+   leave only one slot on a small Kind disk. The bucket and default collections need distinct
+   slots, so a successful bucket write alone does not prove fixture storage is ready. These
+   smoke-only settings preserve source manifests, unrelated arguments, and free-space safeguards.
+   SeaweedFS must also pass a bounded, authenticated S3 write/read/delete round trip in the
+   fixture bucket, plus a filer write/read/delete check for its separate collection.
+   A healthy listener or existing bucket alone does not prove writable storage;
+   seeding is stopped if the object store cannot persist and return the probe content.
+6. Forwards each cluster's deployed `ml-pipeline-ui` service on a distinct loopback port. Seeding,
+   readiness checks, and screenshots all use that deployed UI and its matching in-cluster
+   frontend-server/backend; full-stack mode does not substitute a host-side server or static proxy.
+7. Executes equivalent deterministic fixtures through each revision's supported API and runtime.
+   They cover scalar and ROC metrics, artifact producer/consumer relationships, a retry, a
+   two-item `ParallelFor`, and nested DAG parent/child relationships. List-filler runs use a small
+   deterministic pipeline so the richer topology remains the single semantic source of truth.
+   The base records legacy MLMD task/artifact data; a native head records Task/Artifact API data.
+8. Discovers generated IDs from each revision's run details and writes separate capture-compatible
+   seed manifests plus one `ui-smoke-semantic/v3` manifest keyed by logical fixtures. The manifest
+   maps per-revision run, task instance, artifact, Artifact URI, pod identity, retry-attempt,
+   iteration, and relationship IDs; unknown or incomplete semantic bindings stop the comparison.
+9. Binds each capture to the revision-specific deployed UI URL, semantic manifest, and immutable
+   source provenance.
+10. Captures both revisions, compares only exact successful manifest pairs with pinned analysis
+    settings, writes the report, and applies the exit policy.
+11. If explicitly requested, posts the report even when visual differences make the run fail.
 
-proxy-server.js × 2
-  ├── localhost:4001 → static base build + API → :3001
-  └── localhost:4002 → static PR build + API → :3001
+### Full-stack failure diagnostics
 
-Playwright captures screenshots from :4001 and :4002
+A full-stack setup, seed, fixture-validation, or capture failure writes both
+`full-stack-diagnostics.json` and a self-contained `full-stack-diagnostics.html` in the run
+directory before owned clusters are removed. Capture validity uses one explicit value:
+`valid`, `ui_rendering_failure`, `api_incompatibility`, `seed_failure`, `missing_fixture`,
+`selector_drift`, `expected_product_removal`, or `infrastructure_failure`. An asserted
+`expected_product_removal` is an expected-change outcome, not a pixel-diff failure. Missing and
+degraded captures are never converted into visual-difference percentages.
+
+For each cluster created by the run, failure collection records bounded Deployment and Pod status,
+namespace events, and tail-limited logs from known KFP service Pods. SeaweedFS diagnostics also
+include `/data` disk usage and the master's volume topology, even when the Pod log limit is reached.
+Every `kubectl` request carries
+that stack's explicit run-scoped kubeconfig and context. Diagnostics never request Secret objects
+or container environment values; common credentials, authorization headers, cookies, tokens, and
+credential-bearing URLs are redacted. Individual text artifacts live under
+`diagnostics/{base,head}` and the JSON record contains their relative paths and SHA-256 hashes.
+The JSON and HTML also embed bounded, redacted log previews, so the HTML remains a useful single
+entry point after cleanup while the full tail-limited files remain available for deeper inspection.
+When a capture manifest provides browser diagnostics, its bounded console errors and failed network
+requests are included in the same failure record.
+
+The compatibility workflow's local proxy pins API requests to the configured backend origin,
+rejects unsafe absolute-form targets and path/symlink escapes, and returns real missing-asset errors
+instead of the SPA shell. It permits read-only HTTP methods plus MLMD `Get*` RPCs, rejecting backend
+mutations from captured frontend code. The browser blocks service workers and all
+HTTP(S)/WebSocket traffic outside the exact capture origin, so captured frontend code cannot probe
+other localhost, LAN, or internet services.
+
+## Direct utilities
+
+The runner is the supported end-to-end entry point. The lower-level tools are useful for focused
+debugging:
+
+```bash
+node capture-screenshots.js \
+  --base-url http://127.0.0.1:3000 \
+  --output ./screenshots/base \
+  --label base \
+  --normalization-mode semantic-full-stack \
+  --revision-role base \
+  --seed-manifest ./seed/base.json \
+  --semantic-manifest ./semantic-fixtures.json \
+  --source-provenance ./source-provenance.json
+
+node capture-screenshots.js \
+  --base-url http://127.0.0.1:3001 \
+  --output ./screenshots/head \
+  --label head \
+  --normalization-mode semantic-full-stack \
+  --revision-role head \
+  --seed-manifest ./seed/head.json \
+  --semantic-manifest ./semantic-fixtures.json \
+  --source-provenance ./source-provenance.json
+
+node generate-comparison.js \
+  --main ./screenshots/base \
+  --pr ./screenshots/head \
+  --output ./screenshots/comparison \
+  --fail-threshold 0
+
+node upload-to-pr.js \
+  --pr 12345 \
+  --repo kubeflow/pipelines \
+  --screenshots ./screenshots/comparison
 ```
 
-### Component Change Detection
+`generate-comparison.js` requires matching version-2 capture manifests. It writes a summary even
+when inputs are invalid, a screenshot is corrupt, image dimensions differ, or diff analysis fails,
+and then exits nonzero.
 
-The `detect-changes.js` script maps changed files to backend components using 2-dot diff (`base..head`), which shows only what the PR changed:
+Capture and comparison output directories carry ownership markers. Direct tools refuse to clean a
+non-empty directory without a valid marker and remove only the files named by that marker.
 
-| File Path | Component | Make Target | K8s Deployment |
-|-----------|-----------|-------------|----------------|
-| `backend/src/apiserver/**` | apiserver | `image_apiserver` | `ml-pipeline` |
-| `backend/src/agent/persistence/**` | persistence-agent | `image_persistence_agent` | `ml-pipeline-persistenceagent` |
-| `backend/src/cache/**` | cache-server | `image_cache` | (varies) |
-| `backend/src/crd/controller/scheduledworkflow/**` | scheduledworkflow | `image_swf` | `ml-pipeline-scheduledworkflow` |
-| `backend/src/crd/controller/viewer/**` | viewercontroller | `image_viewer` | `ml-pipeline-viewer-crd` |
-| `backend/src/apiserver/visualization/**` | visualization | `image_visualization` | `ml-pipeline-visualizationserver` |
-| `backend/src/v2/cmd/driver/**` | driver | `image_driver` | (runtime image) |
-| `backend/src/v2/cmd/launcher-v2/**` | launcher | `image_launcher` | (runtime image) |
-| `backend/src/common/**` | ALL Go components | | |
-| `go.mod`, `go.sum` | ALL Go components | | |
+The older `visual-compare.mjs`, `visual-compare-run.sh`, and `visual:*` npm commands were removed
+because they did not enforce the live, versioned, fail-closed workflow. Use
+`smoke-test-runner.js` for regression decisions.
 
-### Scripts Reference
+## Tests
 
-| Script | Purpose |
-|--------|---------|
-| `smoke-test-runner.js` | Main orchestrator — `--compare` (primary) and legacy modes |
-| `detect-changes.js` | Maps `git diff` to backend components for selective rebuild |
-| `cluster-manager.js` | Kind cluster lifecycle, component build/deploy, port forwarding, frontend server |
-| `capture-screenshots.js` | Playwright-based screenshot capture with configurable wait conditions |
-| `generate-comparison.js` | Side-by-side image generation with labels and pixel diff percentage |
-| `proxy-server.js` | Static file server that proxies API calls to a real backend |
-| `upload-to-pr.js` | Posts text summary of results to a GitHub PR comment |
-| `seed-data.js` | Creates sample pipelines, experiments, runs via KFP API |
+```bash
+npm test
+```
 
-### Dependencies
-
-- **playwright** — headless Chrome for screenshot capture
-- **sharp** — image processing for side-by-side layout images
-- **looks-same** — mature visual diff engine (diff percentages + clusters)
-
-## Lessons Learned
-
-These are practical findings from building and using this tool.
-
-### 3-dot diff includes unwanted files (fixed)
-
-`git diff --name-only base...HEAD` (3-dot) shows all changes since the merge base, including files changed on the base branch since divergence. For a frontend-only PR, this could flag backend files that changed on master, triggering unnecessary rebuilds. Fixed by switching to 2-dot diff (`base..HEAD`) which shows only what HEAD added.
-
-### Backend rebuild auto-skips when no backend changes are detected
-
-The tool automatically skips backend rebuild (step 4) and manifest re-apply (step 5) when change detection finds no backend file changes. The `--skip-backend` flag exists as a manual override for cases where detection is wrong (e.g., during a rebase that touches `go.mod`).
-
-### Static serving without a backend is limited
-
-Using `npx serve -s` (static mode) gives you the app shell, but all data-driven pages show error banners because there's no API. This is fine for layout/styling regression checks, but useless for verifying data-driven UI. The `--proxy` flag and `proxy-server.js` were built to address this.
-
-### Wait selectors must target real data, not just DOM structure
-
-Initially we waited for `[class*="tableRow"]` which fires when the empty/skeleton table renders. Screenshots captured loading or error states. We added `waitForData` selectors (e.g., `a[href*="pipeline"]`) that only match when actual data rows with links are present.
-
-### `--use-existing` is the most useful quick workflow
-
-Run your dev server (`npm start` in `frontend/`), then point the tool at it. No build step, no server management, instant screenshots.
-
-### `--compare` is the most useful full workflow
-
-For PR review, `--compare master` gives you the full picture: change detection, selective backend rebuild, both frontends built and screenshotted against a live backend. It uses `git worktree` (fast, offline) instead of `git clone`.
-
-### Cleanup must be guaranteed, not conditional
-
-Early versions only cleaned up worktrees and restored ml-pipeline-ui on the success path. A Ctrl+C or error mid-workflow would leave stale worktrees and ml-pipeline-ui scaled to 0. Fixed with a LIFO resource tracker that runs on all exit paths (success, error, SIGINT).
-
-### GitHub cannot accept image uploads via CLI or API
-
-Neither `gh` nor the GitHub REST API supports image attachments programmatically. Images must be uploaded via drag-drop in the browser, or hosted externally. The `upload-to-pr.js` script posts a text summary.
-
-### Hash-based routing requires specific URL patterns
-
-The KFP frontend uses hash-based routing (`/#/pipelines`, not `/pipelines`). The page definitions in `capture-screenshots.js` use `/#/` prefixed paths. If the app moves to history-based routing, those paths need updating.
+The nested tests use Node's built-in test runner and cover capture manifests, comparison failure
+modes, change detection, cluster command construction, seeding, proxy boundaries, runner argument
+validation, and GitHub reporting. They also run in the frontend CI workflow.
