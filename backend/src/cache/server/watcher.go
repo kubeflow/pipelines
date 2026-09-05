@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"strconv"
 	"time"
 
@@ -35,14 +34,23 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			LabelSelector: CacheIDLabelKey,
 		}
 		watcher, err := k8sCore.PodClient(namespaceToWatch).Watch(ctx, listOptions)
-
 		if err != nil {
 			log.Printf("%s", "Watcher error:"+err.Error())
+			return
+		}
+
+		if watcher == nil {
+			log.Printf("%s", "Watcher error: nil watcher returned")
+			return
 		}
 
 		for event := range watcher.ResultChan() {
-			pod := reflect.ValueOf(event.Object).Interface().(*corev1.Pod)
 			if event.Type == watch.Error {
+				continue
+			}
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
+				log.Printf("Unexpected watch object type: %T", event.Object)
 				continue
 			}
 			log.Printf("%s", (*pod).GetName())
