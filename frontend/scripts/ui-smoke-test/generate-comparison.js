@@ -15,6 +15,7 @@ const path = require('path');
 const fs = require('fs');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
+  SEMANTIC_SCENARIOS,
   getGlobalVisualNormalizationContract,
   getSemanticIdNormalizationContract,
 } = require('./semantic-capture-scenarios');
@@ -32,7 +33,7 @@ const {
   combineRevisionSemanticManifests,
   validateRevisionSemanticManifest,
 } = require('./semantic-manifest');
-const { ORDINARY_REVISION_AWARE_PAGE_NAMES } = require('./capture-screenshots');
+const { ORDINARY_REVISION_AWARE_PAGE_NAMES, captureViewport } = require('./capture-screenshots');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
@@ -744,7 +745,10 @@ function validateRequiredScenarioCoverage(baseIdentity, headIdentity, catalog, v
     );
   for (const [semanticScenario, contract] of catalog) {
     if (!contract.required) continue;
-    for (const viewport of viewports) {
+    // Resolve the same canonical minimum dimensions used by capture, not manifest-provided minima.
+    const scenario = SEMANTIC_SCENARIOS.find((entry) => entry.key === semanticScenario) || {};
+    for (const requestedViewport of viewports) {
+      const viewport = captureViewport(scenario, requestedViewport);
       const key = `${viewport.width}x${viewport.height}`;
       const base = matches(baseIdentity.manifest, semanticScenario, viewport);
       const head = matches(headIdentity.manifest, semanticScenario, viewport);

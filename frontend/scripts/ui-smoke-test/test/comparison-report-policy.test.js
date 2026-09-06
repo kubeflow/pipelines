@@ -1166,6 +1166,64 @@ test('bound policy enforces required semantic catalog completeness and classific
   assert.equal(cleared.config.scenarios[0].expectedChange, null);
 });
 
+test('required viewer coverage uses canonical capture dimensions without weakening pair coverage', async (t) => {
+  const writeConfig = (root, scenario, expectedViewports = '1280x800') =>
+    comparison.writeBoundScenarioConfig({
+      baseDir: path.join(root, 'base'),
+      headDir: path.join(root, 'head'),
+      defaults: { diffThreshold: 0, failThreshold: 0, looksSameTolerance: 2.3 },
+      outputPath: path.join(root, `bound-${expectedViewports}.json`),
+      expectedViewports,
+      scenarioCatalog: [{ semanticScenario: scenario, required: true, expectedChange: null }],
+    });
+  for (const [scenario, dimensions] of [
+    ['run-details-html', '2200x1200'],
+    ['run-details-roc', '2200x1200'],
+    ['compare-html', '1280x1200'],
+    ['compare-markdown', '1280x1200'],
+    ['compare-roc-selection', '1280x1200'],
+  ]) {
+    await t.test(`${scenario} accepts actual dimensions`, async () => {
+      const filename = `${scenario}-${dimensions}.png`;
+      const root = await createPair(t, [
+        { base: captureResult(filename), head: captureResult(filename) },
+      ]);
+      assert.doesNotThrow(() => writeConfig(root, scenario));
+      // Several requests may legitimately collapse to the same minimum-height capture.
+      assert.doesNotThrow(() => writeConfig(root, scenario, '1280x800,1280x1000'));
+      assert.throws(() => writeConfig(root, scenario, '2400x1600'), /missing viewport 2400x1600/);
+    });
+  }
+  for (const variant of ['missing', 'mismatched', 'optional', 'requested-only']) {
+    await t.test(`rejects ${variant} required viewer pair`, async () => {
+      const scenario = 'run-details-html';
+      const filename = `${scenario}-2200x1200.png`;
+      const root = await createPair(t, [
+        {
+          base: captureResult(variant === 'requested-only' ? `${scenario}-1280x800.png` : filename),
+          head: captureResult(
+            variant === 'mismatched' || variant === 'requested-only'
+              ? `${scenario}-1280x800.png`
+              : filename,
+            variant === 'optional' ? { required: false } : {},
+          ),
+        },
+        { base: captureResult('runs-1280x800.png'), head: captureResult('runs-1280x800.png') },
+      ]);
+      if (variant === 'missing') {
+        const manifestPath = path.join(root, 'head', 'manifest.json');
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        manifest.results = manifest.results.filter((result) => result.page !== scenario);
+        fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+      }
+      assert.throws(
+        () => writeConfig(root, scenario),
+        variant === 'optional' ? /must remain required/ : /missing viewport 2200x1200/,
+      );
+    });
+  }
+});
+
 test('expected removals are successful analyzed pairs with an explicitly disabled fail threshold', async (t) => {
   const removalFilename = 'executions-to-runs-10x10.png';
   const normalFilename = 'run-details-rich-graph-10x10.png';
