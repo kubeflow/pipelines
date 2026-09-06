@@ -1515,6 +1515,21 @@ test('comparison viewers collapse context and require complete visible regions',
   }
 });
 
+test('runtime HTML and ROC viewers require enough room for their half-width side panel', () => {
+  for (const role of ['base', 'head']) {
+    const scenarios = resolveSemanticScenarios(role, SEED_VALUES);
+    for (const [key, selector] of [
+      ['run-details-html', 'iframe'],
+      ['run-details-roc', '.recharts-wrapper'],
+    ]) {
+      const scenario = byKey(scenarios, key);
+      assert.equal(scenario.minimumCaptureWidth, 2200);
+      assert.equal(scenario.minimumCaptureHeight, 1200);
+      assert.deepEqual(scenario.captureRegion, { selector, minCount: 1 });
+    }
+  }
+});
+
 test('Artifact Details binds HTML while relationships bind a produced and consumed metric', () => {
   for (const role of ['base', 'head']) {
     const resolved = resolveSemanticScenarios(role, SEED_VALUES);

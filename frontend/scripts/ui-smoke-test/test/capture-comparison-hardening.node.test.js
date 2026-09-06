@@ -515,6 +515,15 @@ test('timestamp normalization accepts Intl nonbreaking spaces without masking fi
 
 test('scenario viewport sizing preserves wider/taller requests and records actual dimensions', () => {
   const scenario = { minimumCaptureHeight: 1200 };
+  const runtimeViewer = { minimumCaptureWidth: 2200, minimumCaptureHeight: 1200 };
+  assert.deepEqual(capture.captureViewport(runtimeViewer, { width: 1280, height: 800 }), {
+    width: 2200,
+    height: 1200,
+  });
+  assert.deepEqual(capture.captureViewport(runtimeViewer, { width: 2400, height: 1600 }), {
+    width: 2400,
+    height: 1600,
+  });
   assert.deepEqual(capture.captureViewport(scenario, { width: 1280, height: 800 }), {
     width: 1280,
     height: 1200,

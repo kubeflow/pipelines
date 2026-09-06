@@ -2373,6 +2373,7 @@ function captureFilename(pageName, viewport) {
 function captureViewport(pageConfig, requestedViewport) {
   return {
     ...requestedViewport,
+    width: Math.max(requestedViewport.width, pageConfig.minimumCaptureWidth || 0),
     height: Math.max(requestedViewport.height, pageConfig.minimumCaptureHeight || 0),
   };
 }
@@ -3136,7 +3137,12 @@ async function captureScreenshots(options, dependencies = {}) {
             // HTTP response. A fresh page guarantees that every route performs a network request
             // whose status can be validated before capture.
             page = await context.newPage();
-            if (viewport.height !== requestedViewport.height) await page.setViewportSize(viewport);
+            if (
+              viewport.width !== requestedViewport.width ||
+              viewport.height !== requestedViewport.height
+            ) {
+              await page.setViewportSize(viewport);
+            }
             diagnostics = createPageDiagnostics(page, options.baseUrl);
             await installDeterministicRendering(page);
             const response = await page.goto(url, {
