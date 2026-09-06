@@ -1917,11 +1917,14 @@ test('frame-text readiness inspects sandboxed frames through Playwright', async 
   assert.equal(frameChecks, 1);
 });
 
-test('selected graph node is panned into the area not covered by task details', async () => {
+test('selected graph node pans on the pane rather than the inset close button or resize handle', async () => {
   const bounds = { x: 900, y: 300, width: 100, height: 60 };
   let pointer;
   let start;
   const drags = [];
+  const hitTests = [];
+  const pane = {};
+  let graphObstructed = false;
   const target = { boundingBox: async () => ({ ...bounds }) };
   const page = {
     locator: (selector) => ({
@@ -1929,9 +1932,32 @@ test('selected graph node is panned into the area not covered by task details', 
         selector === '.react-flow__pane'
           ? { boundingBox: async () => ({ x: 220, y: 150, width: 1060, height: 650 }) }
           : selector === '[aria-label="close"]'
-            ? { boundingBox: async () => ({ x: 650, y: 160, width: 30, height: 30 }) }
+            ? {
+                evaluate: async (fn) =>
+                  fn({
+                    closest: (selector) => {
+                      assert.equal(selector, '[class*="sidepane"]');
+                      return {
+                        getBoundingClientRect: () => ({
+                          toJSON: () => ({ x: 630, y: 120, width: 650, height: 680 }),
+                        }),
+                      };
+                    },
+                  }),
+              }
             : target,
     }),
+    evaluate: async (fn, args) =>
+      vm.runInNewContext(`(${fn.toString()})`, {
+        document: {
+          querySelector: () => pane,
+          elementFromPoint: (x, y) => {
+            hitTests.push({ x, y });
+            // The handle extends 5px beyond the panel; close.x - 20 was inside it.
+              return graphObstructed || x >= 625 ? { closest: () => null } : pane;
+          },
+        },
+      })(args),
     mouse: {
       move: async (x, y) => {
         pointer = { x, y };
@@ -1947,10 +1973,19 @@ test('selected graph node is panned into the area not covered by task details', 
     },
   };
   await capture.executeActions(page, [{ type: 'centerGraphNode', selector: '.selected-task' }]);
-  assert.equal(bounds.x + bounds.width / 2, 435);
+  assert.equal(bounds.x + bounds.width / 2, 419);
   assert.equal(bounds.y + bounds.height / 2, 475);
   assert.ok(drags.length > 1);
-  assert.ok(drags.flat().every(({ x }) => x > 220 && x < 650));
+  assert.ok(drags.flat().every(({ x }) => x > 220 && x < 625));
+  assert.equal(hitTests.length, drags.length);
+  graphObstructed = true;
+  bounds.x = 900;
+  const completedDrags = drags.length;
+  await assert.rejects(
+    capture.executeActions(page, [{ type: 'centerGraphNode', selector: '.selected-task' }]),
+    /No unobstructed graph pane position/,
+  );
+  assert.equal(drags.length, completedDrags);
 });
 
 test('capture actions select deterministic indexes and wait for repeated text', async () => {
