@@ -8,6 +8,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const capture = require('../capture-screenshots.js');
+const { semanticIdToken } = require('../semantic-id-normalization.js');
 const comparison = require('../generate-comparison.js');
 const { validateCombinedSemanticManifest } = require('../semantic-manifest.js');
 const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
@@ -77,7 +78,7 @@ function semanticIdentifierManifest(role, suffix, overrides = {}) {
         validation: { errors: [], valid: true },
       },
     },
-    fixtureSet: 'ui-smoke-deterministic-v3',
+    fixtureSet: 'ui-smoke-deterministic-v4',
     logical: {
       resources: {
         'run.training-1': { displayName: 'UI Smoke Training Run 1' },
@@ -492,7 +493,10 @@ test('explicit root catalog normalizes only a proven fixture parent', async () =
     },
     catalog,
   );
-  assert.equal(page.nodes[0].nodeValue, '[ui-id:task:training-1:root:0]');
+  assert.equal(
+    page.nodes[0].nodeValue,
+    catalog.find((entry) => entry.value === 'native-explicit-root').token,
+  );
   assert.equal(page.nodes[1].nodeValue, 'unrelated-parent');
   run.rootTask.taskId = 'unproven-root';
   assert.throws(
@@ -643,8 +647,8 @@ test('legacy catalogs cover every MLMD execution and pair executor-log attempts 
   assert.equal(baseLoopIterations.length, 2);
   assert.equal(headLoopIterations.length, 2);
   assert.deepEqual(
-    baseLoopIterations.map((identifier) => identifier.token).sort(),
-    headLoopIterations.map((identifier) => identifier.token).sort(),
+    baseLoopIterations.map((identifier) => identifier.tokenSemanticId).sort(),
+    headLoopIterations.map((identifier) => identifier.tokenSemanticId).sort(),
   );
 
   const workerNormalization = (semanticIds) => ({
@@ -736,7 +740,7 @@ test('legacy catalogs cover every MLMD execution and pair executor-log attempts 
     executionScenario.semanticIdNormalization,
     baseCatalog,
   );
-  assert.match(rootName.nodes[1].nodeValue, /^run\/\[ui-id:run:/);
+  assert.match(rootName.nodes[1].nodeValue, /^run\/[a-f0-9-]+$/);
   assert.equal(evidence.totalReplacementCount, 2);
 });
 
@@ -876,7 +880,10 @@ test('revision-specific Artifact URIs and pod identities normalize to stable sem
     capture.buildSemanticIdentifierCatalog(manifests.head, 'head'),
   );
   assert.equal(basePage.nodes[0].nodeValue, headPage.nodes[0].nodeValue);
-  assert.equal(basePage.nodes[0].nodeValue, `[ui-id:artifact-uri:training-1:html-report:0:uri]`);
+  assert.equal(
+    basePage.nodes[0].nodeValue,
+    semanticIdToken('artifact-uri', 'run.training-1/artifact.html-report[0]/uri'),
+  );
   assert.equal(JSON.stringify(baseEvidence).includes(baseUri), false);
   assert.equal(JSON.stringify(headEvidence).includes(headUri), false);
 
@@ -1099,7 +1106,7 @@ test('exact normalization does not corrupt short numeric MLMD IDs or unrelated t
     catalog,
   );
 
-  assert.match(fixture.nodes[0].nodeValue, /^\[ui-id:task:/);
+  assert.match(fixture.nodes[0].nodeValue, /^[1-9][0-9]{5}$/);
   assert.deepEqual(
     fixture.nodes.slice(1).map((node) => node.nodeValue),
     ['173', '73.0', '00:00:73', 'unrelated-uuid'],
@@ -1163,9 +1170,13 @@ test('semantic ID normalization fails closed on missing, excess, and ambiguous b
   tokenCollisionManifest.deployments.head.bindings.runs['run.training-1'].taskInstances[
     'write-metrics'
   ] = [{ taskId: 'head-token-collision-task' }];
-  assert.throws(
-    () => capture.buildSemanticIdentifierCatalog(tokenCollisionManifest, 'head'),
-    /produce the same visual token/,
+  const collisionCatalog = capture.buildSemanticIdentifierCatalog(tokenCollisionManifest, 'head');
+  const collisionCandidates = collisionCatalog.filter(
+    (entry) => entry.kind === 'task' && entry.semanticId.includes('write-metrics'),
+  );
+  assert.equal(
+    new Set(collisionCandidates.map((entry) => entry.token)).size,
+    collisionCandidates.length,
   );
 
   for (const [name, mutate, expected] of [
@@ -1181,7 +1192,7 @@ test('semantic ID normalization fails closed on missing, excess, and ambiguous b
       (manifest) => {
         manifest.fixtureSet = 'partial-fixtures';
       },
-      /must use fixture set ui-smoke-deterministic-v3/,
+      /must use fixture set ui-smoke-deterministic-v4/,
     ],
     [
       'validation',
@@ -1229,7 +1240,10 @@ test('substring normalization is one-pass and never rewrites generated semantic 
     catalog,
   );
 
-  assert.equal(fixture.nodes[0].nodeValue, '[ui-id:run:training-1]');
+  assert.equal(
+    fixture.nodes[0].nodeValue,
+    catalog.find((entry) => entry.semanticId === 'run.training-1').token,
+  );
   assert.equal(result.totalReplacementCount, 1);
   assert.equal(
     result.scopes[0].entries.find(
@@ -1495,6 +1509,25 @@ test('topology journeys enter the nested graph and first loop iteration', () => 
         false,
       );
     }
+  }
+});
+
+test('semantic capture catalog retains normal layouts alongside five full-viewer captures', () => {
+  for (const role of ['base', 'head']) {
+    const scenarios = resolveSemanticScenarios(role, SEED_VALUES);
+    const viewports = scenarios.flatMap((scenario) =>
+      capture.captureViewports(scenario, [{ width: 1280, height: 800 }]),
+    );
+    assert.equal(viewports.length, scenarios.length + 5);
+    assert.equal(viewports.filter(({ height }) => height === 800).length, scenarios.length);
+    assert.equal(
+      viewports.filter(({ width, height }) => width === 2200 && height === 1200).length,
+      2,
+    );
+    assert.equal(
+      viewports.filter(({ width, height }) => width === 1280 && height === 1200).length,
+      3,
+    );
   }
 });
 

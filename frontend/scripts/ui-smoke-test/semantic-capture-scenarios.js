@@ -481,6 +481,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'run-details-html',
+    // Additional full-viewer evidence; requested viewport captures remain required as layout evidence.
     minimumCaptureWidth: 2200,
     minimumCaptureHeight: 1200,
     captureRegion: { selector: 'iframe', minCount: 1 },

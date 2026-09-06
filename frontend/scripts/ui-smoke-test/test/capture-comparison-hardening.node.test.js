@@ -61,7 +61,7 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
       semanticIdNormalization: result.semanticIdNormalization || {
         complete: true,
         derivedColorScopes: [],
-        schemaVersion: 'ui-smoke-id-normalization/v1',
+        schemaVersion: 'ui-smoke-id-normalization/v2',
         scopes: [],
         totalReplacementCount: 0,
       },
@@ -110,8 +110,8 @@ function writeCaptureManifest(directory, results, label, overrides = {}) {
             failOnReplacementCountMismatch: true,
             mode: 'disabled-browser-compatibility',
             rawIdentifierPolicy: 'SHA-256 attestation only',
-            schemaVersion: 'ui-smoke-id-normalization/v1',
-            tokenFormat: '[ui-id:<kind>:<semantic-path>]',
+            schemaVersion: 'ui-smoke-id-normalization/v2',
+            tokenFormat: 'kind-shaped-sha256/v2',
           },
           timezone: 'UTC',
         },
@@ -516,6 +516,23 @@ test('timestamp normalization accepts Intl nonbreaking spaces without masking fi
 test('scenario viewport sizing preserves wider/taller requests and records actual dimensions', () => {
   const scenario = { minimumCaptureHeight: 1200 };
   const runtimeViewer = { minimumCaptureWidth: 2200, minimumCaptureHeight: 1200 };
+  assert.deepEqual(
+    capture.captureViewports(runtimeViewer, [
+      { width: 1280, height: 800 },
+      { width: 1280, height: 1000 },
+    ]),
+    [
+      { width: 1280, height: 800 },
+      { width: 2200, height: 1200 },
+      { width: 1280, height: 1000 },
+    ],
+  );
+  assert.deepEqual(capture.captureViewports(runtimeViewer, [{ width: 2400, height: 1600 }]), [
+    { width: 2400, height: 1600 },
+  ]);
+  assert.deepEqual(capture.captureViewports({}, [{ width: 1280, height: 800 }]), [
+    { width: 1280, height: 800 },
+  ]);
   assert.deepEqual(capture.captureViewport(runtimeViewer, { width: 1280, height: 800 }), {
     width: 2200,
     height: 1200,
@@ -571,13 +588,16 @@ test('viewer framing rejects missing, clipped, and overflow-hidden content', asy
   await capture.assertCaptureRegion(page, region);
   bottom = 1300;
   await capture.assertCaptureRegion(page, region);
+  await capture.assertCaptureRegion(page, region, false);
   bottom = 900;
   parentBottom = 800;
   await capture.assertCaptureRegion(page, region);
+  await capture.assertCaptureRegion(page, region, false);
   parentBottom = 1100;
   count = 1;
   await capture.assertCaptureRegion(page, region);
-  assert.deepEqual(results, [true, false, false, false]);
+  await capture.assertCaptureRegion(page, region, false);
+  assert.deepEqual(results, [true, false, true, false, true, false, false]);
 });
 
 test('volatile metadata normalization is scoped to sidebar version and log prefixes', async (t) => {
@@ -1049,6 +1069,8 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
             return {
               mouse: { move: async () => events.push('neutral-pointer') },
               frames: () => [],
+              setViewportSize: async ({ width, height }) =>
+                events.push(`viewport:${width}x${height}`),
               emulateMedia: async () => events.push('reduced-motion'),
               addInitScript: async () => events.push('init-css'),
               goto: async (url) => {
@@ -1117,7 +1139,7 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
         },
         waitFor: '#ready',
       },
-      { name: 'second-page', path: '/#/second', waitFor: '#ready' },
+      { name: 'second-page', path: '/#/second', waitFor: '#ready', minimumCaptureHeight: 20 },
     ],
     revisionRole: 'head',
     semanticIdNormalizationMode: 'semantic-full-stack',
@@ -1132,7 +1154,12 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
     chromium: makeChromium(200, successEvents),
   });
   assert.equal(success.exitCode, 0);
-  assert.equal(success.manifest.results.length, 2);
+  assert.equal(success.manifest.results.length, 3);
+  assert.deepEqual(
+    success.manifest.results.map((result) => result.filename),
+    ['fixture-page-10x10.png', 'second-page-10x10.png', 'second-page-10x20.png'],
+  );
+  assert.ok(successEvents.includes('viewport:10x20'));
   assert.equal(success.manifest.results[0].sha256.length, 64);
   assert.equal(success.manifest.inputs.revisionRole, 'head');
   assert.equal(success.manifest.inputs.seedManifest.sha256.length, 64);
@@ -1140,7 +1167,7 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   assert.equal(success.manifest.inputs.sourceProvenance.schemaVersion, 'ui-smoke-source/v1');
   assert.equal(
     success.manifest.deterministicRendering.semanticIdNormalization.schemaVersion,
-    'ui-smoke-id-normalization/v1',
+    'ui-smoke-id-normalization/v2',
   );
   assert.equal(
     success.manifest.deterministicRendering.semanticIdNormalization.mode,
@@ -1151,8 +1178,8 @@ test('capture flow uses browser sandbox defaults, stabilizes rendering, and enfo
   assert.equal(success.manifest.results[0].semanticIdNormalization.totalReplacementCount, 1);
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/fixture'));
   assert.ok(successEvents.includes('goto:https://example.test/kfp/#/second'));
-  assert.equal(successEvents.filter((event) => event === 'new-page').length, 2);
-  assert.equal(successEvents.filter((event) => event === 'page-close').length, 2);
+  assert.equal(successEvents.filter((event) => event === 'new-page').length, 3);
+  assert.equal(successEvents.filter((event) => event === 'page-close').length, 3);
   assert.ok(successEvents.indexOf('init-css') < successEvents.indexOf('screenshot'));
   assert.ok(successEvents.indexOf('action') < successEvents.indexOf('semantic-id-normalization'));
   assert.ok(

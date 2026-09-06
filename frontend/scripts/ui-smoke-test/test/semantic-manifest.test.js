@@ -1750,7 +1750,7 @@ test('builds and combines revision deployments by semantic key with provenance a
   assert.equal(combined.schemaVersion, SEMANTIC_SCHEMA_VERSION);
   assert.equal(combined.schemaVersion, 'ui-smoke-semantic/v3');
   assert.equal(combined.fixtureSet, SEMANTIC_FIXTURE_SET);
-  assert.equal(combined.fixtureSet, 'ui-smoke-deterministic-v3');
+  assert.equal(combined.fixtureSet, 'ui-smoke-deterministic-v4');
   assert.equal(combined.deployments.base.revision.role, 'base');
   assert.equal(combined.deployments.base.revision.ref, '2.17.1');
   assert.equal(combined.deployments.head.revision.commit, 'head-sha');

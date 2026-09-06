@@ -26,6 +26,7 @@ const {
   SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
   SEMANTIC_ID_PATH_PATTERN,
   SEMANTIC_ID_TOKEN_PATTERN,
+  SEMANTIC_ID_SHAPE_PATTERN,
   semanticIdNormalizationRenderingContract,
   semanticIdToken,
 } = require('./semantic-id-normalization');
@@ -33,7 +34,7 @@ const {
   combineRevisionSemanticManifests,
   validateRevisionSemanticManifest,
 } = require('./semantic-manifest');
-const { ORDINARY_REVISION_AWARE_PAGE_NAMES, captureViewport } = require('./capture-screenshots');
+const { ORDINARY_REVISION_AWARE_PAGE_NAMES, captureViewports } = require('./capture-screenshots');
 
 const CAPTURE_MANIFEST_FILENAME = 'manifest.json';
 const CAPTURE_MANIFEST_SCHEMA_VERSION = 3;
@@ -745,10 +746,9 @@ function validateRequiredScenarioCoverage(baseIdentity, headIdentity, catalog, v
     );
   for (const [semanticScenario, contract] of catalog) {
     if (!contract.required) continue;
-    // Resolve the same canonical minimum dimensions used by capture, not manifest-provided minima.
+    // Require both ordinary layout and full-viewer evidence from the canonical scenario contract.
     const scenario = SEMANTIC_SCENARIOS.find((entry) => entry.key === semanticScenario) || {};
-    for (const requestedViewport of viewports) {
-      const viewport = captureViewport(scenario, requestedViewport);
+    for (const viewport of captureViewports(scenario, viewports)) {
       const key = `${viewport.width}x${viewport.height}`;
       const base = matches(baseIdentity.manifest, semanticScenario, viewport);
       const head = matches(headIdentity.manifest, semanticScenario, viewport);
@@ -1747,7 +1747,8 @@ function normalizeSemanticIdNormalizationAttestation(value, label) {
         !SEMANTIC_ID_KINDS.includes(entry.tokenKind) ||
         typeof entry.tokenSemanticId !== 'string' ||
         !SEMANTIC_ID_PATH_PATTERN.test(entry.tokenSemanticId) ||
-        entry.token !== semanticIdToken(entry.tokenKind, entry.tokenSemanticId) ||
+        !SEMANTIC_ID_SHAPE_PATTERN.test(entry.tokenShape || '') ||
+        entry.token !== semanticIdToken(entry.tokenKind, entry.tokenSemanticId, entry.tokenShape) ||
         (hasEquivalenceClass &&
           (entry.kind !== 'task' ||
             typeof equivalenceClass !== 'string' ||
@@ -1772,6 +1773,7 @@ function normalizeSemanticIdNormalizationAttestation(value, label) {
         'token',
         'tokenKind',
         'tokenSemanticId',
+        'tokenShape',
       ]);
       if (Object.keys(entry).some((field) => !allowedEntryFields.has(field))) {
         throw new ComparisonError(
@@ -2363,6 +2365,7 @@ function validateSemanticNormalizationAgainstCatalog(manifest, role, semanticMan
           expected.token !== entry.token ||
           expected.tokenKind !== entry.tokenKind ||
           expected.tokenSemanticId !== entry.tokenSemanticId ||
+          expected.tokenShape !== entry.tokenShape ||
           (expected.equivalenceClass || undefined) !== entry.equivalenceClass ||
           expectedHash !== entry.sourceIdSha256
         ) {

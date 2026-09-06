@@ -203,6 +203,11 @@ node smoke-test-runner.js \
 ```
 
 - `--viewports` is a comma-separated `WIDTHxHEIGHT` list. The default is `1280x800`.
+  Every requested viewport is retained as layout evidence. Runtime HTML/ROC also receive a
+  full-viewer capture of at least `2200x1200`; Compare HTML/Markdown/ROC receive at least
+  `1280x1200` with the default width. Duplicate dimensions are captured once per scenario.
+  Normal layouts allow viewer overflow while preserving content readiness; full-viewer captures
+  additionally require the viewer to fit inside the viewport and its clipping ancestors.
 - `--diff-threshold` controls when changed regions are drawn on a comparison image.
 - `--fail-threshold` controls the maximum accepted changed-pixel percentage. The default is `0`, so
   every visual change requires review.

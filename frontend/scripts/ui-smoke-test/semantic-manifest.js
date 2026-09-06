@@ -1,7 +1,7 @@
 'use strict';
 
 const SEMANTIC_SCHEMA_VERSION = 'ui-smoke-semantic/v3';
-const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v3';
+const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v4';
 const DEFAULT_RUN_PROFILE = 'metrics';
 const COMPARISON_RUN_FIXTURES = Object.freeze([
   'run.training-1',
@@ -162,6 +162,29 @@ const ARTIFACT_FIXTURES = Object.freeze({
     producerTask: 'task.write-metrics',
   }),
 });
+
+function artifactFixturesForRun(runKey) {
+  const index = RUN_RESOURCE_DEFINITIONS.findIndex((run) => run.semanticKey === runKey);
+  // Ad-hoc profile fixtures retain the default metrics; seeded runs have explicit variants.
+  if (index < 0) return structuredClone(ARTIFACT_FIXTURES);
+  const fixtures = structuredClone(ARTIFACT_FIXTURES);
+  const accuracy = [0.92, 0.84, 0.76, 0.88, 0.8][index];
+  fixtures['artifact.scalar-metrics'].members['metric.accuracy'].value = accuracy;
+  fixtures['artifact.scalar-metrics'].members['metric.loss'].value = Number(
+    (1 - accuracy).toFixed(2),
+  );
+  const recalls = [
+    [0.35, 0.72, 0.9],
+    [0.24, 0.58, 0.82],
+    [0.15, 0.43, 0.7],
+    [0.29, 0.65, 0.86],
+    [0.2, 0.5, 0.76],
+  ][index];
+  recalls.forEach((recall, pointIndex) => {
+    fixtures['artifact.roc-curve'].points[pointIndex + 1].recall = recall;
+  });
+  return fixtures;
+}
 
 const RUN_PROFILES = Object.freeze({
   metrics: Object.freeze({
@@ -1982,7 +2005,7 @@ function validateRunBinding(runKey, binding, profile, errors) {
   const metricMembers = scalarBinding?.members || {};
   const scalarMemberIds = [];
   for (const [metricKey, definition] of Object.entries(
-    ARTIFACT_FIXTURES['artifact.scalar-metrics'].members,
+    artifactFixturesForRun(runKey)['artifact.scalar-metrics'].members,
   )) {
     const member = metricMembers[metricKey];
     if (!isRecordValue(member)) {
@@ -2017,7 +2040,7 @@ function validateRunBinding(runKey, binding, profile, errors) {
   }
 
   const rocPoints = binding.artifacts['artifact.roc-curve']?.points || [];
-  const expectedRocPoints = ARTIFACT_FIXTURES['artifact.roc-curve'].points;
+  const expectedRocPoints = artifactFixturesForRun(runKey)['artifact.roc-curve'].points;
   if (stableStringify(rocPoints) !== stableStringify(expectedRocPoints)) {
     errors.push(
       `${runKey}: artifact.roc-curve points ${stableStringify(rocPoints)} did not match ${stableStringify(expectedRocPoints)}`,
@@ -2494,6 +2517,7 @@ function combineRevisionSemanticManifests(baseManifest, headManifest) {
 }
 
 module.exports = {
+  artifactFixturesForRun,
   ARTIFACT_FIXTURES,
   COMPARISON_RUN_FIXTURES,
   DEFAULT_RUN_PROFILE,

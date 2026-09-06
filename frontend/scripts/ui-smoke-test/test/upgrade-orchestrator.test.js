@@ -131,7 +131,7 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
         mode: 'semantic-full-stack',
         rawIdentifierPolicy: 'SHA-256 attestation only',
         schemaVersion: SEMANTIC_ID_NORMALIZATION_SCHEMA_VERSION,
-        tokenFormat: '[ui-id:<kind>:<semantic-path>]',
+        tokenFormat: 'kind-shaped-sha256/v2',
       },
       timezone: 'UTC',
     },
@@ -200,6 +200,7 @@ function canonicalSemanticIdNormalization(role, page = 'artifact-details') {
         token: identifier.token,
         tokenKind: identifier.tokenKind,
         tokenSemanticId: identifier.tokenSemanticId,
+        tokenShape: identifier.tokenShape,
       };
     });
     const replacementCount = entries.reduce((total, entry) => total + entry.replacementCount, 0);
@@ -935,6 +936,7 @@ test('upgrade capture validation binds normalization evidence to the semantic ca
     artifactEntry.token = uriEntry.token;
     artifactEntry.tokenKind = uriEntry.tokenKind;
     artifactEntry.tokenSemanticId = uriEntry.tokenSemanticId;
+    artifactEntry.tokenShape = uriEntry.tokenShape;
     const manifestPath = writeJsonArtifact(
       'catalog-canonical-base/tampered-token-manifest.json',
       manifest,

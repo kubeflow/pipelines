@@ -70,7 +70,7 @@ function semanticIdNormalizationEvidence() {
   return {
     complete: true,
     derivedColorScopes: [],
-    schemaVersion: 'ui-smoke-id-normalization/v1',
+    schemaVersion: 'ui-smoke-id-normalization/v2',
     scopes: [
       {
         entries: [
@@ -82,6 +82,7 @@ function semanticIdNormalizationEvidence() {
             token: identifier.token,
             tokenKind: identifier.tokenKind,
             tokenSemanticId: identifier.tokenSemanticId,
+            tokenShape: identifier.tokenShape,
           },
         ],
         match: 'exact',
@@ -149,7 +150,16 @@ function semanticIdNormalizationEvidenceFor(role, page) {
     const entries = selected
       .map(
         (
-          { equivalenceClass, kind, semanticId, token, tokenKind, tokenSemanticId, value },
+          {
+            equivalenceClass,
+            kind,
+            semanticId,
+            token,
+            tokenKind,
+            tokenSemanticId,
+            tokenShape,
+            value,
+          },
           index,
         ) => ({
           ...(equivalenceClass ? { equivalenceClass } : {}),
@@ -160,6 +170,7 @@ function semanticIdNormalizationEvidenceFor(role, page) {
           token,
           tokenKind,
           tokenSemanticId,
+          tokenShape,
         }),
       )
       .filter((entry) => entry.replacementCount > 0 || explicitSemanticIds);
@@ -195,7 +206,7 @@ function semanticIdNormalizationEvidenceFor(role, page) {
   return {
     complete: true,
     derivedColorScopes,
-    schemaVersion: 'ui-smoke-id-normalization/v1',
+    schemaVersion: 'ui-smoke-id-normalization/v2',
     scopes,
     totalReplacementCount: scopes.reduce((sum, scope) => sum + scope.replacementCount, 0),
   };
@@ -792,7 +803,8 @@ test('comparison rejects missing or malformed semantic ID normalization evidence
           replacementCount: 1,
           semanticId: 'run.training-1',
           sourceIdSha256: 'b'.repeat(64),
-          token: '[ui-id:run:training-1]',
+          token: semanticIdToken('run', 'run.training-1', 'uuid'),
+          tokenShape: 'uuid',
           tokenKind: 'run',
           tokenSemanticId: 'run.training-1',
         });
@@ -910,7 +922,7 @@ test('comparison binds normalization evidence to the canonical scenario and revi
   manifest.results[0].semanticIdNormalization = {
     complete: true,
     derivedColorScopes: [],
-    schemaVersion: 'ui-smoke-id-normalization/v1',
+    schemaVersion: 'ui-smoke-id-normalization/v2',
     scopes: [],
     totalReplacementCount: 0,
   };
@@ -954,7 +966,7 @@ test('semantic normalization contract validation permits ordinary capture pages'
   const emptyNormalization = {
     complete: true,
     derivedColorScopes: [],
-    schemaVersion: 'ui-smoke-id-normalization/v1',
+    schemaVersion: 'ui-smoke-id-normalization/v2',
     scopes: [],
     totalReplacementCount: 0,
   };
@@ -1166,7 +1178,7 @@ test('bound policy enforces required semantic catalog completeness and classific
   assert.equal(cleared.config.scenarios[0].expectedChange, null);
 });
 
-test('required viewer coverage uses canonical capture dimensions without weakening pair coverage', async (t) => {
+test('required viewer coverage retains normal layout and full-viewer pairs', async (t) => {
   const writeConfig = (root, scenario, expectedViewports = '1280x800') =>
     comparison.writeBoundScenarioConfig({
       baseDir: path.join(root, 'base'),
@@ -1186,39 +1198,55 @@ test('required viewer coverage uses canonical capture dimensions without weakeni
     await t.test(`${scenario} accepts actual dimensions`, async () => {
       const filename = `${scenario}-${dimensions}.png`;
       const root = await createPair(t, [
+        {
+          base: captureResult(`${scenario}-1280x800.png`),
+          head: captureResult(`${scenario}-1280x800.png`),
+        },
         { base: captureResult(filename), head: captureResult(filename) },
       ]);
       assert.doesNotThrow(() => writeConfig(root, scenario));
-      // Several requests may legitimately collapse to the same minimum-height capture.
-      assert.doesNotThrow(() => writeConfig(root, scenario, '1280x800,1280x1000'));
+      assert.throws(
+        () => writeConfig(root, scenario, '1280x800,1280x1000'),
+        /missing viewport 1280x1000/,
+      );
       assert.throws(() => writeConfig(root, scenario, '2400x1600'), /missing viewport 2400x1600/);
     });
   }
-  for (const variant of ['missing', 'mismatched', 'optional', 'requested-only']) {
+  for (const variant of ['missing', 'mismatched', 'optional', 'requested-only', 'enlarged-only']) {
     await t.test(`rejects ${variant} required viewer pair`, async () => {
       const scenario = 'run-details-html';
       const filename = `${scenario}-2200x1200.png`;
       const root = await createPair(t, [
         {
-          base: captureResult(variant === 'requested-only' ? `${scenario}-1280x800.png` : filename),
+          base: captureResult(filename),
           head: captureResult(
-            variant === 'mismatched' || variant === 'requested-only'
-              ? `${scenario}-1280x800.png`
-              : filename,
+            variant === 'mismatched' ? `${scenario}-2200x1400.png` : filename,
             variant === 'optional' ? { required: false } : {},
           ),
         },
+        ...(variant === 'enlarged-only'
+          ? []
+          : [
+              {
+                base: captureResult(`${scenario}-1280x800.png`),
+                head: captureResult(`${scenario}-1280x800.png`),
+              },
+            ]),
         { base: captureResult('runs-1280x800.png'), head: captureResult('runs-1280x800.png') },
       ]);
-      if (variant === 'missing') {
+      if (variant === 'missing' || variant === 'requested-only') {
         const manifestPath = path.join(root, 'head', 'manifest.json');
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-        manifest.results = manifest.results.filter((result) => result.page !== scenario);
+        manifest.results = manifest.results.filter((result) => result.filename !== filename);
         fs.writeFileSync(manifestPath, JSON.stringify(manifest));
       }
       assert.throws(
         () => writeConfig(root, scenario),
-        variant === 'optional' ? /must remain required/ : /missing viewport 2200x1200/,
+        variant === 'optional'
+          ? /must remain required/
+          : variant === 'enlarged-only'
+            ? /missing viewport 1280x800/
+            : /missing viewport 2200x1200/,
       );
     });
   }

@@ -10,6 +10,7 @@ const path = require('path');
 
 const {
   ARTIFACT_FIXTURES,
+  artifactFixturesForRun,
   COMPARISON_RUN_FIXTURES,
   REVISION_FLAVORS,
   SEMANTIC_RESOURCE_DEFINITIONS,
@@ -83,11 +84,39 @@ const METRICS_EXECUTOR_OUTPUT = {
     },
   },
 };
-const METRICS_EXECUTOR_OUTPUT_JSON = JSON.stringify(METRICS_EXECUTOR_OUTPUT);
+
+function metricsExecutorOutputForRun(runKey) {
+  const fixtures = artifactFixturesForRun(runKey);
+  const output = structuredClone(METRICS_EXECUTOR_OUTPUT);
+  output.artifacts.scalar_metrics.artifacts[0].metadata = Object.fromEntries(
+    Object.values(fixtures['artifact.scalar-metrics'].members).map(({ name, value }) => [
+      name,
+      value,
+    ]),
+  );
+  output.artifacts.roc_curve.artifacts[0].metadata.confidenceMetrics =
+    fixtures['artifact.roc-curve'].points;
+  return output;
+}
+
+const METRICS_OUTPUT_COMMAND = `case "$5" in
+${SEMANTIC_RESOURCE_DEFINITIONS.runs
+  .map(
+    ({ semanticKey }) =>
+      `              ${semanticKey}) printf '%s' '${JSON.stringify(metricsExecutorOutputForRun(semanticKey))}' > "$metadata_path" ;;`,
+  )
+  .join('\n')}
+              *) echo 'Unknown fixture run' >&2; exit 1 ;;
+            esac`;
 
 const MINIMAL_PIPELINE_YAML = `pipelineInfo:
   name: ui-smoke-pipeline
 root:
+  inputDefinitions:
+    parameters:
+      fixture_run:
+        parameterType: STRING
+        defaultValue: 'run.training-1'
   dag:
     outputs:
       artifacts:
@@ -115,6 +144,10 @@ root:
           enableCache: false
         componentRef:
           name: comp-write-metrics
+        inputs:
+          parameters:
+            fixture_run:
+              componentInputParameter: fixture_run
   outputDefinitions:
     artifacts:
       html_report:
@@ -138,6 +171,10 @@ sdkVersion: kfp-2.14.6
 components:
   comp-write-metrics:
     executorLabel: exec-write-metrics
+    inputDefinitions:
+      parameters:
+        fixture_run:
+          parameterType: STRING
     outputDefinitions:
       artifacts:
         html_report:
@@ -172,17 +209,23 @@ deploymentSpec:
             : > "$2"
             printf '%s\\n' '<h1>UI Smoke HTML Report</h1><p>Deterministic artifact content.</p>' > "$3"
             printf '%s\\n' '# UI Smoke Markdown Report' '' 'Deterministic artifact content.' > "$4"
-            printf '%s' '${METRICS_EXECUTOR_OUTPUT_JSON}' > "$metadata_path"
+            ${METRICS_OUTPUT_COMMAND}
           - ui-smoke-metrics
           - "{{$.outputs.artifacts['scalar_metrics'].path}}"
           - "{{$.outputs.artifacts['roc_curve'].path}}"
           - "{{$.outputs.artifacts['html_report'].path}}"
           - "{{$.outputs.artifacts['markdown_report'].path}}"
+          - "{{$.inputs.parameters['fixture_run']}}"
 `;
 
 const RICH_PIPELINE_YAML = `pipelineInfo:
   name: ui-smoke-rich-topology
 root:
+  inputDefinitions:
+    parameters:
+      fixture_run:
+        parameterType: STRING
+        defaultValue: 'run.training-1'
   dag:
     outputs:
       artifacts:
@@ -255,6 +298,10 @@ root:
           enableCache: false
         componentRef:
           name: comp-write-metrics
+        inputs:
+          parameters:
+            fixture_run:
+              componentInputParameter: fixture_run
   outputDefinitions:
     artifacts:
       html_report:
@@ -324,6 +371,10 @@ components:
     executorLabel: exec-retry-once
   comp-write-metrics:
     executorLabel: exec-write-metrics
+    inputDefinitions:
+      parameters:
+        fixture_run:
+          parameterType: STRING
     outputDefinitions:
       artifacts:
         html_report:
@@ -404,12 +455,13 @@ deploymentSpec:
             : > "$2"
             printf '%s\\n' '<h1>UI Smoke HTML Report</h1><p>Deterministic artifact content.</p>' > "$3"
             printf '%s\\n' '# UI Smoke Markdown Report' '' 'Deterministic artifact content.' > "$4"
-            printf '%s' '${METRICS_EXECUTOR_OUTPUT_JSON}' > "$metadata_path"
+            ${METRICS_OUTPUT_COMMAND}
           - ui-smoke-metrics
           - "{{$.outputs.artifacts['scalar_metrics'].path}}"
           - "{{$.outputs.artifacts['roc_curve'].path}}"
           - "{{$.outputs.artifacts['html_report'].path}}"
           - "{{$.outputs.artifacts['markdown_report'].path}}"
+          - "{{$.inputs.parameters['fixture_run']}}"
 `;
 
 const PIPELINE_YAML_BY_PROFILE = Object.freeze({
@@ -882,7 +934,9 @@ async function createRun(
     ),
     experiment_id: experimentId,
     pipeline_version_reference: reference,
-    runtime_config: { parameters: {} },
+    runtime_config: {
+      parameters: options.semanticKey ? { fixture_run: options.semanticKey } : {},
+    },
   });
   requireResourceId(result, ['run_id', 'runId', 'id'], `Run ${name}`);
   return result;
@@ -2040,6 +2094,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  metricsExecutorOutputForRun,
   API_BASE,
   METRICS_EXECUTOR_OUTPUT,
   MINIMAL_PIPELINE_YAML,
