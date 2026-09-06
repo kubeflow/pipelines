@@ -24,6 +24,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 ## Common CI failures
 
+- SDK imports must pass both isort 5.10.1 from `sdk/python/requirements-dev.txt` and isort 9.0.1 from pre-commit. These versions wrap long imports differently; prefer short module imports and verify both checks after SDK import changes.
 - Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
