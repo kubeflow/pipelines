@@ -2341,6 +2341,11 @@ async function runFullStackComparisonOrchestration({
   const headStack = manager.createKindStack(headConfiguration);
   state.stacks.push(baseStack, headStack);
   for (const stack of [baseStack, headStack]) {
+    // Image builds and reuse tags exist before the cluster is created. Keep their cleanup
+    // independent of cluster ownership, and run it after process/cluster cleanup (LIFO).
+    services.registerCleanup(`release isolated ${stack.role} local images`, () =>
+      stack.cleanupOwnedImages(),
+    );
     services.registerCleanup(`destroy isolated ${stack.role} cluster ${stack.clusterName}`, () =>
       requireStackDestroyed(stack),
     );

@@ -503,6 +503,7 @@ function createKindStack(config = {}) {
   const defaultSpawn = config.spawn || spawn;
   const processes = [];
   const builtImagePlatforms = new Map();
+  const ownedLocalImages = new Map();
   const builtMixedPlatformWorkloads = new Map();
   const loadedImages = new Set();
   const ownedPreflightedImages = new Set();
@@ -688,6 +689,7 @@ function createKindStack(config = {}) {
           runner('docker', ['image', 'rm', image], commandOptions()),
           `Failed to release ${image} after exporting it for Kind cluster ${clusterName}`,
         );
+        ownedLocalImages.delete(image);
       }
       requireSuccess(
         runner(
@@ -822,6 +824,70 @@ function createKindStack(config = {}) {
     return localImageTag(component, `${clusterName}-${suffix}`);
   }
 
+  function assertImageTagAvailable(image, runner) {
+    if (inspectOwnedImageId(image, runner) !== null) {
+      throw new Error(`Refusing to replace existing local image tag ${image}.`);
+    }
+  }
+
+  function trackOwnedImage(image, runner) {
+    const imageId = inspectOwnedImageId(image, runner);
+    if (!imageId) throw new Error(`Cannot establish ownership of local image ${image}.`);
+    ownedLocalImages.set(image, imageId);
+  }
+
+  function inspectOwnedImageId(image, runner) {
+    const result = runner(
+      'docker',
+      ['image', 'inspect', '--format', '{{.Id}}', image],
+      commandOptions({ timeout: 30000 }),
+    );
+    if (
+      !result.success &&
+      /no such (?:image|object)/i.test(`${result.error || ''} ${result.output || ''}`)
+    )
+      return null;
+    requireSuccess(result, `Failed to inspect owned local image ${image}`);
+    const imageId = result.output.trim().toLowerCase();
+    if (!/^sha256:[0-9a-f]{64}$/.test(imageId))
+      throw new Error(`Invalid image identity for ${image}.`);
+    return imageId;
+  }
+
+  function cleanupOwnedImages(options = {}) {
+    const runner = stackRunner(options);
+    const failures = [];
+    for (const [image, expectedId] of ownedLocalImages) {
+      let actualId;
+      try {
+        actualId = inspectOwnedImageId(image, runner);
+      } catch (error) {
+        failures.push(error);
+        continue;
+      }
+      if (actualId && actualId !== expectedId) {
+        failures.push(new Error(`Refusing to remove replaced local image tag ${image}.`));
+        continue;
+      }
+      if (actualId) {
+        const result = runner('docker', ['image', 'rm', image], commandOptions());
+        if (!result.success) {
+          failures.push(
+            new Error(
+              `Failed to remove owned local image ${image}: ${result.error || result.output}`,
+            ),
+          );
+          continue;
+        }
+      }
+      ownedLocalImages.delete(image);
+      builtImagePlatforms.delete(image);
+      builtMixedPlatformWorkloads.delete(image);
+    }
+    if (failures.length)
+      throw new AggregateError(failures, `Failed to clean local images for ${clusterName}.`);
+  }
+
   async function buildComponentImages(components, repoRoot, options = {}) {
     const runner = stackRunner(options);
     const overrides = { deployments: [], images: {}, runtimeEnvironment: {} };
@@ -836,6 +902,7 @@ function createKindStack(config = {}) {
           throw new Error(`Component ${component.name} is missing Docker build metadata.`);
         }
         const image = scopedImageTag(component, tagSuffix);
+        assertImageTagAvailable(image, runner);
         const mixedPlatformWorkload = MIXED_PLATFORM_WORKLOADS.find(
           (workload) =>
             workload.component === component.name &&
@@ -929,6 +996,7 @@ function createKindStack(config = {}) {
           buildImage();
           builtImages.push(image);
         }
+        trackOwnedImage(image, runner);
         builtImagePlatforms.set(image, buildPlatform);
         if (buildPlatform !== platform) {
           builtMixedPlatformWorkloads.set(
@@ -964,6 +1032,7 @@ function createKindStack(config = {}) {
             ),
           );
         } else {
+          ownedLocalImages.delete(image);
           builtImagePlatforms.delete(image);
           builtMixedPlatformWorkloads.delete(image);
         }
@@ -989,10 +1058,12 @@ function createKindStack(config = {}) {
         throw new Error(`Cannot reuse ${component.name}: the base image override is missing.`);
       }
       const image = scopedImageTag(component, tagSuffix);
+      assertImageTagAvailable(image, runner);
       requireSuccess(
         runner('docker', ['image', 'tag', sourceImage, image], commandOptions()),
         `Failed to reuse ${component.name}`,
       );
+      trackOwnedImage(image, runner);
       builtImagePlatforms.set(image, platform);
       overrides.images[component.name] = image;
       if (component.deployment) {
@@ -2417,6 +2488,7 @@ function createKindStack(config = {}) {
     buildAndDeployComponents,
     buildComponentImages,
     cleanup,
+    cleanupOwnedImages,
     collectDiagnostics,
     clusterName,
     commandEnvironment,
