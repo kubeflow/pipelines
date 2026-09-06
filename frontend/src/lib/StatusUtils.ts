@@ -143,11 +143,12 @@ export function hasFinishedV2(state?: V2beta1RuntimeState): boolean {
     case V2beta1RuntimeState.PENDING: // Fall through
     case V2beta1RuntimeState.RUNNING: // Fall through
     case V2beta1RuntimeState.CANCELING: // Fall through
+    case V2beta1RuntimeState.PAUSED: // Fall through
     case V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED:
       return false;
     default:
       logger.warn('Unknown state:', state);
-      throw new Error('Unexpected runtime state!');
+      return false;
   }
 }
 
@@ -162,6 +163,8 @@ export function statusToBgColorV2(state?: V2beta1RuntimeState, nodeMessage?: str
     // fall through
     case V2beta1RuntimeState.RUNNING:
       return statusBgColors.running;
+    case V2beta1RuntimeState.PAUSED:
+      return statusBgColors.notStarted;
     case V2beta1RuntimeState.SUCCEEDED:
       return statusBgColors.succeeded;
     case V2beta1RuntimeState.SKIPPED:
