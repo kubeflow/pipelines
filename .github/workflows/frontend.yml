@@ -53,6 +53,12 @@ jobs:
     - name: Install dependencies
       run: cd ./frontend && npm ci
 
+    - name: Install UI smoke-test dependencies
+      run: npm ci --prefix ./frontend/scripts/ui-smoke-test
+
+    - name: Test UI smoke-test utilities
+      run: npm test --prefix ./frontend/scripts/ui-smoke-test
+
     - name: Verify generated API clients are up to date
       run: |
         cd ./frontend

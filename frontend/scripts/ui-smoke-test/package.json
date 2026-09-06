@@ -6,15 +6,21 @@
   "scripts": {
     "capture": "node capture-screenshots.js",
     "compare": "node generate-comparison.js",
+    "smoke": "node smoke-test-runner.js",
     "upload": "node upload-to-pr.js",
-    "test": "node smoke-test-runner.js"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "@fontsource/roboto": "5.3.0",
     "looks-same": "^10.0.1",
     "playwright": "^1.40.0",
     "sharp": "^0.35.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": "24.14.0"
+  },
+  "packageManager": "npm@11.17.0",
+  "devDependencies": {
+    "yaml": "^2.8.3"
   }
 }
