@@ -1801,7 +1801,10 @@ async function executeActions(page, actions) {
             do {
               foundCount = 0;
               for (const frame of page.frames()) {
-                foundCount += await frame.getByText(action.text, { exact: false }).count();
+                const matches = frame.getByText(action.text, { exact: false });
+                for (let index = 0; index < (await matches.count()); index += 1) {
+                  if (await matches.nth(index).isVisible()) foundCount += 1;
+                }
               }
               if (foundCount < minCount) await page.waitForTimeout(100);
             } while (foundCount < minCount && Date.now() < deadline);
@@ -1912,6 +1915,47 @@ async function prepareCaptureViewport(page) {
     if (frame !== page.mainFrame()) await normalizeDocumentScroll(frame);
   }
   return normalizeDocumentScroll(page);
+}
+
+async function assertCaptureRegion(page, region) {
+  if (!region) return;
+  await page.waitForFunction(
+    ({ selector, minCount }) => {
+      const elements = Array.from(document.querySelectorAll(selector));
+      return (
+        elements.length >= minCount &&
+        elements.every((element) => {
+          const box = element.getBoundingClientRect();
+          if (
+            box.width <= 0 ||
+            box.height <= 0 ||
+            box.top < 0 ||
+            box.left < 0 ||
+            box.bottom > window.innerHeight ||
+            box.right > window.innerWidth
+          )
+            return false;
+          for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent);
+            const bounds = parent.getBoundingClientRect();
+            if (
+              /(auto|scroll|hidden|clip)/.test(style.overflowY) &&
+              (box.top < bounds.top - 1 || box.bottom > bounds.bottom + 1)
+            )
+              return false;
+            if (
+              /(auto|scroll|hidden|clip)/.test(style.overflowX) &&
+              (box.left < bounds.left - 1 || box.right > bounds.right + 1)
+            )
+              return false;
+          }
+          return true;
+        })
+      );
+    },
+    region,
+    { timeout: 10000 },
+  );
 }
 
 async function sortFixtureList(page, label) {
@@ -2326,6 +2370,13 @@ function captureFilename(pageName, viewport) {
   return `${pageName}-${viewport.width}x${viewport.height}.png`;
 }
 
+function captureViewport(pageConfig, requestedViewport) {
+  return {
+    ...requestedViewport,
+    height: Math.max(requestedViewport.height, pageConfig.minimumCaptureHeight || 0),
+  };
+}
+
 function isManagedCaptureFilename(filename) {
   return /^[a-z0-9][a-z0-9-]*-[1-9]\d*x[1-9]\d*\.png$/.test(filename);
 }
@@ -2550,6 +2601,18 @@ async function normalizeDynamicText(page) {
         const parentName = node.parentElement?.tagName;
         if (parentName === 'SCRIPT' || parentName === 'STYLE') continue;
         let value = node.nodeValue || '';
+        // Restrict build metadata normalization to the sidebar's Version link, not report text.
+        const versionLink = node.parentElement?.closest?.('[data-testid="sideNav"] a');
+        if (versionLink?.previousElementSibling?.textContent.trim() === 'Version:') {
+          value = '[build version]';
+        }
+        // klog prefixes contain date, microseconds and PID; retain severity, source and message.
+        if (node.parentElement?.closest?.('#logViewer')) {
+          value = value.replace(
+            /\b([IWEF])\d{4} \d{2}:\d{2}:\d{2}\.\d+\s+\d+ ([\w.-]+):\d+\]/g,
+            (_, severity, source) => `${severity}0102 03:04:05.000000 1 ${source}:0]`,
+          );
+        }
         value = value.replace(dateTimePatterns[0], fixedDateTime);
         value = value.replace(dateTimePatterns[1], fixedDate);
         value = value.replace(dateTimePatterns[2], new Date(fixedDateTime).toString());
@@ -2973,7 +3036,9 @@ async function captureScreenshots(options, dependencies = {}) {
   console.log(`Pages to capture: ${filteredPages.map((page) => page.name).join(', ') || '(none)'}`);
 
   const managedFilenames = filteredPages.flatMap((pageDefinition) =>
-    options.viewports.map((viewport) => captureFilename(pageDefinition.name, viewport)),
+    options.viewports.map((viewport) =>
+      captureFilename(pageDefinition.name, captureViewport(pageDefinition, viewport)),
+    ),
   );
   cleanCaptureOutputs(options.outputDir, managedFilenames);
 
@@ -3003,7 +3068,8 @@ async function captureScreenshots(options, dependencies = {}) {
       browserVersion = typeof browser.version === 'function' ? browser.version() : null;
     }
 
-    for (const viewport of options.viewports) {
+    for (const requestedViewport of options.viewports) {
+      const viewport = requestedViewport;
       if (!browser) {
         break;
       }
@@ -3022,8 +3088,11 @@ async function captureScreenshots(options, dependencies = {}) {
         await installNetworkIsolation(context, options.baseUrl);
 
         for (const pageConfig of filteredPages) {
+          const viewport = captureViewport(pageConfig, requestedViewport);
           const required = pageConfig.required !== false;
           const filename = captureFilename(pageConfig.name, viewport);
+          // Different requested heights can resolve to the same minimum-height viewer capture.
+          if (completedFilenames.has(filename)) continue;
           const filepath = path.join(options.outputDir, filename);
           const { resolvedPath, missing } = resolvePathTemplate(pageConfig.path, seedValues);
           const missingFixtures = [...new Set([...(pageConfig.missingFixtures || []), ...missing])];
@@ -3067,6 +3136,7 @@ async function captureScreenshots(options, dependencies = {}) {
             // HTTP response. A fresh page guarantees that every route performs a network request
             // whose status can be validated before capture.
             page = await context.newPage();
+            if (viewport.height !== requestedViewport.height) await page.setViewportSize(viewport);
             diagnostics = createPageDiagnostics(page, options.baseUrl);
             await installDeterministicRendering(page);
             const response = await page.goto(url, {
@@ -3115,6 +3185,7 @@ async function captureScreenshots(options, dependencies = {}) {
               await sortFixtureList(page, pageConfig.sortFixtureListBy);
             }
             const documentScroll = await prepareCaptureViewport(page);
+            await assertCaptureRegion(page, pageConfig.captureRegion);
             await normalizeDynamicText(page);
             semanticIdNormalization = await normalizeSemanticIds(
               page,
@@ -3245,8 +3316,9 @@ async function captureScreenshots(options, dependencies = {}) {
     }
   }
 
-  for (const viewport of options.viewports) {
+  for (const requestedViewport of options.viewports) {
     for (const pageConfig of filteredPages) {
+      const viewport = captureViewport(pageConfig, requestedViewport);
       const filename = captureFilename(pageConfig.name, viewport);
       if (!completedFilenames.has(filename)) {
         addResult({
@@ -3368,6 +3440,8 @@ module.exports = {
   buildRevisionAwarePages,
   buildSemanticIdentifierCatalog,
   captureFilename,
+  captureViewport,
+  assertCaptureRegion,
   captureScreenshots,
   classifyCaptureFailure,
   cleanCaptureOutputs,

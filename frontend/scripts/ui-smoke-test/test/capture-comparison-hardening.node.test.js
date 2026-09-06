@@ -513,6 +513,90 @@ test('timestamp normalization accepts Intl nonbreaking spaces without masking fi
   assert.equal(nodes[3].nodeValue, '2030-01-02T03:04:05.000Z duration 00:00:42');
 });
 
+test('scenario viewport sizing preserves wider/taller requests and records actual dimensions', () => {
+  const scenario = { minimumCaptureHeight: 1200 };
+  assert.deepEqual(capture.captureViewport(scenario, { width: 1280, height: 800 }), {
+    width: 1280,
+    height: 1200,
+  });
+  assert.deepEqual(capture.captureViewport(scenario, { width: 1920, height: 1400 }), {
+    width: 1920,
+    height: 1400,
+  });
+  assert.deepEqual(capture.captureViewport({}, { width: 1280, height: 800 }), {
+    width: 1280,
+    height: 800,
+  });
+});
+
+test('viewer framing rejects missing, clipped, and overflow-hidden content', async (t) => {
+  const saved = {
+    document: global.document,
+    window: global.window,
+    getComputedStyle: global.getComputedStyle,
+  };
+  t.after(() => Object.assign(global, saved));
+  global.window = { innerWidth: 1280, innerHeight: 1200 };
+  let bottom = 900;
+  let parentBottom = 1100;
+  let count = 2;
+  global.getComputedStyle = () => ({ overflowY: 'auto', overflowX: 'visible' });
+  const element = {
+    getBoundingClientRect: () => ({
+      width: 400,
+      height: 600,
+      top: 300,
+      left: 230,
+      right: 630,
+      bottom,
+    }),
+    parentElement: {
+      getBoundingClientRect: () => ({ top: 100, bottom: parentBottom }),
+      parentElement: null,
+    },
+  };
+  global.document = { querySelectorAll: () => Array(count).fill(element) };
+  const results = [];
+  const page = { waitForFunction: async (predicate, arg) => results.push(predicate(arg)) };
+  const region = { selector: 'iframe', minCount: 2 };
+  await capture.assertCaptureRegion(page, region);
+  bottom = 1300;
+  await capture.assertCaptureRegion(page, region);
+  bottom = 900;
+  parentBottom = 800;
+  await capture.assertCaptureRegion(page, region);
+  parentBottom = 1100;
+  count = 1;
+  await capture.assertCaptureRegion(page, region);
+  assert.deepEqual(results, [true, false, false, false]);
+});
+
+test('volatile metadata normalization is scoped to sidebar version and log prefixes', async (t) => {
+  const saved = { document: global.document, NodeFilter: global.NodeFilter };
+  t.after(() => Object.assign(global, saved));
+  const nodes = [
+    {
+      nodeValue: 'be4723e337',
+      parentElement: { closest: () => ({ previousElementSibling: { textContent: 'Version: ' } }) },
+    },
+    {
+      nodeValue: 'I0906 18:22:33.123456 21 main.go:139] retry completed',
+      parentElement: { closest: (selector) => (selector === '#logViewer' ? {} : null) },
+    },
+    {
+      nodeValue: 'I0906 18:22:33.123456 21 main.go:139] report example',
+      parentElement: { closest: () => null },
+    },
+  ];
+  let index = 0;
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.document = { body: {}, createTreeWalker: () => ({ nextNode: () => nodes[index++] }) };
+  await capture.normalizeDynamicText({ evaluate: async (predicate, arg) => predicate(arg) });
+  assert.equal(nodes[0].nodeValue, '[build version]');
+  assert.equal(nodes[1].nodeValue, 'I0102 00:00:42.000000 1 main.go:0] retry completed');
+  assert.equal(nodes[2].nodeValue, 'I0906 00:00:42.123456 21 main.go:139] report example');
+});
+
 test('comparison fails closed when paired document scroll positions differ', async (t) => {
   const root = fixtureDirectory(t);
   const mainDir = path.join(root, 'main');

@@ -330,7 +330,7 @@ test('serialized base V2 ROC readiness requires three curves and three provenanc
   const predicate = byKey(
     resolveSemanticScenarios('base', SEED_VALUES),
     'compare-roc-selection',
-  ).actions.at(-1).predicate;
+  ).actions.findLast((action) => action.type === 'waitForFunction').predicate;
   const evaluateSerializedPredicate = (curveCount, rowCount) =>
     vm.runInNewContext(`(${predicate.toString()})()`, {
       document: {
@@ -442,16 +442,20 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   );
   assert.deepEqual(
     headRoc.actions.filter((action) => action.type === 'click').map((action) => action.selector),
-    ['[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")'],
+    [
+      '[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")',
+      'button[title="Expand/Collapse this section"]:has-text("Run overview")',
+      'button[title="Expand/Collapse this section"]:has-text("Parameters")',
+    ],
   );
 
   const headParallelFor = byKey(head, 'topology-parallel-for');
   assert.equal(
     headParallelFor.actions.some(
       (action) =>
-        action.type === 'waitForSelector' &&
+        action.type === 'click' &&
         action.selector.includes(':has-text("Loop")') &&
-        action.selector.includes('execution-icon-active'),
+        action.selector.includes('expand-button'),
     ),
     true,
   );
@@ -1428,8 +1432,6 @@ test('task comparisons use equivalent node-click, tab, and fit-view state', () =
     ['run-details-task-panel', 'Input/Output'],
     ['run-details-task-logs', 'Logs'],
     ['topology-retried-task', 'Task Details'],
-    ['topology-parallel-for', 'Task Details'],
-    ['topology-nested-dag', 'Task Details'],
   ]);
 
   for (const [key, expectedTab] of expectedTabs) {
@@ -1458,6 +1460,56 @@ test('task comparisons use equivalent node-click, tab, and fit-view state', () =
             action.type === 'click' && action.selector === '.react-flow__controls-fitview',
         ),
         `${key} must fit the graph after opening the panel`,
+      );
+    }
+  }
+});
+
+test('topology journeys enter the nested graph and first loop iteration', () => {
+  for (const role of ['base', 'head']) {
+    const scenarios = resolveSemanticScenarios(role, SEED_VALUES);
+    for (const [key, child, expansions] of [
+      ['topology-nested-dag', 'nested-worker', 1],
+      ['topology-parallel-for', 'loop-worker', 2],
+    ]) {
+      const actions = byKey(scenarios, key).actions;
+      const expand = actions.filter((action) => action.selector?.includes('expand-button'));
+      assert.equal(expand.length, expansions);
+      assert.ok(expand.every((action) => action.type === 'click'));
+      if (expansions === 2) assert.match(expand[1].selector, /parallel-loop\.0/);
+      assert.ok(
+        actions.some(
+          (action) =>
+            action.type === 'waitForSelector' &&
+            action.selector.includes(child) &&
+            action.selector.includes('execution-icon-active'),
+        ),
+      );
+      assert.ok(
+        actions.some(
+          (action) => action.type === 'assertAbsent' && action.selector.includes('write-metrics'),
+        ),
+      );
+      assert.equal(
+        actions.some((action) => action.type === 'waitForSelectedTab'),
+        false,
+      );
+    }
+  }
+});
+
+test('comparison viewers collapse context and require complete visible regions', () => {
+  for (const role of ['base', 'head']) {
+    for (const key of ['compare-html', 'compare-markdown', 'compare-roc-selection']) {
+      const scenario = byKey(resolveSemanticScenarios(role, SEED_VALUES), key);
+      assert.equal(scenario.minimumCaptureHeight, 1200);
+      assert.ok(scenario.captureRegion.selector);
+      assert.deepEqual(
+        scenario.actions.slice(-2).map((action) => action.selector),
+        [
+          'button[title="Expand/Collapse this section"]:has-text("Run overview")',
+          'button[title="Expand/Collapse this section"]:has-text("Parameters")',
+        ],
       );
     }
   }
@@ -1706,6 +1758,7 @@ test('frame-text readiness inspects sandboxed frames through Playwright', async 
         {
           getByText: (text) => ({
             count: async () => (text === 'UI Smoke HTML Report' ? 1 : 0),
+            nth: () => ({ isVisible: async () => true }),
           }),
         },
       ],
