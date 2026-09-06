@@ -1869,8 +1869,11 @@ async function normalizeDocumentScroll(page) {
   await page.evaluate(() => {
     // Clicks can scroll the app's overflow containers without moving the document.
     // The log viewer owns its virtualized, follow-to-end scroll position. Resetting it
-    // fights the widget and changes the scenario's selected log content.
-    for (const element of document.querySelectorAll('*:not(#logViewer, #logViewer *)')) {
+    // fights the widget and changes the scenario's selected log content. AutoSizer's
+    // hidden resize sensors also require nonzero offsets and restore them on scroll.
+    for (const element of document.querySelectorAll(
+      '*:not(#logViewer, #logViewer *, .resize-triggers, .resize-triggers *)',
+    )) {
       if (element.scrollLeft !== 0) element.scrollLeft = 0;
       if (element.scrollTop !== 0) element.scrollTop = 0;
     }
@@ -1887,9 +1890,11 @@ async function normalizeDocumentScroll(page) {
         window.scrollY === 0 &&
         scrollingElement.scrollLeft === 0 &&
         scrollingElement.scrollTop === 0 &&
-        Array.from(document.querySelectorAll('*:not(#logViewer, #logViewer *)')).every(
-          (element) => element.scrollLeft === 0 && element.scrollTop === 0,
-        )
+        Array.from(
+          document.querySelectorAll(
+            '*:not(#logViewer, #logViewer *, .resize-triggers, .resize-triggers *)',
+          ),
+        ).every((element) => element.scrollLeft === 0 && element.scrollTop === 0)
       );
     },
     undefined,

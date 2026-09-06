@@ -408,7 +408,7 @@ test('capture resets nested overflow containers even when the document never scr
   ]);
 });
 
-test('capture preserves the auto-follow log viewport while resetting app scrolling', async (t) => {
+test('capture preserves auto-follow logs and AutoSizer sensors while resetting app scrolling', async (t) => {
   const originalDocument = global.document;
   const originalWindow = global.window;
   t.after(() => {
@@ -427,8 +427,14 @@ test('capture preserves the auto-follow log viewport while resetting app scrolli
   };
   global.document = {
     scrollingElement: { scrollTop: 0, scrollLeft: 0 },
-    querySelectorAll: (selector) =>
-      selector === '*:not(#logViewer, #logViewer *)' ? [app] : [app, logs],
+    querySelectorAll: (selector) => {
+      const elements = [app];
+      if (!selector.includes('#logViewer *')) elements.push(logs);
+      if (!selector.includes('.resize-triggers *')) {
+        elements.push({ scrollTop: 1, scrollLeft: 1 });
+      }
+      return elements;
+    },
   };
   global.window = { scrollX: 0, scrollY: 0, scrollTo() {} };
   const page = {
