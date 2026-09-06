@@ -871,8 +871,6 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                          'some text\ncontinued text')
 
 
-
-
 class TestNormalizeTimeString(parameterized.TestCase):
 
     @parameterized.parameters([

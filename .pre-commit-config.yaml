@@ -44,7 +44,8 @@ repos:
     hooks:
       - id: yapf
   - repo: https://github.com/pycqa/docformatter
-    rev: v1.7.8
+    # v1.7.8 corrupts continuation and blank-line tokens, conflicting with YAPF.
+    rev: v1.7.7
     hooks:
       - id: docformatter
         name: docformatter

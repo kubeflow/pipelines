@@ -1271,7 +1271,7 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 			assert.Equal(t, "Terminating", persistedRun.Conditions)
-			assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+			assert.Equal(t, expectedWorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
 			assert.Equal(t, []*model.RuntimeStatus{{
 				UpdateTimeInSec: 1,
 				State:           model.RuntimeStateRunning,
@@ -1354,7 +1354,7 @@ func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
 	persistedRun, err := runStore.GetRun("1")
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
-	assert.Equal(t, model.LargeText("workflow1"), persistedRun.WorkflowRuntimeManifest)
+	assert.Equal(t, expectedWorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
 }
 
 func TestTerminateRun(t *testing.T) {

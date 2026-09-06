@@ -24,6 +24,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 
 ## Common CI failures
 
+- Keep docformatter on v1.7.7 until its v1.7.8 tokenization regression is fixed: v1.7.8 crashes on explicit continuations and rewrites SDK blank lines in conflict with YAPF. Verify formatter upgrades by running the full hook chain twice on the updater and SDK structures files.
 - Registry pull failures for Kind, BuildKit, Python, or Alpine images are usually transient; retry before changing code.
 - A Kind checksum mismatch after cache restore means no tests or deployment ran; retry the job.
 - SeaweedFS `PutObject` timeouts are artifact-store instability; retry rather than weakening assertions or increasing pipeline timeouts.

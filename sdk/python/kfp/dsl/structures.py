@@ -27,9 +27,7 @@ from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
-from kfp.dsl.task_config import TaskConfig
+from kfp.dsl.container_component_artifact_channel import ContainerComponentArtifactChannel
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
@@ -874,7 +872,8 @@ class ComponentSpec:
             while index < len(lines):
                 line = lines[index]
                 if line.startswith(multi_line_description_prefix):
-                    description += '\n' + line[len(multi_line_description_prefix):]
+                    description += '\n' + line[len(multi_line_description_prefix
+                                                  ):]
                     index += 1
                 else:
                     break
@@ -1022,6 +1021,7 @@ class ComponentSpec:
 
 def normalize_time_string(duration: str) -> str:
     """Normalizes a time string.
+
         Examples:
             - '1 hour' -> '1h'
             - '2 hours' -> '2h'
