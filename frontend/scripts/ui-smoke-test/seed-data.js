@@ -71,6 +71,13 @@ const METRICS_EXECUTOR_OUTPUT = {
       artifacts: [
         {
           metadata: {
+            confusionMatrix: {
+              annotationSpecs: [
+                { displayName: 'predicted-negative' },
+                { displayName: 'predicted-positive' },
+              ],
+              rows: [{ row: [42, 8] }, { row: [3, 47] }],
+            },
             confidenceMetrics: [
               { confidenceThreshold: 1, recall: 0, falsePositiveRate: 0 },
               { confidenceThreshold: 0.8, recall: 0.35, falsePositiveRate: 0.08 },

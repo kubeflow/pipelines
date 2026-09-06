@@ -14,6 +14,7 @@ const { validateCombinedSemanticManifest } = require('../semantic-manifest.js');
 const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
+  comparisonCategory,
   SEMANTIC_SCENARIOS,
   getGlobalVisualNormalizationContract,
   getSemanticScenarioCatalog,
@@ -34,6 +35,44 @@ const SEED_VALUES = Object.freeze({
   rocArtifactId: 'roc-1',
   scalarArtifactId: 'scalar-1',
   writeMetricsTaskId: 'write-1',
+});
+
+test('lineage, relationships, redirect guidance and matrices have distinct required captures', () => {
+  const scenarios = resolveSemanticScenarios('head', SEED_VALUES);
+  const explorer = byKey(scenarios, 'artifact-lineage-explorer');
+  assert.equal(explorer.path, '/#/artifacts/accuracy-1/explorer');
+  assert.ok(
+    explorer.actions.some((action) => action.selector === '[aria-label="Lineage graph"] svg path'),
+  );
+  assert.equal(byKey(scenarios, 'artifact-related-tasks').path, '/#/artifacts/accuracy-1/lineage');
+  assert.ok(
+    byKey(scenarios, 'executions-to-runs').actions.some(
+      (action) => action.text === 'Execution pages have moved to Runs and task details.',
+    ),
+  );
+  const matrix = byKey(scenarios, 'compare-confusion-matrix');
+  assert.ok(
+    matrix.actions.some(
+      (action) =>
+        action.selector ===
+        '[role="tab"]:has-text("Confusion matrix"), button:has-text("Confusion matrix")',
+    ),
+  );
+  assert.ok(
+    matrix.actions.some((action) => action.text === 'predicted-negative' && action.minCount === 2),
+  );
+  for (const key of ['artifact-lineage-explorer', 'artifact-related-tasks', 'executions-to-runs']) {
+    assert.equal(comparisonCategory(key), 'capability-transition');
+  }
+  assert.equal(comparisonCategory('run-details-task-logs'), 'runtime-output');
+  assert.equal(comparisonCategory('compare-confusion-matrix'), 'pixel-parity');
+  for (const key of ['run-details-task-logs', 'topology-retried-task']) {
+    assert.ok(
+      byKey(scenarios, key).actions.some(
+        (action) => action.type === 'centerGraphNode' && action.selector.includes('retry-once'),
+      ),
+    );
+  }
 });
 
 function byKey(scenarios, key) {
@@ -390,7 +429,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   const base = resolveSemanticScenarios('base', SEED_VALUES);
   const head = resolveSemanticScenarios('head', SEED_VALUES);
 
-  assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v2');
+  assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v3');
   const executionListScopes = byKey(base, 'executions-to-runs').semanticIdNormalization.scopes;
   assert.deepEqual(executionListScopes[0].kinds, ['execution']);
   assert.equal(executionListScopes[0].minReplacements, 1);
@@ -1524,13 +1563,13 @@ test('topology journeys enter the nested graph and first loop iteration', () => 
   }
 });
 
-test('semantic capture catalog retains normal layouts alongside five full-viewer captures', () => {
+test('semantic capture catalog retains normal layouts alongside six full-viewer captures', () => {
   for (const role of ['base', 'head']) {
     const scenarios = resolveSemanticScenarios(role, SEED_VALUES);
     const viewports = scenarios.flatMap((scenario) =>
       capture.captureViewports(scenario, [{ width: 1280, height: 800 }]),
     );
-    assert.equal(viewports.length, scenarios.length + 5);
+    assert.equal(viewports.length, scenarios.length + 6);
     assert.equal(viewports.filter(({ height }) => height === 800).length, scenarios.length);
     assert.equal(
       viewports.filter(({ width, height }) => width === 2200 && height === 1200).length,
@@ -1538,7 +1577,7 @@ test('semantic capture catalog retains normal layouts alongside five full-viewer
     );
     assert.equal(
       viewports.filter(({ width, height }) => width === 1280 && height === 1200).length,
-      3,
+      4,
     );
   }
 });
@@ -1846,9 +1885,16 @@ test('capture requires its declared deterministic font instead of silently accep
 
 test('frame-text readiness inspects sandboxed frames through Playwright', async () => {
   let frameChecks = 0;
+  const mainFrame = {
+    getByText: () => {
+      throw new Error('Main-frame text is not viewer content');
+    },
+  };
   await capture.executeActions(
     {
+      mainFrame: () => mainFrame,
       frames: () => [
+        mainFrame,
         {
           getByText: () => ({
             count: async () => {
@@ -1869,6 +1915,42 @@ test('frame-text readiness inspects sandboxed frames through Playwright', async 
     [{ type: 'waitForFrameText', text: 'UI Smoke HTML Report', timeoutMs: 50 }],
   );
   assert.equal(frameChecks, 1);
+});
+
+test('selected graph node is panned into the area not covered by task details', async () => {
+  const bounds = { x: 900, y: 300, width: 100, height: 60 };
+  let pointer;
+  let start;
+  const drags = [];
+  const target = { boundingBox: async () => ({ ...bounds }) };
+  const page = {
+    locator: (selector) => ({
+      first: () =>
+        selector === '.react-flow__pane'
+          ? { boundingBox: async () => ({ x: 220, y: 150, width: 1060, height: 650 }) }
+          : selector === '[aria-label="close"]'
+            ? { boundingBox: async () => ({ x: 650, y: 160, width: 30, height: 30 }) }
+            : target,
+    }),
+    mouse: {
+      move: async (x, y) => {
+        pointer = { x, y };
+      },
+      down: async () => {
+        start = pointer;
+      },
+      up: async () => {
+        drags.push([start, pointer]);
+        bounds.x += pointer.x - start.x;
+        bounds.y += pointer.y - start.y;
+      },
+    },
+  };
+  await capture.executeActions(page, [{ type: 'centerGraphNode', selector: '.selected-task' }]);
+  assert.equal(bounds.x + bounds.width / 2, 435);
+  assert.equal(bounds.y + bounds.height / 2, 475);
+  assert.ok(drags.length > 1);
+  assert.ok(drags.flat().every(({ x }) => x > 220 && x < 650));
 });
 
 test('capture actions select deterministic indexes and wait for repeated text', async () => {

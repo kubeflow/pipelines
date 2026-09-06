@@ -314,7 +314,7 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
         },
         scenarioContractSchemaVersion:
           overrides.scenarioContractSchemaVersion ||
-          (semanticFullStack ? 'ui-smoke-scenarios/v2' : false),
+          (semanticFullStack ? 'ui-smoke-scenarios/v3' : false),
         viewports: [
           ...new Map(
             normalized.map((result) => [
@@ -693,6 +693,29 @@ test('comparison accepts attested shared visual equivalence for unjoinable loop 
   assert.deepEqual(run.summary.fatalErrors, []);
   assert.equal(run.summary.stats.validSemanticPairs, 1);
   assert.equal(run.summary.stats.pagesExceedingFailThreshold, 1);
+});
+
+test('capability transitions and runtime text are not ordinary pixel failures', async (t) => {
+  for (const [key, category] of [
+    ['artifact-related-tasks', 'capability-transition'],
+    ['run-details-task-logs', 'runtime-output'],
+  ]) {
+    const filename = `${key}-10x10.png`;
+    const root = await createPair(t, [
+      { base: captureResult(filename), head: captureResult(filename) },
+    ]);
+    const config = comparison.writeBoundScenarioConfig({
+      baseDir: path.join(root, 'base'),
+      headDir: path.join(root, 'head'),
+      outputPath: path.join(root, 'scenario-config.json'),
+      defaults: { diffThreshold: 0, failThreshold: 0, looksSameTolerance: 0 },
+    });
+    const run = await comparison.runComparison(options(root, { scenarioConfigPath: config.path }));
+    assert.deepEqual(run.summary.fatalErrors, []);
+    assert.equal(run.summary.results[0].comparisonCategory, category);
+    assert.equal(run.summary.results[0].scenarioThresholds.failThreshold, null);
+    assert.equal(run.summary.stats.pagesExceedingFailThreshold, 0);
+  }
 });
 
 test('scenario policy refuses a stale revision binding before comparison', async (t) => {
@@ -1149,7 +1172,7 @@ test('semantic captures require the current semantic scenario contract', async (
     assert.equal(run.exitCode, 1);
     assert.match(
       run.summary.fatalErrors[0],
-      /Semantic captures must use scenario contract ui-smoke-scenarios\/v2/,
+      /Semantic captures must use scenario contract ui-smoke-scenarios\/v3/,
     );
   }
 });
