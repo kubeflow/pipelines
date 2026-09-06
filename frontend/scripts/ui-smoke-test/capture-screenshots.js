@@ -1790,10 +1790,18 @@ async function executeActions(page, actions) {
           const bounds = await target.boundingBox();
           const pane = page.locator('.react-flow__pane').first();
           const graph = await pane.boundingBox();
-          const close = await page.locator('[aria-label="close"]').first().boundingBox();
-          if (!bounds || !graph || !close)
+          const panel = await page
+            .locator('[aria-label="close"]')
+            .first()
+            .evaluate((button) => {
+              const element = button.closest('[class*="sidepane"]');
+              return element ? element.getBoundingClientRect().toJSON() : null;
+            });
+          if (!bounds || !graph || !panel)
             throw new Error('Selected graph node or task panel is missing');
-          const right = Math.min(graph.x + graph.width, close.x);
+          // The close button is inset inside the panel. Using its x coordinate makes the
+          // starting pointer hit the resizer protruding beyond the panel's left border.
+          const right = Math.min(graph.x + graph.width, panel.x - 12);
           if (right - graph.x < 80) throw new Error('Task panel leaves no visible graph area');
           let dx = (graph.x + right) / 2 - (bounds.x + bounds.width / 2);
           let dy = graph.y + graph.height / 2 - (bounds.y + bounds.height / 2);
@@ -1801,8 +1809,26 @@ async function executeActions(page, actions) {
           for (let attempt = 0; attempt < 20 && (Math.abs(dx) > 1 || Math.abs(dy) > 1); attempt++) {
             const stepX = Math.max(-(right - graph.x - 40), Math.min(right - graph.x - 40, dx));
             const stepY = Math.max(-graph.height / 3, Math.min(graph.height / 3, dy));
-            const x = stepX < 0 ? right - 20 : graph.x + 20;
-            const y = graph.y + graph.height / 2;
+            const start = await page.evaluate(
+              ({ graph, right, stepX, stepY }) => {
+                const pane = document.querySelector('.react-flow__pane');
+                const x = stepX < 0 ? right - 20 : graph.x + 20;
+                const candidates = [0.1, 0.9, 0.5, 0.25, 0.75];
+                for (const ratio of candidates) {
+                  const y = graph.y + graph.height * ratio;
+                  if (y + stepY <= graph.y + 10 || y + stepY >= graph.y + graph.height - 10)
+                    continue;
+                  const hit = document.elementFromPoint(x, y);
+                  if (pane && (hit === pane || hit?.closest('.react-flow__pane') === pane))
+                    return { x, y };
+                }
+                return null;
+              },
+              { graph, right, stepX, stepY },
+            );
+            if (!start)
+              throw new Error('No unobstructed graph pane position is available for panning');
+            const { x, y } = start;
             await page.mouse.move(x, y);
             await page.mouse.down();
             await page.mouse.move(x + stepX, y + stepY, { steps: 12 });
