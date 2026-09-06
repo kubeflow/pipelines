@@ -10,6 +10,61 @@ const sharp = require('sharp');
 const capture = require('../capture-screenshots.js');
 const comparison = require('../generate-comparison.js');
 const { strictSemanticFixtureManifest } = require('./semantic-fixture.js');
+const { semanticIdToken } = require('../semantic-id-normalization.js');
+
+test('artifact ID normalization preserves full and abbreviated presentation and rejects ambiguity', async (t) => {
+  const originalDocument = global.document;
+  const originalNodeFilter = global.NodeFilter;
+  t.after(() => {
+    global.document = originalDocument;
+    global.NodeFilter = originalNodeFilter;
+  });
+  const raw = '12345678-1234-1234-1234-123456789abc';
+  const semanticId = 'run.training-1/artifact.html[0]';
+  const token = semanticIdToken('artifact', semanticId);
+  const catalog = [{ kind: 'artifact', value: raw, semanticId, token }];
+  const nodes = [
+    { nodeValue: raw },
+    { nodeValue: '  12345678…9abc  ' },
+    { nodeValue: 'Unrelated artifact label' },
+  ];
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.document = {
+    querySelectorAll: () => [{}],
+    createTreeWalker: () => {
+      let index = 0;
+      return { nextNode: () => nodes[index++] };
+    },
+  };
+  const page = { evaluate: async (runner, arg) => runner(arg) };
+  const config = {
+    scopes: [{ selector: '#root', kinds: ['artifact'], match: 'exact', minReplacements: 2 }],
+  };
+  const report = await capture.normalizeSemanticIds(page, config, catalog);
+  assert.equal(nodes[0].nodeValue, token);
+  assert.equal(nodes[1].nodeValue, `  ${token.slice(0, 8)}…${token.slice(-4)}  `);
+  assert.equal(nodes[2].nodeValue, 'Unrelated artifact label');
+  assert.equal(report.totalReplacementCount, 2);
+  assert.equal(report.scopes[0].entries[0].token, token);
+  assert.equal(
+    report.scopes[0].entries[0].sourceIdSha256,
+    crypto.createHash('sha256').update(raw).digest('hex'),
+  );
+
+  nodes[0].nodeValue = '12345678…9abc';
+  await assert.rejects(
+    capture.normalizeSemanticIds(page, config, [
+      ...catalog,
+      {
+        kind: 'artifact',
+        value: '12345678-9999-9999-9999-123456789abc',
+        semanticId: 'run.training-1/artifact.markdown[0]',
+        token: semanticIdToken('artifact', 'run.training-1/artifact.markdown[0]'),
+      },
+    ]),
+    /Ambiguous shortened artifact ID/,
+  );
+});
 
 function fixtureDirectory(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'ui-smoke-hardening-'));
