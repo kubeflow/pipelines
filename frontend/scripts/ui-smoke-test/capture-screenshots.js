@@ -1610,10 +1610,26 @@ async function normalizeSemanticIds(page, config, catalog) {
           let value = node.nodeValue || '';
           if (scope.match === 'exact') {
             const trimmed = value.trim();
-            const candidate = scope.candidates.find((entry) => entry.value === trimmed);
+            const shorten = (identifier) => `${identifier.slice(0, 8)}…${identifier.slice(-4)}`;
+            const exactCandidate = scope.candidates.find((entry) => entry.value === trimmed);
+            // Artifact lists may show abbreviated IDs. Preserve that presentation difference
+            // while binding it to the same full, attested fixture identity.
+            const shortenedCandidates = exactCandidate
+              ? []
+              : scope.candidates.filter(
+                  (entry) =>
+                    entry.kind === 'artifact' &&
+                    entry.value.length > 16 &&
+                    shorten(entry.value) === trimmed,
+                );
+            if (shortenedCandidates.length > 1) {
+              throw new Error('Ambiguous shortened artifact ID in semantic normalization.');
+            }
+            const candidate = exactCandidate || shortenedCandidates[0];
             if (!candidate) continue;
+            const token = exactCandidate ? candidate.token : shorten(candidate.token);
             const start = value.indexOf(trimmed);
-            node.nodeValue = `${value.slice(0, start)}${candidate.token}${value.slice(start + trimmed.length)}`;
+            node.nodeValue = `${value.slice(0, start)}${token}${value.slice(start + trimmed.length)}`;
             counts[candidate.semanticId] += 1;
             continue;
           }
