@@ -1255,7 +1255,7 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			if test.terminateBeforeRead {
 				require.NoError(t, runStore.TerminateRun("1"))
 			}
-			staleRun, err := runStore.GetRun("1", false)
+			staleRun, err := runStore.GetRun("1", true)
 			require.NoError(t, err)
 			expectedState := staleRun.State
 			expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
@@ -1278,7 +1278,7 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 			assert.False(t, updated)
 			assert.Equal(t, originalHistory, staleRun.StateHistory)
 
-			persistedRun, err := runStore.GetRun("1", false)
+			persistedRun, err := runStore.GetRun("1", true)
 			require.NoError(t, err)
 			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 			assert.Equal(t, "Terminating", persistedRun.Conditions)
@@ -1314,7 +1314,7 @@ func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
 			)
 			require.NoError(t, err)
 
-			reportedRun, err := runStore.GetRun("1", false)
+			reportedRun, err := runStore.GetRun("1", true)
 			require.NoError(t, err)
 			require.Equal(t, model.RuntimeStateRunning, reportedRun.State)
 			expectedWorkflowRuntimeManifest := reportedRun.WorkflowRuntimeManifest
@@ -1331,7 +1331,7 @@ func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, updated)
 
-			persistedRun, err := runStore.GetRun("1", false)
+			persistedRun, err := runStore.GetRun("1", true)
 			require.NoError(t, err)
 			assert.Equal(t, model.RuntimeStateRunning, persistedRun.State)
 			assert.Equal(t, model.LargeText("fresh-workflow"), persistedRun.WorkflowRuntimeManifest)
@@ -1343,7 +1343,7 @@ func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
 	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
-	staleRun, err := runStore.GetRun("1", false)
+	staleRun, err := runStore.GetRun("1", true)
 	require.NoError(t, err)
 	expectedWorkflowRuntimeManifest := staleRun.WorkflowRuntimeManifest
 	expectedPipelineRuntimeManifest := staleRun.PipelineRuntimeManifest
@@ -1362,7 +1362,7 @@ func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
 	assert.False(t, updated)
 	assert.Equal(t, originalHistory, staleRun.StateHistory)
 
-	persistedRun, err := runStore.GetRun("1", false)
+	persistedRun, err := runStore.GetRun("1", true)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), persistedRun.RetryGeneration)
 	assert.Equal(t, expectedWorkflowRuntimeManifest, persistedRun.WorkflowRuntimeManifest)
@@ -1442,7 +1442,7 @@ func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
 			require.NoError(t, err)
 
 			require.NoError(t, runStore.TerminateRun("1"))
-			persistedRun, err := runStore.GetRun("1", false)
+			persistedRun, err := runStore.GetRun("1", true)
 			require.NoError(t, err)
 			assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
 			assert.Equal(t, "Terminating", persistedRun.Conditions)
