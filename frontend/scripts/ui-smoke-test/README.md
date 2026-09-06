@@ -208,6 +208,8 @@ node smoke-test-runner.js \
   `1280x1200` with the default width. Duplicate dimensions are captured once per scenario.
   Normal layouts allow viewer overflow while preserving content readiness; full-viewer captures
   additionally require the viewer to fit inside the viewport and its clipping ancestors.
+  The native comparison ROC scenario keeps its default compact chart at normal height and uses
+  the explicit expansion control at heights of at least 1200px; the legacy base remains unchanged.
 - `--diff-threshold` controls when changed regions are drawn on a comparison image.
 - `--fail-threshold` controls the maximum accepted changed-pixel percentage. The default is `0`, so
   every visual change requires review.

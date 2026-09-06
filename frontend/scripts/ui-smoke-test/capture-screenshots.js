@@ -1749,6 +1749,14 @@ async function executeActions(page, actions) {
   }
 
   for (const action of actions) {
+    if (action.minimumViewportHeight !== undefined) {
+      if (!Number.isSafeInteger(action.minimumViewportHeight) || action.minimumViewportHeight < 1) {
+        throw new Error('minimumViewportHeight must be a positive integer');
+      }
+      const viewport = page.viewportSize();
+      if (!viewport) throw new Error('Viewport-specific actions require an explicit viewport');
+      if (viewport.height < action.minimumViewportHeight) continue;
+    }
     const timeout = action.timeoutMs || 10000;
     const descriptor = action.selector ? `${action.type}(${action.selector})` : action.type;
     const locator = action.selector ? page.locator(action.selector) : null;
