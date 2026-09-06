@@ -103,7 +103,7 @@ const rocComparisonColorNormalization = ({
 
 const EXPECTED_CHANGES = Object.freeze({
   artifactList:
-    'The grouped MLMD artifact view is replaced by the native Artifact API-backed list.',
+    'The grouped MLMD artifact view is replaced by the native Artifact API-backed list. Grouping, row order, and cardinality are not one-to-one; rows are not synthetically reordered or hidden for comparison.',
   artifactRelationships:
     'The MLMD Lineage Explorer is replaced by native producing and consuming task relationships.',
   executions: 'The removed Executions surface redirects to the replacement Runs experience.',
@@ -272,6 +272,24 @@ const taskPanelActions = (taskName, tabName, extraActions = []) => [
   ...extraActions,
 ];
 
+const enteredSubgraphActions = (taskName, childName, iterationName) => [
+  ...waitForGraph,
+  { type: 'click', selector: nodeDataSelector(taskName, 'expand-button') },
+  ...(iterationName
+    ? [{ type: 'click', selector: nodeDataSelector(iterationName, 'expand-button') }]
+    : []),
+  { type: 'waitForSelector', selector: nodeDataSelector(childName, 'execution-icon-active') },
+  { type: 'assertAbsent', selector: nodeDataSelector('write-metrics', 'execution-icon-active') },
+  fitGraphAction,
+];
+
+const collapseComparisonContext = [
+  ...['Run overview', 'Parameters'].map((name) => ({
+    type: 'click',
+    selector: `button[title="Expand/Collapse this section"]:has-text("${name}")`,
+  })),
+];
+
 const artifactVisualizationActions = (artifactKey, readyAction) => [
   ...waitForGraph,
   { type: 'waitForSelector', selector: nodeDataSelector(artifactKey, 'artifact-icon-live') },
@@ -295,6 +313,7 @@ const baseFileComparisonActions = (kind, readyAction) => [
   ...baseComparisonSelection(kind, 'first', 0),
   ...baseComparisonSelection(kind, 'second', 1),
   { ...readyAction, minCount: 2 },
+  ...collapseComparisonContext,
 ];
 
 const headComparisonSelection = (label, runLabel) => [
@@ -316,6 +335,7 @@ const headFileComparisonActions = (kind, readyAction) => [
   ...headComparisonSelection('First', 'UI Smoke Training Run 1'),
   ...headComparisonSelection('Second', 'UI Smoke Training Run 2'),
   { ...readyAction, minCount: 2 },
+  ...collapseComparisonContext,
 ];
 
 const SEMANTIC_SCENARIOS = Object.freeze([
@@ -566,6 +586,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'compare-roc-selection',
+    minimumCaptureHeight: 1200,
+    captureRegion: { selector: '.recharts-wrapper', minCount: 1 },
     title: 'Compare ROC curve selections',
     requires: ['compareRunlist'],
     expectedChange: 'ROC Curve is consolidated into the native Classification Metrics tab.',
@@ -584,6 +606,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForFunction', predicate: seededListReady },
           { type: 'click', selector: tabSelector('ROC Curve') },
           { type: 'waitForFunction', predicate: baseV2ComparisonRocReady },
+          ...collapseComparisonContext,
         ],
       },
       head: {
@@ -600,12 +623,15 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForSelector', selector: '[aria-label="ROC curves"]' },
           { type: 'waitForFunction', predicate: threeSelectedRocCurvesReady },
           { type: 'waitForFunction', predicate: rocReady },
+          ...collapseComparisonContext,
         ],
       },
     },
   },
   {
     key: 'compare-html',
+    minimumCaptureHeight: 1200,
+    captureRegion: { selector: 'iframe', minCount: 2 },
     title: 'Compare HTML reports',
     requires: ['compareRunlist', 'htmlArtifactId'],
     revisions: {
@@ -633,6 +659,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'compare-markdown',
+    minimumCaptureHeight: 1200,
+    captureRegion: { selector: '.markdown-viewer', minCount: 2 },
     title: 'Compare Markdown reports',
     requires: ['compareRunlist', 'markdownArtifactId'],
     revisions: {
@@ -662,7 +690,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
     key: 'artifact-details',
     title: 'Artifact Details',
     requires: ['htmlArtifactId'],
-    expectedChange: EXPECTED_CHANGES.nativeRuntime,
+    expectedChange:
+      'The legacy Artifact Details page is metadata-only and has no HTML iframe. The native page adds an HTML preview; the empty lower region on base is not a viewer loading failure.',
     revisions: {
       base: {
         path: '/#/artifacts/{seed.htmlArtifactId}',
@@ -715,6 +744,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         actions: [
           { type: 'waitForText', text: 'Artifact details' },
           { type: 'waitForText', text: 'html_report' },
+          { type: 'waitForFrameText', text: 'UI Smoke HTML Report' },
         ],
       },
     },
@@ -836,7 +866,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('parallel-loop', 'Task Details'),
+        actions: enteredSubgraphActions('parallel-loop', 'loop-worker', 'parallel-loop.0'),
       },
       head: {
         path: '/#/runs/details/{seed.richRunId}',
@@ -846,8 +876,6 @@ const SEMANTIC_SCENARIOS = Object.freeze([
             exactScope({
               maxReplacements: 1,
               maxReplacementsPerIdentifier: 1,
-              minReplacements: 1,
-              minReplacementsPerIdentifier: 1,
               semanticIds: [primaryTask('task.parallel-loop')],
             }),
             exactScope({
@@ -858,7 +886,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('Loop', 'Task Details'),
+        actions: enteredSubgraphActions('Loop', 'loop-worker', 'parallel-loop.0'),
       },
     },
   },
@@ -882,7 +910,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('nested-dag', 'Task Details'),
+        actions: enteredSubgraphActions('nested-dag', 'nested-worker'),
       },
       head: {
         path: '/#/runs/details/{seed.richRunId}',
@@ -892,8 +920,6 @@ const SEMANTIC_SCENARIOS = Object.freeze([
             exactScope({
               maxReplacements: 1,
               maxReplacementsPerIdentifier: 1,
-              minReplacements: 1,
-              minReplacementsPerIdentifier: 1,
               semanticIds: [primaryTask('task.nested-dag')],
             }),
             taskPodScope('task.nested-dag'),
@@ -901,7 +927,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           ],
         },
         waitFor: '#root',
-        actions: taskPanelActions('nested-dag', 'Task Details'),
+        actions: enteredSubgraphActions('nested-dag', 'nested-worker'),
       },
     },
   },
@@ -934,6 +960,10 @@ function resolveSemanticScenarios(revisionRole, seedValues, scenarios = SEMANTIC
     return resolveTemplates(
       {
         ...variant,
+        ...(scenario.minimumCaptureHeight
+          ? { minimumCaptureHeight: scenario.minimumCaptureHeight }
+          : {}),
+        ...(scenario.captureRegion ? { captureRegion: scenario.captureRegion } : {}),
         expectedChange: globalExpectedChangeAnnotation(scenario.expectedChange || null),
         missingFixtures,
         name: scenario.key,
