@@ -41,9 +41,7 @@ test('lineage, relationships, redirect guidance and matrices have distinct requi
   const scenarios = resolveSemanticScenarios('head', SEED_VALUES);
   const explorer = byKey(scenarios, 'artifact-lineage-explorer');
   assert.equal(explorer.path, '/#/artifacts/accuracy-1/explorer');
-  assert.ok(
-    explorer.actions.some((action) => action.selector === '[aria-label="Lineage graph"] svg path'),
-  );
+  assert.ok(explorer.actions.some((action) => action.predicate?.name === 'nativeLineageReady'));
   assert.equal(byKey(scenarios, 'artifact-related-tasks').path, '/#/artifacts/accuracy-1/lineage');
   assert.ok(
     byKey(scenarios, 'executions-to-runs').actions.some(
@@ -73,6 +71,54 @@ test('lineage, relationships, redirect guidance and matrices have distinct requi
       ),
     );
   }
+});
+
+test('execution redirect readiness permits only its expected informational notice', () => {
+  const predicate = byKey(resolveSemanticScenarios('head', SEED_VALUES), 'executions-to-runs')
+    .actions[0].predicate;
+  const notice = {
+    matches: () => true,
+    textContent: 'Execution pages have moved to Runs and task details. Open a run.',
+  };
+  const ready = (alerts, rows = 1, loading = 0) =>
+    vm.runInNewContext(`(${predicate.toString()})()`, {
+      document: {
+        querySelectorAll: (selector) =>
+          selector === '[role="alert"]'
+            ? alerts
+            : Array(selector.includes('circularprogress') ? loading : rows),
+      },
+    });
+  assert.equal(ready([notice]), true);
+  assert.equal(ready([notice, { matches: () => false, textContent: 'Run request failed' }]), false);
+  assert.equal(ready([{ ...notice, textContent: 'An unrelated information alert' }]), false);
+  assert.equal(ready([notice], 0), false);
+  assert.equal(ready([notice], 1, 1), false);
+});
+
+test('native lineage readiness requires a visible graph and real edges, not SVG marker definitions', () => {
+  const predicate = byKey(
+    resolveSemanticScenarios('head', SEED_VALUES),
+    'artifact-lineage-explorer',
+  ).actions[0].predicate;
+  const ready = (edges, width = 800, height = 300) =>
+    vm.runInNewContext(`(${predicate.toString()})()`, {
+      document: {
+        querySelector: () => ({
+          getBoundingClientRect: () => ({ width, height }),
+          querySelectorAll: (selector) => {
+            assert.equal(selector, 'path[data-from][data-to]');
+            return edges.map((d) => ({ getAttribute: () => d }));
+          },
+        }),
+      },
+    });
+  // Marker-only SVG has no data-bearing edges, regardless of its visible dimensions.
+  assert.equal(ready([]), false);
+  assert.equal(ready(['']), false);
+  // A horizontal cubic edge is valid even though the path itself has zero height.
+  assert.equal(ready(['M10,20 C30,20 50,20 70,20']), true);
+  assert.equal(ready(['M10,20 C30,20 50,20 70,20'], 0), false);
 });
 
 function byKey(scenarios, key) {
@@ -1954,7 +2000,7 @@ test('selected graph node pans on the pane rather than the inset close button or
           elementFromPoint: (x, y) => {
             hitTests.push({ x, y });
             // The handle extends 5px beyond the panel; close.x - 20 was inside it.
-              return graphObstructed || x >= 625 ? { closest: () => null } : pane;
+            return graphObstructed || x >= 625 ? { closest: () => null } : pane;
           },
         },
       })(args),

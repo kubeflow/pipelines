@@ -169,6 +169,38 @@ function seededListReady() {
   return !hasError && !isLoading && hasRows;
 }
 
+function executionRedirectReady() {
+  const unexpectedAlert = Array.from(document.querySelectorAll('[role="alert"]')).some(
+    (alert) =>
+      !(
+        alert.matches('.MuiAlert-colorInfo, .MuiAlert-standardInfo') &&
+        alert.textContent.startsWith('Execution pages have moved to Runs and task details.')
+      ),
+  );
+  const loading = document.querySelectorAll(
+    '[role="circularprogress"], .MuiCircularProgress-root',
+  ).length;
+  const rows = document.querySelectorAll(
+    '[data-testid="table-row"], table tbody tr, [class*="tableRow"]',
+  ).length;
+  return !unexpectedAlert && !loading && rows > 0;
+}
+
+function nativeLineageReady() {
+  const graph = document.querySelector('[aria-label="Lineage graph"]');
+  if (!graph) return false;
+  const bounds = graph.getBoundingClientRect();
+  // Marker definitions are not rendered edges; horizontal SVG paths can legitimately have
+  // zero-height bounding boxes, so assert graph visibility and actual edge geometry separately.
+  return (
+    bounds.width > 0 &&
+    bounds.height > 0 &&
+    Array.from(graph.querySelectorAll('path[data-from][data-to]')).some((edge) =>
+      /^M.+C/.test(edge.getAttribute('d') || ''),
+    )
+  );
+}
+
 function legacyExecutionListReady() {
   const hasError = !!document.querySelector('[role="alert"]');
   const isLoading =
@@ -366,7 +398,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: { kind: 'expected-removal', path: '/runs' },
         waitFor: '#root',
         actions: [
-          ...waitForList,
+          { type: 'waitForFunction', predicate: executionRedirectReady },
           { type: 'waitForText', text: 'Execution pages have moved to Runs and task details.' },
           {
             type: 'assertAbsent',
@@ -861,7 +893,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         routeExpectation: { kind: 'direct', path: '/artifacts/{seed.relatedArtifactId}/explorer' },
         waitFor: '#root',
         actions: [
-          { type: 'waitForSelector', selector: '[aria-label="Lineage graph"] svg path' },
+          { type: 'waitForFunction', predicate: nativeLineageReady },
           { type: 'waitForText', text: 'write-metrics' },
           { type: 'waitForText', text: 'consume-metrics' },
           { type: 'waitForText', text: 'executor-logs' },
