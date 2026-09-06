@@ -70,6 +70,7 @@ const COMPARISON_ARGUMENT_NAMES = new Set([
   'pr',
   'pr-label',
   'scenario-config',
+  'reuse-base-commit',
 ]);
 
 const LABEL_HEIGHT = 40;
@@ -149,11 +150,15 @@ function parseComparisonOptions(args = process.argv.slice(2), env = process.env)
     prDir: getArg(args, 'pr', './screenshots/pr'),
     prLabel: getArg(args, 'pr-label', null),
     scenarioConfigPath: getArg(args, 'scenario-config', env.UI_SMOKE_SCENARIO_CONFIG || null),
+    reuseBaseCommit: getArg(args, 'reuse-base-commit', null),
   };
 }
 
 function validateComparisonOptions(options) {
   const errors = [];
+  if (options.reuseBaseCommit != null && !/^[a-f0-9]{40,64}$/.test(options.reuseBaseCommit)) {
+    errors.push('reuseBaseCommit must be a full lowercase base commit SHA.');
+  }
   if (
     !Number.isFinite(options.diffThreshold) ||
     options.diffThreshold < 0 ||
@@ -874,10 +879,11 @@ function writeBoundScenarioConfig({
   policyPath = null,
   scenarioCatalog = [],
   expectedViewports = null,
+  reuseBaseCommit = null,
 }) {
   const base = readCaptureIdentity(baseDir, 'Base');
   const head = readCaptureIdentity(headDir, 'Head');
-  const provenance = validateCapturePairProvenance(base.manifest, head.manifest);
+  const provenance = validateCapturePairProvenance(base.manifest, head.manifest, reuseBaseCommit);
   const catalog = normalizeScenarioCatalog(scenarioCatalog);
   const viewports = normalizeExpectedViewports(expectedViewports, base.manifest, head.manifest);
   validateRequiredScenarioCoverage(base, head, catalog, viewports);
@@ -2413,7 +2419,84 @@ function matchingManifestContract(baseManifest, headManifest, field) {
   return canonicalizeJson(base);
 }
 
-function validateCapturePairProvenance(baseManifest, headManifest) {
+// Relocation never re-attests bytes: only an identical saved input may replace a moved path.
+function relocateSourceProvenance(manifest, replacementPath) {
+  const attestation = manifest.inputs?.sourceProvenance;
+  normalizeCaptureInputAttestation(attestation, 'Source provenance', true);
+  const relocated = { ...attestation, path: path.resolve(replacementPath) };
+  loadAttestedJsonArtifact(relocated, 'Relocated source provenance');
+  return { ...manifest, inputs: { ...manifest.inputs, sourceProvenance: relocated } };
+}
+
+function validateReusableBaseSources(
+  baseManifest,
+  headManifest,
+  baseSemantic,
+  headSemantic,
+  commit,
+) {
+  if (!/^[a-f0-9]{40,64}$/.test(commit || '')) {
+    throw new ComparisonError(
+      'Reusable base requires a full lowercase base commit SHA.',
+      'manifest',
+    );
+  }
+  if (baseSemantic.deployments?.base?.revision?.commit !== commit) {
+    throw new ComparisonError(
+      'Reusable base semantic revision does not match the pinned commit.',
+      'manifest',
+    );
+  }
+  for (const [role, manifest] of [
+    ['base', baseManifest],
+    ['head', headManifest],
+  ]) {
+    loadAttestedJsonArtifact(manifest.inputs.seedManifest, `${role} seedManifest`);
+    const source = loadAttestedJsonArtifact(
+      manifest.inputs.sourceProvenance,
+      `${role} sourceProvenance`,
+    );
+    const revision = source.revision;
+    if (
+      source.schemaVersion !== 'ui-smoke-source/v1' ||
+      !/^[a-f0-9]{40,64}$/.test(revision?.commit || '') ||
+      !/^[a-f0-9]{40,64}$/.test(revision?.tree || '')
+    ) {
+      throw new ComparisonError(
+        `${role} source provenance has an invalid snapshot revision.`,
+        'manifest',
+      );
+    }
+    const hash = crypto.createHash('sha256');
+    for (const value of [source.schemaVersion, revision.commit, revision.tree]) {
+      hash.update(`${Buffer.byteLength(value)}:`);
+      hash.update(value);
+    }
+    if (source.fingerprint !== `sha256:${hash.digest('hex')}`) {
+      throw new ComparisonError(
+        `${role} source provenance fingerprint does not match its snapshot.`,
+        'manifest',
+      );
+    }
+    // Source provenance describes the HEAD snapshot, even in a base capture. A reused base
+    // retains that original input; only its own semantic manifest identifies its deployed SHA.
+    if (role === 'head') {
+      const deployed = headSemantic.deployments?.head?.revision;
+      if (
+        deployed?.commit !== revision.commit ||
+        deployed?.tree !== revision.tree ||
+        deployed?.sourceFingerprint !== source.fingerprint
+      ) {
+        throw new ComparisonError(
+          'Head semantic revision does not match its source snapshot.',
+          'manifest',
+        );
+      }
+    }
+  }
+}
+
+function validateCapturePairProvenance(baseManifest, headManifest, reuseBaseCommit = null) {
   const base = captureProvenance(baseManifest, 'base');
   const head = captureProvenance(headManifest, 'head');
   if (base.seedManifest.schemaVersion !== head.seedManifest.schemaVersion) {
@@ -2422,8 +2505,15 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       'manifest',
     );
   }
-  assertMatchingPairInput(base.sourceProvenance, head.sourceProvenance, 'sourceProvenance');
-  if (Boolean(base.semanticManifest) !== Boolean(base.sourceProvenance)) {
+  if (!reuseBaseCommit) {
+    assertMatchingPairInput(base.sourceProvenance, head.sourceProvenance, 'sourceProvenance');
+  }
+  if (
+    Boolean(base.semanticManifest) !== Boolean(base.sourceProvenance) ||
+    Boolean(head.semanticManifest) !== Boolean(head.sourceProvenance) ||
+    Boolean(base.semanticManifest) !== Boolean(head.semanticManifest) ||
+    (reuseBaseCommit && !base.semanticManifest)
+  ) {
     throw new ComparisonError(
       'Semantic full-stack captures require both semanticManifest and sourceProvenance; browser compatibility captures require neither.',
       'manifest',
@@ -2440,6 +2530,15 @@ function validateCapturePairProvenance(baseManifest, headManifest) {
       headManifest.inputs.semanticManifest,
       'Head semanticManifest',
     );
+    if (reuseBaseCommit) {
+      validateReusableBaseSources(
+        baseManifest,
+        headManifest,
+        baseSemanticManifest,
+        headSemanticManifest,
+        reuseBaseCommit,
+      );
+    }
     try {
       combineRevisionSemanticManifests(baseSemanticManifest, headSemanticManifest);
     } catch (error) {
@@ -2781,7 +2880,7 @@ function buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir) {
   return { filenames, pairs, results };
 }
 
-function buildComparisonPlan(mainDir, prDir, scenarioConfigPath = null) {
+function buildComparisonPlan(mainDir, prDir, scenarioConfigPath = null, reuseBaseCommit = null) {
   const mainManifest = loadCaptureManifest(mainDir);
   const prManifest = loadCaptureManifest(prDir);
   if (!mainManifest && !prManifest) {
@@ -2804,7 +2903,11 @@ function buildComparisonPlan(mainDir, prDir, scenarioConfigPath = null) {
   }
 
   const manifestPlan = buildManifestComparisonPlan(mainManifest, prManifest, mainDir, prDir);
-  const provenance = validateCapturePairProvenance(mainManifest.manifest, prManifest.manifest);
+  const provenance = validateCapturePairProvenance(
+    mainManifest.manifest,
+    prManifest.manifest,
+    reuseBaseCommit,
+  );
   mainManifest.attestation.inputs = provenance.base;
   prManifest.attestation.inputs = provenance.head;
   mainManifest.attestation.browser = provenance.browser;
@@ -3331,6 +3434,7 @@ async function runComparison(options, dependencies = {}) {
         options.mainDir,
         options.prDir,
         options.scenarioConfigPath || null,
+        options.reuseBaseCommit || null,
       );
       mainLabel = options.mainLabel || plan.mainLabel;
       prLabel = options.prLabel || plan.prLabel;
@@ -3538,6 +3642,8 @@ module.exports = {
   normalizeRegion,
   parseComparisonOptions,
   runComparison,
+  relocateSourceProvenance,
+  validateReusableBaseSources,
   summarizeComparison,
   validateCaptureManifest,
   normalizeSemanticIdNormalizationAttestation,

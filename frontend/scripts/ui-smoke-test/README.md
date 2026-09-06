@@ -489,6 +489,30 @@ other localhost, LAN, or internet services.
 The runner is the supported end-to-end entry point. The lower-level tools are useful for focused
 debugging:
 
+### Reusing a pinned base capture
+
+By default, comparison requires the same source-provenance input on both captures. For a focused
+head recapture, `generate-comparison.js --reuse-base-commit <full-base-SHA>` explicitly permits
+different HEAD snapshot inputs. This is not a way to relabel old screenshots: preserve the base
+screenshots, capture manifest, and all original attested inputs. Both source files and seed inputs
+are checked against their original hashes; both semantic manifests retain their existing fixture
+validation. The base deployment must match the pinned SHA, and the new head deployment's commit,
+tree, and source fingerprint must match its attested source snapshot. Browser, rendering, scenario,
+and screenshot integrity checks still apply. Report evidence retains each original capture time
+and its separate input attestations.
+
+If an original source file was moved to a byte-identical backup, the exported
+`relocateSourceProvenance(captureManifest, backupPath)` helper validates its original hash, size,
+and schema before returning a copy with only `inputs.sourceProvenance.path` changed. Save the
+original capture manifest before writing that returned copy; never replace an old hash with the
+hash of new source bytes. Preserve backups until the comparison is no longer needed.
+
+For programmatic report generation, pass `reuseBaseCommit` to `runComparison(options)` and also
+to `writeBoundScenarioConfig(options)` when generating a scenario configuration for the new pair.
+Any old pair-bound scenario config must be regenerated after manifest relocation or recapture.
+
+### Capture and report commands
+
 ```bash
 node capture-screenshots.js \
   --base-url http://127.0.0.1:3000 \
