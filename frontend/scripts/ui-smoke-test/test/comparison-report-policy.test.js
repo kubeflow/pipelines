@@ -417,6 +417,99 @@ function writeScenarioConfig(root, scenarios, revisionPair = null) {
   return configPath;
 }
 
+test('explicit base reuse validates independent source snapshots and byte-identical relocation', async (t) => {
+  const filename = 'run-details-rich-graph-10x10.png';
+  const root = await createPair(t, [
+    { base: captureResult(filename), head: captureResult(filename) },
+  ]);
+  const baseCommit = 'a'.repeat(40);
+  const manifests = {};
+  const saveInput = (attestation, value) => {
+    const contents = `${JSON.stringify(value)}\n`;
+    fs.writeFileSync(attestation.path, contents);
+    return { ...attestation, sha256: sha256(contents), sizeBytes: Buffer.byteLength(contents) };
+  };
+  for (const role of ['base', 'head']) {
+    scopeCaptureToRevisionSemanticManifest(root, role);
+    const manifestPath = path.join(root, role, 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath));
+    const revision = {
+      commit: (role === 'base' ? 'b' : 'c').repeat(40),
+      tree: (role === 'base' ? 'd' : 'e').repeat(40),
+      ref: 'HEAD',
+    };
+    const hash = crypto.createHash('sha256');
+    for (const part of ['ui-smoke-source/v1', revision.commit, revision.tree]) {
+      hash.update(`${part.length}:`);
+      hash.update(part);
+    }
+    const source = {
+      schemaVersion: 'ui-smoke-source/v1',
+      revision,
+      fingerprint: `sha256:${hash.digest('hex')}`,
+    };
+    manifest.inputs.sourceProvenance = saveInput(manifest.inputs.sourceProvenance, source);
+    const semantic = JSON.parse(fs.readFileSync(manifest.inputs.semanticManifest.path));
+    semantic.deployments[role].revision =
+      role === 'base'
+        ? { commit: baseCommit, ref: baseCommit, role }
+        : { ...revision, role, sourceFingerprint: source.fingerprint };
+    manifest.inputs.semanticManifest = saveInput(manifest.inputs.semanticManifest, semantic);
+    fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+    manifests[role] = manifest;
+  }
+  assert.throws(
+    () => comparison.buildComparisonPlan(path.join(root, 'base'), path.join(root, 'head')),
+    /different sourceProvenance/,
+  );
+  const build = (commit = baseCommit) =>
+    comparison.buildComparisonPlan(path.join(root, 'base'), path.join(root, 'head'), null, commit);
+  assert.doesNotThrow(() => build());
+  const report = await comparison.runComparison(
+    options(root, { reuseBaseCommit: baseCommit, failThreshold: null }),
+  );
+  assert.deepEqual(report.summary.fatalErrors, []);
+  assert.equal(report.exitCode, 0);
+  assert.throws(() => build('f'.repeat(40)), /pinned commit/);
+
+  const original = manifests.base;
+  const savedPath = path.join(root, 'original-base-source.json');
+  fs.copyFileSync(original.inputs.sourceProvenance.path, savedPath);
+  const relocated = comparison.relocateSourceProvenance(original, savedPath);
+  assert.deepEqual(relocated, {
+    ...original,
+    inputs: {
+      ...original.inputs,
+      sourceProvenance: { ...original.inputs.sourceProvenance, path: savedPath },
+    },
+  });
+  fs.writeFileSync(path.join(root, 'base', 'manifest.json'), JSON.stringify(relocated));
+  fs.writeFileSync(original.inputs.sourceProvenance.path, '{}');
+  assert.doesNotThrow(() => build());
+  assert.throws(
+    () => comparison.relocateSourceProvenance(original, original.inputs.sourceProvenance.path),
+    /attestation/,
+  );
+  assert.throws(
+    () => comparison.relocateSourceProvenance(original, path.join(root, 'missing.json')),
+    /cannot be read/,
+  );
+
+  const head = manifests.head;
+  const headSource = JSON.parse(fs.readFileSync(head.inputs.sourceProvenance.path));
+  const headSemantic = JSON.parse(fs.readFileSync(head.inputs.semanticManifest.path));
+  headSemantic.deployments.head.revision.tree = 'f'.repeat(40);
+  head.inputs.semanticManifest = saveInput(head.inputs.semanticManifest, headSemantic);
+  fs.writeFileSync(path.join(root, 'head', 'manifest.json'), JSON.stringify(head));
+  assert.throws(() => build(), /does not match its source snapshot/);
+  headSource.fingerprint = `sha256:${'0'.repeat(64)}`;
+  head.inputs.sourceProvenance = saveInput(head.inputs.sourceProvenance, headSource);
+  fs.writeFileSync(path.join(root, 'head', 'manifest.json'), JSON.stringify(head));
+  assert.throws(() => build(), /fingerprint/);
+  fs.appendFileSync(head.inputs.sourceProvenance.path, ' ');
+  assert.throws(() => build(), /attestation/);
+});
+
 test('comparison accepts separately attested revision semantic manifests', async (t) => {
   const filename = 'run-details-rich-graph-10x10.png';
   const root = await createPair(t, [
