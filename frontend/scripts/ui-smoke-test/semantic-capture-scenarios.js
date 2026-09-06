@@ -2,7 +2,14 @@
 
 const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest');
 
-const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v2';
+const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v3';
+
+function comparisonCategory(key) {
+  if (key === 'run-details-task-logs') return 'runtime-output';
+  return ['executions-to-runs', 'artifact-related-tasks', 'artifact-lineage-explorer'].includes(key)
+    ? 'capability-transition'
+    : 'pixel-parity';
+}
 const GLOBAL_VISUAL_NORMALIZATION_SCHEMA_VERSION = 'ui-smoke-global-visual-normalization/v1';
 
 const exactScope = (options = {}) => ({
@@ -271,6 +278,7 @@ const taskPanelActions = (taskName, tabName, extraActions = []) => [
   ...(tabName ? [{ type: 'click', selector: tabSelector(tabName) }] : []),
   ...(tabName ? [waitForSelectedTab(tabName)] : []),
   fitGraphAction,
+  { type: 'centerGraphNode', selector: nodeSelector(taskName) },
   ...extraActions,
 ];
 
@@ -359,6 +367,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         waitFor: '#root',
         actions: [
           ...waitForList,
+          { type: 'waitForText', text: 'Execution pages have moved to Runs and task details.' },
           {
             type: 'assertAbsent',
             selector: '#executionsBtn, a[href="/executions"]',
@@ -568,6 +577,65 @@ const SEMANTIC_SCENARIOS = Object.freeze([
     },
   },
   {
+    key: 'run-details-confusion-matrix',
+    title: 'Run Details confusion matrix',
+    requires: ['richRunId', 'rocArtifactId'],
+    revisions: Object.fromEntries(
+      ['base', 'head'].map((role) => [
+        role,
+        {
+          path: '/#/runs/details/{seed.richRunId}',
+          routeExpectation: { kind: 'direct', path: '/runs/details/{seed.richRunId}' },
+          waitFor: '#root',
+          actions: [
+            ...artifactVisualizationActions('roc_curve', {
+              type: 'waitForText',
+              text: 'predicted-negative',
+            }),
+            { type: 'scrollIntoView', selector: 'text=predicted-negative' },
+          ],
+        },
+      ]),
+    ),
+  },
+  {
+    key: 'compare-confusion-matrix',
+    title: 'Compare confusion matrices',
+    minimumCaptureHeight: 1200,
+    requires: ['compareRunlist'],
+    revisions: Object.fromEntries(
+      ['base', 'head'].map((role) => [
+        role,
+        {
+          path: '/#/compare?runlist={seed.compareRunlist}',
+          routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
+          waitFor: '#root',
+          actions: [
+            { type: 'waitForFunction', predicate: seededListReady },
+            ...(role === 'head'
+              ? [{ type: 'click', selector: tabSelector('Classification Metrics') }]
+              : []),
+            {
+              type: 'click',
+              selector: tabSelector(role === 'head' ? 'Confusion matrix' : 'Confusion Matrix'),
+            },
+            ...(role === 'head'
+              ? [
+                  ...headComparisonSelection('First', 'UI Smoke Training Run 1'),
+                  ...headComparisonSelection('Second', 'UI Smoke Training Run 2'),
+                ]
+              : [
+                  ...baseComparisonSelection('Confusion Matrix', 'first', 0),
+                  ...baseComparisonSelection('Confusion Matrix', 'second', 1),
+                ]),
+            { type: 'waitForText', text: 'predicted-negative', minCount: 2 },
+            ...collapseComparisonContext,
+          ],
+        },
+      ]),
+    ),
+  },
+  {
     key: 'compare-runs',
     title: 'Compare runs and scalar metrics',
     requires: ['compareRunlist'],
@@ -766,6 +834,37 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForText', text: 'Artifact details' },
           { type: 'waitForText', text: 'html_report' },
           { type: 'waitForFrameText', text: 'UI Smoke HTML Report' },
+        ],
+      },
+    },
+  },
+  {
+    key: 'artifact-lineage-explorer',
+    title: 'Artifact lineage graph',
+    requires: ['relatedArtifactId'],
+    expectedChange:
+      'Legacy MLMD lineage is replaced by a bounded native artifact/task neighborhood graph.',
+    revisions: {
+      base: {
+        path: '/#/artifacts/{seed.relatedArtifactId}',
+        routeExpectation: { kind: 'direct', path: '/artifacts/{seed.relatedArtifactId}' },
+        waitFor: '#root',
+        actions: [
+          { type: 'click', selector: tabSelector('Lineage Explorer') },
+          { type: 'waitForFunction', predicate: legacyLineageReady },
+          { type: 'waitForText', text: 'write-metrics' },
+          { type: 'waitForText', text: 'consume-metrics' },
+        ],
+      },
+      head: {
+        path: '/#/artifacts/{seed.relatedArtifactId}/explorer',
+        routeExpectation: { kind: 'direct', path: '/artifacts/{seed.relatedArtifactId}/explorer' },
+        waitFor: '#root',
+        actions: [
+          { type: 'waitForSelector', selector: '[aria-label="Lineage graph"] svg path' },
+          { type: 'waitForText', text: 'write-metrics' },
+          { type: 'waitForText', text: 'consume-metrics' },
+          { type: 'waitForText', text: 'executor-logs' },
         ],
       },
     },
@@ -1028,6 +1127,7 @@ function getSemanticIdNormalizationContract(
 }
 
 module.exports = {
+  comparisonCategory,
   EXPECTED_CHANGES,
   GLOBAL_VISUAL_NORMALIZATION_SCHEMA_VERSION,
   SCENARIO_CONTRACT_SCHEMA_VERSION,

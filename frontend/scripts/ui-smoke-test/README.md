@@ -486,6 +486,23 @@ other localhost, LAN, or internet services.
 
 ## Direct utilities
 
+### Capability and runtime-output comparisons
+
+The semantic catalog separately captures the native Lineage Explorer and Related tasks table,
+requires the legacy execution redirect explanation, and covers confusion matrices in both a task
+panel and run comparison. Classification fixtures contain a deterministic two-class matrix as well
+as ROC points. Existing fixtures from earlier captures must be re-seeded before these scenarios run.
+
+Lineage/relationship and Executions-to-Runs transitions are capability comparisons, not ordinary
+pixel-parity regressions. Retry logs must show `retry completed` before capture; their runtime text
+is reported separately from layout parity. These named scenarios retain screenshots and pixel
+measurements but have no default failure percentage. Missing content, invalid routes, and failed
+capture readiness still fail. Other scenarios retain normal thresholds, and an explicit operator
+policy can enable a threshold for these transitions.
+
+Task captures pan the selected node into the graph area left of the details panel. HTML readiness
+requires visible report content inside a child frame, never matching text in the outer document.
+
 The runner is the supported end-to-end entry point. The lower-level tools are useful for focused
 debugging:
 

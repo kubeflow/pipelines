@@ -1784,6 +1784,42 @@ async function executeActions(page, actions) {
         case 'click':
           await target.click({ timeout });
           break;
+        case 'centerGraphNode': {
+          // Pan the actual graph, rather than altering its DOM transform for the screenshot.
+          // The details panel overlays the right side, which fitView does not account for.
+          const bounds = await target.boundingBox();
+          const pane = page.locator('.react-flow__pane').first();
+          const graph = await pane.boundingBox();
+          const close = await page.locator('[aria-label="close"]').first().boundingBox();
+          if (!bounds || !graph || !close)
+            throw new Error('Selected graph node or task panel is missing');
+          const right = Math.min(graph.x + graph.width, close.x);
+          if (right - graph.x < 80) throw new Error('Task panel leaves no visible graph area');
+          let dx = (graph.x + right) / 2 - (bounds.x + bounds.width / 2);
+          let dy = graph.y + graph.height / 2 - (bounds.y + bounds.height / 2);
+          // Short drags keep the pointer outside the overlaid panel and inside the viewport.
+          for (let attempt = 0; attempt < 20 && (Math.abs(dx) > 1 || Math.abs(dy) > 1); attempt++) {
+            const stepX = Math.max(-(right - graph.x - 40), Math.min(right - graph.x - 40, dx));
+            const stepY = Math.max(-graph.height / 3, Math.min(graph.height / 3, dy));
+            const x = stepX < 0 ? right - 20 : graph.x + 20;
+            const y = graph.y + graph.height / 2;
+            await page.mouse.move(x, y);
+            await page.mouse.down();
+            await page.mouse.move(x + stepX, y + stepY, { steps: 12 });
+            await page.mouse.up();
+            dx -= stepX;
+            dy -= stepY;
+          }
+          const centered = await target.boundingBox();
+          if (
+            !centered ||
+            centered.x + centered.width / 2 < graph.x ||
+            centered.x + centered.width / 2 > right
+          ) {
+            throw new Error('Selected task did not move into the visible graph area');
+          }
+          break;
+        }
         case 'dispatchClick':
           await page
             .locator(action.selector)
@@ -1829,6 +1865,7 @@ async function executeActions(page, actions) {
             do {
               foundCount = 0;
               for (const frame of page.frames()) {
+                if (frame === page.mainFrame()) continue;
                 const matches = frame.getByText(action.text, { exact: false });
                 for (let index = 0; index < (await matches.count()); index += 1) {
                   if (await matches.nth(index).isVisible()) foundCount += 1;

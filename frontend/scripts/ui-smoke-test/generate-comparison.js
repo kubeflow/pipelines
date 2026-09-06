@@ -16,6 +16,7 @@ const fs = require('fs');
 const {
   SCENARIO_CONTRACT_SCHEMA_VERSION,
   SEMANTIC_SCENARIOS,
+  comparisonCategory,
   getGlobalVisualNormalizationContract,
   getSemanticIdNormalizationContract,
 } = require('./semantic-capture-scenarios');
@@ -836,7 +837,10 @@ function manifestScenarioDefaults(baseIdentity, headIdentity, defaults, scenario
         {
           semanticScenario,
           diffThreshold: defaults.diffThreshold,
-          failThreshold: expectedRemoval ? null : defaults.failThreshold,
+          failThreshold:
+            expectedRemoval || comparisonCategory(semanticScenario) !== 'pixel-parity'
+              ? null
+              : defaults.failThreshold,
           looksSameTolerance: defaults.looksSameTolerance,
           expectedChange,
           masks: [],
@@ -3324,7 +3328,14 @@ function renderComparisonResult(result, embeddedImages) {
       result.scenarioThresholds.failThreshold === null
         ? 'failure threshold disabled'
         : `${result.exceedsFailThreshold ? 'above' : 'within'} the ${result.scenarioThresholds.failThreshold}% failure threshold`;
-    statusDetail = `${result.diffPercent.toFixed(4)}% visual difference across ${result.comparablePixels} unmasked pixel(s); ${result.diffRegionCount} highlighted region(s); ${thresholdState}.`;
+    const category = comparisonCategory(result.semanticScenario);
+    const interpretation =
+      category === 'capability-transition'
+        ? 'Capability transition: inspect functionality and navigation; pixel differences are descriptive, not parity regressions. '
+        : category === 'runtime-output'
+          ? 'Runtime output: successful retry completion was required before capture. Runtime log text is not pixel-parity evidence; inspect container layout separately. '
+          : 'Pixel-parity comparison. ';
+    statusDetail = `${interpretation}${result.diffPercent.toFixed(4)}% visual difference across ${result.comparablePixels} unmasked pixel(s); ${result.diffRegionCount} highlighted region(s); ${thresholdState}.`;
   } else if (result.status === 'skipped') {
     statusDetail = result.reason;
   } else {
@@ -3488,6 +3499,7 @@ async function runComparison(options, dependencies = {}) {
             ),
           });
           const commonResult = {
+            comparisonCategory: comparisonCategory(pair.semanticScenario),
             artifacts,
             comparablePixels: diffAnalysis.comparablePixels,
             filename: pair.filename,

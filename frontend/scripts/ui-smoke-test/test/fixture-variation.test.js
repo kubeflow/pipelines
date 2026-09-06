@@ -18,6 +18,21 @@ const {
   SEMANTIC_ID_TOKEN_PATTERN,
 } = require('../semantic-id-normalization');
 
+test('classification fixture includes a nonempty deterministic confusion matrix', () => {
+  for (const runKey of COMPARISON_RUN_FIXTURES) {
+    assert.deepEqual(
+      metricsExecutorOutputForRun(runKey).artifacts.roc_curve.artifacts[0].metadata.confusionMatrix,
+      {
+        annotationSpecs: [
+          { displayName: 'predicted-negative' },
+          { displayName: 'predicted-positive' },
+        ],
+        rows: [{ row: [42, 8] }, { row: [3, 47] }],
+      },
+    );
+  }
+});
+
 test('comparison runs have distinct deterministic curves/scalars and equivalent base/head values', async () => {
   const manifest = strictSemanticFixtureManifest();
   const curves = new Set();
