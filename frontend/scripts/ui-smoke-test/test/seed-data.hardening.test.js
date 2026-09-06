@@ -16,6 +16,7 @@ const {
 
 const {
   METRICS_EXECUTOR_OUTPUT,
+  metricsExecutorOutputForRun,
   MINIMAL_PIPELINE_YAML,
   RICH_PIPELINE_YAML,
   RESOURCE_DEFINITIONS,
@@ -279,9 +280,10 @@ test('fixture pipeline specs are valid YAML with intact deterministic report com
     const args = pipeline.deploymentSpec.executors['exec-write-metrics'].container.args;
     assert.match(args[0], /printf '%s\\n' '<h1>UI Smoke HTML Report<\/h1>/);
     assert.match(args[0], /printf '%s\\n' '# UI Smoke Markdown Report'/);
-    assert.deepEqual(args.slice(-2), [
+    assert.deepEqual(args.slice(-3), [
       "{{$.outputs.artifacts['html_report'].path}}",
       "{{$.outputs.artifacts['markdown_report'].path}}",
+      "{{$.inputs.parameters['fixture_run']}}",
     ]);
   }
 });
@@ -321,7 +323,7 @@ test('uploads a valid v2 pipeline as multipart form data', async () => {
   assert.match(multipart, /schemaTitle: system\.Markdown/);
   assert.match(multipart, /UI Smoke HTML Report/);
   assert.match(multipart, /UI Smoke Markdown Report/);
-  assert.ok(multipart.includes(JSON.stringify(METRICS_EXECUTOR_OUTPUT)));
+  assert.ok(multipart.includes(JSON.stringify(metricsExecutorOutputForRun('run.training-1'))));
   assert.match(multipart, /metadata_path="\$\(dirname "\$1"\)\/output_metadata\.json"/);
   assert.doesNotMatch(multipart, /\/tmp\/kfp_outputs\/output_metadata\.json/);
   assert.doesNotMatch(multipart, /pip install|kfp\.dsl\.executor_main/);
@@ -939,13 +941,14 @@ test('builds a production-shaped rich legacy binding from MLMD execution lineage
 });
 
 test('builds a valid legacy semantic run from an empty GetRun artifact projection', async () => {
+  const METRICS_EXECUTOR_OUTPUT = metricsExecutorOutputForRun('run.training-2');
   const definition = RESOURCE_DEFINITIONS.runs.find(
     (candidate) => candidate.semanticKey === 'run.training-2',
   );
   const artifacts = [
     {
       artifactId: '81',
-      metadata: { accuracy: 0.92, loss: 0.08 },
+      metadata: { accuracy: 0.84, loss: 0.16 },
       uri: 's3://fixtures/scalar-metrics',
     },
     {
@@ -2022,6 +2025,7 @@ test('waits for every seeded run to succeed and rejects terminal failures', asyn
 });
 
 test('polls semantic bindings until eventually consistent task and artifact data is valid', async () => {
+  const METRICS_EXECUTOR_OUTPUT = metricsExecutorOutputForRun('run.training-2');
   let clock = 0;
   let detailRequests = 0;
   let taskRequests = 0;
@@ -2081,12 +2085,12 @@ test('polls semantic bindings until eventually consistent task and artifact data
                     {
                       artifactId: 'accuracy-1',
                       name: 'accuracy',
-                      numberValue: 0.92,
+                      numberValue: 0.84,
                     },
                     {
                       artifactId: 'loss-1',
                       name: 'loss',
-                      numberValue: 0.08,
+                      numberValue: 0.16,
                     },
                   ],
                 },

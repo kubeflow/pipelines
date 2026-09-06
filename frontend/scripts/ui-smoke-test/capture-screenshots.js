@@ -26,6 +26,7 @@ const {
   SEMANTIC_ID_TOKEN_PATTERN,
   semanticIdNormalizationRenderingContract,
   semanticIdToken,
+  semanticIdShape,
 } = require('./semantic-id-normalization.js');
 const {
   COMPARISON_RUN_FIXTURES,
@@ -620,7 +621,8 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
         `Semantic identifier ${semanticId} has an invalid visual identity.`,
       );
     }
-    const token = semanticIdToken(tokenKind, tokenSemanticId);
+    const tokenShape = semanticIdShape(tokenKind, value);
+    const token = semanticIdToken(tokenKind, tokenSemanticId, tokenShape);
     if (!SEMANTIC_ID_TOKEN_PATTERN.test(token)) {
       throw semanticIdNormalizationError(`Invalid semantic identifier token ${token}.`);
     }
@@ -662,6 +664,7 @@ function buildSemanticIdentifierCatalog(manifest, revisionRole) {
       token,
       tokenKind,
       tokenSemanticId,
+      tokenShape,
       value,
       ...(displayLabel ? { displayLabel } : {}),
       ...(equivalenceClass ? { equivalenceClass } : {}),
@@ -1683,6 +1686,7 @@ async function normalizeSemanticIds(page, config, catalog) {
         token: candidate.token,
         tokenKind: candidate.tokenKind,
         tokenSemanticId: candidate.tokenSemanticId,
+        tokenShape: candidate.tokenShape,
       }))
       .filter((entry) => entry.replacementCount > 0 || explicitlySelected.has(entry.semanticId));
     return {
@@ -1917,15 +1921,18 @@ async function prepareCaptureViewport(page) {
   return normalizeDocumentScroll(page);
 }
 
-async function assertCaptureRegion(page, region) {
+async function assertCaptureRegion(page, region, requireFullVisibility = true) {
   if (!region) return;
   await page.waitForFunction(
-    ({ selector, minCount }) => {
+    ({ selector, minCount, requireFullVisibility }) => {
       const elements = Array.from(document.querySelectorAll(selector));
       return (
         elements.length >= minCount &&
         elements.every((element) => {
           const box = element.getBoundingClientRect();
+          if (box.width <= 0 || box.height <= 0) return false;
+          // Ordinary layout evidence must retain overflowing viewers, not silently resize them.
+          if (!requireFullVisibility) return true;
           if (
             box.width <= 0 ||
             box.height <= 0 ||
@@ -1953,7 +1960,7 @@ async function assertCaptureRegion(page, region) {
         })
       );
     },
-    region,
+    { ...region, requireFullVisibility },
     { timeout: 10000 },
   );
 }
@@ -2376,6 +2383,16 @@ function captureViewport(pageConfig, requestedViewport) {
     width: Math.max(requestedViewport.width, pageConfig.minimumCaptureWidth || 0),
     height: Math.max(requestedViewport.height, pageConfig.minimumCaptureHeight || 0),
   };
+}
+
+function captureViewports(pageConfig, requestedViewports) {
+  const viewports = new Map();
+  for (const requested of requestedViewports) {
+    for (const viewport of [requested, captureViewport(pageConfig, requested)]) {
+      viewports.set(`${viewport.width}x${viewport.height}`, viewport);
+    }
+  }
+  return [...viewports.values()];
 }
 
 function isManagedCaptureFilename(filename) {
@@ -3037,8 +3054,8 @@ async function captureScreenshots(options, dependencies = {}) {
   console.log(`Pages to capture: ${filteredPages.map((page) => page.name).join(', ') || '(none)'}`);
 
   const managedFilenames = filteredPages.flatMap((pageDefinition) =>
-    options.viewports.map((viewport) =>
-      captureFilename(pageDefinition.name, captureViewport(pageDefinition, viewport)),
+    captureViewports(pageDefinition, options.viewports).map((viewport) =>
+      captureFilename(pageDefinition.name, viewport),
     ),
   );
   cleanCaptureOutputs(options.outputDir, managedFilenames);
@@ -3088,8 +3105,12 @@ async function captureScreenshots(options, dependencies = {}) {
         });
         await installNetworkIsolation(context, options.baseUrl);
 
-        for (const pageConfig of filteredPages) {
-          const viewport = captureViewport(pageConfig, requestedViewport);
+        for (const { pageConfig, viewport } of filteredPages.flatMap((pageConfig) =>
+          captureViewports(pageConfig, [requestedViewport]).map((viewport) => ({
+            pageConfig,
+            viewport,
+          })),
+        )) {
           const required = pageConfig.required !== false;
           const filename = captureFilename(pageConfig.name, viewport);
           // Different requested heights can resolve to the same minimum-height viewer capture.
@@ -3191,7 +3212,12 @@ async function captureScreenshots(options, dependencies = {}) {
               await sortFixtureList(page, pageConfig.sortFixtureListBy);
             }
             const documentScroll = await prepareCaptureViewport(page);
-            await assertCaptureRegion(page, pageConfig.captureRegion);
+            await assertCaptureRegion(
+              page,
+              pageConfig.captureRegion,
+              viewport.width >= (pageConfig.minimumCaptureWidth || 0) &&
+                viewport.height >= (pageConfig.minimumCaptureHeight || 0),
+            );
             await normalizeDynamicText(page);
             semanticIdNormalization = await normalizeSemanticIds(
               page,
@@ -3323,8 +3349,12 @@ async function captureScreenshots(options, dependencies = {}) {
   }
 
   for (const requestedViewport of options.viewports) {
-    for (const pageConfig of filteredPages) {
-      const viewport = captureViewport(pageConfig, requestedViewport);
+    for (const { pageConfig, viewport } of filteredPages.flatMap((pageConfig) =>
+      captureViewports(pageConfig, [requestedViewport]).map((viewport) => ({
+        pageConfig,
+        viewport,
+      })),
+    )) {
       const filename = captureFilename(pageConfig.name, viewport);
       if (!completedFilenames.has(filename)) {
         addResult({
@@ -3447,6 +3477,7 @@ module.exports = {
   buildSemanticIdentifierCatalog,
   captureFilename,
   captureViewport,
+  captureViewports,
   assertCaptureRegion,
   captureScreenshots,
   classifyCaptureFailure,

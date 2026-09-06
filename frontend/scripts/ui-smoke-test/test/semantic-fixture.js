@@ -2,6 +2,7 @@
 
 const {
   ARTIFACT_FIXTURES,
+  artifactFixturesForRun,
   REVISION_FLAVORS,
   RUN_RESOURCE_DEFINITIONS,
   RUN_PROFILES,
@@ -50,7 +51,7 @@ function artifactBinding(role, runKey, artifactKey, rich) {
   }
   if (artifactKey === 'artifact.scalar-metrics') {
     binding.members = Object.fromEntries(
-      Object.entries(ARTIFACT_FIXTURES[artifactKey].members).map(
+      Object.entries(artifactFixturesForRun(runKey)[artifactKey].members).map(
         ([metricKey, definition], index) => [
           metricKey,
           {
@@ -68,7 +69,7 @@ function artifactBinding(role, runKey, artifactKey, rich) {
     }
   }
   if (artifactKey === 'artifact.roc-curve') {
-    binding.points = structuredClone(ARTIFACT_FIXTURES[artifactKey].points);
+    binding.points = artifactFixturesForRun(runKey)[artifactKey].points;
   }
   return binding;
 }
@@ -351,7 +352,7 @@ function strictSemanticFixtureManifest() {
   }
   return {
     deployments,
-    fixtureSet: 'ui-smoke-deterministic-v3',
+    fixtureSet: 'ui-smoke-deterministic-v4',
     logical,
     schemaVersion: 'ui-smoke-semantic/v3',
   };
