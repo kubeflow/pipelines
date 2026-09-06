@@ -1729,7 +1729,7 @@ test('trusted full-stack comparison isolates runtimes, state, and seed manifests
     sourceFingerprint: 'sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
     tree: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
   });
-  assert.equal(calls.cleanupRegistrations.length, 4);
+  assert.equal(calls.cleanupRegistrations.length, 6);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'cleanup').length, 2);
   assert.equal(stackOperations.filter(({ operation }) => operation === 'destroyCluster').length, 2);
 });
@@ -2029,7 +2029,7 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
 test('an incomplete base capture tears down its stack before any head build begins', async (t) => {
   const stackOperations = [];
   let activeClusters = 0;
-  const { run, services } = orchestrationHarness(
+  const { calls, run, services } = orchestrationHarness(
     t,
     { backendChanged: true, baseRef: '2.17.1' },
     {
@@ -2075,6 +2075,9 @@ test('an incomplete base capture tears down its stack before any head build begi
             },
             async cleanup() {
               record('cleanup');
+            },
+            cleanupOwnedImages() {
+              record('cleanupOwnedImages');
             },
             async collectDiagnostics() {
               return { clusterName: configuration.clusterName, collected: true, role };
@@ -2173,6 +2176,26 @@ test('an incomplete base capture tears down its stack before any head build begi
   );
   assert.equal(diagnostic.category, 'selector_drift');
   assert.equal(diagnostic.phase, 'base_capture');
+  const imageCleanups = calls.cleanupRegistrations.filter(({ label }) =>
+    label.endsWith('local images'),
+  );
+  assert.equal(imageCleanups.length, 2);
+  for (const role of ['base', 'head']) {
+    const labels = calls.cleanupRegistrations
+      .filter(({ label }) => label.includes(`isolated ${role}`))
+      .map(({ label }) => label);
+    assert.match(labels[0], /^release isolated/);
+    assert.match(labels[1], /^destroy isolated/);
+    assert.match(labels[2], /^stop isolated/);
+  }
+  await executeCleanupActions(imageCleanups);
+  assert.deepEqual(
+    stackOperations.filter(({ operation }) => operation === 'cleanupOwnedImages'),
+    [
+      { operation: 'cleanupOwnedImages', role: 'head' },
+      { operation: 'cleanupOwnedImages', role: 'base' },
+    ],
+  );
 });
 
 test('full-stack seed failures persist categorized JSON, HTML, and stack diagnostics', async (t) => {

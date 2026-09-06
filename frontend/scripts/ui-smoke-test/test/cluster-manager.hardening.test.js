@@ -37,6 +37,29 @@ function success(output = '') {
   return { success: true, output };
 }
 
+function withBuiltImageIds(runner) {
+  const builtImages = new Map();
+  return (command, args, options) => {
+    const result = runner(command, args, options);
+    if (command !== 'docker') return result;
+    if (result.success && args.includes('--tag')) {
+      builtImages.set(args[args.indexOf('--tag') + 1], TEST_IMAGE_ID);
+    }
+    if (result.success && args[0] === 'image' && args[1] === 'tag') {
+      builtImages.set(args.at(-1), TEST_IMAGE_ID);
+    }
+    if (result.success && args[0] === 'image' && args[1] === 'rm') {
+      builtImages.delete(args.at(-1));
+    }
+    if (args[0] === 'image' && args[1] === 'inspect' && result.success && !result.output) {
+      return builtImages.has(args.at(-1))
+        ? success(builtImages.get(args.at(-1)))
+        : { success: false, error: `No such image: ${args.at(-1)}` };
+    }
+    return result;
+  };
+}
+
 function createTestStack(t, overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'kfp-kind-stack-'));
   t.after(() => fs.rmSync(root, { force: true, recursive: true }));
@@ -54,6 +77,7 @@ function createTestStack(t, overrides = {}) {
     revision: 'aaaaaaaaaaaa',
     role: 'base',
     ...overrides,
+    ...(overrides.runner ? { runner: withBuiltImageIds(overrides.runner) } : {}),
   });
 }
 
@@ -172,6 +196,7 @@ function mixedPlatformManifestWithWorkflowDefaults(options = {}) {
 }
 
 function deploymentRunner(calls, options = {}) {
+  const localImages = new Map();
   const {
     architecture = 'amd64',
     deployments = 'ml-pipeline\nmysql',
@@ -185,7 +210,22 @@ function deploymentRunner(calls, options = {}) {
       return success(`linux/${architecture}`);
     }
     if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
+      const image = args.at(-1);
+      if (image.startsWith('kfp-ui-smoke/') && image.includes('ui-smoke-')) {
+        return localImages.has(image)
+          ? success(localImages.get(image))
+          : { success: false, error: `No such image: ${image}` };
+      }
       return success(TEST_IMAGE_ID);
+    }
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'tag') {
+      localImages.set(args.at(-1), TEST_IMAGE_ID);
+    }
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'rm') {
+      localImages.delete(args.at(-1));
+    }
+    if (command === 'docker' && args.includes('--tag')) {
+      localImages.set(args[args.indexOf('--tag') + 1], TEST_IMAGE_ID);
     }
     if (command === 'kubectl' && args[0] === 'kustomize') {
       const outputPath = args[args.indexOf('--output') + 1];
@@ -1001,7 +1041,7 @@ test('isolated component builds release their private Buildx cache before cluste
     ({ args, command }) => command === 'docker' && args[0] === 'buildx' && args[1] === 'rm',
   );
   assert.deepEqual(
-    calls.map(({ args }) => args.slice(0, 2).join(' ')),
+    calls.filter(({ args }) => args[0] !== 'image').map(({ args }) => args.slice(0, 2).join(' ')),
     ['buildx create', 'buildx build', 'buildx rm', 'buildx create', 'buildx build', 'buildx rm'],
   );
   assert.equal(createCalls.length, 2);
@@ -1081,7 +1121,9 @@ test('byte-identical component images are retagged per stack before normal image
       image: overrides.images.visualization,
     },
   ]);
-  const tagCall = calls.find(({ command, args }) => command === 'docker' && args[0] === 'image');
+  const tagCall = calls.find(
+    ({ command, args }) => command === 'docker' && args[0] === 'image' && args[1] === 'tag',
+  );
   assert.deepEqual(tagCall.args, ['image', 'tag', sourceImage, overrides.images.visualization]);
 
   stack.loadImageOverrides(overrides, 'linux/arm64');
@@ -1090,6 +1132,143 @@ test('byte-identical component images are retagged per stack before normal image
       ({ command, args }) =>
         command === 'docker' && args[0] === 'save' && args.includes(overrides.images.visualization),
     ),
+  );
+});
+
+test('reused head images are cleaned even when base capture fails before head creation', async (t) => {
+  const calls = [];
+  const stack = createTestStack(t, {
+    role: 'head',
+    runner: deploymentRunner(calls),
+  });
+  const component = COMPONENTS.find(({ name }) => name === 'visualization');
+  const source = 'kfp-ui-smoke/visualization:base-source';
+  const reused = stack.reuseComponentImages(
+    [component],
+    { images: { visualization: source } },
+    {
+      platform: 'linux/arm64',
+      tagSuffix: 'unstarted-head',
+    },
+  ).images.visualization;
+
+  // Mirror final cleanup after a base-capture failure: this head never owned a cluster.
+  await stack.cleanup();
+  assert.deepEqual(stack.destroyCluster(), { skipped: true, success: true });
+  stack.cleanupOwnedImages();
+  stack.cleanupOwnedImages();
+  const removed = calls.filter(
+    ({ command, args }) => command === 'docker' && args[0] === 'image' && args[1] === 'rm',
+  );
+  assert.deepEqual(
+    removed.map(({ args }) => args[2]),
+    [reused],
+  );
+  assert.equal(
+    calls.some(({ command, args }) => command === 'kind' && args[0] === 'delete'),
+    false,
+  );
+  assert.equal(
+    removed.some(({ args }) => args.includes(source)),
+    false,
+  );
+});
+
+test('owned image cleanup is a no-op after successful export releases the tag', (t) => {
+  const calls = [];
+  const stack = createTestStack(t, { runner: deploymentRunner(calls) });
+  const component = COMPONENTS.find(({ name }) => name === 'visualization');
+  const overrides = stack.reuseComponentImages(
+    [component],
+    { images: { visualization: 'source:base' } },
+    {
+      platform: 'linux/arm64',
+      tagSuffix: 'exported-head',
+    },
+  );
+  stack.loadImageOverrides(overrides, 'linux/arm64', {
+    removeSourceAfterLoad: true,
+  });
+  const beforeCleanup = calls.length;
+  stack.cleanupOwnedImages();
+  assert.equal(calls.length, beforeCleanup);
+});
+
+test('cleanup preserves replaced tags and retries actual inspection/removal failures', (t) => {
+  const calls = [];
+  const delegate = deploymentRunner(calls);
+  let inspectionError = false;
+  let replacement = false;
+  let removalError = false;
+  const stack = createTestStack(t, {
+    runner: (command, args, options) => {
+      if (command === 'docker' && args[0] === 'image' && args[1] === 'inspect') {
+        if (inspectionError) return { success: false, error: 'Docker permission denied' };
+        if (replacement) return success(`sha256:${'b'.repeat(64)}`);
+      }
+      if (command === 'docker' && args[0] === 'image' && args[1] === 'rm' && removalError) {
+        return { success: false, error: 'image is in use' };
+      }
+      return delegate(command, args, options);
+    },
+  });
+  const component = COMPONENTS.find(({ name }) => name === 'visualization');
+  stack.reuseComponentImages(
+    [component],
+    { images: { visualization: 'source:base' } },
+    {
+      platform: 'linux/arm64',
+      tagSuffix: 'retained-head',
+    },
+  );
+  replacement = true;
+  assert.throws(() => stack.cleanupOwnedImages(), AggregateError);
+  replacement = false;
+  inspectionError = true;
+  assert.throws(() => stack.cleanupOwnedImages(), AggregateError);
+  inspectionError = false;
+  removalError = true;
+  assert.throws(() => stack.cleanupOwnedImages(), AggregateError);
+  removalError = false;
+  stack.cleanupOwnedImages();
+  stack.cleanupOwnedImages();
+  assert.equal(calls.filter(({ args }) => args[0] === 'image' && args[1] === 'rm').length, 1);
+});
+
+test('partial reuse cleanup releases only successfully created tags and refuses existing destinations', (t) => {
+  const calls = [];
+  const delegate = deploymentRunner(calls);
+  const stack = createTestStack(t, {
+    runner: (command, args, options) => {
+      if (
+        command === 'docker' &&
+        args[0] === 'image' &&
+        args[1] === 'tag' &&
+        args.at(-1).includes('/driver:')
+      ) {
+        return { success: false, error: 'tag failed' };
+      }
+      return delegate(command, args, options);
+    },
+  });
+  const visualization = COMPONENTS.find(({ name }) => name === 'visualization');
+  const driver = COMPONENTS.find(({ name }) => name === 'driver');
+  const overrides = {
+    images: { visualization: 'source:visualization', driver: 'source:driver' },
+  };
+  const options = { platform: 'linux/arm64', tagSuffix: 'partial-head' };
+  assert.throws(
+    () => stack.reuseComponentImages([visualization, driver], overrides, options),
+    /Failed to reuse driver/,
+  );
+  assert.throws(
+    () => stack.reuseComponentImages([visualization], overrides, options),
+    /Refusing to replace/,
+  );
+  stack.cleanupOwnedImages();
+  assert.deepEqual(
+    calls.filter(({ args }) => args[0] === 'image' && args[1] === 'rm').map(({ args }) => args[2]),
+    ['kfp-ui-smoke/visualization:ui-smoke-base-test-partial-head'],
   );
 });
 
