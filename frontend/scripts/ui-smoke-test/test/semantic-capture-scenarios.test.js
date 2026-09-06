@@ -456,6 +456,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
     headRoc.actions.filter((action) => action.type === 'click').map((action) => action.selector),
     [
       '[role="tab"]:has-text("Classification Metrics"), button:has-text("Classification Metrics")',
+      'button:has-text("Expand ROC chart")',
       'button[title="Expand/Collapse this section"]:has-text("Run overview")',
       'button[title="Expand/Collapse this section"]:has-text("Parameters")',
     ],
@@ -1557,6 +1558,48 @@ test('comparison viewers collapse context and require complete visible regions',
       );
     }
   }
+});
+
+test('comparison ROC captures retain compact layout and expand only the head full-viewer capture', async () => {
+  const base = byKey(resolveSemanticScenarios('base', SEED_VALUES), 'compare-roc-selection');
+  const head = byKey(resolveSemanticScenarios('head', SEED_VALUES), 'compare-roc-selection');
+  assert.equal(
+    base.actions.some((action) => action.minimumViewportHeight !== undefined),
+    false,
+  );
+  const expansion = head.actions.filter((action) => action.minimumViewportHeight !== undefined);
+  assert.deepEqual(expansion, [
+    {
+      type: 'click',
+      selector: 'button:has-text("Expand ROC chart")',
+      minimumViewportHeight: 1200,
+    },
+    {
+      type: 'waitForSelector',
+      selector: 'button[aria-expanded="true"]:has-text("Compact ROC chart")',
+      minimumViewportHeight: 1200,
+    },
+  ]);
+  for (const height of [800, 1200, 1600]) {
+    const calls = [];
+    await capture.executeActions(
+      {
+        viewportSize: () => ({ width: 1280, height }),
+        locator: (selector) => ({ first: () => ({ click: async () => calls.push(selector) }) }),
+        waitForSelector: async (selector) => calls.push(selector),
+      },
+      expansion,
+    );
+    assert.deepEqual(calls, height < 1200 ? [] : expansion.map(({ selector }) => selector));
+  }
+  await assert.rejects(
+    capture.executeActions({ viewportSize: () => null }, expansion),
+    /require an explicit viewport/,
+  );
+  await assert.rejects(
+    capture.executeActions({}, [{ type: 'click', minimumViewportHeight: -1 }]),
+    /must be a positive integer/,
+  );
 });
 
 test('runtime HTML and ROC viewers require enough room for their half-width side panel', () => {

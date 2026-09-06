@@ -634,6 +634,16 @@ const SEMANTIC_SCENARIOS = Object.freeze([
           { type: 'waitForSelector', selector: '[aria-label="ROC curves"]' },
           { type: 'waitForFunction', predicate: threeSelectedRocCurvesReady },
           { type: 'waitForFunction', predicate: rocReady },
+          {
+            type: 'click',
+            selector: 'button:has-text("Expand ROC chart")',
+            minimumViewportHeight: 1200,
+          },
+          {
+            type: 'waitForSelector',
+            selector: 'button[aria-expanded="true"]:has-text("Compact ROC chart")',
+            minimumViewportHeight: 1200,
+          },
           ...collapseComparisonContext,
         ],
       },
