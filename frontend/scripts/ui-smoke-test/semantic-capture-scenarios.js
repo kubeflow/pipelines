@@ -481,6 +481,9 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'run-details-html',
+    minimumCaptureWidth: 2200,
+    minimumCaptureHeight: 1200,
+    captureRegion: { selector: 'iframe', minCount: 1 },
     title: 'Run Details HTML visualization',
     requires: ['richRunId', 'htmlArtifactId'],
     expectedChange: EXPECTED_CHANGES.nativeRuntime,
@@ -533,6 +536,10 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'run-details-roc',
+    // The 800px chart has 120px horizontal padding in a half-width panel beside the 220px nav.
+    minimumCaptureWidth: 2200,
+    minimumCaptureHeight: 1200,
+    captureRegion: { selector: '.recharts-wrapper', minCount: 1 },
     title: 'Run Details ROC visualization',
     requires: ['richRunId', 'rocArtifactId'],
     expectedChange: EXPECTED_CHANGES.nativeRuntime,
@@ -960,6 +967,9 @@ function resolveSemanticScenarios(revisionRole, seedValues, scenarios = SEMANTIC
     return resolveTemplates(
       {
         ...variant,
+        ...(scenario.minimumCaptureWidth
+          ? { minimumCaptureWidth: scenario.minimumCaptureWidth }
+          : {}),
         ...(scenario.minimumCaptureHeight
           ? { minimumCaptureHeight: scenario.minimumCaptureHeight }
           : {}),
