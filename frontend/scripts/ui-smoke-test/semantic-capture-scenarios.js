@@ -208,7 +208,9 @@ function rocReady() {
 
 function threeSelectedRocCurvesReady() {
   return (
-    document.querySelectorAll('[aria-label="Selected ROC curve provenance"] > li').length === 3
+    document.querySelectorAll(
+      '[aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
+    ).length === 3
   );
 }
 
@@ -621,7 +623,8 @@ const SEMANTIC_SCENARIOS = Object.freeze([
         path: '/#/compare?runlist={seed.compareRunlist}',
         routeExpectation: { kind: 'direct', path: '/compare?runlist={seed.compareRunlist}' },
         semanticIdNormalization: rocComparisonColorNormalization({
-          labelItemSelector: '#root [aria-label="Selected ROC curve provenance"] > li',
+          labelItemSelector:
+            '#root [aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
           mappingStrategy: 'ordered-label-cards',
         }),
         waitFor: '#root',

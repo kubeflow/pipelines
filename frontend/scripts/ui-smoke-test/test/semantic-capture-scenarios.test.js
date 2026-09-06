@@ -365,7 +365,13 @@ test('serialized head ROC capture requires three default curves without repairin
   const evaluateSerializedPredicate = (predicate, itemCount) =>
     vm.runInNewContext(`(${predicate.toString()})()`, {
       document: {
-        querySelectorAll: () => Array.from({ length: itemCount }, () => ({})),
+        querySelectorAll: (selector) => {
+          assert.equal(
+            selector,
+            '[aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
+          );
+          return Array.from({ length: itemCount }, () => ({}));
+        },
       },
     });
 
@@ -373,6 +379,11 @@ test('serialized head ROC capture requires three default curves without repairin
   assert.equal(transitionPredicates.length, 1);
   assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 2), false);
   assert.equal(evaluateSerializedPredicate(transitionPredicates[0], 3), true);
+  assert.equal(
+    byKey(resolveSemanticScenarios('head', SEED_VALUES), 'compare-roc-selection')
+      .semanticIdNormalization.derivedColorScopes[0].labelItemSelector,
+    '#root [aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
+  );
 });
 
 test('semantic ID normalization is revision-aware and scoped to declared fixture kinds', () => {
