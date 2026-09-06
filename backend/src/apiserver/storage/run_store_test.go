@@ -772,7 +772,7 @@ func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
 	require.Nil(t, err)
 
 	// Page 1
-	page1, _, token1, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
+	page1, _, token1, err := runStore.ListRuns(&model.FilterContext{}, opts, true)
 	require.Nil(t, err)
 	require.Len(t, page1, 1)
 	assert.Equal(t, "102", page1[0].UUID)
@@ -783,7 +783,7 @@ func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(token1, 1)
 	require.Nil(t, err)
 
-	page2, _, token2, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
+	page2, _, token2, err := runStore.ListRuns(&model.FilterContext{}, opts, true)
 	require.Nil(t, err)
 	require.Len(t, page2, 1)
 	assert.Equal(t, "101", page2[0].UUID)
@@ -794,7 +794,7 @@ func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(token2, 1)
 	require.Nil(t, err)
 
-	page3, _, token3, err := runStore.ListRuns(&model.FilterContext{}, opts, false)
+	page3, _, token3, err := runStore.ListRuns(&model.FilterContext{}, opts, true)
 	require.Nil(t, err)
 	require.Len(t, page3, 1)
 	assert.Equal(t, "100", page3[0].UUID)
@@ -1000,9 +1000,9 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) 
 	})
 	require.NoError(t, err)
 
-	staleRun, err := runStore.GetRun("manifest-cas-run", false)
+	staleRun, err := runStore.GetRun("manifest-cas-run", true)
 	require.NoError(t, err)
-	currentRun, err := runStore.GetRun("manifest-cas-run", false)
+	currentRun, err := runStore.GetRun("manifest-cas-run", true)
 	require.NoError(t, err)
 	currentRun.WorkflowRuntimeManifest = "adopted-manifest"
 	require.NoError(t, runStore.UpdateRun(currentRun))
@@ -1015,7 +1015,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) 
 	)
 	require.NoError(t, err)
 	assert.False(t, updated)
-	persistedRun, err := runStore.GetRun("manifest-cas-run", false)
+	persistedRun, err := runStore.GetRun("manifest-cas-run", true)
 	require.NoError(t, err)
 	assert.Equal(t, model.LargeText("adopted-manifest"), persistedRun.WorkflowRuntimeManifest)
 
@@ -1027,7 +1027,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) 
 	)
 	require.NoError(t, err)
 	assert.True(t, updated)
-	persistedRun, err = runStore.GetRun("manifest-cas-run", false)
+	persistedRun, err = runStore.GetRun("manifest-cas-run", true)
 	require.NoError(t, err)
 	assert.Equal(t, model.LargeText("next-manifest"), persistedRun.WorkflowRuntimeManifest)
 }
@@ -1053,7 +1053,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	staleRun, err := runStore.GetRun(runID, false)
+	staleRun, err := runStore.GetRun(runID, true)
 	require.NoError(t, err)
 
 	require.NoError(t, runStore.DeleteRun(runID))
@@ -1073,7 +1073,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	replacementBeforeReport, err := runStore.GetRun(runID, false)
+	replacementBeforeReport, err := runStore.GetRun(runID, true)
 	require.NoError(t, err)
 
 	staleRun.K8SName = "stale-terminal-workflow"
@@ -1088,7 +1088,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, updated)
 
-	replacementAfterReport, err := runStore.GetRun(runID, false)
+	replacementAfterReport, err := runStore.GetRun(runID, true)
 	require.NoError(t, err)
 	assert.Equal(t, replacementBeforeReport, replacementAfterReport)
 }

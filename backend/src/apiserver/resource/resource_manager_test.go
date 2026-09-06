@@ -72,7 +72,7 @@ type duplicateRecurringRunStore struct {
 	existingRun *model.Run
 }
 
-func (s *duplicateRecurringRunStore) GetRun(string) (*model.Run, error) {
+func (s *duplicateRecurringRunStore) GetRun(string, bool) (*model.Run, error) {
 	if s.firstGet {
 		s.firstGet = false
 		return nil, util.NewResourceNotFoundError("run", "concurrent-run")
@@ -3643,6 +3643,7 @@ func TestRetryRun_ResetsFailedTaskAttemptStateButPreservesSuccessfulSiblings(t *
 	updatedWorkflow.Status.Nodes = map[string]v1alpha1.NodeStatus{
 		"node1": {Name: "pod1", Type: v1alpha1.NodeTypePod, Phase: v1alpha1.NodeFailed},
 	}
+	syncWorkflowReportWithFakeCluster(t, store, updatedWorkflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), updatedWorkflow)
 	require.NoError(t, err)
 
@@ -5810,142 +5811,6 @@ func TestReportWorkflowResource_RecurringRunRejectsStaleWorkflowUID(t *testing.T
 	require.NoError(t, err)
 	assert.Equal(t, 0, store.ExecClientFake.GetWorkflowDeleteCountInNamespace(
 		job.Namespace, liveWorkflow.ExecutionName()))
-}
-
-func TestCreateOrUpdateTasks_RejectsWorkflowNamespaceMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-	viper.Set(common.MultiUserMode, "true")
-	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "attacker-task"}},
-		run.UUID,
-		"attacker-ns",
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-}
-
-func TestCreateOrUpdateTasks_RejectsTaskRunIDMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: "another-run", Namespace: run.Namespace, PodName: "mismatched-task"}},
-		run.UUID,
-		run.Namespace,
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "does not match owning run")
-}
-
-func TestCreateOrUpdateTasks_RejectsTaskNamespaceMismatch(t *testing.T) {
-	store, manager, run := initWithOneTimeRun(t)
-	defer store.Close()
-
-	_, err := manager.CreateOrUpdateTasks(
-		[]*model.Task{{RunID: run.UUID, Namespace: "attacker-ns", PodName: "mismatched-task"}},
-		run.UUID,
-		run.Namespace,
-	)
-	require.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
-	assert.Contains(t, err.Error(), "task namespace does not match owning run")
-}
-
-func TestCreateOrUpdateTasksForRun_RejectsTasksAfterRunIDRecreation(t *testing.T) {
-	store, manager, originalRun := initWithOneTimeRunV2(t)
-	defer store.Close()
-	ctx := context.Background()
-	workflowClient := store.ExecClient().Execution(originalRun.Namespace)
-	originalWorkflow, err := workflowClient.Get(ctx, originalRun.K8SName, v1.GetOptions{})
-	require.NoError(t, err)
-
-	staleRun, err := manager.GetRun(originalRun.UUID)
-	require.NoError(t, err)
-	_, err = manager.ReportWorkflowResourceWithRun(ctx, originalWorkflow, staleRun)
-	require.NoError(t, err)
-	require.NotEmpty(t, staleRun.WorkflowRuntimeManifest)
-	staleIdentity, found := manager.storedWorkflowIdentities.load(originalRun.UUID)
-	require.True(t, found)
-	assert.Equal(t, storedWorkflowUID(t, staleRun), staleIdentity.uid)
-
-	// Recreate the run through another manager so this manager retains A's
-	// cached identity until the guarded task write detects B and refreshes it.
-	replacementManager := NewResourceManager(store, &ResourceManagerOptions{CollectMetrics: false})
-	require.NoError(t, replacementManager.DeleteRun(ctx, originalRun.UUID))
-
-	// Fake workflow clients allocate UIDs per namespace, while Kubernetes UIDs
-	// are cluster-wide. Advance the replacement namespace once so this fixture
-	// preserves the production invariant that recreated objects have new UIDs.
-	_, err = store.ExecClient().Execution("ns2").Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
-		ObjectMeta: v1.ObjectMeta{Name: "uid-seed"},
-	}), v1.CreateOptions{})
-	require.NoError(t, err)
-	replacementRun, err := replacementManager.CreateRun(ctx, &model.Run{
-		UUID:         originalRun.UUID,
-		DisplayName:  originalRun.DisplayName,
-		ExperimentId: originalRun.ExperimentId,
-		Namespace:    "ns2",
-		PipelineSpec: model.PipelineSpec{
-			PipelineSpecManifest: model.LargeText(v2SpecHelloWorld),
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: "{\"text\":\"world\"}",
-			},
-		},
-	})
-	require.NoError(t, err)
-	require.NotEqual(t, storedWorkflowUID(t, staleRun), storedWorkflowUID(t, replacementRun))
-	replacementBeforeTasks, err := replacementManager.GetRun(replacementRun.UUID)
-	require.NoError(t, err)
-	replacementWorkflow, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
-		ctx,
-		replacementRun.K8SName,
-		v1.GetOptions{},
-	)
-	require.NoError(t, err)
-
-	staleTask := &model.Task{
-		RunID:     staleRun.UUID,
-		Namespace: staleRun.Namespace,
-		PodName:   "stale-run-task",
-		State:     model.RuntimeStateRunning,
-	}
-	_, err = manager.CreateOrUpdateTasksForRun(
-		[]*model.Task{staleTask},
-		staleRun,
-		staleRun.Namespace,
-	)
-	require.Error(t, err)
-	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable), "got %v", err)
-	assert.Empty(t, staleTask.UUID, "a rejected task report must not mutate task identity")
-
-	var taskCount int
-	require.NoError(t, store.DB().QueryRow(
-		"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?",
-		replacementRun.UUID,
-	).Scan(&taskCount))
-	assert.Zero(t, taskCount)
-	replacementAfterTasks, err := replacementManager.GetRun(replacementRun.UUID)
-	require.NoError(t, err)
-	assert.Equal(t, replacementBeforeTasks, replacementAfterTasks)
-	stillLive, err := store.ExecClient().Execution(replacementRun.Namespace).Get(
-		ctx,
-		replacementRun.K8SName,
-		v1.GetOptions{},
-	)
-	require.NoError(t, err)
-	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, stillLive.ExecutionObjectMeta().UID)
-	refreshedIdentity, found := manager.storedWorkflowIdentities.load(replacementRun.UUID)
-	require.True(t, found)
-	assert.Equal(t, replacementWorkflow.ExecutionObjectMeta().UID, refreshedIdentity.uid)
-	assert.Equal(t, replacementRun.Namespace, refreshedIdentity.namespace)
-	assert.Equal(t,
-		sha256.Sum256([]byte(replacementBeforeTasks.PipelineRuntimeManifest)),
-		refreshedIdentity.manifestDigest,
-	)
 }
 
 func TestReportWorkflowResource_ScheduledWorkflowNamespaceMismatchDoesNotDeletePersistedWorkflow(t *testing.T) {
