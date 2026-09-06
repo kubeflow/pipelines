@@ -63,6 +63,45 @@ var runColumns = []string{
 	"ArchivedAtInSec",
 }
 
+// runListColumns is a lightweight version of runColumns for List endpoints.
+// It explicitly omits multi-megabyte JSON/YAML blob fields (manifests) that are
+// not used by the ListRuns API. This prevents massive database over-fetching and
+// OOM crashes in the API server when requesting up to 200 runs with large pipelines.
+var runListColumns = []string{
+	"UUID",
+	"ExperimentUUID",
+	"DisplayName",
+	"Name",
+	"StorageState",
+	"Namespace",
+	"ServiceAccount",
+	"Description",
+	"CreatedAtInSec",
+	"ScheduledAtInSec",
+	"FinishedAtInSec",
+	"Conditions",
+	"PipelineId",
+	"PipelineVersionId",
+	"PipelineName",
+	"PipelineSpecManifest",
+	"WorkflowSpecManifest",
+	"Parameters",
+	"RuntimeParameters",
+	"PipelineRoot",
+	"'' AS PipelineRuntimeManifest",
+	"'' AS WorkflowRuntimeManifest",
+	"JobUUID",
+	"State",
+	"StateHistory",
+	"PluginsInput",
+	"PluginsOutput",
+	"PipelineContextId",
+	"PipelineRunContextId",
+	"RetryGeneration",
+	"RetryClaimedAtInSec",
+	"ArchivedAtInSec",
+}
+
 var runMetricsColumns = []string{
 	"RunUUID",
 	"NodeID",
@@ -131,6 +170,14 @@ var archivedStorageStateStrings = []string{
 	model.LegacyStateDisabled,
 }
 
+// NewArchivedRunRetryError is shared by the RetryRun pre-check and the recheck
+// inside ClaimRunForRetry's row lock so both report the archived run the same way.
+func NewArchivedRunRetryError(runID string) error {
+	return util.NewFailedPreconditionError(
+		errors.New("Archived runs are garbage collection candidates, so retrying one would race the collector"),
+		"Failed to retry run %s as it is archived. Unarchive the run first to allow it to be retried", runID)
+}
+
 type RunStoreInterface interface {
 	// Creates a run entry. Does not create children tasks.
 	CreateRun(run *model.Run) (*model.Run, error)
@@ -144,6 +191,28 @@ type RunStoreInterface interface {
 	// Updates a run.
 	// Note: only state, runtime manifest can be updated. Does not update dependent tasks.
 	UpdateRun(run *model.Run) (err error)
+
+	// Updates a run only when its persisted workflow runtime manifest and retry
+	// generation still match the values loaded by the caller. Before a V2 run's
+	// first report, when that manifest is empty, its pipeline runtime manifest is
+	// also checked as an incarnation fence. Returns false without mutating the
+	// row when another writer changed any guarded value.
+	UpdateRunIfRuntimeManifestsUnchanged(
+		run *model.Run,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+	) (bool, error)
+
+	// Updates a run from a nonterminal Workflow observation only when its
+	// persisted state, runtime manifests, and retry generation still match the
+	// values loaded by the reporter. Returns false when another lifecycle
+	// operation won the race.
+	UpdateRunFromWorkflow(
+		run *model.Run,
+		expectedState model.RuntimeState,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+	) (bool, error)
 
 	// Updates only the PluginsOutput column for a run. Use this when plugin
 	// handlers need to persist output without touching core run fields (State,
@@ -211,11 +280,6 @@ func (s *RunStore) ListRuns(
 		return errorF(err)
 	}
 
-	sizeSql, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
-	if err != nil {
-		return errorF(err)
-	}
-
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -237,21 +301,32 @@ func (s *RunStore) ListRuns(
 	}
 	defer rows.Close()
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
+	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
+	// computing it requires a second, potentially expensive query that some
+	// callers (e.g. a paginated UI that never displays the total) don't need.
+	totalSize := -1
+	if !opts.SkipCount {
+		sizeSQL, sizeArgs, err := s.buildSelectRunsQuery(true, opts, filterContext)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		if err := sizeRow.Err(); err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		totalSize, err = list.ScanRowToTotalSize(sizeRow)
+		if err != nil {
+			tx.Rollback()
+			return errorF(err)
+		}
+		defer sizeRow.Close()
 	}
-	if err := sizeRow.Err(); err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return errorF(err)
-	}
-	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
@@ -260,11 +335,25 @@ func (s *RunStore) ListRuns(
 	}
 
 	if len(runs) <= opts.PageSize {
-		return runs, total_size, "", nil
+		return runs, totalSize, "", nil
 	}
 
 	npt, err := opts.NextPageToken(runs[opts.PageSize])
-	return runs[:opts.PageSize], total_size, npt, err
+	return runs[:opts.PageSize], totalSize, npt, err
+}
+
+func getRunListColumns(opts *list.Options) []string {
+	columns := make([]string, len(runListColumns))
+	copy(columns, runListColumns)
+
+	if opts != nil && opts.SortByFieldName == "PipelineRuntimeManifest" {
+		for i, col := range columns {
+			if col == "'' AS PipelineRuntimeManifest" {
+				columns[i] = "PipelineRuntimeManifest"
+			}
+		}
+	}
+	return columns
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
@@ -277,13 +366,13 @@ func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
 	if refKey != nil && refKey.Type == model.ExperimentResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
-		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", getRunListColumns(opts),
 			selectCount, refKey.ID)
 	} else if refKey != nil && refKey.Type == model.NamespaceResourceType && (refKey.ID != "" || common.IsMultiUserMode()) {
-		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", getRunListColumns(opts),
 			selectCount, refKey.ID)
 	} else {
-		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", runColumns,
+		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", getRunListColumns(opts),
 			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
@@ -699,18 +788,230 @@ func (s *RunStore) GetRunByRecurringRunIDAndDisplayName(recurringRunID, displayN
 }
 
 func (s *RunStore) UpdateRun(run *model.Run) error {
+	_, err := s.updateRun(run, nil)
+	return err
+}
+
+func (s *RunStore) UpdateRunIfRuntimeManifestsUnchanged(
+	run *model.Run,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: run.RetryGeneration,
+	})
+}
+
+// UpdateRunFromWorkflow applies nonterminal Workflow-derived fields with a
+// database-side compare-and-set. The transition check handles the opposite
+// race ordering: when cancellation committed before the reporter read the run,
+// matching the observed CANCELING state must not authorize a stale RUNNING
+// report.
+func (s *RunStore) UpdateRunFromWorkflow(
+	run *model.Run,
+	expectedState model.RuntimeState,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+) (bool, error) {
+	expectedState = expectedState.ToV2()
+	incomingState := run.State.ToV2()
+
+	switch expectedState {
+	case model.RuntimeStateCancelling:
+		switch incomingState {
+		case model.RuntimeStateCancelling,
+			model.RuntimeStateSucceeded,
+			model.RuntimeStateSkipped,
+			model.RuntimeStateFailed,
+			model.RuntimeStateCanceled:
+			// A canceling run may remain canceling or reach a terminal state.
+		default:
+			return false, nil
+		}
+	case model.RuntimeStateSucceeded,
+		model.RuntimeStateSkipped,
+		model.RuntimeStateFailed,
+		model.RuntimeStateCanceled:
+		if incomingState != expectedState {
+			return false, nil
+		}
+	}
+
+	return s.updateRun(run, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: run.RetryGeneration,
+		state:           &expectedState,
+	})
+}
+
+// storedRuntimeStates returns the known raw database values that normalize to
+// state. Older rows may use v1 values or keep the value only in Conditions.
+func storedRuntimeStates(state model.RuntimeState) []string {
+	switch state.ToV2() {
+	case model.RuntimeStateUnspecified:
+		return []string{"RUNTIME_STATE_UNSPECIFIED", "UNKNOWN", "NO_STATUS"}
+	case model.RuntimeStatePending:
+		return []string{"PENDING"}
+	case model.RuntimeStateRunning:
+		return []string{"RUNNING", "ENABLED", "READY"}
+	case model.RuntimeStateSucceeded:
+		return []string{"SUCCEEDED", "DONE"}
+	case model.RuntimeStateSkipped:
+		return []string{"SKIPPED"}
+	case model.RuntimeStateFailed:
+		return []string{"FAILED", "ERROR"}
+	case model.RuntimeStateCancelling:
+		return []string{"CANCELING", "TERMINATING"}
+	case model.RuntimeStateCanceled:
+		return []string{"CANCELED", "DISABLED"}
+	case model.RuntimeStatePaused:
+		return []string{"PAUSED"}
+	default:
+		return nil
+	}
+}
+
+// effectiveStatePredicate mirrors model.Run's legacy state reconstruction:
+// State wins when present; otherwise Conditions supplies the effective state.
+func effectiveStatePredicate(states ...model.RuntimeState) sq.Sqlizer {
+	stored := make([]string, 0, len(states))
+	matchesUnspecified := false
+	for _, state := range states {
+		stored = append(stored, storedRuntimeStates(state)...)
+		if state.ToV2() == model.RuntimeStateUnspecified {
+			matchesUnspecified = true
+		}
+	}
+
+	stateAbsent := sq.Or{sq.Eq{"State": nil}, sq.Eq{"State": ""}}
+	fromConditions := sq.Or{sq.And{stateAbsent, sq.Eq{"UPPER(Conditions)": stored}}}
+	if matchesUnspecified {
+		fromConditions = append(fromConditions, sq.And{
+			stateAbsent,
+			sq.Or{sq.Eq{"Conditions": nil}, sq.Eq{"Conditions": ""}},
+		})
+	}
+
+	return sq.Or{sq.Eq{"UPPER(State)": stored}, fromConditions}
+}
+
+type runRuntimeManifestPrecondition struct {
+	workflow        model.LargeText
+	pipeline        model.LargeText
+	retryGeneration int64
+	namespace       *string
+	state           *model.RuntimeState
+}
+
+func lockRunForRuntimeManifestWrite(
+	tx *sql.Tx,
+	db *DB,
+	runID string,
+	expected runRuntimeManifestPrecondition,
+) (bool, bool, error) {
+	lockColumns := []string{"WorkflowRuntimeManifest"}
+	checkPipelineRuntimeManifest := expected.workflow == ""
+	if checkPipelineRuntimeManifest {
+		lockColumns = append(lockColumns, "PipelineRuntimeManifest")
+	}
+	if expected.namespace != nil {
+		lockColumns = append(lockColumns, "Namespace")
+	}
+	if expected.state != nil {
+		lockColumns = append(lockColumns, "State", "Conditions")
+	}
+	lockColumns = append(lockColumns, "RetryGeneration")
+	lockSQL, lockArgs, err := sq.
+		Select(lockColumns...).
+		From("run_details").
+		Where(sq.Eq{"UUID": runID}).
+		ToSql()
+	if err != nil {
+		return false, false, err
+	}
+	var currentWorkflowRuntimeManifest model.LargeText
+	var currentPipelineRuntimeManifest model.LargeText
+	var currentNamespace string
+	var currentState sql.NullString
+	var currentConditions sql.NullString
+	var currentRetryGeneration sql.NullInt64
+	lockScanTargets := []any{&currentWorkflowRuntimeManifest}
+	if checkPipelineRuntimeManifest {
+		lockScanTargets = append(lockScanTargets, &currentPipelineRuntimeManifest)
+	}
+	if expected.namespace != nil {
+		lockScanTargets = append(lockScanTargets, &currentNamespace)
+	}
+	if expected.state != nil {
+		lockScanTargets = append(lockScanTargets, &currentState, &currentConditions)
+	}
+	lockScanTargets = append(lockScanTargets, &currentRetryGeneration)
+	if err := tx.QueryRow(db.SelectForUpdate(lockSQL), lockArgs...).Scan(lockScanTargets...); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, false, nil
+		}
+		return false, false, err
+	}
+	effectiveState := model.RuntimeStateUnspecified
+	if currentState.Valid && currentState.String != "" {
+		effectiveState = model.RuntimeState(currentState.String).ToV2()
+	} else if currentConditions.Valid {
+		effectiveState = model.RuntimeState(currentConditions.String).ToV2()
+	}
+	matches := currentWorkflowRuntimeManifest == expected.workflow &&
+		(!checkPipelineRuntimeManifest || currentPipelineRuntimeManifest == expected.pipeline) &&
+		(expected.namespace == nil || currentNamespace == *expected.namespace) &&
+		(expected.state == nil || effectiveState == expected.state.ToV2()) &&
+		currentRetryGeneration.Int64 == expected.retryGeneration
+	return true, matches, nil
+}
+
+func (s *RunStore) updateRun(
+	run *model.Run,
+	expectedRuntimeManifests *runRuntimeManifestPrecondition,
+) (bool, error) {
 	tx, err := s.db.DB.Begin()
 	if err != nil {
-		return util.NewInternalServerError(err, "transaction creation failed")
+		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
-	if len(run.RunDetails.StateHistory) == 0 || run.RunDetails.StateHistory[len(run.RunDetails.StateHistory)-1].State != run.RunDetails.State {
-		run.RunDetails.StateHistory = append(run.RunDetails.StateHistory, &model.RuntimeStatus{
+	if expectedRuntimeManifests != nil {
+		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
+			tx,
+			s.db,
+			run.UUID,
+			*expectedRuntimeManifests,
+		)
+		if lockError != nil {
+			tx.Rollback()
+			return false, util.NewInternalServerError(
+				lockError,
+				"Failed to lock run %s before updating",
+				run.UUID,
+			)
+		}
+		if !runExists {
+			tx.Rollback()
+			return false, util.Wrap(
+				util.NewResourceNotFoundError("Run", run.UUID),
+				"Failed to update run",
+			)
+		}
+		if !preconditionMatches {
+			tx.Rollback()
+			return false, nil
+		}
+	}
+	if len(run.StateHistory) == 0 || run.StateHistory[len(run.StateHistory)-1].State != run.State {
+		run.StateHistory = append(run.StateHistory, &model.RuntimeStatus{
 			UpdateTimeInSec: s.time.Now().Unix(),
-			State:           run.RunDetails.State,
+			State:           run.State,
 		})
 	}
 	stateHistoryString := ""
-	if historyString, err := json.Marshal(run.RunDetails.StateHistory); err == nil {
+	if historyString, err := json.Marshal(run.StateHistory); err == nil {
 		stateHistoryString = string(historyString)
 	}
 	updateFields := sq.Eq{
@@ -719,6 +1020,12 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 		"StateHistory":            stateHistoryString,
 		"FinishedAtInSec":         run.FinishedAtInSec,
 		"WorkflowRuntimeManifest": run.WorkflowRuntimeManifest,
+	}
+	if run.K8SName != "" {
+		updateFields["Name"] = run.K8SName
+	}
+	if run.Namespace != "" {
+		updateFields["Namespace"] = run.Namespace
 	}
 	// PluginsOutput is only updated when explicitly set by the caller (e.g.
 	// MLflow terminal sync, retry). A nil pointer means "leave unchanged" so
@@ -731,43 +1038,48 @@ func (s *RunStore) UpdateRun(run *model.Run) error {
 	// Include RetryGeneration in the WHERE clause so that a stale workflow
 	// reporter that passed workflowStillMatchesReportedVersion before a
 	// ClaimRunForRetry increment cannot overwrite the claimed row.
+	updatePredicate := sq.And{
+		sq.Eq{"UUID": run.UUID},
+		sq.Eq{"RetryGeneration": run.RetryGeneration},
+	}
 	sql, args, err := sq.
 		Update("run_details").
 		SetMap(updateFields).
-		Where(sq.And{
-			sq.Eq{"UUID": run.UUID},
-			sq.Eq{"RetryGeneration": run.RetryGeneration},
-		}).
+		Where(updatePredicate).
 		ToSql()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to create query to update run %s", run.UUID)
 	}
 	result, err := tx.Exec(sql, args...)
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	r, err := result.RowsAffected()
 	if err != nil {
 		tx.Rollback()
-		return util.NewInternalServerError(err,
+		return false, util.NewInternalServerError(err,
 			"Failed to update run %s", run.UUID)
 	}
 	if r > 1 {
 		tx.Rollback()
-		return util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
+		return false, util.NewInternalServerError(errors.New("Failed to update run"), "Failed to update run %s. More than 1 rows affected", run.UUID)
 	} else if r == 0 {
+		if expectedRuntimeManifests != nil {
+			tx.Rollback()
+			return false, nil
+		}
 		tx.Rollback()
-		return util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
+		return false, util.Wrap(util.NewResourceNotFoundError("Run", run.UUID), "Failed to update run")
 	}
 
 	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
+		return false, util.NewInternalServerError(err, "failed to commit transaction for run %s", run.UUID)
 	}
-	return nil
+	return true, nil
 }
 
 // UpdateRunPluginsOutput updates only the PluginsOutput column for the given
@@ -923,7 +1235,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	// Lock the row and read current state. Use sql.NullString for State
 	// because legacy runs intentionally have State NULL.
 	selectSQL, selectArgs, err := sq.
-		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec").
+		Select("State", "Conditions", "FinishedAtInSec", "RetryGeneration", "RetryClaimedAtInSec", "StorageState").
 		From("run_details").
 		Where(sq.Eq{"UUID": runID}).
 		ToSql()
@@ -937,7 +1249,9 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	var originalFinishedAtInSec int64
 	var currentGeneration int64
 	var retryClaimedAtInSec int64
-	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec); err != nil {
+	// Legacy rows predate the column, so it can still be NULL.
+	var nullableStorageState sql.NullString
+	if err := row.Scan(&nullableState, &originalConditions, &originalFinishedAtInSec, &currentGeneration, &retryClaimedAtInSec, &nullableStorageState); err != nil {
 		tx.Rollback()
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", "", 0, 0, util.NewResourceNotFoundError("Run", runID)
@@ -947,6 +1261,14 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	originalState := ""
 	if nullableState.Valid {
 		originalState = nullableState.String
+	}
+
+	// RetryRun checks this before taking the lock, but ArchiveExpiredRuns can
+	// commit ARCHIVED between that read and this one. Rejecting here, before any
+	// mutation, keeps a run from ending up RUNNING and ARCHIVED at once.
+	if model.StorageState(nullableStorageState.String).ToV2() == model.StorageStateArchived {
+		tx.Rollback()
+		return "", "", 0, 0, NewArchivedRunRetryError(runID)
 	}
 
 	// Verify the locked row is still in a terminal state. Between the
@@ -1386,24 +1708,38 @@ func NewRunStore(db *DB, time util.TimeInterface) *RunStore {
 
 func (s *RunStore) TerminateRun(runId string) error {
 	// TODO(gkcalat): append CANCELLING to StateHistory
-	result, err := s.db.Exec(`
-		UPDATE run_details
-		SET Conditions = ?, State = ?
-		WHERE UUID = ? AND (State = ? OR State = ? OR State = ? OR State = ?)`,
-		string(model.RuntimeStateCancelling.ToV1()),
-		model.RuntimeStateCancelling.ToString(),
-		runId,
-		model.RuntimeStatePaused.ToString(),
-		model.RuntimeStatePending.ToString(),
-		model.RuntimeStateRunning.ToString(),
-		model.RuntimeStateUnspecified.ToString(),
-	)
+	sql, args, err := sq.
+		Update("run_details").
+		SetMap(sq.Eq{
+			"Conditions": string(model.RuntimeStateCancelling.ToV1()),
+			"State":      model.RuntimeStateCancelling.ToString(),
+		}).
+		Where(sq.And{
+			sq.Eq{"UUID": runId},
+			effectiveStatePredicate(
+				model.RuntimeStatePaused,
+				model.RuntimeStatePending,
+				model.RuntimeStateRunning,
+				model.RuntimeStateUnspecified,
+				model.RuntimeStateCancelling,
+			),
+		}).
+		ToSql()
+	if err != nil {
+		return util.NewInternalServerError(err, "Failed to build query for terminating run %s", runId)
+	}
+	result, err := s.db.Exec(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to terminate a run %s. Error: '%v'", runId, err.Error())
 	}
 
-	if r, _ := result.RowsAffected(); r != 1 {
+	r, err := result.RowsAffected()
+	if err != nil {
+		return util.NewInternalServerError(err,
+			"Failed to verify termination of run %s", runId)
+	}
+	if r != 1 {
 		return util.NewInvalidInputError("Failed to terminate a run %s. Row not found", runId)
 	}
 	return nil

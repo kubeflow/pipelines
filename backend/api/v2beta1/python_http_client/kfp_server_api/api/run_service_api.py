@@ -577,6 +577,8 @@ class RunServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param skip_count: Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size.
+        :type skip_count: bool
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -615,6 +617,8 @@ class RunServiceApi(object):
         :type sort_by: str
         :param filter: A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
         :type filter: str
+        :param skip_count: Optional input field. If true, the server skips computing total_size in the response, avoiding an extra count query. Defaults to false, which preserves the existing behavior of always computing total_size.
+        :type skip_count: bool
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -642,7 +646,8 @@ class RunServiceApi(object):
             'page_token',
             'page_size',
             'sort_by',
-            'filter'
+            'filter',
+            'skip_count'
         ]
         all_params.extend(
             [
@@ -679,6 +684,8 @@ class RunServiceApi(object):
             query_params.append(('sort_by', local_var_params['sort_by']))  # noqa: E501
         if 'filter' in local_var_params and local_var_params['filter'] is not None:  # noqa: E501
             query_params.append(('filter', local_var_params['filter']))  # noqa: E501
+        if 'skip_count' in local_var_params and local_var_params['skip_count'] is not None:  # noqa: E501
+            query_params.append(('skip_count', local_var_params['skip_count']))  # noqa: E501
 
         header_params = {}
 

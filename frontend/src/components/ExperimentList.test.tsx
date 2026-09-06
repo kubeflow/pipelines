@@ -254,6 +254,7 @@ describe('ExperimentList', () => {
           ],
         } as V2beta1Filter),
       ),
+      true,
     );
   });
 
@@ -283,6 +284,7 @@ describe('ExperimentList', () => {
           ],
         } as V2beta1Filter),
       ),
+      true,
     );
   });
 });

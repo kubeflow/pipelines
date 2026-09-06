@@ -17,6 +17,7 @@
 import * as React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import DropzoneArea, { DropzoneAreaHandle } from './DropzoneArea';
+import { dataTransferWithFiles } from 'src/testUtils/dataTransfer';
 
 function createFile(name: string, type: string): File {
   return new File(['contents'], name, { type });
@@ -56,7 +57,7 @@ describe('DropzoneArea', () => {
     const file = createFile('pipeline.yaml', 'application/yaml');
     await act(async () => {
       fireEvent.drop(screen.getByTestId('dz'), {
-        dataTransfer: { files: [file], types: ['Files'] },
+        dataTransfer: dataTransferWithFiles(file),
       });
     });
 
@@ -81,7 +82,7 @@ describe('DropzoneArea', () => {
     const file = createFile('readme.txt', 'text/plain');
     await act(async () => {
       fireEvent.drop(screen.getByTestId('dz'), {
-        dataTransfer: { files: [file], types: ['Files'] },
+        dataTransfer: dataTransferWithFiles(file),
       });
     });
 

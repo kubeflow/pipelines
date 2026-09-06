@@ -22,6 +22,7 @@ import type * as React from 'react';
 import { CircularProgress } from '@mui/material';
 import { graphlib } from 'dagre';
 import * as JsYaml from 'js-yaml';
+import { loadYaml } from 'src/lib/YamlLoad';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import {
@@ -657,7 +658,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     let graphV2: PipelineFlowElement[] = [];
     if (templateString) {
       try {
-        const template = JsYaml.load(templateString);
+        const template = loadYaml(templateString);
         if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
           graph = StaticGraphParser.createGraph(template!);
 

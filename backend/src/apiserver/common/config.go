@@ -49,6 +49,7 @@ const (
 	DefaultSecurityContextRunAsNonRoot      string = "DEFAULT_SECURITY_CONTEXT_RUN_AS_NON_ROOT"
 	DefaultSecurityContextHostUsers         string = "DEFAULT_SECURITY_CONTEXT_HOST_USERS"
 	PipelineURLAllowedDomains               string = "PIPELINE_URL_ALLOWED_DOMAINS"
+	PipelineURLAllowedCIDRs                 string = "PIPELINE_URL_ALLOWED_CIDRS"
 	PipelineURLAllowHTTP                    string = "PIPELINE_URL_ALLOW_HTTP"
 	PipelineURLTimeout                      string = "PIPELINE_URL_TIMEOUT"
 	PipelineURLValidationEnabled            string = "PIPELINE_URL_VALIDATION_ENABLED"
@@ -73,10 +74,12 @@ type PluginLimitsConfig struct {
 	MaxNestingDepth      int
 }
 
-// GetWorkflowGCGracePeriodSeconds returns the grace period in seconds before
-// a workflow without a corresponding DB entry is eligible for garbage collection.
-// This prevents race conditions where the persistence agent reports a workflow
-// before the API server has finished writing the run record to the database.
+// GetWorkflowGCGracePeriodSeconds returns the grace period in seconds during
+// which a workflow without a corresponding DB entry receives a retryable
+// response. After the grace period the API server re-reads the live workflow
+// and deletes it only when its UID and run ID label identify the orphan; it
+// never deletes based on caller-controlled report metadata. This prevents races
+// while the run record is being written.
 func GetWorkflowGCGracePeriodSeconds() int {
 	return GetIntConfigWithDefault(WorkflowGCGracePeriodSeconds, 120)
 }

@@ -62,12 +62,29 @@ type TaskStoreInterface interface {
 
 	// Creates new tasks or updates the existing ones.
 	CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error)
+
+	// Creates or updates tasks only while the parent run still has the exact
+	// namespace, runtime identity, and retry generation supplied by the caller.
+	// The run is locked and checked in the same transaction as the task upsert.
+	CreateOrUpdateTasksIfRunUnchanged(
+		tasks []*model.Task,
+		runID string,
+		expectedNamespace string,
+		expectedWorkflowRuntimeManifest model.LargeText,
+		expectedPipelineRuntimeManifest model.LargeText,
+		expectedRetryGeneration int64,
+	) ([]*model.Task, bool, error)
 }
 
 type TaskStore struct {
 	db   *DB
 	time util.TimeInterface
 	uuid util.UUIDGeneratorInterface
+}
+
+type taskQueryExecer interface {
+	Query(query string, args ...any) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
 }
 
 // NewTaskStore creates a new TaskStore.
@@ -324,7 +341,7 @@ func (s *TaskStore) GetTask(id string) (*model.Task, error) {
 }
 
 // Updates missing fields with existing data entries.
-func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) error {
+func (s *TaskStore) patchWithExistingTasks(db taskQueryExecer, tasks []*model.Task, runID string) error {
 	var podNames []string
 	for _, task := range tasks {
 		podNames = append(podNames, task.PodName)
@@ -337,7 +354,7 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create query to check existing tasks")
 	}
-	r, err := s.db.Query(sql, args...)
+	r, err := db.Query(sql, args...)
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to check existing tasks")
 	}
@@ -360,6 +377,33 @@ func (s *TaskStore) patchWithExistingTasks(tasks []*model.Task, runID string) er
 
 // Creates new entries or updates existing ones.
 func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*model.Task, error) {
+	updatedTasks, _, err := s.createOrUpdateTasks(tasks, runID, nil)
+	return updatedTasks, err
+}
+
+// CreateOrUpdateTasksIfRunUnchanged writes tasks only if the owning run still
+// matches the supplied namespace, runtime manifests, and retry generation.
+func (s *TaskStore) CreateOrUpdateTasksIfRunUnchanged(
+	tasks []*model.Task,
+	runID string,
+	expectedNamespace string,
+	expectedWorkflowRuntimeManifest model.LargeText,
+	expectedPipelineRuntimeManifest model.LargeText,
+	expectedRetryGeneration int64,
+) ([]*model.Task, bool, error) {
+	return s.createOrUpdateTasks(tasks, runID, &runRuntimeManifestPrecondition{
+		workflow:        expectedWorkflowRuntimeManifest,
+		pipeline:        expectedPipelineRuntimeManifest,
+		retryGeneration: expectedRetryGeneration,
+		namespace:       &expectedNamespace,
+	})
+}
+
+func (s *TaskStore) createOrUpdateTasks(
+	tasks []*model.Task,
+	runID string,
+	expectedRun *runRuntimeManifestPrecondition,
+) ([]*model.Task, bool, error) {
 	buildQuery := func(ts []*model.Task) (string, []interface{}, error) {
 		sqlInsert := sq.Insert("tasks").Columns(taskColumnsWithPayload...)
 		for _, t := range ts {
@@ -402,18 +446,41 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 		}
 		return sqlInsert.ToSql()
 	}
+	taskDB := taskQueryExecer(s.db)
+	var tx *sql.Tx
+	if expectedRun != nil {
+		var err error
+		tx, err = s.db.Begin()
+		if err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to start transaction for task update")
+		}
+		defer tx.Rollback()
+		runExists, preconditionMatches, err := lockRunForRuntimeManifestWrite(
+			tx,
+			s.db,
+			runID,
+			*expectedRun,
+		)
+		if err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to lock owning run %s before updating tasks", runID)
+		}
+		if !runExists || !preconditionMatches {
+			return nil, false, nil
+		}
+		taskDB = tx
+	}
 
 	// Check for existing tasks and fill empty field with existing data.
 	// Assumes that PodName column is a unique key.
-	if err := s.patchWithExistingTasks(tasks, runID); err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to check for existing tasks")
+	if err := s.patchWithExistingTasks(taskDB, tasks, runID); err != nil {
+		return nil, false, util.NewInternalServerError(err, "Failed to check for existing tasks")
 	}
 	for _, task := range tasks {
 		task.State = task.State.ToV2()
 		if task.UUID == "" {
 			id, err := s.uuid.NewRandom()
 			if err != nil {
-				return nil, util.NewInternalServerError(err, "Failed to create an task id")
+				return nil, false, util.NewInternalServerError(err, "Failed to create an task id")
 			}
 			task.UUID = id.String()
 		}
@@ -430,14 +497,19 @@ func (s *TaskStore) CreateOrUpdateTasks(tasks []*model.Task, runID string) ([]*m
 	// Execute the query
 	sql, arg, err := buildQuery(tasks)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
+		return nil, false, util.NewInternalServerError(err, "Failed to build query to update or insert tasks")
 	}
 	sql = s.db.Upsert(sql, "UUID", true, taskColumnsWithPayload...)
-	_, err = s.db.Exec(sql, arg...)
+	_, err = taskDB.Exec(sql, arg...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)
+		return nil, false, util.NewInternalServerError(err, "Failed to update or insert tasks. Query: %v. Args: %v", sql, arg)
 	}
-	return tasks, nil
+	if tx != nil {
+		if err := tx.Commit(); err != nil {
+			return nil, false, util.NewInternalServerError(err, "Failed to commit task updates for run %s", runID)
+		}
+	}
+	return tasks, true, nil
 }
 
 // Fills empty fields in a new task with the data from an existing task.

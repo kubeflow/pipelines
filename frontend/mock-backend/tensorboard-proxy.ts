@@ -52,7 +52,7 @@ export default (app: express.Application) => {
     next();
   });
 
-  app.all(`${TENSORBOARD_PROXY_PREFIX}*`, (req, res) => {
+  app.all(/^\/apps\/tensorboard\/proxy\/.*$/i, (req, res) => {
     if (req.method === 'HEAD') {
       res.status(200).end();
       return;

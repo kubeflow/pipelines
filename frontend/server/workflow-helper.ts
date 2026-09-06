@@ -21,7 +21,7 @@ import {
   getServerNamespace,
 } from './k8s-helper.js';
 import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
-import * as JsYaml from 'js-yaml';
+import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
 
 export interface PartialArgoWorkflow {
   status: {
@@ -187,9 +187,12 @@ export async function getKeyFormatFromArtifactRepositories(
         `artifact-repositories configmap in ${namespace} namespace is missing an artifact-repositories field.`,
       );
     }
-    const artifactRepositoriesValue = JsYaml.load(
-      artifactRepositories,
-    ) as PartialArtifactRepositoriesValue;
+    // js-yaml 5 resolves merge keys only when mergeTag is in the schema. The
+    // configmap is user supplied and commonly shares fields between providers
+    // through anchors, so without this an inherited keyFormat is lost.
+    const artifactRepositoriesValue = jsYamlLoad(artifactRepositories, {
+      schema: CORE_SCHEMA.withTags(mergeTag),
+    }) as PartialArtifactRepositoriesValue;
     if ('s3' in artifactRepositoriesValue) {
       return artifactRepositoriesValue.s3?.keyFormat;
     } else if ('gcs' in artifactRepositoriesValue) {
