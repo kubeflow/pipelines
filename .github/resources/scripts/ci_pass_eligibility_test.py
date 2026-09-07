@@ -40,7 +40,7 @@ let pr = {
 const eventPR = structuredClone(pr);
 if (options.oldHead) eventPR.head.sha = 'old-head';
 const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
-  eventName: options.workflowRun ? 'workflow_run' : 'pull_request_target',
+  eventName: options.schedule ? 'schedule' : options.workflowRun ? 'workflow_run' : 'pull_request_target',
   payload: {pull_request: eventPR, action: options.action || 'opened',
     workflow_run: {event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
@@ -52,8 +52,8 @@ const github = {rest: {
     get: async () => ({data: structuredClone(pr)})},
   actions: {listWorkflowRunsForRepo: methods.runs},
   issues: {listEventsForTimeline: methods.timeline,
-    addLabels: async () => {calls.push(['add-label']);},
-    removeLabel: async () => {calls.push(['remove-label']);}},
+    addLabels: async request => {calls.push(['add-label', request.labels]);},
+    removeLabel: async request => {calls.push(['remove-label', request.name]);}},
   repos: {createCommitStatus: async request => {
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
@@ -85,7 +85,7 @@ const github = {rest: {
 }};
 (async () => {
   let error;
-  try {await gate.prepare({github, context, core, root});} catch (e) {error = e.message;}
+  try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
@@ -151,6 +151,105 @@ console.log(JSON.stringify(result));
         result = exercise({'missing': True})
         self.assertEqual(result['outputs']['ready'], 'false')
         self.assert_last_status(result, 'failure')
+
+    def test_recovery_discovery_skips_green_and_ineligible_prs(self):
+        script = r"""
+const {recoveryCandidates} = require(process.argv[1]);
+const requests = [];
+const prs = ['success', 'failure', 'pending', 'missing', 'untrusted', 'revoked'].map((state, i) => ({
+  number: i + 1, head: {sha: state}, user: {login: state === 'untrusted' ? 'human' : 'dependabot[bot]'},
+  labels: state === 'revoked' ? [{name: 'needs-ok-to-test'}] : [], author_association: 'NONE',
+}));
+const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
+  getCombinedStatusForRef: async ({ref}) => {
+    requests.push(ref);
+    return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state: ref}]}};
+  },
+}}};
+recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(result => {
+  console.log(JSON.stringify({result, requests}));
+}).catch(e => {console.error(e); process.exit(1);});
+"""
+        result = subprocess.run(
+            ['node', '-e', script, str(MODULE)],
+            check=True,
+            capture_output=True,
+            text=True)
+        actual = json.loads(result.stdout)
+        self.assertEqual(actual['result'], [{
+            'number': 2,
+            'head': 'failure'
+        }, {
+            'number': 3,
+            'head': 'pending'
+        }, {
+            'number': 4,
+            'head': 'missing'
+        }])
+        self.assertEqual(actual['requests'],
+                         ['success', 'failure', 'pending', 'missing'])
+
+    def test_external_check_finishing_after_final_workflow_recovers(self):
+        self.assert_last_status(
+            exercise({
+                'workflowRun': True,
+                'pollPassed': False
+            }), 'failure')
+        self.assert_last_status(exercise({'schedule': True}), 'success')
+
+    def test_scheduled_recovery_preserves_safety_checks(self):
+        for options in [{
+                'pollPassed': False
+        }, {
+                'retarget': True
+        }, {
+                'missing': True
+        }, {
+                'pr': {
+                    'labels': [{
+                        'name': 'needs-ok-to-test'
+                    }]
+                }
+        }, {
+                'drift': 'rerun'
+        }, {
+                'apiFailure': True
+        }]:
+            with self.subTest(options=options):
+                self.assert_last_status(
+                    exercise({
+                        'schedule': True,
+                        **options
+                    }), 'failure')
+        self.assertEqual(
+            exercise({
+                'schedule': True,
+                'oldHead': True
+            })['calls'], [])
+        self.assertEqual(
+            exercise({
+                'schedule': True,
+                'pr': {
+                    'state': 'closed'
+                }
+            })['calls'], [])
+
+    def test_existing_pr_hold_is_never_removed(self):
+        for passed in [True, False]:
+            result = exercise({
+                'schedule': True,
+                'pollPassed': passed,
+                'pr': {
+                    'labels': [{
+                        'name': 'do-not-merge/hold'
+                    }]
+                }
+            })
+            labels = [call for call in result['calls'] if call[0] != 'status']
+            self.assertTrue(labels)
+            for call in labels:
+                self.assertIn(call, [['add-label', ['ci-passed']],
+                                     ['remove-label', 'ci-passed']])
 
     def test_rerun_lifecycle(self):
         for status in ['queued', 'in_progress', 'waiting']:

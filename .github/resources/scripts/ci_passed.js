@@ -28,7 +28,33 @@ async function readPR(github, context, number) {
   return (await github.rest.pulls.get({...context.repo, pull_number: number})).data;
 }
 
-async function resolve(github, context) {
+async function recoveryCandidates({github, context}) {
+  const prs = await github.paginate(github.rest.pulls.list, {
+    ...context.repo, state: 'open', per_page: 100,
+  });
+  const candidates = [];
+  for (const pr of prs) {
+    if (!eligible(pr)) continue;
+    // Only recovery needs a timer. Event-driven reconciliation invalidates
+    // existing success; avoid allocating a runner for every green PR.
+    const {data} = await github.rest.repos.getCombinedStatusForRef({
+      ...context.repo, ref: pr.head.sha, per_page: 100,
+    });
+    if (data.statuses.some(status => status.context === 'ci-passed' && status.state === 'success')) continue;
+    candidates.push({number: pr.number, head: pr.head.sha});
+  }
+  if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
+  return candidates;
+}
+
+async function resolve(github, context, recovery) {
+  if (context.eventName === 'schedule') {
+    if (!Number.isSafeInteger(recovery?.number) || recovery.number <= 0 || !recovery.head) {
+      throw new Error('Scheduled recovery requires a PR number and head SHA');
+    }
+    const pr = await readPR(github, context, recovery.number);
+    return pr.state === 'open' && pr.head.sha === recovery.head ? pr : null;
+  }
   if (context.eventName === 'pull_request_target') {
     const eventPR = context.payload.pull_request;
     const pr = await readPR(github, context, eventPR.number);
@@ -90,12 +116,12 @@ async function evidence(github, context, pr, inventory) {
     ...inventory, freshAfter: await freshAfter(github, context, pr)});
 }
 
-async function prepare({github, context, core, root = process.env.GITHUB_WORKSPACE}) {
+async function prepare({github, context, core, recovery, root = process.env.GITHUB_WORKSPACE}) {
   let pr;
   try {
-    pr = await resolve(github, context);
+    pr = await resolve(github, context, recovery);
   } catch (error) {
-    const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha;
+    const sha = context.payload.pull_request?.head.sha || context.payload.workflow_run?.head_sha || recovery?.head;
     if (sha) await github.rest.repos.createCommitStatus({
       ...context.repo, sha, context: 'ci-passed', state: 'failure',
       description: 'Cannot identify the PR for this head; inspect CI Check and retry.',
@@ -146,4 +172,4 @@ async function finalize({github, context, core, number, head, before, pollPassed
   }
 }
 
-module.exports = {eligible, snapshot, resolve, freshAfter, prepare, finalize};
+module.exports = {recoveryCandidates, eligible, snapshot, resolve, freshAfter, prepare, finalize};
