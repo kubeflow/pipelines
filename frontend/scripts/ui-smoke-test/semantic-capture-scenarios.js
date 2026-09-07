@@ -7,7 +7,18 @@ const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v4';
 
 function comparisonCategory(key) {
   if (key === 'run-details-task-logs') return 'runtime-output';
+  if (
+    [
+      'compare-runs',
+      'compare-confusion-matrix',
+      'compare-roc-selection',
+      'compare-html',
+      'compare-markdown',
+    ].includes(key)
+  )
+    return 'design-transition';
   return [
+    'artifact-details',
     'executions-to-runs',
     'artifact-list-evolution',
     'artifact-related-tasks',
@@ -414,6 +425,21 @@ function comparisonMatricesReady() {
   );
 }
 
+function runMatrixReady() {
+  const tables = Array.from(document.querySelectorAll('#root table')).filter(
+    (table) => !table.querySelector('table') && table.textContent.includes('predicted-negative'),
+  );
+  return (
+    tables.length === 1 &&
+    JSON.stringify(
+      Array.from(tables[0].querySelectorAll('td'))
+        .map((cell) => cell.textContent.trim())
+        .filter((text) => /^\d+$/.test(text))
+        .map(Number),
+    ) === JSON.stringify([8, 47, 42, 3])
+  );
+}
+
 const SEMANTIC_SCENARIOS = Object.freeze([
   {
     key: 'executions-to-runs',
@@ -644,6 +670,12 @@ const SEMANTIC_SCENARIOS = Object.freeze([
   },
   {
     key: 'run-details-confusion-matrix',
+    captureRegion: {
+      selector: '#root div:has(> table td[style*="background-color"])',
+      minCount: 1,
+      scrollIntoView: true,
+      includeDescendants: 'td, th',
+    },
     title: 'Run Details confusion matrix',
     requires: ['richRunId', 'rocArtifactId'],
     revisions: Object.fromEntries(
@@ -658,7 +690,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
               type: 'waitForText',
               text: 'predicted-negative',
             }),
-            { type: 'scrollIntoView', selector: 'text=predicted-negative' },
+            { type: 'waitForFunction', predicate: runMatrixReady },
           ],
         },
       ]),

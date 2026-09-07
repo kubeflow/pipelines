@@ -517,6 +517,31 @@ test('capture clears pointer hover before settling and resetting the viewport', 
   assert.deepEqual(events.slice(0, 3), [['pointer', -1, -1], ['settle', 350], ['scroll']]);
 });
 
+test('scenario target scrolling occurs after all viewport resets', async () => {
+  const events = [];
+  const page = {
+    mouse: { move: async () => {} },
+    waitForTimeout: async () => {},
+    frames: () => [],
+    evaluate: async () => {
+      events.push('evaluate');
+      return { x: 0, y: 0 };
+    },
+    waitForFunction: async () => {
+      events.push('reset-assertion');
+    },
+    locator: (selector) => {
+      assert.equal(selector, 'table');
+      return {
+        first: () => ({ scrollIntoViewIfNeeded: async () => events.push('target-scroll') }),
+      };
+    },
+  };
+  await capture.prepareCaptureViewport(page, { selector: 'table', scrollIntoView: true });
+  assert.ok(events.indexOf('target-scroll') > events.indexOf('reset-assertion'));
+  assert.deepEqual(events.slice(-2), ['target-scroll', 'evaluate']);
+});
+
 test('fixture list sorting uses the application control and waits for its response', async () => {
   let ascending = false;
   let clicks = 0;
@@ -677,6 +702,49 @@ test('viewer framing rejects missing, clipped, and overflow-hidden content', asy
   await capture.assertCaptureRegion(page, region);
   await capture.assertCaptureRegion(page, region, false);
   assert.deepEqual(results, [true, false, true, false, true, false, false]);
+});
+
+test('matrix framing also rejects a cell overflowing an otherwise visible table', async (t) => {
+  const saved = {
+    document: global.document,
+    window: global.window,
+    getComputedStyle: global.getComputedStyle,
+  };
+  t.after(() => Object.assign(global, saved));
+  global.window = { innerWidth: 1280, innerHeight: 800 };
+  global.getComputedStyle = () => ({ overflowY: 'visible', overflowX: 'visible' });
+  let cellRight = 600;
+  const cell = {
+    parentElement: null,
+    getBoundingClientRect: () => ({
+      width: 100,
+      height: 100,
+      top: 200,
+      left: 500,
+      right: cellRight,
+      bottom: 300,
+    }),
+  };
+  const table = {
+    parentElement: null,
+    querySelectorAll: () => [cell],
+    getBoundingClientRect: () => ({
+      width: 400,
+      height: 400,
+      top: 100,
+      left: 300,
+      right: 700,
+      bottom: 500,
+    }),
+  };
+  global.document = { querySelectorAll: () => [table] };
+  const results = [];
+  const page = { waitForFunction: async (predicate, args) => results.push(predicate(args)) };
+  const region = { selector: 'table', minCount: 1, includeDescendants: 'td, th' };
+  await capture.assertCaptureRegion(page, region);
+  cellRight = 1400;
+  await capture.assertCaptureRegion(page, region);
+  assert.deepEqual(results, [true, false]);
 });
 
 test('volatile metadata normalization is scoped to sidebar version and log prefixes', async (t) => {

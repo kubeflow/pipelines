@@ -3332,9 +3332,11 @@ function renderComparisonResult(result, embeddedImages) {
     const interpretation =
       category === 'capability-transition'
         ? 'Capability transition: inspect functionality and navigation; pixel differences are descriptive, not parity regressions. '
-        : category === 'runtime-output'
-          ? 'Runtime output: successful retry completion was required before capture. Runtime log text is not pixel-parity evidence; inspect container layout separately. '
-          : 'Pixel-parity comparison. ';
+        : category === 'design-transition'
+          ? 'Approved design transition: comparison controls and information layout were redesigned; inspect content, usability, and clipping. Pixel differences are descriptive, not parity regressions. '
+          : category === 'runtime-output'
+            ? 'Runtime output: successful retry completion was required before capture. Runtime log text is not pixel-parity evidence; inspect container layout separately. '
+            : 'Pixel-parity comparison. ';
     statusDetail = `${interpretation}${result.diffPercent.toFixed(4)}% visual difference across ${result.comparablePixels} unmasked pixel(s); ${result.diffRegionCount} highlighted region(s); ${thresholdState}.`;
   } else if (result.status === 'skipped') {
     statusDetail = result.reason;

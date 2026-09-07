@@ -698,6 +698,12 @@ test('comparison accepts attested shared visual equivalence for unjoinable loop 
 test('capability transitions and runtime text are not ordinary pixel failures', async (t) => {
   for (const [key, category] of [
     ['artifact-related-tasks', 'capability-transition'],
+    ['artifact-details', 'capability-transition'],
+    ['compare-runs', 'design-transition'],
+    ['compare-confusion-matrix', 'design-transition'],
+    ['compare-roc-selection', 'design-transition'],
+    ['compare-html', 'design-transition'],
+    ['compare-markdown', 'design-transition'],
     ['run-details-task-logs', 'runtime-output'],
   ]) {
     const filename = `${key}-10x10.png`;
