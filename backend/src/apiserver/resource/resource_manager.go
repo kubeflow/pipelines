@@ -2786,12 +2786,12 @@ func (r *ResourceManager) resolveRecurringWorkflowReport(jobID, workflowNamespac
 	// ReportWorkflowResource copies this PipelineSpec into every run it creates,
 	// so an unresolved parent yields runs the pipeline_id filter cannot find. A
 	// lookup failure is logged, not returned: reporting the workflow matters more.
-	if job.PipelineSpec.PipelineId == "" && job.PipelineSpec.PipelineVersionId != "" {
-		if version, err := r.pipelineStore.GetPipelineVersion(job.PipelineSpec.PipelineVersionId); err != nil {
+	if job.PipelineId == "" && job.PipelineVersionId != "" {
+		if version, err := r.pipelineStore.GetPipelineVersion(job.PipelineVersionId); err != nil {
 			glog.Warningf("Failed to resolve the parent pipeline of version %s for recurring run %s: %v",
-				job.PipelineSpec.PipelineVersionId, jobID, err)
+				job.PipelineVersionId, jobID, err)
 		} else {
-			job.PipelineSpec.PipelineId = version.PipelineId
+			job.PipelineId = version.PipelineId
 		}
 	}
 
