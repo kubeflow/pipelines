@@ -1007,6 +1007,7 @@ function createKindStack(config = {}) {
         if (options.load !== false) {
           saveAndLoadImage(image, `component-${component.name}-${tagSuffix}`, buildPlatform, {
             nodePlatform: platform,
+            removeSourceAfterExport: options.removeSourceAfterLoad,
             runner,
           });
         }
@@ -1022,6 +1023,9 @@ function createKindStack(config = {}) {
     } catch (error) {
       const cleanupErrors = [];
       for (const image of builtImages.reverse()) {
+        // Incremental loading releases a successfully exported host image before Kind import.
+        // An import/later-build failure must not try to remove that already-released tag again.
+        if (!ownedLocalImages.has(image) && builtImagePlatforms.has(image)) continue;
         const removal = runner('docker', ['image', 'rm', image], commandOptions());
         if (!removal.success) {
           cleanupErrors.push(

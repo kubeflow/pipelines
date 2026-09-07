@@ -1054,6 +1054,96 @@ test('isolated component builds release their private Buildx cache before cluste
   assert.ok(removalCalls.every(({ args }) => args.at(-1) === builderName));
 });
 
+test('incremental component loading releases each host image before Kind import and the next build', async (t) => {
+  const calls = [];
+  const stack = createTestStack(t, {
+    isolatedBuildCache: true,
+    runner: (command, args) => {
+      calls.push({ command, args });
+      return success();
+    },
+  });
+  const components = ['driver', 'launcher'].map((name) =>
+    COMPONENTS.find((entry) => entry.name === name),
+  );
+  const overrides = await stack.buildComponentImages(components, '/repo', {
+    platform: 'linux/arm64',
+    load: true,
+    removeSourceAfterLoad: true,
+  });
+  const events = calls.flatMap(({ command, args }) => {
+    if (command === 'docker' && args[0] === 'buildx' && args[1] === 'build') return ['build'];
+    if (command === 'docker' && args[0] === 'buildx' && args[1] === 'rm') return ['cache-release'];
+    if (command === 'docker' && args[0] === 'save') return ['export'];
+    if (command === 'docker' && args[0] === 'image' && args[1] === 'rm') return ['host-release'];
+    if (command === 'kind' && args[0] === 'load') return ['import'];
+    return [];
+  });
+  assert.deepEqual(events, [
+    'build',
+    'cache-release',
+    'export',
+    'host-release',
+    'import',
+    'build',
+    'cache-release',
+    'export',
+    'host-release',
+    'import',
+  ]);
+  assert.deepEqual(Object.keys(overrides.images), ['driver', 'launcher']);
+  const callCount = calls.length;
+  stack.loadImageOverrides(overrides, 'linux/arm64');
+  assert.equal(
+    calls.length,
+    callCount,
+    'loaded first-party images must not be pulled or imported again',
+  );
+});
+
+test('incremental loading preserves the original error without deleting released images again', async (t) => {
+  for (const failure of ['import', 'second-build']) {
+    await t.test(failure, async (t) => {
+      const calls = [];
+      let builds = 0;
+      const stack = createTestStack(t, {
+        isolatedBuildCache: true,
+        runner: (command, args) => {
+          calls.push({ command, args });
+          if (command === 'docker' && args[0] === 'buildx' && args[1] === 'build') {
+            builds += 1;
+            if (failure === 'second-build' && builds === 2)
+              return { success: false, error: 'injected build failure' };
+          }
+          if (failure === 'import' && command === 'kind' && args[0] === 'load')
+            return { success: false, error: 'injected import failure' };
+          return success();
+        },
+      });
+      const components = ['driver', 'launcher'].map((name) =>
+        COMPONENTS.find((entry) => entry.name === name),
+      );
+      await assert.rejects(
+        stack.buildComponentImages(components, '/repo', {
+          platform: 'linux/arm64',
+          load: true,
+          removeSourceAfterLoad: true,
+        }),
+        failure === 'import' ? /Failed to load/ : /Failed to build launcher/,
+      );
+      const removals = calls.filter(
+        ({ command, args }) => command === 'docker' && args[0] === 'image' && args[1] === 'rm',
+      );
+      assert.equal(removals.length, 1, 'only the initial host-tag release should run');
+      assert.equal(
+        fs.readdirSync(stack.archiveDir).length,
+        0,
+        'failed import must not retain its archive',
+      );
+    });
+  }
+});
+
 test('isolated component builds release private caches and completed images after a build failure', async (t) => {
   const calls = [];
   let buildCount = 0;
