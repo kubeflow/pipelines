@@ -117,7 +117,7 @@
     "@storybook/addon-links": "^10.6.0",
     "@storybook/react-vite": "^10.4.6",
     "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.5.2",
     "@types/d3-dsv": "^3.0.7",
