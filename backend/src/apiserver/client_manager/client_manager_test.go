@@ -618,7 +618,7 @@ func TestBackfillPipelineRefsToRunTable_Idempotent(t *testing.T) {
 	assert.Equal(t, "pipeline-legacy", storedRunColumn(t, db, "PipelineId", "run-legacy"))
 }
 
-func TestBackfillRunRefColumnSQL_QuotesPerDialect(t *testing.T) {
+func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 	tests := []struct {
 		dialect string
 		quoted  string
@@ -629,7 +629,7 @@ func TestBackfillRunRefColumnSQL_QuotesPerDialect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.dialect, func(t *testing.T) {
-			sql := backfillRunRefColumnSQL(GetDialect(tt.dialect), "PipelineId", model.PipelineResourceType)
+			sql := backfillRefColumnSQL(GetDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType)
 
 			assert.Contains(t, sql, tt.quoted)
 
@@ -638,7 +638,7 @@ func TestBackfillRunRefColumnSQL_QuotesPerDialect(t *testing.T) {
 			assert.Contains(t, sql, "= 'pipeline'")
 			assert.Contains(t, sql, "= 'Run'")
 
-			pvSQL := backfillRunRefColumnSQL(GetDialect(tt.dialect), "PipelineVersionId", model.PipelineVersionResourceType)
+			pvSQL := backfillRefColumnSQL(GetDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType)
 			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
 		})
 	}
@@ -755,4 +755,58 @@ func TestBackfillPipelineRefs_VersionIdColumnWithoutReference(t *testing.T) {
 
 	assert.Equal(t, "pipe-parent", storedRunColumn(t, db, "PipelineId", "run-col"),
 		"a run that stores only a version id must still resolve its parent pipeline")
+}
+
+func storedJobColumn(t *testing.T, db *gorm.DB, column, jobID string) string {
+	t.Helper()
+	var got string
+	require.NoError(t, db.Raw(
+		`SELECT "`+column+`" FROM jobs WHERE "UUID" = ?`, jobID,
+	).Scan(&got).Error)
+	return got
+}
+
+func TestBackfillPipelineRefs_LegacyJobs(t *testing.T) {
+	db := getTestSQLite(t)
+	require.NoError(t, autoMigrate(db))
+	require.NoError(t, db.Create(&model.Pipeline{
+		UUID: "pipe-parent", Name: "pp", DisplayName: "pp",
+		Status: model.PipelineReady, Namespace: "ns",
+	}).Error)
+	require.NoError(t, db.Create(&model.PipelineVersion{
+		UUID: "pv-job", Name: "pvjob", DisplayName: "pvjob", PipelineId: "pipe-parent",
+		Status: model.PipelineVersionReady, PipelineSpec: "s",
+	}).Error)
+
+	require.NoError(t, db.Create(&model.Job{
+		UUID: "job-ref", DisplayName: "job-ref", K8SName: "job-ref",
+		Namespace: "ns", Enabled: true,
+	}).Error)
+	require.NoError(t, db.Create(&model.ResourceReference{
+		ResourceUUID: "job-ref", ResourceType: model.JobResourceType,
+		ReferenceUUID: "pipe-direct", ReferenceName: "pipe-direct",
+		ReferenceType: model.PipelineResourceType, Relationship: model.CreatorRelationship,
+	}).Error)
+
+	require.NoError(t, db.Create(&model.Job{
+		UUID: "job-vonly", DisplayName: "job-vonly", K8SName: "job-vonly",
+		Namespace: "ns", Enabled: true,
+		PipelineSpec: model.PipelineSpec{PipelineVersionId: "pv-job"},
+	}).Error)
+
+	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+
+	assert.Equal(t, "pipe-direct", storedJobColumn(t, db, "PipelineId", "job-ref"),
+		"a job linked by resource reference must be repaired like a run")
+	assert.Equal(t, "pipe-parent", storedJobColumn(t, db, "PipelineId", "job-vonly"),
+		"a job linked only through a pipeline version must resolve its parent, "+
+			"otherwise every run it later creates inherits an empty pipeline id")
+}
+
+func TestBackfillRefColumnSQL_JobsUseJobResourceType(t *testing.T) {
+	// Job references use ResourceType 'Job'; matching 'Run' would backfill nothing.
+	sql := backfillRefColumnSQL(GetDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType)
+	assert.Contains(t, sql, "= 'Job'")
+	assert.Contains(t, sql, "UPDATE jobs")
+	assert.NotContains(t, sql, "= 'Run'")
 }

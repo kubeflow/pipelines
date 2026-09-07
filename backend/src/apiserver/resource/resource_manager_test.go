@@ -5021,6 +5021,55 @@ func TestResolveWorkflowReportNamespace_MultiUserEmptyExperimentIsRetryable(t *t
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
+func TestReportWorkflowResource_LegacyVersionOnlyJob_ResolvesParentPipeline(t *testing.T) {
+	store, manager, exp, pipeline, version := initWithExperimentAndPipeline(t)
+	defer store.Close()
+
+	job, err := manager.CreateJob(context.Background(), &model.Job{
+		DisplayName:  "legacy-job",
+		Enabled:      true,
+		ExperimentId: exp.UUID,
+		PipelineSpec: model.PipelineSpec{PipelineVersionId: version.UUID},
+	})
+	require.NoError(t, err)
+
+	// Legacy shape: no PipelineId column, and no reference for scanRows to use.
+	_, err = store.DB().Exec(`UPDATE jobs SET PipelineId = '' WHERE UUID = ?`, job.UUID)
+	require.NoError(t, err)
+	_, err = store.DB().Exec(
+		`DELETE FROM resource_references WHERE ResourceUUID = ? AND ReferenceType = ?`,
+		job.UUID, model.PipelineResourceType)
+	require.NoError(t, err)
+	stored, err := manager.GetJob(job.UUID)
+	require.NoError(t, err)
+	require.Empty(t, stored.PipelineId, "the job must start in the legacy shape")
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      "LEGACY_JOB_RUN",
+			Namespace: job.Namespace,
+			UID:       "LEGACY_JOB_RUN",
+			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "LEGACY_JOB_RUN"},
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "ScheduledWorkflow",
+				Name:       job.K8SName,
+				UID:        types.UID(job.UUID),
+			}},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+		},
+	})
+	syncWorkflowReportWithFakeCluster(t, store, workflow)
+	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
+	require.NoError(t, err)
+
+	run, err := manager.GetRun("LEGACY_JOB_RUN")
+	require.NoError(t, err)
+	assert.Equal(t, pipeline.UUID, run.PipelineId,
+		"a run created from a version-only legacy job must carry the parent pipeline, "+
+			"otherwise pipeline_id EQUALS parent omits it")
+}
+
 func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
