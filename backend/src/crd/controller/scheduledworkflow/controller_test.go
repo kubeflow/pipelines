@@ -366,7 +366,7 @@ func (f *fakeExecutionInformer) Get(namespace string, name string) (commonutil.E
 	return nil, true, errors.New("not found")
 }
 
-func (f *fakeExecutionInformer) List(labels *labels.Selector) (commonutil.ExecutionSpecList, error) {
+func (f *fakeExecutionInformer) List(namespace string, labels *labels.Selector) (commonutil.ExecutionSpecList, error) {
 	return commonutil.ExecutionSpecList{}, nil
 }
 

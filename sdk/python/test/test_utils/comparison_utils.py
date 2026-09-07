@@ -51,9 +51,9 @@ class ComparisonUtils:
                     cls.compare_pipeline_spec_dicts(actual[key], value,
                                                     **kwargs)
                 else:
-                    # Override SDK Version to match the current version
+                    # Override SDK version to match the requested test version.
                     if key == 'sdkVersion':
-                        value = f'kfp-{kfp.__version__}'
+                        value = f"kfp-{kwargs.get('sdk_version') or kfp.__version__}"
                     # Override SDK Version in the args as well to match the current version
                     if key == 'command':
                         # Currently this check is disabled because when doing releases this will fail

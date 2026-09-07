@@ -26,7 +26,7 @@ def validate_pipeline(
     encryption_spec_key_name: str = '',
     accelerator_type: str = '',
     eval_dataset: Optional[str] = None,
-) -> NamedTuple('PreprocessedInputs', reward_model_eval_dataset=str):
+) -> NamedTuple('PreprocessedInputs', reward_model_eval_dataset=str):  # pyrefly: ignore[bad-class-definition, invalid-annotation]
   # fmt: off
   """Validates and preprocesses RLHF pipeline parameters.
 
@@ -49,7 +49,7 @@ def validate_pipeline(
   import sys
   import glob
   # pylint: enable=g-import-not-at-top,import-outside-toplevel
-  outputs = NamedTuple(
+  outputs = NamedTuple(  # pyrefly: ignore[bad-class-definition]
       'PreprocessedInputs',
       reward_model_eval_dataset=str,
   )
@@ -115,7 +115,7 @@ def validate_pipeline(
       )
     # CMEK ]
 
-    return outputs(reward_model_eval_dataset=eval_dataset)
+    return outputs(reward_model_eval_dataset=eval_dataset)  # pyrefly: ignore[unexpected-keyword]
 
   except Exception as e:  # pylint: disable=broad-exception-caught
     if isinstance(e, ValueError):

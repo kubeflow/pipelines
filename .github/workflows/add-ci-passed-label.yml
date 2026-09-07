@@ -33,7 +33,7 @@ jobs:
     steps:
       - name: Download CI check result
         id: download_result
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           retries: 3
           script: |
@@ -86,7 +86,7 @@ jobs:
       - name: Parse CI check result and confirm current PR state
         id: ci_result
         if: steps.download_result.outputs.artifact_found == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           retries: 3
           script: |

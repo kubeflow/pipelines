@@ -20,6 +20,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -30,7 +31,9 @@ func TestFakeWorkflowClient_Create(t *testing.T) {
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
 		ObjectMeta: v1.ObjectMeta{
-			Name: "my-workflow",
+			Name:            "my-workflow",
+			UID:             "caller-supplied-uid",
+			ResourceVersion: "caller-supplied-version",
 		},
 	})
 
@@ -40,6 +43,12 @@ func TestFakeWorkflowClient_Create(t *testing.T) {
 	}
 	if result.ExecutionName() != "my-workflow" {
 		t.Errorf("Create() name = %q, want %q", result.ExecutionName(), "my-workflow")
+	}
+	if result.ExecutionObjectMeta().UID == "" || result.ExecutionObjectMeta().UID == "caller-supplied-uid" {
+		t.Errorf("Create() UID = %q, want a server-assigned identity", result.ExecutionObjectMeta().UID)
+	}
+	if result.Version() == "" || result.Version() == "caller-supplied-version" {
+		t.Errorf("Create() resourceVersion = %q, want a server-assigned version", result.Version())
 	}
 }
 
@@ -60,6 +69,31 @@ func TestFakeWorkflowClient_CreateWithGenerateName(t *testing.T) {
 	expectedName := "workflow-0"
 	if result.ExecutionName() != expectedName {
 		t.Errorf("Create() name = %q, want %q", result.ExecutionName(), expectedName)
+	}
+}
+
+func TestFakeWorkflowClient_RecreateAssignsNewUID(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+
+	first, err := client.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "recreated-workflow"},
+	}), v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("first Create() unexpected error: %v", err)
+	}
+	if err := client.Delete(ctx, first.ExecutionName(), v1.DeleteOptions{}); err != nil {
+		t.Fatalf("Delete() unexpected error: %v", err)
+	}
+	second, err := client.Create(ctx, util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "recreated-workflow"},
+	}), v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("second Create() unexpected error: %v", err)
+	}
+
+	if first.ExecutionObjectMeta().UID == second.ExecutionObjectMeta().UID {
+		t.Fatalf("recreated workflow UID = %q, want a new object identity", second.ExecutionObjectMeta().UID)
 	}
 }
 
@@ -107,6 +141,69 @@ func TestFakeWorkflowClient_Delete(t *testing.T) {
 	err := client.Delete(ctx, "to-delete", v1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("Delete() unexpected error: %v", err)
+	}
+	if _, err := client.Get(ctx, "to-delete", v1.GetOptions{}); !k8errors.IsNotFound(err) {
+		t.Fatalf("Get() after Delete() error = %v, want NotFound", err)
+	}
+}
+
+func TestFakeWorkflowClient_DeleteHonorsUIDPrecondition(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "to-delete", UID: "current-uid"},
+	})
+	created, err := client.Create(ctx, workflow, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+
+	staleUID := types.UID("stale-uid")
+	err = client.Delete(ctx, "to-delete", v1.DeleteOptions{
+		Preconditions: &v1.Preconditions{UID: &staleUID},
+	})
+	if !k8errors.IsConflict(err) {
+		t.Fatalf("Delete() error = %v, want Conflict", err)
+	}
+	if _, err := client.Get(ctx, "to-delete", v1.GetOptions{}); err != nil {
+		t.Fatalf("Get() after rejected Delete() error = %v, want workflow retained", err)
+	}
+
+	currentUID := created.ExecutionObjectMeta().UID
+	if err := client.Delete(ctx, "to-delete", v1.DeleteOptions{
+		Preconditions: &v1.Preconditions{UID: &currentUID},
+	}); err != nil {
+		t.Fatalf("Delete() with current UID unexpected error: %v", err)
+	}
+}
+
+func TestFakeWorkflowClient_DeleteHonorsResourceVersionPrecondition(t *testing.T) {
+	client := NewWorkflowClientFake()
+	ctx := context.Background()
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		ObjectMeta: v1.ObjectMeta{Name: "to-delete", ResourceVersion: "current-version"},
+	})
+	created, err := client.Create(ctx, workflow, v1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("setup: Create() unexpected error: %v", err)
+	}
+
+	staleVersion := "stale-version"
+	err = client.Delete(ctx, "to-delete", v1.DeleteOptions{
+		Preconditions: &v1.Preconditions{ResourceVersion: &staleVersion},
+	})
+	if !k8errors.IsConflict(err) {
+		t.Fatalf("Delete() error = %v, want Conflict", err)
+	}
+	if _, err := client.Get(ctx, "to-delete", v1.GetOptions{}); err != nil {
+		t.Fatalf("Get() after rejected Delete() error = %v, want workflow retained", err)
+	}
+
+	currentVersion := created.Version()
+	if err := client.Delete(ctx, "to-delete", v1.DeleteOptions{
+		Preconditions: &v1.Preconditions{ResourceVersion: &currentVersion},
+	}); err != nil {
+		t.Fatalf("Delete() with current resourceVersion unexpected error: %v", err)
 	}
 }
 

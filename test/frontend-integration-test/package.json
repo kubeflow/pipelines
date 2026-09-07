@@ -24,7 +24,7 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "brace-expansion": "5.0.8",
+    "brace-expansion": "5.0.9",
     "mocha": {
       "serialize-javascript": "7.0.5"
     }

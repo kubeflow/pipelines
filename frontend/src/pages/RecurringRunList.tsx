@@ -290,7 +290,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
   };
 
   protected async _loadRecurringRuns(request: ListRequest): Promise<string> {
-    let displayRecurringRuns: DisplayRecurringRun[] = [];
+    let displayRecurringRuns: DisplayRecurringRun[];
     let nextPageToken = '';
 
     if (Array.isArray(this.props.recurringRunIdListMask)) {

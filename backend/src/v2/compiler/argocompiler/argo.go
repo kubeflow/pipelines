@@ -27,6 +27,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
+	"github.com/kubeflow/pipelines/kubernetes_platform/go/kubernetesplatform"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -208,13 +209,14 @@ func Compile(jobArg *pipelinespec.PipelineJob, kubernetesSpecArg *pipelinespec.S
 		wf:        wf,
 		templates: make(map[string]*wfapi.Template),
 		// TODO(chensun): release process and update the images.
-		launcherImage:   GetLauncherImage(),
-		launcherCommand: GetLauncherCommand(),
-		driverImage:     GetDriverImage(),
-		driverCommand:   GetDriverCommand(),
-		job:             job,
-		spec:            spec,
-		executors:       deploy.GetExecutors(),
+		launcherImage:     GetLauncherImage(),
+		launcherCommand:   GetLauncherCommand(),
+		driverImage:       GetDriverImage(),
+		driverCommand:     GetDriverCommand(),
+		job:               job,
+		spec:              spec,
+		executors:         deploy.GetExecutors(),
+		kubernetesConfigs: make(map[string]*kubernetesplatform.KubernetesExecutorConfig),
 	}
 	if opts != nil {
 		c.cacheDisabled = opts.CacheDisabled
@@ -332,6 +334,7 @@ type workflowCompiler struct {
 	defaultRunAsNonRoot  *bool
 	defaultHostUsers     *bool
 	driverPodConfig      *common.DriverPodConfig
+	kubernetesConfigs    map[string]*kubernetesplatform.KubernetesExecutorConfig
 }
 
 // applyDriverPodConfig applies driver pod labels and annotations to a workflow

@@ -82,7 +82,7 @@ def build_payload(
     ] = str(accelerator_type)
     payload['job_spec']['worker_pool_specs'][0]['machine_spec'][
         'accelerator_count'
-    ] = accelerator_count
+    ] = accelerator_count  # pyrefly: ignore[bad-assignment]
   elif accelerator_type and accelerator_count < 1:
     raise ValueError(
         'Accelerator count must be at least 1 if accelerator type '
@@ -95,21 +95,21 @@ def build_payload(
     )
 
   if encryption_spec_key_name:
-    payload['encryption_spec'] = {'kms_key_name': encryption_spec_key_name}
+    payload['encryption_spec'] = {'kms_key_name': encryption_spec_key_name}  # pyrefly: ignore[bad-assignment]
 
   if labels:
-    payload['labels'] = labels
+    payload['labels'] = labels  # pyrefly: ignore[bad-assignment]
 
   if scheduling:
-    payload['job_spec']['scheduling'] = scheduling
+    payload['job_spec']['scheduling'] = scheduling  # pyrefly: ignore[bad-assignment]
 
   if base_output_directory:
-    payload['job_spec']['base_output_directory'] = {
+    payload['job_spec']['base_output_directory'] = {  # pyrefly: ignore[bad-assignment]
         'output_uri_prefix': base_output_directory
     }
 
   if tensorboard:
-    payload['job_spec']['tensorboard'] = tensorboard
+    payload['job_spec']['tensorboard'] = tensorboard  # pyrefly: ignore[bad-assignment]
 
   return payload
 

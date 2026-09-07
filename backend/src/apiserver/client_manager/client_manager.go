@@ -116,6 +116,7 @@ type ClientManager struct {
 	authenticators            []auth.Authenticator
 	controllerClient          ctrlclient.Client
 	controllerClientNoCache   ctrlclient.Client
+	gcIndexChecker            func() bool
 }
 
 // Options to pass to Client Manager initialization
@@ -124,6 +125,14 @@ type Options struct {
 	GlobalKubernetesWebhookMode  bool
 	Context                      context.Context
 	WaitGroup                    *sync.WaitGroup
+}
+
+// GarbageCollectorIndexChecker returns a function that re-validates the GC
+// lifecycle index against the database catalog. The GC loop calls it on every
+// collection tick, so an operator can apply (or roll back) the index
+// migration without restarting the API server.
+func (c *ClientManager) GarbageCollectorIndexChecker() func() bool {
+	return c.gcIndexChecker
 }
 
 func (c *ClientManager) TaskStore() storage.TaskStoreInterface {
@@ -274,11 +283,12 @@ func (c *ClientManager) init(options *Options) error {
 
 	glog.Info("Initializing client manager")
 	glog.Info("Initializing DB client...")
-	db := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
+	db, gcIndexChecker := InitDBClient(common.GetDurationConfig(initConnectionTimeout))
 	db.SetConnMaxLifetime(common.GetDurationConfig(dbConMaxLifeTime))
 	glog.Info("DB client initialized successfully")
 
 	c.db = db
+	c.gcIndexChecker = gcIndexChecker
 	if !options.UsePipelineKubernetesStorage {
 		c.pipelineStore = storage.NewPipelineStore(db, c.time, c.uuid)
 	}
@@ -330,7 +340,132 @@ func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
+const garbageCollectorTableName = "run_details"
+
+// garbageCollectorIndexSpec names one index the run GC requires and the exact
+// column list it must have.
+type garbageCollectorIndexSpec struct {
+	name    string
+	columns string
+}
+
+// garbageCollectorRequiredIndexes are all indexes the run GC needs: the
+// lifecycle index drives the archive pass and the legacy delete predicate
+// (rows archived before ArchivedAtInSec existed); the archived index drives
+// the delete pass's archival-time predicate.
+var garbageCollectorRequiredIndexes = []garbageCollectorIndexSpec{
+	{name: "idx_run_gc_lifecycle", columns: "StorageState,FinishedAtInSec"},
+	{name: "idx_run_gc_archived", columns: "StorageState,ArchivedAtInSec"},
+}
+
+type garbageCollectorIndexStatus struct {
+	currentSchema string
+	tableSchema   string
+	tableName     string
+	indexName     string
+	columns       string
+	valid         bool
+	ready         bool
+	unconditional bool
+}
+
+func (status garbageCollectorIndexStatus) isReady(spec garbageCollectorIndexSpec) bool {
+	return status.currentSchema != "" &&
+		status.tableSchema == status.currentSchema &&
+		status.tableName == garbageCollectorTableName &&
+		status.indexName == spec.name &&
+		status.columns == spec.columns &&
+		status.valid && status.ready && status.unconditional
+}
+
+// validateGarbageCollectorIndexes only reads database catalog metadata. Index
+// creation is an explicit operator migration so API-server startup never runs
+// heavyweight DDL from every replica. All required indexes must be present
+// and usable.
+func validateGarbageCollectorIndexes(db *gorm.DB, dialect SQLDialect) (bool, error) {
+	for _, spec := range garbageCollectorRequiredIndexes {
+		ready, err := validateGarbageCollectorIndex(db, dialect, spec)
+		if err != nil {
+			return false, err
+		}
+		if !ready {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func validateGarbageCollectorIndex(db *gorm.DB, dialect SQLDialect, spec garbageCollectorIndexSpec) (bool, error) {
+	var status garbageCollectorIndexStatus
+	var row *sql.Row
+
+	switch dialect.Name {
+	case "pgx":
+		row = db.Raw(`
+			SELECT current_schema(), table_namespace.nspname, table_class.relname,
+			       index_class.relname,
+			       string_agg(attribute.attname, ',' ORDER BY index_key.ordinality),
+			       index_metadata.indisvalid, index_metadata.indisready,
+			       bool_and(index_metadata.indpred IS NULL AND access_method.amname = 'btree')
+			FROM pg_index AS index_metadata
+			JOIN pg_class AS index_class
+			  ON index_class.oid = index_metadata.indexrelid
+			JOIN pg_class AS table_class
+			  ON table_class.oid = index_metadata.indrelid
+			JOIN pg_namespace AS table_namespace
+			  ON table_namespace.oid = table_class.relnamespace
+			JOIN pg_namespace AS index_namespace
+			  ON index_namespace.oid = index_class.relnamespace
+			JOIN pg_am AS access_method
+			  ON access_method.oid = index_class.relam
+			CROSS JOIN LATERAL unnest(index_metadata.indkey::smallint[])
+			  WITH ORDINALITY AS index_key(attnum, ordinality)
+			JOIN pg_attribute AS attribute
+			  ON attribute.attrelid = table_class.oid
+			 AND attribute.attnum = index_key.attnum
+			WHERE table_namespace.nspname = current_schema()
+			  AND index_namespace.nspname = table_namespace.nspname
+			  AND table_class.relname = ?
+			  AND index_class.relname = ?
+			  AND index_metadata.indexprs IS NULL
+			GROUP BY table_namespace.nspname, table_class.relname, index_class.relname,
+			         index_metadata.indisvalid, index_metadata.indisready`, garbageCollectorTableName, spec.name).Row()
+	case "mysql":
+		row = db.Raw(`
+			SELECT DATABASE(), TABLE_SCHEMA, TABLE_NAME, INDEX_NAME,
+			       GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ','),
+			       TRUE, TRUE,
+			       SUM(SUB_PART IS NULL AND INDEX_TYPE = 'BTREE') = COUNT(*)
+			FROM information_schema.STATISTICS
+			WHERE TABLE_SCHEMA = DATABASE()
+			  AND TABLE_NAME = ?
+			  AND INDEX_NAME = ?
+			GROUP BY TABLE_SCHEMA, TABLE_NAME, INDEX_NAME`, garbageCollectorTableName, spec.name).Row()
+	default:
+		return false, fmt.Errorf("garbage collector index validation is not supported for dialect %q", dialect.Name)
+	}
+
+	err := row.Scan(
+		&status.currentSchema,
+		&status.tableSchema,
+		&status.tableName,
+		&status.indexName,
+		&status.columns,
+		&status.valid,
+		&status.ready,
+		&status.unconditional,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("query garbage collector index metadata: %w", err)
+	}
+
+	return status.isReady(spec), nil
+}
+
+func InitDBClient(initConnectionTimeout time.Duration) (*storage.DB, func() bool) {
 	// Allowed driverName values:
 	// 1) To use MySQL, use `mysql`
 	// 2) To use PostgreSQL, use `pgx`
@@ -372,11 +507,28 @@ func InitDBClient(initConnectionTimeout time.Duration) *storage.DB {
 		util.TerminateIfError(autoMigrate(db))
 	}
 
+	// gcIndexChecker re-reads the catalog on demand; the gorm handle shares
+	// the connection pool with the returned *storage.DB. The GC loop calls
+	// this on every tick, so index migrations take effect without a restart.
+	gcIndexChecker := func() bool {
+		ready, indexValidationError := validateGarbageCollectorIndexes(db, dialect)
+		if indexValidationError != nil {
+			glog.Errorf("Failed to validate GC lifecycle index: %v", indexValidationError)
+			return false
+		}
+		return ready
+	}
+	if (common.GetRunsRetentionTime() > 0 || common.GetArchivedRunsRetentionTime() > 0) && !gcIndexChecker() {
+		glog.Warning("Run GC paused: idx_run_gc_lifecycle and/or idx_run_gc_archived is missing or incompatible. " +
+			"Apply the online index migration in docs/agents/development.md; " +
+			"GC re-checks the index on every collection tick and starts automatically once it is ready.")
+	}
+
 	newdb, err := db.DB()
 	if err != nil {
 		glog.Fatalf("Failed to retrieve *sql.DB from gorm.DB. Error: %v", err)
 	}
-	return storage.NewDB(newdb, storage.NewMySQLDialect())
+	return storage.NewDB(newdb, storage.NewMySQLDialect()), gcIndexChecker
 }
 
 // Initializes Database driver. Use `driverName` to indicate which type of DB to use:

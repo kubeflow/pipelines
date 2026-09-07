@@ -1,0 +1,70 @@
+name: Documentation
+
+# CI validation only — publishing is handled by Read the Docs
+# (.readthedocs.yml), not by this workflow.
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "sdk/python/kfp/**"
+      - ".readthedocs.yml"
+      - ".github/workflows/docs.yml"
+  push:
+    branches: [master]
+    paths:
+      - "docs/**"
+      - "sdk/python/kfp/**"
+      - ".readthedocs.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build Documentation
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: "3.12"
+          cache-scope: docs
+          cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install documentation dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Build documentation (warnings treated as errors)
+        run: python -m sphinx -W --keep-going -b html docs docs/_build/html
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: documentation
+          path: docs/_build/html
+          retention-days: 7
+
+  linkcheck:
+    runs-on: ubuntu-latest
+    name: Check Links
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-python-pip-cache
+        with:
+          python-version: "3.12"
+          cache-scope: docs
+          cache-dependency-hash: ${{ hashFiles('docs/requirements.txt') }}
+
+      - name: Install documentation dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Check links
+        run: python -m sphinx -b linkcheck docs docs/_build/linkcheck || true

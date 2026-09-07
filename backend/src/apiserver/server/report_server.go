@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -49,7 +50,10 @@ type ReportServerV1 struct {
 }
 
 // Extracts task details from an execution spec and reports them to storage.
-func (s *BaseReportServer) reportTasksFromExecution(execSpec util.ExecutionSpec, runId string) ([]*model.Task, error) {
+func (s *BaseReportServer) reportTasksFromExecution(
+	execSpec util.ExecutionSpec,
+	run *model.Run,
+) ([]*model.Task, error) {
 	if !execSpec.ExecutionStatus().HasNodes() {
 		return nil, nil
 	}
@@ -57,7 +61,7 @@ func (s *BaseReportServer) reportTasksFromExecution(execSpec util.ExecutionSpec,
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report tasks of an execution")
 	}
-	return s.resourceManager.CreateOrUpdateTasks(tasks, runId)
+	return s.resourceManager.CreateOrUpdateTasksForRun(tasks, run, execSpec.ExecutionNamespace())
 }
 
 // Reports a workflow.
@@ -77,13 +81,32 @@ func (s *BaseReportServer) reportWorkflow(ctx context.Context, workflow string) 
 		return nil, err
 	}
 
-	newExecSpec, err := s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	runID := (*execSpec).ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
+	var run *model.Run
+	if (*execSpec).ExecutionStatus().HasNodes() {
+		run, err = s.resourceManager.GetRun(runID)
+		if err != nil && !util.IsUserErrorCodeMatch(err, codes.NotFound) {
+			return nil, util.Wrap(err, "Failed to load run before reporting workflow")
+		}
+	}
+
+	var newExecSpec util.ExecutionSpec
+	if run != nil {
+		newExecSpec, err = s.resourceManager.ReportWorkflowResourceWithRun(ctx, *execSpec, run)
+	} else {
+		newExecSpec, err = s.resourceManager.ReportWorkflowResource(ctx, *execSpec)
+	}
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report workflow")
 	}
 
-	runId := newExecSpec.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]
-	_, err = s.reportTasksFromExecution(newExecSpec, runId)
+	if newExecSpec.ExecutionStatus().HasNodes() && run == nil {
+		run, err = s.resourceManager.GetRun(runID)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to load run before reporting task details")
+		}
+	}
+	_, err = s.reportTasksFromExecution(newExecSpec, run)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to report task details")
 	}

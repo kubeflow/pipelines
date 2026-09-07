@@ -35,6 +35,9 @@ const (
 	E2eParallelNested string = "E2EParallelNested"
 	// E2eProxy - For pipeline that runs with a proxy
 	E2eProxy string = "E2EProxy"
+	// E2eGpuSchedulingCheck - Schedule-only NVIDIA GPU checks (e.g. Kind + FGO fake);
+	// does not require CUDA / torch.cuda.
+	E2eGpuSchedulingCheck string = "gpu-scheduling-check"
 
 	WorkflowCompiler       string = "WorkflowCompiler"
 	WorkflowCompilerVisits string = "WorkflowCompilerVisits"

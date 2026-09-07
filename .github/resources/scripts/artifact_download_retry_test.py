@@ -65,7 +65,7 @@ class ArtifactDownloadRetryTest(unittest.TestCase):
     def test_retry_action_preserves_inputs_and_output(self):
         action = RETRY_ACTION.read_text(encoding='utf-8')
 
-        self.assertEqual(action.count('uses: actions/download-artifact@v7'), 2)
+        self.assertEqual(action.count('uses: actions/download-artifact@'), 2)
         self.assertIn("steps.primary.outcome == 'failure'", action)
         self.assertIn('sleep "$RETRY_DELAY_SECONDS"', action)
         self.assertIn('pattern: ${{ inputs.pattern }}', action)

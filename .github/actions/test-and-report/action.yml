@@ -122,7 +122,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Go
-      uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
       with:
         go-version-file: go.mod
         # Caching is handled by the dedicated test-lane cache below; the
@@ -145,7 +145,7 @@ runs:
     # the first spec runs). The weekly key suffix plus restore-keys keeps
     # compile artifacts fresh as sources drift between dependency changes.
     - name: Restore Go build and module caches
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: |
           ${{ steps.go-cache-meta.outputs.gomodcache }}
@@ -544,7 +544,7 @@ runs:
       continue-on-error: true
 
     - name: Set up Python for reporting
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       if: (!cancelled())
       with:
         python-version: ${{ inputs.report_python_version }}

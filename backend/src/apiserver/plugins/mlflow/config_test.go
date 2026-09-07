@@ -826,14 +826,33 @@ func TestResolveBearerSecretCredentials(t *testing.T) {
 	assert.Equal(t, "custom-token", credentials.BearerToken)
 }
 
-func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
+func TestResolveBearerSecretCredentials_MissingTokenValue(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+	})
+
+	_, err := resolveBearerSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{TokenKey: "custom-token-field"},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "required MLflow bearer token credential")
+	assert.NotContains(t, err.Error(), "custom-token-field")
+}
+
+func TestResolveBasicAuthSecretCredentials_MissingUsernameValue(t *testing.T) {
 	clientSet := k8sfake.NewClientset(&corev1.Secret{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      commonmlflow.CredentialSecretName,
 			Namespace: "ns1",
 		},
 		Data: map[string][]byte{
-			"username": []byte("user"),
+			"custom-password-field": []byte("password"),
 		},
 	})
 
@@ -842,12 +861,64 @@ func TestResolveBasicAuthSecretCredentials_MissingPasswordKey(t *testing.T) {
 		clientSet,
 		"ns1",
 		&commonplugins.CredentialSecretRef{
-			UsernameKey: "username",
-			PasswordKey: "password",
+			UsernameKey: "custom-username-field",
+			PasswordKey: "custom-password-field",
 		},
 	)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `does not contain key "password"`)
+	assert.Contains(t, err.Error(), "required MLflow username credential")
+	assert.NotContains(t, err.Error(), "custom-username-field")
+}
+
+func TestResolveBasicAuthSecretCredentials_MissingPasswordValue(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"custom-username-field": []byte("user"),
+		},
+	})
+
+	_, err := resolveBasicAuthSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{
+			UsernameKey: "custom-username-field",
+			PasswordKey: "custom-password-field",
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "required MLflow password credential")
+	assert.NotContains(t, err.Error(), "custom-password-field")
+}
+
+func TestResolveBasicAuthSecretCredentials_EmptyPasswordKeyValue(t *testing.T) {
+	clientSet := k8sfake.NewClientset(&corev1.Secret{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      commonmlflow.CredentialSecretName,
+			Namespace: "ns1",
+		},
+		Data: map[string][]byte{
+			"custom-username-field": []byte("user"),
+			"custom-password-field": []byte(" "),
+		},
+	})
+
+	_, err := resolveBasicAuthSecretCredentials(
+		context.Background(),
+		clientSet,
+		"ns1",
+		&commonplugins.CredentialSecretRef{
+			UsernameKey: "custom-username-field",
+			PasswordKey: "custom-password-field",
+		},
+	)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "empty value for the required MLflow password credential")
+	assert.NotContains(t, err.Error(), "custom-password-field")
 }
 
 func TestBuildMLflowRequestContext_InvalidEndpoint(t *testing.T) {
@@ -1497,9 +1568,10 @@ func TestReadRequiredSecretKey_MissingKey(t *testing.T) {
 			"other-key": []byte("value"),
 		},
 	}
-	_, err := readRequiredSecretKey(secret, "ns1", "missing-key")
+	_, err := readRequiredSecretKey(secret, "ns1", "missing-key", "test")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `does not contain key "missing-key"`)
+	assert.Contains(t, err.Error(), "required MLflow test credential")
+	assert.NotContains(t, err.Error(), "missing-key")
 }
 
 func TestReadRequiredSecretKey_EmptyValue(t *testing.T) {
@@ -1508,9 +1580,10 @@ func TestReadRequiredSecretKey_EmptyValue(t *testing.T) {
 			"empty-key": []byte(""),
 		},
 	}
-	_, err := readRequiredSecretKey(secret, "ns1", "empty-key")
+	_, err := readRequiredSecretKey(secret, "ns1", "empty-key", "test")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "has an empty value")
+	assert.Contains(t, err.Error(), "empty value for the required MLflow test credential")
+	assert.NotContains(t, err.Error(), "empty-key")
 }
 
 func TestReadRequiredSecretKey_WhitespaceValue(t *testing.T) {
@@ -1519,9 +1592,10 @@ func TestReadRequiredSecretKey_WhitespaceValue(t *testing.T) {
 			"whitespace-key": []byte("   \n\t   "),
 		},
 	}
-	_, err := readRequiredSecretKey(secret, "ns1", "whitespace-key")
+	_, err := readRequiredSecretKey(secret, "ns1", "whitespace-key", "test")
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "has an empty value")
+	assert.Contains(t, err.Error(), "empty value for the required MLflow test credential")
+	assert.NotContains(t, err.Error(), "whitespace-key")
 }
 
 func TestReadRequiredSecretKey_Success(t *testing.T) {
@@ -1530,7 +1604,7 @@ func TestReadRequiredSecretKey_Success(t *testing.T) {
 			"valid-key": []byte("  valid-value  \n"),
 		},
 	}
-	value, err := readRequiredSecretKey(secret, "ns1", "valid-key")
+	value, err := readRequiredSecretKey(secret, "ns1", "valid-key", "test")
 	require.NoError(t, err)
 	assert.Equal(t, "valid-value", value)
 }

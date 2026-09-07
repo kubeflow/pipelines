@@ -112,17 +112,16 @@ export class OutputArtifactLoader {
   }
 
   private static parseOutputMetadataInJson(fileContent: string, key: string): PlotMetadata[] {
-    let plotMetadataList: PlotMetadata[] = [];
     try {
-      plotMetadataList = (JSON.parse(fileContent) as OutputMetadata).outputs;
+      const plotMetadataList = (JSON.parse(fileContent) as OutputMetadata).outputs;
       if (plotMetadataList === undefined) {
         throw new Error('"outputs" field required by not found on metadata file');
       }
+      return plotMetadataList;
     } catch (e) {
       logger.error(`Could not parse metadata file at: ${key}. Error: ${e}`);
-      throw new Error(`Could not parse metadata file at: ${key}. Error: ${e}`);
+      throw new Error(`Could not parse metadata file at: ${key}. Error: ${e}`, { cause: e });
     }
-    return plotMetadataList;
   }
 
   public static async buildConfusionMatrixConfig(
@@ -194,7 +193,7 @@ export class OutputArtifactLoader {
     if (!metadata.format) {
       throw new Error('Malformed metadata, property "format" is required.');
     }
-    let data: string[][] = [];
+    let data: string[][];
     const labels = metadata.header || [];
     const content = await getSourceContent(metadata.source, metadata.storage);
 

@@ -47,6 +47,15 @@ export function getResourceProperty(
   return (props && props.get(propertyName) && getMetadataValue(props.get(propertyName))) || null;
 }
 
+/**
+ * The field name is supplied by the caller, so look it up on the repo at
+ * runtime rather than asserting it is one of the repo's keys.
+ */
+function lookupRepoField(repo: RepoType, field: string): string | undefined {
+  const entry = Object.entries(repo).find(([key]) => key === field);
+  return entry === undefined ? undefined : String(entry[1]);
+}
+
 export function getResourcePropertyViaFallBack(
   res: Artifact | Execution,
   fieldRepos: RepoType[],
@@ -56,12 +65,15 @@ export function getResourcePropertyViaFallBack(
     fields.reduce(
       (value: string, field: string) =>
         value ||
-        fieldRepos.reduce(
-          (v: string, repo: RepoType, isCustomProp) =>
-            v || // eslint-disable-next-line no-sequences
-            ((field in repo && getResourceProperty(res, repo[field], !!isCustomProp)) as string),
-          '',
-        ),
+        fieldRepos.reduce((v: string, repo: RepoType, isCustomProp) => {
+          if (v) {
+            return v;
+          }
+          const propertyName = lookupRepoField(repo, field);
+          return propertyName === undefined
+            ? ''
+            : (getResourceProperty(res, propertyName, !!isCustomProp) as string);
+        }, ''),
       '',
     ) || '';
   return prop as string;

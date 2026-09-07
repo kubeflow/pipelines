@@ -175,11 +175,11 @@ func FailedPluginOutput(experimentID, experimentName, runID, runURL, stateMessag
 	return buildPluginOutput(experimentID, experimentName, runID, runURL, apiv2beta1.PluginState_PLUGIN_FAILED, stateMessage)
 }
 
-// maxSearchPages caps SearchRuns pagination to prevent infinite loops.
-const maxSearchPages = 100
+// maxSearchPages caps SearchRuns pagination in reopenNestedRuns (retry path).
+const maxSearchPages = 10
 
 // maxNestingDepth caps recursive nested run traversal.
-const maxNestingDepth = 4
+const maxNestingDepth = 6
 
 func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode apiserverPlugins.RunSyncMode, terminalStatus string, endTimeMs *int64) []string {
 	if requestCtx == nil || requestCtx.Client == nil {
@@ -212,19 +212,33 @@ func SyncParentAndNestedRuns(ctx context.Context, requestCtx *commonmlflow.Reque
 	return syncErrors
 }
 
-// syncNestedRuns searches for MLflow runs tagged with the given parentRunID and
-// updates their status. It recurses into each found run to handle deeper nesting
-// (e.g., parent → loop nested run → iteration nested run).
+// syncNestedRuns enforces the recursion depth budget, then dispatches to
+// closeNestedRuns (terminal) or reopenNestedRuns (retry).
 func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID string, mode apiserverPlugins.RunSyncMode, targetStatus string, endTimeMs *int64, depth int) []string {
 	if depth >= maxNestingDepth {
 		return []string{fmt.Sprintf("max nesting depth (%d) reached when syncing children of run %s", maxNestingDepth, parentRunID)}
 	}
-	action := "close nested run"
 	if mode == apiserverPlugins.RunSyncModeRetry {
-		action = "reopen nested run"
+		return reopenNestedRuns(ctx, requestCtx, parentRunID, experimentID, targetStatus, endTimeMs, depth)
 	}
+	return closeNestedRuns(ctx, requestCtx, parentRunID, experimentID, targetStatus, endTimeMs, depth)
+}
+
+// closeNestedRuns closes open direct children of parentRunID and their descendants, bottom-up.
+func closeNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID, targetStatus string, endTimeMs *int64, depth int) []string {
 	var syncErrors []string
-	filter := fmt.Sprintf(`tags.%q = '%s'`, commonmlflow.TagNestedRunParentRunID, parentRunID)
+	childCloseErrors := commonmlflow.CloseOpenChildRuns(ctx, requestCtx.Client, experimentID, parentRunID, targetStatus, endTimeMs, func(childRunID string) {
+		syncErrors = append(syncErrors, syncNestedRuns(ctx, requestCtx, childRunID, experimentID, apiserverPlugins.RunSyncModeTerminal, targetStatus, endTimeMs, depth+1)...)
+	})
+	syncErrors = append(syncErrors, childCloseErrors...)
+	return syncErrors
+}
+
+// reopenNestedRuns reopens FAILED/KILLED nested runs of parentRunID on KFP
+// run retry.
+func reopenNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext, parentRunID, experimentID, targetStatus string, endTimeMs *int64, depth int) []string {
+	var syncErrors []string
+	filter := fmt.Sprintf(`tags.%q = '%s'`, commonmlflow.ParentRunTagKey, parentRunID)
 	pageToken := ""
 	for page := 0; page < maxSearchPages; page++ {
 		searchResp, err := requestCtx.Client.SearchRuns(ctx, []string{experimentID}, filter, 1000, pageToken)
@@ -242,16 +256,22 @@ func syncNestedRuns(ctx context.Context, requestCtx *commonmlflow.RequestContext
 			if nestedRunID == "" {
 				nestedRunID = mlflowRun.Info.RunUUID
 			}
-			if nestedRunID == "" || nestedRunID == parentRunID || !shouldSyncNestedRun(mode, mlflowRun.Info.Status) {
+			if nestedRunID == "" || nestedRunID == parentRunID || !shouldReopenNestedRun(mlflowRun.Info.Status) {
 				continue
 			}
-			childErrors := syncNestedRuns(ctx, requestCtx, nestedRunID, experimentID, mode, targetStatus, endTimeMs, depth+1)
+			childErrors := syncNestedRuns(ctx, requestCtx, nestedRunID, experimentID, apiserverPlugins.RunSyncModeRetry, targetStatus, endTimeMs, depth+1)
 			syncErrors = append(syncErrors, childErrors...)
 			if err := requestCtx.Client.UpdateRun(ctx, nestedRunID, targetStatus, endTimeMs); err != nil {
-				syncErrors = append(syncErrors, fmt.Sprintf("failed to %s %s: %v", action, nestedRunID, err))
+				syncErrors = append(syncErrors, fmt.Sprintf("failed to reopen nested run %s: %v", nestedRunID, err))
 			}
 		}
 		if searchResp.NextPageToken == "" {
+			break
+		}
+		if page == maxSearchPages-1 {
+			syncErrors = append(syncErrors, fmt.Sprintf(
+				"pagination limit (%d pages) reached while reopening nested runs of %s; some runs may have been skipped",
+				maxSearchPages, parentRunID))
 			break
 		}
 		pageToken = searchResp.NextPageToken
@@ -283,16 +303,11 @@ func buildPluginOutput(experimentID, experimentName, runID, runURL string, state
 	}
 }
 
-func shouldSyncNestedRun(mode apiserverPlugins.RunSyncMode, status string) bool {
+// shouldReopenNestedRun reports whether a nested run is eligible to be
+// reopened on retry, i.e. it previously ended in a failed/killed state.
+func shouldReopenNestedRun(status string) bool {
 	upperStatus := strings.ToUpper(status)
-	switch mode {
-	case apiserverPlugins.RunSyncModeTerminal:
-		return upperStatus != "FINISHED" && upperStatus != "FAILED" && upperStatus != "KILLED"
-	case apiserverPlugins.RunSyncModeRetry:
-		return upperStatus == "FAILED" || upperStatus == "KILLED"
-	default:
-		return false
-	}
+	return upperStatus == "FAILED" || upperStatus == "KILLED"
 }
 
 type searchRunPayload struct {

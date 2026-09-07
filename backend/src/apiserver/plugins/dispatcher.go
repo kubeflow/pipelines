@@ -46,7 +46,10 @@ type RunPluginDispatcher interface {
 	// true if all plugin syncs succeeded.
 	OnRunEnd(ctx context.Context, run *PersistedRun) bool
 
-	// OnRunRetry is called when a run is retried.
+	// OnRunRetry is called when a run is retried. Delivery is at least
+	// once per retry: recovery from a crash between this call and the run
+	// row update (expired-claim adoption) replays it. Implementations must
+	// be idempotent, or deduplicate on (RunID, RetryGeneration).
 	OnRunRetry(ctx context.Context, run *PersistedRun) error
 }
 

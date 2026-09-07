@@ -23,6 +23,7 @@ import {
   Edge,
   MiniMap,
   Node,
+  OnNodeDrag,
 } from '@xyflow/react';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
@@ -75,8 +76,8 @@ export default function DagCanvas({
   );
   const edges = useMemo(() => elements.filter((el): el is Edge => !isNode(el)), [elements]);
 
-  const onNodeDragStop = useCallback(
-    (_event: ReactMouseEvent, draggedNode: PipelineNode) => {
+  const onNodeDragStop = useCallback<OnNodeDrag<PipelineNode>>(
+    (_event, draggedNode) => {
       const updatedElements = elements.map((el) =>
         isNode(el) && el.id === draggedNode.id ? { ...el, position: draggedNode.position } : el,
       );

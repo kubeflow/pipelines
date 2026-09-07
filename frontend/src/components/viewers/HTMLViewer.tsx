@@ -75,7 +75,6 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
 
     return (
       // TODO: fix this
-      // eslint-disable-next-line jsx-a11y/iframe-has-title
       <iframe
         ref={this._iframeRef}
         src='about:blank'

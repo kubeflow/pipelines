@@ -267,7 +267,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       return;
     }
 
-    let newSelected = [];
+    let newSelected: string[];
     if (this.props.useRadioButtons) {
       newSelected = [id];
     } else {
@@ -303,7 +303,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   public render(): React.JSX.Element {
     const { filterString, pageSize, sortBy, sortOrder } = this.state;
     const numSelected = (this.props.selectedIds || []).length;
-    const totalFlex = this.props.columns.reduce((total, c) => (total += c.flex || 1), 0);
+    const totalFlex = this.props.columns.reduce((total, c) => total + (c.flex || 1), 0);
     const widths = this.props.columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
 
     return (
@@ -508,7 +508,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     );
 
     const reloadGeneration = ++this._activeReloadGeneration;
-    let result = '';
+    let result: string;
     try {
       this.setStateSafe({
         filterStringEncoded: request.filter,

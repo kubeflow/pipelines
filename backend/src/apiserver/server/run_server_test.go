@@ -263,6 +263,7 @@ func TestCreateRunV1_V1Params(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},
@@ -424,6 +425,21 @@ func TestCreateRunV1Patch(t *testing.T) {
 	}
 	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
+	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
+	expectedRuntimeWorkflow.UID = "workflow1"
+	expectedRuntimeWorkflow.ResourceVersion = "1"
+	expectedRuntimeWorkflow.Namespace = "ns1"
+	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
+	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: DefaultFakeUUID}
+	expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
+		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
+	}
+	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
+	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+		Labels: map[string]string{util.LabelKeyWorkflowRunId: DefaultFakeUUID},
+	}
 	expectedRunDetail := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:             "123e4567-e89b-12d3-a456-426655440000",
@@ -452,12 +468,13 @@ func TestCreateRunV1Patch(t *testing.T) {
 			WorkflowManifest: "{\"kind\":\"Workflow\",\"apiVersion\":\"argoproj.io/v1alpha1\",\"metadata\":{\"name\":\"workflow-name\",\"namespace\":\"ns1\",\"uid\":\"workflow2\",\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"},\"annotations\":{\"pipelines.kubeflow.org/run_name\":\"run1\"}},\"spec\":{\"templates\":[{\"name\":\"testy\",\"inputs\":{},\"outputs\":{},\"metadata\":{\"annotations\":{\"sidecar.istio.io/inject\":\"false\"},\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\",\"pipelines.kubeflow.org/cache_enabled\":\"true\"}},\"container\":{\"name\":\"\",\"image\":\"docker/whalesay\",\"command\":[\"cowsay\"],\"args\":[\"hello world\"],\"resources\":{}}}],\"entrypoint\":\"testy\",\"arguments\":{\"parameters\":[{\"name\":\"param1\",\"value\":\"test-default-bucket\"},{\"name\":\"param2\",\"value\":\"test-project-id\"}]},\"serviceAccountName\":\"pipeline-runner\",\"podMetadata\":{\"labels\":{\"pipeline/runid\":\"123e4567-e89b-12d3-a456-426655440000\"}}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
 		},
 	}
+	expectedRunDetail.PipelineRuntime.WorkflowManifest = util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore()
 
 	matched := 0
 	for _, resRef := range expectedRunDetail.GetRun().GetResourceReferences() {
 		for _, resRef2 := range runDetail.GetRun().GetResourceReferences() {
 			if resRef2.Key.Type == apiv1beta1.ResourceType_NAMESPACE {
-				assert.Equal(t, resRef2.Key.Id, experiment.Namespace)
+				assert.Equal(t, common.GetPodNamespace(), resRef2.Key.Id)
 			}
 			if resRef.Key.Type == resRef2.Key.Type && resRef.Key.Id == resRef2.Key.Id && resRef.Relationship == resRef2.Relationship {
 				matched++
@@ -529,6 +546,7 @@ func TestCreateRunV1_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+	expectedRuntimeWorkflow.ResourceVersion = "1"
 	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")},

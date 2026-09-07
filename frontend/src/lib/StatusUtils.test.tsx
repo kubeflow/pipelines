@@ -17,12 +17,15 @@
 import {
   NodePhase,
   hasFinished,
+  hasFinishedV2,
   statusBgColors,
   statusToBgColor,
+  statusToBgColorV2,
   checkIfTerminated,
   parseNodePhase,
 } from './StatusUtils';
 import { NodeStatus, S3Artifact, Artifact } from 'third_party/argo-ui/argo_template';
+import { V2beta1RuntimeState } from 'src/apisv2beta1/run';
 
 describe('StatusUtils', () => {
   describe('hasFinished', () => {
@@ -215,6 +218,62 @@ describe('StatusUtils', () => {
           },
         }),
       ).toEqual('Succeeded');
+    });
+  });
+  describe('hasFinishedV2', () => {
+    [
+      V2beta1RuntimeState.SUCCEEDED,
+      V2beta1RuntimeState.FAILED,
+      V2beta1RuntimeState.CANCELED,
+      V2beta1RuntimeState.SKIPPED,
+    ].forEach((state) => {
+      it(`returns 'true' for finished state: ${state}`, () => {
+        expect(hasFinishedV2(state)).toBe(true);
+      });
+    });
+
+    [
+      V2beta1RuntimeState.PENDING,
+      V2beta1RuntimeState.RUNNING,
+      V2beta1RuntimeState.CANCELING,
+      V2beta1RuntimeState.PAUSED,
+      V2beta1RuntimeState.RUNTIME_STATE_UNSPECIFIED,
+    ].forEach((state) => {
+      it(`returns 'false' for non-finished state: ${state}`, () => {
+        expect(hasFinishedV2(state)).toBe(false);
+      });
+    });
+
+    it('does not throw for undefined state', () => {
+      expect(() => hasFinishedV2(undefined)).not.toThrow();
+    });
+  });
+
+  describe('statusToBgColorV2', () => {
+    it("returns 'notStarted' color for PAUSED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.PAUSED)).toEqual(statusBgColors.notStarted);
+    });
+
+    it("returns 'running' color for RUNNING state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.RUNNING)).toEqual(statusBgColors.running);
+    });
+
+    it("returns 'running' color for CANCELING state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.CANCELING)).toEqual(statusBgColors.running);
+    });
+
+    it("returns 'succeeded' color for SUCCEEDED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.SUCCEEDED)).toEqual(statusBgColors.succeeded);
+    });
+
+    it("returns 'error' color for FAILED state", () => {
+      expect(statusToBgColorV2(V2beta1RuntimeState.FAILED)).toEqual(statusBgColors.error);
+    });
+
+    [V2beta1RuntimeState.SKIPPED, V2beta1RuntimeState.CANCELED].forEach((state) => {
+      it(`returns 'terminatedOrSkipped' color for state: ${state}`, () => {
+        expect(statusToBgColorV2(state)).toEqual(statusBgColors.terminatedOrSkipped);
+      });
     });
   });
 });

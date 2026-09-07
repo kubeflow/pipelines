@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { Ref, useRef, useState } from 'react';
+import React, { Ref, useEffect, useRef, useState } from 'react';
 import { Button, Tooltip } from '@mui/material';
 import { color } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
@@ -252,16 +252,21 @@ function TwoLevelDropdown(props: TwoLevelDropdownProps) {
   // Close dropdown if the user clicks outside of the dropdown button or main menu.
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownListRef = useRef<HTMLDivElement>(null);
-  window.addEventListener('click', (event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node) &&
-      dropdownListRef.current &&
-      !dropdownListRef.current.contains(event.target as Node)
-    ) {
-      setDropdownActive(false);
-    }
-  });
+  useEffect(() => {
+    const closeDropdownOnOutsideClick = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        dropdownListRef.current &&
+        !dropdownListRef.current.contains(event.target as Node)
+      ) {
+        setDropdownActive(false);
+      }
+    };
+
+    window.addEventListener('click', closeDropdownOnOutsideClick);
+    return () => window.removeEventListener('click', closeDropdownOnOutsideClick);
+  }, []);
 
   const toggleDropdown = (_: React.MouseEvent) => {
     setDropdownActive(!dropdownActive);

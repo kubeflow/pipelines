@@ -58,6 +58,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         self.assertIn('nbclient>=0.10,<1', command)
         self.assertIn('ipykernel>=6,<7', command)
         self.assertIn('jupyter_client>=7,<9', command)
+        self.assertIn('fastjsonschema<2.22; python_version < "3.10"', command)
 
     def test_notebook_component_no_extra_packages_when_empty_list(self):
         nb_path = self._make_temp_notebook('pass\n')
@@ -71,6 +72,7 @@ class TestNotebookComponentDecorator(unittest.TestCase):
         self.assertNotIn('nbclient>=0.10,<1', command)
         self.assertNotIn('ipykernel>=6,<7', command)
         self.assertNotIn('jupyter_client>=7,<9', command)
+        self.assertNotIn('fastjsonschema<2.22', command)
 
 
 class TestNotebookExecutorTemplate(unittest.TestCase):

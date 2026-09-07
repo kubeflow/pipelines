@@ -69,7 +69,7 @@ interface CustomTableRowProps {
 }
 
 function calculateColumnWidths(columns: Column[]): number[] {
-  const totalFlex = columns.reduce((total, c) => (total += c.flex || 1), 0);
+  const totalFlex = columns.reduce((total, c) => total + (c.flex || 1), 0);
   return columns.map((c) => ((c.flex || 1) / totalFlex) * 100);
 }
 

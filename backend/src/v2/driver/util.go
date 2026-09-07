@@ -208,61 +208,96 @@ func isConditionClause(arg string) bool {
 	return strings.HasPrefix(strings.TrimSpace(arg), `{"IfPresent":`)
 }
 
+func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput) bool {
+	if value, ok := executorInput.GetInputs().GetParameterValues()[inputName]; ok {
+		if value == nil {
+			return false
+		}
+		_, isNull := value.GetKind().(*structpb.Value_NullValue)
+		return !isNull
+	}
+
+	artifacts, ok := executorInput.GetInputs().GetArtifacts()[inputName]
+	return ok && len(artifacts.GetArtifacts()) > 0
+}
+
+func resolveCommandLineValue(value any, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
+	switch typedValue := value.(type) {
+	case nil:
+		return nil, nil
+	case string:
+		resolvedArg, err := resolveInputParameterPlaceholders(typedValue, executorInput)
+		if err != nil {
+			return nil, err
+		}
+		return []string{resolvedArg}, nil
+	case []any:
+		var resolved []string
+		for _, item := range typedValue {
+			resolvedItem, err := resolveCommandLineValue(item, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			resolved = append(resolved, resolvedItem...)
+		}
+		return resolved, nil
+	case map[string]any:
+		if concat, ok := typedValue["Concat"]; ok {
+			resolved, err := resolveCommandLineValue(concat, executorInput)
+			if err != nil {
+				return nil, err
+			}
+			return []string{strings.Join(resolved, "")}, nil
+		}
+
+		ifPresentValue, ok := typedValue["IfPresent"]
+		if !ok {
+			return nil, fmt.Errorf("unexpected structured command-line value")
+		}
+		ifPresent, ok := ifPresentValue.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("unexpected IfPresent value type: %T", ifPresentValue)
+		}
+		inputName, ok := ifPresent["InputName"].(string)
+		if !ok || inputName == "" {
+			return nil, fmt.Errorf("IfPresent InputName must be a non-empty string")
+		}
+		if isInputPresent(inputName, executorInput) {
+			return resolveCommandLineValue(ifPresent["Then"], executorInput)
+		}
+		return resolveCommandLineValue(ifPresent["Else"], executorInput)
+	default:
+		return nil, fmt.Errorf("unexpected command-line value type: %T", value)
+	}
+}
+
 func resolveCondition(arg string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var ifPresent ifPresentCondition
 	if err := json.Unmarshal([]byte(arg), &ifPresent); err != nil {
 		return nil, fmt.Errorf("failed to parse IfPresent JSON: %w", err)
 	}
 
-	val, isPresent := executorInput.GetInputs().GetParameterValues()[ifPresent.IfPresent.InputName]
-	// Treat null values as absent for IfPresent semantics.
-	// The driver can set optional pipeline inputs to structpb.NewNullValue(),
-	// which should be treated as "not present".
-	if isPresent {
-		if _, isNull := val.GetKind().(*structpb.Value_NullValue); isNull {
-			isPresent = false
-		}
-	}
 	var values interface{}
-	if isPresent {
+	if isInputPresent(ifPresent.IfPresent.InputName, executorInput) {
 		values = ifPresent.IfPresent.Then
 	} else {
 		values = ifPresent.IfPresent.Else
 	}
-
-	if values == nil {
-		return []string{}, nil
-	}
-
-	var resolved []string
-	switch v := values.(type) {
-	case string:
-		resolvedArg, err := resolveInputParameterPlaceholders(v, executorInput)
-		if err != nil {
-			return nil, err
-		}
-		resolved = []string{resolvedArg}
-	case []interface{}:
-		for _, item := range v {
-			str, ok := item.(string)
-			if !ok {
-				return nil, fmt.Errorf("non-string item in IfPresent Then/Else array: %T", item)
-			}
-			resolvedArg, err := resolveInputParameterPlaceholders(str, executorInput)
-			if err != nil {
-				return nil, err
-			}
-			resolved = append(resolved, resolvedArg)
-		}
-	default:
-		return nil, fmt.Errorf("unexpected type in IfPresent Then/Else: %T", v)
-	}
-	return resolved, nil
+	return resolveCommandLineValue(values, executorInput)
 }
 
 func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	var resolvedArgs []string
 	for _, arg := range args {
+		if isConditionClause(arg) {
+			resolved, err := resolveCondition(arg, executorInput)
+			if err != nil {
+				return nil, fmt.Errorf("failed to resolve condition: %w", err)
+			}
+			resolvedArgs = append(resolvedArgs, resolved...)
+			continue
+		}
+
 		// Skip args containing output placeholders - these need to be resolved by Argo at runtime
 		// Example: {{$.outputs.parameters['sum'].output_file}}
 		if strings.Contains(arg, "$.outputs") {
@@ -270,19 +305,11 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			continue
 		}
 
-		if isConditionClause(arg) {
-			resolved, err := resolveCondition(arg, executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve condition: %w", err)
-			}
-			resolvedArgs = append(resolvedArgs, resolved...)
-		} else {
-			resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
-			if err != nil {
-				return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
-			}
-			resolvedArgs = append(resolvedArgs, resolvedArg)
+		resolvedArg, err := resolveInputParameterPlaceholders(arg, executorInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve input parameters: %w", err)
 		}
+		resolvedArgs = append(resolvedArgs, resolvedArg)
 	}
 	return resolvedArgs, nil
 }

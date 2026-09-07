@@ -351,7 +351,7 @@ func TestGetBucketSessionInfo(t *testing.T) {
 					"accessKeyKey":   "s3-test-accessKeyKey-6-b",
 					"secretKeyKey":   "s3-test-secretKeyKey-6-b",
 					"forcePathStyle": "false",
-					"maxRetries":     "5",
+					"maxRetries":     "9",
 				},
 			},
 			testDataCase: "case6",

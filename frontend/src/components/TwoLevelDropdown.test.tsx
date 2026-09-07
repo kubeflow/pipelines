@@ -105,6 +105,26 @@ describe('TwoLevelDropdown', () => {
     expect(screen.queryByText('first')).toBeNull();
   });
 
+  it('does not duplicate its outside-click listener on rerender and cleans up on unmount', () => {
+    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+    const view = render(<TwoLevelDropdown {...generateProps()} />);
+
+    const clickListenerCalls = addEventListenerSpy.mock.calls.filter(([type]) => type === 'click');
+    const listenerCountAfterMount = clickListenerCalls.length;
+    expect(listenerCountAfterMount).toBeGreaterThan(0);
+
+    view.rerender(<TwoLevelDropdown {...generateProps()} />);
+    expect(addEventListenerSpy.mock.calls.filter(([type]) => type === 'click')).toHaveLength(
+      listenerCountAfterMount,
+    );
+
+    view.unmount();
+    clickListenerCalls.forEach(([, listener]) => {
+      expect(removeEventListenerSpy).toHaveBeenCalledWith('click', listener);
+    });
+  });
+
   it('Two-level dropdown sub items display', async () => {
     render(<TwoLevelDropdown {...generateProps()} />);
 

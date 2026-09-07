@@ -29,7 +29,7 @@ import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import { formatDateString, logger } from '../lib/Utils';
+import { formatDateString, logger, sanitizeExternalHref } from '../lib/Utils';
 
 import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
 
@@ -116,7 +116,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
   }
 
   const createVersionUrl = () => {
-    return selectedVersion!.code_source_url!;
+    return sanitizeExternalHref(selectedVersion?.code_source_url);
   };
 
   return (
@@ -171,11 +171,13 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
                             </Select>
                           </FormControl>
                         </form>
-                        <div className={css.summaryKey}>
-                          <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
-                            Version source
-                          </a>
-                        </div>
+                        {createVersionUrl() && (
+                          <div className={css.summaryKey}>
+                            <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
+                              Version source
+                            </a>
+                          </div>
+                        )}
                       </React.Fragment>
                     )}
                     <div className={css.summaryKey}>Uploaded on</div>

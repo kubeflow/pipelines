@@ -25,6 +25,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/google/uuid"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	securitycontext "github.com/kubeflow/pipelines/backend/src/common/security_context"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 	"github.com/kubeflow/pipelines/backend/src/v2/common/plugins"
@@ -555,6 +556,10 @@ func extendPodSpecPatch(
 			_storageClassName := ephemeralVolumeSpec.GetStorageClassName()
 			storageClassName = &_storageClassName
 		}
+		sizeQuantity, err := k8sres.ParseQuantity(ephemeralVolumeSpec.GetSize())
+		if err != nil {
+			return fmt.Errorf("failed to parse generic ephemeral volume size %q for volume %q: %w", ephemeralVolumeSpec.GetSize(), ephemeralVolumeSpec.GetVolumeName(), err)
+		}
 		ephemeralVolume := k8score.Volume{
 			Name: ephemeralVolumeSpec.GetVolumeName(),
 			VolumeSource: k8score.VolumeSource{
@@ -568,7 +573,7 @@ func extendPodSpecPatch(
 							AccessModes: accessModes,
 							Resources: k8score.VolumeResourceRequirements{
 								Requests: k8score.ResourceList{
-									k8score.ResourceStorage: k8sres.MustParse(ephemeralVolumeSpec.GetSize()),
+									k8score.ResourceStorage: sizeQuantity,
 								},
 							},
 							StorageClassName: storageClassName,
@@ -591,7 +596,10 @@ func extendPodSpecPatch(
 	for _, emptyDirVolumeSpec := range kubernetesExecutorConfig.GetEmptyDirMounts() {
 		var sizeLimitResource *k8sres.Quantity
 		if emptyDirVolumeSpec.GetSizeLimit() != "" {
-			r := k8sres.MustParse(emptyDirVolumeSpec.GetSizeLimit())
+			r, err := k8sres.ParseQuantity(emptyDirVolumeSpec.GetSizeLimit())
+			if err != nil {
+				return fmt.Errorf("failed to parse size limit %q for emptyDir volume %q: %w", emptyDirVolumeSpec.GetSizeLimit(), emptyDirVolumeSpec.GetVolumeName(), err)
+			}
 			sizeLimitResource = &r
 		}
 
@@ -752,14 +760,14 @@ func extendPodSpecPatch(
 			podSpec.Containers[0].SecurityContext = &k8score.SecurityContext{}
 		}
 		existingSecurityContext := podSpec.Containers[0].SecurityContext
-		isCompilerHardened := existingSecurityContext.AllowPrivilegeEscalation != nil && !*existingSecurityContext.AllowPrivilegeEscalation
+		runAsNonRootEnforced := securitycontext.IsRunAsNonRootEffective(existingSecurityContext.RunAsNonRoot, userSecurityContext.RunAsNonRoot)
 		if userSecurityContext.RunAsUser != nil {
 			if existingSecurityContext.RunAsUser != nil {
 				glog.Warningf("Ignoring user-specified runAsUser (%d): security context already set by admin (runAsUser=%d)",
 					*userSecurityContext.RunAsUser, *existingSecurityContext.RunAsUser)
 			} else {
-				if isCompilerHardened && *userSecurityContext.RunAsUser == 0 {
-					glog.Warningf("Setting runAsUser=0 (root) on a container with hardened security context; consider using a non-root UID")
+				if *userSecurityContext.RunAsUser == 0 && runAsNonRootEnforced {
+					return fmt.Errorf("runAsUser=0 (root) is not allowed: runAsNonRoot is true; use a non-root UID instead")
 				}
 				podSpec.Containers[0].SecurityContext.RunAsUser = userSecurityContext.RunAsUser
 			}
@@ -1055,6 +1063,10 @@ func createPVC(
 	}
 
 	// Create a PersistentVolumeClaim object
+	pvcStorageQuantity, err := k8sres.ParseQuantity(volumeSizeInput.GetStringValue())
+	if err != nil {
+		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to parse pvc size %q: %w", volumeSizeInput.GetStringValue(), err)
+	}
 	pvc := &k8score.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        pvcName,
@@ -1064,7 +1076,7 @@ func createPVC(
 			AccessModes: accessModes,
 			Resources: k8score.VolumeResourceRequirements{
 				Requests: k8score.ResourceList{
-					k8score.ResourceStorage: k8sres.MustParse(volumeSizeInput.GetStringValue()),
+					k8score.ResourceStorage: pvcStorageQuantity,
 				},
 			},
 			StorageClassName: &storageClassName,
@@ -1074,7 +1086,7 @@ func createPVC(
 	}
 
 	// Create the PVC in the cluster
-	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(context.Background(), pvc, metav1.CreateOptions{})
+	createdPVC, err := k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
 	if err != nil {
 		return "", createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to create pvc: %w", err)
 	}
@@ -1194,13 +1206,13 @@ func deletePVC(
 	}
 
 	// Get the PVC you want to delete, verify that it exists.
-	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(context.TODO(), pvcName, metav1.GetOptions{})
+	_, err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Get(ctx, pvcName, metav1.GetOptions{})
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: cannot find pvc: %v", pvcName, err)
 	}
 
 	// Delete the PVC.
-	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(context.TODO(), pvcName, metav1.DeleteOptions{})
+	err = k8sClient.CoreV1().PersistentVolumeClaims(opts.Namespace).Delete(ctx, pvcName, metav1.DeleteOptions{})
 	if err != nil {
 		return createdExecution, pb.Execution_FAILED, fmt.Errorf("failed to delete pvc %s: %v", pvcName, err)
 	}
@@ -1305,7 +1317,7 @@ func publishDriverExecution(
 		return fmt.Errorf("error getting pod name: %w", err)
 	}
 
-	pod, err := k8sClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	pod, err := k8sClient.CoreV1().Pods(namespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error retrieving info for pod %s: %w", podName, err)
 	}

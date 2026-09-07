@@ -84,7 +84,7 @@ export default class CompareUtils {
 
   /**
    * For a given run and its runtime workflow, a CompareTableProps object is returned containing:
-   * xLabels: an array of unique meeric names produced during the run's execution
+   * xLabels: an array of unique metric names produced during the run's execution
    * yLabels: an array of display names (falling back to node IDs) for steps of the execution which
    * produced metrics
    * rows: an array of arrays, each representing all of the metrics produced by a given step of the
