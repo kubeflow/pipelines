@@ -286,11 +286,13 @@ func (s *RunStore) ListRuns(
 		glog.Error("Failed to start transaction to list runs")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return errorF(err)
 	}
@@ -299,7 +301,6 @@ func (s *RunStore) ListRuns(
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
 	// totalSize is -1 when the caller opted out of it via opts.SkipCount, since
 	// computing it requires a second, potentially expensive query that some
@@ -316,6 +317,7 @@ func (s *RunStore) ListRuns(
 			tx.Rollback()
 			return errorF(err)
 		}
+		defer sizeRow.Close()
 		if err := sizeRow.Err(); err != nil {
 			tx.Rollback()
 			return errorF(err)
@@ -325,7 +327,6 @@ func (s *RunStore) ListRuns(
 			tx.Rollback()
 			return errorF(err)
 		}
-		defer sizeRow.Close()
 	}
 
 	err = tx.Commit()
@@ -728,6 +729,7 @@ func (s *RunStore) CreateRun(r *model.Run) (*model.Run, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run")
 	}
+	defer tx.Rollback()
 
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
@@ -977,6 +979,7 @@ func (s *RunStore) updateRun(
 	if err != nil {
 		return false, util.NewInternalServerError(err, "transaction creation failed")
 	}
+	defer tx.Rollback()
 	if expectedRuntimeManifests != nil {
 		runExists, preconditionMatches, lockError := lockRunForRuntimeManifestWrite(
 			tx,
@@ -1163,6 +1166,7 @@ func (s *RunStore) DeleteRun(id string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete run")
 	}
+	defer tx.Rollback()
 
 	// Lock parent row first to match GC DeleteExpiredArchivedRuns lock ordering
 	// (parent → children). Without this, concurrent GC and manual deletion of
@@ -1231,6 +1235,7 @@ func (s *RunStore) ClaimRunForRetry(runID string, takeoverExpiredClaim bool) (st
 	if err != nil {
 		return "", "", 0, 0, util.NewInternalServerError(err, "Failed to start transaction for retry claim on run %s", runID)
 	}
+	defer tx.Rollback()
 
 	// Lock the row and read current state. Use sql.NullString for State
 	// because legacy runs intentionally have State NULL.
@@ -1394,24 +1399,24 @@ func (s *RunStore) ArchiveExpiredRuns(archiveCutoffEpoch int64, batchSize int) (
 	if err != nil {
 		return 0, util.NewInternalServerError(err, "Failed to start transaction for archiving expired runs")
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(selectSQL, selectArgs...)
 	if err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to query expired runs for archiving")
 	}
+	defer rows.Close()
 
 	var uuids []string
 	for rows.Next() {
 		var uuid string
 		if err := rows.Scan(&uuid); err != nil {
-			rows.Close()
 			tx.Rollback()
 			return 0, util.NewInternalServerError(err, "Failed to scan run UUID during archive")
 		}
 		uuids = append(uuids, uuid)
 	}
-	rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return 0, util.NewInternalServerError(err, "Failed to iterate expired runs for archiving")
@@ -1515,6 +1520,7 @@ func (s *RunStore) DeleteExpiredArchivedRuns(deleteCutoffEpoch int64, batchSize 
 	if err != nil {
 		return 0, util.NewInternalServerError(err, "Failed to start transaction for deleting expired archived runs")
 	}
+	defer tx.Rollback()
 
 	// Lock the candidate rows for the duration of the transaction so a
 	// concurrent unarchive cannot flip StorageState between this select and the
