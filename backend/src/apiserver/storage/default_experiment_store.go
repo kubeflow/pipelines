@@ -41,6 +41,7 @@ func (s *DefaultExperimentStore) initializeDefaultExperimentTable() error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to initialize default experiment table")
 	}
+	defer tx.Rollback()
 	rows, err := tx.Query("SELECT * FROM default_experiments")
 	if err != nil {
 		tx.Rollback()
@@ -106,10 +107,10 @@ func (s *DefaultExperimentStore) GetDefaultExperimentId() (string, error) {
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		return "", util.NewInternalServerError(err, "Error when getting default experiment ID")
 	}
-	defer rows.Close()
 
 	if rows.Next() {
 		err = rows.Scan(&defaultExperimentId)

@@ -109,6 +109,7 @@ func (s *JobStore) ListJobs(
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
@@ -324,6 +325,7 @@ func (s *JobStore) DeleteJob(id string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete job")
 	}
+	defer tx.Rollback()
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {
 		tx.Rollback()
@@ -391,6 +393,7 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create job")
 	}
+	defer tx.Rollback()
 	_, err = tx.Exec(jobSql, jobArgs...)
 	if err != nil {
 		tx.Rollback()
