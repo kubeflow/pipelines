@@ -314,7 +314,7 @@ function writeCaptureManifest(directory, label, captureId, results, overrides = 
         },
         scenarioContractSchemaVersion:
           overrides.scenarioContractSchemaVersion ||
-          (semanticFullStack ? 'ui-smoke-scenarios/v3' : false),
+          (semanticFullStack ? 'ui-smoke-scenarios/v4' : false),
         viewports: [
           ...new Map(
             normalized.map((result) => [
@@ -1172,7 +1172,7 @@ test('semantic captures require the current semantic scenario contract', async (
     assert.equal(run.exitCode, 1);
     assert.match(
       run.summary.fatalErrors[0],
-      /Semantic captures must use scenario contract ui-smoke-scenarios\/v3/,
+      /Semantic captures must use scenario contract ui-smoke-scenarios\/v4/,
     );
   }
 });

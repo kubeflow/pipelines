@@ -2706,6 +2706,14 @@ async function normalizeDynamicText(page) {
         const parentName = node.parentElement?.tagName;
         if (parentName === 'SCRIPT' || parentName === 'STYLE') continue;
         let value = node.nodeValue || '';
+        // Native date cells split date and time across two spans. Normalize only text inside
+        // a valid semantic timestamp; don't erase date-looking artifact names or report data.
+        const timeElement = node.parentElement?.closest?.('time[datetime]');
+        const timestamp = timeElement?.getAttribute?.('datetime');
+        if (timestamp && !Number.isNaN(Date.parse(timestamp))) {
+          value = value.replace(/^\d{1,2}\/\d{1,2}\/\d{4}$/, '1/2/2030');
+          value = value.replace(/^\d{1,2}:\d{2}:\d{2}\s+[AP]M$/, '3:04:05 AM');
+        }
         // Restrict build metadata normalization to the sidebar's Version link, not report text.
         const versionLink = node.parentElement?.closest?.('[data-testid="sideNav"] a');
         if (versionLink?.previousElementSibling?.textContent.trim() === 'Version:') {

@@ -137,7 +137,7 @@ function createCaptureFixture(role, captureId = `${role}-capture`, options = {})
     },
     fatalErrors: [],
     inputs,
-    scenarioContractSchemaVersion: 'ui-smoke-scenarios/v3',
+    scenarioContractSchemaVersion: 'ui-smoke-scenarios/v4',
     results: [
       {
         capturedAt,
@@ -699,7 +699,7 @@ test('capture artifact validation binds every successful PNG to its manifest', a
     );
     const result = await runWithBaseCapture(manifestPath);
     assert.equal(result.captureValidity, CAPTURE_VALIDITY.CAPTURE_FAILED);
-    assert.match(result.error.message, /must use scenario contract ui-smoke-scenarios\/v3/);
+    assert.match(result.error.message, /must use scenario contract ui-smoke-scenarios\/v4/);
   });
 
   await t.test('missing global visual normalization evidence', async () => {

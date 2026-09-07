@@ -103,6 +103,8 @@ function metricsExecutorOutputForRun(runKey) {
   );
   output.artifacts.roc_curve.artifacts[0].metadata.confidenceMetrics =
     fixtures['artifact.roc-curve'].points;
+  output.artifacts.roc_curve.artifacts[0].metadata.confusionMatrix =
+    fixtures['artifact.roc-curve'].confusionMatrix;
   return output;
 }
 

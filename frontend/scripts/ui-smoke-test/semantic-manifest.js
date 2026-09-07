@@ -1,7 +1,7 @@
 'use strict';
 
 const SEMANTIC_SCHEMA_VERSION = 'ui-smoke-semantic/v3';
-const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v4';
+const SEMANTIC_FIXTURE_SET = 'ui-smoke-deterministic-v5';
 const DEFAULT_RUN_PROFILE = 'metrics';
 const COMPARISON_RUN_FIXTURES = Object.freeze([
   'run.training-1',
@@ -151,6 +151,16 @@ const ARTIFACT_FIXTURES = Object.freeze({
   }),
   'artifact.roc-curve': Object.freeze({
     kind: 'classification-metrics',
+    confusionMatrix: Object.freeze({
+      annotationSpecs: Object.freeze([
+        Object.freeze({ displayName: 'predicted-negative' }),
+        Object.freeze({ displayName: 'predicted-positive' }),
+      ]),
+      rows: Object.freeze([
+        Object.freeze({ row: Object.freeze([42, 8]) }),
+        Object.freeze({ row: Object.freeze([3, 47]) }),
+      ]),
+    }),
     points: Object.freeze([
       Object.freeze({ confidenceThreshold: 1, falsePositiveRate: 0, recall: 0 }),
       Object.freeze({ confidenceThreshold: 0.8, falsePositiveRate: 0.08, recall: 0.35 }),
@@ -168,6 +178,11 @@ function artifactFixturesForRun(runKey) {
   // Ad-hoc profile fixtures retain the default metrics; seeded runs have explicit variants.
   if (index < 0) return structuredClone(ARTIFACT_FIXTURES);
   const fixtures = structuredClone(ARTIFACT_FIXTURES);
+  // Unique cell values expose accidental reuse of one run's matrix in another panel.
+  fixtures['artifact.roc-curve'].confusionMatrix.rows = [
+    { row: [42 - index * 4, 8 + index * 4] },
+    { row: [3 + index * 4, 47 - index * 4] },
+  ];
   const accuracy = [0.92, 0.84, 0.76, 0.88, 0.8][index];
   fixtures['artifact.scalar-metrics'].members['metric.accuracy'].value = accuracy;
   fixtures['artifact.scalar-metrics'].members['metric.loss'].value = Number(

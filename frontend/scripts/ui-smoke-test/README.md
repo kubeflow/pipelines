@@ -222,6 +222,19 @@ scale factor of 2, UTC, `en-US`, a light color scheme, reduced motion, and embed
 WOFF2 assets at weights 400, 500, and 700. Each font digest is attested in the capture manifest.
 They freeze the browser clock, disable long polling timers, normalize rendered timestamps and
 durations, and apply the same deterministic styles inside artifact frames. Semantic full-stack
+captures preserve split date/time layout while normalizing valid `<time datetime>` text. Artifact
+lists are classified as a capability transition: legacy grouping and native scalar-artifact rows
+have different cardinality and ordering. The tool keeps the actual row order and every visible row,
+normalizes only attested fixture IDs/URIs (including abbreviated IDs), and does not mask unknown
+identities or date-looking artifact names. Pixel differences remain visible but are not evidence
+of a one-to-one row regression.
+
+The `ui-smoke-deterministic-v5` fixture set gives each run different confusion-matrix cell values.
+Comparison captures require the first and second panels to contain the respective training run's
+exact four values; a duplicated or swapped matrix fails capture. Both revisions must be seeded
+with this fixture set; old matrix screenshots cannot be reused to verify these scenarios.
+
+Semantic full-stack
 captures also hide exactly the base revision's `#executionsBtn` and assert that the head revision
 has no such element. This removes the reviewed sidebar/footer displacement without masking any
 other navigation pixels; selector counts, the applied rule, and its expected-change annotation are
