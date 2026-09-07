@@ -352,7 +352,7 @@ function strictSemanticFixtureManifest() {
   }
   return {
     deployments,
-    fixtureSet: 'ui-smoke-deterministic-v4',
+    fixtureSet: 'ui-smoke-deterministic-v5',
     logical,
     schemaVersion: 'ui-smoke-semantic/v3',
   };

@@ -19,7 +19,7 @@ const {
 } = require('../semantic-id-normalization');
 
 test('classification fixture includes a nonempty deterministic confusion matrix', () => {
-  for (const runKey of COMPARISON_RUN_FIXTURES) {
+  for (const [index, runKey] of COMPARISON_RUN_FIXTURES.entries()) {
     assert.deepEqual(
       metricsExecutorOutputForRun(runKey).artifacts.roc_curve.artifacts[0].metadata.confusionMatrix,
       {
@@ -27,7 +27,7 @@ test('classification fixture includes a nonempty deterministic confusion matrix'
           { displayName: 'predicted-negative' },
           { displayName: 'predicted-positive' },
         ],
-        rows: [{ row: [42, 8] }, { row: [3, 47] }],
+        rows: [{ row: [42 - index * 4, 8 + index * 4] }, { row: [3 + index * 4, 47 - index * 4] }],
       },
     );
   }

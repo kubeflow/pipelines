@@ -568,6 +568,30 @@ test('timestamp normalization accepts Intl nonbreaking spaces without masking fi
   assert.equal(nodes[3].nodeValue, '2030-01-02T03:04:05.000Z duration 00:00:42');
 });
 
+test('timestamp normalization preserves split semantic time layout without masking artifact names', async (t) => {
+  const saved = { document: global.document, NodeFilter: global.NodeFilter };
+  t.after(() => Object.assign(global, saved));
+  const timestampParent = (timestamp) => ({
+    closest: (selector) =>
+      selector === 'time[datetime]' ? { getAttribute: () => timestamp } : null,
+  });
+  const nodes = [
+    { nodeValue: '9/6/2026', parentElement: timestampParent('2026-09-06T23:00:00Z') },
+    { nodeValue: '11:00:00\u202fPM', parentElement: timestampParent('2026-09-06T23:00:00Z') },
+    { nodeValue: '9/6/2026', parentElement: timestampParent(null) },
+    { nodeValue: '9/6/2026', parentElement: timestampParent('invalid') },
+    { nodeValue: 'accuracy 0.92', parentElement: timestampParent('2026-09-06T23:00:00Z') },
+  ];
+  let index = 0;
+  global.NodeFilter = { SHOW_TEXT: 4 };
+  global.document = { body: {}, createTreeWalker: () => ({ nextNode: () => nodes[index++] }) };
+  await capture.normalizeDynamicText({ evaluate: async (runner, arg) => runner(arg) });
+  assert.deepEqual(
+    nodes.map(({ nodeValue }) => nodeValue),
+    ['1/2/2030', '3:04:05 AM', '9/6/2026', '9/6/2026', 'accuracy 0.92'],
+  );
+});
+
 test('scenario viewport sizing preserves wider/taller requests and records actual dimensions', () => {
   const scenario = { minimumCaptureHeight: 1200 };
   const runtimeViewer = { minimumCaptureWidth: 2200, minimumCaptureHeight: 1200 };

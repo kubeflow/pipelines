@@ -59,7 +59,12 @@ test('lineage, relationships, redirect guidance and matrices have distinct requi
   assert.ok(
     matrix.actions.some((action) => action.text === 'predicted-negative' && action.minCount === 2),
   );
-  for (const key of ['artifact-lineage-explorer', 'artifact-related-tasks', 'executions-to-runs']) {
+  for (const key of [
+    'artifact-lineage-explorer',
+    'artifact-related-tasks',
+    'executions-to-runs',
+    'artifact-list-evolution',
+  ]) {
     assert.equal(comparisonCategory(key), 'capability-transition');
   }
   assert.equal(comparisonCategory('run-details-task-logs'), 'runtime-output');
@@ -70,6 +75,38 @@ test('lineage, relationships, redirect guidance and matrices have distinct requi
         (action) => action.type === 'centerGraphNode' && action.selector.includes('retry-once'),
       ),
     );
+  }
+});
+
+test('matrix capture proves distinct fixture values in the correct panels', () => {
+  const { metricsExecutorOutputForRun } = require('../seed-data');
+  const expected = ['run.training-1', 'run.training-2'].map((key) => {
+    const rows =
+      metricsExecutorOutputForRun(key).artifacts.roc_curve.artifacts[0].metadata.confusionMatrix
+        .rows;
+    // Actual viewer order: predicted-positive then predicted-negative, with truth along x.
+    return [rows[0].row[1], rows[1].row[1], rows[0].row[0], rows[1].row[0]];
+  });
+  for (const role of ['base', 'head']) {
+    const predicate = byKey(
+      resolveSemanticScenarios(role, SEED_VALUES),
+      'compare-confusion-matrix',
+    ).actions.find((action) => action.predicate?.name === 'comparisonMatricesReady').predicate;
+    const evaluate = (matrices) =>
+      vm.runInNewContext(`(${predicate.toString()})()`, {
+        document: {
+          querySelectorAll: () =>
+            matrices.map((cells) => ({
+              textContent: 'predicted-negative predicted-positive',
+              getBoundingClientRect: () => ({ width: 300 }),
+              querySelectorAll: () => cells.map((cell) => ({ textContent: String(cell) })),
+            })),
+        },
+      });
+    assert.equal(evaluate(expected), true);
+    assert.equal(evaluate([expected[0], expected[0]]), false, 'reused first matrix must fail');
+    assert.equal(evaluate([...expected].reverse()), false, 'swapped panels must fail');
+    assert.equal(evaluate([expected[0]]), false, 'missing panel must fail');
   }
 });
 
@@ -163,7 +200,7 @@ function semanticIdentifierManifest(role, suffix, overrides = {}) {
         validation: { errors: [], valid: true },
       },
     },
-    fixtureSet: 'ui-smoke-deterministic-v4',
+    fixtureSet: 'ui-smoke-deterministic-v5',
     logical: {
       resources: {
         'run.training-1': { displayName: 'UI Smoke Training Run 1' },
@@ -475,7 +512,7 @@ test('semantic ID normalization is revision-aware and scoped to declared fixture
   const base = resolveSemanticScenarios('base', SEED_VALUES);
   const head = resolveSemanticScenarios('head', SEED_VALUES);
 
-  assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v3');
+  assert.equal(SCENARIO_CONTRACT_SCHEMA_VERSION, 'ui-smoke-scenarios/v4');
   const executionListScopes = byKey(base, 'executions-to-runs').semanticIdNormalization.scopes;
   assert.deepEqual(executionListScopes[0].kinds, ['execution']);
   assert.equal(executionListScopes[0].minReplacements, 1);
@@ -1289,7 +1326,7 @@ test('semantic ID normalization fails closed on missing, excess, and ambiguous b
       (manifest) => {
         manifest.fixtureSet = 'partial-fixtures';
       },
-      /must use fixture set ui-smoke-deterministic-v4/,
+      /must use fixture set ui-smoke-deterministic-v5/,
     ],
     [
       'validation',

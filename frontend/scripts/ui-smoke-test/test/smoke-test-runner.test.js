@@ -279,7 +279,7 @@ function orchestrationHarness(t, changeOverrides = {}, serviceOverrides = {}) {
             validation: manifest.semantic?.validation,
           },
         },
-        fixtureSet: manifest.semantic?.fixtureSet || 'ui-smoke-deterministic-v4',
+        fixtureSet: manifest.semantic?.fixtureSet || 'ui-smoke-deterministic-v5',
         logical: manifest.semantic?.logical || {},
         schemaVersion: 'ui-smoke-semantic/v3',
       };

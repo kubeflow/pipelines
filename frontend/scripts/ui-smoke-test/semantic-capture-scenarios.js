@@ -2,11 +2,17 @@
 
 const { COMPARISON_RUN_FIXTURES } = require('./semantic-manifest');
 
-const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v3';
+// v4 adds per-panel matrix value proof and semantic split-timestamp normalization.
+const SCENARIO_CONTRACT_SCHEMA_VERSION = 'ui-smoke-scenarios/v4';
 
 function comparisonCategory(key) {
   if (key === 'run-details-task-logs') return 'runtime-output';
-  return ['executions-to-runs', 'artifact-related-tasks', 'artifact-lineage-explorer'].includes(key)
+  return [
+    'executions-to-runs',
+    'artifact-list-evolution',
+    'artifact-related-tasks',
+    'artifact-lineage-explorer',
+  ].includes(key)
     ? 'capability-transition'
     : 'pixel-parity';
 }
@@ -380,6 +386,30 @@ const headFileComparisonActions = (kind, readyAction) => [
   ...collapseComparisonContext,
 ];
 
+// Check values inside each actual matrix table, in panel order. Merely seeing both labels
+// cannot detect a stale viewer that reuses the first run's data in the second panel.
+function comparisonMatricesReady() {
+  // ConfusionMatrix places the predicted-positive row first and transposes logged rows.
+  const expected = [
+    [8, 47, 42, 3],
+    [12, 43, 38, 7],
+  ];
+  const tables = Array.from(document.querySelectorAll('#root table')).filter(
+    (table) =>
+      table.textContent.includes('predicted-negative') && table.getBoundingClientRect().width > 0,
+  );
+  return (
+    tables.length === expected.length &&
+    tables.every((table, index) => {
+      const cells = Array.from(table.querySelectorAll('td'))
+        .map((cell) => cell.textContent.trim())
+        .filter((text) => /^\d+$/.test(text))
+        .map(Number);
+      return JSON.stringify(cells) === JSON.stringify(expected[index]);
+    })
+  );
+}
+
 const SEMANTIC_SCENARIOS = Object.freeze([
   {
     key: 'executions-to-runs',
@@ -661,6 +691,7 @@ const SEMANTIC_SCENARIOS = Object.freeze([
                   ...baseComparisonSelection('Confusion Matrix', 'second', 1),
                 ]),
             { type: 'waitForText', text: 'predicted-negative', minCount: 2 },
+            { type: 'waitForFunction', predicate: comparisonMatricesReady },
             ...collapseComparisonContext,
           ],
         },
