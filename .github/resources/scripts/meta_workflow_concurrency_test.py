@@ -182,6 +182,17 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn("poll: 'false'", writer)
         self.assertNotIn('sleep', writer)
 
+    def test_publisher_exclusion_matches_hosted_matrix_job_name(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        exclusions = re.search(r"checks_exclude: '([^']+)'", workflow).group(1)
+        pattern = exclusions.split(',')[0]
+        for name in [
+                'check_ci_status', 'check_ci_status (0)',
+                'check_ci_status (14111, abc123)'
+        ]:
+            self.assertIsNotNone(re.fullmatch(pattern, name))
+        self.assertIsNone(re.fullmatch(pattern, 'check_ci_status_unrelated'))
+
     def test_approval_runs_on_open_but_skips_unrelated_labels(self):
         workflow = self._read_workflow('gh-workflow-approve.yml')
         workflow_header = workflow.split('\njobs:', 1)[0]

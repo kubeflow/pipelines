@@ -132,7 +132,7 @@ jobs:
           ignore_superseded_runs: 'true'
           # Expected workflow completion is verified independently; these
           # exclusions cannot hide a failing constituent workflow.
-          checks_exclude: '^check_ci_status$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
+          checks_exclude: '^check_ci_status( \(.*\))?$,^Cleanup artifacts$,^Upload results$,^Agent$,^Prepare$'
           token: ${{ github.token }}
 
       - name: Reconcile status and informational label
