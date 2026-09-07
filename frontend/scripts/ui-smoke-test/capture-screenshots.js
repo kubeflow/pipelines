@@ -2055,7 +2055,10 @@ async function assertCaptureRegion(page, region, requireFullVisibility = true) {
         })
       );
     },
-    { ...region, requireFullVisibility },
+    {
+      ...region,
+      requireFullVisibility: region.alwaysRequireFullVisibility || requireFullVisibility,
+    },
     { timeout: 10000 },
   );
 }

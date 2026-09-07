@@ -794,6 +794,13 @@ const SEMANTIC_SCENARIOS = Object.freeze([
             '#root [aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
           mappingStrategy: 'ordered-label-cards',
         }),
+        captureRegion: {
+          selector:
+            '.recharts-wrapper, #root [aria-label="Selected ROC curve provenance"] > :is(li, [role="listitem"])',
+          minCount: 4,
+          includeDescendants: 'span',
+          alwaysRequireFullVisibility: true,
+        },
         waitFor: '#root',
         actions: [
           { type: 'waitForFunction', predicate: seededListReady },
@@ -1185,7 +1192,9 @@ function resolveSemanticScenarios(revisionRole, seedValues, scenarios = SEMANTIC
         ...(scenario.minimumCaptureHeight
           ? { minimumCaptureHeight: scenario.minimumCaptureHeight }
           : {}),
-        ...(scenario.captureRegion ? { captureRegion: scenario.captureRegion } : {}),
+        ...(scenario.captureRegion || variant.captureRegion
+          ? { captureRegion: variant.captureRegion || scenario.captureRegion }
+          : {}),
         expectedChange: globalExpectedChangeAnnotation(scenario.expectedChange || null),
         missingFixtures,
         name: scenario.key,
