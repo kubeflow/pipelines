@@ -1954,32 +1954,25 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
       })),
     [
       { components: ['base-apiserver', 'visualization'], role: 'base', target: baseWorktree },
-      { components: ['head-apiserver'], role: 'head', target: headWorktree },
+      { components: ['head-apiserver', 'visualization'], role: 'head', target: headWorktree },
     ],
   );
-  const reusedImage = stackOperations.find(
-    ({ operation, role }) => operation === 'reuseComponentImages' && role === 'head',
-  );
-  assert.deepEqual(
-    reusedImage.components.map(({ name }) => name),
-    ['visualization'],
-  );
   assert.equal(
-    reusedImage.sourceOverrides.images.visualization,
-    'kfp-ui-smoke/base-visualization:test',
+    stackOperations.some(({ operation }) => operation === 'reuseComponentImages'),
+    false,
   );
   const operationIndex = (operation, role) =>
     stackOperations.findIndex(
       (entry) => entry.operation === operation && (role === undefined || entry.role === role),
     );
   assert.ok(
-    operationIndex('buildComponentImages', 'base') < operationIndex('createCluster', 'base'),
+    operationIndex('createCluster', 'base') < operationIndex('buildComponentImages', 'base'),
   );
   assert.ok(
     operationIndex('destroyCluster', 'base') < operationIndex('buildComponentImages', 'head'),
   );
   assert.ok(
-    operationIndex('buildComponentImages', 'head') < operationIndex('createCluster', 'head'),
+    operationIndex('createCluster', 'head') < operationIndex('buildComponentImages', 'head'),
   );
   assert.deepEqual(
     stackOperations
@@ -2010,12 +2003,20 @@ test('trusted arbitrary full-stack bases are SHA-pinned and built as isolated lo
   );
   assert.deepEqual(
     stackOperations
-      .filter(({ operation }) => operation === 'loadImageOverrides')
-      .map(({ options, role }) => ({ options, role })),
+      .filter(({ operation }) => operation === 'buildComponentImages')
+      .map(({ options, role }) => ({
+        load: options.load,
+        removeSourceAfterLoad: options.removeSourceAfterLoad,
+        role,
+      })),
     [
-      { options: { removeSourceAfterLoad: true }, role: 'base' },
-      { options: { removeSourceAfterLoad: true }, role: 'head' },
+      { load: true, removeSourceAfterLoad: true, role: 'base' },
+      { load: true, removeSourceAfterLoad: true, role: 'head' },
     ],
+  );
+  assert.equal(
+    stackOperations.some(({ operation }) => operation === 'loadImageOverrides'),
+    false,
   );
   const semanticManifest = JSON.parse(
     fs.readFileSync(path.join(run.runDir, 'semantic-fixtures.json'), 'utf8'),

@@ -903,17 +903,6 @@ function findReusableComponents(baseComponents, headComponents, baseRoot, headRo
   });
 }
 
-function mergeImageOverrides(...overrides) {
-  return overrides.reduce(
-    (merged, current) => ({
-      deployments: [...merged.deployments, ...current.deployments],
-      images: { ...merged.images, ...current.images },
-      runtimeEnvironment: { ...merged.runtimeEnvironment, ...current.runtimeEnvironment },
-    }),
-    { deployments: [], images: {}, runtimeEnvironment: {} },
-  );
-}
-
 function validateSnapshotRelativePath(relativePath) {
   if (
     !relativePath ||
@@ -2341,8 +2330,8 @@ async function runFullStackComparisonOrchestration({
   const headStack = manager.createKindStack(headConfiguration);
   state.stacks.push(baseStack, headStack);
   for (const stack of [baseStack, headStack]) {
-    // Image builds and reuse tags exist before the cluster is created. Keep their cleanup
-    // independent of cluster ownership, and run it after process/cluster cleanup (LIFO).
+    // A build/export failure can leave host images even when cluster creation or import fails.
+    // Keep image cleanup independent of cluster ownership, after process/cluster cleanup (LIFO).
     services.registerCleanup(`release isolated ${stack.role} local images`, () =>
       stack.cleanupOwnedImages(),
     );
@@ -2380,48 +2369,16 @@ async function runFullStackComparisonOrchestration({
     services.components,
     headManifestSources,
   );
-  const reusableHeadComponents = services.findReusableComponents(
-    baseComponents,
-    headComponents,
-    baseWorktree,
-    headRoot,
-  );
-  const reusableHeadNames = new Set(reusableHeadComponents.map(({ name }) => name));
-  const headComponentsToBuild = headComponents.filter(({ name }) => !reusableHeadNames.has(name));
   const baseBuildMetadata = baseComponents.some(
     (component) => Object.keys(component.buildArgs || {}).length > 0,
   )
     ? services.revisionBuildMetadata(baseWorktree, baseCommitSha)
     : undefined;
-  const headBuildMetadata = headComponentsToBuild.some(
+  const headBuildMetadata = headComponents.some(
     (component) => Object.keys(component.buildArgs || {}).length > 0,
   )
     ? services.revisionBuildMetadata(headRoot, expectedHeadSha)
     : undefined;
-  state.phase = 'base_image_build';
-  const baseImageOverrides =
-    baseComponents.length > 0
-      ? await baseStack.buildComponentImages(baseComponents, baseWorktree, {
-          buildMetadata: baseBuildMetadata,
-          load: false,
-          platform: targetPlatform,
-          tagSuffix: `${run.runId}-base`,
-        })
-      : { deployments: [], images: {}, runtimeEnvironment: {} };
-  const reusedHeadImageOverrides =
-    reusableHeadComponents.length > 0
-      ? headStack.reuseComponentImages(reusableHeadComponents, baseImageOverrides, {
-          platform: targetPlatform,
-          tagSuffix: `${run.runId}-head`,
-        })
-      : { deployments: [], images: {}, runtimeEnvironment: {} };
-  if (reusableHeadComponents.length > 0) {
-    log(
-      `Reused byte-identical base images for head: ${reusableHeadComponents
-        .map(({ name }) => name)
-        .join(', ')}`,
-    );
-  }
 
   const dirty = services.gitOutput(['status', '--porcelain'], headRoot) ? '+dirty' : '';
   const displayNumber = options.displayPrNumber;
@@ -2527,12 +2484,20 @@ async function runFullStackComparisonOrchestration({
   };
 
   await createValidatedCluster(baseStack, 'base');
+  // Load and release each first-party host image before building the next. Retaining all
+  // images (or a head reuse tag) duplicates the complete stack during Kind import.
+  state.phase = 'base_image_build';
+  const baseImageOverrides =
+    baseComponents.length > 0
+      ? await baseStack.buildComponentImages(baseComponents, baseWorktree, {
+          buildMetadata: baseBuildMetadata,
+          load: true,
+          removeSourceAfterLoad: true,
+          platform: targetPlatform,
+          tagSuffix: `${run.runId}-base`,
+        })
+      : { deployments: [], images: {}, runtimeEnvironment: {} };
   state.phase = 'base_deployment';
-  if (Object.keys(baseImageOverrides.images).length > 0) {
-    baseStack.loadImageOverrides(baseImageOverrides, targetPlatform, {
-      removeSourceAfterLoad: true,
-    });
-  }
   await baseStack.deployRevision(baseWorktree, {
     ...(baseRelease ? { expectedRelease: baseRelease.version } : {}),
     fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,
@@ -2563,23 +2528,18 @@ async function runFullStackComparisonOrchestration({
     throw new Error('Head image preflight did not preserve the selected Kind target platform.');
   }
 
+  await createValidatedCluster(headStack, 'head');
   state.phase = 'head_image_build';
-  const builtHeadImageOverrides =
-    headComponentsToBuild.length > 0
-      ? await headStack.buildComponentImages(headComponentsToBuild, headRoot, {
+  const headImageOverrides =
+    headComponents.length > 0
+      ? await headStack.buildComponentImages(headComponents, headRoot, {
           buildMetadata: headBuildMetadata,
-          load: false,
+          load: true,
+          removeSourceAfterLoad: true,
           platform: targetPlatform,
           tagSuffix: `${run.runId}-head`,
         })
       : { deployments: [], images: {}, runtimeEnvironment: {} };
-  const headImageOverrides = mergeImageOverrides(builtHeadImageOverrides, reusedHeadImageOverrides);
-  await createValidatedCluster(headStack, 'head');
-  if (Object.keys(headImageOverrides.images).length > 0) {
-    headStack.loadImageOverrides(headImageOverrides, targetPlatform, {
-      removeSourceAfterLoad: true,
-    });
-  }
   state.phase = 'head_deployment';
   await headStack.deployRevision(headRoot, {
     fixtureRequirements: SEED_FIXTURE_RUNTIME_REQUIREMENTS,

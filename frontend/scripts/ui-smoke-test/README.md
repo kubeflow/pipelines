@@ -13,9 +13,10 @@ missing, degraded, stale, corrupt, or different beyond the configured threshold.
 - Git, Docker, Kind, and `kubectl` for comparisons
 - `gh`, authenticated to the target repository, only when `--comment` is used
 
-Before creating a cluster, the runner renders both revision overlays, verifies and exports every
-dependency image for an explicit platform, and builds every reviewed first-party image required by
-a locally built revision for the Kind node's native platform. On arm64, the two known amd64-only
+Before creating a cluster, the runner renders both revision overlays and verifies and exports every
+dependency image for an explicit platform. It then creates and validates that revision's Kind node
+before building its first-party images. Each image is built, exported, released from the host, and
+imported into Kind before the next image builds. On arm64, the two known amd64-only
 workloads in the 2.17.1 manifest are pulled and loaded explicitly as amd64 without changing the
 Kind node architecture. A Kubernetes canary verifies workload emulation before either revision is
 deployed. Any other missing-platform image fails closed instead of silently falling back to a
@@ -427,18 +428,17 @@ node smoke-test-runner.js --teardown
    and built locally.
 2. Creates unique run state and a detached base worktree, then renders only each revision's actual
    platform-agnostic overlay. Workload and optional-service discovery never scans unrelated YAML.
-3. Verifies and exports every rendered dependency image and builds the selected head's—and, when
-   applicable, the non-release base's—revision-compatible frontend, frontend-server, backend, and
-   runtime images for the explicit Kind node platform. The known 2.17.1 amd64-only workloads use
-   narrow workload-level overrides on arm64; unknown architecture or build failures occur before
-   deployment. When a component declares its complete build inputs and those inputs are byte-for-byte
-   identical across two local revisions, the exact base image is retagged for the head instead of
-   being rebuilt.
-4. Creates two run-scoped Kind clusters with separate kubeconfigs, then loads only the images
-   preflighted for that revision. Exact local image overrides and runtime-image variables are
-   applied to each locally built revision before any workload starts. After each run-scoped image
-   is imported, its host-side tag is released so the two isolated stacks do not retain a third copy
-   of every locally built image.
+3. Verifies and exports every rendered dependency image for the explicit Kind node platform. The
+   known 2.17.1 amd64-only workloads use narrow workload-level overrides on arm64; unknown
+   architecture or build failures occur before deployment.
+4. Creates and validates each run-scoped Kind cluster, then incrementally builds and imports its
+   revision-compatible frontend, frontend-server, backend, and runtime images. Each component's
+   private build cache and host image are released before the next component builds; the exported
+   archive is removed after import, including on failure. Cross-revision host-image reuse is
+   deliberately disabled so a large base image is not retained under a head tag. Base capture and
+   cluster teardown finish before the head cluster starts. Exact local image overrides and
+   runtime-image variables are applied before any workload starts; provenance remains tied to
+   each revision's immutable source snapshot.
 5. Applies the manifests and waits for the deployments actually rendered by that revision.
    Rendered smoke manifests set SeaweedFS `-volume.max=8` and `-master.volumeSizeLimitMB=64`.
    Its image entrypoint otherwise auto-sizes volume slots from available disk space, which can
