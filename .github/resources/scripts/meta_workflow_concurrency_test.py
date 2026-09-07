@@ -393,5 +393,20 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertIn("reason=\"Added label '${LABEL_NAME}'", shell_script)
 
 
+    def test_publisher_runs_trusted_code_without_pr_interpolation(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        self.assertIn('ref: ${{ github.sha }}', workflow)
+        self.assertIn('persist-credentials: false', workflow)
+        self.assertNotIn('ref: ${{ github.event.pull_request.head', workflow)
+        self.assertNotIn('${{ github.event.label.name }}', workflow)
+        self.assertIn("poll: 'false'", workflow)
+        self.assertIn('types: [requested, in_progress, completed]', workflow)
+        self.assertIn('reopened, edited, labeled', workflow)
+        selector = workflow.split('    workflows:',
+                                  1)[1].split('    types:', 1)[0]
+        self.assertNotIn("'CI Check'", selector)
+        self.assertIn("'Frontend Tests'", selector)
+
+
 if __name__ == '__main__':
     unittest.main()
