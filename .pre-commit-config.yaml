@@ -10,7 +10,8 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^manifests/gcp_marketplace/test/
+        # Patch context preserves meaningful whitespace.
+        exclude: ^manifests/gcp_marketplace/test/|^(frontend|test/frontend-integration-test)/patches/.*\.patch$
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
