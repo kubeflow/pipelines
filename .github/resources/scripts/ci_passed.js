@@ -28,6 +28,18 @@ async function readPR(github, context, number) {
   return (await github.rest.pulls.get({...context.repo, pull_number: number})).data;
 }
 
+async function currentStatus(github, context, head) {
+  // Combined-status responses are paginated independently of commit history.
+  for await (const response of github.paginate.iterator(github.rest.repos.getCombinedStatusForRef, {
+    ...context.repo, ref: head, per_page: 100,
+  })) {
+    const statuses = response.data.statuses || response.data;
+    const status = statuses.find(item => item.context === 'ci-passed');
+    if (status) return status;
+  }
+  return null;
+}
+
 async function recoveryCandidates({github, context}) {
   const prs = await github.paginate(github.rest.pulls.list, {
     ...context.repo, state: 'open', per_page: 100,
@@ -37,10 +49,7 @@ async function recoveryCandidates({github, context}) {
     if (!eligible(pr)) continue;
     // Only recovery needs a timer. Event-driven reconciliation invalidates
     // existing success; avoid allocating a runner for every green PR.
-    const {data} = await github.rest.repos.getCombinedStatusForRef({
-      ...context.repo, ref: pr.head.sha, per_page: 100,
-    });
-    if (data.statuses.some(status => status.context === 'ci-passed' && status.state === 'success')) continue;
+    if ((await currentStatus(github, context, pr.head.sha))?.state === 'success') continue;
     candidates.push({number: pr.number, head: pr.head.sha});
   }
   if (candidates.length > 256) throw new Error('Recovery exceeds matrix limit; inspect CI Check.');
@@ -79,11 +88,24 @@ async function resolve(github, context, recovery) {
 }
 
 async function publish(github, context, pr, state, description) {
-  await github.rest.repos.createCommitStatus({
-    ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
-    description: description.slice(0, 140),
-    target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-  });
+  let current;
+  try {
+    current = await currentStatus(github, context, pr.head.sha);
+  } catch (error) {
+    // A failed read must not prevent invalidating a previously green head.
+    if (state === 'success') throw error;
+  }
+  // A timer must not exhaust the finite per-SHA/context status history on
+  // unchanged failing heads. Preserve non-success until recovery is proven.
+  const preserve = context.eventName === 'schedule' && state === 'pending' &&
+    current && current.state !== 'success';
+  if (!preserve && current?.state !== state) {
+    await github.rest.repos.createCommitStatus({
+      ...context.repo, sha: pr.head.sha, context: 'ci-passed', state,
+      description: description.slice(0, 140),
+      target_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+  }
   if (state === 'success') {
     await github.rest.issues.addLabels({...context.repo, issue_number: pr.number, labels: ['ci-passed']});
   } else {
