@@ -1,16 +1,16 @@
-from kfp.dsl import (
-    Input,
-    Output,
-    Artifact,
-    Dataset,
-    component,
-    pipeline
-)
+from kfp.dsl import Artifact
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Output
+from kfp.dsl import pipeline
+
 
 @component
 def a(situation: str, output_dataset: Output[Dataset]):
     with open(output_dataset.path, "w") as f:
         f.write(situation)
+
 
 @component
 def b(input_dataset: Input[Dataset], output_artifact_b: Output[Artifact]):
@@ -27,6 +27,7 @@ def b(input_dataset: Input[Dataset], output_artifact_b: Output[Artifact]):
     with open(output_artifact_b.path, "w") as f:
         f.write(analysis)
 
+
 @component
 def c(artifact: Input[Artifact], output_artifact_c: Output[Artifact]):
     with open(artifact.path, "r") as f:
@@ -35,14 +36,17 @@ def c(artifact: Input[Artifact], output_artifact_c: Output[Artifact]):
     with open(output_artifact_c.path, "w") as f:
         f.write(f'done_analyzing')
 
+
 @component
 def verify(verify_input: Input[Artifact]):
     with open(verify_input.path, "r") as f:
         data = f.read()
     assert data == "done_analyzing"
 
+
 @pipeline
-def pipeline_c(input_dataset_a: Input[Dataset], input_dataset_b: Input[Dataset]) -> Artifact:
+def pipeline_c(input_dataset_a: Input[Dataset],
+               input_dataset_b: Input[Dataset]) -> Artifact:
     a_task = a(situation="hurricane")
     b_task = b(input_dataset=a_task.outputs["output_dataset"])
     c_task = c(artifact=b_task.outputs["output_artifact_b"])
@@ -59,14 +63,17 @@ def pipeline_b(input_dataset: Input[Dataset]) -> Artifact:
     )
     return pipeline_c_op.output
 
+
 @pipeline
 def pipeline_a():
     a_task = a(situation="sunny")
-    nested_pipeline_op = pipeline_b(input_dataset=a_task.outputs["output_dataset"])
+    nested_pipeline_op = pipeline_b(
+        input_dataset=a_task.outputs["output_dataset"])
     verify(verify_input=nested_pipeline_op.output)
+
+
 if __name__ == '__main__':
     from kfp import compiler
 
     compiler.Compiler().compile(
-        pipeline_func=pipeline_a,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline_a, package_path=__file__.replace('.py', '.yaml'))

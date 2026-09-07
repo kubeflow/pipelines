@@ -22,7 +22,7 @@ will replace the MLMD client.
 
 The additions to the RunService client are documented in [runs.proto].
 
-An example of the updated run response format can be found in [runs.json]. 
+An example of the updated run response format can be found in [runs.json].
 
 [artifacts.proto]: ./protos/artifacts.proto
 [runs.proto]: ./protos/runs.proto
@@ -102,7 +102,7 @@ func (c *RunServerClient) CreateTask(ctx context.Context, task apiv2beta1.Pipeli
 func (c *RunServerClient) UpdateTask(ctx context.Context, task apiv2beta1.PipelineTaskDetail) (*apiv2beta1.PipelineTaskDetail, error)
 
 // Replaces GetExecutionsInDAG
-// Queries Run API's ListTasks() with run_id field 
+// Queries Run API's ListTasks() with run_id field
 func (c *RunServerClient) GetChildTasks(ctx context.Context, task apiv2beta1.PipelineTaskDetail) (map[string]*apiv2beta1.PipelineTaskDetail, error)
 ```
 
@@ -312,12 +312,12 @@ func resolveUpstreamArtifacts(cfg resolveUpstreamOutputsConfig) (*pipelinespec.A
   for {
     ...
   } else {
-    // use the Component *pipelinespec.ComponentSpec.ComponentInputsSpec from Options in driver.go to determine 
-	// artifact schema type, 
+    // use the Component *pipelinespec.ComponentSpec.ComponentInputsSpec from Options in driver.go to determine
+	// artifact schema type,
     schemaTitle := determineArtifactSchema(ComponentInputSpec, TaskSpec)
     switch schemaTitle {
     case "system.Metrics":  // Handles Metric type, do something similar for ClassificationMetrics & SlicedClassificationMetrics
-	  // GetOutputMetricsByTaskID can fetch the Task via GetTask (if we don't already have the task), 
+	  // GetOutputMetricsByTaskID can fetch the Task via GetTask (if we don't already have the task),
 	  // and can parse the `output_metrics` to return map[string]*OutputArtifact or just the *OutputArtifact
       outputs, err := GetOutputMetricsByTaskID(cfg.ctx, taskID)
     case "system.Artifact":
@@ -421,9 +421,9 @@ _, err = s.reportTasksFromExecution(newExecSpec, runId)
 ```
 [report_server.go]: ../../backend/src/apiserver/server/report_server.go
 
-### Task States 
+### Task States
 
-We will follow the following method for handling Task states: 
+We will follow the following method for handling Task states:
 
 RuntimeStates
 * Tasks will always be in a subset of the [RuntimeStates](../../backend/api/v2beta1/run.proto)
@@ -431,7 +431,7 @@ RuntimeStates
   * Terminal States are: `SUCCEEDED`, `FAILED`, `CANCELED`
 
 StorageStates
-* Tasks don't need a storage state 
+* Tasks don't need a storage state
 * If a Run is deleted, all tasks should be deleted
 
 ### Auth Considerations
@@ -440,9 +440,9 @@ The Driver/Launcher will be introducing a new `RunServerClient` and `ArtifactSer
 
 For example, if a user makes a request to `ListArtifactRequest`, they require `list` verb on the `Run` resource for that particular namespace.
 
-A few more notes: 
+A few more notes:
 * the Driver/Launcher communicates with the KFP API Server via the CacheClient. This has no auth mechanism today and will need to be updated.
-* the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization. 
+* the Driver/Launcher will provide the Pipeline Runner's Service Account token in the auth header for authorization.
   * As such, the Pipeline Runner SA will need the appropriate namespace-level access to such resources for the Driver & Launcher to communicate with the API Server.
 
 #### Frontend artifact-content compatibility
@@ -513,28 +513,28 @@ The following changes will need to be made:
 
 ### Migration
 
-This change will come with some drastic changes to the DB schema, namely the `Tasks` table. We will be dropping this table entirely. The only usage this table sees is described in the [caching](#caching) section. As noted there, all information that is relevant already exists in MLMD. 
+This change will come with some drastic changes to the DB schema, namely the `Tasks` table. We will be dropping this table entirely. The only usage this table sees is described in the [caching](#caching) section. As noted there, all information that is relevant already exists in MLMD.
 
-To accommodate the transition, the KFP release containing this change will provide a migration script for users to apply to their DB. MLMD will be required so that the script may use the mlmd client. The script will do the following: 
+To accommodate the transition, the KFP release containing this change will provide a migration script for users to apply to their DB. MLMD will be required so that the script may use the mlmd client. The script will do the following:
 
 * Drop the Tasks table and recreate it
 * Drop the Metrics table (it is not used at all)
 * Scan MLMD executions, converting them to their Task counterparts.
   * When encountering ContainerExecutions with `cache_fingerprints`, the fingerprint should only be stored if the execution has a `COMPLETE` state.
   * To detect exit handler dags, the execution name will need to be parsed for `exit-handler-*` prefixed, as there's no other declarative way to determine this type.
-* Scan all `Artifacts` and recreate in the KFP artifact table. 
+* Scan all `Artifacts` and recreate in the KFP artifact table.
 * In the case of metrics, artifacts will need to be logged to the `Metrics` table instead of `Artifacts`.
 * Validation Step
 
 Due to the nature of the change, we will require users to opt in to this upgrade by running this script. If the API Server detects the new fields are not present, KFP will assume the migration script has not been executed, and thus the server will fail to start up, logging a meaningful message to the user.
 
-#### Migration Alternative 
+#### Migration Alternative
 
 An alternative to this migration strategy is to have the KFP server perform the migration. We can enable opt-in by having a one time API Server config option `mlmdMigrate=true`.
 
 The benefit of this approach is a more seamless migration that's automated. However, if a user wants to have more granular control of their migration, they may prefer the script method which they can adjust as needed.
 
-There is also the option of doing a hybrid approach at the cost of more overhead. 
+There is also the option of doing a hybrid approach at the cost of more overhead.
 
 ### Testing
 
@@ -562,8 +562,8 @@ There is also the option of doing a hybrid approach at the cost of more overhead
 
 5. Frontend Verification Tests
 - Verify frontend reporting of metrics in the "Artifact Info" and "Visualization" navs in run details
-- Verify the frontend comparison UI, confirming artifacts and metrics are fetched accordingly 
+- Verify the frontend comparison UI, confirming artifacts and metrics are fetched accordingly
 
-6. Performance Testing 
+6. Performance Testing
 - Monitor and assess changes in CI times
 - Load testing on Kubernetes clusters before/after mlmd removal

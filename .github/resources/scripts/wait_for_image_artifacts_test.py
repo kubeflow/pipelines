@@ -88,17 +88,27 @@ class WaitForImageArtifactsTest(unittest.TestCase):
             environment = os.environ.copy()
             environment.pop('WAIT_ATTEMPTS', None)
             environment.update({
-                'ARTIFACT_NAMES': ' '.join(ARTIFACTS),
-                'GH_COUNTER': str(counter),
-                'GITHUB_REPOSITORY': 'kubeflow/pipelines',
-                'GITHUB_RUN_ID': '123',
-                'JOBS_API_FAILS': str(jobs_api_fails).lower(),
-                'MISSING_ARTIFACT': missing_artifact,
-                'PATH': f'{fake_bin}{os.pathsep}{environment["PATH"]}',
-                'PRODUCER_JOBS': '\n'.join(
-                    '\t'.join(producer_job) for producer_job in producer_jobs),
-                'READY_AFTER': str(ready_after),
-                'WAIT_INTERVAL_SECONDS': '0',
+                'ARTIFACT_NAMES':
+                    ' '.join(ARTIFACTS),
+                'GH_COUNTER':
+                    str(counter),
+                'GITHUB_REPOSITORY':
+                    'kubeflow/pipelines',
+                'GITHUB_RUN_ID':
+                    '123',
+                'JOBS_API_FAILS':
+                    str(jobs_api_fails).lower(),
+                'MISSING_ARTIFACT':
+                    missing_artifact,
+                'PATH':
+                    f'{fake_bin}{os.pathsep}{environment["PATH"]}',
+                'PRODUCER_JOBS':
+                    '\n'.join('\t'.join(producer_job)
+                              for producer_job in producer_jobs),
+                'READY_AFTER':
+                    str(ready_after),
+                'WAIT_INTERVAL_SECONDS':
+                    '0',
             })
             if attempts is not None:
                 environment['WAIT_ATTEMPTS'] = str(attempts)
@@ -156,8 +166,9 @@ class WaitForImageArtifactsTest(unittest.TestCase):
         result, attempts = self._run(ready_after=99, attempts=2)
 
         self.assertEqual(result.returncode, 1)
-        self.assertIn('Missing branch image artifacts after producer completion grace',
-                      result.stderr)
+        self.assertIn(
+            'Missing branch image artifacts after producer completion grace',
+            result.stderr)
         self.assertIn('frontend', result.stderr)
         self.assertEqual(attempts, 5)
 

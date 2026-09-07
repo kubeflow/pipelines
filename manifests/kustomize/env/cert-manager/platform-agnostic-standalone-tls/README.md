@@ -5,7 +5,7 @@ The manifests in this folder deploy Kubeflow Pipelines with pod-to-pod TLS enabl
 The API server is mounted with the TLS key/cert pair and accepts HTTPS requests.
 ### Scheduledworkflow Controller
 The Scheduledworkflow Controller is mounted with the TLS cert CA and sends HTTPS requests to the API server.
-### Persistence Agent 
+### Persistence Agent
 The Persistence Agent is mounted with the TLS cert CA and sends HTTPS requests to the API server.
 ### KFP UI
 The UI deployment is mounted with the TLS cert CA and sends HTTPS requests to the API server.

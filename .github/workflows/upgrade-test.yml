@@ -36,12 +36,12 @@ concurrency:
 jobs:
   build:
     # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ false }}
+    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     uses: ./.github/workflows/image-builds.yml
 
   upgrade-test:
     # TODO(#14029): Re-enable once the MLMD-to-native migration and startup gate are implemented.
-    if: ${{ false }}
+    if: ${{ vars.KFP_ENABLE_MLMD_UPGRADE_TESTS == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       actions: read

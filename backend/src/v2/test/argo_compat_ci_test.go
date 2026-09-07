@@ -38,13 +38,8 @@ func TestArgoCompatibilityCIDoesNotReferenceDeletedMLMD(t *testing.T) {
 		t.Fatalf("test-and-report action still has obsolete MLflow/MLMD port conflict guard")
 	}
 
-	presubmitBytes, err := os.ReadFile(presubmitPath)
-	if err != nil {
-		t.Fatalf("read presubmit script: %v", err)
-	}
-	presubmit := string(presubmitBytes)
-	if strings.Contains(presubmit, "metadata-grpc-service") {
-		t.Fatalf("presubmit-v2-go-test.sh still port-forwards deleted metadata-grpc-service")
+	if _, err := os.Stat(presubmitPath); !os.IsNotExist(err) {
+		t.Fatalf("obsolete presubmit-v2-go-test.sh must remain deleted; stat error: %v", err)
 	}
 }
 

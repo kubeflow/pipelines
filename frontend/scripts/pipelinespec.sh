@@ -20,7 +20,7 @@ protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
        --proto_path="../api/v2alpha1" \
        ../api/v2alpha1/pipeline_spec.proto ../api/v2alpha1/google/rpc/status.proto -I.
 
-# ARCHIVE 
+# ARCHIVE
 # The following commands are used for generating pipeline spec ts objects via protobuf.js:
 # https://github.com/protobufjs/protobuf.js
 # Because protobuf.js doesn't support processing for Protobuf.Value yet, we temporarily switched over to use ts-proto:
@@ -34,7 +34,7 @@ protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
 
 # # Encode proto string to buffer using protobuf.js
 # npx pbjs -t static-module -w commonjs -o src/generated/pipeline_spec/pbjs_ml_pipelines.js ../api/v2alpha1/pipeline_spec.proto
-# npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js 
+# npx pbts -o src/generated/pipeline_spec/pbjs_ml_pipelines.d.ts src/generated/pipeline_spec/pbjs_ml_pipelines.js
 
 # # Explaination of protobufjs cli tool:
 # # Install protobufjs-cli by using the main library

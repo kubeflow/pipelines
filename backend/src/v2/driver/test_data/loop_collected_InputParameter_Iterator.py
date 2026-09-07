@@ -1,19 +1,24 @@
 from typing import List
-from kfp.dsl import (
-    Output,
-    Artifact,
-    component, pipeline, ParallelFor, Collected
-)
+
+from kfp.dsl import Artifact
+from kfp.dsl import Collected
+from kfp.dsl import component
+from kfp.dsl import Output
+from kfp.dsl import ParallelFor
+from kfp.dsl import pipeline
+
 
 @component()
 def split_ids(model_ids: str) -> list:
     return model_ids.split(',')
+
 
 @component()
 def create_file(file: Output[Artifact], content: str):
     print(f'Creating file with content: {content}')
     with open(file.path, 'w') as f:
         f.write(content)
+
 
 @component()
 def read_values(values: List[str]) -> str:
@@ -34,12 +39,14 @@ def read_single_file(file: Artifact, expected: str) -> str:
         assert expected == data
     return data
 
+
 @pipeline()
 def secondary_pipeline(model_ids: str = '',) -> List[str]:
     ids_split_op = split_ids(model_ids=model_ids)
     with ParallelFor(ids_split_op.output) as model_id:
         create_file_op = create_file(content=model_id)
-        read_single_file_task = read_single_file(file=create_file_op.outputs['file'], expected=model_id)
+        read_single_file_task = read_single_file(
+            file=create_file_op.outputs['file'], expected=model_id)
     read_values(values=Collected(read_single_file_task.output))
     return Collected(read_single_file_task.output)
 
@@ -49,6 +56,7 @@ def primary_pipeline():
     model_ids = 's1,s2,s3,s4'
     dag = secondary_pipeline(model_ids=model_ids)
     read_values(values=dag.output)
+
 
 if __name__ == '__main__':
     from kfp import compiler

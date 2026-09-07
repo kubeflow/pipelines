@@ -36,7 +36,8 @@ def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
 
 
-def artifact_server_environment(namespace, cluster_domain,
+def artifact_server_environment(namespace,
+                                cluster_domain,
                                 allowed_artifact_endpoints,
                                 allowed_gcs_universe_domains="googleapis.com"):
     return [

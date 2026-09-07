@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 
 from kfp import compiler
 from kfp import dsl
@@ -48,27 +48,33 @@ def component_op(
     print(f'input_str1: {input_str1}, type: {type(input_str1)}')
     print(f'input_str2: {input_str2}, type: {type(input_str2)}')
     print(f'input_str3: {input_str3}, type: {type(input_str3)}')
-    print(f'input_str4_from_pipeline: {input_str4_from_pipeline}, type: {type(input_str4_from_pipeline)}')
-    print(f'input_str5_from_pipeline: {input_str5_from_pipeline}, type: {type(input_str5_from_pipeline)}')
-    print(f'input_str6_from_pipeline: {input_str6_from_pipeline}, type: {type(input_str6_from_pipeline)}')
+    print(
+        f'input_str4_from_pipeline: {input_str4_from_pipeline}, type: {type(input_str4_from_pipeline)}'
+    )
+    print(
+        f'input_str5_from_pipeline: {input_str5_from_pipeline}, type: {type(input_str5_from_pipeline)}'
+    )
+    print(
+        f'input_str6_from_pipeline: {input_str6_from_pipeline}, type: {type(input_str6_from_pipeline)}'
+    )
     print(f'input_bool1: {input_bool1}, type: {type(input_bool1)}')
     print(f'input_bool2: {input_bool2}, type: {type(input_bool2)}')
     print(f'input_dict: {input_dict}, type: {type(input_dict)}')
     print(f'input_list: {input_list}, type: {type(input_list)}')
     print(f'input_int: {input_int}, type: {type(input_int)}')
 
+
 # When pipeline defines None as default value for an input,
 # The component's default value is used.
+
 
 # Run this pipeline without setting any runtime values
 # Note that if running from the UI, the form requires
 # inputs, and empty field != null / empty value
 @dsl.pipeline(name='v2-component-optional-input')
-def pipeline(
-        input_str4: Optional[str] = None,
-        input_str5: Optional[str] = "Some pipeline default",
-        input_str6: Optional[str] = None
-):
+def pipeline(input_str4: Optional[str] = None,
+             input_str5: Optional[str] = "Some pipeline default",
+             input_str6: Optional[str] = None):
     component_op(
         input_str1='Hello',
         input_str2='World',
