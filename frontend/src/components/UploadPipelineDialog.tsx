@@ -218,19 +218,21 @@ class UploadPipelineDialog extends React.Component<
                   required={true}
                   label='File'
                   variant='outlined'
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <Button
-                          color='secondary'
-                          onClick={() => this._dropzoneRef.current!.open()}
-                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
-                        >
-                          Choose file
-                        </Button>
-                      </InputAdornment>
-                    ),
-                    readOnly: true,
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position='end'>
+                          <Button
+                            color='secondary'
+                            onClick={() => this._dropzoneRef.current!.open()}
+                            style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
+                          >
+                            Choose file
+                          </Button>
+                        </InputAdornment>
+                      ),
+                      readOnly: true,
+                    },
                   }}
                 />
                 {fileError && <div className={css.fileError}>{fileError}</div>}

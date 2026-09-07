@@ -317,21 +317,23 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               height={48}
               maxWidth={'100%'}
               className={css.filterBox}
-              InputLabelProps={{ classes: { root: css.noMargin } }}
+              slotProps={{
+                inputLabel: { classes: { root: css.noMargin } },
+                input: {
+                  classes: {
+                    notchedOutline: css.filterBorderRadius,
+                    root: css.noLeftPadding,
+                  },
+                  startAdornment: (
+                    <InputAdornment position='end'>
+                      <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }} />
+                    </InputAdornment>
+                  ),
+                },
+              }}
               onChange={this.handleFilterChange}
               value={filterString}
               variant='outlined'
-              InputProps={{
-                classes: {
-                  notchedOutline: css.filterBorderRadius,
-                  root: css.noLeftPadding,
-                },
-                startAdornment: (
-                  <InputAdornment position='end'>
-                    <FilterIcon style={{ color: color.lowContrast, paddingRight: 16 }} />
-                  </InputAdornment>
-                ),
-              }}
             />
           </div>
         )}
@@ -461,7 +463,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
               variant='standard'
               className={css.rowsPerPage}
               classes={{ root: css.verticalAlignInitial }}
-              InputProps={{ disableUnderline: true }}
+              slotProps={{ input: { disableUnderline: true } }}
               onChange={this._requestRowsPerPage.bind(this)}
               value={pageSize}
             >

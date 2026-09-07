@@ -189,20 +189,20 @@ export const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         text: {
+          '&.MuiButton-colorPrimary': {
+            border: '1px solid #ddd',
+            cursor: 'pointer',
+            fontSize: fontsize.base,
+            marginRight: 10,
+            textTransform: 'none',
+          },
+          '&.MuiButton-colorSecondary': {
+            color: color.theme,
+          },
           fontSize: fontsize.base,
           fontWeight: 'bold',
           minHeight: dimension.tiny,
           textTransform: 'none',
-        },
-        textPrimary: {
-          border: '1px solid #ddd',
-          cursor: 'pointer',
-          fontSize: fontsize.base,
-          marginRight: 10,
-          textTransform: 'none',
-        },
-        textSecondary: {
-          color: color.theme,
         },
         root: {
           '&.Mui-disabled': {

@@ -44,17 +44,17 @@ export const normalizeReactUseIdAttrs = (fragment: DocumentFragment) => {
   const idMap = new Map<string, string>();
   let nextId = 0;
 
-  const isReactUseId = (value: string): boolean =>
-    /^_r_[A-Za-z0-9]+_$/.test(value) || /^:r[a-zA-Z0-9]*:$/.test(value);
-
   const mapToken = (token: string): string => {
-    if (!isReactUseId(token)) {
+    // MUI derives label and helper text IDs by appending a suffix to React's ID.
+    const match = token.match(/^(_r_[A-Za-z0-9]+_|:r[a-zA-Z0-9]*:)(.*)$/);
+    if (!match) {
       return token;
     }
-    if (!idMap.has(token)) {
-      idMap.set(token, `react-use-id-${nextId++}`);
+    const [, baseId, suffix] = match;
+    if (!idMap.has(baseId)) {
+      idMap.set(baseId, `react-use-id-${nextId++}`);
     }
-    return idMap.get(token)!;
+    return `${idMap.get(baseId)!}${suffix}`;
   };
 
   const mapAttrValue = (value: string): string => value.split(/\s+/).map(mapToken).join(' ');

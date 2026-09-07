@@ -2047,23 +2047,23 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         >
           <th
             aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -2071,7 +2071,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
               col
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -2085,53 +2085,52 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
         </tr>
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             cell
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 270px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -2141,13 +2140,14 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -2158,16 +2158,16 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           1–1 of 1
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -2175,7 +2175,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -2187,7 +2187,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -2195,7 +2195,7 @@ exports[`ViewerContainer > renders a viewer of type TABLE 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -2220,23 +2220,23 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
         class="f104cl0n"
       >
         <div
-          class="MuiFormControl-root formControl_f59g3c5 css-1nrlq1o-MuiFormControl-root"
+          class="MuiFormControl-root formControl_f59g3c5 css-1iw3t7y-MuiFormControl-root"
         >
           <label
-            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-standard css-1c2i806-MuiFormLabel-root-MuiInputLabel-root"
+            class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-standard MuiFormLabel-colorPrimary MuiFormLabel-filled MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-standard css-1ew92b2-MuiFormLabel-root-MuiInputLabel-root"
             data-shrink="true"
-            for="viewer-tb-image-select"
+            id="viewer-tb-image-label"
           >
             TF Image
           </label>
           <div
-            class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju css-1eed5fa-MuiInputBase-root-MuiInput-root"
+            class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl select_fczmju MuiSelect-root css-1vgb3kf-MuiInputBase-root-MuiInput-root"
           >
             <div
-              aria-controls="react-use-id-0"
               aria-expanded="false"
               aria-haspopup="listbox"
-              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+              aria-labelledby="viewer-tb-image-label"
+              class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1skkqr-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiInput-input"
               role="combobox"
               tabindex="0"
             >
@@ -2245,14 +2245,14 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
             <input
               aria-hidden="true"
               aria-invalid="false"
-              class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+              class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
               id="viewer-tb-image-select"
               tabindex="-1"
               value="tensorflow/tensorflow:2.2.2"
             />
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
               data-testid="ArrowDropDownIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -2266,7 +2266,7 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
       </div>
       <div>
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 rootBusy_fronhm5 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 rootBusy_fronhm5 buttonAction_f1olq6uy css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           disabled=""
           tabindex="-1"
           type="button"
@@ -2275,16 +2275,16 @@ exports[`ViewerContainer > renders a viewer of type TENSORBOARD 1`] = `
             Start Tensorboard
           </span>
           <span
-            class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner_fiqr0h3 spinnerBusy_f1wemlvb css-18lrjg1-MuiCircularProgress-root"
+            class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner_fiqr0h3 spinnerBusy_f1wemlvb css-1wxecgq-MuiCircularProgress-root"
             role="progressbar"
             style="width: 15px; height: 15px;"
           >
             <svg
-              class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+              class="MuiCircularProgress-svg css-54pwck-MuiCircularProgress-svg"
               viewBox="22 22 44 44"
             >
               <circle
-                class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+                class="MuiCircularProgress-circle css-19t5dcl-MuiCircularProgress-circle"
                 cx="44"
                 cy="44"
                 fill="none"
@@ -2306,31 +2306,31 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
     style="width: 600px;"
   >
     <div
-      class="MuiFormControl-root css-1nrlq1o-MuiFormControl-root"
+      class="MuiFormControl-root css-1iw3t7y-MuiFormControl-root"
       style="width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-standard css-aqpgxn-MuiFormLabel-root-MuiInputLabel-root"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-standard MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-standard css-2hy7sk-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
-        for="visualization-type-selector"
+        id="visualization-type-label"
       >
         Type
       </label>
       <div
-        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl css-n70jm4-MuiInputBase-root-MuiInput-root-MuiSelect-root"
+        class="MuiInputBase-root MuiInput-root MuiInput-underline MuiInputBase-colorPrimary MuiInputBase-formControl MuiSelect-root css-1x351wq-MuiInputBase-root-MuiInput-root-MuiSelect-root"
         style="min-height: 60px; width: 100%;"
       >
         <div
-          aria-controls="react-use-id-1"
           aria-expanded="false"
           aria-haspopup="listbox"
-          aria-labelledby="mui-component-select-Visualization Type"
-          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+          aria-labelledby="visualization-type-label"
+          class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1skkqr-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiInput-input"
           id="mui-id-0"
           role="combobox"
           tabindex="0"
         >
           <span
+            aria-hidden="true"
             class="notranslate"
           >
             ​
@@ -2339,7 +2339,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
         <input
           aria-hidden="true"
           aria-invalid="false"
-          class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+          class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
           id="visualization-type-selector"
           name="Visualization Type"
           tabindex="-1"
@@ -2347,7 +2347,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
         />
         <svg
           aria-hidden="true"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
           data-testid="ArrowDropDownIcon"
           focusable="false"
           viewBox="0 0 24 24"
@@ -2359,24 +2359,24 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
       </div>
     </div>
     <div
-      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+      class="MuiFormControl-root MuiTextField-root textField_f7kh2f6 css-1xp5r68-MuiFormControl-root-MuiTextField-root"
       spellcheck="false"
       style="height: 40px; max-width: 600px; width: 100%;"
     >
       <label
-        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-sizeMedium MuiInputLabel-outlined css-14s5rfu-MuiFormLabel-root-MuiInputLabel-root"
+        class="MuiFormLabel-root MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-outlined css-19qnlrw-MuiFormLabel-root-MuiInputLabel-root"
         data-shrink="false"
         for="react-use-id-0"
-        id="_r_7_-label"
+        id="react-use-id-0-label"
       >
         Source
       </label>
       <div
-        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-9ddj71-MuiInputBase-root-MuiOutlinedInput-root"
+        class="MuiInputBase-root MuiOutlinedInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-quhxjy-MuiInputBase-root-MuiOutlinedInput-root"
       >
         <input
           aria-invalid="false"
-          class="MuiInputBase-input MuiOutlinedInput-input css-1t8l2tu-MuiInputBase-input-MuiOutlinedInput-input"
+          class="MuiInputBase-input MuiOutlinedInput-input css-16wblaj-MuiInputBase-input-MuiOutlinedInput-input"
           id="react-use-id-0"
           placeholder="File path or path pattern of data within GCS."
           type="text"
@@ -2384,10 +2384,10 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
         />
         <fieldset
           aria-hidden="true"
-          class="MuiOutlinedInput-notchedOutline css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+          class="MuiOutlinedInput-notchedOutline css-18p5xg2-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
         >
           <legend
-            class="css-njhac4-MuiNotchedOutlined-root"
+            class="css-1n64csd-MuiNotchedOutlined-root"
           >
             <span>
               Source
@@ -2397,7 +2397,7 @@ exports[`ViewerContainer > renders a viewer of type VISUALIZATION_CREATOR 1`] = 
       </div>
     </div>
     <button
-      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+      class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
       disabled=""
       tabindex="-1"
       type="button"

@@ -19,7 +19,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import RemoveCircleOutlinedIcon from '@mui/icons-material/RemoveCircleOutlined';
 import { ReactElement } from 'react';
 import StopCircle from 'src/icons/StopCircle';
 import { Execution } from 'src/third_party/mlmd';
@@ -113,7 +113,7 @@ export function getIcon(state: Execution.State | undefined) {
       );
     default:
       console.error('Unknown exeuction state: ' + state);
-      return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
+      return getStateIconWrapper(<RemoveCircleOutlinedIcon className='text-white' />, 'bg-black');
   }
 }
 

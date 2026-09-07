@@ -17,6 +17,7 @@
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
 import Input from './Input';
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 
 describe('Input', () => {
   const handleChange = vi.fn();
@@ -26,7 +27,7 @@ describe('Input', () => {
     const { asFragment } = render(
       <Input onChange={handleChange('fieldname')} value={value} variant='outlined' />,
     );
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('accepts height and width as prop overrides', () => {
@@ -39,6 +40,6 @@ describe('Input', () => {
         variant='outlined'
       />,
     );
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 });

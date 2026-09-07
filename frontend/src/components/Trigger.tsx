@@ -204,7 +204,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               value={startDate}
               width={160}
               variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              slotProps={{ inputLabel: { classes: { outlined: css.noMargin }, shrink: true } }}
               style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
             <Separator />
@@ -215,7 +215,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               value={startTime}
               width={120}
               variant='outlined'
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              slotProps={{ inputLabel: { classes: { outlined: css.noMargin }, shrink: true } }}
               style={{ visibility: hasStartDate ? 'visible' : 'hidden' }}
             />
           </div>
@@ -245,7 +245,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               value={endDate}
               width={160}
               style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              slotProps={{ inputLabel: { classes: { outlined: css.noMargin }, shrink: true } }}
               variant='outlined'
             />
             <Separator />
@@ -256,7 +256,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
               value={endTime}
               width={120}
               style={{ visibility: hasEndDate ? 'visible' : 'hidden' }}
-              InputLabelProps={{ classes: { outlined: css.noMargin }, shrink: true }}
+              slotProps={{ inputLabel: { classes: { outlined: css.noMargin }, shrink: true } }}
               variant='outlined'
             />
           </div>
@@ -307,7 +307,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                 <Input
                   required={true}
                   type='number'
-                  inputProps={{ min: 1 }}
+                  slotProps={{ htmlInput: { min: 1 } }}
                   onChange={this.handleChange('intervalValue')}
                   value={intervalValue}
                   height={30}

@@ -259,22 +259,24 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               label='Pipeline'
               disabled={true}
               variant='outlined'
-              InputProps={{
-                classes: { disabled: css.nonEditableInput },
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <Button
-                      color='secondary'
-                      id='choosePipelineBtn'
-                      aria-label='Choose pipeline'
-                      onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
-                      style={{ padding: '3px 5px', margin: 0 }}
-                    >
-                      Choose
-                    </Button>
-                  </InputAdornment>
-                ),
-                readOnly: true,
+              slotProps={{
+                input: {
+                  classes: { disabled: css.nonEditableInput },
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Button
+                        color='secondary'
+                        id='choosePipelineBtn'
+                        aria-label='Choose pipeline'
+                        onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
+                        style={{ padding: '3px 5px', margin: 0 }}
+                      >
+                        Choose
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  readOnly: true,
+                },
               }}
             />
           )}
@@ -285,23 +287,25 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
               label='Pipeline Version'
               disabled={true}
               variant='outlined'
-              InputProps={{
-                classes: { disabled: css.nonEditableInput },
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <Button
-                      color='secondary'
-                      id='choosePipelineVersionBtn'
-                      aria-label='Choose pipeline version'
-                      onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
-                      style={{ padding: '3px 5px', margin: 0 }}
-                      disabled={!unconfirmedSelectedPipeline}
-                    >
-                      Choose
-                    </Button>
-                  </InputAdornment>
-                ),
-                readOnly: true,
+              slotProps={{
+                input: {
+                  classes: { disabled: css.nonEditableInput },
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <Button
+                        color='secondary'
+                        id='choosePipelineVersionBtn'
+                        aria-label='Choose pipeline version'
+                        onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
+                        style={{ padding: '3px 5px', margin: 0 }}
+                        disabled={!unconfirmedSelectedPipeline}
+                      >
+                        Choose
+                      </Button>
+                    </InputAdornment>
+                  ),
+                  readOnly: true,
+                },
               }}
             />
           )}
@@ -329,7 +333,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             open={pipelineVersionSelectorOpen}
             classes={{ paper: css.selectorDialog }}
             onClose={() => this._pipelineVersionSelectorClosed(false)}
-            PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
+            slotProps={{ paper: { id: 'pipelineVersionSelectorDialog' } }}
           >
             <DialogContent>
               <ResourceSelector
@@ -399,7 +403,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             open={experimentSelectorOpen}
             classes={{ paper: css.selectorDialog }}
             onClose={() => this._experimentSelectorClosed(false)}
-            PaperProps={{ id: 'experimentSelectorDialog' }}
+            slotProps={{ paper: { id: 'experimentSelectorDialog' } }}
           >
             <DialogContent>
               <ResourceSelector
@@ -495,21 +499,23 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             label='Experiment'
             disabled={true}
             variant='outlined'
-            InputProps={{
-              classes: { disabled: css.nonEditableInput },
-              endAdornment: (
-                <InputAdornment position='end'>
-                  <Button
-                    color='secondary'
-                    id='chooseExperimentBtn'
-                    onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
-                    style={{ padding: '3px 5px', margin: 0 }}
-                  >
-                    Choose
-                  </Button>
-                </InputAdornment>
-              ),
-              readOnly: true,
+            slotProps={{
+              input: {
+                classes: { disabled: css.nonEditableInput },
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <Button
+                      color='secondary'
+                      id='chooseExperimentBtn'
+                      onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
+                      style={{ padding: '3px 5px', margin: 0 }}
+                    >
+                      Choose
+                    </Button>
+                  </InputAdornment>
+                ),
+                readOnly: true,
+              },
             }}
           />
 

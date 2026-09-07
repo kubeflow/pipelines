@@ -89,6 +89,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     const { asFragment } = render(<VisualizationCreator configs={[config]} />);
+    expect(screen.getByRole('combobox', { name: 'Type' })).toBeInTheDocument();
     expect(asFragment()).toMatchSnapshot();
   });
 
@@ -332,7 +333,7 @@ describe('VisualizationCreator', () => {
       type: PlotType.VISUALIZATION_CREATOR,
     };
     render(<VisualizationCreator configs={[config]} />);
-    expect(screen.getByLabelText('Type')).toBeDisabled();
+    expect(screen.getByRole('combobox', { name: 'Type' })).toHaveAttribute('aria-disabled', 'true');
     expect(
       screen.getByPlaceholderText('File path or path pattern of data within GCS.'),
     ).toBeDisabled();

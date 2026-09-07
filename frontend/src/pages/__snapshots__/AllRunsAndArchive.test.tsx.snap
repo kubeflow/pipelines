@@ -16,7 +16,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
       />
       <button
         aria-label=""
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i css-dizc30-MuiButtonBase-root-MuiButton-root"
         data-mui-internal-clone-element="true"
         tabindex="0"
         type="button"
@@ -24,13 +24,10 @@ exports[`RunsAndArchive > renders archive page 1`] = `
         <span>
           Active
         </span>
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
       <button
         aria-label=""
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-dizc30-MuiButtonBase-root-MuiButton-root"
         data-mui-internal-clone-element="true"
         tabindex="0"
         type="button"
@@ -38,9 +35,6 @@ exports[`RunsAndArchive > renders archive page 1`] = `
         <span>
           Archived
         </span>
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
     </div>
     <div
@@ -52,12 +46,12 @@ exports[`RunsAndArchive > renders archive page 1`] = `
         >
           <div>
             <div
-              class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+              class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1xp5r68-MuiFormControl-root-MuiTextField-root"
               spellcheck="false"
               style="height: 48px; max-width: 100%; width: 100%;"
             >
               <label
-                class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+                class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined css-113d811-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
                 for="tableFilterBox"
                 id="tableFilterBox-label"
@@ -65,14 +59,14 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                 Filter runs
               </label>
               <div
-                class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+                class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-4bojcr-MuiInputBase-root-MuiOutlinedInput-root"
               >
                 <div
-                  class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+                  class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-elo8k2-MuiInputAdornment-root"
                 >
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                     data-testid="FilterListIcon"
                     focusable="false"
                     style="color: rgb(128, 134, 139); padding-right: 16px;"
@@ -85,17 +79,17 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                 </div>
                 <input
                   aria-invalid="false"
-                  class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
+                  class="MuiInputBase-input MuiOutlinedInput-input css-2u11ia-MuiInputBase-input-MuiOutlinedInput-input"
                   id="tableFilterBox"
                   type="text"
                   value=""
                 />
                 <fieldset
                   aria-hidden="true"
-                  class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+                  class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-18p5xg2-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                 >
                   <legend
-                    class="css-sl37lx-MuiNotchedOutlined-root"
+                    class="css-ex8a5f-MuiNotchedOutlined-root"
                   >
                     <span>
                       Filter runs
@@ -112,17 +106,17 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-1ml7hhy-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                 data-testid="select-all-checkbox"
               >
                 <input
-                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
                   data-indeterminate="false"
                   type="checkbox"
                 />
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="CheckBoxOutlineBlankIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -131,9 +125,6 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                     d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
                 </svg>
-                <span
-                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                />
               </span>
             </div>
             <div
@@ -143,7 +134,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Sort"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionDesc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -151,7 +142,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                 Run name
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                   data-testid="ArrowDownwardIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -169,7 +160,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -184,7 +175,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -199,7 +190,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -214,7 +205,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -229,7 +220,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -244,7 +235,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <span
                 aria-label="Sort"
-                class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionDesc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -252,7 +243,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                 Start time
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                   data-testid="ArrowDownwardIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -272,16 +263,16 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               class="busyOverlay_f1wbdc3s"
             />
             <span
-              class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary absoluteCenter_f1g3o41t css-18lrjg1-MuiCircularProgress-root"
+              class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary absoluteCenter_f1g3o41t css-1wxecgq-MuiCircularProgress-root"
               role="progressbar"
               style="width: 25px; height: 25px; z-index: 2;"
             >
               <svg
-                class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+                class="MuiCircularProgress-svg css-54pwck-MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+                  class="MuiCircularProgress-circle css-19t5dcl-MuiCircularProgress-circle"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -300,18 +291,16 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               Rows per page:
             </span>
             <div
-              class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+              class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1xp5r68-MuiFormControl-root-MuiTextField-root"
             >
               <div
-                class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
+                class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiSelect-root css-x0hrh7-MuiInputBase-root-MuiInput-root"
               >
                 <div
-                  aria-controls="_r_n_"
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby="_r_m_"
-                  class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                  id="_r_m_"
+                  class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1skkqr-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                  id="react-use-id-0"
                   role="combobox"
                   tabindex="0"
                 >
@@ -320,13 +309,14 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                 <input
                   aria-hidden="true"
                   aria-invalid="false"
-                  class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+                  class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                  id="react-use-id-1"
                   tabindex="-1"
                   value="10"
                 />
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
                   data-testid="ArrowDropDownIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -338,7 +328,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               </div>
             </div>
             <button
-              class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+              class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-sravn7-MuiButtonBase-root-MuiIconButton-root"
               data-testid="prev-page-btn"
               disabled=""
               tabindex="-1"
@@ -346,7 +336,7 @@ exports[`RunsAndArchive > renders archive page 1`] = `
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                 data-testid="ChevronLeftIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -357,14 +347,14 @@ exports[`RunsAndArchive > renders archive page 1`] = `
               </svg>
             </button>
             <button
-              class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+              class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-sravn7-MuiButtonBase-root-MuiIconButton-root"
               data-testid="next-page-btn"
               tabindex="0"
               type="button"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                 data-testid="ChevronRightIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -373,9 +363,6 @@ exports[`RunsAndArchive > renders archive page 1`] = `
                   d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
                 />
               </svg>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </div>
         </div>
@@ -401,7 +388,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
       />
       <button
         aria-label=""
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-dizc30-MuiButtonBase-root-MuiButton-root"
         data-mui-internal-clone-element="true"
         tabindex="0"
         type="button"
@@ -409,13 +396,10 @@ exports[`RunsAndArchive > renders runs page 1`] = `
         <span>
           Active
         </span>
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
       <button
         aria-label=""
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i css-dizc30-MuiButtonBase-root-MuiButton-root"
         data-mui-internal-clone-element="true"
         tabindex="0"
         type="button"
@@ -423,9 +407,6 @@ exports[`RunsAndArchive > renders runs page 1`] = `
         <span>
           Archived
         </span>
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
     </div>
     <div
@@ -437,12 +418,12 @@ exports[`RunsAndArchive > renders runs page 1`] = `
         >
           <div>
             <div
-              class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+              class="MuiFormControl-root MuiTextField-root filterBox_frxzdj2 css-1xp5r68-MuiFormControl-root-MuiTextField-root"
               spellcheck="false"
               style="height: 48px; max-width: 100%; width: 100%;"
             >
               <label
-                class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-sizeMedium MuiInputLabel-outlined css-1jy569b-MuiFormLabel-root-MuiInputLabel-root"
+                class="MuiFormLabel-root MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined MuiFormLabel-colorPrimary MuiInputLabel-root noMargin_fl8qkup MuiInputLabel-formControl MuiInputLabel-animated MuiInputLabel-shrink MuiInputLabel-outlined css-113d811-MuiFormLabel-root-MuiInputLabel-root"
                 data-shrink="true"
                 for="tableFilterBox"
                 id="tableFilterBox-label"
@@ -450,14 +431,14 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                 Filter runs
               </label>
               <div
-                class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-1q6at85-MuiInputBase-root-MuiOutlinedInput-root"
+                class="MuiInputBase-root MuiOutlinedInput-root noLeftPadding_f106pxd4 MuiInputBase-colorPrimary MuiInputBase-formControl MuiInputBase-adornedStart css-4bojcr-MuiInputBase-root-MuiOutlinedInput-root"
               >
                 <div
-                  class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-1laqsz7-MuiInputAdornment-root"
+                  class="MuiInputAdornment-root MuiInputAdornment-positionEnd MuiInputAdornment-outlined MuiInputAdornment-sizeMedium css-elo8k2-MuiInputAdornment-root"
                 >
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                     data-testid="FilterListIcon"
                     focusable="false"
                     style="color: rgb(128, 134, 139); padding-right: 16px;"
@@ -470,17 +451,17 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                 </div>
                 <input
                   aria-invalid="false"
-                  class="MuiInputBase-input MuiOutlinedInput-input MuiInputBase-inputAdornedStart css-1o9s3wi-MuiInputBase-input-MuiOutlinedInput-input"
+                  class="MuiInputBase-input MuiOutlinedInput-input css-2u11ia-MuiInputBase-input-MuiOutlinedInput-input"
                   id="tableFilterBox"
                   type="text"
                   value=""
                 />
                 <fieldset
                   aria-hidden="true"
-                  class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-r01yff-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
+                  class="MuiOutlinedInput-notchedOutline filterBorderRadius_f1ypp5hy css-18p5xg2-MuiNotchedOutlined-root-MuiOutlinedInput-notchedOutline"
                 >
                   <legend
-                    class="css-sl37lx-MuiNotchedOutlined-root"
+                    class="css-ex8a5f-MuiNotchedOutlined-root"
                   >
                     <span>
                       Filter runs
@@ -497,17 +478,17 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               class="columnName_f1kdqshe cell_fy8nr2z selectionToggle_f1ds3nvo"
             >
               <span
-                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-p6iyue-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
+                class="MuiButtonBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium PrivateSwitchBase-root MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium MuiCheckbox-root MuiCheckbox-colorPrimary MuiCheckbox-sizeMedium css-1ml7hhy-MuiButtonBase-root-MuiSwitchBase-root-MuiCheckbox-root"
                 data-testid="select-all-checkbox"
               >
                 <input
-                  class="PrivateSwitchBase-input css-1p3z7et-MuiSwitchBase-root"
+                  class="PrivateSwitchBase-input css-12xagqm-MuiSwitchBase-root"
                   data-indeterminate="false"
                   type="checkbox"
                 />
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="CheckBoxOutlineBlankIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -516,9 +497,6 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                     d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"
                   />
                 </svg>
-                <span
-                  class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-                />
               </span>
             </div>
             <div
@@ -528,7 +506,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Sort"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionDesc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -536,7 +514,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                 Run name
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                   data-testid="ArrowDownwardIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -554,7 +532,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -569,7 +547,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -584,7 +562,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -599,7 +577,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -614,7 +592,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Cannot sort by this column"
-                class="MuiButtonBase-root MuiTableSortLabel-root ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -629,7 +607,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <span
                 aria-label="Sort"
-                class="MuiButtonBase-root MuiTableSortLabel-root Mui-active ellipsis_f15ay66x css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+                class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionDesc ellipsis_f15ay66x css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
                 data-mui-internal-clone-element="true"
                 role="button"
                 tabindex="0"
@@ -637,7 +615,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                 Start time
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                   data-testid="ArrowDownwardIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -657,16 +635,16 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               class="busyOverlay_f1wbdc3s"
             />
             <span
-              class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary absoluteCenter_f1g3o41t css-18lrjg1-MuiCircularProgress-root"
+              class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary absoluteCenter_f1g3o41t css-1wxecgq-MuiCircularProgress-root"
               role="progressbar"
               style="width: 25px; height: 25px; z-index: 2;"
             >
               <svg
-                class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+                class="MuiCircularProgress-svg css-54pwck-MuiCircularProgress-svg"
                 viewBox="22 22 44 44"
               >
                 <circle
-                  class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+                  class="MuiCircularProgress-circle css-19t5dcl-MuiCircularProgress-circle"
                   cx="44"
                   cy="44"
                   fill="none"
@@ -685,18 +663,16 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               Rows per page:
             </span>
             <div
-              class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1u3bzj6-MuiFormControl-root-MuiTextField-root"
+              class="MuiFormControl-root MuiTextField-root verticalAlignInitial_fclh73n rowsPerPage_fvpkhlp css-1xp5r68-MuiFormControl-root-MuiTextField-root"
             >
               <div
-                class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl css-1aa5qj0-MuiInputBase-root-MuiInput-root"
+                class="MuiInputBase-root MuiInput-root MuiInputBase-colorPrimary MuiInputBase-formControl MuiSelect-root css-x0hrh7-MuiInputBase-root-MuiInput-root"
               >
                 <div
-                  aria-controls="_r_b_"
                   aria-expanded="false"
                   aria-haspopup="listbox"
-                  aria-labelledby="_r_a_"
-                  class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1rxz5jq-MuiSelect-select-MuiInputBase-input-MuiInput-input"
-                  id="_r_a_"
+                  class="MuiSelect-select MuiSelect-standard MuiInputBase-input MuiInput-input css-1skkqr-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input-MuiInput-input"
+                  id="react-use-id-0"
                   role="combobox"
                   tabindex="0"
                 >
@@ -705,13 +681,14 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                 <input
                   aria-hidden="true"
                   aria-invalid="false"
-                  class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+                  class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+                  id="react-use-id-1"
                   tabindex="-1"
                   value="10"
                 />
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
                   data-testid="ArrowDropDownIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -723,7 +700,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               </div>
             </div>
             <button
-              class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+              class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge css-sravn7-MuiButtonBase-root-MuiIconButton-root"
               data-testid="prev-page-btn"
               disabled=""
               tabindex="-1"
@@ -731,7 +708,7 @@ exports[`RunsAndArchive > renders runs page 1`] = `
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                 data-testid="ChevronLeftIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -742,14 +719,14 @@ exports[`RunsAndArchive > renders runs page 1`] = `
               </svg>
             </button>
             <button
-              class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+              class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge css-sravn7-MuiButtonBase-root-MuiIconButton-root"
               data-testid="next-page-btn"
               tabindex="0"
               type="button"
             >
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                 data-testid="ChevronRightIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -758,9 +735,6 @@ exports[`RunsAndArchive > renders runs page 1`] = `
                   d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
                 />
               </svg>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </div>
         </div>

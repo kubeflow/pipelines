@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import AllRunsAndArchive, {
@@ -38,14 +39,14 @@ describe('RunsAndArchive', () => {
 
   it('renders runs page', () => {
     const { asFragment } = render(<AllRunsAndArchive {...(generateProps() as any)} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('renders archive page', () => {
     const props = generateProps();
     props.view = AllRunsAndArchiveTab.ARCHIVE;
     const { asFragment } = render(<AllRunsAndArchive {...(props as any)} />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('switches to clicked page by pushing to history', () => {

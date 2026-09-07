@@ -79,7 +79,7 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
                     onChange={toggleChange}
                     color='primary'
                     name={f.name}
-                    inputProps={{ 'aria-label': 'primary checkbox' }}
+                    slotProps={{ input: { 'aria-label': 'primary checkbox' } }}
                   />
                 </TableCell>
               </TableRow>

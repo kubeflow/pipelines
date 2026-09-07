@@ -134,7 +134,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   }
                 }
               }}
-              inputProps={{ 'aria-label': 'Set custom pipeline root.' }}
+              slotProps={{ input: { 'aria-label': 'Set custom pipeline root.' } }}
             />
           }
         />
@@ -358,16 +358,18 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             value={param.value || ''}
             onChange={(ev) => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
-            InputProps={{
-              classes: { disabled: css.nonEditableInput },
-              endAdornment: (
-                <InputAdornment position='end'>
-                  <Button className={css.button} color='secondary' onClick={onClick}>
-                    {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
-                  </Button>
-                </InputAdornment>
-              ),
-              readOnly: false,
+            slotProps={{
+              input: {
+                classes: { disabled: css.nonEditableInput },
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    <Button className={css.button} color='secondary' onClick={onClick}>
+                      {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
+                    </Button>
+                  </InputAdornment>
+                ),
+                readOnly: false,
+              },
             }}
           />
         ) : (

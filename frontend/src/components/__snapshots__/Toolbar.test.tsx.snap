@@ -28,7 +28,7 @@ exports[`Toolbar > renders outlined action buttons 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-1umw9bq-MuiSvgIcon-root"
             data-testid="ChevronRightIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -55,13 +55,13 @@ exports[`Toolbar > renders outlined action buttons 1`] = `
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -70,9 +70,6 @@ exports[`Toolbar > renders outlined action buttons 1`] = `
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -90,7 +87,7 @@ exports[`Toolbar > renders outlined action buttons 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-dizc30-MuiButtonBase-root-MuiButton-root"
           id="test outlined id"
           tabindex="0"
           type="button"
@@ -98,9 +95,6 @@ exports[`Toolbar > renders outlined action buttons 1`] = `
           <span>
             test outlined title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
     </div>
@@ -136,7 +130,7 @@ exports[`Toolbar > renders primary action buttons 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-1umw9bq-MuiSvgIcon-root"
             data-testid="ChevronRightIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -163,13 +157,13 @@ exports[`Toolbar > renders primary action buttons 1`] = `
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -178,9 +172,6 @@ exports[`Toolbar > renders primary action buttons 1`] = `
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -198,7 +189,7 @@ exports[`Toolbar > renders primary action buttons 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test primary id"
           tabindex="0"
           type="button"
@@ -206,9 +197,6 @@ exports[`Toolbar > renders primary action buttons 1`] = `
           <span>
             test primary title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
     </div>
@@ -244,7 +232,7 @@ exports[`Toolbar > renders primary action buttons without outline, even if outli
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-1umw9bq-MuiSvgIcon-root"
             data-testid="ChevronRightIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -271,13 +259,13 @@ exports[`Toolbar > renders primary action buttons without outline, even if outli
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -286,9 +274,6 @@ exports[`Toolbar > renders primary action buttons without outline, even if outli
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -306,7 +291,7 @@ exports[`Toolbar > renders primary action buttons without outline, even if outli
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 buttonAction_f1olq6uy css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
@@ -314,9 +299,6 @@ exports[`Toolbar > renders primary action buttons without outline, even if outli
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
     </div>
@@ -352,7 +334,7 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium chevron_fin4unf css-1umw9bq-MuiSvgIcon-root"
             data-testid="ChevronRightIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -379,13 +361,13 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -394,9 +376,6 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -414,14 +393,14 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="HelpIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -433,9 +412,6 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
       <div
@@ -444,7 +420,7 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           disabled=""
           id="test id2"
           tabindex="-1"
@@ -452,7 +428,7 @@ exports[`Toolbar > renders with two breadcrumbs and two actions 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="InfoIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -504,13 +480,13 @@ exports[`Toolbar > renders without actions and one breadcrumb 1`] = `
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -519,9 +495,6 @@ exports[`Toolbar > renders without actions and one breadcrumb 1`] = `
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -572,13 +545,13 @@ exports[`Toolbar > renders without actions, one breadcrumb, and a page name 1`] 
         >
            
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 enabled_fep5z4h css-1umw9bq-MuiSvgIcon-root"
               data-testid="ArrowBackIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -587,9 +560,6 @@ exports[`Toolbar > renders without actions, one breadcrumb, and a page name 1`] 
                 d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <span
@@ -642,14 +612,14 @@ exports[`Toolbar > renders without breadcrumbs and a component page title 1`] = 
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="HelpIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -661,9 +631,6 @@ exports[`Toolbar > renders without breadcrumbs and a component page title 1`] = 
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
       <div
@@ -672,7 +639,7 @@ exports[`Toolbar > renders without breadcrumbs and a component page title 1`] = 
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           disabled=""
           id="test id2"
           tabindex="-1"
@@ -680,7 +647,7 @@ exports[`Toolbar > renders without breadcrumbs and a component page title 1`] = 
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="InfoIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -730,14 +697,14 @@ exports[`Toolbar > renders without breadcrumbs and a string page title 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="HelpIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -749,9 +716,6 @@ exports[`Toolbar > renders without breadcrumbs and a string page title 1`] = `
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
       <div
@@ -760,7 +724,7 @@ exports[`Toolbar > renders without breadcrumbs and a string page title 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           disabled=""
           id="test id2"
           tabindex="-1"
@@ -768,7 +732,7 @@ exports[`Toolbar > renders without breadcrumbs and a string page title 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="InfoIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -818,14 +782,14 @@ exports[`Toolbar > renders without breadcrumbs and one action 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="HelpIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -837,9 +801,6 @@ exports[`Toolbar > renders without breadcrumbs and one action 1`] = `
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
     </div>
@@ -878,14 +839,14 @@ exports[`Toolbar > renders without breadcrumbs and two actions 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           id="test id"
           tabindex="0"
           type="button"
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="HelpIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -897,9 +858,6 @@ exports[`Toolbar > renders without breadcrumbs and two actions 1`] = `
           <span>
             test title
           </span>
-          <span
-            class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-          />
         </button>
       </div>
       <div
@@ -908,7 +866,7 @@ exports[`Toolbar > renders without breadcrumbs and two actions 1`] = `
         data-mui-internal-clone-element="true"
       >
         <button
-          class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+          class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
           disabled=""
           id="test id2"
           tabindex="-1"
@@ -916,7 +874,7 @@ exports[`Toolbar > renders without breadcrumbs and two actions 1`] = `
         >
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
             data-testid="InfoIcon"
             focusable="false"
             viewBox="0 0 24 24"

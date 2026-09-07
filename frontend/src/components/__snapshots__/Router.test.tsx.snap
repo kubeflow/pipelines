@@ -27,7 +27,7 @@ exports[`Router > initial render 1`] = `
             id="pipelinesBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -92,9 +92,6 @@ exports[`Router > initial render 1`] = `
                   Pipelines
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <div
@@ -108,7 +105,7 @@ exports[`Router > initial render 1`] = `
             id="experimentsBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -170,9 +167,6 @@ exports[`Router > initial render 1`] = `
                   Experiments
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <div
@@ -186,7 +180,7 @@ exports[`Router > initial render 1`] = `
             id="runsBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -195,7 +189,7 @@ exports[`Router > initial render 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="DirectionsRunIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -210,9 +204,6 @@ exports[`Router > initial render 1`] = `
                   Runs
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <div
@@ -226,7 +217,7 @@ exports[`Router > initial render 1`] = `
             id="recurringRunsBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -235,7 +226,7 @@ exports[`Router > initial render 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="AlarmIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -250,9 +241,6 @@ exports[`Router > initial render 1`] = `
                   Recurring Runs
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <div
@@ -266,7 +254,7 @@ exports[`Router > initial render 1`] = `
             id="artifactsBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -275,7 +263,7 @@ exports[`Router > initial render 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="BubbleChartIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -302,9 +290,6 @@ exports[`Router > initial render 1`] = `
                   Artifacts
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <div
@@ -318,7 +303,7 @@ exports[`Router > initial render 1`] = `
             id="executionsBtn"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -327,7 +312,7 @@ exports[`Router > initial render 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
                   data-testid="PlayArrowIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -342,9 +327,6 @@ exports[`Router > initial render 1`] = `
                   Executions
                 </span>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <hr
@@ -359,7 +341,7 @@ exports[`Router > initial render 1`] = `
             target="_blank"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -368,7 +350,7 @@ exports[`Router > initial render 1`] = `
               >
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1e8lhs7 css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1e8lhs7 css-1umw9bq-MuiSvgIcon-root"
                   data-testid="DescriptionIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -384,7 +366,7 @@ exports[`Router > initial render 1`] = `
                 </span>
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-1umw9bq-MuiSvgIcon-root"
                   data-testid="OpenInNewIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -394,9 +376,6 @@ exports[`Router > initial render 1`] = `
                   />
                 </svg>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <a
@@ -408,7 +387,7 @@ exports[`Router > initial render 1`] = `
             target="_blank"
           >
             <button
-              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit MuiButton-root MuiButton-text MuiButton-textInherit MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorInherit button_f17w3f2d css-1y942vo-MuiButtonBase-root-MuiButton-root"
+              class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorInherit button_f17w3f2d css-fz451c-MuiButtonBase-root-MuiButton-root"
               tabindex="0"
               type="button"
             >
@@ -427,7 +406,7 @@ exports[`Router > initial render 1`] = `
                 </span>
                 <svg
                   aria-hidden="true"
-                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-i4bv87-MuiSvgIcon-root"
+                  class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium openInNewTabIcon_fiish9a css-1umw9bq-MuiSvgIcon-root"
                   data-testid="OpenInNewIcon"
                   focusable="false"
                   viewBox="0 0 24 24"
@@ -437,23 +416,20 @@ exports[`Router > initial render 1`] = `
                   />
                 </svg>
               </div>
-              <span
-                class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-              />
             </button>
           </a>
           <hr
             class="separator_furuwhr"
           />
           <button
-            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root MuiIconButton-root MuiIconButton-sizeLarge chevron_f1eaw8uj css-sravn7-MuiButtonBase-root-MuiIconButton-root"
             data-testid="chevron-toggle"
             tabindex="0"
             type="button"
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="ChevronLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -462,9 +438,6 @@ exports[`Router > initial render 1`] = `
                 d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"
               />
             </svg>
-            <span
-              class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-            />
           </button>
         </div>
         <div
@@ -535,14 +508,14 @@ exports[`Router > initial render 1`] = `
               >
                  
                 <button
-                  class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge backLink_fxaclcu css-mf1cb5-MuiButtonBase-root-MuiIconButton-root"
+                  class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-sizeLarge backLink_fxaclcu css-sravn7-MuiButtonBase-root-MuiIconButton-root"
                   disabled=""
                   tabindex="-1"
                   type="button"
                 >
                   <svg
                     aria-hidden="true"
-                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 disabled_fl0don4 css-i4bv87-MuiSvgIcon-root"
+                    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium backIcon_f116wd06 disabled_fl0don4 css-1umw9bq-MuiSvgIcon-root"
                     data-testid="ArrowBackIcon"
                     focusable="false"
                     viewBox="0 0 24 24"

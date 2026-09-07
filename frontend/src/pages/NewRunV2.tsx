@@ -825,21 +825,23 @@ function PipelineSelector(props: PipelineSelectorProps) {
         label='Pipeline'
         disabled={true}
         variant='outlined'
-        InputProps={{
-          classes: { disabled: css.nonEditableInput },
-          endAdornment: (
-            <InputAdornment position='end'>
-              <Button
-                color='secondary'
-                id='choosePipelineBtn'
-                onClick={() => setPipelineSelectorOpen(true)}
-                style={{ padding: '3px 5px', margin: 0 }}
-              >
-                Choose
-              </Button>
-            </InputAdornment>
-          ),
-          readOnly: true,
+        slotProps={{
+          input: {
+            classes: { disabled: css.nonEditableInput },
+            endAdornment: (
+              <InputAdornment position='end'>
+                <Button
+                  color='secondary'
+                  id='choosePipelineBtn'
+                  onClick={() => setPipelineSelectorOpen(true)}
+                  style={{ padding: '3px 5px', margin: 0 }}
+                >
+                  Choose
+                </Button>
+              </InputAdornment>
+            ),
+            readOnly: true,
+          },
         }}
       />
 
@@ -884,23 +886,25 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
         label={'Pipeline Version'}
         disabled={true}
         variant='outlined'
-        InputProps={{
-          classes: { disabled: css.nonEditableInput },
-          inputProps: { 'data-testid': 'pipeline-version-input-field' },
-          endAdornment: (
-            <InputAdornment position='end'>
-              <Button
-                color='secondary'
-                id='choosePipelineVersionBtn'
-                onClick={() => setPipelineVersionSelectorOpen(true)}
-                style={{ padding: '3px 5px', margin: 0 }}
-                disabled={!props.pipeline || props.useLatestVersion}
-              >
-                Choose
-              </Button>
-            </InputAdornment>
-          ),
-          readOnly: true,
+        slotProps={{
+          input: {
+            classes: { disabled: css.nonEditableInput },
+            inputProps: { 'data-testid': 'pipeline-version-input-field' },
+            endAdornment: (
+              <InputAdornment position='end'>
+                <Button
+                  color='secondary'
+                  id='choosePipelineVersionBtn'
+                  onClick={() => setPipelineVersionSelectorOpen(true)}
+                  style={{ padding: '3px 5px', margin: 0 }}
+                  disabled={!props.pipeline || props.useLatestVersion}
+                >
+                  Choose
+                </Button>
+              </InputAdornment>
+            ),
+            readOnly: true,
+          },
         }}
       />
       {/* Pipeline version selector dialog */}
@@ -908,7 +912,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
         open={pipelineVersionSelectorOpen}
         classes={{ paper: css.selectorDialog }}
         onClose={() => setPipelineVersionSelectorOpen(false)}
-        PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
+        slotProps={{ paper: { id: 'pipelineVersionSelectorDialog' } }}
       >
         <DialogContent>
           <ResourceSelector
@@ -996,21 +1000,23 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         label='Experiment'
         disabled={true}
         variant='outlined'
-        InputProps={{
-          classes: { disabled: css.nonEditableInput },
-          endAdornment: (
-            <InputAdornment position='end'>
-              <Button
-                color='secondary'
-                id='chooseExperimentBtn'
-                onClick={() => setExperimentSelectorOpen(true)}
-                style={{ padding: '3px 5px', margin: 0 }}
-              >
-                Choose
-              </Button>
-            </InputAdornment>
-          ),
-          readOnly: true,
+        slotProps={{
+          input: {
+            classes: { disabled: css.nonEditableInput },
+            endAdornment: (
+              <InputAdornment position='end'>
+                <Button
+                  color='secondary'
+                  id='chooseExperimentBtn'
+                  onClick={() => setExperimentSelectorOpen(true)}
+                  style={{ padding: '3px 5px', margin: 0 }}
+                >
+                  Choose
+                </Button>
+              </InputAdornment>
+            ),
+            readOnly: true,
+          },
         }}
       />
 
@@ -1019,7 +1025,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         open={experimentSelectorOpen}
         classes={{ paper: css.selectorDialog }}
         onClose={() => setExperimentSelectorOpen(false)}
-        PaperProps={{ id: 'experimentSelectorDialog' }}
+        slotProps={{ paper: { id: 'experimentSelectorDialog' } }}
       >
         {props.isOpenNewExperiment ? (
           <NewExperimentFC onCancel={props.onCancelNewExperiment} {...props} />

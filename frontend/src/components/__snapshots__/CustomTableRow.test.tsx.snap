@@ -9,7 +9,7 @@ exports[`CustomTable > displays warning icon with tooltip if row has error 1`] =
     <svg
       aria-hidden="true"
       aria-label="dummy error"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_fxbzgfm css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_fxbzgfm css-1umw9bq-MuiSvgIcon-root"
       data-mui-internal-clone-element="true"
       data-testid="WarningRoundedIcon"
       focusable="false"

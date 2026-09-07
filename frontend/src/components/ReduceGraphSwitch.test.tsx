@@ -26,20 +26,20 @@ describe('ReduceGraphSwitch', () => {
 
   it('renders the switch in unchecked state by default', () => {
     render(<ReduceGraphSwitch />);
-    const switchInput = screen.getByRole('checkbox');
+    const switchInput = screen.getByRole('switch', { name: 'Simplify Graph' });
     expect(switchInput).not.toBeChecked();
   });
 
   it('renders the switch in checked state when checked prop is true', () => {
     render(<ReduceGraphSwitch checked={true} />);
-    const switchInput = screen.getByRole('checkbox');
+    const switchInput = screen.getByRole('switch', { name: 'Simplify Graph' });
     expect(switchInput).toBeChecked();
   });
 
   it('calls onChange when the switch is toggled', () => {
     const handleChange = vi.fn();
     render(<ReduceGraphSwitch onChange={handleChange} />);
-    const switchInput = screen.getByRole('checkbox');
+    const switchInput = screen.getByRole('switch', { name: 'Simplify Graph' });
     fireEvent.click(switchInput);
     expect(handleChange).toHaveBeenCalled();
   });

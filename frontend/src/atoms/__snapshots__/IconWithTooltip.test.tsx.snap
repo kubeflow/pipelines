@@ -5,7 +5,7 @@ exports[`IconWithTooltip > renders with height and weight 1`] = `
   <svg
     aria-hidden="true"
     aria-label="test icon tooltip"
-    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
     data-mui-internal-clone-element="true"
     data-testid="HelpIcon"
     focusable="false"
@@ -24,7 +24,7 @@ exports[`IconWithTooltip > renders without height or weight 1`] = `
   <svg
     aria-hidden="true"
     aria-label="test icon tooltip"
-    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+    class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
     data-mui-internal-clone-element="true"
     data-testid="HelpIcon"
     focusable="false"

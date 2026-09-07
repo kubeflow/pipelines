@@ -70,6 +70,7 @@ describe('Tensorboard', () => {
     vi.spyOn(Apis, 'getTensorboardApp').mockResolvedValue(GET_APP_NOT_FOUND);
     const { asFragment } = render(<TensorboardViewer configs={[]} />);
     await flushPromisesInAct();
+    expect(screen.getByRole('combobox', { name: 'TF Image' })).toBeInTheDocument();
     expect(asFragment()).toMatchSnapshot();
   });
 

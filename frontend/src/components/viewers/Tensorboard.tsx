@@ -211,8 +211,9 @@ class TensorboardViewer extends Viewer<TensorboardViewerProps, TensorboardViewer
           <div>
             <div className={padding(30, 'b')}>
               <FormControl variant='standard' className={css.formControl}>
-                <InputLabel htmlFor='viewer-tb-image-select'>TF Image</InputLabel>
+                <InputLabel id='viewer-tb-image-label'>TF Image</InputLabel>
                 <Select
+                  labelId='viewer-tb-image-label'
                   variant='standard'
                   className={css.select}
                   value={this.state.tfImage}

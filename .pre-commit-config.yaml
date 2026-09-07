@@ -10,7 +10,8 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
-        exclude: ^manifests/gcp_marketplace/test/
+        # Generated snapshots preserve whitespace in rendered text nodes.
+        exclude: ^manifests/gcp_marketplace/test/|^frontend/src/.*/__snapshots__/.*\.snap$
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test

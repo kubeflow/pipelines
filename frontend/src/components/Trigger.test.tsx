@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
@@ -72,14 +73,14 @@ describe('Trigger', () => {
 
   it('renders periodic schedule controls for initial render', () => {
     const { asFragment, unmount } = render(<Trigger />);
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     unmount();
   });
 
   it('renders periodic schedule controls if the trigger type is CRON', async () => {
     const { asFragment, unmount } = render(<Trigger />);
     await selectOption(getTriggerTypeSelect(), 'Cron');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     unmount();
   });
 
@@ -87,7 +88,7 @@ describe('Trigger', () => {
     const { asFragment, unmount } = render(<Trigger />);
     await selectOption(getTriggerTypeSelect(), 'Cron');
     await selectOption(getIntervalCategorySelect(), 'Week');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     unmount();
   });
 
@@ -96,7 +97,7 @@ describe('Trigger', () => {
     await selectOption(getTriggerTypeSelect(), 'Cron');
     await selectOption(getIntervalCategorySelect(), 'Week');
     fireEvent.click(screen.getByRole('checkbox', { name: 'All' }));
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     unmount();
   });
 
@@ -106,7 +107,7 @@ describe('Trigger', () => {
     await selectOption(getIntervalCategorySelect(), 'Week');
     fireEvent.click(screen.getByRole('button', { name: 'M' }));
     fireEvent.click(screen.getByRole('button', { name: 'W' }));
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
     unmount();
   });
 

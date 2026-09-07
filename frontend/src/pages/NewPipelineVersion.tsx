@@ -309,21 +309,23 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
-                InputProps={{
-                  classes: { disabled: css.nonEditableInput },
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Button
-                        color='secondary'
-                        id='choosePipelineBtn'
-                        onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
-                        style={{ padding: '3px 5px', margin: 0 }}
-                      >
-                        Choose
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  readOnly: true,
+                slotProps={{
+                  input: {
+                    classes: { disabled: css.nonEditableInput },
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <Button
+                          color='secondary'
+                          id='choosePipelineBtn'
+                          onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
+                          style={{ padding: '3px 5px', margin: 0 }}
+                        >
+                          Choose
+                        </Button>
+                      </InputAdornment>
+                    ),
+                    readOnly: true,
+                  },
                 }}
               />
 
@@ -427,23 +429,25 @@ export class NewPipelineVersion extends Page<NewPipelineVersionProps, NewPipelin
                 variant='outlined'
                 disabled={importMethod === ImportMethod.URL}
                 // Find a better to align this input box with others
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position='end'>
-                      <Button
-                        color='secondary'
-                        onClick={() => this._dropzoneRef.current!.open()}
-                        style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
-                        disabled={importMethod === ImportMethod.URL}
-                      >
-                        Choose file
-                      </Button>
-                    </InputAdornment>
-                  ),
-                  readOnly: true,
-                  style: {
-                    maxWidth: 2000,
-                    width: 455,
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position='end'>
+                        <Button
+                          color='secondary'
+                          onClick={() => this._dropzoneRef.current!.open()}
+                          style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
+                          disabled={importMethod === ImportMethod.URL}
+                        >
+                          Choose file
+                        </Button>
+                      </InputAdornment>
+                    ),
+                    readOnly: true,
+                    style: {
+                      maxWidth: 2000,
+                      width: 455,
+                    },
                   },
                 }}
               />

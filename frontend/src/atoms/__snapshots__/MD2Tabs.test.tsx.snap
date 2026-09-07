@@ -13,7 +13,7 @@ exports[`MD2Tabs > gracefully handles an out of bound selectedTab value 1`] = `
     />
     <button
       aria-label=""
-      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-dizc30-MuiButtonBase-root-MuiButton-root"
       data-mui-internal-clone-element="true"
       tabindex="0"
       type="button"
@@ -21,13 +21,10 @@ exports[`MD2Tabs > gracefully handles an out of bound selectedTab value 1`] = `
       <span>
         tab1
       </span>
-      <span
-        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-      />
     </button>
     <button
       aria-label=""
-      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i css-dizc30-MuiButtonBase-root-MuiButton-root"
       data-mui-internal-clone-element="true"
       tabindex="0"
       type="button"
@@ -35,9 +32,6 @@ exports[`MD2Tabs > gracefully handles an out of bound selectedTab value 1`] = `
       <span>
         tab2
       </span>
-      <span
-        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-      />
     </button>
   </div>
 </DocumentFragment>
@@ -56,7 +50,7 @@ exports[`MD2Tabs > renders with the right styles by default 1`] = `
     />
     <button
       aria-label=""
-      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i active_fz0wpsl css-dizc30-MuiButtonBase-root-MuiButton-root"
       data-mui-internal-clone-element="true"
       tabindex="0"
       type="button"
@@ -64,13 +58,10 @@ exports[`MD2Tabs > renders with the right styles by default 1`] = `
       <span>
         tab1
       </span>
-      <span
-        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-      />
     </button>
     <button
       aria-label=""
-      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_ff2g68i css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+      class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_ff2g68i css-dizc30-MuiButtonBase-root-MuiButton-root"
       data-mui-internal-clone-element="true"
       tabindex="0"
       type="button"
@@ -78,9 +69,6 @@ exports[`MD2Tabs > renders with the right styles by default 1`] = `
       <span>
         tab2
       </span>
-      <span
-        class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-      />
     </button>
   </div>
 </DocumentFragment>

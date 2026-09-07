@@ -10,7 +10,7 @@ exports[`Banner > defaults to error mode 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="ErrorIcon"
         focusable="false"
         viewBox="0 0 24 24"
@@ -38,7 +38,7 @@ exports[`Banner > shows "Details" button and has dialog when there is additional
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="ErrorIcon"
         focusable="false"
         viewBox="0 0 24 24"
@@ -53,14 +53,11 @@ exports[`Banner > shows "Details" button and has dialog when there is additional
       class="flex_f16jawj4"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_fu86r2b detailsButton_fgq2mjo css-dizc30-MuiButtonBase-root-MuiButton-root"
         tabindex="0"
         type="button"
       >
         Details
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
     </div>
   </div>
@@ -77,7 +74,7 @@ exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="ErrorIcon"
         focusable="false"
         viewBox="0 0 24 24"
@@ -92,14 +89,11 @@ exports[`Banner > shows "Refresh" button when passed a refresh function 1`] = `
       class="flex_f16jawj4"
     >
       <button
-        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary button_fu86r2b refreshButton_fgq2mjo css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+        class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary button_fu86r2b refreshButton_fgq2mjo css-dizc30-MuiButtonBase-root-MuiButton-root"
         tabindex="0"
         type="button"
       >
         Refresh
-        <span
-          class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-        />
       </button>
     </div>
   </div>
@@ -116,7 +110,7 @@ exports[`Banner > uses error mode when instructed 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="ErrorIcon"
         focusable="false"
         viewBox="0 0 24 24"
@@ -144,7 +138,7 @@ exports[`Banner > uses info mode when instructed 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="InfoIcon"
         focusable="false"
         viewBox="0 0 24 24"
@@ -172,7 +166,7 @@ exports[`Banner > uses warning mode when instructed 1`] = `
     >
       <svg
         aria-hidden="true"
-        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-i4bv87-MuiSvgIcon-root"
+        class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1jqzauf css-1umw9bq-MuiSvgIcon-root"
         data-testid="WarningIcon"
         focusable="false"
         viewBox="0 0 24 24"

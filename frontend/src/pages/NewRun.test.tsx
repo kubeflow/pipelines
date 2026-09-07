@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { NewRun } from 'src/pages/NewRun';
@@ -449,7 +450,7 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...generateProps()} />);
     await flushPromisesInAct();
 
-    expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
   });
 
   it('does not include any action buttons in the toolbar', async () => {
@@ -544,7 +545,7 @@ describe('NewRun', () => {
 
     await updateRecurringRunStateAndFlush(tree.instance() as TestNewRun, true);
 
-    expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
   });
 
   it('changes title and form to default state if the new run is a one-off, based on the radio buttons', async () => {
@@ -556,7 +557,7 @@ describe('NewRun', () => {
 
     await updateRecurringRunStateAndFlush(tree.instance() as TestNewRun, false);
 
-    expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
   });
 
   it('exits to the AllRuns page if there is no associated experiment', async () => {
@@ -590,7 +591,7 @@ describe('NewRun', () => {
 
     expect(tree.state()).toHaveProperty('experiment', MOCK_EXPERIMENT);
     expect(tree.state()).toHaveProperty('experimentName', MOCK_EXPERIMENT.name);
-    expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
   });
 
   it('updates the breadcrumb with the associated experiment if one is present in the query params', async () => {
@@ -638,7 +639,7 @@ describe('NewRun', () => {
     tree = await renderNewRunElement(<TestNewRun {...props} />);
     await flushPromisesInAct();
 
-    expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
   });
 
   it('shows a page error if getExperiment fails', async () => {
@@ -1521,7 +1522,7 @@ describe('NewRun', () => {
 
       expect(tree.state('useWorkflowFromRun')).toBe(true);
       expect(tree.state('usePipelineFromRunLabel')).toBe('Using pipeline from previous page.');
-      expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+      expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
     });
 
     it('retrieves the run with the embedded pipeline', async () => {
@@ -2132,7 +2133,7 @@ describe('NewRun', () => {
       tree = await renderNewRunElement(<TestNewRun {...props} />);
       await flushPromisesInAct();
 
-      expect(tree.getRenderResult().asFragment()).toMatchSnapshot();
+      expect(stableMuiSnapshotFragment(tree.getRenderResult().asFragment())).toMatchSnapshot();
     });
 
     it("sends a request to start a new recurring run with default periodic schedule when 'Start' is clicked", async () => {

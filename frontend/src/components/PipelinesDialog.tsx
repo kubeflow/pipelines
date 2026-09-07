@@ -124,7 +124,7 @@ const PipelinesDialog: React.FC<PipelinesDialogProps> = (props): React.JSX.Eleme
       open={props.open}
       classes={{ paper: props.selectorDialog }}
       onClose={() => closeAndResetState()}
-      PaperProps={{ id: 'pipelineSelectorDialog' }}
+      slotProps={{ paper: { id: 'pipelineSelectorDialog' } }}
     >
       <DialogContent>
         {getToolbar()}

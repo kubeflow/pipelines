@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { stableMuiSnapshotFragment } from 'src/testUtils/muiSnapshot';
 import EnhancedExperimentDetails, { ExperimentDetails } from './ExperimentDetails';
 import TestUtils, { flushPromisesInAct, invokeAndFlush } from 'src/TestUtils';
 import { V2beta1Experiment, V2beta1ExperimentStorageState } from 'src/apisv2beta1/experiment';
@@ -150,7 +151,7 @@ describe('ExperimentDetails', () => {
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
     expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('uses the experiment ID in props as the page title if the experiment has no name', async () => {
@@ -199,7 +200,7 @@ describe('ExperimentDetails', () => {
     const { asFragment } = await renderExperimentDetails();
     await waitForExperimentLoad();
     await screen.findByText('No available runs found for this experiment.');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   });
 
   it('removes all description text after second newline and replaces with an ellipsis', async () => {
@@ -297,7 +298,7 @@ describe('ExperimentDetails', () => {
     );
     screen.getByText('1 active');
     await screen.findByText('No available runs found for this experiment.');
-    expect(asFragment()).toMatchSnapshot();
+    expect(stableMuiSnapshotFragment(asFragment())).toMatchSnapshot();
   }, 20000);
 
   it("shows an error banner if fetching the experiment's recurring runs fails", async () => {

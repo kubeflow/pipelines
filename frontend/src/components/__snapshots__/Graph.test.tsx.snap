@@ -23,7 +23,7 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -53,7 +53,7 @@ exports[`Graph > gracefully renders a graph with a selected node id that does no
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -110,7 +110,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -140,7 +140,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -170,7 +170,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -200,7 +200,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -230,7 +230,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -260,7 +260,7 @@ exports[`Graph > renders a complex graph with six nodes and seven edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -441,7 +441,7 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -464,7 +464,7 @@ exports[`Graph > renders a graph with a placeholder node and edge 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -513,7 +513,7 @@ exports[`Graph > renders a graph with a selected node 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -543,7 +543,7 @@ exports[`Graph > renders a graph with a selected node 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -600,7 +600,7 @@ exports[`Graph > renders a graph with colored edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -630,7 +630,7 @@ exports[`Graph > renders a graph with colored edges 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -687,7 +687,7 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -717,7 +717,7 @@ exports[`Graph > renders a graph with colored nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -756,7 +756,7 @@ exports[`Graph > renders a graph with one node 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -795,7 +795,7 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -825,7 +825,7 @@ exports[`Graph > renders a graph with two connectd nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -882,7 +882,7 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -912,7 +912,7 @@ exports[`Graph > renders a graph with two connectd nodes in reverse order 1`] = 
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -969,7 +969,7 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"
@@ -999,7 +999,7 @@ exports[`Graph > renders a graph with two disparate nodes 1`] = `
         <svg
           aria-hidden="true"
           aria-label="Test icon tooltip"
-          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+          class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
           data-mui-internal-clone-element="true"
           data-testid="CheckCircleIcon"
           focusable="false"

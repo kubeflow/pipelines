@@ -206,7 +206,9 @@ describe('CustomTable', () => {
     expect(col1Label.closest('.MuiTableSortLabel-root')).toHaveClass('Mui-active');
     const sortIcon = document.querySelector('.MuiTableSortLabel-icon');
     expect(sortIcon).not.toBeNull();
-    expect(sortIcon).toHaveClass('MuiTableSortLabel-iconDirectionDesc');
+    expect(col1Label.closest('.MuiTableSortLabel-root')).toHaveClass(
+      'MuiTableSortLabel-directionDesc',
+    );
     wrapper.unmount();
   });
 

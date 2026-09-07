@@ -103,10 +103,10 @@ describe('SideNav', () => {
     const docsButton = renderResult.getByRole('button', { name: 'Documentation' });
     const docsLink = docsButton.closest('a');
 
-    expect(pipelinesButton).toHaveClass('MuiButton-textInherit');
-    expect(pipelinesButton).not.toHaveClass('MuiButton-textPrimary');
-    expect(docsButton).toHaveClass('MuiButton-textInherit');
-    expect(docsButton).not.toHaveClass('MuiButton-textPrimary');
+    expect(pipelinesButton).toHaveClass('MuiButton-text', 'MuiButton-colorInherit');
+    expect(pipelinesButton).not.toHaveClass('MuiButton-colorPrimary');
+    expect(docsButton).toHaveClass('MuiButton-text', 'MuiButton-colorInherit');
+    expect(docsButton).not.toHaveClass('MuiButton-colorPrimary');
     expect(docsLink).toHaveAttribute('href', ExternalLinks.DOCUMENTATION);
     expect(docsLink).toHaveAttribute('target', '_blank');
     expect(docsLink).toHaveAttribute('rel', 'noopener noreferrer');

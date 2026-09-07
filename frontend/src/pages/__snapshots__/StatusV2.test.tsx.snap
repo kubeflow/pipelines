@@ -8,7 +8,7 @@ exports[`Status > statusToIcon > displays start and end dates if both are provid
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
@@ -30,7 +30,7 @@ exports[`Status > statusToIcon > does not display a end date if none was provide
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
@@ -52,7 +52,7 @@ exports[`Status > statusToIcon > does not display a start date if none was provi
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
@@ -74,7 +74,7 @@ exports[`Status > statusToIcon > does not display any dates if neither was provi
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
@@ -176,7 +176,7 @@ exports[`Status > statusToIcon > handles FAILED state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
@@ -198,7 +198,7 @@ exports[`Status > statusToIcon > handles PENDING state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
@@ -261,7 +261,7 @@ exports[`Status > statusToIcon > handles SKIPPED state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
@@ -283,7 +283,7 @@ exports[`Status > statusToIcon > handles SUCCEEDED state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"
@@ -305,7 +305,7 @@ exports[`Status > statusToIcon > handles an undefined state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
@@ -327,7 +327,7 @@ exports[`Status > statusToIcon > handles an unknown state 1`] = `
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
@@ -429,7 +429,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: FAILED 
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(213, 0, 0); height: 18px; width: 18px;"
@@ -451,7 +451,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: PAUSED 
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
@@ -476,7 +476,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: PENDING
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(154, 160, 166); height: 18px; width: 18px;"
@@ -539,7 +539,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: RUNTIME
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
@@ -561,7 +561,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: SKIPPED
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(95, 99, 104); height: 18px; width: 18px;"
@@ -583,7 +583,7 @@ exports[`Status > statusToIcon > renders an icon with tooltip for phase: SUCCEED
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
       data-testid="node-status-sign"
       focusable="false"
       style="color: rgb(52, 168, 83); height: 18px; width: 18px;"

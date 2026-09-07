@@ -7,54 +7,53 @@ exports[`PagedTable > does not break on empty data 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         />
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 300px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -64,13 +63,14 @@ exports[`PagedTable > does not break on empty data 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -81,16 +81,16 @@ exports[`PagedTable > does not break on empty data 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           0–0 of 0
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -98,7 +98,7 @@ exports[`PagedTable > does not break on empty data 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -110,7 +110,7 @@ exports[`PagedTable > does not break on empty data 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -118,7 +118,7 @@ exports[`PagedTable > does not break on empty data 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -144,23 +144,23 @@ exports[`PagedTable > renders simple data 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         >
           <th
             aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -168,7 +168,7 @@ exports[`PagedTable > renders simple data 1`] = `
               field1
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -180,12 +180,12 @@ exports[`PagedTable > renders simple data 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -193,7 +193,7 @@ exports[`PagedTable > renders simple data 1`] = `
               field2
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -205,12 +205,12 @@ exports[`PagedTable > renders simple data 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -218,7 +218,7 @@ exports[`PagedTable > renders simple data 1`] = `
               field3
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -232,83 +232,82 @@ exports[`PagedTable > renders simple data 1`] = `
         </tr>
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col3
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col6
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 240px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -318,13 +317,14 @@ exports[`PagedTable > renders simple data 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -335,16 +335,16 @@ exports[`PagedTable > renders simple data 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           1–2 of 2
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -352,7 +352,7 @@ exports[`PagedTable > renders simple data 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -364,7 +364,7 @@ exports[`PagedTable > renders simple data 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -372,7 +372,7 @@ exports[`PagedTable > renders simple data 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -396,94 +396,93 @@ exports[`PagedTable > renders simple data without labels 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         />
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col3
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col6
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 240px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -493,13 +492,14 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -510,16 +510,16 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           1–2 of 2
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -527,7 +527,7 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -539,7 +539,7 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -547,7 +547,7 @@ exports[`PagedTable > renders simple data without labels 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -571,23 +571,23 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         >
           <th
             aria-sort="ascending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -595,7 +595,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
               field1
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -607,12 +607,12 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -620,7 +620,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
               field2
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -632,12 +632,12 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionAsc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -645,7 +645,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
               field3
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionAsc css-1vweko9-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-7ojauk-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -659,83 +659,82 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
         </tr>
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col3
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col6
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 240px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -745,13 +744,14 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -762,16 +762,16 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           1–2 of 2
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -779,7 +779,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -791,7 +791,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -799,7 +799,7 @@ exports[`PagedTable > sorts on first column ascending 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -823,23 +823,23 @@ exports[`PagedTable > sorts on first column descending 1`] = `
     style="width: 100%;"
   >
     <table
-      class="MuiTable-root css-rqglhn-MuiTable-root"
+      class="MuiTable-root css-1xwxv7r-MuiTable-root"
       style="display: block; overflow: auto;"
     >
       <thead
-        class="MuiTableHead-root css-15wwp11-MuiTableHead-root"
+        class="MuiTableHead-root css-1a7iywq-MuiTableHead-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-head css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-head css-1xtozoh-MuiTableRow-root"
         >
           <th
             aria-sort="descending"
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root Mui-active MuiTableSortLabel-directionDesc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -847,7 +847,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
               field1
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -859,12 +859,12 @@ exports[`PagedTable > sorts on first column descending 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionDesc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -872,7 +872,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
               field2
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -884,12 +884,12 @@ exports[`PagedTable > sorts on first column descending 1`] = `
             </span>
           </th>
           <th
-            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1ygcj2i-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-head MuiTableCell-sizeMedium columnName_ft4szt2 css-1orzuox-MuiTableCell-root"
             scope="col"
           >
             <span
               aria-label="Sort"
-              class="MuiButtonBase-root MuiTableSortLabel-root css-1qgma8u-MuiButtonBase-root-MuiTableSortLabel-root"
+              class="MuiButtonBase-root MuiTableSortLabel-root MuiTableSortLabel-directionDesc css-12l68kz-MuiButtonBase-root-MuiTableSortLabel-root"
               data-mui-internal-clone-element="true"
               role="button"
               tabindex="0"
@@ -897,7 +897,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
               field3
               <svg
                 aria-hidden="true"
-                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon MuiTableSortLabel-iconDirectionDesc css-3l415a-MuiSvgIcon-root-MuiTableSortLabel-icon"
+                class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiTableSortLabel-icon css-asweb8-MuiSvgIcon-root-MuiTableSortLabel-icon"
                 data-testid="ArrowDownwardIcon"
                 focusable="false"
                 viewBox="0 0 24 24"
@@ -911,83 +911,82 @@ exports[`PagedTable > sorts on first column descending 1`] = `
         </tr>
       </thead>
       <tbody
-        class="MuiTableBody-root css-apqrd9-MuiTableBody-root"
+        class="MuiTableBody-root css-gmh7jj-MuiTableBody-root"
       >
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col4
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col5
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col6
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root MuiTableRow-hover row_ftg8rvr css-1xtozoh-MuiTableRow-root"
           tabindex="-1"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col1
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col2
           </td>
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium cell_f1gb9as5 css-1dc80h3-MuiTableCell-root"
           >
             col3
           </td>
         </tr>
         <tr
-          class="MuiTableRow-root css-1q1u3t4-MuiTableRow-root"
+          class="MuiTableRow-root css-1xtozoh-MuiTableRow-root"
           style="height: 240px;"
         >
           <td
-            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1ex1afd-MuiTableCell-root"
+            class="MuiTableCell-root MuiTableCell-body MuiTableCell-sizeMedium css-1dc80h3-MuiTableCell-root"
             colspan="6"
           />
         </tr>
       </tbody>
     </table>
     <div
-      class="MuiTablePagination-root css-jtlhu6-MuiTablePagination-root"
+      class="MuiTablePagination-root css-7mt0f-MuiTablePagination-root"
     >
       <div
-        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-78c6dr-MuiToolbar-root-MuiTablePagination-toolbar"
+        class="MuiToolbar-root MuiToolbar-gutters MuiToolbar-regular MuiTablePagination-toolbar css-1gak8h1-MuiToolbar-root-MuiTablePagination-toolbar"
       >
         <div
-          class="MuiTablePagination-spacer css-1psng7p-MuiTablePagination-spacer"
+          class="MuiTablePagination-spacer css-1wtxofq-MuiTablePagination-spacer"
         />
         <p
-          class="MuiTablePagination-selectLabel css-pdct74-MuiTablePagination-selectLabel"
+          class="MuiTablePagination-selectLabel css-s09cke-MuiTablePagination-selectLabel"
           id="react-use-id-0"
         >
           Rows per page:
         </p>
         <div
-          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-input css-16c50h-MuiInputBase-root-MuiTablePagination-select"
+          class="MuiInputBase-root MuiInputBase-colorPrimary MuiTablePagination-select MuiSelect-root MuiTablePagination-input css-1bw1xoo-MuiInputBase-root-MuiTablePagination-select"
         >
           <div
-            aria-controls="react-use-id-2"
             aria-expanded="false"
             aria-haspopup="listbox"
-            aria-labelledby="react-use-id-0 react-use-id-1"
-            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-194a1fa-MuiSelect-select-MuiInputBase-input"
+            aria-labelledby="react-use-id-0"
+            class="MuiSelect-select MuiTablePagination-select MuiSelect-standard MuiInputBase-input css-gxx9cp-MuiNativeSelect-root-MuiSelect-select-MuiInputBase-input"
             id="react-use-id-1"
             role="combobox"
             tabindex="0"
@@ -997,13 +996,14 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           <input
             aria-hidden="true"
             aria-invalid="false"
-            class="MuiSelect-nativeInput css-yf8vq0-MuiSelect-nativeInput"
+            class="MuiSelect-nativeInput css-j0riat-MuiSelect-nativeInput"
+            id="react-use-id-2"
             tabindex="-1"
             value="10"
           />
           <svg
             aria-hidden="true"
-            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon MuiSelect-iconStandard css-pqjvzy-MuiSvgIcon-root-MuiSelect-icon"
+            class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium MuiSelect-icon MuiTablePagination-selectIcon css-ug7h84-MuiSvgIcon-root-MuiNativeSelect-root-MuiSelect-icon"
             data-testid="ArrowDropDownIcon"
             focusable="false"
             viewBox="0 0 24 24"
@@ -1014,16 +1014,16 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           </svg>
         </div>
         <p
-          class="MuiTablePagination-displayedRows css-levciy-MuiTablePagination-displayedRows"
+          class="MuiTablePagination-displayedRows css-11cfq65-MuiTablePagination-displayedRows"
         >
           1–2 of 2
         </p>
         <div
-          class="MuiTablePagination-actions"
+          class="MuiTablePaginationActions-root MuiTablePagination-actions css-sjsoon-MuiTablePaginationActions-root"
         >
           <button
             aria-label="Go to previous page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to previous page"
@@ -1031,7 +1031,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowLeftIcon"
               focusable="false"
               viewBox="0 0 24 24"
@@ -1043,7 +1043,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           </button>
           <button
             aria-label="Go to next page"
-            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-zylse7-MuiButtonBase-root-MuiIconButton-root"
+            class="MuiButtonBase-root Mui-disabled MuiIconButton-root Mui-disabled MuiIconButton-colorInherit MuiIconButton-sizeMedium css-e9aoga-MuiButtonBase-root-MuiIconButton-root"
             disabled=""
             tabindex="-1"
             title="Go to next page"
@@ -1051,7 +1051,7 @@ exports[`PagedTable > sorts on first column descending 1`] = `
           >
             <svg
               aria-hidden="true"
-              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-i4bv87-MuiSvgIcon-root"
+              class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium css-1umw9bq-MuiSvgIcon-root"
               data-testid="KeyboardArrowRightIcon"
               focusable="false"
               viewBox="0 0 24 24"
