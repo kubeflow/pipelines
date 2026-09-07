@@ -685,5 +685,30 @@ class TestEmbeddedArtifactSymlinkResolution(unittest.TestCase):
                     pass
 
 
+class TestEmbeddedArchiveExtractionFilter(unittest.TestCase):
+    """Generated helpers must route extraction through the safe extractor."""
+
+    def _assert_uses_safe_extractor(self, source: str) -> None:
+        self.assertIn('def __kfp_safe_extract', source)
+        self.assertIn('__kfp_safe_extract(__kfp_tar, __KFP_EMBEDDED_ASSET_DIR)',
+                      source)
+        self.assertNotIn('__kfp_tar.extractall(', source)
+        compile(source, '<generated>', 'exec')
+
+    def test_component_helper_uses_safe_extractor(self):
+        self._assert_uses_safe_extractor(
+            component_factory._generate_shared_extraction_helper('QkFTRTY0'))
+
+    def test_component_helper_with_single_file_uses_safe_extractor(self):
+        self._assert_uses_safe_extractor(
+            component_factory._generate_shared_extraction_helper(
+                'QkFTRTY0', 'asset.txt'))
+
+    def test_notebook_helper_uses_safe_extractor(self):
+        from kfp.dsl.templates.notebook_executor import get_notebook_executor_source
+        self._assert_uses_safe_extractor(
+            get_notebook_executor_source('QkFTRTY0', 'nb.ipynb'))
+
+
 if __name__ == '__main__':
     unittest.main()
