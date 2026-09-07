@@ -92,18 +92,37 @@ test('matrix capture proves distinct fixture values in the correct panels', () =
       resolveSemanticScenarios(role, SEED_VALUES),
       'compare-confusion-matrix',
     ).actions.find((action) => action.predicate?.name === 'comparisonMatricesReady').predicate;
-    const evaluate = (matrices) =>
+    const evaluate = (matrices, withLayoutTable = false) =>
       vm.runInNewContext(`(${predicate.toString()})()`, {
         document: {
-          querySelectorAll: () =>
-            matrices.map((cells) => ({
+          querySelectorAll: () => [
+            ...(withLayoutTable
+              ? [
+                  {
+                    textContent: 'predicted-negative predicted-positive',
+                    getBoundingClientRect: () => ({ width: 700 }),
+                    querySelector: () => ({}),
+                    querySelectorAll: () =>
+                      matrices.flat().map((cell) => ({ textContent: String(cell) })),
+                  },
+                ]
+              : []),
+            ...matrices.map((cells) => ({
               textContent: 'predicted-negative predicted-positive',
               getBoundingClientRect: () => ({ width: 300 }),
+              querySelector: () => null,
               querySelectorAll: () => cells.map((cell) => ({ textContent: String(cell) })),
             })),
+          ],
         },
       });
     assert.equal(evaluate(expected), true);
+    assert.equal(evaluate(expected, true), true, 'legacy layout table is not another matrix');
+    assert.equal(
+      evaluate([expected[0], expected[0]], true),
+      false,
+      'layout must not hide stale second panel',
+    );
     assert.equal(evaluate([expected[0], expected[0]]), false, 'reused first matrix must fail');
     assert.equal(evaluate([...expected].reverse()), false, 'swapped panels must fail');
     assert.equal(evaluate([expected[0]]), false, 'missing panel must fail');

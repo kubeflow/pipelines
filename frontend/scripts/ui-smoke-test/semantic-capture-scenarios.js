@@ -396,7 +396,11 @@ function comparisonMatricesReady() {
   ];
   const tables = Array.from(document.querySelectorAll('#root table')).filter(
     (table) =>
-      table.textContent.includes('predicted-negative') && table.getBoundingClientRect().width > 0,
+      // Legacy Compare wraps both viewers in a layout table. Only the leaf matrix tables
+      // contain one panel's cells; counting ancestors would reject correctly rendered pairs.
+      !table.querySelector('table') &&
+      table.textContent.includes('predicted-negative') &&
+      table.getBoundingClientRect().width > 0,
   );
   return (
     tables.length === expected.length &&
