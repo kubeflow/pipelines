@@ -123,7 +123,7 @@
     "@types/d3-dsv": "^3.0.7",
     "@types/dagre": "^0.7.40",
     "@types/express": "^5.0.6",
-    "@types/google-protobuf": "^3.7.2",
+    "@types/google-protobuf": "^3.15.12",
     "@types/js-yaml": "^3.12.3",
     "@types/lodash": ">=4.14.117",
     "@types/node": "^20.19.28",
