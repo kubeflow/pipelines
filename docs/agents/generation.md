@@ -14,6 +14,7 @@ Never edit generated files. Update their source and regenerate them.
 - `api/v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py` is generated but not committed.
 - For backend generator changes, use `USE_PREBUILT_IMAGE=false make -C backend/api API_VERSION=<version> generate`.
 - Go-based API generator versions are selected by the root `go.mod` when they must match runtime libraries, or by `backend/api/tools/go.mod` for standalone tooling.
+- Register standalone Go tools with a `tool` directive in `backend/api/tools/go.mod` and commit its tidied `go.mod` and `go.sum`. A bare `require` is removed by Dependabot's `go mod tidy`, even when the Dockerfile downloads that tool's binary.
 - `backend/api/v2beta1/python_http_client` is generated from `kfp_api_single_file.swagger.json` with `cd backend/api && make generate-kfp-server-api-package`.
 - v1beta1 Python HTTP client generation omits OpenAPI API/model test stubs and their unused tox configuration; the generated package excludes the stubs and the repository does not execute them.
 - Frontend CI runs `bash scripts/check-spec-generation.sh` from `frontend` with `protoc` installed. It generates pipeline and Kubernetes platform types in a temporary directory and compiles both with the installed TypeScript/compiler dependencies. The individual generation scripts accept `PROTO_OUT_DIR` for isolated verification; ordinary generation still writes the committed source directories.
