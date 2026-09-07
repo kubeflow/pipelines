@@ -22,6 +22,20 @@ make ginkgo
 export PATH="$PWD/bin:$PATH"
 ```
 
+## Upgrade Go
+
+The effective compiler in the root `go.mod` is the repository-wide Go version.
+Update all managed module and builder-image pins with:
+
+```bash
+make update-go-version GO_VERSION=1.X.Y
+```
+
+Then review the diff and run `make check-go-version`. The deliberately narrow
+managed forms and explicit non-goals are documented in
+[`go-version-policy.md`](go-version-policy.md); register new locations instead
+of expanding the updater into a language interpreter.
+
 ## Local clusters
 
 | Need | Command |

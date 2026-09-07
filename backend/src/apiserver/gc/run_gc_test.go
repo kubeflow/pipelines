@@ -82,6 +82,14 @@ func (f *fakeRunStore) UpdateRunIfRuntimeManifestsUnchanged(
 ) (bool, error) {
 	return true, nil
 }
+func (f *fakeRunStore) UpdateRunFromWorkflow(
+	_ *model.Run,
+	_ model.RuntimeState,
+	_ model.LargeText,
+	_ model.LargeText,
+) (bool, error) {
+	return true, nil
+}
 func (f *fakeRunStore) UpdateRunPluginsOutput(_ string, _ *model.LargeText) error { return nil }
 func (f *fakeRunStore) ArchiveRun(_ string) error                                 { return nil }
 func (f *fakeRunStore) UnarchiveRun(_ string) error                               { return nil }

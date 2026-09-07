@@ -15,13 +15,27 @@
  */
 
 import { Api } from './Api';
-import { MetadataStoreServicePromiseClient } from 'src/third_party/mlmd';
+import * as Mlmd from 'src/third_party/mlmd';
 
 describe('Api', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('Returns a singleton instance', () => {
+    const clientConstructorSpy = vi.spyOn(Mlmd, 'MetadataStoreServicePromiseClient');
+
     const api = Api.getInstance();
     expect(api).toBeInstanceOf(Api);
-    expect(api.metadataStoreService).toBeInstanceOf(MetadataStoreServicePromiseClient);
+    expect(api.metadataStoreService).toBeInstanceOf(Mlmd.MetadataStoreServicePromiseClient);
     expect(api).toBe(Api.getInstance());
+    expect(clientConstructorSpy).toHaveBeenCalledTimes(1);
+    expect(clientConstructorSpy).toHaveBeenCalledWith(
+      '',
+      null,
+      expect.objectContaining({
+        maxReceiveMessageSize: 100 * 1024 * 1024,
+      }),
+    );
   });
 });

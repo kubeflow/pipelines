@@ -2002,12 +2002,14 @@ func (r *ResourceManager) reportWorkflowResource(
 	}
 	var expectedWorkflowRuntimeManifest model.LargeText
 	var expectedPipelineRuntimeManifest model.LargeText
+	var expectedState model.RuntimeState
 	var verifiedExistingWorkflow util.ExecutionSpec
 	existingWorkflowMissing := false
 	var expectedStoredWorkflowIdentityManifest model.LargeText
 	if updateError == nil {
 		expectedWorkflowRuntimeManifest = run.WorkflowRuntimeManifest
 		expectedPipelineRuntimeManifest = run.PipelineRuntimeManifest
+		expectedState = run.State
 		expectedStoredWorkflowIdentityManifest = storedWorkflowIdentityManifest(run)
 		legacySingleUserRow := !common.IsMultiUserMode() && r.IsEmptyNamespace(run.Namespace)
 		var legacyStoredIdentity storedWorkflowIdentity
@@ -2345,11 +2347,20 @@ func (r *ResourceManager) reportWorkflowResource(
 		run.FinishedAtInSec = execStatus.FinishedAt()
 		run.WorkflowRuntimeManifest = model.LargeText(execSpec.ToStringForStore())
 		var updated bool
-		updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
-			run,
-			expectedWorkflowRuntimeManifest,
-			expectedPipelineRuntimeManifest,
-		)
+		if execStatus.IsInFinalState() {
+			updated, updateError = r.runStore.UpdateRunIfRuntimeManifestsUnchanged(
+				run,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+			)
+		} else {
+			updated, updateError = r.runStore.UpdateRunFromWorkflow(
+				run,
+				expectedState,
+				expectedWorkflowRuntimeManifest,
+				expectedPipelineRuntimeManifest,
+			)
+		}
 		if updateError != nil {
 			return nil, util.Wrapf(updateError, "Failed to report a workflow for existing run %s during updating the run. Check if the run entry is corrupted", runId)
 		}

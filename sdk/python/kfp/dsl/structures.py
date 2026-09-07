@@ -23,13 +23,11 @@ import uuid
 
 from google.protobuf import json_format
 import kfp
+from kfp.dsl import container_component_artifact_channel as artifact_channel
 from kfp.dsl import placeholders
 from kfp.dsl import utils
 from kfp.dsl import v1_structures
 from kfp.dsl.component_task_config import TaskConfigPassthrough
-from kfp.dsl.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
-from kfp.dsl.task_config import TaskConfig
 from kfp.dsl.types import artifact_types
 from kfp.dsl.types import type_annotations
 from kfp.dsl.types import type_utils
@@ -511,7 +509,7 @@ def check_placeholder_references_valid_io_name(
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(arg, ContainerComponentArtifactChannel):
+    if isinstance(arg, artifact_channel.ContainerComponentArtifactChannel):
         raise ValueError(
             'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
         )
@@ -858,23 +856,29 @@ class ComponentSpec:
 
         def extract_description(component_yaml: str) -> Optional[str]:
             heading = '# Description: '
-            multi_line_description_prefix = '#             '
-            index_of_heading = 2
-            if heading in component_yaml:
-                description = component_yaml.splitlines()[index_of_heading]
+            multi_line_description_prefix = '#              '
+            lines = component_yaml.splitlines()
+            index_of_heading = None
+            for i, line in enumerate(lines):
+                if line.startswith(heading):
+                    index_of_heading = i
+                    break
 
-                # Multi line
-                comments = component_yaml.splitlines()
-                index = index_of_heading + 1
-                while comments[index][:len(multi_line_description_prefix
-                                          )] == multi_line_description_prefix:
-                    description += '\n' + comments[index][
-                        len(multi_line_description_prefix) + 1:]
-                    index += 1
-
-                return description[len(heading):]
-            else:
+            if index_of_heading is None:
                 return None
+
+            description = lines[index_of_heading]
+            index = index_of_heading + 1
+            while index < len(lines):
+                line = lines[index]
+                if line.startswith(multi_line_description_prefix):
+                    description += '\n' + line[len(multi_line_description_prefix
+                                                  ):]
+                    index += 1
+                else:
+                    break
+
+            return description[len(heading):]
 
         pipeline_spec_dict, platform_spec_dict = load_documents_from_yaml(
             component_yaml)
@@ -1017,6 +1021,7 @@ class ComponentSpec:
 
 def normalize_time_string(duration: str) -> str:
     """Normalizes a time string.
+
         Examples:
             - '1 hour' -> '1h'
             - '2 hours' -> '2h'

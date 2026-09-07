@@ -9,12 +9,14 @@ set -ex
 # Convert buffer to runtime object using protoc
 # Download google protos as dependencies.
 mkdir -p ../api/v2alpha1/google/rpc/
-curl https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto -o ../api/v2alpha1/google/rpc/status.proto 
+curl --fail --show-error --location https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto -o ../api/v2alpha1/google/rpc/status.proto
 
+output_dir=${PROTO_OUT_DIR:-./src/generated/pipeline_spec}
+mkdir -p "$output_dir"
 
 protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto \
        --ts_proto_opt="esModuleInterop=true" \
-       --ts_proto_out="./src/generated/pipeline_spec" \
+       --ts_proto_out="$output_dir" \
        --proto_path="../api/v2alpha1" \
        ../api/v2alpha1/pipeline_spec.proto ../api/v2alpha1/google/rpc/status.proto -I.
 

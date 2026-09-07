@@ -23,6 +23,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	apiv2 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -150,6 +151,49 @@ func TestReportWorkflow(t *testing.T) {
 	run, err = resourceManager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	assert.NotNil(t, run)
+}
+
+func TestReportWorkflow_DoesNotPersistTasksFromStalePreTerminationSnapshot(t *testing.T) {
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	reportServer := NewReportServer(resourceManager)
+	ctx := context.Background()
+
+	liveWorkflow, err := clientManager.ExecClient().Execution(run.Namespace).Get(
+		ctx, run.K8SName, metav1.GetOptions{})
+	require.NoError(t, err)
+	liveWorkflow.(*util.Workflow).Status.Phase = v1alpha1.WorkflowRunning
+	liveWorkflow.(*util.Workflow).Status.Nodes = map[string]v1alpha1.NodeStatus{
+		"node-1": {
+			ID:          "node-1",
+			DisplayName: "task-1",
+			Phase:       v1alpha1.NodeRunning,
+		},
+	}
+	liveWorkflow, err = clientManager.ExecClient().Execution(run.Namespace).Update(
+		ctx, liveWorkflow, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	// Model the recovery window where cancellation committed to SQL but the
+	// API server has not yet patched the Workflow.
+	require.NoError(t, clientManager.RunStore().TerminateRun(run.UUID))
+	_, err = reportServer.ReportWorkflow(ctx, &apiv2.ReportWorkflowRequest{
+		Workflow: liveWorkflow.ToStringForStore(),
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.Unavailable))
+
+	persistedRun, err := resourceManager.GetRun(run.UUID)
+	require.NoError(t, err)
+	assert.Equal(t, model.RuntimeStateCancelling, persistedRun.State)
+
+	var taskCount int
+	err = clientManager.DB().QueryRow(
+		"SELECT COUNT(*) FROM tasks WHERE RunUUID = ?",
+		run.UUID,
+	).Scan(&taskCount)
+	require.NoError(t, err)
+	assert.Zero(t, taskCount)
 }
 
 func TestReportWorkflow_ValidationFailed(t *testing.T) {
