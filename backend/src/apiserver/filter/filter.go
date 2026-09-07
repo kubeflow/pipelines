@@ -366,12 +366,19 @@ func (f *Filter) AddToSelect(sb squirrel.SelectBuilder) squirrel.SelectBuilder {
 		// match with the LIKE operator.
 		for _, v := range f.substring[k] {
 			like := make(squirrel.Like)
-			like[k] = fmt.Sprintf("%%%s%%", v)
+			like[k] = fmt.Sprintf("%%%s%%", escapeLikePattern(fmt.Sprint(v)))
 			sb = sb.Where(like)
 		}
 	}
 
 	return sb
+}
+
+func escapeLikePattern(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `%`, `\%`)
+	value = strings.ReplaceAll(value, `_`, `\_`)
+	return value
 }
 
 func checkPredicate(p *Predicate) error {

@@ -485,13 +485,13 @@ func TestAddToSelectV1(t *testing.T) {
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring" }`,
 			"SELECT mycolumn WHERE label LIKE ?",
-			[]interface{}{"%label_substring%"},
+			[]interface{}{"%label\\_substring%"},
 		},
 		{
 			`predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" op: IS_SUBSTRING  string_value: "label_substring2" }`,
 			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
-			[]interface{}{"%label_substring1%", "%label_substring2%"},
+			[]interface{}{"%label\\_substring1%", "%label\\_substring2%"},
 		},
 	}
 
@@ -574,13 +574,13 @@ func TestAddToSelect(t *testing.T) {
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring" }`,
 			"SELECT mycolumn WHERE label LIKE ?",
-			[]interface{}{"%label_substring%"},
+			[]interface{}{"%label\\_substring%"},
 		},
 		{
 			`predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring1" }
 			 predicates { key: "label" operation: IS_SUBSTRING  string_value: "label_substring2" }`,
 			"SELECT mycolumn WHERE label LIKE ? AND label LIKE ?",
-			[]interface{}{"%label_substring1%", "%label_substring2%"},
+			[]interface{}{"%label\\_substring1%", "%label\\_substring2%"},
 		},
 	}
 
@@ -1028,6 +1028,55 @@ func TestFilter_ReplaceKeys(t *testing.T) {
 			assert.Nil(t, err)
 			if err != nil || !cmp.Equal(tt.filter, tt.want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 				t.Errorf("ReplaceKeys: Got: %v, Error: %v Want: %v", tt.filter, err.Error(), tt.want)
+			}
+		})
+	}
+}
+
+// TestSubstringFilterEscapesLikeWildcardCharacters verifies that IS_SUBSTRING filter
+// values containing SQL LIKE metacharacters (% and _) are escaped so the filter
+// matches the literal substring, not wildcard patterns.
+func TestSubstringFilterEscapesLikeWildcardCharacters(t *testing.T) {
+	tests := []struct {
+		name     string
+		protoStr string
+		wantArgs []interface{}
+	}{
+		{
+			name: "percent sign is literal",
+			protoStr: `predicates { key: "display_name" operation: IS_SUBSTRING
+			 string_value: "50%" }`,
+			wantArgs: []interface{}{"%50\\%%"},
+		},
+		{
+			name: "underscore is literal",
+			protoStr: `predicates { key: "display_name" operation: IS_SUBSTRING
+			 string_value: "a_b" }`,
+			wantArgs: []interface{}{"%a\\_b%"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			filterProto := &apiv2beta1.Filter{}
+			if err := prototext.Unmarshal([]byte(test.protoStr), filterProto); err != nil {
+				t.Fatalf("Failed to unmarshal Filter text proto: %v", err)
+			}
+
+			filter, err := New(filterProto)
+			if err != nil {
+				t.Fatalf("New() error: %v", err)
+			}
+
+			sb := squirrel.Select("display_name")
+			_, gotArgs, err := filter.AddToSelect(sb).ToSql()
+			if err != nil {
+				t.Fatalf("AddToSelect().ToSql() error: %v", err)
+			}
+
+			if !cmp.Equal(gotArgs, test.wantArgs) {
+				t.Errorf("IS_SUBSTRING LIKE bind args = %v, want %v (unescaped args treat %% and _ as SQL wildcards)",
+					gotArgs, test.wantArgs)
 			}
 		})
 	}
