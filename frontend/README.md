@@ -51,7 +51,6 @@ You can access the KFP UI by port-forwarding the KFP UI Kubernetes Service:
 kubectl -n kubeflow  port-forward svc/ml-pipeline-ui 3000:80
 ```
 
-
 Navigate to [http://127.0.0.1:3000] to view the UI. You will see something like the following:
 
 ![KFP UI](docs/images/kfp-ui.png)

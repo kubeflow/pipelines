@@ -1,17 +1,13 @@
 from kfp import dsl
-from kfp.dsl import Input, Output, Dataset
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Output
+
 
 @dsl.component
-def process_inputs(
-        name: str,
-        number: int,
-        threshold: float,
-        active: bool,
-        a_runtime_string: str,
-        a_runtime_number: int,
-        a_runtime_bool: bool,
-        output_text: Output[Dataset]
-) -> None:
+def process_inputs(name: str, number: int, threshold: float, active: bool,
+                   a_runtime_string: str, a_runtime_number: int,
+                   a_runtime_bool: bool, output_text: Output[Dataset]) -> None:
     with open(output_text.path, 'w') as f:
         f.write(f"[{name}, {number}, {threshold}, {active}]")
 
@@ -23,18 +19,20 @@ def process_inputs(
     assert a_runtime_number == 10
     assert a_runtime_bool == True
 
+
 @dsl.component
 def analyze_inputs(input_text: Input[Dataset]):
     with open(input_text.path, 'r') as f:
         data = f.read()
     assert data == "[default_name, 42, 0.5, True]"
 
+
 @dsl.pipeline
 def primary_pipeline(
-        name_in: str = "default_name",
-        number_in: int = 42,
-        threshold_in: float = 0.5,
-        active_in: bool = True,
+    name_in: str = "default_name",
+    number_in: int = 42,
+    threshold_in: float = 0.5,
+    active_in: bool = True,
 ):
     process_inputs_task = process_inputs(
         name=name_in,

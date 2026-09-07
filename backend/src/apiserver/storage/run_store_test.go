@@ -837,7 +837,7 @@ func TestGetRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{
+		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -901,7 +901,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{
+		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -958,7 +958,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{
+		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -1211,7 +1211,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 			WorkflowRuntimeManifest: "",
 			State:                   model.RuntimeStateRunning,
 		},
-		Metrics: []*model.RunMetricV1{
+		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",
@@ -1397,7 +1397,7 @@ func TestTerminateRun(t *testing.T) {
 				},
 			},
 		},
-		Metrics: []*model.RunMetricV1{
+		Metrics: []*model.RunMetricV1{ //nolint:staticcheck // Verify backward-compatible v1 metric storage.
 			{
 				RunUUID:     "1",
 				NodeID:      "node1",

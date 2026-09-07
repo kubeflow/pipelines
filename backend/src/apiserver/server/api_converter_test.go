@@ -1540,7 +1540,7 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		RecurringRunId: "job1",
-		Metrics:        []*model.RunMetricV1{metric1, metric2},
+		Metrics:        []*model.RunMetricV1{metric1, metric2}, //nolint:staticcheck // Verify legacy v1 metric conversion.
 	}
 	modelRun2 := model.Run{
 		UUID:         "run2",
@@ -1557,7 +1557,7 @@ func TestToApiRunsV1(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		RecurringRunId: "job2",
-		Metrics:        []*model.RunMetricV1{metric2},
+		Metrics:        []*model.RunMetricV1{metric2}, //nolint:staticcheck // Verify legacy v1 metric conversion.
 	}
 	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*apiv1beta1.Run{
@@ -3595,7 +3595,7 @@ func Test_toApiRun(t *testing.T) {
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
-				RunDetails: &apiv2beta1.RunDetails{
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},
@@ -3680,7 +3680,7 @@ func Test_toApiRun(t *testing.T) {
 				CreatedAt:   &timestamppb.Timestamp{Seconds: 1},
 				ScheduledAt: &timestamppb.Timestamp{Seconds: 2},
 				FinishedAt:  &timestamppb.Timestamp{Seconds: 3},
-				RunDetails: &apiv2beta1.RunDetails{
+				RunDetails: &apiv2beta1.RunDetails{ //nolint:staticcheck // Verify backward-compatible legacy run details.
 					PipelineContextId:    10,
 					PipelineRunContextId: 11,
 				},

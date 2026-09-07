@@ -1,14 +1,16 @@
-from typing import Optional, List
+from typing import List
 
 from kfp import dsl
 from kfp import kubernetes
-from kfp.dsl import Output, OutputPath
+from kfp.dsl import OutputPath
 
 
 @dsl.component(packages_to_install=['kubernetes'])
 def assert_values():
     import os
-    from kubernetes import client, config
+
+    from kubernetes import client
+    from kubernetes import config
 
     cfg_key_1 = os.getenv("CFG_KEY_1", "didn't work")
     cfg_key_2 = os.getenv("CFG_KEY_2", "didn't work")
@@ -40,7 +42,8 @@ def assert_values():
     config.load_incluster_config()
     v1 = client.CoreV1Api()
     pod_name = os.getenv('HOSTNAME')
-    namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
+    namespace = open(
+        '/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
     pod = v1.read_namespaced_pod(pod_name, namespace)
 
     # Get pod's pull secrets
@@ -53,7 +56,10 @@ def assert_values():
 
     assert len(pull_secrets) == 6
     print(pull_secrets)
-    assert pull_secrets == ['pull-secret-1', 'pull-secret-2', 'pull-secret-1', 'pull-secret-2', 'pull-secret-3', 'pull-secret-4']
+    assert pull_secrets == [
+        'pull-secret-1', 'pull-secret-2', 'pull-secret-1', 'pull-secret-2',
+        'pull-secret-3', 'pull-secret-4'
+    ]
 
     # Get pod's node selector
     print("\nPod Node Selector:")
@@ -63,7 +69,9 @@ def assert_values():
         for key, value in node_selector.items():
             print(f"Node selector {key}: {value}")
 
-    assert node_selector == {"kubernetes.io/arch": "amd64",}
+    assert node_selector == {
+        "kubernetes.io/arch": "amd64",
+    }
 
     # Get pod's tolerations
     print("\nPod Tolerations:")
@@ -78,8 +86,7 @@ def assert_values():
     # Helper function to check node affinity match expression
     def has_match_expression(expressions, key, operator, values):
         for expr in expressions:
-            if (expr.key == key and
-                    expr.operator == operator and
+            if (expr.key == key and expr.operator == operator and
                     expr.values == values):
                 return True
         return False
@@ -90,16 +97,19 @@ def assert_values():
     assert len(required_terms) == 1
     match_expressions = required_terms[0].match_expressions
     assert len(match_expressions) == 1
-    assert has_match_expression(match_expressions, "kubernetes.io/os", "In", ["linux"])
+    assert has_match_expression(match_expressions, "kubernetes.io/os", "In",
+                                ["linux"])
 
     # Helper function to check if a toleration exists
-    def has_toleration(key, effect, operator, value=None, toleration_seconds=None):
+    def has_toleration(key,
+                       effect,
+                       operator,
+                       value=None,
+                       toleration_seconds=None):
         for t in tolerations:
-            if (t.key == key and
-                t.effect == effect and
-                t.operator == operator and
-                t.value == value and
-                t.toleration_seconds == toleration_seconds):
+            if (t.key == key and t.effect == effect and
+                    t.operator == operator and t.value == value and
+                    t.toleration_seconds == toleration_seconds):
                 return True
         return False
 
@@ -125,16 +135,20 @@ def assert_values():
     assert len(pvcs) == 1
     assert pvcs[0].claim_name.endswith('pvc-1')
 
+
 @dsl.component(packages_to_install=['kubernetes'])
 def assert_values_two():
-    from kubernetes import client, config
     import os
+
+    from kubernetes import client
+    from kubernetes import config
 
     # Get pod YAML
     config.load_incluster_config()
     v1 = client.CoreV1Api()
     pod_name = os.getenv('HOSTNAME')
-    namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
+    namespace = open(
+        '/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
     pod = v1.read_namespaced_pod(pod_name, namespace)
 
     print("\nPod Node Selector:")
@@ -150,8 +164,7 @@ def assert_values_two():
     # Helper function to check node affinity match expression
     def has_match_expression(expressions, key, operator, values):
         for expr in expressions:
-            if (expr.key == key and
-                    expr.operator == operator and
+            if (expr.key == key and expr.operator == operator and
                     expr.values == values):
                 return True
         return False
@@ -162,30 +175,37 @@ def assert_values_two():
     assert len(required_terms) == 1
     match_expressions = required_terms[0].match_expressions
     assert len(match_expressions) == 1
-    assert has_match_expression(match_expressions, "kubernetes.io/os", "In", ["linux"])
+    assert has_match_expression(match_expressions, "kubernetes.io/os", "In",
+                                ["linux"])
+
 
 @dsl.component(packages_to_install=['kubernetes'])
 def assert_values_three():
-    from kubernetes import client, config
     import os
+
+    from kubernetes import client
+    from kubernetes import config
 
     # Get pod YAML
     config.load_incluster_config()
     v1 = client.CoreV1Api()
     pod_name = os.getenv('HOSTNAME')
-    namespace = open('/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
+    namespace = open(
+        '/var/run/secrets/kubernetes.io/serviceaccount/namespace').read()
     pod = v1.read_namespaced_pod(pod_name, namespace)
 
     tolerations = pod.spec.tolerations
     print(tolerations)
 
     # Helper function to check if a toleration exists
-    def has_toleration(key, effect, operator, value=None, toleration_seconds=None):
+    def has_toleration(key,
+                       effect,
+                       operator,
+                       value=None,
+                       toleration_seconds=None):
         for t in tolerations:
-            if (t.key == key and
-                    t.effect == effect and
-                    t.operator == operator and
-                    t.value == value and
+            if (t.key == key and t.effect == effect and
+                    t.operator == operator and t.value == value and
                     t.toleration_seconds == toleration_seconds):
                 return True
         return False
@@ -194,11 +214,13 @@ def assert_values_three():
     assert has_toleration('some_foo_key4', 'NoSchedule', 'Equal', 'value2')
     assert has_toleration('some_foo_key5', 'NoExecute', 'Exists')
 
+
 @dsl.component()
 def cfg_name_generator(some_output: OutputPath(str)):
     configmap_name = "cfg-3"
     with open(some_output, 'w') as f:
         f.write(configmap_name)
+
 
 @dsl.component()
 def secret_name_generator(some_output: OutputPath(str)):
@@ -206,62 +228,58 @@ def secret_name_generator(some_output: OutputPath(str)):
     with open(some_output, 'w') as f:
         f.write(secret_name)
 
+
 @dsl.component()
 def get_access_mode(access_mode: OutputPath(List[str])):
     import json
     with open(access_mode, 'w') as f:
         f.write(json.dumps(["ReadWriteOnce"]))
 
+
 @dsl.component()
 def get_node_affinity(node_affinity: OutputPath(dict)):
     import json
     with open(node_affinity, 'w') as f:
-        f.write(json.dumps(
-            {
+        f.write(
+            json.dumps({
                 "requiredDuringSchedulingIgnoredDuringExecution": {
-                    "nodeSelectorTerms": [
-                        {
-                            "matchExpressions": [
-                                {
-                                    "key": "kubernetes.io/os",
-                                    "operator": "In",
-                                    "values": ["linux"]
-                                }
-                            ]
-                        }
-                    ]
+                    "nodeSelectorTerms": [{
+                        "matchExpressions": [{
+                            "key": "kubernetes.io/os",
+                            "operator": "In",
+                            "values": ["linux"]
+                        }]
+                    }]
                 }
-            }
-        ))
+            }))
+
 
 @dsl.component()
-def generate_requests_resources(cpu_request_out: OutputPath(str), memory_request_out: OutputPath(str)):
+def generate_requests_resources(cpu_request_out: OutputPath(str),
+                                memory_request_out: OutputPath(str)):
     with open(cpu_request_out, 'w') as f:
         f.write('100m')
     with open(memory_request_out, 'w') as f:
         f.write('500Mi')
 
+
 @dsl.component()
 def get_node_affinity(node_affinity: OutputPath(dict)):
     import json
     with open(node_affinity, 'w') as f:
-        f.write(json.dumps(
-            {
+        f.write(
+            json.dumps({
                 "requiredDuringSchedulingIgnoredDuringExecution": {
-                    "nodeSelectorTerms": [
-                        {
-                            "matchExpressions": [
-                                {
-                                    "key": "kubernetes.io/os",
-                                    "operator": "In",
-                                    "values": ["linux"]
-                                }
-                            ]
-                        }
-                    ]
+                    "nodeSelectorTerms": [{
+                        "matchExpressions": [{
+                            "key": "kubernetes.io/os",
+                            "operator": "In",
+                            "values": ["linux"]
+                        }]
+                    }]
                 }
-            }
-        ))
+            }))
+
 
 # TODO (HumairAK): Empty Dir and Field Path TaskOutputParameters
 # not supported yet
@@ -277,19 +295,16 @@ def get_node_affinity(node_affinity: OutputPath(dict)):
 
 node_selector_default = {"kubernetes.io/os": "linux"}
 
-toleration_list_default = [
-    {
-        "key": "some_foo_key4",
-        "operator": "Equal",
-        "value": "value2",
-        "effect": "NoSchedule"
-    },
-    {
-        "key": "some_foo_key5",
-        "operator": "Exists",
-        "effect": "NoExecute"
-    }
-]
+toleration_list_default = [{
+    "key": "some_foo_key4",
+    "operator": "Equal",
+    "value": "value2",
+    "effect": "NoSchedule"
+}, {
+    "key": "some_foo_key5",
+    "operator": "Exists",
+    "effect": "NoExecute"
+}]
 
 toleration_dict_default = {
     "key": "some_foo_key6",
@@ -298,44 +313,43 @@ toleration_dict_default = {
     "effect": "NoSchedule"
 }
 
+
 @dsl.pipeline
 def secondary_pipeline(train_tolerations: list):
     task = assert_values_three()
     kubernetes.add_toleration_json(task, train_tolerations)
 
+
 default_node_affinity = {
-                "requiredDuringSchedulingIgnoredDuringExecution": {
-                    "nodeSelectorTerms": [
-                        {
-                            "matchExpressions": [
-                                {
-                                    "key": "kubernetes.io/os",
-                                    "operator": "In",
-                                    "values": ["linux"]
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }
+    "requiredDuringSchedulingIgnoredDuringExecution": {
+        "nodeSelectorTerms": [{
+            "matchExpressions": [{
+                "key": "kubernetes.io/os",
+                "operator": "In",
+                "values": ["linux"]
+            }]
+        }]
+    }
+}
+
 
 @dsl.pipeline
 def primary_pipeline(
-        configmap_parm: str = 'cfg-2',
-        secret_param: str = 'secret-2',
-        pull_secret_1: str = 'pull-secret-1',
-        pull_secret_2: str = 'pull-secret-2',
-        pull_secret_3: str = 'pull-secret-3',
-        node_selector_input: dict = {"kubernetes.io/os": "linux"},
-        tolerations_list_input: list = toleration_list_default,
-        tolerations_dict_input: dict = toleration_dict_default,
-        pvc_name_suffix_input: str = '-pvc-1',
-        empty_dir_mnt_path: str = '/empty_dir/path',
-        field_path: str = 'spec.serviceAccountName',
-        default_node_affinity_input: dict = default_node_affinity,
-        cpu_limit: str = '200m',
-        memory_limit: str = '500Mi',
-        container_image: str = 'python:3.9',
+    configmap_parm: str = 'cfg-2',
+    secret_param: str = 'secret-2',
+    pull_secret_1: str = 'pull-secret-1',
+    pull_secret_2: str = 'pull-secret-2',
+    pull_secret_3: str = 'pull-secret-3',
+    node_selector_input: dict = {"kubernetes.io/os": "linux"},
+    tolerations_list_input: list = toleration_list_default,
+    tolerations_dict_input: dict = toleration_dict_default,
+    pvc_name_suffix_input: str = '-pvc-1',
+    empty_dir_mnt_path: str = '/empty_dir/path',
+    field_path: str = 'spec.serviceAccountName',
+    default_node_affinity_input: dict = default_node_affinity,
+    cpu_limit: str = '200m',
+    memory_limit: str = '500Mi',
+    container_image: str = 'python:3.9',
 ):
 
     cfg_name_generator_task = cfg_name_generator()
@@ -365,9 +379,7 @@ def primary_pipeline(
         })
 
     kubernetes.use_config_map_as_volume(
-        task,
-        config_map_name=configmap_parm,
-        mount_path='/tmp/config_map')
+        task, config_map_name=configmap_parm, mount_path='/tmp/config_map')
 
     # secret verification
     kubernetes.use_secret_as_env(
@@ -391,21 +403,15 @@ def primary_pipeline(
         })
 
     kubernetes.use_secret_as_volume(
-        task,
-        secret_name=secret_param,
-        mount_path='/tmp/secret')
+        task, secret_name=secret_param, mount_path='/tmp/secret')
 
     # pull secrets
     kubernetes.set_image_pull_secrets(
-        task,
-        secret_names=[pull_secret_1, pull_secret_2])
+        task, secret_names=[pull_secret_1, pull_secret_2])
     kubernetes.set_image_pull_secrets(
-        task,
-        secret_names=["pull-secret-1", "pull-secret-2"])
+        task, secret_names=["pull-secret-1", "pull-secret-2"])
     kubernetes.set_image_pull_secrets(
-        task,
-        secret_names=([pull_secret_3, "pull-secret-4"])
-    )
+        task, secret_names=([pull_secret_3, "pull-secret-4"]))
 
     # node selector
     kubernetes.add_node_selector_json(
@@ -424,32 +430,32 @@ def primary_pipeline(
     )
 
     # tolerations
-    kubernetes.add_toleration_json(task, [
-        {
-            "key": "some_foo_key1",
-            "operator": "Equal",
-            "value": "value1",
-            "effect": "NoSchedule"
-        },
-        {
-            "key": "some_foo_key2",
-            "operator": "Exists",
-            "effect": "NoExecute"
-        }
-    ])
-    kubernetes.add_toleration_json(task, {
-        "key": "some_foo_key3",
+    kubernetes.add_toleration_json(task, [{
+        "key": "some_foo_key1",
         "operator": "Equal",
         "value": "value1",
         "effect": "NoSchedule"
-    })
+    }, {
+        "key": "some_foo_key2",
+        "operator": "Exists",
+        "effect": "NoExecute"
+    }])
+    kubernetes.add_toleration_json(
+        task, {
+            "key": "some_foo_key3",
+            "operator": "Equal",
+            "value": "value1",
+            "effect": "NoSchedule"
+        })
     kubernetes.add_toleration_json(task, tolerations_dict_input)
     kubernetes.add_toleration_json(task, tolerations_list_input)
 
     # cpu/memory/container image
     generate_requests_resources_task = generate_requests_resources()
-    task.set_cpu_request(generate_requests_resources_task.outputs["cpu_request_out"])
-    task.set_memory_request(generate_requests_resources_task.outputs["memory_request_out"])
+    task.set_cpu_request(
+        generate_requests_resources_task.outputs["cpu_request_out"])
+    task.set_memory_request(
+        generate_requests_resources_task.outputs["memory_request_out"])
 
     task.set_cpu_limit(cpu_limit)
     task.set_memory_limit(memory_limit)
@@ -459,31 +465,32 @@ def primary_pipeline(
     secondary_pipeline(train_tolerations=tolerations_list_input)
 
     # PVCs
-    access_mode_task  =  get_access_mode()
+    access_mode_task = get_access_mode()
     output_pvc_task = kubernetes.CreatePVC(
-        pvc_name_suffix=pvc_name_suffix_input, # Component Input Parameter
+        pvc_name_suffix=pvc_name_suffix_input,  # Component Input Parameter
         access_modes=access_mode_task.output,  # Task Output Parameter
-        size="5Mi",                            # Runtime Constant
+        size="5Mi",  # Runtime Constant
     )
     kubernetes.mount_pvc(
         task,
-        pvc_name=output_pvc_task.output, # Task Output Parameter
+        pvc_name=output_pvc_task.output,  # Task Output Parameter
         mount_path='/pvc/path')
-    output_pvc_delete_task = kubernetes.DeletePVC(pvc_name=output_pvc_task.output)
+    output_pvc_delete_task = kubernetes.DeletePVC(
+        pvc_name=output_pvc_task.output)
     output_pvc_delete_task.after(task)
 
     # node affinity
     get_node_affinity_task = get_node_affinity()
     kubernetes.add_node_affinity_json(
         task,
-        node_affinity_json=get_node_affinity_task.output  # Task Output Parameter
+        node_affinity_json=get_node_affinity_task
+        .output  # Task Output Parameter
     )
 
     kubernetes.add_node_affinity_json(
         task_2,
         default_node_affinity_input  # Component Input Parameter
     )
-
 
     # TODO(HumairAK) Empty dir doesn't support parameterization
     # empty dir

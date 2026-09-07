@@ -106,11 +106,11 @@ ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS = dict(
 
 def test_allowed_gcs_universe_domains_default_and_override():
     with mock.patch.dict(os.environ, {"KFP_VERSION": KFP_VERSION}, clear=True):
-        assert get_settings_from_env()["allowed_gcs_universe_domains"] == "googleapis.com"
+        assert get_settings_from_env(
+        )["allowed_gcs_universe_domains"] == "googleapis.com"
 
     with mock.patch.dict(
-            os.environ,
-            {
+            os.environ, {
                 "KFP_VERSION": KFP_VERSION,
                 "ALLOWED_GCS_UNIVERSE_DOMAINS": "googleapis.com,gdc.example",
             },

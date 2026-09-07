@@ -230,10 +230,10 @@ message ListArtifactTasksRequest {
   repeated string run_ids = 2;
   // Optional, filter artifact task by a set of artifact_ids.
   repeated string artifact_ids = 3;
-  
+
   // Optional. Only list artifact tasks that have artifacts of this type.
   IOType type = 4;
-  
+
   string page_token = 5;
   int32 page_size = 6;
   string sort_by = 7;
