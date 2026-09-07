@@ -20,6 +20,7 @@ GitHub Actions workflows are in `.github/workflows/`; reusable composite actions
 - CI Docker-sensitive paths use retry wrappers for image builds, BuildKit bootstrap, and runtime-image pulls. GitHub-hosted Docker jobs configure `mirror.gcr.io` as a Docker Hub pull-through cache, docker-container builders use the same mirror through `buildkitd.toml`, and uncached images still fall back to Docker Hub. Build jobs explicitly try and locally tag the mirrored BuildKit bootstrap image before falling back to Docker Hub within the shared retry budget.
 - `runtime-base-images.yml` is the single producer for the shared runtime-image artifact. It archives test-task, MySQL, and supported Argo images and builds the Modelcar fixture once into a separate archive; opted-in E2E lanes load that archive through the deploy action and fail setup if it is unavailable instead of contacting Hugging Face independently.
 - For workflow-only changes, verify referenced working directories, Docker contexts/files, scripts, and local action paths exist.
+- CI Check publishes the `ci-passed` status from trusted base-branch code. See [the merge-gate contract](ci-passed.md) for evidence requirements, trigger-inventory updates, and rollout validation.
 - Frontend CI also runs `frontend/scripts/check-spec-generation.sh` after installing `protoc`: pipeline and Kubernetes platform specs are generated into temporary directories and typechecked. Changes to either source proto directory trigger this workflow.
 
 ## Common CI failures
