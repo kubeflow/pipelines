@@ -18,6 +18,7 @@
 
 import assert from "node:assert/strict";
 import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -49,6 +50,12 @@ test("WebdriverIO loads and merges the integration configuration", async () => {
 });
 
 test("the pinned browser installer exposes the API WebdriverIO calls", () => {
+  // The override must make @wdio/utils load the pinned copy, not a nested 2.x.
+  const utilsRequire = createRequire(import.meta.resolve("@wdio/utils"));
+  assert.equal(
+    utilsRequire.resolve("@puppeteer/browsers"),
+    createRequire(import.meta.url).resolve("@puppeteer/browsers"),
+  );
   for (const name of [
     "install",
     "canDownload",
