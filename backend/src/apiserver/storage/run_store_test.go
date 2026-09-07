@@ -813,6 +813,23 @@ func TestListRunsError(t *testing.T) {
 		"Expected to throw an internal error")
 }
 
+func TestListRuns_QueryErrorReleasesConnection(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
+	require.NoError(t, err)
+	// Fail the query after Begin succeeds, rather than failing to acquire a connection.
+	_, err = db.Exec("DROP TABLE run_details")
+	require.NoError(t, err)
+
+	_, _, _, err = runStore.ListRuns(&model.FilterContext{}, opts, false)
+
+	require.Error(t, err)
+	assert.Zero(t, db.Stats().InUse, "a failed list query must release its transaction connection")
+}
+
 func TestGetRun(t *testing.T) {
 	db, _, runStore := initializeRunStore()
 	defer db.Close()

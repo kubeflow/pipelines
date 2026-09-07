@@ -823,12 +823,14 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		glog.Errorf("Failed to start transaction to list tasks by parent and run")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -838,13 +840,13 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer rows.Close()
 
 	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
 	}
+	defer sizeRow.Close()
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -854,7 +856,6 @@ func (s *TaskStore) ListChildTasksByParentAndRun(parentTaskID, runID string, opt
 		tx.Rollback()
 		return errorF(err)
 	}
-	defer sizeRow.Close()
 
 	err = tx.Commit()
 	if err != nil {
