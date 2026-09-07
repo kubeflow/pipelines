@@ -45,6 +45,7 @@ const context = {repo: {owner: 'kubeflow', repo: 'pipelines'}, runId: 99,
     workflow_run: {event: 'pull_request', head_sha: 'head', head_branch: 'feature',
       head_repository: {owner: {login: 'contributor'}, full_name: 'contributor/pipelines'}}}};
 let published = false;
+let status = options.initialStatus;
 const core = {info: () => {}, setOutput: (key, value) => {outputs[key] = value;}};
 const methods = {files: {}, runs: {}, timeline: {}, pulls: {}};
 const github = {rest: {
@@ -54,7 +55,8 @@ const github = {rest: {
   issues: {listEventsForTimeline: methods.timeline,
     addLabels: async request => {calls.push(['add-label', request.labels]);},
     removeLabel: async request => {calls.push(['remove-label', request.name]);}},
-  repos: {createCommitStatus: async request => {
+  repos: {getCombinedStatusForRef: {}, createCommitStatus: async request => {
+    status = request.state;
     calls.push(['status', request.state, request.sha]);
     if (request.state === 'success') {
       published = true;
@@ -83,16 +85,22 @@ const github = {rest: {
   }
   throw Error('Unexpected API request');
 }};
+github.paginate.iterator = async function* () {
+  if (options.statusReadFailure) throw Error('Status read unavailable');
+  yield {data: {statuses: status ? [{context: 'ci-passed', state: status}] : []}};
+};
 (async () => {
   let error;
+  for (let cycle = 0; cycle < (options.cycles || 1); cycle++) {
   try {await gate.prepare({github, context, core, root, recovery: {number: 7, head: eventPR.head.sha}});} catch (e) {error = e.message;}
   if (options.revokeBeforeFinal) pr.labels = [{name: 'needs-ok-to-test'}];
   try {
     await gate.finalize({github, context, core, root, number: outputs.pr_number,
       head: outputs.head_sha, before: outputs.snapshot,
-      pollPassed: outputs.ready === 'true' && options.pollPassed !== false && !error});
+      pollPassed: outputs.ready === 'true' && (options.pollPassed !== false || (options.recoverLast && cycle === options.cycles - 1)) && !error});
   } catch (e) {error = e.message;}
-  console.log(JSON.stringify({calls, outputs, error}));
+  }
+  console.log(JSON.stringify({calls, outputs, error, status}));
 })().catch(e => {console.error(e); process.exit(1);});
 """
     result = subprocess.run([
@@ -166,6 +174,10 @@ const github = {paginate: async () => prs, rest: {pulls: {list: {}}, repos: {
     return {data: {statuses: ref === 'missing' ? [] : [{context: 'ci-passed', state: ref}]}};
   },
 }}};
+github.paginate.iterator = async function* (method, params) {
+  yield {data: {statuses: [{context: 'other', state: 'success'}]}};
+  yield await github.rest.repos.getCombinedStatusForRef(params);
+};
 recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(result => {
   console.log(JSON.stringify({result, requests}));
 }).catch(e => {console.error(e); process.exit(1);});
@@ -233,6 +245,45 @@ recoveryCandidates({github, context: {repo: {owner: 'o', repo: 'r'}}}).then(resu
                     'state': 'closed'
                 }
             })['calls'], [])
+
+    def test_status_read_failure_still_invalidates_but_cannot_succeed(self):
+        result = exercise({
+            'schedule': True,
+            'initialStatus': 'success',
+            'statusReadFailure': True
+        })
+        self.assert_last_status(result, 'failure')
+        self.assertNotIn(['status', 'success', 'head'], result['calls'])
+        self.assertIn('Status read unavailable', result['error'])
+
+    def test_repeated_failing_sweeps_do_not_exhaust_status_history(self):
+        result = exercise({
+            'schedule': True,
+            'pollPassed': False,
+            'initialStatus': 'failure',
+            'cycles': 6
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'], [])
+        self.assertEqual(result['status'], 'failure')
+        result = exercise({
+            'schedule': True,
+            'pollPassed': False,
+            'initialStatus': 'failure',
+            'cycles': 6,
+            'recoverLast': True
+        })
+        self.assertEqual([c for c in result['calls'] if c[0] == 'status'],
+                         [['status', 'success', 'head']])
+
+    def test_queued_recovery_invalidates_success_when_checks_change(self):
+        result = exercise({
+            'schedule': True,
+            'pollPassed': False,
+            'initialStatus': 'success'
+        })
+        self.assertEqual(
+            [c for c in result['calls'] if c[0] == 'status'],
+            [['status', 'pending', 'head'], ['status', 'failure', 'head']])
 
     def test_existing_pr_hold_is_never_removed(self):
         for passed in [True, False]:

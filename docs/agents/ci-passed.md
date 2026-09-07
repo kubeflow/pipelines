@@ -63,6 +63,10 @@ A late external check such as DCO can therefore recover after the final
 constituent workflow event. Every sweep rechecks eligibility, head, retarget
 history, expected workflows, and discovered checks. Stale sweep entries do not
 write to newer heads; existing holds are never removed by the publisher.
+Scheduled checks preserve existing non-success while evaluating, and unchanged
+status writes are deduplicated to avoid exhausting GitHub’s 1,000-status limit
+per SHA/context. A queued candidate that is now successful is still invalidated
+before revalidation. Status lookup traverses all combined-status pages.
 
 GitHub can delay or drop scheduled executions, so 15 minutes is a requested
 cadence, not a recovery SLA. More than 256 recovery candidates fails the discovery job
