@@ -237,7 +237,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('shows an error banner if fetching the experiment fails', async () => {
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -301,7 +301,7 @@ describe('ExperimentDetails', () => {
   }, 20000);
 
   it("shows an error banner if fetching the experiment's recurring runs fails", async () => {
-    TestUtils.makeErrorResponseOnce(listRecurringRunsSpy, 'test error');
+    TestUtils.makeErrorResponse(listRecurringRunsSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -394,7 +394,7 @@ describe('ExperimentDetails', () => {
   });
 
   it('clears the error banner on refresh', async () => {
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'test error');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'test error');
 
     await renderExperimentDetails();
 
@@ -406,6 +406,7 @@ describe('ExperimentDetails', () => {
     const refreshAction = lastToolbarCall?.[0]?.actions?.[ButtonKeys.REFRESH];
     expect(refreshAction).toBeDefined();
 
+    getExperimentSpy.mockImplementation(() => newMockExperiment());
     await invokeAndFlush(async () => {
       await refreshAction!.action();
     });
