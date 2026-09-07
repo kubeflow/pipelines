@@ -7,7 +7,7 @@ ARG NODE_VERSION
 
 USER root
 RUN apt-get update -qqy && \
-    apt-get install -qqy curl xz-utils && \
+    apt-get install -qqy curl unzip xz-utils && \
     ARCH=$(dpkg --print-architecture) && \
     if [ "$ARCH" = "amd64" ]; then NODE_ARCH=x64; else NODE_ARCH=$ARCH; fi && \
     curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
