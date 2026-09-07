@@ -747,6 +747,59 @@ test('matrix framing also rejects a cell overflowing an otherwise visible table'
   assert.deepEqual(results, [true, false]);
 });
 
+test('ROC framing rejects the clipped last legend label at ordinary and expanded viewports', async (t) => {
+  const saved = {
+    document: global.document,
+    window: global.window,
+    getComputedStyle: global.getComputedStyle,
+  };
+  t.after(() => Object.assign(global, saved));
+  global.window = { innerWidth: 1280, innerHeight: 800 };
+  global.getComputedStyle = () => ({ overflowY: 'visible', overflowX: 'visible' });
+  let labelBottom = 790;
+  const item = (bottom) => ({
+    parentElement: null,
+    querySelectorAll: () => [],
+    getBoundingClientRect: () => ({
+      width: 200,
+      height: 40,
+      top: 700,
+      left: 300,
+      right: 500,
+      bottom,
+    }),
+  });
+  const label = {
+    ...item(790),
+    getBoundingClientRect: () => ({
+      width: 200,
+      height: 40,
+      top: 750,
+      left: 300,
+      right: 500,
+      bottom: labelBottom,
+    }),
+  };
+  const lastEntry = { ...item(790), querySelectorAll: () => [label] };
+  global.document = { querySelectorAll: () => [item(600), item(780), item(780), lastEntry] };
+  const results = [];
+  const page = { waitForFunction: async (predicate, args) => results.push(predicate(args)) };
+  const region = {
+    selector: 'plot, legend-entry',
+    minCount: 4,
+    includeDescendants: 'span',
+    alwaysRequireFullVisibility: true,
+  };
+  await capture.assertCaptureRegion(page, region, false);
+  labelBottom = 810;
+  await capture.assertCaptureRegion(page, region, false);
+  global.window.innerHeight = 1200;
+  await capture.assertCaptureRegion(page, region, true);
+  labelBottom = 1210;
+  await capture.assertCaptureRegion(page, region, true);
+  assert.deepEqual(results, [true, false, true, false]);
+});
+
 test('volatile metadata normalization is scoped to sidebar version and log prefixes', async (t) => {
   const saved = { document: global.document, NodeFilter: global.NodeFilter };
   t.after(() => Object.assign(global, saved));

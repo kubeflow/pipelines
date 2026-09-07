@@ -1786,6 +1786,18 @@ test('comparison ROC captures retain compact layout and expand only the head ful
   );
 });
 
+test('head comparison ROC framing includes all legend labels without panning away from the plot', () => {
+  const scenario = byKey(resolveSemanticScenarios('head', SEED_VALUES), 'compare-roc-selection');
+  assert.equal(scenario.captureRegion.minCount, 4);
+  assert.match(scenario.captureRegion.selector, /recharts-wrapper/);
+  assert.match(scenario.captureRegion.selector, /Selected ROC curve provenance/);
+  assert.equal(scenario.captureRegion.includeDescendants, 'span');
+  assert.equal(scenario.captureRegion.alwaysRequireFullVisibility, true);
+  assert.equal(scenario.captureRegion.scrollIntoView, undefined);
+  const base = byKey(resolveSemanticScenarios('base', SEED_VALUES), 'compare-roc-selection');
+  assert.deepEqual(base.captureRegion, { selector: '.recharts-wrapper', minCount: 1 });
+});
+
 test('runtime HTML and ROC viewers require enough room for their half-width side panel', () => {
   for (const role of ['base', 'head']) {
     const scenarios = resolveSemanticScenarios(role, SEED_VALUES);
