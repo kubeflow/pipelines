@@ -1997,7 +1997,7 @@ async function normalizeDocumentScroll(page) {
   return page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
 }
 
-async function prepareCaptureViewport(page) {
+async function prepareCaptureViewport(page, region) {
   // Moving outside the viewport removes chart and MUI hover state without clicking or blurring
   // an intentionally selected control. Wait for leave handlers before freezing visible text.
   await page.mouse.move(-1, -1);
@@ -2005,17 +2005,25 @@ async function prepareCaptureViewport(page) {
   for (const frame of page.frames()) {
     if (frame !== page.mainFrame()) await normalizeDocumentScroll(frame);
   }
-  return normalizeDocumentScroll(page);
+  await normalizeDocumentScroll(page);
+  // Scenario framing happens after the reset, otherwise sidebar normalization undoes it.
+  if (region?.scrollIntoView) {
+    await page.locator(region.selector).first().scrollIntoViewIfNeeded({ timeout: 10000 });
+  }
+  return page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
 }
 
 async function assertCaptureRegion(page, region, requireFullVisibility = true) {
   if (!region) return;
   await page.waitForFunction(
-    ({ selector, minCount, requireFullVisibility }) => {
+    ({ selector, minCount, includeDescendants, requireFullVisibility }) => {
       const elements = Array.from(document.querySelectorAll(selector));
+      const checkedElements = includeDescendants
+        ? elements.flatMap((element) => [element, ...element.querySelectorAll(includeDescendants)])
+        : elements;
       return (
         elements.length >= minCount &&
-        elements.every((element) => {
+        checkedElements.every((element) => {
           const box = element.getBoundingClientRect();
           if (box.width <= 0 || box.height <= 0) return false;
           // Ordinary layout evidence must retain overflowing viewers, not silently resize them.
@@ -3306,7 +3314,7 @@ async function captureScreenshots(options, dependencies = {}) {
             if (pageConfig.sortFixtureListBy) {
               await sortFixtureList(page, pageConfig.sortFixtureListBy);
             }
-            const documentScroll = await prepareCaptureViewport(page);
+            const documentScroll = await prepareCaptureViewport(page, pageConfig.captureRegion);
             await assertCaptureRegion(
               page,
               pageConfig.captureRegion,

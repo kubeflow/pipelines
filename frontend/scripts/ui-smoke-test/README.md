@@ -506,8 +506,11 @@ requires the legacy execution redirect explanation, and covers confusion matrice
 panel and run comparison. Classification fixtures contain a deterministic two-class matrix as well
 as ROC points. Existing fixtures from earlier captures must be re-seeded before these scenarios run.
 
-Lineage/relationship and Executions-to-Runs transitions are capability comparisons, not ordinary
-pixel-parity regressions. Retry logs must show `retry completed` before capture; their runtime text
+Lineage/relationship, Artifact Details (the added preview), and Executions-to-Runs transitions are
+capability comparisons, not ordinary pixel-parity regressions. The five Compare captures (scalar
+metrics, confusion matrix, ROC selection, HTML, and Markdown) are approved design transitions:
+review their redesigned controls and information layout for content, usability, and clipping.
+Retry logs must show `retry completed` before capture; their runtime text
 is reported separately from layout parity. These named scenarios retain screenshots and pixel
 measurements but have no default failure percentage. Missing content, invalid routes, and failed
 capture readiness still fail. Other scenarios retain normal thresholds, and an explicit operator

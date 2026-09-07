@@ -68,13 +68,56 @@ test('lineage, relationships, redirect guidance and matrices have distinct requi
     assert.equal(comparisonCategory(key), 'capability-transition');
   }
   assert.equal(comparisonCategory('run-details-task-logs'), 'runtime-output');
-  assert.equal(comparisonCategory('compare-confusion-matrix'), 'pixel-parity');
+  assert.equal(comparisonCategory('artifact-details'), 'capability-transition');
+  for (const key of [
+    'compare-runs',
+    'compare-confusion-matrix',
+    'compare-roc-selection',
+    'compare-html',
+    'compare-markdown',
+  ]) {
+    assert.equal(comparisonCategory(key), 'design-transition');
+  }
+  assert.equal(comparisonCategory('run-details-confusion-matrix'), 'pixel-parity');
   for (const key of ['run-details-task-logs', 'topology-retried-task']) {
     assert.ok(
       byKey(scenarios, key).actions.some(
         (action) => action.type === 'centerGraphNode' && action.selector.includes('retry-once'),
       ),
     );
+  }
+});
+
+test('run matrix captures the whole table at the requested viewport and requires every value', () => {
+  for (const role of ['base', 'head']) {
+    const scenario = byKey(
+      resolveSemanticScenarios(role, SEED_VALUES),
+      'run-details-confusion-matrix',
+    );
+    assert.deepEqual(capture.captureViewport(scenario, { width: 1280, height: 800 }), {
+      width: 1280,
+      height: 800,
+    });
+    assert.equal(scenario.captureRegion.scrollIntoView, true);
+    assert.equal(scenario.captureRegion.includeDescendants, 'td, th');
+    const predicate = scenario.actions.find(
+      (action) => action.predicate?.name === 'runMatrixReady',
+    ).predicate;
+    const evaluate = (values) =>
+      vm.runInNewContext(`(${predicate.toString()})()`, {
+        document: {
+          querySelectorAll: () => [
+            {
+              textContent: 'predicted-negative',
+              querySelector: () => null,
+              querySelectorAll: () => values.map((value) => ({ textContent: String(value) })),
+            },
+          ],
+        },
+      });
+    assert.equal(evaluate([8, 47, 42, 3]), true);
+    assert.equal(evaluate([8, 47]), false);
+    assert.equal(evaluate([12, 43, 38, 7]), false);
   }
 });
 
