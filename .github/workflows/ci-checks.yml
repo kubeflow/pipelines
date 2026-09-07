@@ -2,6 +2,8 @@
 name: CI Check
 
 on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
   pull_request_target:
     types: [opened, synchronize, reopened, edited, labeled, unlabeled, closed]
   workflow_run:
@@ -44,16 +46,47 @@ permissions:
   contents: read
 
 jobs:
+  recovery_candidates:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+      statuses: read
+      contents: read
+    outputs:
+      candidates: ${{ steps.list.outputs.result }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - id: list
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+        with:
+          script: |
+            const {recoveryCandidates} = require('./.github/resources/scripts/ci_passed.js');
+            return await recoveryCandidates({github, context});
+
   check_ci_status:
+    name: check_ci_status
+    needs: recovery_candidates
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        candidate: ${{ fromJSON(needs.recovery_candidates.outputs.candidates || '[{"number":0,"head":""}]') }}
     if: >-
+      always() && !cancelled() && (
+      (github.event_name == 'schedule' && needs.recovery_candidates.result == 'success' && needs.recovery_candidates.outputs.candidates != '[]') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request') ||
       (github.event_name == 'pull_request_target' &&
         ((github.event.action != 'labeled' && github.event.action != 'unlabeled') ||
-         github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test'))
+         github.event.label.name == 'ok-to-test' || github.event.label.name == 'needs-ok-to-test')))
     concurrency:
       # GitHub can replace pending runs. Each survivor reads current PR, CI,
       # and durable retarget history; correctness never depends on event order.
-      group: ci-passed-reconcile-${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
+      group: ci-passed-reconcile-${{ matrix.candidate.head || github.event.workflow_run.head_sha || github.event.pull_request.head.sha }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -74,12 +107,17 @@ jobs:
           persist-credentials: false
 
       - name: Resolve PR and verify expected CI workflows
+        env:
+          CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}
+          CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}
         id: prepare
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
         with:
           script: |
             const {prepare} = require('./.github/resources/scripts/ci_passed.js');
-            await prepare({github, context, core});
+            await prepare({github, context, core, recovery: {
+              number: Number(process.env.CI_RECOVERY_NUMBER),
+              head: process.env.CI_RECOVERY_HEAD}});
 
       - name: Check all current CI results
         id: poll
@@ -88,8 +126,8 @@ jobs:
         uses: wechuli/allcheckspassed@e4240aa9cc76fd6828ce27a71ad16c406c25adb3
         with:
           commit_sha: ${{ steps.prepare.outputs.head_sha }}
-          # Completion events drive recovery. Never hold the shared writer
-          # for a long poll while a rerun or security reset waits behind it.
+          # Completion events and scheduled sweeps drive recovery. Never hold
+          # the shared writer while waiting for external checks.
           poll: 'false'
           ignore_superseded_runs: 'true'
           # Expected workflow completion is verified independently; these

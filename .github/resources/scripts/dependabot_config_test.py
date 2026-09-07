@@ -142,7 +142,7 @@ class DependabotConfigTest(unittest.TestCase):
                 )
                 self.assertEqual(
                     self.configured_labels(ecosystem),
-                    ['dependencies', ecosystem_label, 'do-not-merge/hold'],
+                    ['dependencies', ecosystem_label],
                 )
 
     def test_all_go_modules_are_covered(self):

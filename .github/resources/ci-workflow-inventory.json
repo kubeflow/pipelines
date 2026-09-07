@@ -66,7 +66,7 @@
     {
       "path": ".github/workflows/ci-checks.yml",
       "name": "CI Check",
-      "header_sha256": "c78e3e9b751faab1362985afbb6707b0887933668444a5779256d0aeb7c183ef",
+      "header_sha256": "5831aaf775dd2fdaf99824a8f7fb1601c9bb6ab4d6a57c06c0b80d622c0c985f",
       "pull_request": null
     },
     {

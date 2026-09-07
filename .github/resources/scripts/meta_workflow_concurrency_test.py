@@ -162,6 +162,26 @@ class MetaWorkflowConcurrencyTest(unittest.TestCase):
         self.assertEqual(
             _plain_scalar(concurrency, 'cancel-in-progress', 6), 'false')
 
+    def test_scheduled_recovery_uses_same_short_writer(self):
+        workflow = self._read_workflow('ci-checks.yml')
+        jobs = _mapping_block(workflow, 'jobs', 0)
+        writer = _mapping_block(jobs, 'check_ci_status', 2)
+        discovery = _mapping_block(jobs, 'recovery_candidates', 2)
+        self.assertIn("cron: '7,22,37,52 * * * *'", workflow)
+        self.assertIn("github.event_name == 'schedule'", discovery)
+        self.assertNotIn('concurrency:', discovery)
+        self.assertIn(
+            'matrix.candidate.head || github.event.workflow_run.head_sha',
+            writer)
+        self.assertIn('name: check_ci_status', writer)
+        self.assertIn('max-parallel: 4', writer)
+        self.assertIn('fail-fast: false', writer)
+        self.assertIn('CI_RECOVERY_NUMBER: ${{ matrix.candidate.number }}',
+                      writer)
+        self.assertIn('CI_RECOVERY_HEAD: ${{ matrix.candidate.head }}', writer)
+        self.assertIn("poll: 'false'", writer)
+        self.assertNotIn('sleep', writer)
+
     def test_approval_runs_on_open_but_skips_unrelated_labels(self):
         workflow = self._read_workflow('gh-workflow-approve.yml')
         workflow_header = workflow.split('\njobs:', 1)[0]
