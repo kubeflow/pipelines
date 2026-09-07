@@ -3,16 +3,13 @@
 exports[`BusyButton > renders a primary outlined buton 1`] = `
 <DocumentFragment>
   <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-1e6y48t-MuiButtonBase-root-MuiButton-root"
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorPrimary root_f1gmzqw4 css-dizc30-MuiButtonBase-root-MuiButton-root"
     tabindex="0"
     type="button"
   >
     <span>
       test busy button
     </span>
-    <span
-      class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-    />
   </button>
 </DocumentFragment>
 `;
@@ -20,14 +17,14 @@ exports[`BusyButton > renders a primary outlined buton 1`] = `
 exports[`BusyButton > renders disabled 1`] = `
 <DocumentFragment>
   <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
     disabled=""
     tabindex="-1"
     type="button"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
       data-testid="HelpIcon"
       focusable="false"
       viewBox="0 0 24 24"
@@ -46,13 +43,13 @@ exports[`BusyButton > renders disabled 1`] = `
 exports[`BusyButton > renders with a title and icon 1`] = `
 <DocumentFragment>
   <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
     tabindex="0"
     type="button"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
       data-testid="HelpIcon"
       focusable="false"
       viewBox="0 0 24 24"
@@ -64,9 +61,6 @@ exports[`BusyButton > renders with a title and icon 1`] = `
     <span>
       test busy button
     </span>
-    <span
-      class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-    />
   </button>
 </DocumentFragment>
 `;
@@ -74,14 +68,14 @@ exports[`BusyButton > renders with a title and icon 1`] = `
 exports[`BusyButton > renders with a title and icon, and busy 1`] = `
 <DocumentFragment>
   <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary Mui-disabled MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 rootBusy_fronhm5 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    class="MuiButtonBase-root Mui-disabled MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 rootBusy_fronhm5 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
     disabled=""
     tabindex="-1"
     type="button"
   >
     <svg
       aria-hidden="true"
-      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-i4bv87-MuiSvgIcon-root"
+      class="MuiSvgIcon-root MuiSvgIcon-fontSizeMedium icon_f1ojihnt css-1umw9bq-MuiSvgIcon-root"
       data-testid="HelpIcon"
       focusable="false"
       viewBox="0 0 24 24"
@@ -94,16 +88,16 @@ exports[`BusyButton > renders with a title and icon, and busy 1`] = `
       test busy button
     </span>
     <span
-      class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner_fiqr0h3 spinnerBusy_f1wemlvb css-18lrjg1-MuiCircularProgress-root"
+      class="MuiCircularProgress-root MuiCircularProgress-indeterminate MuiCircularProgress-colorPrimary spinner_fiqr0h3 spinnerBusy_f1wemlvb css-1wxecgq-MuiCircularProgress-root"
       role="progressbar"
       style="width: 15px; height: 15px;"
     >
       <svg
-        class="MuiCircularProgress-svg css-1idz92c-MuiCircularProgress-svg"
+        class="MuiCircularProgress-svg css-54pwck-MuiCircularProgress-svg"
         viewBox="22 22 44 44"
       >
         <circle
-          class="MuiCircularProgress-circle MuiCircularProgress-circleIndeterminate css-176wh8e-MuiCircularProgress-circle"
+          class="MuiCircularProgress-circle css-19t5dcl-MuiCircularProgress-circle"
           cx="44"
           cy="44"
           fill="none"
@@ -119,16 +113,13 @@ exports[`BusyButton > renders with a title and icon, and busy 1`] = `
 exports[`BusyButton > renders with just a title 1`] = `
 <DocumentFragment>
   <button
-    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary MuiButton-root MuiButton-text MuiButton-textSecondary MuiButton-sizeMedium MuiButton-textSizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1d3f8j8-MuiButtonBase-root-MuiButton-root"
+    class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-sizeMedium MuiButton-colorSecondary root_f1gmzqw4 css-1ffl2lv-MuiButtonBase-root-MuiButton-root"
     tabindex="0"
     type="button"
   >
     <span>
       test busy button
     </span>
-    <span
-      class="MuiTouchRipple-root css-8je8zh-MuiTouchRipple-root"
-    />
   </button>
 </DocumentFragment>
 `;
