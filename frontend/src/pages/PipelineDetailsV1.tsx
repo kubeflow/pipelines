@@ -24,6 +24,7 @@ import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
 import PipelineGraph from '../components/Graph';
+import type { GraphNode } from '../components/Graph';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
@@ -109,7 +110,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
 
   let selectedNodeInfo: StaticGraphParser.SelectedNodeInfo | null = null;
   if (graphToShow && graphToShow.node(selectedNodeId)) {
-    selectedNodeInfo = graphToShow.node(selectedNodeId).info;
+    selectedNodeInfo = (graphToShow.node(selectedNodeId) as GraphNode).info ?? null;
     if (!!selectedNodeId && !selectedNodeInfo) {
       logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
     }

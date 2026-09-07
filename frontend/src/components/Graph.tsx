@@ -19,6 +19,7 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
+import type { SelectedNodeInfo } from '../lib/StaticGraphParser';
 import { Tooltip } from '@mui/material';
 
 interface Segment {
@@ -36,6 +37,23 @@ interface Edge {
   from: string;
   segments: Segment[];
   to: string;
+}
+
+/**
+ * The layout properties dagre computes, plus the presentation data the
+ * parsers attach to each node with `setNode`.
+ *
+ * `@types/dagre` describes `Graph.node()` as returning only dagre's own
+ * layout fields, so these extras have to be declared to be read back out.
+ * `StaticGraphParser` supplies `bgColor` and `info`; `WorkflowParser`
+ * supplies `icon`, `statusColoring`, and `isPlaceholder`.
+ */
+export interface GraphNode extends dagre.Node {
+  bgColor?: string;
+  icon?: React.ReactNode;
+  info?: SelectedNodeInfo;
+  isPlaceholder?: boolean;
+  statusColoring?: string;
 }
 
 const css = stylesheet({
@@ -202,7 +220,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
           // Note that these adjustments may cause edges to overlap with nodes since we are
           // deviating from the explicit layout provided by dagre.
           if (finalSegment) {
-            const destinationNode = graph.node(edgeInfo.w);
+            const destinationNode = graph.node(edgeInfo.w) as GraphNode;
 
             // Placeholder nodes never need adjustment because they always have only a single
             // incoming edge.
@@ -264,7 +282,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
       <div className={css.root}>
         {graph
           .nodes()
-          .map((id) => Object.assign(graph.node(id), { id }))
+          .map((id) => Object.assign(graph.node(id) as GraphNode, { id }))
           .map((node, i) => (
             <div
               className={classes(
