@@ -79,6 +79,14 @@ class GeneratedFilesDependencyChangeTest(unittest.TestCase):
         ))
 
     def test_generator_version_sources_are_wired_to_automation(self):
+        tools_manifest = (
+            REPOSITORY_ROOT / 'backend/api/tools/go.mod'
+        ).read_text(encoding='utf-8')
+        self.assertIn(
+            'tool github.com/go-swagger/go-swagger/cmd/swagger',
+            tools_manifest.splitlines(),
+        )
+
         dockerfile = (REPOSITORY_ROOT / 'backend/api/Dockerfile').read_text(
             encoding='utf-8')
         for removed_pin in (
