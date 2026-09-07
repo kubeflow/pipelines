@@ -85,3 +85,26 @@ This test gets triggered by the end-to-end testing workflows.
     ps aux | grep '[k]ubectl port-forward'
     kill <PID>
     ```
+
+## Dependency compatibility checks
+
+Use Node.js 22.12.0 or newer (the version in `frontend/.nvmrc` is recommended).
+The browser installer requires `unzip` on Linux/macOS or `tar.exe` on Windows;
+the integration Docker image includes `unzip`.
+
+```bash
+npm install
+npm run test:dependencies
+```
+
+These checks load the WebdriverIO configuration and install a harmless ZIP fixture
+from a temporary loopback HTTP server. They do not require Selenium or a deployed
+KFP cluster. They also run automatically before `npm test`.
+
+The `@wdio/utils` override pins `@puppeteer/browsers` 3.2.2 because WebdriverIO's
+2.x dependency still includes `extract-zip`, which has no patched release for
+[GHSA-jmr9-qjv8-65gv](https://github.com/advisories/GHSA-jmr9-qjv8-65gv).
+Browser installer 3.x uses the operating system ZIP extractor and requires the
+Node.js version above. Remove the override when WebdriverIO accepts that major
+version. The checks cover the APIs WebdriverIO uses and confirm that our explicit
+Selenium connection skips automatic browser and driver installation.
