@@ -1,5 +1,11 @@
 Changelog
 
+## 2.17.2 (2026-09-04)
+
+### Other
+
+- **release** cherry-pick fixes for 2.17.2 ([#14268](https://github.com/kubeflow/pipelines/pull/14268))
+
 ## 2.17.1 (2026-08-26)
 
 ### Bug Fixes
