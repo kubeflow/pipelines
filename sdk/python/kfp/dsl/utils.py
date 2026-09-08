@@ -18,7 +18,7 @@ import os
 import re
 import sys
 import types
-from typing import List
+from typing import List, Optional
 
 COMPONENT_NAME_PREFIX = 'comp-'
 _EXECUTOR_LABEL_PREFIX = 'exec-'
@@ -126,3 +126,34 @@ def validate_pipeline_name(name: str) -> None:
             'Please specify a pipeline name that matches the regular '
             'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
             '`dsl.pipeline(name=...)` decorator.' % name)
+
+
+# Kubernetes resource quantity grammar, without the leading sign and without
+# the suffix-only form that Kubernetes reads as zero:
+# https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/
+_RESOURCE_QUANTITY_PATTERN = re.compile(
+    r'^\+?(?:[0-9]+\.[0-9]*|\.[0-9]+|[0-9]+)'
+    r'(?:Ki|Mi|Gi|Ti|Pi|Ei|[numkMGTPE]|[eE][+-]?[0-9]+)?$')
+
+
+def normalize_resource_quantity(value: str) -> Optional[str]:
+    """Normalizes a Kubernetes resource quantity such as ``'1.5Gi'``.
+
+    KFP has documented ``'K'`` as a kilobyte suffix since v1, but Kubernetes
+    only reads the lowercase ``'k'`` and rejects the rest of the quantity when
+    it sees ``'K'``. Such a value is rewritten rather than refused, so pipelines
+    written against the older docs keep compiling and start reaching the cluster
+    intact.
+
+    Args:
+        value: The quantity to normalize.
+
+    Returns:
+        The quantity Kubernetes will accept, or None when value is not a
+        non-negative quantity.
+    """
+    if not isinstance(value, str):
+        return None
+    if value.endswith('K'):
+        value = value[:-1] + 'k'
+    return value if _RESOURCE_QUANTITY_PATTERN.match(value) else None
