@@ -27,6 +27,7 @@ func TestGenerateCacheKey(t *testing.T) {
 		cmdArgs                 []string
 		image                   string
 		pvcNames                []string
+		env                     map[string]string
 		want                    *cachekey.CacheKey
 		wantErr                 bool
 	}{
@@ -222,7 +223,7 @@ func TestGenerateCacheKey(t *testing.T) {
 	require.NoError(t, err)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames)
+			got, err := cacheClient.GenerateCacheKey(test.executorInputInputs, test.executorInputOutputs, test.outputParametersTypeMap, test.cmdArgs, test.image, test.pvcNames, test.env)
 			if (err != nil) != test.wantErr {
 				t.Errorf("GenerateCacheKey() error = %v", err)
 				return
@@ -427,4 +428,47 @@ func TestGenerateFingerPrint_ConsidersPVCNames(t *testing.T) {
 	assert.Equal(t, withPVCsFP, samePVCsFP)
 	// Different PVC names should change the fingerprint
 	assert.NotEqual(t, withPVCsFP, differentPVCsFP)
+}
+
+func TestGenerateFingerPrint_ConsidersEnv(t *testing.T) {
+	newKey := func(env map[string]string) *cachekey.CacheKey {
+		return &cachekey.CacheKey{
+			InputArtifactNames: map[string]*cachekey.ArtifactNameList{
+				"dataset_one": {ArtifactNames: []string{"1"}},
+			},
+			OutputParametersSpec: map[string]string{
+				"output_parameter_one": "STRING",
+			},
+			ContainerSpec: &cachekey.ContainerSpec{
+				CmdArgs: []string{"sh", "ec", "test"},
+				Image:   "python:3.11",
+				Env:     env,
+			},
+		}
+	}
+
+	cacheClient, err := NewClient("ml-pipeline.kubeflow", "8887", false, &tls.Config{})
+	require.NoError(t, err)
+
+	fingerPrint := func(env map[string]string) string {
+		fp, err := cacheClient.GenerateFingerPrint(newKey(env))
+		require.NoError(t, err)
+		return fp
+	}
+
+	noEnv := fingerPrint(nil)
+	train := fingerPrint(map[string]string{"MODE": "train"})
+	sameTrain := fingerPrint(map[string]string{"MODE": "train"})
+	eval := fingerPrint(map[string]string{"MODE": "eval"})
+	extra := fingerPrint(map[string]string{"MODE": "train", "SEED": "7"})
+
+	assert.NotEqual(t, noEnv, train, "adding an env var must change the fingerprint")
+	assert.Equal(t, train, sameTrain, "the same env must give the same fingerprint")
+	assert.NotEqual(t, train, eval, "a different value must change the fingerprint")
+	assert.NotEqual(t, train, extra, "an extra env var must change the fingerprint")
+
+	// An empty map has to hash like no map at all, or every cached task in an
+	// existing deployment misses once on upgrade.
+	assert.Equal(t, noEnv, fingerPrint(map[string]string{}),
+		"an empty env must keep the fingerprint a task had before env was part of the key")
 }

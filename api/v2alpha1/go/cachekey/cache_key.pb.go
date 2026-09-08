@@ -124,10 +124,13 @@ func (x *CacheKey) GetInputParameterValues() map[string]*structpb.Value {
 }
 
 type ContainerSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
-	CmdArgs       []string               `protobuf:"bytes,2,rep,name=cmdArgs,proto3" json:"cmdArgs,omitempty"`
-	PvcNames      []string               `protobuf:"bytes,3,rep,name=pvcNames,proto3" json:"pvcNames,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Image    string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	CmdArgs  []string               `protobuf:"bytes,2,rep,name=cmdArgs,proto3" json:"cmdArgs,omitempty"`
+	PvcNames []string               `protobuf:"bytes,3,rep,name=pvcNames,proto3" json:"pvcNames,omitempty"`
+	// Two tasks that differ only in their environment produce different output,
+	// so they must not share a cache entry.
+	Env           map[string]string `protobuf:"bytes,4,rep,name=env,proto3" json:"env,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -179,6 +182,13 @@ func (x *ContainerSpec) GetCmdArgs() []string {
 func (x *ContainerSpec) GetPvcNames() []string {
 	if x != nil {
 		return x.PvcNames
+	}
+	return nil
+}
+
+func (x *ContainerSpec) GetEnv() map[string]string {
+	if x != nil {
+		return x.Env
 	}
 	return nil
 }
@@ -253,11 +263,15 @@ const file_cache_key_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a_\n" +
 	"\x19InputParameterValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12,\n" +
-	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01\"[\n" +
+	"\x05value\x18\x02 \x01(\v2\x16.google.protobuf.ValueR\x05value:\x028\x01\"\xcb\x01\n" +
 	"\rContainerSpec\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\x12\x18\n" +
 	"\acmdArgs\x18\x02 \x03(\tR\acmdArgs\x12\x1a\n" +
-	"\bpvcNames\x18\x03 \x03(\tR\bpvcNames\"8\n" +
+	"\bpvcNames\x18\x03 \x03(\tR\bpvcNames\x126\n" +
+	"\x03env\x18\x04 \x03(\v2$.ml_pipelines.ContainerSpec.EnvEntryR\x03env\x1a6\n" +
+	"\bEnvEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"8\n" +
 	"\x10ArtifactNameList\x12$\n" +
 	"\rartifactNames\x18\x01 \x03(\tR\rartifactNamesB8Z6github.com/kubeflow/pipelines/api/v2alpha1/go/cachekeyb\x06proto3"
 
@@ -273,7 +287,7 @@ func file_cache_key_proto_rawDescGZIP() []byte {
 	return file_cache_key_proto_rawDescData
 }
 
-var file_cache_key_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_cache_key_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_cache_key_proto_goTypes = []any{
 	(*CacheKey)(nil),                     // 0: ml_pipelines.CacheKey
 	(*ContainerSpec)(nil),                // 1: ml_pipelines.ContainerSpec
@@ -283,9 +297,10 @@ var file_cache_key_proto_goTypes = []any{
 	nil,                                  // 5: ml_pipelines.CacheKey.OutputArtifactsSpecEntry
 	nil,                                  // 6: ml_pipelines.CacheKey.OutputParametersSpecEntry
 	nil,                                  // 7: ml_pipelines.CacheKey.InputParameterValuesEntry
-	(*pipelinespec.Value)(nil),           // 8: ml_pipelines.Value
-	(*pipelinespec.RuntimeArtifact)(nil), // 9: ml_pipelines.RuntimeArtifact
-	(*structpb.Value)(nil),               // 10: google.protobuf.Value
+	nil,                                  // 8: ml_pipelines.ContainerSpec.EnvEntry
+	(*pipelinespec.Value)(nil),           // 9: ml_pipelines.Value
+	(*pipelinespec.RuntimeArtifact)(nil), // 10: ml_pipelines.RuntimeArtifact
+	(*structpb.Value)(nil),               // 11: google.protobuf.Value
 }
 var file_cache_key_proto_depIdxs = []int32{
 	3,  // 0: ml_pipelines.CacheKey.inputArtifactNames:type_name -> ml_pipelines.CacheKey.InputArtifactNamesEntry
@@ -294,15 +309,16 @@ var file_cache_key_proto_depIdxs = []int32{
 	6,  // 3: ml_pipelines.CacheKey.outputParametersSpec:type_name -> ml_pipelines.CacheKey.OutputParametersSpecEntry
 	1,  // 4: ml_pipelines.CacheKey.containerSpec:type_name -> ml_pipelines.ContainerSpec
 	7,  // 5: ml_pipelines.CacheKey.input_parameter_values:type_name -> ml_pipelines.CacheKey.InputParameterValuesEntry
-	2,  // 6: ml_pipelines.CacheKey.InputArtifactNamesEntry.value:type_name -> ml_pipelines.ArtifactNameList
-	8,  // 7: ml_pipelines.CacheKey.InputParametersEntry.value:type_name -> ml_pipelines.Value
-	9,  // 8: ml_pipelines.CacheKey.OutputArtifactsSpecEntry.value:type_name -> ml_pipelines.RuntimeArtifact
-	10, // 9: ml_pipelines.CacheKey.InputParameterValuesEntry.value:type_name -> google.protobuf.Value
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	8,  // 6: ml_pipelines.ContainerSpec.env:type_name -> ml_pipelines.ContainerSpec.EnvEntry
+	2,  // 7: ml_pipelines.CacheKey.InputArtifactNamesEntry.value:type_name -> ml_pipelines.ArtifactNameList
+	9,  // 8: ml_pipelines.CacheKey.InputParametersEntry.value:type_name -> ml_pipelines.Value
+	10, // 9: ml_pipelines.CacheKey.OutputArtifactsSpecEntry.value:type_name -> ml_pipelines.RuntimeArtifact
+	11, // 10: ml_pipelines.CacheKey.InputParameterValuesEntry.value:type_name -> google.protobuf.Value
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_cache_key_proto_init() }
@@ -316,7 +332,7 @@ func file_cache_key_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_cache_key_proto_rawDesc), len(file_cache_key_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

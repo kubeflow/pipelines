@@ -33,6 +33,9 @@ message ContainerSpec {
   string image = 1;
   repeated string cmdArgs = 2;
   repeated string pvcNames = 3;
+  // Two tasks that differ only in their environment produce different output,
+  // so they must not share a cache entry.
+  map<string, string> env = 4;
 }
 
 message ArtifactNameList {

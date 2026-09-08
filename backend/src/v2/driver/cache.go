@@ -114,6 +114,16 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 	}
 	sort.Strings(sortedPVCNames)
 
+	// Later entries win on a repeated name, the way Kubernetes resolves one.
+	env := map[string]string{}
+	for _, envVar := range opts.Container.GetEnv() {
+		env[envVar.GetName()] = envVar.GetValue()
+	}
+	if len(env) == 0 {
+		// Unset, so a task with no env keeps the fingerprint it had before.
+		env = nil
+	}
+
 	cacheKey, err := cacheClient.GenerateCacheKey(
 		executorInput.GetInputs(),
 		executorInput.GetOutputs(),
@@ -121,6 +131,7 @@ func getFingerPrint(opts Options, executorInput *pipelinespec.ExecutorInput, cac
 		userCmdArgs,
 		opts.Container.Image,
 		sortedPVCNames,
+		env,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failure while generating CacheKey: %w", err)
