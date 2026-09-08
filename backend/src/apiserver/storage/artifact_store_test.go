@@ -40,10 +40,10 @@ const (
 )
 
 // initializeArtifactStore sets up a fake DB and returns an ArtifactStore ready for testing.
-func initializeArtifactStore() (*DB, *ArtifactStore) {
-	db := NewFakeDBOrFatal()
+func initializeArtifactStore() (*sql.DB, *ArtifactStore) {
+	db, testDialect := NewFakeDBOrFatal()
 	fakeTime := util.NewFakeTimeForEpoch()
-	store := NewArtifactStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil))
+	store := NewArtifactStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialect)
 	return db, store
 }
 
@@ -343,7 +343,7 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 		if callCount == 2 {
 			return nil, errors.New("injected artifact-task failure")
 		}
-		return createArtifactTaskWithExecutor(tx.Exec, store.uuid, artifactTask)
+		return createArtifactTaskWithExecutor(tx.Exec, store.uuid, artifactTask, store.dbDialect)
 	}
 
 	_, _, err := store.CreateArtifactsWithTasks(
@@ -389,12 +389,12 @@ func TestCreateArtifactsWithTasks_RollsBackWholeBatchOnFailure(t *testing.T) {
 }
 
 func TestFindOrCreateArtifactWithTask_ConcurrentReuseCreatesOneArtifact(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	db.SetMaxOpenConns(1)
 
-	firstStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil))
-	secondStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil))
+	firstStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID1, nil), testDialect)
+	secondStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(artifactUUID2, nil), testDialect)
 	stores := []*ArtifactStore{firstStore, secondStore}
 
 	sharedURI := "s3://bucket/shared-model"

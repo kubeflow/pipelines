@@ -249,12 +249,12 @@ func TestCreateTask_DifferentParentsCreateDistinctTasks(t *testing.T) {
 }
 
 func TestCreateTask_ConcurrentRetriesCreateOneTask(t *testing.T) {
-	db, _, _ := initializeTaskStore()
+	db, taskStore, _ := initializeTaskStore()
 	defer db.Close()
 	db.SetMaxOpenConns(1)
 
-	firstStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil))
-	secondStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil))
+	firstStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID1, nil), taskStore.dbDialect)
+	secondStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil), taskStore.dbDialect)
 	stores := []*TaskStore{firstStore, secondStore}
 
 	start := make(chan struct{})
@@ -313,7 +313,7 @@ func logicalTaskForTest(parentTaskUUID *string) *model.Task {
 	}
 }
 
-func insertTaskForTest(db *DB, taskID, name string) error {
+func insertTaskForTest(db *sql.DB, taskID, name string) error {
 	_, err := db.Exec(
 		`INSERT INTO tasks (
 			UUID, Namespace, RunUUID, pods, CreatedAtInSec, StartedInSec,
@@ -1043,7 +1043,7 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	})
 	assert.NoError(t, err)
 
-	artifactStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil))
+	artifactStore := NewArtifactStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(testUUID2, nil), taskStore.dbDialect)
 	artifactA, err := artifactStore.CreateArtifact(&model.Artifact{
 		Namespace: "ns1",
 		Type:      0,
@@ -1060,7 +1060,7 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 	})
 	assert.NoError(t, err)
 
-	artifactTaskStore := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1", nil))
+	artifactTaskStore := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1", nil), taskStore.dbDialect)
 	_, err = artifactTaskStore.CreateArtifactTask(&model.ArtifactTask{
 		ArtifactID:  artifactB.UUID,
 		TaskID:      task.UUID,
@@ -1087,14 +1087,14 @@ func TestHydrateArtifactsForTasks_ClearsExistingSlicesAndOrdersByKey(t *testing.
 			Key: "stale",
 		}}
 
-		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask})
+		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask}, taskStore.dbDialect)
 		assert.NoError(t, err)
 		if assert.Equal(t, 2, len(hydratedTask.OutputArtifactsHydrated)) {
 			assert.Equal(t, "a-key", hydratedTask.OutputArtifactsHydrated[0].Key)
 			assert.Equal(t, "z-key", hydratedTask.OutputArtifactsHydrated[1].Key)
 		}
 
-		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask})
+		err = hydrateArtifactsForTasks(db, []*model.Task{hydratedTask}, taskStore.dbDialect)
 		assert.NoError(t, err)
 		if assert.Equal(t, 2, len(hydratedTask.OutputArtifactsHydrated)) {
 			assert.Equal(t, "a-key", hydratedTask.OutputArtifactsHydrated[0].Key)

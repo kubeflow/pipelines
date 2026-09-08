@@ -43,7 +43,7 @@ var taskColumns = []string{
 	"UUID",
 	"Namespace",
 	"RunUUID",
-	"Pods",
+	"pods",
 	"CreatedAtInSec",
 	"StartedInSec",
 	"FinishedInSec",
@@ -642,7 +642,7 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 				q("UUID"):             newTask.UUID,
 				q("Namespace"):        newTask.Namespace,
 				q("RunUUID"):          newTask.RunUUID,
-				q("Pods"):             podsString,
+				q("pods"):             podsString,
 				q("CreatedAtInSec"):   newTask.CreatedAtInSec,
 				q("StartedInSec"):     newTask.StartedInSec,
 				q("FinishedInSec"):    newTask.FinishedInSec,
@@ -692,7 +692,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := qb.Select(dialect.QuoteAll(q, taskColumns)...).From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.Type == model.TaskResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("ParentTaskUUID"): filterContext.ID})
@@ -706,7 +706,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder, q)
 
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation()).ToSql()
+	rowsSQL, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder, q, s.dbDialect.StringCollation()).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -715,7 +715,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = qb.Select("count(*)").From(q("tasks"))
 	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.RunResourceType {
-		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ReferenceKey.ID})
+		sqlBuilder = sqlBuilder.Where(sq.Eq{q("RunUUID"): filterContext.ID})
 	}
 	if filterContext.ReferenceKey != nil && filterContext.Type == model.TaskResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{q("ParentTaskUUID"): filterContext.ID})
@@ -727,7 +727,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 			sqlBuilder = sqlBuilder.Where(sq.Eq{q("Namespace"): filterContext.ID})
 		}
 	}
-	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
+	sizeSQL, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder, q).ToSql()
 	if err != nil {
 		return errorF(err)
 	}
@@ -740,7 +740,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 	}
 	defer tx.Rollback()
 
-	rows, err := tx.Query(rowsSql, rowsArgs...)
+	rows, err := tx.Query(rowsSQL, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -756,7 +756,7 @@ func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Opt
 		return errorF(err)
 	}
 
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	sizeRow, err := tx.Query(sizeSQL, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
 		return errorF(err)
@@ -1150,7 +1150,7 @@ func (s *TaskStore) UpdateTask(new *model.Task) (*model.Task, error) {
 	}
 	if new.Pods != nil {
 		if b, err := json.Marshal(new.Pods); err == nil {
-			setMap[q("Pods")] = string(b)
+			setMap[q("pods")] = string(b)
 		} else {
 			return nil, util.NewInternalServerError(err, "Failed to marshal pod names in an updated task")
 		}
@@ -1308,7 +1308,7 @@ func (s *TaskStore) ResetTasksForRetry(taskIDs []string) error {
 				q("StartedInSec"):     retryStartedAt,
 				q("FinishedInSec"):    0,
 				q("StatusMetadata"):   nil,
-				q("Pods"):             emptyJSONArray,
+				q("pods"):             emptyJSONArray,
 				q("OutputParameters"): emptyJSONArray,
 				q("StateHistory"):     string(historyBytes),
 			}).

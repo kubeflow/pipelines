@@ -15,7 +15,7 @@
 package storage
 
 import (
-	"fmt"
+	"database/sql"
 	"testing"
 
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
@@ -38,14 +38,14 @@ const (
 )
 
 // initializeArtifactTaskDeps sets up a fake DB and returns stores needed for artifact-task tests.
-func initializeArtifactTaskDeps() (*DB, *ArtifactStore, *TaskStore, *RunStore, *ArtifactTaskStore) {
-	db := NewFakeDBOrFatal()
+func initializeArtifactTaskDeps() (*sql.DB, *ArtifactStore, *TaskStore, *RunStore, *ArtifactTaskStore) {
+	db, testDialect := NewFakeDBOrFatal()
 	fakeTime := util.NewFakeTimeForEpoch()
 
-	artifactStore := NewArtifactStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(artifactID1, nil))
-	taskStore := NewTaskStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(taskID1, nil))
-	runStore := NewRunStore(db, fakeTime)
-	linkStore := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal(linkUUID1, nil))
+	artifactStore := NewArtifactStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(artifactID1, nil), testDialect)
+	taskStore := NewTaskStore(db, fakeTime, util.NewFakeUUIDGeneratorOrFatal(taskID1, nil), testDialect)
+	runStore := NewRunStore(db, fakeTime, testDialect)
+	linkStore := NewArtifactTaskStore(db, util.NewFakeUUIDGeneratorOrFatal(linkUUID1, nil), testDialect)
 
 	// Seed runs to satisfy Task FK
 	_, _ = runStore.CreateRun(&model.Run{UUID: runID1, ExperimentId: "exp-1", K8SName: "r1", DisplayName: "r1", StorageState: model.StorageStateAvailable, Namespace: "ns1", RunDetails: model.RunDetails{CreatedAtInSec: 1, ScheduledAtInSec: 1, State: model.RuntimeStateRunning}})
@@ -56,7 +56,7 @@ func initializeArtifactTaskDeps() (*DB, *ArtifactStore, *TaskStore, *RunStore, *
 
 func TestArtifactTaskAPIFieldMap(t *testing.T) {
 	for _, modelField := range (&model.ArtifactTask{}).APIToModelFieldMap() {
-		assert.Contains(t, artifactTaskColumns, fmt.Sprintf("%s.%s", artifactTaskTableName, modelField))
+		assert.Contains(t, artifactTaskColumns, modelField)
 	}
 }
 
