@@ -48,12 +48,6 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
         checks = (
             ('go.mod',
              r'github\.com/argoproj/argo-workflows/v\d+ (v\d+\.\d+\.\d+)'),
-            ('backend/Dockerfile', r'ARGO_VERSION=(v\d+\.\d+\.\d+)'),
-            (
-                'backend/src/common/types.go',
-                r'argo-workflows/v\d+@(v\d+\.\d+\.\d+)',
-            ),
-            ('test/install-argo-cli.sh', r'ARGO_VERSION=(v\d+\.\d+\.\d+)'),
             ('third_party/argo/UPGRADE.md', r'ARGO_TAG=(v\d+\.\d+\.\d+)'),
             (
                 'manifests/kustomize/third-party/argo/base/kustomization.yaml',
@@ -89,6 +83,25 @@ class ArgoVersionConsistencyTest(unittest.TestCase):
         for relative_path, pattern in checks:
             with self.subTest(path=relative_path):
                 self.assert_version_matches(relative_path, pattern)
+
+    def test_backend_dockerfile_derives_argo_cli_from_go_module(self):
+        contents = (REPOSITORY_ROOT / 'backend/Dockerfile').read_text(
+            encoding='utf-8')
+        self.assertIn(
+            "go list -mod=readonly -m -f '{{.Version}}' "
+            'github.com/argoproj/argo-workflows/v4',
+            contents,
+        )
+        self.assertIn('ARGO_VERSION="$(cat /tmp/argo-version)"', contents)
+
+    def test_argo_install_script_reads_canonical_version_file(self):
+        contents = (REPOSITORY_ROOT / 'test/install-argo-cli.sh').read_text(
+            encoding='utf-8')
+        self.assertIn(
+            'ARGO_VERSION="$(cat ${REPO_ROOT}/third_party/argo/VERSION)"',
+            contents,
+        )
+        self.assertNotRegex(contents, r'ARGO_VERSION=v\d+\.\d+\.\d+')
 
 
 if __name__ == '__main__':

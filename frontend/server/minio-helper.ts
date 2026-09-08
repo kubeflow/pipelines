@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { Transform, PassThrough } from 'stream';
+import { Transform, PassThrough, pipeline } from 'stream';
 import * as tar from 'tar-stream';
 import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
@@ -28,6 +28,9 @@ export interface MinioRequestConfig {
   key: string;
   client: MinioClient;
   tryExtract?: boolean;
+  /** Receives asynchronous storage or transformation failures from the returned stream. */
+  onError?: (error: Error) => void;
+  onTransformationDetermined?: (transformed: boolean) => void;
 }
 
 /** MinioClientOptionsWithOptionalSecrets wraps around MinioClientOptions where only endPoint is required (accesskey and secretkey are optional). */
@@ -337,12 +340,29 @@ export function isTarball(buf: Buffer) {
  * Returns a stream that extracts the first record of a tarball if the source
  * stream is a tarball, otherwise just pipe the content as is.
  */
-export function maybeTarball(): Transform {
+export function maybeTarball(onExtractionDetermined?: (extracted: boolean) => void): Transform {
   return peek(
     { newline: false, maxBuffer: 264 },
     (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
-      if (isTarball(data)) swap(undefined, extractFirstTarRecordAsStream());
+      const extracted = isTarball(data);
+      onExtractionDetermined?.(extracted);
+      if (extracted) swap(undefined, extractFirstTarRecordAsStream());
       else swap(undefined, new PassThrough());
+    },
+  );
+}
+
+function detectCompression(onCompressionDetermined: (compressed: boolean) => void): Transform {
+  return peek(
+    { newline: false, maxBuffer: 3 },
+    (data: Buffer, swap: (error?: Error, parser?: Transform) => void) => {
+      // Keep these signatures aligned with gunzip-maybe's is-gzip and
+      // is-deflate dependencies. The callback controls the response filename,
+      // so its decision must match whether gunzip-maybe transforms the bytes.
+      const gzip = data.length >= 3 && data[0] === 0x1f && data[1] === 0x8b && data[2] === 0x08;
+      const deflate = data.length >= 2 && data[0] === 0x78 && [0x01, 0x9c, 0xda].includes(data[1]);
+      onCompressionDetermined(gzip || deflate);
+      swap(undefined, new PassThrough());
     },
   );
 }
@@ -382,6 +402,9 @@ function extractFirstTarRecordAsStream() {
  * @param param.key Key of the object to retrieve.
  * @param param.client Minio client.
  * @param param.tryExtract Whether we try to extract *.tar.gz, default to true.
+ * @param param.onError Optional asynchronous error callback. The returned
+ * stream also emits the same error; callers that omit this callback must
+ * attach their own listener if they need request-specific recovery.
  *
  */
 export async function getObjectStream({
@@ -389,9 +412,33 @@ export async function getObjectStream({
   key,
   client,
   tryExtract = true,
+  onError,
+  onTransformationDetermined,
 }: MinioRequestConfig): Promise<Transform> {
-  const stream = await client.getObject(bucket, key);
-  return tryExtract ? stream.pipe(gunzip()).pipe(maybeTarball()) : stream.pipe(new PassThrough());
+  const source = await client.getObject(bucket, key);
+  let compressed = false;
+  const output = tryExtract
+    ? maybeTarball((extracted) => onTransformationDetermined?.(compressed || extracted))
+    : new PassThrough();
+  const streams = tryExtract
+    ? [source, detectCompression((value) => (compressed = value)), gunzip(), output]
+    : [source, output];
+  if (!tryExtract) {
+    onTransformationDetermined?.(false);
+  }
+  output.once(
+    'error',
+    onError ?? ((error) => console.error('Artifact object stream failed', error)),
+  );
+  // Readable.pipe() does not forward a source error to its destination. Use
+  // pipeline so storage and decompression failures destroy the returned stream
+  // and reach the artifact handler's abort-on-error listener.
+  pipeline(streams, (error) => {
+    if (error && !output.destroyed) {
+      output.destroy(error);
+    }
+  });
+  return output;
 }
 
 /**
@@ -459,6 +506,7 @@ export async function* listObjectsUnderPrefix(
   client: MinioClient,
   bucket: string,
   prefix: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<{ name: string; size: number }> {
   const PAGE_SIZE = 300;
   const listObjectsV2Query = getListObjectsV2Query(client);
@@ -466,7 +514,11 @@ export async function* listObjectsUnderPrefix(
   let isTruncated = true;
 
   while (isTruncated) {
-    const page = await listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+    if (signal?.aborted) {
+      throw getMinioAbortReason(signal);
+    }
+    const pageRequest = listObjectsV2Query(bucket, prefix, continuationToken, '', PAGE_SIZE, '');
+    const page = signal ? await waitForMinioOperation(pageRequest, signal) : await pageRequest;
 
     for (const item of page.objects) {
       if (item.name) {
@@ -477,6 +529,50 @@ export async function* listObjectsUnderPrefix(
     isTruncated = page.isTruncated;
     continuationToken = page.nextContinuationToken;
   }
+}
+
+function getMinioAbortReason(signal: AbortSignal): Error {
+  return signal.reason instanceof Error ? signal.reason : new Error('MinIO operation was aborted');
+}
+
+function waitForMinioOperation<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => signal.removeEventListener('abort', rejectOnAbort);
+    const rejectOnAbort = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(getMinioAbortReason(signal));
+    };
+
+    if (signal.aborted) {
+      rejectOnAbort();
+    } else {
+      signal.addEventListener('abort', rejectOnAbort, { once: true });
+    }
+
+    void operation.then(
+      (value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(value);
+      },
+      (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(error);
+      },
+    );
+  });
 }
 
 /**

@@ -125,7 +125,7 @@ push: image
 
 # .image-built is a local token file to help Make determine the latest successful build.
 # Uses Docker layer caching for improved performance.
-.image-built: Dockerfile
+.image-built: Dockerfile ../../go.mod tools/go.mod
 	DOCKER_BUILDKIT=1 ${CONTAINER_ENGINE} build ../.. -t $(IMAGE_TAG) -f Dockerfile \
 		--cache-from $(IMAGE_TAG):latest
 	touch .image-built

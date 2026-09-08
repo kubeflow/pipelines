@@ -501,6 +501,7 @@ func Test_createS3BucketSession(t *testing.T) {
 		expectedPathStyle bool
 		wantErr           bool
 		errorMsg          string
+		forbiddenErrorMsg []string
 	}{
 		{
 			msg: "Bucket with session",
@@ -591,7 +592,11 @@ func Test_createS3BucketSession(t *testing.T) {
 			},
 			expectValidClient: false,
 			wantErr:           true,
-			errorMsg:          "could not find specified keys",
+			errorMsg:          "bucket credential secret has no value for: access key, secret key",
+			forbiddenErrorMsg: []string{
+				"does_not_exist_secret_key",
+				"does_not_exist_access_key",
+			},
 		},
 	}
 	for _, test := range tt {
@@ -613,6 +618,9 @@ func Test_createS3BucketSession(t *testing.T) {
 				if test.errorMsg != "" {
 					assert.Contains(t, err.Error(), test.errorMsg)
 				}
+				for _, forbidden := range test.forbiddenErrorMsg {
+					assert.NotContains(t, err.Error(), forbidden)
+				}
 			} else {
 				assert.Nil(t, err)
 			}
@@ -624,6 +632,52 @@ func Test_createS3BucketSession(t *testing.T) {
 			} else {
 				assert.Nil(t, actualSession)
 			}
+		})
+	}
+}
+
+func TestGetS3BucketCredentialReportsMissingRoleWithoutConfiguredKeyNames(t *testing.T) {
+	tests := []struct {
+		name            string
+		secretData      map[string][]byte
+		expectedMissing string
+	}{
+		{
+			name: "access key missing",
+			secretData: map[string][]byte{
+				"custom-secret-key-field": []byte("secret-key-value"),
+			},
+			expectedMissing: "access key",
+		},
+		{
+			name: "secret key missing",
+			secretData: map[string][]byte{
+				"custom-access-key-field": []byte("access-key-value"),
+			},
+			expectedMissing: "secret key",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clientSet := fake.NewClientset(&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "s3-provider-secret", Namespace: "testnamespace"},
+				Data:       test.secretData,
+			})
+
+			_, err := getS3BucketCredential(
+				context.Background(),
+				clientSet,
+				"testnamespace",
+				"s3-provider-secret",
+				"custom-secret-key-field",
+				"custom-access-key-field",
+			)
+
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "has no value for: "+test.expectedMissing)
+			assert.NotContains(t, err.Error(), "custom-access-key-field")
+			assert.NotContains(t, err.Error(), "custom-secret-key-field")
 		})
 	}
 }

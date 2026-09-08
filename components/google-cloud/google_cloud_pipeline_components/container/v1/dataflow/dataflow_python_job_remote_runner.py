@@ -139,7 +139,7 @@ def prepare_cmd(project_id, region, python_file_path, args, temp_location):
 def extract_job_id_and_location(line):
   """Returns (job_id, location) from matched log."""
   job_id_pattern = re.compile(_DATAFLOW_JOB_ID_PATTERN)
-  matched_job_id = job_id_pattern.search(line or '')
+  matched_job_id = job_id_pattern.search(line or '')  # pyrefly: ignore[no-matching-overload]
   if matched_job_id:
     return (
         matched_job_id.group('job_id').decode(),
@@ -221,6 +221,6 @@ class Process:
 
   def read_lines(self):
     # stdout will end with empty bytes when process exits.
-    for line in iter(self.process.stdout.readline, b''):
+    for line in iter(self.process.stdout.readline, b''):  # pyrefly: ignore[missing-attribute]
       logging.info('subprocess: %s', line)
       yield line

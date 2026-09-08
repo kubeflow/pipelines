@@ -213,3 +213,144 @@ func TestReadSingleFileFromTgz_PropagatesConsumerError(t *testing.T) {
 
 	assert.ErrorIs(t, err, expectedError)
 }
+
+// createExactSizePaxBomb creates a valid tar.gz archive whose uncompressed size is exactly exactTarSizeBytes.
+// It uses a valid local TypeXHeader (PAX) record which archive/tar.Reader.Next() consumes internally.
+func createExactSizePaxBomb(t *testing.T, targetName string, targetContent string, exactTarSizeBytes int64) []byte {
+	t.Helper()
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+
+	targetContentLen := int64(len(targetContent))
+	targetBlocks := (targetContentLen + 511) / 512
+
+	// Base tar size: Target Header (1 block) + Target Body + 2 EOF blocks
+	baseBlocks := 1 + targetBlocks + 2
+	baseBytes := baseBlocks * 512
+
+	var paxRecords map[string]string
+	if exactTarSizeBytes > 0 {
+		require.True(t, exactTarSizeBytes >= baseBytes+512, "exactTarSizeBytes too small for PAX header")
+		require.Equal(t, int64(0), exactTarSizeBytes%512, "exactTarSizeBytes must be multiple of 512")
+
+		paxBytesNeeded := exactTarSizeBytes - baseBytes
+		// PAX Header is 1 block. The rest is PAX Body.
+		paxPayloadBlocks := (paxBytesNeeded / 512) - 1
+		paxPayloadBytes := paxPayloadBlocks * 512
+
+		var paxValue string
+		for valLen := int(paxPayloadBytes) - 20; valLen <= int(paxPayloadBytes); valLen++ {
+			s := fmt.Sprintf("%d comment=%s\n", paxPayloadBytes, bytes.Repeat([]byte("x"), valLen))
+			if len(s) == int(paxPayloadBytes) {
+				paxValue = string(bytes.Repeat([]byte("x"), valLen))
+				break
+			}
+		}
+		require.NotEmpty(t, paxValue, "Could not perfectly size the PAX payload")
+		paxRecords = map[string]string{"comment": paxValue}
+	}
+
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag:   tar.TypeReg,
+		Name:       targetName,
+		Mode:       0600,
+		Size:       targetContentLen,
+		PAXRecords: paxRecords,
+	}))
+	_, err := tw.Write([]byte(targetContent))
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+
+	if exactTarSizeBytes > 0 {
+		require.Equal(t, exactTarSizeBytes, int64(buf.Len()), "Tarball uncompressed size must be exact")
+	}
+
+	var gzBuf bytes.Buffer
+	gw := gzip.NewWriter(&gzBuf)
+	_, err = gw.Write(buf.Bytes())
+	require.NoError(t, err)
+	require.NoError(t, gw.Close())
+	return gzBuf.Bytes()
+}
+
+// TestReadSingleFileFromTgz_TraversalBudgetExhaustion verifies that a
+// tar.gz whose PAX metadata causes attacker-controlled unbounded work inside
+// tar.Reader.Next() is rejected before the persistence agent exhausts memory.
+func TestReadSingleFileFromTgz_TraversalBudgetExhaustion(t *testing.T) {
+	const maxFileSize int64 = 1024
+	budget := ArchiveTraversalBudget(maxFileSize)
+
+	tgz := createExactSizePaxBomb(t, "metrics.json", "content", budget+512)
+
+	err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+		return nil
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "traversal exceeded budget")
+}
+
+// TestReadSingleFileFromTgz_TraversalBudgetBoundary verifies that the exact boundary
+// (budget bytes consumed) passes, but budget+1 fails. The +1 check ensures the
+// sentinel logic correctly differentiates exact budget EOF from exhaustion, so
+// exactly-sized edge cases (such as exact uncompressed limits) aren't falsely
+// removed without breaking tests.
+func TestReadSingleFileFromTgz_TraversalBudgetBoundary(t *testing.T) {
+	const maxFileSize int64 = 1024
+	budget := ArchiveTraversalBudget(maxFileSize)
+
+	t.Run("exact file size accepted", func(t *testing.T) {
+		content := string(bytes.Repeat([]byte("a"), int(maxFileSize)))
+		tgz := createExactSizePaxBomb(t, "metrics.json", content, budget)
+		err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+			return nil
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("budget+1 PAX metadata rejected", func(t *testing.T) {
+		tgz := createExactSizePaxBomb(t, "metrics.json", "content", budget+512)
+		err := readSingleFileFromTgz(tgz, maxFileSize, func(r io.Reader) error {
+			return nil
+		})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "traversal exceeded budget")
+	})
+}
+
+// TestArchiveWireResponseBudget_GzipFlushRegression demonstrates that pathological
+// valid gzip streams containing excessive empty flushes can exceed the independent
+// finite wire limit calculated by ArchiveWireResponseBudget. The persistence agent
+// will correctly truncate such pathological responses.
+func TestArchiveWireResponseBudget_GzipFlushRegression(t *testing.T) {
+	const maxFileSize = 4096
+	budget := ArchiveWireResponseBudget(maxFileSize)
+
+	var buf bytes.Buffer
+	gw, err := gzip.NewWriterLevel(&buf, gzip.NoCompression)
+	require.NoError(t, err)
+	tw := tar.NewWriter(gw)
+
+	content := bytes.Repeat([]byte("a"), maxFileSize)
+	require.NoError(t, tw.WriteHeader(&tar.Header{
+		Typeflag: tar.TypeReg,
+		Name:     "pipeline.yaml",
+		Size:     int64(len(content)),
+	}))
+	_, err = tw.Write(content)
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+
+	// Write 300,000 empty DEFLATE blocks via excessive flushes.
+	// This reliably exceeds the conservative wire budget (which is ~1.5MB for a 4KB file).
+	for i := 0; i < 300000; i++ {
+		require.NoError(t, gw.Flush())
+	}
+	require.NoError(t, gw.Close())
+
+	// Compute the simulated wire response size (base64 + JSON framing).
+	maxBase64 := ((int64(buf.Len()) + 2) / 3) * 4
+	jsonBodyLen := maxBase64 + 11 // {"data":""}
+
+	// Assert that this pathological gzip stream legitimately exceeds our independent wire cap.
+	assert.Greater(t, jsonBodyLen, budget, "Pathological gzip stream should exceed the independent wire budget")
+}

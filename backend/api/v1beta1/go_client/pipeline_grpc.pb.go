@@ -56,7 +56,8 @@ type PipelineServiceClient interface {
 	CreatePipelineV1(ctx context.Context, in *CreatePipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
 	// Finds a specific pipeline by ID.
 	GetPipelineV1(ctx context.Context, in *GetPipelineRequest, opts ...grpc.CallOption) (*Pipeline, error)
-	// Finds a pipeline by Name (and namespace)
+	//
+	//Finds a pipeline by Name (and namespace)
 	GetPipelineByNameV1(ctx context.Context, in *GetPipelineByNameRequest, opts ...grpc.CallOption) (*Pipeline, error)
 	// Finds all pipelines.
 	ListPipelinesV1(ctx context.Context, in *ListPipelinesRequest, opts ...grpc.CallOption) (*ListPipelinesResponse, error)
@@ -219,7 +220,8 @@ type PipelineServiceServer interface {
 	CreatePipelineV1(context.Context, *CreatePipelineRequest) (*Pipeline, error)
 	// Finds a specific pipeline by ID.
 	GetPipelineV1(context.Context, *GetPipelineRequest) (*Pipeline, error)
-	// Finds a pipeline by Name (and namespace)
+	//
+	//Finds a pipeline by Name (and namespace)
 	GetPipelineByNameV1(context.Context, *GetPipelineByNameRequest) (*Pipeline, error)
 	// Finds all pipelines.
 	ListPipelinesV1(context.Context, *ListPipelinesRequest) (*ListPipelinesResponse, error)

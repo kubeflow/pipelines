@@ -504,6 +504,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 	// Get active workflows for this ScheduledWorkflow.
 	startTime = time.Time{}
 	active, err := c.workflowClient.List(
+		swf.Namespace,
 		swf.Name,
 		// active workflow
 		false,
@@ -520,7 +521,8 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 
 	startTime = time.Now()
 	// Get completed workflows for this ScheduledWorkflow.
-	completed, err := c.workflowClient.List(swf.Name,
+	completed, err := c.workflowClient.List(swf.Namespace,
+		swf.Name,
 		true, /* completed workflows */
 		swf.MinIndex())
 	if err != nil {

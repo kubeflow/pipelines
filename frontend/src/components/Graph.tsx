@@ -19,6 +19,7 @@ import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
+import type { DagreGraph } from '../lib/GraphTypes';
 import { Tooltip } from '@mui/material';
 
 interface Segment {
@@ -100,7 +101,7 @@ const css = stylesheet({
 });
 
 interface GraphProps {
-  graph: dagre.graphlib.Graph;
+  graph: DagreGraph;
   onClick?: (id: string) => void;
   selectedNodeId?: string;
 }

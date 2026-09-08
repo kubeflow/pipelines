@@ -118,7 +118,7 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
             }}
             disabled={isBusy}
           >
-            {this.getAvailableTypes(allowCustomVisualizations).map((key: string) => (
+            {this.getAvailableTypes(allowCustomVisualizations).map((key) => (
               <MenuItem key={key} value={ApiVisualizationType[key]}>
                 {ApiVisualizationType[key]}
               </MenuItem>
@@ -189,12 +189,16 @@ class VisualizationCreator extends Viewer<VisualizationCreatorProps, Visualizati
     );
   }
 
-  private getAvailableTypes(allowCustomVisualizations: boolean): string[] {
-    return Object.keys(ApiVisualizationType).filter((key: string) => {
-      const isCustom = key === 'CUSTOM';
-      const isTFMA = key === 'TFMA';
-      return (allowCustomVisualizations || !isCustom) && !isTFMA;
-    });
+  private getAvailableTypes(
+    allowCustomVisualizations: boolean,
+  ): Array<keyof typeof ApiVisualizationType> {
+    return (Object.keys(ApiVisualizationType) as Array<keyof typeof ApiVisualizationType>).filter(
+      (key) => {
+        const isCustom = key === 'CUSTOM';
+        const isTFMA = key === 'TFMA';
+        return (allowCustomVisualizations || !isCustom) && !isTFMA;
+      },
+    );
   }
 
   private getArgumentPlaceholderForType(type: ApiVisualizationType | undefined): string {

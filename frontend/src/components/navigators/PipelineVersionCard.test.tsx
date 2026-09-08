@@ -26,6 +26,7 @@ const TEST_PIPELINE_ID = 'pipeline-id';
 
 const OLD_TEST_PIPELINE_VERSION_ID = 'old-version-id';
 const OLD_TEST_PIPELINE_VERSION: V2beta1PipelineVersion = {
+  code_source_url: 'https://github.com/kubeflow/pipelines',
   created_at: new Date('2021-11-24T20:58:23.000Z'),
   description: 'This is old version description.',
   display_name: OLD_VERSION_NAME,
@@ -107,11 +108,35 @@ describe('PipelineVersionCard', () => {
     screen.getByText(TEST_PIPELINE_ID);
     screen.getByText('Version');
     screen.getByText(OLD_VERSION_NAME);
-    screen.getByText('Version source');
+    const versionSource = screen.getByText('Version source');
+    expect(versionSource).toHaveAttribute('href', 'https://github.com/kubeflow/pipelines');
     screen.getByText('Uploaded on');
     screen.getByText('Pipeline Description');
     screen.getByText('This is pipeline level description.');
     screen.getByText('This is old version description.');
+  });
+
+  it('does not render the Version source link for an unsafe code_source_url scheme', async () => {
+    render(
+      <PipelineVersionCard
+        pipeline={TEST_PIPELINE}
+        selectedVersion={{
+          ...OLD_TEST_PIPELINE_VERSION,
+          // eslint-disable-next-line no-script-url
+          code_source_url: 'javascript:alert(1)',
+        }}
+        versions={TEST_PIPELINE_VERSIONS_LIST}
+        handleVersionSelected={(versionId) => {
+          return Promise.resolve();
+        }}
+      ></PipelineVersionCard>,
+    );
+
+    await userEvent.click(screen.getByText('Show Summary'));
+
+    // The summary still renders, but the unsafe link is dropped entirely.
+    screen.getByText('Uploaded on');
+    expect(screen.queryByText('Version source')).toBeNull();
   });
 
   it('shows version list', async () => {

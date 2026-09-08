@@ -215,9 +215,9 @@ spec:
                   name: mlpipeline-minio-artifact
                   key: secretkey
             - name: V2_DRIVER_IMAGE
-              value: ghcr.io/kubeflow/kfp-driver:2.17.0
+              value: ghcr.io/kubeflow/kfp-driver:2.17.1
             - name: V2_LAUNCHER_IMAGE
-              value: ghcr.io/kubeflow/kfp-launcher:2.17.0
+              value: ghcr.io/kubeflow/kfp-launcher:2.17.1
             # JSON patch to apply to compiled workflow specifications
             - name: COMPILED_PIPELINE_SPEC_PATCH
               value: "{}"
@@ -271,6 +271,30 @@ spec:
                 configMapKeyRef:
                   name: pipeline-install-config
                   key: DRIVER_POD_ANNOTATIONS
+                  optional: true
+            - name: RUNS_RETENTION_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_RETENTION_TIME
+                  optional: true
+            - name: ARCHIVED_RUNS_RETENTION_TIME
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: ARCHIVED_RUNS_RETENTION_TIME
+                  optional: true
+            - name: RUNS_GC_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_GC_INTERVAL
+                  optional: true
+            - name: RUNS_GC_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: pipeline-install-config
+                  key: RUNS_GC_BATCH_SIZE
                   optional: true
           image: ghcr.io/kubeflow/kfp-api-server:dummy
           imagePullPolicy: IfNotPresent

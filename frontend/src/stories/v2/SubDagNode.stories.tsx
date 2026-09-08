@@ -67,9 +67,6 @@ function WrappedSubDagNode({ id, label }: WrappedSubDagNodeProps) {
 const meta: Meta<typeof WrappedSubDagNode> = {
   title: 'v2/SubDagNode',
   component: WrappedSubDagNode,
-  argTypes: {
-    backgroundColor: { control: 'color' },
-  },
 };
 
 export default meta;

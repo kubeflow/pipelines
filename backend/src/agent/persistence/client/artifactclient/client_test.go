@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -411,4 +412,91 @@ func TestError_Error(t *testing.T) {
 		err := NewError(ErrorCodePermanent, nil, "simple error")
 		assert.Equal(t, "simple error", err.Error())
 	})
+}
+func TestReadArtifact_MaxResponseBytes_ExactCapAcceptance(t *testing.T) {
+	responseMap := map[string]string{"data": "MSsy"}
+	content, err := json.Marshal(responseMap)
+	require.NoError(t, err)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(content)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
+	request := &ReadArtifactRequest{MaxResponseBytes: int64(len(content))}
+
+	resp, err := client.ReadArtifact(request)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestReadArtifact_MaxResponseBytes_ChunkedLimitRejection(t *testing.T) {
+	responseMap := map[string]string{"data": "MSsy"}
+	content, err := json.Marshal(responseMap)
+	require.NoError(t, err)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Transfer-Encoding", "chunked")
+		w.WriteHeader(http.StatusOK)
+		w.Write(content)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
+	request := &ReadArtifactRequest{MaxResponseBytes: int64(len(content) - 1)}
+
+	_, err = client.ReadArtifact(request)
+	require.Error(t, err)
+
+	var clientErr *Error
+	require.ErrorAs(t, err, &clientErr)
+	assert.Equal(t, ErrorCodePermanent, clientErr.Code)
+	assert.Contains(t, err.Error(), "Artifact response too large")
+}
+
+func TestReadArtifact_MaxResponseBytes_ZeroPreservesUnlimited(t *testing.T) {
+	responseMap := map[string]string{"data": "MTIzNDU2Nzg5MA=="}
+	content, err := json.Marshal(responseMap)
+	require.NoError(t, err)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(content)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
+	request := &ReadArtifactRequest{MaxResponseBytes: 0}
+
+	resp, err := client.ReadArtifact(request)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestReadArtifact_MaxResponseBytes_MaxInt64(t *testing.T) {
+	responseMap := map[string]string{"data": "MSsy"}
+	content, err := json.Marshal(responseMap)
+	require.NoError(t, err)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(content)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL, server.Client(), newTestTokenRefresher(t))
+	request := &ReadArtifactRequest{MaxResponseBytes: math.MaxInt64}
+
+	resp, err := client.ReadArtifact(request)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 }

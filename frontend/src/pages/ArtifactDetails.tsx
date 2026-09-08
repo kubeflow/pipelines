@@ -92,7 +92,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     // HACK: this distinguishes artifact from execution, only artifacts have
     // the getUri() method.
     // TODO: switch to use typedResource
-    if (typeof resource['getUri'] === 'function') {
+    if ('getUri' in resource && typeof resource.getUri === 'function') {
       return RoutePageFactory.artifactDetails(resource.getId());
     } else {
       return RoutePageFactory.executionDetails(resource.getId());

@@ -562,3 +562,18 @@ func TestPersistPluginsOutput_StoreError(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, assert.AnError, err)
 }
+
+// Retry hooks are at-least-once; RetryGeneration is the dedupe key handlers
+// use, so the converter must carry it through.
+func TestModelToPersistedRun_CarriesRetryGeneration(t *testing.T) {
+	run := &model.Run{
+		UUID: "run-1",
+		RunDetails: model.RunDetails{
+			State:           model.RuntimeStateFailed,
+			RetryGeneration: 3,
+		},
+	}
+	pr, err := ModelToPersistedRun(run, "ns1")
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), pr.RetryGeneration)
+}

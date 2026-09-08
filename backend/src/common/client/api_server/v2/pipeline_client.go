@@ -99,8 +99,7 @@ func (c *PipelineClient) Create(parameters *params.PipelineServiceCreatePipeline
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipeline(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceCreatePipelineDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -122,8 +121,7 @@ func (c *PipelineClient) CreatePipelineAndVersion(parameters *params.PipelineSer
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineAndVersion(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineAndVersionContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceCreatePipelineAndVersionDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -146,8 +144,7 @@ func (c *PipelineClient) Get(parameters *params.PipelineServiceGetPipelineParams
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceGetPipeline(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -169,8 +166,7 @@ func (c *PipelineClient) Delete(parameters *params.PipelineServiceDeletePipeline
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipeline(parameters, c.authInfoWriter)
+	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipelineContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceDeletePipelineDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -192,8 +188,7 @@ func (c *PipelineClient) DeletePipelineVersion(parameters *params.PipelineServic
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipelineVersion(parameters, c.authInfoWriter)
+	_, err := c.apiClient.PipelineService.PipelineServiceDeletePipelineVersionContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceDeletePipelineVersionDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -215,8 +210,7 @@ func (c *PipelineClient) List(parameters *params.PipelineServiceListPipelinesPar
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceListPipelines(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceListPipelinesContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelinesDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -268,8 +262,7 @@ func (c *PipelineClient) CreatePipelineVersion(parameters *params.PipelineServic
 	ctx, cancel := context.WithTimeout(context.Background(), api_server.APIServerDefaultTimeout)
 	defer cancel()
 
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineVersion(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceCreatePipelineVersionContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceCreatePipelineVersionDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -292,8 +285,7 @@ func (c *PipelineClient) ListPipelineVersions(parameters *params.PipelineService
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceListPipelineVersions(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceListPipelineVersionsContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceListPipelineVersionsDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -316,8 +308,7 @@ func (c *PipelineClient) GetByName(parameters *params.PipelineServiceGetPipeline
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineByName(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineByNameContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineByNameDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -340,8 +331,7 @@ func (c *PipelineClient) UpdatePipeline(parameters *params.PipelineServiceUpdate
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipeline(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipelineContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceUpdatePipelineDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -364,8 +354,7 @@ func (c *PipelineClient) UpdatePipelineVersion(parameters *params.PipelineServic
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipelineVersion(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceUpdatePipelineVersionContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceUpdatePipelineVersionDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)
@@ -388,8 +377,7 @@ func (c *PipelineClient) GetPipelineVersion(parameters *params.PipelineServiceGe
 	defer cancel()
 
 	// Make service call
-	parameters.Context = ctx
-	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineVersion(parameters, c.authInfoWriter)
+	response, err := c.apiClient.PipelineService.PipelineServiceGetPipelineVersionContext(ctx, parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.PipelineServiceGetPipelineVersionDefault); ok {
 			err = api_server.CreateErrorFromAPIStatus(defaultError.Payload.Message, defaultError.Payload.Code)

@@ -577,6 +577,87 @@ def validate_bundled_artifact_type(type_: str) -> None:
     validate_schema_version(schema_version)
 
 
+def is_pydantic_basemodel_subclass(annotation: Any) -> bool:
+    """Check if annotation is a pydantic.BaseModel subclass.
+
+    Uses a lazy import so pydantic stays an optional dependency for
+    users who don't type-hint components with it.
+    """
+    if not isinstance(annotation, type):
+        return False
+    try:
+        import pydantic
+    except ImportError:
+        return False
+    return issubclass(annotation, pydantic.BaseModel)
+
+
+def validate_pydantic_basemodel_version(model_cls: Type) -> None:
+    """Raises a clear error if `model_cls`, a pydantic.BaseModel subclass used
+    for component I/O, is running under an unsupported pydantic version.
+
+    KFP validates and serializes BaseModel component inputs/outputs with
+    the pydantic v2 API (``model_validate``/``model_dump``), which does
+    not exist in pydantic 1.x. A component authored against pydantic 1.x
+    would compile successfully, then fail at task runtime with a
+    confusing ``AttributeError``, so this check is applied as early as
+    possible (component definition time) and again at task runtime,
+    since the authoring and runtime environments may install different
+    pydantic versions (e.g., via `packages_to_install` or a custom
+    `base_image`).
+    """
+    import pydantic
+    pydantic_major_version = int(pydantic.VERSION.split('.')[0])
+    if pydantic_major_version < 2:
+        qualname = f'{model_cls.__module__}.{model_cls.__qualname__}'
+        raise TypeError(
+            f"pydantic.BaseModel subclass '{qualname}' is used for "
+            f'component I/O, which requires pydantic>=2. Found '
+            f'pydantic=={pydantic.VERSION}. Upgrade pydantic in both the '
+            "authoring environment and the component's runtime environment "
+            "(e.g., via `packages_to_install=['pydantic>=2']` or a custom "
+            '`base_image`).')
+
+
+def is_pydantic_rootmodel_subclass(annotation: Any) -> bool:
+    """Check if annotation is a pydantic.RootModel subclass.
+
+    A RootModel wraps a single, unnamed root value (e.g. RootModel[int],
+    RootModel[List[str]]) and model_dump() returns that value directly,
+    not a JSON object like an ordinary BaseModel does, so it needs its
+    type struct derived from its root type instead of always being
+    treated as a dict.
+    """
+    if not is_pydantic_basemodel_subclass(annotation):
+        return False
+    import pydantic
+    return issubclass(annotation, pydantic.RootModel)
+
+
+def _pydantic_basemodel_to_type_struct(model_cls: Type) -> Any:
+    """Computes the KFP type struct for a pydantic.BaseModel (including
+    RootModel) subclass used for component I/O, after validating it can
+    actually be used for that purpose.
+
+    KFP transports BaseModel values as-is: outputs are serialized with
+    ``model_dump(mode='json', by_alias=True)`` and inputs are
+    deserialized with ``model_validate()``. KFP does not validate alias
+    configuration (``alias``, ``validation_alias``,
+    ``serialization_alias``, ``populate_by_name``) up front; a model
+    whose aliases don't round-trip through that pair of calls is the
+    component author's responsibility to get right, same as any other
+    pydantic validation concern.
+    """
+    validate_pydantic_basemodel_version(model_cls)
+    if is_pydantic_rootmodel_subclass(model_cls):
+        # A RootModel serializes to its root value's own shape (e.g. a bare
+        # int or a list), not to a dict, so its type struct comes from the
+        # root type, not from `dict`.
+        root_annotation = model_cls.model_fields['root'].annotation
+        return _annotation_to_type_struct(root_annotation)
+    return get_canonical_type_name_for_type(dict)
+
+
 def _annotation_to_type_struct(annotation):
     if not annotation or annotation == inspect.Parameter.empty:
         return None
@@ -584,6 +665,16 @@ def _annotation_to_type_struct(annotation):
         annotation = annotation.to_dict()
     if isinstance(annotation, dict):
         return annotation
+
+    # Optional[BaseModel] (e.g. Optional[Person]) is a typing.Union, not a
+    # `type` instance, so it would otherwise fall through to the generic
+    # str(annotation) branch below instead of being recognized as a STRUCT.
+    stripped_annotation = type_annotations.maybe_strip_optional_from_annotation(
+        annotation)
+    if stripped_annotation is not annotation and isinstance(
+            stripped_annotation,
+            type) and is_pydantic_basemodel_subclass(stripped_annotation):
+        return _pydantic_basemodel_to_type_struct(stripped_annotation)
 
     origin = get_origin(annotation)
     if origin in {list, dict}:
@@ -603,6 +694,8 @@ def _annotation_to_type_struct(annotation):
         return origin_type
 
     if isinstance(annotation, type):
+        if is_pydantic_basemodel_subclass(annotation):
+            return _pydantic_basemodel_to_type_struct(annotation)
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct

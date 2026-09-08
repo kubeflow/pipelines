@@ -81,6 +81,22 @@ func createWorkflowWithArtifact(runUUID, nodeID, artifactName, artifactPath stri
 	})
 }
 
+func syncArtifactWorkflowWithFakeCluster(
+	t *testing.T,
+	clientManager *resource.FakeClientManager,
+	workflow *util.Workflow,
+) {
+	t.Helper()
+	ctx := context.Background()
+	workflowClient := clientManager.ExecClient().Execution(workflow.ExecutionNamespace())
+	liveWorkflow, err := workflowClient.Get(ctx, workflow.ExecutionName(), v1.GetOptions{})
+	require.NoError(t, err)
+	workflow.UID = liveWorkflow.ExecutionObjectMeta().UID
+	workflow.SetVersion(liveWorkflow.Version())
+	_, err = workflowClient.Update(ctx, workflow, v1.UpdateOptions{})
+	require.NoError(t, err)
+}
+
 func TestReadArtifactV1_Succeed(t *testing.T) {
 	expectedContent := "test artifact content"
 	filePath := "test/artifact.txt"
@@ -99,6 +115,7 @@ func TestReadArtifactV1_Succeed(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -192,6 +209,7 @@ func TestReadArtifactV1_ChunkedResponse(t *testing.T) {
 	require.NoError(t, err, "Failed to add large file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "large-artifact", filePath)
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -273,6 +291,7 @@ func TestReadArtifactV1_ArtifactNotFound(t *testing.T) {
 	}()
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", "test/nonexistent.txt")
+	syncArtifactWorkflowWithFakeCluster(t, resourceManager, workflow)
 	_, err := manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 
@@ -383,6 +402,7 @@ func TestReadArtifactV1_Unauthorized(t *testing.T) {
 	require.NoError(t, err, "Failed to add file to object store")
 
 	workflow := createWorkflowWithArtifact(run.UUID, "node-1", "artifact-1", filePath)
+	syncArtifactWorkflowWithFakeCluster(t, clientManager, workflow)
 	_, err = manager.ReportWorkflowResource(context.Background(), workflow)
 	require.NoError(t, err, "Failed to report workflow resource")
 

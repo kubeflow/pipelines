@@ -17,6 +17,7 @@ import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo
 import {
   convertYamlToPlatformSpec,
   getContainer,
+  isArgoWorkflowTemplate,
   isTemplateV2,
   isV2Pipeline,
 } from './WorkflowUtils';
@@ -178,5 +179,31 @@ PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-scr
       lifecycle: undefined,
       resources: undefined,
     });
+  });
+});
+
+describe('isArgoWorkflowTemplate', () => {
+  it('accepts an Argo workflow manifest', () => {
+    expect(
+      isArgoWorkflowTemplate({
+        kind: 'Workflow',
+        apiVersion: 'argoproj.io/v1alpha1',
+      } as any),
+    ).toBe(true);
+  });
+
+  it('rejects a non-Argo manifest', () => {
+    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 'v1' } as any)).toBe(false);
+  });
+
+  it('returns false rather than throwing when apiVersion is not a string', () => {
+    // Parsed YAML can carry any type here, and optional chaining alone would
+    // still call startsWith on a number.
+    expect(isArgoWorkflowTemplate({ kind: 'Workflow', apiVersion: 1 })).toBe(false);
+  });
+
+  it('returns false for non-object input', () => {
+    expect(isArgoWorkflowTemplate(undefined)).toBe(false);
+    expect(isArgoWorkflowTemplate('a string')).toBe(false);
   });
 });

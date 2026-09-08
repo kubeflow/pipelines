@@ -581,7 +581,10 @@ def _get_command_and_args_for_lightweight_component(
         'from kfp import dsl',
         'from kfp.dsl import *',
         'from typing import *',
-    ] + custom_artifact_types.get_custom_artifact_type_import_statements(func)
+    ] + custom_artifact_types.get_custom_artifact_type_import_statements(
+        func
+    ) + custom_artifact_types.get_pydantic_basemodel_type_import_statements(
+        func)
 
     func_source = _get_function_source_definition(func)
     additional_funcs_source = ''

@@ -12,13 +12,280 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { describe, it, expect } from 'vitest';
-import type { Request } from 'express';
+import { getEventListeners } from 'events';
+import { PassThrough, Writable } from 'stream';
+import { describe, it, expect, vi } from 'vitest';
+import type { Request, Response } from 'express';
+import type { Client as MinioClient } from 'minio';
 import { resolveArtifactCoordinates } from '../helpers/artifact-coordinates.js';
+import {
+  pipePreviewResponse,
+  sendArtifactError,
+  streamDirectoryAsTarGz,
+  TEST_ONLY,
+  waitForArtifactOperation,
+} from './artifacts.js';
+
+vi.mock('../k8s-helper.js');
 
 function makeRequest(path: string, query: Record<string, unknown> = {}): Request {
   return { path, query } as unknown as Request;
 }
+
+describe('sendArtifactError', () => {
+  it('destroys a committed response so a partial download is not reported as complete', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = {
+      headersSent: true,
+      destroy: vi.fn(),
+      end: vi.fn(),
+    } as unknown as Response;
+
+    sendArtifactError(response, 500, 'storage stream failed');
+
+    expect(response.destroy).toHaveBeenCalledOnce();
+    expect(response.end).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      '[artifacts] aborting committed response: storage stream failed',
+    );
+  });
+
+  it('does not attempt to send an error body after a stream destroyed the response', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const response = {
+      headersSent: false,
+      destroyed: true,
+      writableEnded: false,
+      destroy: vi.fn(),
+      status: vi.fn(),
+      type: vi.fn(),
+      send: vi.fn(),
+    } as unknown as Response;
+
+    sendArtifactError(response, 500, 'storage stream failed');
+
+    expect(response.destroy).toHaveBeenCalledOnce();
+    expect(response.status).not.toHaveBeenCalled();
+    expect(response.type).not.toHaveBeenCalled();
+    expect(response.send).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith(
+      '[artifacts] aborting committed response: storage stream failed',
+    );
+  });
+});
+
+describe('artifact stream lifecycle', () => {
+  it('removes archive abort listeners after each completed object operation', async () => {
+    const controller = new AbortController();
+
+    for (let index = 0; index < 1000; index++) {
+      await expect(
+        waitForArtifactOperation(Promise.resolve(index), controller.signal),
+      ).resolves.toBe(index);
+      expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
+    }
+  });
+
+  it('destroys the upstream preview stream without reporting a client disconnect as an error', async () => {
+    const source = new PassThrough();
+    const response = new PassThrough() as unknown as Response;
+    const onError = vi.fn();
+
+    pipePreviewResponse(source, response, 0, onError);
+    response.destroy();
+
+    await vi.waitFor(() => expect(source.destroyed).toBe(true));
+    expect(onError).not.toHaveBeenCalled();
+    expect(source.destroyed).toBe(true);
+  });
+
+  it('destroys a preview source acquired after the client has already disconnected', () => {
+    const source = new PassThrough();
+    const pipeSource = vi.spyOn(source, 'pipe');
+    const response = new PassThrough() as unknown as Response;
+    const onError = vi.fn();
+    response.destroy();
+
+    pipePreviewResponse(source, response, 0, onError);
+
+    expect(source.destroyed).toBe(true);
+    expect(pipeSource).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('keeps an uncommitted response writable when the first directory object cannot be fetched', async () => {
+    const client = {
+      getObject: vi.fn(async () => {
+        throw new Error('first object unavailable');
+      }),
+      listObjectsV2Query: vi.fn(async () => ({
+        objects: [{ name: 'directory/file.txt', size: 4 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      })),
+    } as unknown as MinioClient;
+    const response = new PassThrough() as unknown as Response;
+    response.setHeader = vi.fn();
+
+    await expect(
+      streamDirectoryAsTarGz({ bucket: 'ml-pipeline', key: 'directory', client }, response),
+    ).rejects.toThrow('first object unavailable');
+
+    expect(response.destroyed).toBe(false);
+    expect(response.setHeader).not.toHaveBeenCalled();
+  });
+
+  it('settles a directory archive when the client disconnects during an entry', async () => {
+    const objectStream = new PassThrough();
+    const client = {
+      getObject: vi.fn(async () => objectStream),
+      listObjectsV2Query: vi.fn(async () => ({
+        objects: [{ name: 'directory/file.txt', size: 4 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      })),
+    } as unknown as MinioClient;
+    const response = new PassThrough() as unknown as Response;
+    response.setHeader = vi.fn();
+
+    const archive = streamDirectoryAsTarGz(
+      { bucket: 'ml-pipeline', key: 'directory', client },
+      response,
+    );
+    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledOnce());
+    response.destroy();
+
+    await expect(archive).rejects.toThrow();
+    expect(objectStream.destroyed).toBe(true);
+  });
+
+  it('does not report a directory archive client disconnect as a server error', async () => {
+    const objectStream = new PassThrough();
+    const client = {
+      getObject: vi
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error('not found'), { code: 'NoSuchKey' }))
+        .mockResolvedValueOnce(objectStream),
+      listObjectsV2Query: vi.fn(async () => ({
+        objects: [{ name: 'directory/file.txt', size: 4 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      })),
+    } as unknown as MinioClient;
+    const response = new PassThrough() as unknown as Response;
+    response.setHeader = vi.fn();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    consoleError.mockClear();
+    const handler = TEST_ONLY.getMinioArtifactHandler({
+      bucket: 'ml-pipeline',
+      key: 'directory',
+      client,
+      tryExtract: false,
+    });
+
+    const handling = handler({} as Request, response);
+    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledTimes(2));
+    response.destroy();
+
+    await expect(handling).resolves.toBeUndefined();
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(objectStream.destroyed).toBe(true);
+  });
+
+  it('does not report a disconnect during the final archive flush as a server error', async () => {
+    const objectStream = new PassThrough();
+    let finalResponseWrite: (() => void) | undefined;
+    let responseWriteCount = 0;
+    const client = {
+      getObject: vi
+        .fn()
+        .mockRejectedValueOnce(Object.assign(new Error('not found'), { code: 'NoSuchKey' }))
+        .mockResolvedValueOnce(objectStream),
+      listObjectsV2Query: vi.fn(async () => ({
+        objects: [{ name: 'directory/file.txt', size: 4 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      })),
+    } as unknown as MinioClient;
+    const response = new Writable({
+      write(_chunk, _encoding, callback) {
+        responseWriteCount += 1;
+        if (responseWriteCount === 1) {
+          callback();
+        } else {
+          finalResponseWrite = callback;
+        }
+      },
+    }) as unknown as Response;
+    response.setHeader = vi.fn();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    consoleError.mockClear();
+    const handler = TEST_ONLY.getMinioArtifactHandler({
+      bucket: 'ml-pipeline',
+      key: 'directory',
+      client,
+      tryExtract: false,
+    });
+
+    const handling = handler({} as Request, response);
+    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledTimes(2));
+    objectStream.end('data');
+    await vi.waitFor(() => expect(finalResponseWrite).toBeDefined());
+    response.destroy();
+
+    await expect(handling).resolves.toBeUndefined();
+    expect(consoleError).not.toHaveBeenCalled();
+  });
+
+  it('closes a directory object stream returned after the client disconnects', async () => {
+    const objectStream = new PassThrough();
+    let resolveObject: ((stream: PassThrough) => void) | undefined;
+    const client = {
+      getObject: vi.fn(
+        () =>
+          new Promise<PassThrough>((resolve) => {
+            resolveObject = resolve;
+          }),
+      ),
+      listObjectsV2Query: vi.fn(async () => ({
+        objects: [{ name: 'directory/file.txt', size: 4 }],
+        isTruncated: false,
+        nextContinuationToken: '',
+      })),
+    } as unknown as MinioClient;
+    const response = new PassThrough() as unknown as Response;
+    response.setHeader = vi.fn();
+
+    const archive = streamDirectoryAsTarGz(
+      { bucket: 'ml-pipeline', key: 'directory', client },
+      response,
+    );
+    await vi.waitFor(() => expect(client.getObject).toHaveBeenCalledOnce());
+    response.destroy();
+
+    await expect(archive).rejects.toThrow();
+    resolveObject?.(objectStream);
+    await vi.waitFor(() => expect(objectStream.destroyed).toBe(true));
+  });
+
+  it('settles when the client disconnects while the initial directory listing is pending', async () => {
+    const client = {
+      getObject: vi.fn(),
+      listObjectsV2Query: vi.fn(() => new Promise(() => undefined)),
+    } as unknown as MinioClient;
+    const response = new PassThrough() as unknown as Response;
+    response.setHeader = vi.fn();
+
+    const archive = streamDirectoryAsTarGz(
+      { bucket: 'ml-pipeline', key: 'directory', client },
+      response,
+    );
+    response.destroy();
+
+    await expect(archive).rejects.toThrow('closed before archive streaming started');
+    expect(client.getObject).not.toHaveBeenCalled();
+  });
+});
 
 describe('resolveArtifactCoordinates', () => {
   describe('path-based routes', () => {

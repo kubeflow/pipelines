@@ -1,12 +1,10 @@
 REPO_ROOT=../..
 ARGO_DIR=$(REPO_ROOT)/third_party/argo
 MANIFESTS_DIR=$(REPO_ROOT)/manifests/kustomize/third-party/argo
-BACKEND_CODE_DIR=$(REPO_ROOT)/backend
-TESTS_DIR=$(REPO_ROOT)/test
 DOCS_DIR=$(ARGO_DIR)
 SYNC_SCRIPT=$(REPO_ROOT)/.github/resources/scripts/sync_argo_versions.py
 
-update: update_ci update_manifests update_backend update_tests update_docs
+update: update_ci update_manifests update_backend update_docs
 
 update_ci:
 	@echo "Updating Argo Workflows versions in CI and project documentation..."
@@ -37,22 +35,9 @@ update_backend:
 	echo "Updating go dependency..."; \
 	sed -i.bak -E "s|github.com/argoproj/argo-workflows/v[0-9]+ v[0-9]+\.[0-9]+\.[0-9]+|github.com/argoproj/argo-workflows/v$$MAJOR $$VERSION|g" $(REPO_ROOT)/go.mod && \
 	(cd $(REPO_ROOT) && go mod tidy) && \
-	echo "Updating code refs in backend..."; \
-	sed -i.bak -E "s|ARGO_VERSION=v[0-9]+\.[0-9]+\.[0-9]+|ARGO_VERSION=$$VERSION|g" $(BACKEND_CODE_DIR)/Dockerfile && \
-	sed -i.bak -E "s|argo-workflows/v[0-9]+@v[0-9]+\.[0-9]+\.[0-9]+|argo-workflows/v$$MAJOR@$$VERSION|g" $(BACKEND_CODE_DIR)/src/common/types.go && \
 	echo "Cleaning up temp backups..."; \
-	rm -f $(REPO_ROOT)/go.mod.bak $(BACKEND_CODE_DIR)/Dockerfile.bak $(BACKEND_CODE_DIR)/src/common/types.go.bak; \
-	echo "Successfully updated backend code refs to use $$VERSION"
-
-update_tests:
-	@echo "Updating Argo Workflows version references in tests..."
-	@set -e; VERSION=$$(cat $(ARGO_DIR)/VERSION); \
-	echo "Using Argo Workflows version: $$VERSION"; \
-	echo "Updating code refs in tests..."; \
-	sed -i.bak -E "s|ARGO_VERSION=v[0-9]+\.[0-9]+\.[0-9]+|ARGO_VERSION=$$VERSION|g" $(TESTS_DIR)/install-argo-cli.sh && \
-	echo "Cleaning up temp backups..."; \
-	rm -f $(TESTS_DIR)/install-argo-cli.sh.bak; \
-	echo "Successfully updated tests to use $$VERSION"
+	rm -f $(REPO_ROOT)/go.mod.bak; \
+	echo "Successfully updated backend dependency to use $$VERSION"
 
 update_docs:
 	@echo "Updating Argo Workflows version references in docs..."

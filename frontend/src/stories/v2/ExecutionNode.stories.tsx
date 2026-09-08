@@ -60,9 +60,6 @@ function WrappedExecutionNode({ id, label, state }: WrappedExecutionNodeProps) {
 const meta: Meta<typeof WrappedExecutionNode> = {
   title: 'v2/ExecutionNode',
   component: WrappedExecutionNode,
-  argTypes: {
-    backgroundColor: { control: 'color' },
-  },
 };
 
 export default meta;

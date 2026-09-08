@@ -47,7 +47,7 @@ runs:
     # to retry in place because download-artifact overwrites matching files.
     - name: Download artifact
       id: primary
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
@@ -70,7 +70,7 @@ runs:
     - name: Retry artifact download
       id: retry
       if: ${{ !cancelled() && steps.primary.outcome == 'failure' }}
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}

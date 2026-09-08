@@ -9,6 +9,8 @@ on:
       - master
     paths:
       - 'frontend/**'
+      - 'api/v2alpha1/*.proto'
+      - 'kubernetes_platform/proto/*.proto'
       - 'backend/api/v1beta1/swagger/**'
       - 'backend/api/v2beta1/swagger/**'
       - '.github/workflows/frontend.yml'
@@ -27,10 +29,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Set up Node.js
-      uses: actions/setup-node@v6
+      uses: actions/setup-node@v7
       with:
         node-version-file: frontend/.nvmrc
 
@@ -62,6 +64,13 @@ jobs:
           src/apisv2beta1 \
           server/src/generated/apis \
           server/src/generated/apisv2beta1
+
+    - name: Verify pipeline and platform spec generation
+      working-directory: frontend
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes protobuf-compiler
+        bash scripts/check-spec-generation.sh
 
     - name: Run Frontend Tests
       run: cd ./frontend && npm run test:ci

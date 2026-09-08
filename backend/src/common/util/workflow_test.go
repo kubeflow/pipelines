@@ -2769,9 +2769,15 @@ func TestWorkflowInformer_List(t *testing.T) {
 	}
 
 	selector := labels.Everything()
-	result, err := wfi.List(&selector)
+	result, err := wfi.List("default", &selector)
 	assert.Nil(t, err)
 	assert.Len(t, result, 1)
+
+	// A different namespace must not return the workflow, confirming the list
+	// is scoped to the requested namespace.
+	otherNamespaceResult, err := wfi.List("other-namespace", &selector)
+	assert.Nil(t, err)
+	assert.Len(t, otherNamespaceResult, 0)
 	// ---------- UpsertRuntimeEnvVars tests ----------
 }
 
@@ -2951,4 +2957,33 @@ func TestUpsertRuntimeEnvVars_Annotation_UnknownRoleIgnored(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	assert.Empty(t, w.Spec.Templates[0].Container.Env)
+}
+func TestReadNodeMetricsOrNil_MaxResponseBytesPropagation(t *testing.T) {
+	// Use a minimal valid *workflowapi.Workflow directly (no parsing required).
+	rawWF := &workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-wf"},
+	}
+
+	nodeStatus := &workflowapi.NodeStatus{
+		Phase: workflowapi.NodeSucceeded,
+		Type:  workflowapi.NodeTypePod,
+		Outputs: &workflowapi.Outputs{
+			Artifacts: []workflowapi.Artifact{
+				{Name: "mlpipeline-metrics"},
+			},
+		},
+	}
+
+	callCount := 0
+	mockReadArtifact := func(request *artifactclient.ReadArtifactRequest) (*artifactclient.ReadArtifactResponse, error) {
+		callCount++
+		expectedLimit := ArchiveWireResponseBudget(GetMaxMetricsFileBytes())
+		assert.Equal(t, expectedLimit, request.MaxResponseBytes)
+		return nil, fmt.Errorf("sentinel stop here")
+	}
+
+	_, err := readNodeMetricsOrNil("run-1", nodeStatus, mockReadArtifact, rawWF)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sentinel stop here")
+	assert.Equal(t, 1, callCount, "mock must be invoked exactly once")
 }

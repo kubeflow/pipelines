@@ -158,13 +158,23 @@ def ray_fn() -> int:
     return result
 
 
+@dsl.component
+def verify_result_fn(result: int) -> str:
+    print(f"Received result from Ray: {result}")
+    assert result == 100, f"Expected 100, got {result}"
+    return f"Success: Ray function returned {result}"
+
+
 @dsl.pipeline(
     name="Ray Integration Test",
-    description="Ray Integration Test",
+    description="Ray Integration Test with chained tasks, inputs, and outputs",
 )
-def ray_integration():
-    ray_fn().set_caching_options(False)
+def ray_integration(expected_val: int = 100) -> str:
+    # Task 1: Run Ray function
+    ray_task = ray_fn()
+    ray_task.set_caching_options(False)
 
+    # Task 2: Pass output of Task 1 into Task 2 (Chained task)
+    verify_task = verify_result_fn(result=ray_task.output)
 
-if __name__ == "__main__":
-    compiler.Compiler().compile(ray_integration, package_path=__file__.replace(".py", "_compiled.yaml"))
+    return verify_task.output
