@@ -3152,3 +3152,78 @@ func TestListRuns_SortByPipelineIdPaginates(t *testing.T) {
 	}
 	assert.Equal(t, []string{"pipeline-a", "pipeline-b", "pipeline-c"}, got)
 }
+
+func TestListRuns_SortByExperimentIdAndRecurringRunIdPaginates(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+
+	// Both sorted columns are filled out of lexicographic order, so a sort that
+	// silently fell back to the default field would be visible.
+	runs := []struct{ runID, experimentID, recurringRunID string }{
+		{"sort-run-b", "123e4567-e89b-12d3-a456-4266554402bb", "recurring-b"},
+		{"sort-run-c", "123e4567-e89b-12d3-a456-4266554403cc", "recurring-c"},
+		{"sort-run-a", "123e4567-e89b-12d3-a456-4266554401aa", "recurring-a"},
+	}
+
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch(), nil)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	for i, tc := range runs {
+		expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(tc.experimentID, nil))
+		_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp-" + tc.runID, Namespace: "ns1"})
+		require.NoError(t, err)
+
+		_, err = jobStore.CreateJob((&model.Job{
+			UUID:           tc.recurringRunID,
+			DisplayName:    tc.recurringRunID,
+			K8SName:        tc.recurringRunID,
+			Namespace:      "ns1",
+			ExperimentId:   tc.experimentID,
+			CreatedAtInSec: int64(i + 1),
+			UpdatedAtInSec: int64(i + 1),
+		}).ToV1())
+		require.NoError(t, err)
+
+		_, err = runStore.CreateRun(&model.Run{
+			UUID:           tc.runID,
+			ExperimentId:   tc.experimentID,
+			RecurringRunId: tc.recurringRunID,
+			K8SName:        tc.runID,
+			DisplayName:    tc.runID,
+			StorageState:   model.StorageStateAvailable,
+			Namespace:      "ns1",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec: int64(i + 1),
+				Conditions:     "Succeeded",
+				State:          model.RuntimeStateSucceeded,
+			},
+		})
+		require.NoError(t, err)
+	}
+
+	// experiment_id and recurring_run_id map to the ExperimentUUID and JobUUID
+	// columns, which are not the names of the Go fields holding them.
+	for _, sortBy := range []string{"experiment_id", "recurring_run_id"} {
+		t.Run(sortBy, func(t *testing.T) {
+			opts, err := list.NewOptions(&model.Run{}, 2, sortBy, nil)
+			require.NoError(t, err)
+
+			firstPage, totalSize, nextPageToken, err := runStore.ListRuns(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			assert.Equal(t, 3, totalSize)
+			require.Len(t, firstPage, 2)
+			require.NotEmpty(t, nextPageToken, "a third run remains, so a page token must be issued")
+
+			opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+			require.NoError(t, err)
+			secondPage, _, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			require.Len(t, secondPage, 1)
+
+			var got []string
+			for _, run := range append(firstPage, secondPage...) {
+				got = append(got, run.UUID)
+			}
+			assert.Equal(t, []string{"sort-run-a", "sort-run-b", "sort-run-c"}, got)
+		})
+	}
+}

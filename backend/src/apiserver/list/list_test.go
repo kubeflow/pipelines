@@ -1125,3 +1125,38 @@ func TestAddStatusFilterToSelectWithRunModel(t *testing.T) {
 	assert.Contains(t, sql, "WHERE Conditions <> ?") // filtering on status, aka Conditions in db
 	assert.Contains(t, args, "somevalue")
 }
+
+// A sort field that GetFieldValue cannot resolve still returns a first page,
+// then fails the whole call once NextPageToken has to build a token.
+func TestGetFieldValue_ResolvesEveryMappedField(t *testing.T) {
+	// Both stores parse the StateHistory column into a slice and drop the raw
+	// value, so a page token has nothing to carry. Filters still read the column.
+	unresolvable := map[string]bool{"StateHistory": true}
+
+	listables := []Listable{
+		&model.Run{},
+		&model.Job{},
+		&model.Experiment{},
+		&model.Pipeline{},
+		&model.PipelineVersion{},
+		&model.Task{},
+	}
+
+	for _, listable := range listables {
+		modelName := reflect.TypeOf(listable).Elem().Name()
+		for apiField, modelField := range listable.APIToModelFieldMap() {
+			t.Run(modelName+"/"+apiField, func(t *testing.T) {
+				value := listable.GetFieldValue(modelField)
+				if unresolvable[modelField] {
+					assert.Nil(t, value,
+						"%s.GetFieldValue(%q) now returns a value, so remove %q from unresolvable",
+						modelName, modelField, modelField)
+					return
+				}
+				assert.NotNil(t, value,
+					"%s.GetFieldValue(%q) returns nil, so sorting by %q cannot produce a page token",
+					modelName, modelField, apiField)
+			})
+		}
+	}
+}

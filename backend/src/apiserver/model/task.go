@@ -108,6 +108,8 @@ func (t Task) GetField(name string) (string, string, bool) {
 	return "", "", false
 }
 
+// GetFieldValue resolves a model field name from taskAPIToModelFieldMap. A
+// mapped field with no case here breaks paging on that sort field.
 func (t Task) GetFieldValue(name string) interface{} {
 	switch name {
 	case "UUID":
@@ -116,17 +118,19 @@ func (t Task) GetFieldValue(name string) interface{} {
 		return t.Namespace
 	case "PipelineName":
 		return t.PipelineName
-	case "RunID":
+	case "RunUUID":
 		return t.RunID
 	case "MLMDExecutionID":
 		return t.MLMDExecutionID
 	case "CreatedTimestamp":
 		return t.CreatedTimestamp
+	case "StartedTimestamp":
+		return t.StartedTimestamp
 	case "FinishedTimestamp":
 		return t.FinishedTimestamp
 	case "Fingerprint":
 		return t.Fingerprint
-	case "ParentTaskId":
+	case "ParentTaskUUID":
 		return t.ParentTaskId
 	case "State":
 		return t.State

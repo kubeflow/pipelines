@@ -741,3 +741,83 @@ func TestCreateOrUpdateTasksIfRunUnchangedRejectsRecreatedRun(t *testing.T) {
 		})
 	}
 }
+
+func TestListTasks_SortByStartTimeRunIdAndParentTaskIdPaginates(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	_, err := expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
+	require.NoError(t, err)
+
+	// Every sorted column is filled out of lexicographic order, so a sort that
+	// silently fell back to the default field would be visible.
+	tasks := []struct {
+		name, taskID, runID, parentTaskID string
+		startedTimestamp                  int64
+	}{
+		{"task-b", defaultFakeTaskId, "ts-run-b", "parent-b", 20},
+		{"task-c", defaultFakeTaskIdTwo, "ts-run-c", "parent-c", 30},
+		{"task-a", defaultFakeTaskIdThree, "ts-run-a", "parent-a", 10},
+	}
+
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeTaskId, nil))
+	for i, task := range tasks {
+		_, err := runStore.CreateRun(&model.Run{
+			UUID:         task.runID,
+			ExperimentId: defaultFakeExpId,
+			K8SName:      task.runID,
+			DisplayName:  task.runID,
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "ns1",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec: int64(i + 1),
+				Conditions:     "Succeeded",
+				State:          model.RuntimeStateSucceeded,
+			},
+		})
+		require.NoError(t, err)
+
+		taskStore.uuid = util.NewFakeUUIDGeneratorOrFatal(task.taskID, nil)
+		_, err = taskStore.CreateTask(&model.Task{
+			Namespace:        "ns1",
+			Name:             task.name,
+			PodName:          task.name,
+			RunID:            task.runID,
+			ParentTaskId:     task.parentTaskID,
+			StartedTimestamp: task.startedTimestamp,
+			MLMDExecutionID:  task.name,
+			Fingerprint:      task.name,
+		})
+		require.NoError(t, err)
+	}
+
+	// start_time, run_id and parent_task_id map to the StartedTimestamp, RunUUID
+	// and ParentTaskUUID columns, which are not the names of the Go fields
+	// holding them.
+	for _, sortBy := range []string{"start_time", "run_id", "parent_task_id"} {
+		t.Run(sortBy, func(t *testing.T) {
+			opts, err := list.NewOptions(&model.Task{}, 2, sortBy, nil)
+			require.NoError(t, err)
+
+			firstPage, totalSize, nextPageToken, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			assert.Equal(t, 3, totalSize)
+			require.Len(t, firstPage, 2)
+			require.NotEmpty(t, nextPageToken, "a third task remains, so a page token must be issued")
+
+			opts, err = list.NewOptionsFromToken(nextPageToken, 2)
+			require.NoError(t, err)
+			secondPage, _, _, err := taskStore.ListTasks(&model.FilterContext{}, opts)
+			require.NoError(t, err)
+			require.Len(t, secondPage, 1)
+
+			var got []string
+			for _, task := range append(firstPage, secondPage...) {
+				got = append(got, task.Name)
+			}
+			assert.Equal(t, []string{"task-a", "task-b", "task-c"}, got)
+		})
+	}
+}
