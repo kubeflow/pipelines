@@ -590,11 +590,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		},
 		PipelineSpec: model.PipelineSpec{},
 	}
-	_, err := runStore.CreateRun(run1)
+	_, err = runStore.CreateRun(run1)
 	require.NoError(t, err)
 	_, err = runStore.CreateRun(run2)
 	require.NoError(t, err)
 	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	require.NoError(t, err)
 	runs, totalRunSize, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalRunSize)
@@ -651,6 +652,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "ARCHIVED", exp.StorageState.ToString())
 	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
+	require.NoError(t, err)
 	runs, totalRunSize, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts, false)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalRunSize)

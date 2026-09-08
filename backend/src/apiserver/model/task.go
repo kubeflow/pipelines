@@ -199,7 +199,7 @@ var taskAPIToModelFieldMap = map[string]string{
 	"display_name":      "DisplayName",
 	"task_id":           "UUID",
 	"run_id":            "RunUUID",
-	"pods":              "Pods",
+	"pods":              "pods",
 	"cache_fingerprint": "Fingerprint",
 	"create_time":       "CreatedAtInSec",
 	"start_time":        "StartedInSec",

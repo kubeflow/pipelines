@@ -40,11 +40,6 @@ const (
 	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
 
-func testLargeTextPtr(s string) *model.LargeText {
-	lt := model.LargeText(s)
-	return &lt
-}
-
 type RunMetricSorter []*model.RunMetricV1
 
 func (r RunMetricSorter) Len() int           { return len(r) }
@@ -814,10 +809,10 @@ func TestListRunsError(t *testing.T) {
 }
 
 func TestListRuns_QueryErrorReleasesConnection(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 	db.SetMaxOpenConns(1)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	require.NoError(t, err)
 	// Fail the query after Begin succeeds, rather than failing to acquire a connection.
@@ -2027,7 +2022,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.
 					},
 				},
 			},
-			Metrics: []*model.RunMetric{
+			Metrics: []*model.RunMetricV1{
 				{
 					RunUUID:     "2",
 					NodeID:      "node2",
