@@ -1042,7 +1042,7 @@ class Client:
         Returns:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
@@ -1110,7 +1110,7 @@ class Client:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
 
-        #TODO: Check arguments against the pipeline function
+        # TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
 
         if (experiment_name is not None) and (experiment_id is not None):
