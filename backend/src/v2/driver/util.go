@@ -144,11 +144,13 @@ func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput)
 	return ok && len(artifacts.GetArtifacts()) > 0
 }
 
+func resolveCommandLineValue(value any, executorInput *pipelinespec.ExecutorInput) ([]string, error) {
 	parameterValues := executorInput.GetInputs().GetParameterValues()
-	var resolved []string
-	switch v := values.(type) {
+	switch typedValue := value.(type) {
+	case nil:
+		return nil, nil
 	case string:
-		resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(v, parameterValues)
+		resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(typedValue, parameterValues)
 		if err != nil {
 			return nil, err
 		}
@@ -160,7 +162,12 @@ func isInputPresent(inputName string, executorInput *pipelinespec.ExecutorInput)
 			if err != nil {
 				return nil, err
 			}
-			resolvedArg, err := placeholder.ResolveInputParameterPlaceholders(str, parameterValues)
+			resolved = append(resolved, resolvedItem...)
+		}
+		return resolved, nil
+	case map[string]any:
+		if concat, ok := typedValue["Concat"]; ok {
+			resolved, err := resolveCommandLineValue(concat, executorInput)
 			if err != nil {
 				return nil, err
 			}
@@ -236,7 +243,6 @@ func resolveContainerArgs(args []string, executorInput *pipelinespec.ExecutorInp
 			}
 			resolvedArgs = append(resolvedArgs, resolvedArg)
 		}
-		resolvedArgs = append(resolvedArgs, resolvedArg)
 	}
 	return resolvedArgs, nil
 }
