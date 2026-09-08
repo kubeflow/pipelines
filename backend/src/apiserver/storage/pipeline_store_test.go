@@ -1243,7 +1243,7 @@ func TestGetPipelineVersion(t *testing.T) {
 		*pipelineVersion, "Got unexpected pipeline version")
 }
 
-func TestGetLatestPipelineVersion(t *testing.T) {
+func TestGetDefaultPipelineVersion(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
@@ -1311,7 +1311,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 		*pipelineVersion, "Got unexpected pipeline version")
 
 	// Get the latest pipeline version.
-	pipelineVersion, err = pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+	pipelineVersion, err = pipelineStore.GetDefaultPipelineVersion(DefaultFakePipelineId)
 	assert.Nil(t, err)
 	assert.Equal(
 		t,
@@ -1327,7 +1327,7 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 }
 
 // Versions uploaded within the same second tie on CreatedAtInSec.
-func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
+func TestGetDefaultPipelineVersion_SameCreationSecond(t *testing.T) {
 	db := NewFakeDBOrFatal()
 	defer db.Close()
 	pipelineStore := NewPipelineStore(
@@ -1368,7 +1368,7 @@ func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
 	require.Nil(t, err)
 
 	for i := 0; i < 5; i++ {
-		pipelineVersion, err := pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+		pipelineVersion, err := pipelineStore.GetDefaultPipelineVersion(DefaultFakePipelineId)
 		require.Nil(t, err)
 		require.Equal(
 			t,

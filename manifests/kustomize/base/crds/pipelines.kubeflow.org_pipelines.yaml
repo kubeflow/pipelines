@@ -39,6 +39,14 @@ spec:
           spec:
             description: PipelineSpec defines the desired state of Pipeline.
             properties:
+              defaultVersionName:
+                description: |-
+                  DefaultVersionName pins the version used when a run does not name one. Matches a
+                  PipelineVersion's spec.versionName, or its object name when that is unset.
+                  Defaults to the most recently created version.
+                maxLength: 253
+                pattern: ^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$
+                type: string
               description:
                 type: string
               displayName:

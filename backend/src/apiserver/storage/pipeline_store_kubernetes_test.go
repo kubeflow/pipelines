@@ -325,16 +325,269 @@ func TestGetK8sPipelineVersion(t *testing.T) {
 	require.Equal(t, p.UUID, pipelineVersion.UUID)
 }
 
-func TestGetLatestK8sPipelineVersion(t *testing.T) {
+func TestGetDefaultK8sPipelineVersion(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	pipelineVersion, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdTwo)
+	pipelineVersion, err := store.GetDefaultPipelineVersion(DefaultFakePipelineIdTwo)
 	require.Nil(t, err, "Failed to get latest pipeline version: %v", err)
 	require.Equal(t, "test-pipeline-version-3", pipelineVersion.Name)
+}
+
+const defaultVersionPipelineID = "b0a1c2d3-0000-4000-8000-00000000000a"
+
+// newPinnedPipelineVersion keeps objectName independent of versionName, as a CR authored outside the REST API may.
+func newPinnedPipelineVersion(objectName, versionName string, created metav1.Time) *v2beta1.PipelineVersion {
+	return &v2beta1.PipelineVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:               types.UID("uid-" + objectName),
+			Name:              objectName,
+			Namespace:         "Test",
+			CreationTimestamp: created,
+			Labels:            map[string]string{"pipelines.kubeflow.org/pipeline-id": defaultVersionPipelineID},
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion: v2beta1.GroupVersion.String(),
+				Kind:       "Pipeline",
+				Name:       "pinned-pipeline",
+				UID:        defaultVersionPipelineID,
+			}},
+		},
+		Spec: v2beta1.PipelineVersionSpec{
+			VersionName:  versionName,
+			PipelineName: "pinned-pipeline",
+			PipelineSpec: getBasicPipelineSpec(),
+		},
+	}
+}
+
+// newDefaultVersionFixture builds a pipeline pinned to defaultVersionName, owning an older "pinned"
+// version and a newer "rolling" one, plus any extra versions.
+func newDefaultVersionFixture(
+	t *testing.T, defaultVersionName string, extraVersions ...client.Object,
+) (client.Client, string) {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v2beta1.AddToScheme(scheme))
+
+	objects := []client.Object{
+		&v2beta1.Pipeline{
+			ObjectMeta: metav1.ObjectMeta{
+				UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+			},
+			Spec: v2beta1.PipelineSpec{DefaultVersionName: defaultVersionName},
+		},
+		newPinnedPipelineVersion("gitops-authored-a", "pinned", metav1.Unix(1700000000, 0)),
+		newPinnedPipelineVersion("gitops-authored-b", "rolling", metav1.Unix(1800000000, 0)),
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(append(objects, extraVersions...)...).
+		Build()
+
+	return k8sClient, defaultVersionPipelineID
+}
+
+func TestGetDefaultK8sPipelineVersion_PinnedDefaultWinsOverNewer(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "pinned")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "pinned", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_NoDefaultUsesNewest(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_DanglingDefaultErrors(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "deleted-version")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		`no pipeline version is named "deleted-version"; set spec.defaultVersionName to an existing version`,
+		userError.ExternalMessage())
+}
+
+func TestGetDefaultK8sPipelineVersion_PinnedDefaultFallsBackToObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	legacy := newPinnedPipelineVersion("legacy-version", "", metav1.Unix(1600000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "legacy-version", legacy)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "legacy-version", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_AmbiguousDefaultErrors(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	duplicate := newPinnedPipelineVersion("gitops-authored-c", "pinned", metav1.Unix(1900000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "pinned", duplicate)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+
+	var userError *util.UserError
+	require.ErrorAs(t, err, &userError)
+	assert.Equal(t, codes.FailedPrecondition, userError.ExternalStatusCode())
+	assert.Equal(t,
+		`2 pipeline versions are named "pinned"; spec.defaultVersionName must match exactly one`,
+		userError.ExternalMessage())
+}
+
+func TestGetDefaultK8sPipelineVersion_PinDoesNotMatchObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// gitops-authored-a is an object name; its version is named "pinned".
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "gitops-authored-a")
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	_, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+}
+
+func TestGetDefaultK8sPipelineVersion_VersionNameBeatsAnotherObjectName(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	decoy := newPinnedPipelineVersion("collision", "not-the-pin", metav1.Unix(1610000000, 0))
+	target := newPinnedPipelineVersion("collision-owner", "collision", metav1.Unix(1620000000, 0))
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "collision", decoy, target)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "collision", version.Name)
+}
+
+// The pipeline-id label is user-mutable, so ownerReferences decide which versions are candidates.
+func newDefaultVersionFixtureWithPin(
+	t *testing.T, pin string, extra ...client.Object,
+) client.Client {
+	t.Helper()
+
+	k8sClient, _ := newDefaultVersionFixture(t, pin, extra...)
+
+	return k8sClient
+}
+
+func TestGetDefaultK8sPipelineVersion_IgnoresLabelWithoutOwnership(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	// Carries this pipeline's label but is owned by another pipeline.
+	foreign := newPinnedPipelineVersion("foreign", "borrowed", metav1.Unix(1900000000, 0))
+	foreign.OwnerReferences[0].UID = "f0f0f0f0-0000-4000-8000-00000000000f"
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "", foreign)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	// It is the newest, but must not be selected as the default.
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+
+	// Nor may it be pinned.
+	_, err = NewPipelineStoreKubernetes(
+		newDefaultVersionFixtureWithPin(t, "borrowed", foreign), k8sClient,
+	).GetDefaultPipelineVersion(pipelineID)
+	require.ErrorIs(t, err, errDefaultVersionUnresolved)
+}
+
+// Candidates are scoped to the pipeline's namespace; in multi-user mode the list is cluster-wide.
+func TestGetDefaultK8sPipelineVersion_IgnoresOtherNamespace(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	multiUser := viper.Get("MULTIUSER")
+	viper.Set("MULTIUSER", "true")
+	defer viper.Set("MULTIUSER", multiUser)
+
+	// Correct label and owner UID, but a different namespace.
+	otherNs := newPinnedPipelineVersion("other-ns", "tenant-b", metav1.Unix(1900000000, 0))
+	otherNs.Namespace = "other"
+
+	k8sClient, pipelineID := newDefaultVersionFixture(t, "", otherNs)
+	store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
+
+	version, err := store.GetDefaultPipelineVersion(pipelineID)
+	require.NoError(t, err)
+	assert.Equal(t, "rolling", version.Name)
+}
+
+func TestGetDefaultK8sPipelineVersion_NoVersions(t *testing.T) {
+	podNamespace := viper.Get("POD_NAMESPACE")
+	viper.Set("POD_NAMESPACE", "Test")
+	defer viper.Set("POD_NAMESPACE", podNamespace)
+
+	tests := []struct {
+		pin      string
+		wantCode codes.Code
+	}{
+		{pin: "", wantCode: codes.NotFound},
+		{pin: "pinned", wantCode: codes.FailedPrecondition},
+	}
+
+	for _, test := range tests {
+		t.Run("pin="+test.pin, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			require.NoError(t, v2beta1.AddToScheme(scheme))
+
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&v2beta1.Pipeline{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: defaultVersionPipelineID, Name: "pinned-pipeline", Namespace: "Test",
+				},
+				Spec: v2beta1.PipelineSpec{DefaultVersionName: test.pin},
+			}).Build()
+
+			_, err := NewPipelineStoreKubernetes(k8sClient, k8sClient).GetDefaultPipelineVersion(defaultVersionPipelineID)
+
+			var userError *util.UserError
+			require.ErrorAs(t, err, &userError)
+			assert.Equal(t, test.wantCode, userError.ExternalStatusCode())
+		})
+	}
 }
 
 func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
@@ -344,7 +597,7 @@ func TestGetK8sPipelineVersion_NotFoundError(t *testing.T) {
 
 	store := NewPipelineStoreKubernetes(getClient())
 
-	_, err := store.GetLatestPipelineVersion(DefaultFakePipelineIdFive)
+	_, err := store.GetDefaultPipelineVersion(DefaultFakePipelineIdFive)
 	require.NotNil(t, err)
 	assert.Equal(t, err.(*util.UserError).ExternalStatusCode(), codes.NotFound)
 }
@@ -671,7 +924,7 @@ func TestIsNewerPipelineVersion(t *testing.T) {
 }
 
 // Versions created within the same second tie on CreationTimestamp.
-func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
+func TestGetDefaultK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testing.T) {
 	podNamespace := viper.Get("POD_NAMESPACE")
 	viper.Set("POD_NAMESPACE", "Test")
 	defer viper.Set("POD_NAMESPACE", podNamespace)
@@ -724,7 +977,7 @@ func TestGetLatestK8sPipelineVersion_SameCreationSecondIsDeterministic(t *testin
 
 		store := NewPipelineStoreKubernetes(k8sClient, k8sClient)
 
-		latest, err := store.GetLatestPipelineVersion(pipelineID)
+		latest, err := store.GetDefaultPipelineVersion(pipelineID)
 		require.NoError(t, err)
 		assert.Equal(t, "tie-version-high", latest.Name)
 	}

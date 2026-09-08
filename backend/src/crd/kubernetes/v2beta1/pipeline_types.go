@@ -27,6 +27,13 @@ type PipelineSpec struct {
 	DisplayName string            `json:"displayName,omitempty"`
 	Description string            `json:"description,omitempty"`
 	Tags        map[string]string `json:"tags,omitempty"`
+
+	// DefaultVersionName pins the version used when a run does not name one. Matches a
+	// PipelineVersion's spec.versionName, or its object name when that is unset.
+	// Defaults to the most recently created version.
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$`
+	DefaultVersionName string `json:"defaultVersionName,omitempty"`
 }
 
 // +kubebuilder:object:root=true
