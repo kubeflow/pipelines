@@ -107,8 +107,18 @@ jobs:
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
+          # PostgreSQL lane — cache_enabled=true only (no pgx overlay for
+          # cache-disabled, proxy, or TLS).
+          # TODO: expand when additional standalone/postgresql/* overlays exist.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v4.1.2"
+            proxy: "false"
+            pod_to_pod_tls_enabled: "false"
+            db_type: "pgx"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
+    name: End to End ${{ matrix.test_label}} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} argoVersion=${{ matrix.argo_version}} proxy=${{ matrix.proxy}} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -129,6 +139,7 @@ jobs:
           cache_enabled: ${{ matrix.cache_enabled }}
           argo_version: ${{ matrix.argo_version }}
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -211,8 +222,19 @@ jobs:
         cache_enabled: ["true", "false"]
         multi_user: [ "true" ]
         test_label: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["E2ECritical"]' || '["E2ECriticalShardA", "E2ECriticalShardB"]') }}
+        include:
+          # PostgreSQL lane — cache_enabled=true, artifact_proxy disabled
+          # (no pgx overlay for cache-disabled or artifact-proxy).
+          # TODO: expand when multiuser/postgresql/cache-disabled and
+          # multiuser/postgresql/artifact-proxy overlays exist.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            multi_user: "true"
+            db_type: "pgx"
+            artifact_proxy: "false"
+            test_label: "E2ECritical"
       fail-fast: false
-    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.cache_enabled }}
+    name: End to End Critical Scenario Multi User ${{ matrix.test_label }} Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} multiUser=${{ matrix.multi_user }} artifactProxy=${{ matrix.artifact_proxy || matrix.cache_enabled }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -233,7 +255,10 @@ jobs:
           multi_user: "true"
           # The cache-enabled multi-user variant is the artifact-proxy
           # compatibility lane; both automatic Critical shards exercise it.
-          artifact_proxy: ${{ matrix.cache_enabled }}
+          # pgx include sets artifact_proxy explicitly to "false" because no
+          # multiuser/postgresql/artifact-proxy overlay exists yet.
+          artifact_proxy: ${{ matrix.artifact_proxy || matrix.cache_enabled }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
@@ -267,7 +292,7 @@ jobs:
 
       - name: Test Artifact Proxy
         id: test-artifact-proxy
-        if: ${{ steps.deploy.outcome == 'success' && matrix.cache_enabled == 'true' }}
+        if: ${{ steps.deploy.outcome == 'success' && (matrix.artifact_proxy || matrix.cache_enabled) == 'true' }}
         shell: bash
         env:
           USER_NAMESPACE: ${{ env.USER_NAMESPACE }}
@@ -324,8 +349,23 @@ jobs:
             mlflow_auth_type: "basic-auth"
           - artifact_storage: "s3"
             mlflow_auth_type: "none"
+        include:
+          # PostgreSQL lane for KFP database — cache_enabled=true only.
+          - k8s_version: "v1.36.1"
+            cache_enabled: "true"
+            argo_version: "v3.7.18"
+            proxy: "false"
+            test_label: "MLflow"
+            pod_to_pod_tls_enabled: "false"
+            multi_user: "false"
+            artifact_proxy: "false"
+            artifact_storage: "file"
+            backend_store: "postgres"
+            registry_store: "postgres"
+            mlflow_auth_type: "kubernetes"
+            db_type: "pgx"
       fail-fast: false
-    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }}
+    name: End to End Critical Scenario MLflow Tests - K8s ${{ matrix.k8s_version }} cacheEnabled=${{ matrix.cache_enabled }} artifactStorage=${{ matrix.artifact_storage }} authType=${{ matrix.mlflow_auth_type }} dbType=${{ matrix.db_type }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -347,6 +387,7 @@ jobs:
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
           multi_user: ${{ matrix.multi_user }}
           artifact_proxy: ${{ matrix.artifact_proxy }}
+          db_type: ${{ matrix.db_type }}
           image_path: images_${{ github.run_id }}
           image_tag: latest
           image_registry: kind-registry:5000
