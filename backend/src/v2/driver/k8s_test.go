@@ -110,6 +110,7 @@ func Test_makeVolumeMountPatch(t *testing.T) {
 				nil,
 				nil,
 				tt.inputParams,
+				nil,
 			)
 			assert.Nil(t, err)
 			assert.Equal(t, 1, len(volumeMounts))

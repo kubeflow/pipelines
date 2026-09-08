@@ -52,6 +52,7 @@ func TestResolvePipelineJobCreateTimePlaceholder(t *testing.T) {
 		nil, // runtime config
 		paramSpec,
 		map[string]*structpb.Value{},
+		nil,
 	)
 
 	assert.NoError(t, err)
@@ -83,6 +84,7 @@ func TestResolvePipelineJobScheduleTimePlaceholder(t *testing.T) {
 		nil,
 		paramSpec,
 		map[string]*structpb.Value{},
+		nil,
 	)
 
 	assert.NoError(t, err)
