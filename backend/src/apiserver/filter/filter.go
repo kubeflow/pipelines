@@ -162,12 +162,16 @@ func NewFromPredicate(predicates []*Predicate) (*Filter, error) {
 }
 
 // ValidateKeys checks all filter keys using the provided validator function.
-// Keys may be qualified identifiers like "table.Column"; each segment is validated separately.
-func (f *Filter) ValidateKeys(validator func(segment string) error) error {
+// Keys may be qualified identifiers like "table.Column"; each segment is
+// validated separately. isLast tells the validator whether the segment is
+// the final (column) segment or an earlier (table-qualifier) segment, since
+// callers often need different validation rules for each.
+func (f *Filter) ValidateKeys(validator func(segment string, isLast bool) error) error {
 	for _, m := range []map[string][]interface{}{f.eq, f.neq, f.gt, f.gte, f.lt, f.lte, f.in, f.substring} {
 		for k := range m {
-			for _, segment := range strings.Split(k, ".") {
-				if err := validator(segment); err != nil {
+			segments := strings.Split(k, ".")
+			for i, segment := range segments {
+				if err := validator(segment, i == len(segments)-1); err != nil {
 					return fmt.Errorf("invalid filter key %q: %w", k, err)
 				}
 			}

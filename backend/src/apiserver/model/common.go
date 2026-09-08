@@ -73,6 +73,19 @@ func (lt *LargeText) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// isRegularFieldIn reports whether name is one of fieldMap's values (a real
+// model field name), as opposed to a string that merely looks like a SQL
+// identifier. Shared by each Listable type's IsRegularField, which calls
+// this with its own APIToModelFieldMap().
+func isRegularFieldIn(fieldMap map[string]string, name string) bool {
+	for _, field := range fieldMap {
+		if field == name {
+			return true
+		}
+	}
+	return false
+}
+
 func AllModels() []any {
 	return []any{
 		&DBStatus{},
