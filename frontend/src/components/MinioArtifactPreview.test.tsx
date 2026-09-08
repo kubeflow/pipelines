@@ -356,6 +356,47 @@ describe('MinioArtifactPreview', () => {
     expect(queryByText('minio://foo/bar')).toBeTruthy();
   });
 
+  it('shows full content without a truncation marker when line count is below maxlines', async () => {
+    const minioArtifact = {
+      key: 'bar',
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
+    };
+    const data = `012\n345`;
+    readFile.mockResolvedValue(data);
+    const { queryByText } = render(
+      <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={20} />,
+    );
+    await act(TestUtils.flushPromises);
+    expect(queryByText('012 345')).toBeTruthy();
+    expect(queryByText(/\.\.\./)).toBeFalsy();
+  });
+
+  it('shows full content without a truncation marker when line count exactly equals maxlines', async () => {
+    const minioArtifact = {
+      key: 'bar',
+      s3Bucket: {
+        accessKeySecret: { key: 'accesskey', optional: false, name: 'minio' },
+        bucket: 'foo',
+        endpoint: 'minio.kubeflow',
+        secretKeySecret: { key: 'secretkey', optional: false, name: 'minio' },
+      },
+    };
+    const lines = Array.from({ length: 20 }, (_, i) => `line${i}`);
+    const data = lines.join('\n');
+    readFile.mockResolvedValue(data);
+    const { queryByText } = render(
+      <MinioArtifactPreview value={minioArtifact} maxbytes={data.length} maxlines={20} />,
+    );
+    await act(TestUtils.flushPromises);
+    expect(queryByText(lines.join(' '))).toBeTruthy();
+    expect(queryByText(/\.\.\./)).toBeFalsy();
+  });
+
   it('handles artifact that previews with maxbytes', async () => {
     const minioArtifact = {
       key: 'bar',

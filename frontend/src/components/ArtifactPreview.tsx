@@ -137,7 +137,7 @@ async function getPreview(
     peek: maxbytes + 1,
   });
   // is preview === data and no maxlines
-  if (data.length <= maxbytes && (!maxlines || data.split('\n').length < maxlines)) {
+  if (data.length <= maxbytes && (!maxlines || data.split('\n').length <= maxlines)) {
     return data;
   }
   // remove extra byte at the end (we requested maxbytes +1)
