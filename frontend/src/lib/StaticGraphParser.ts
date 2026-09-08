@@ -21,6 +21,7 @@ import { color } from '../Css';
 import { Constants } from './Constants';
 import { logger } from './Utils';
 import { parseTaskDisplayName } from './ParserUtils';
+import type { DagreGraph, GraphNodeData, GraphNodeInput } from './GraphTypes';
 import { graphlib } from 'dagre';
 
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
@@ -116,7 +117,7 @@ export function _populateInfoFromTemplate(
  * where A and C are DAGs, the parentFullPath when rootTemplateId is C would be: /A/C
  */
 function buildDag(
-  graph: dagre.graphlib.Graph,
+  graph: DagreGraph,
   rootTemplateId: string,
   templates: Map<string, { nodeType: nodeType; template: Template }>,
   alreadyVisited: Map<string, string>,
@@ -199,7 +200,7 @@ function buildDag(
         info,
         label: nodeLabel,
         width: Constants.NODE_WIDTH,
-      });
+      } satisfies GraphNodeInput);
 
       // DAG tasks can indicate dependencies which are graphically shown as parents with edges
       // pointing to their children (the task(s)).
@@ -211,8 +212,8 @@ function buildDag(
   }
 }
 
-export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
-  const graph = new dagre.graphlib.Graph();
+export function createGraph(workflow: Workflow): DagreGraph {
+  const graph = new dagre.graphlib.Graph<GraphNodeData>();
   graph.setGraph({});
   graph.setDefaultEdgeLabel(() => ({}));
 
@@ -241,7 +242,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
         info,
         label: 'onExit - ' + template.name,
         width: Constants.NODE_WIDTH,
-      });
+      } satisfies GraphNodeInput);
     }
 
     if (template.container) {
@@ -267,7 +268,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
         height: Constants.NODE_HEIGHT,
         label: entryPointTemplate.name,
         width: Constants.NODE_WIDTH,
-      });
+      } satisfies GraphNodeInput);
     }
   }
 
@@ -289,7 +290,7 @@ export function createGraph(workflow: Workflow): dagre.graphlib.Graph {
  *
  * @param graph The dagre graph object
  */
-export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib.Graph | undefined {
+export function transitiveReduction(graph: DagreGraph): DagreGraph | undefined {
   // safeguard against too big graphs
   if (!graph || graph.edgeCount() > 1000 || graph.nodeCount() > 1000) {
     return undefined;
@@ -316,7 +317,7 @@ export function transitiveReduction(graph: dagre.graphlib.Graph): dagre.graphlib
   return result;
 }
 
-export function compareGraphEdges(graph1: dagre.graphlib.Graph, graph2: dagre.graphlib.Graph) {
+export function compareGraphEdges(graph1: DagreGraph, graph2: DagreGraph) {
   return (
     graph1
       .edges()

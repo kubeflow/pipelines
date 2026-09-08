@@ -266,7 +266,7 @@ describe('RecurringRunDetailsV2', () => {
 
   it('shows warning banner if has experiment but experiment cannot be fetched. still loads run', async () => {
     fullTestV2RecurringRun.experiment_id = 'test-experiment-id';
-    TestUtils.makeErrorResponseOnce(getExperimentSpy, 'woops!');
+    TestUtils.makeErrorResponse(getExperimentSpy, 'woops!');
     render(
       <CommonTestWrapper>
         <RecurringRunDetailsRouter {...generateProps()} />

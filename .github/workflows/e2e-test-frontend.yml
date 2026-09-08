@@ -27,6 +27,29 @@ jobs:
   build:
     uses: ./.github/workflows/image-builds.yml
 
+  frontend-integration-dependency-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    name: Frontend Integration Dependency Checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Install dependencies
+        working-directory: ./test/frontend-integration-test
+        run: npm ci
+
+      - name: Dependency compatibility checks
+        working-directory: ./test/frontend-integration-test
+        run: npm run test:dependencies
+
   frontend-integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
