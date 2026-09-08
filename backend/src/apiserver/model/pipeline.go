@@ -96,6 +96,11 @@ func (p *Pipeline) GetModelName() string {
 	return "pipelines"
 }
 
+// IsRegularField reports whether name is a real column on Pipeline.
+func (p *Pipeline) IsRegularField(name string) bool {
+	return isRegularFieldIn(p.APIToModelFieldMap(), name)
+}
+
 // TableName overrides GORM's table name inference.
 func (Pipeline) TableName() string {
 	return "pipelines"
