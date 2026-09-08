@@ -78,7 +78,7 @@ jobs:
       matrix:
         k8s_version: ["v1.36.1"]
         cache_enabled: ["true", "false"]
-        argo_version: [ "v3.7.18", "v4.1.2" ]
+        argo_version: [ "v4.0.5", "v4.1.2" ]
         proxy: [ "false" ]
         # Automatic runs split the dominant Critical suite across two Kind
         # runners. Manual dispatch retains the historical unsharded labels.
@@ -87,7 +87,7 @@ jobs:
         include:
           - k8s_version: "v1.33.12"
             cache_enabled: "false"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.5"
             test_label: "E2ECritical"
           - k8s_version: "v1.36.1"
             cache_enabled: "false"
@@ -103,7 +103,7 @@ jobs:
           # Schedule-only NVIDIA GPU lane (Kind + Fake GPU Operator fake backend).
           - k8s_version: "v1.36.1"
             cache_enabled: "true"
-            argo_version: "v3.7.18"
+            argo_version: "v4.0.5"
             proxy: "false"
             test_label: "gpu-scheduling-check"
             pod_to_pod_tls_enabled: "false"
@@ -309,7 +309,7 @@ jobs:
       matrix:
         k8s_version: [ "v1.36.1" ]
         cache_enabled: [ "true", "false" ]
-        argo_version: [ "v3.7.18" ]
+        argo_version: [ "v4.0.5" ]
         proxy: [ "false" ]
         test_label: [ "MLflow" ]
         pod_to_pod_tls_enabled: [ "false" ]

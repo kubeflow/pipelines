@@ -4,6 +4,8 @@
 
 ## Breaking changes
 
+* KFP 3.0 no longer supports Argo Workflows 3.x. Operators must upgrade to a supported Argo Workflows 4.x release before upgrading to KFP 3.0.
+
 ## Deprecations
 
 ## Bug fixes and other changes
