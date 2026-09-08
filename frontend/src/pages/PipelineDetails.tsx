@@ -57,10 +57,11 @@ import { ApiJob } from 'src/apis/job';
 import { V2beta1Run } from 'src/apisv2beta1/run';
 import { V2beta1RecurringRun } from 'src/apisv2beta1/recurringrun';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
+import type { DagreGraph } from '../lib/GraphTypes';
 
 interface PipelineDetailsState {
-  graph: dagre.graphlib.Graph | null;
-  reducedGraph: dagre.graphlib.Graph | null;
+  graph: DagreGraph | null;
+  reducedGraph: DagreGraph | null;
   graphV2: PipelineFlowElement[] | null;
   graphIsLoading: boolean;
   v1Pipeline: ApiPipeline | null;

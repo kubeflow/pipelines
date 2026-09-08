@@ -198,7 +198,7 @@ describe('RecurringRunDetails', () => {
   });
 
   it('shows error banner if run cannot be fetched', async () => {
-    TestUtils.makeErrorResponseOnce(getJobSpy as any, 'woops!');
+    TestUtils.makeErrorResponse(getJobSpy as any, 'woops!');
     await renderRecurringRunDetails();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -213,7 +213,7 @@ describe('RecurringRunDetails', () => {
     fullTestJob.resource_references = [
       { key: { id: 'test-experiment-id', type: ApiResourceType.EXPERIMENT } },
     ];
-    TestUtils.makeErrorResponseOnce(getExperimentSpy as any, 'woops!');
+    TestUtils.makeErrorResponse(getExperimentSpy as any, 'woops!');
     await renderRecurringRunDetails();
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({

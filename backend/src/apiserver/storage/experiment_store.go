@@ -90,6 +90,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, op
 		glog.Errorf("Failed to start transaction to list jobs")
 		return errorF(err)
 	}
+	defer tx.Rollback()
 
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
@@ -279,6 +280,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to delete experiment")
 	}
+	defer tx.Rollback()
 	_, err = tx.Exec(experimentSql, experimentArgs...)
 	if err != nil {
 		tx.Rollback()
@@ -356,6 +358,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to create a new transaction to archive an experiment")
 	}
+	defer tx.Rollback()
 
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
