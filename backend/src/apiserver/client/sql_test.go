@@ -32,24 +32,25 @@ func TestCreateMySQLConfig(t *testing.T) {
 		mysqlExtraParams       map[string]string
 	}
 	tests := []struct {
-		name string
-		args args
-		want *mysql.Config
+		name    string
+		args    args
+		want    *mysql.Config
+		wantErr bool
 	}{
 		{
-			name: "default config",
+			name: "default config with explicit tls disabled",
 			args: args{
 				user:                   "root",
 				host:                   "mysql",
 				port:                   "3306",
 				mysqlGroupConcatMaxLen: "1024",
-				mysqlExtraParams:       nil,
+				mysqlExtraParams:       map[string]string{"tls": "false"},
 			},
 			want: &mysql.Config{
 				User:                 "root",
 				Net:                  "tcp",
 				Addr:                 "mysql:3306",
-				Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local", "group_concat_max_len": "1024"},
+				Params:               map[string]string{"charset": "utf8", "parseTime": "True", "loc": "Local", "group_concat_max_len": "1024", "tls": "false"},
 				AllowNativePasswords: true,
 			},
 		},
@@ -70,10 +71,31 @@ func TestCreateMySQLConfig(t *testing.T) {
 				AllowNativePasswords: true,
 			},
 		},
+		{
+			name: "missing tls errors",
+			args: args{
+				user:                   "root",
+				host:                   "mysql",
+				port:                   "3306",
+				mysqlGroupConcatMaxLen: "1024",
+				mysqlExtraParams:       nil,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateMySQLConfig(tt.args.user, tt.args.password, tt.args.host, tt.args.port, tt.args.dbName, tt.args.mysqlGroupConcatMaxLen, tt.args.mysqlExtraParams); !reflect.DeepEqual(got, tt.want) {
+			got, err := CreateMySQLConfig(tt.args.user, tt.args.password, tt.args.host, tt.args.port, tt.args.dbName, tt.args.mysqlGroupConcatMaxLen, tt.args.mysqlExtraParams)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("CreateMySQLConfig() expected error, got nil")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("CreateMySQLConfig() unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CreateMySQLConfig() = %#v, want %v", got, tt.want)
 			}
 		})

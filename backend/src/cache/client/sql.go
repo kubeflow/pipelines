@@ -21,7 +21,11 @@ import (
 )
 
 func CreateMySQLConfig(user, password string, mysqlServiceHost string,
-	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string) *mysql.Config {
+	mysqlServicePort string, dbName string, mysqlGroupConcatMaxLen string, mysqlExtraParams map[string]string) (*mysql.Config, error) {
+	if _, ok := mysqlExtraParams["tls"]; !ok {
+		return nil, fmt.Errorf("tls must be explicitly set in MySQL extra params; " +
+			`use "false" for local development or "true"/"skip-verify" for TLS (see backend/README.md)`)
+	}
 
 	params := map[string]string{
 		"charset":              "utf8",
@@ -42,5 +46,5 @@ func CreateMySQLConfig(user, password string, mysqlServiceHost string,
 		Params:               params,
 		DBName:               dbName,
 		AllowNativePasswords: true,
-	}
+	}, nil
 }

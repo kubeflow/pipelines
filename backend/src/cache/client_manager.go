@@ -115,7 +115,7 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	var mysqlExtraParams = map[string]string{}
 	data := []byte(params.dbExtraParams)
 	json.Unmarshal(data, &mysqlExtraParams)
-	mysqlConfig := client.CreateMySQLConfig(
+	mysqlConfig, err := client.CreateMySQLConfig(
 		params.dbUser,
 		params.dbPwd,
 		params.dbHost,
@@ -124,9 +124,11 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 		params.dbGroupConcatMaxLen,
 		mysqlExtraParams,
 	)
+	if err != nil {
+		glog.Fatal(err)
+	}
 
 	var db *sql.DB
-	var err error
 	var operation = func() error {
 		db, err = sql.Open(params.dbDriver, mysqlConfig.FormatDSN())
 		if err != nil {
