@@ -29,18 +29,42 @@ import (
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
+
+type recordingSubjectAccessReviewClient struct {
+	allowed   bool
+	authorize func(authorizationv1.ResourceAttributes) bool
+	requests  []authorizationv1.ResourceAttributes
+}
+
+func (c *recordingSubjectAccessReviewClient) Create(_ context.Context, review *authorizationv1.SubjectAccessReview, _ metav1.CreateOptions) (*authorizationv1.SubjectAccessReview, error) {
+	allowed := c.allowed
+	if review.Spec.ResourceAttributes != nil {
+		attributes := *review.Spec.ResourceAttributes.DeepCopy()
+		c.requests = append(c.requests, attributes)
+		if c.authorize != nil {
+			allowed = c.authorize(attributes)
+		}
+	}
+	return &authorizationv1.SubjectAccessReview{
+		Status: authorizationv1.SubjectAccessReviewStatus{Allowed: allowed, Reason: "test authorization decision"},
+	}, nil
+}
 
 func createRunServerV1(resourceManager *resource.ResourceManager) *RunServerV1 {
 	return &RunServerV1{
@@ -520,6 +544,230 @@ func TestCreateRunV1_Unauthorized(t *testing.T) {
 		err.Error(),
 		"PermissionDenied: User 'user@google.com' is not authorized with reason",
 	)
+}
+
+func TestCanAccessReferencedPipeline_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	// newManagerWithPipeline returns a resource manager holding a single pipeline
+	// in the given namespace plus one pipeline version, along with their IDs. When
+	// authorized is false the SubjectAccessReview client denies every request.
+	newManagerWithPipeline := func(namespace string, authorized bool) (*resource.ResourceManager, string, string) {
+		initEnvVars()
+		clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+		t.Cleanup(func() { clientManager.Close() })
+		if !authorized {
+			clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+		}
+		resourceManager := resource.NewResourceManager(clientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+		pipeline, err := resourceManager.CreatePipeline(&model.Pipeline{Name: "p1", Namespace: namespace})
+		assert.Nil(t, err)
+		pipelineVersion, err := resourceManager.CreatePipelineVersion(&model.PipelineVersion{
+			Name:         "p1",
+			PipelineId:   pipeline.UUID,
+			PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+		})
+		assert.Nil(t, err)
+		return resourceManager, pipeline.UUID, pipelineVersion.UUID
+	}
+
+	// A caller without access to another namespace's private pipeline is denied
+	// when referencing it by version ID or by pipeline ID.
+	rmPrivate, privatePipelineID, privateVersionID := newManagerWithPipeline("ns2", false)
+	assert.Error(t, canAccessReferencedPipeline(ctx, rmPrivate, &model.PipelineSpec{PipelineVersionId: privateVersionID}, "ns1"))
+	assert.Error(t, canAccessReferencedPipeline(ctx, rmPrivate, &model.PipelineSpec{PipelineId: privatePipelineID}, "ns1"))
+
+	// Shared (empty-namespace) pipelines remain readable by any authenticated
+	// user, even one the SubjectAccessReview would deny.
+	rmShared, sharedPipelineID, sharedVersionID := newManagerWithPipeline("", false)
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmShared, &model.PipelineSpec{PipelineVersionId: sharedVersionID}, "ns1"))
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmShared, &model.PipelineSpec{PipelineId: sharedPipelineID}, "ns1"))
+
+	// An inline manifest references no existing pipeline and needs no pipeline
+	// authorization at this layer.
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmShared, &model.PipelineSpec{}, "ns1"))
+
+	// Pairing an accessible pipeline ID with another namespace's private version
+	// ID must not authorize against the accessible pipeline: the referenced version
+	// is resolved first and its owning pipeline governs authorization. Build one
+	// manager holding both a shared pipeline and a private ns2 pipeline.
+	initEnvVars()
+	mixedClientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	defer mixedClientManager.Close()
+	mixedClientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	mixedRM := resource.NewResourceManager(mixedClientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	sharedPipeline, err := mixedRM.CreatePipeline(&model.Pipeline{Name: "shared", Namespace: ""})
+	assert.Nil(t, err)
+	_, err = mixedRM.CreatePipelineVersion(&model.PipelineVersion{Name: "shared", PipelineId: sharedPipeline.UUID, PipelineSpec: model.LargeText(testWorkflow.ToStringForStore())})
+	assert.Nil(t, err)
+	mixedClientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
+	mixedRM = resource.NewResourceManager(mixedClientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	privatePipeline, err := mixedRM.CreatePipeline(&model.Pipeline{Name: "private", Namespace: "ns2"})
+	assert.Nil(t, err)
+	privateVersion, err := mixedRM.CreatePipelineVersion(&model.PipelineVersion{Name: "private", PipelineId: privatePipeline.UUID, PipelineSpec: model.LargeText(testWorkflow.ToStringForStore())})
+	assert.Nil(t, err)
+	err = canAccessReferencedPipeline(ctx, mixedRM, &model.PipelineSpec{PipelineId: sharedPipeline.UUID, PipelineVersionId: privateVersion.UUID}, "ns2")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied))
+	err = canAccessReferencedPipeline(ctx, mixedRM, &model.PipelineSpec{
+		PipelineId:   sharedPipeline.UUID,
+		PipelineName: "pipelineversions/" + privateVersion.UUID,
+	}, "ns2")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied))
+
+	reviewClient := &recordingSubjectAccessReviewClient{allowed: true}
+	mixedClientManager.SubjectAccessReviewClientFake = reviewClient
+	mixedRM = resource.NewResourceManager(mixedClientManager, &resource.ResourceManagerOptions{CollectMetrics: false})
+	err = canAccessReferencedPipeline(ctx, mixedRM, &model.PipelineSpec{PipelineId: sharedPipeline.UUID, PipelineVersionId: privateVersion.UUID}, "ns2")
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.InvalidArgument))
+	require.Len(t, reviewClient.requests, 1)
+	assert.Equal(t, authorizationv1.ResourceAttributes{
+		Namespace: "ns2",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypePipelines,
+		Name:      privatePipeline.Name,
+	}, reviewClient.requests[0])
+
+	// A caller authorized for the owning namespace is allowed.
+	rmAuthorized, _, authorizedVersionID := newManagerWithPipeline("ns2", true)
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmAuthorized, &model.PipelineSpec{PipelineVersionId: authorizedVersionID}, "ns2"))
+	assert.Error(t, canAccessReferencedPipeline(ctx, rmAuthorized, &model.PipelineSpec{PipelineVersionId: authorizedVersionID}, "ns1"))
+	viper.Set(common.MultiUserModeSharedReadAccess, "true")
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmAuthorized, &model.PipelineSpec{PipelineVersionId: authorizedVersionID}, "ns1"))
+	viper.Set(common.MultiUserModeSharedReadAccess, "false")
+
+	// The pipeline/version can also be encoded in the full pipeline name; the same
+	// authorization must apply on that parsing path so it cannot silently fail open.
+	rmNamePrivate, _, namePrivateVersionID := newManagerWithPipeline("ns2", false)
+	assert.Error(t, canAccessReferencedPipeline(ctx, rmNamePrivate, &model.PipelineSpec{PipelineName: "pipelineversions/" + namePrivateVersionID}, "ns1"))
+	rmNameAuthorized, _, nameAuthorizedVersionID := newManagerWithPipeline("ns2", true)
+	assert.NoError(t, canAccessReferencedPipeline(ctx, rmNameAuthorized, &model.PipelineSpec{PipelineName: "pipelineversions/" + nameAuthorizedVersionID}, "ns2"))
+}
+
+func TestCreateRun_MultiuserRecurringRunNamespaceBoundToOwner(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	jobID := "recurring-run-in-ns2"
+	_, err := clients.JobStore().CreateJob(&model.Job{
+		UUID:         jobID,
+		DisplayName:  "recurring run",
+		K8SName:      "recurring-run",
+		Namespace:    "ns2",
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+
+	server := createRunServer(manager)
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	_, err = server.createRun(ctx, &model.Run{
+		DisplayName:    "controller-created-run",
+		ExperimentId:   experiment.UUID,
+		RecurringRunId: jobID,
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied))
+	assert.Contains(t, err.Error(), "A recurring run can only create runs in its own namespace")
+}
+
+func TestValidateRecurringRunNamespace_MultiuserLegacyOwner(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	jobID := "legacy-recurring-run"
+	_, err := clients.JobStore().CreateJob(&model.Job{
+		UUID:         jobID,
+		DisplayName:  "legacy recurring run",
+		K8SName:      "legacy-recurring-run",
+		Namespace:    model.NoNamespace,
+		ExperimentId: experiment.UUID,
+	})
+	require.NoError(t, err)
+
+	err = validateRecurringRunNamespace(manager, &model.Run{
+		Namespace:      "ns1",
+		RecurringRunId: jobID,
+	})
+	require.NoError(t, err)
+}
+
+func TestValidateRecurringRunNamespace_MultiuserLegacyOwnerWithoutNamespace(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	jobID := "legacy-recurring-run-without-owner"
+	_, err := clients.JobStore().CreateJob(&model.Job{
+		UUID:        jobID,
+		DisplayName: "legacy recurring run without owner",
+		K8SName:     "legacy-recurring-run-without-owner",
+		Namespace:   model.NoNamespace,
+	})
+	require.NoError(t, err)
+
+	err = validateRecurringRunNamespace(manager, &model.Run{
+		Namespace:      "ns1",
+		RecurringRunId: jobID,
+	})
+	require.Error(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.PermissionDenied))
+	assert.Contains(t, err.Error(), "recreate it in a namespaced experiment")
+}
+
+func TestCreateRunV1_MultiuserVersionOnlyReferenceAuthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	t.Cleanup(func() { viper.Set(common.MultiUserMode, "false") })
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	pipeline, err := manager.CreatePipeline(&model.Pipeline{Name: "version-only-pipeline", Namespace: "ns1"})
+	require.NoError(t, err)
+	pipelineStore, ok := clients.PipelineStore().(*storage.PipelineStore)
+	require.True(t, ok)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(NonDefaultFakeUUID, nil))
+	pipelineVersion, err := manager.CreatePipelineVersion(&model.PipelineVersion{
+		Name:         "version-only-version",
+		PipelineId:   pipeline.UUID,
+		PipelineSpec: model.LargeText(testWorkflow.ToStringForStore()),
+	})
+	require.NoError(t, err)
+	require.Equal(t, NonDefaultFakeUUID, pipelineVersion.UUID)
+	require.NotEqual(t, pipeline.UUID, pipelineVersion.UUID)
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+	server := createRunServerV1(manager)
+	createdRun, err := server.CreateRunV1(ctx, &apiv1beta1.CreateRunRequest{Run: &apiv1beta1.Run{
+		Name: "version-only-run",
+		ResourceReferences: []*apiv1beta1.ResourceReference{
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_EXPERIMENT,
+					Id:   DefaultFakeUUID,
+				},
+				Relationship: apiv1beta1.Relationship_OWNER,
+			},
+			{
+				Key: &apiv1beta1.ResourceKey{
+					Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
+					Id:   pipelineVersion.UUID,
+				},
+				Relationship: apiv1beta1.Relationship_CREATOR,
+			},
+		},
+		PipelineSpec: &apiv1beta1.PipelineSpec{
+			Parameters: []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
+		},
+	}})
+	require.NoError(t, err)
+	assert.Equal(t, pipelineVersion.UUID, getPipelineVersionFromResourceReferencesV1(createdRun.GetRun().GetResourceReferences()))
 }
 
 func TestCreateRunV1_Multiuser(t *testing.T) {

@@ -25,9 +25,12 @@ import {
   getObjectStream,
   isNoSuchKeyError,
   listObjectsUnderPrefix,
+  parseArtifactStoreEndpoint,
+  getArtifactStoreOrigin,
   summarizeDirectoryUnderPrefix,
 } from '../minio-helper.js';
 import type { MinioRequestConfig } from '../minio-helper.js';
+import { isAWSS3Endpoint, isOfficialAWSS3ServiceEndpoint } from '../aws-helper.js';
 import * as tar from 'tar-stream';
 import * as zlib from 'zlib';
 import type { IncomingMessage } from 'http';
@@ -41,7 +44,7 @@ import { URL } from 'url';
 import { getGCSClient, listGCSObjectNames, downloadGCSObjectStream } from '../gcs-helper.js';
 import type { GCSClient } from '../gcs-helper.js';
 
-import { isAllowedDomain } from './domain-checker.js';
+import { isAllowedDomain, isTrustedArtifactEndpoint } from './domain-checker.js';
 import { getK8sSecret } from '../k8s-helper.js';
 import { CredentialBody } from 'google-auth-library';
 import { AuthorizeFn } from '../helpers/auth.js';
@@ -381,12 +384,23 @@ export function getArtifactsHandler({
     http: HttpConfigs;
     minio: MinioConfigs;
     allowedDomain: string;
+    allowedEndpoints: string[];
+    allowOfficialAwsEndpoints: boolean;
   };
   tryExtract: boolean;
   useParameter: boolean;
   options: UIConfigs;
 }): Handler {
-  const { aws, http, minio, allowedDomain } = artifactsConfigs;
+  const { aws, http, minio, allowedDomain, allowedEndpoints, allowOfficialAwsEndpoints } =
+    artifactsConfigs;
+  // Capture operator-owned trust anchors when the handler is built. Provider
+  // parsing must never be able to mutate the configuration used to authorize a
+  // later request.
+  const configuredEndpoints = {
+    minio: getArtifactStoreOrigin(minio),
+    s3: getArtifactStoreOrigin(aws),
+  };
+  const configuredAdditionalEndpoints = [...allowedEndpoints];
   return async (req, res) => {
     // Security: artifact bytes are untrusted, user-controlled content. Set the
     // hardening headers before parsing so every early error and storage path is
@@ -439,6 +453,128 @@ export function getArtifactsHandler({
       );
     }
     const effectiveProviderInfo = allowProviderSecrets ? providerInfo : '';
+
+    // Provider endpoints are request-controlled. A hostname regex cannot reliably
+    // distinguish a restrictive allowlist from an equivalent allow-all expression,
+    // so this SSRF-sensitive path requires an exact effective-origin match against
+    // the endpoint configured for the selected store.
+    if ((source === 's3' || source === 'minio') && effectiveProviderInfo) {
+      const parsedProviderInfo = parseJSONString<unknown>(effectiveProviderInfo);
+      if (
+        !parsedProviderInfo ||
+        typeof parsedProviderInfo !== 'object' ||
+        Array.isArray(parsedProviderInfo) ||
+        !('Params' in parsedProviderInfo) ||
+        !parsedProviderInfo.Params ||
+        typeof parsedProviderInfo.Params !== 'object' ||
+        Array.isArray(parsedProviderInfo.Params)
+      ) {
+        sendArtifactError(res, 400, 'Invalid artifact store provider info');
+        return;
+      }
+      const providerParams = parsedProviderInfo.Params as Record<string, unknown>;
+      if (providerParams.fromEnv !== 'true' && providerParams.fromEnv !== 'false') {
+        sendArtifactError(res, 400, 'Artifact store fromEnv must be true or false');
+        return;
+      }
+      // fromEnv configurations do not control the endpoint and are ignored by
+      // createMinioClient, so only validate the secret-backed form that can
+      // actually change the outbound destination.
+      if (providerParams.fromEnv === 'false') {
+        const providerEndpoint = providerParams.endpoint;
+        if (providerEndpoint !== undefined && typeof providerEndpoint !== 'string') {
+          sendArtifactError(res, 400, 'Artifact store endpoint must be a string');
+          return;
+        }
+        const disableSSL = providerParams.disableSSL;
+        if (disableSSL !== undefined && typeof disableSSL !== 'string') {
+          sendArtifactError(res, 400, 'Artifact store disableSSL must be true or false');
+          return;
+        }
+        const normalizedDisableSSL = disableSSL?.toLowerCase();
+        if (
+          disableSSL !== undefined &&
+          normalizedDisableSSL !== 'true' &&
+          normalizedDisableSSL !== 'false'
+        ) {
+          sendArtifactError(res, 400, 'Artifact store disableSSL must be true or false');
+          return;
+        }
+        const configuredInsecure =
+          source === 'minio' ? minio.useSSL === false : aws.useSSL === false;
+        // An endpoint-bearing provider config replaces the operator's client
+        // settings. When disableSSL is omitted, parseS3ProviderInfo leaves
+        // useSSL unset and minio-js uses its secure default, so authorize the
+        // same HTTPS origin the client will actually contact. Provider configs
+        // without an endpoint continue to inherit the operator's host and may
+        // upgrade its transport to TLS, but cannot select another destination.
+        const providerInsecure =
+          normalizedDisableSSL !== undefined
+            ? normalizedDisableSSL === 'true'
+            : providerEndpoint
+              ? false
+              : configuredInsecure;
+        if (
+          !providerEndpoint &&
+          normalizedDisableSSL !== undefined &&
+          providerInsecure &&
+          !configuredInsecure
+        ) {
+          sendArtifactError(
+            res,
+            400,
+            'Artifact store TLS override conflicts with server configuration',
+          );
+          return;
+        }
+        const parsedProviderEndpoint = providerEndpoint
+          ? parseArtifactStoreEndpoint(providerEndpoint, providerInsecure)
+          : undefined;
+        const providerEndpointUrl = parsedProviderEndpoint?.origin;
+        const configuredEndpoint = configuredEndpoints[source];
+        if (providerEndpoint && !providerEndpointUrl) {
+          sendArtifactError(
+            res,
+            400,
+            'Artifact store endpoint must be a valid HTTP(S) origin consistent with disableSSL',
+          );
+          return;
+        }
+        if (
+          parsedProviderEndpoint &&
+          !parsedProviderEndpoint.useSSL &&
+          isAWSS3Endpoint(parsedProviderEndpoint.endPoint)
+        ) {
+          sendArtifactError(res, 400, 'AWS S3 provider endpoints must use HTTPS');
+          return;
+        }
+        const trustsAwsRegionalEndpoint =
+          source === 's3' &&
+          allowOfficialAwsEndpoints &&
+          configuredEndpoint !== undefined &&
+          isOfficialAwsS3Origin(configuredEndpoint) &&
+          isOfficialAwsS3Origin(providerEndpointUrl);
+        const trustedEndpoints = [
+          ...(configuredEndpoint ? [configuredEndpoint] : []),
+          ...configuredAdditionalEndpoints,
+        ];
+        if (
+          providerEndpointUrl &&
+          !trustsAwsRegionalEndpoint &&
+          !isTrustedArtifactEndpoint(providerEndpointUrl, trustedEndpoints)
+        ) {
+          console.warn(
+            `Rejected artifact store origin ${providerEndpointUrl}; configure ALLOWED_ARTIFACT_ENDPOINTS to trust an additional operator-controlled origin`,
+          );
+          sendArtifactError(
+            res,
+            400,
+            'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+          );
+          return;
+        }
+      }
+    }
 
     let client: MinioClient;
     switch (source) {
@@ -517,6 +653,21 @@ export function getArtifactsHandler({
         return;
     }
   };
+}
+
+function isOfficialAwsS3Origin(origin: string | undefined): boolean {
+  if (!origin) {
+    return false;
+  }
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== 'https:' || (parsed.port && parsed.port !== '443')) {
+      return false;
+    }
+    return isOfficialAWSS3ServiceEndpoint(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 type ArtifactRequest =
