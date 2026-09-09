@@ -109,3 +109,13 @@ func (e *Experiment) GetSortByFieldPrefix(name string) string {
 func (e *Experiment) GetKeyFieldPrefix() string {
 	return "experiments."
 }
+
+var experimentCaseInsensitiveFields = map[string]struct{}{
+	"name":         {},
+	"display_name": {},
+	"description":  {},
+}
+
+func (e *Experiment) CaseInsensitiveFields() map[string]struct{} {
+	return experimentCaseInsensitiveFields
+}

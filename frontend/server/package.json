@@ -31,7 +31,7 @@
     "prettier": "^3.8.1",
     "supertest": "^4.0.2",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "path-to-regexp": "0.1.13",

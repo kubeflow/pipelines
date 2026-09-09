@@ -24,8 +24,7 @@ WORKFLOW_JOBS = {
         'api-test-k8s-native',
         'api-test-multi-user',
     ),
-    '.github/workflows/e2e-test-frontend.yml':
-        ('frontend-integration-test',),
+    '.github/workflows/e2e-test-frontend.yml': ('frontend-integration-test',),
     '.github/workflows/e2e-test.yml': (
         'end-to-end-scenario-tests',
         'end-to-end-critical-scenario-multi-user-tests',
@@ -48,8 +47,8 @@ def _job_block(workflow: str, job_name: str) -> str:
     start = workflow.index(marker)
     next_job = re.search(r'^  [a-zA-Z0-9_-]+:\n',
                          workflow[start + len(marker):], re.MULTILINE)
-    end = (start + len(marker) + next_job.start()
-           if next_job else len(workflow))
+    end = (
+        start + len(marker) + next_job.start() if next_job else len(workflow))
     return workflow[start:end]
 
 
@@ -71,8 +70,9 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
                 with self.subTest(workflow=relative_path, job=job_name):
                     job = _job_block(workflow, job_name)
                     self.assertNotIn('needs: build', job)
-                    self.assertIn('permissions:\n      actions: read\n'
-                                  '      contents: read', job)
+                    self.assertIn(
+                        'permissions:\n      actions: read\n'
+                        '      contents: read', job)
                     self.assertIn('image_path: images_${{ github.run_id }}',
                                   job)
                     self.assertIn('image_tag: latest', job)
@@ -92,15 +92,21 @@ class LoadedWorkflowOverlapTest(unittest.TestCase):
     def test_multi_user_artifact_proxy_lane_uses_critical_shards(self):
         workflow = (ROOT / '.github/workflows/e2e-test.yml').read_text(
             encoding='utf-8')
-        job = _job_block(
-            workflow, 'end-to-end-critical-scenario-multi-user-tests')
+        job = _job_block(workflow,
+                         'end-to-end-critical-scenario-multi-user-tests')
 
-        self.assertIn(
-            "'[\"E2ECriticalShardA\", \"E2ECriticalShardB\"]'", job)
+        self.assertIn("'[\"E2ECriticalShardA\", \"E2ECriticalShardB\"]'", job)
         self.assertNotIn('        exclude:', job)
-        self.assertNotIn('        include:', job)
-        self.assertIn('artifact_proxy: ${{ matrix.cache_enabled }}', job)
-        self.assertIn("matrix.cache_enabled == 'true'", job)
+        self.assertIn('db_type: "pgx"', job)
+        # pgx include overrides artifact_proxy because the
+        # multiuser/postgresql/artifact-proxy overlay does not exist yet.
+        # Revert to assertIn('artifact_proxy: ${{ matrix.cache_enabled }}', job)
+        # once that overlay is added and the include can drop its override.
+        self.assertIn(
+            'artifact_proxy: ${{ matrix.artifact_proxy || matrix.cache_enabled }}',
+            job)
+        self.assertIn(
+            "(matrix.artifact_proxy || matrix.cache_enabled) == 'true'", job)
         self.assertIn('Multi User ${{ matrix.test_label }} Tests', job)
         self.assertIn('E2EMultiUser${{ matrix.test_label }}Tests', job)
 

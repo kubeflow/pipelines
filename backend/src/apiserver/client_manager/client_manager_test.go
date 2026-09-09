@@ -33,6 +33,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/validation"
 )
@@ -87,7 +88,7 @@ func TestRunPreflightLengthChecks_FailOnTooLong(t *testing.T) {
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	}
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, specs)
 	t.Logf("FULL ERR:\n%+v", err)
 	require.Error(t, err)
@@ -100,7 +101,7 @@ func TestRunPreflightLengthChecks_PassWhenOK(t *testing.T) {
 	createOldExperimentSchema(t, db)
 	// no long rows
 
-	dialect := GetDialect("sqlite")
+	dialect := dialect.NewDBDialect("sqlite")
 	err := runPreflightLengthChecks(db, dialect, []validation.ColLenSpec{
 		{Model: &model.Experiment{}, Field: "Name", Max: 128},
 	})
@@ -594,7 +595,7 @@ func TestBackfillPipelineRefsToRunTable(t *testing.T) {
 		Relationship:  model.OwnerRelationship,
 	}).Error)
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect.NewDBDialect("sqlite")))
 
 	assert.Equal(t, "pipeline-legacy", storedRunColumn(t, db, "PipelineId", "run-legacy"),
 		"reference-only run must have its pipeline ID backfilled into the column the filter reads")
@@ -611,9 +612,9 @@ func TestBackfillPipelineRefsToRunTable_Idempotent(t *testing.T) {
 	require.NoError(t, autoMigrate(db))
 	insertLegacyRunWithPipelineRef(t, db, "run-legacy", "pipeline-legacy")
 
-	dialect := GetDialect("sqlite")
-	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
-	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+	dbDialect := dialect.NewDBDialect("sqlite")
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
 
 	assert.Equal(t, "pipeline-legacy", storedRunColumn(t, db, "PipelineId", "run-legacy"))
 }
@@ -629,7 +630,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.dialect, func(t *testing.T) {
-			sql := backfillRefColumnSQL(GetDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType)
+			sql := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineId", model.PipelineResourceType)
 
 			assert.Contains(t, sql, tt.quoted)
 
@@ -638,7 +639,7 @@ func TestBackfillRefColumnSQL_QuotesPerDialect(t *testing.T) {
 			assert.Contains(t, sql, "= 'pipeline'")
 			assert.Contains(t, sql, "= 'Run'")
 
-			pvSQL := backfillRefColumnSQL(GetDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType)
+			pvSQL := backfillRefColumnSQL(dialect.NewDBDialect(tt.dialect), "run_details", "PipelineVersionId", model.PipelineVersionResourceType)
 			assert.Contains(t, pvSQL, "= 'PipelineVersion'")
 		})
 	}
@@ -649,7 +650,7 @@ func TestBackfillPipelineRefs_VersionOnlyReference(t *testing.T) {
 	require.NoError(t, autoMigrate(db))
 	insertVersionOnlyRun(t, db, "run-version-only", "pv-1", "pipeline-parent")
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect.NewDBDialect("sqlite")))
 
 	assert.Equal(t, "pipeline-parent", storedRunColumn(t, db, "PipelineId", "run-version-only"),
 		"a run linked only through a pipeline version must resolve its parent pipeline, "+
@@ -670,7 +671,7 @@ func TestBackfillPipelineRefs_DirectReferenceWinsOverVersionParent(t *testing.T)
 		Relationship:  model.OwnerRelationship,
 	}).Error)
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect.NewDBDialect("sqlite")))
 
 	assert.Equal(t, "pipeline-direct", storedRunColumn(t, db, "PipelineId", "run-both"),
 		"a direct pipeline reference must take precedence over the version's parent")
@@ -679,9 +680,9 @@ func TestBackfillPipelineRefs_DirectReferenceWinsOverVersionParent(t *testing.T)
 func TestBackfillPipelineRefs_RunsOnceThenSkips(t *testing.T) {
 	db := getTestSQLite(t)
 	require.NoError(t, autoMigrate(db))
-	dialect := GetDialect("sqlite")
+	dbDialect := dialect.NewDBDialect("sqlite")
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
 
 	applied, err := migrationApplied(db, backfillPipelineRefsMigration)
 	require.NoError(t, err)
@@ -690,7 +691,7 @@ func TestBackfillPipelineRefs_RunsOnceThenSkips(t *testing.T) {
 	// A row inserted after the migration is recorded must be left alone: the
 	// gate has to skip the scan entirely rather than run a zero-row UPDATE.
 	insertLegacyRunWithPipelineRef(t, db, "run-after", "pipeline-after")
-	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dbDialect))
 	assert.Equal(t, "", storedRunColumn(t, db, "PipelineId", "run-after"),
 		"the second call must skip without touching run_details")
 }
@@ -751,7 +752,7 @@ func TestBackfillPipelineRefs_VersionIdColumnWithoutReference(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{PipelineVersionId: "pv-col"},
 	}).Error)
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect.NewDBDialect("sqlite")))
 
 	assert.Equal(t, "pipe-parent", storedRunColumn(t, db, "PipelineId", "run-col"),
 		"a run that stores only a version id must still resolve its parent pipeline")
@@ -794,7 +795,7 @@ func TestBackfillPipelineRefs_LegacyJobs(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{PipelineVersionId: "pv-job"},
 	}).Error)
 
-	require.NoError(t, backfillPipelineRefsToRunTable(db, GetDialect("sqlite")))
+	require.NoError(t, backfillPipelineRefsToRunTable(db, dialect.NewDBDialect("sqlite")))
 
 	assert.Equal(t, "pipe-direct", storedJobColumn(t, db, "PipelineId", "job-ref"),
 		"a job linked by resource reference must be repaired like a run")
@@ -805,8 +806,69 @@ func TestBackfillPipelineRefs_LegacyJobs(t *testing.T) {
 
 func TestBackfillRefColumnSQL_JobsUseJobResourceType(t *testing.T) {
 	// Job references use ResourceType 'Job'; matching 'Run' would backfill nothing.
-	sql := backfillRefColumnSQL(GetDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType)
+	sql := backfillRefColumnSQL(dialect.NewDBDialect("sqlite"), "jobs", "PipelineId", model.PipelineResourceType)
 	assert.Contains(t, sql, "= 'Job'")
 	assert.Contains(t, sql, "UPDATE jobs")
 	assert.NotContains(t, sql, "= 'Run'")
+}
+
+func TestExpressionIndexStatements_UseConcurrently(t *testing.T) {
+	d := dialect.NewDBDialect("pgx")
+
+	tests := []struct {
+		spec       expressionIndexSpec
+		wantCreate string
+		wantDrop   string
+	}{
+		{
+			spec:       expressionIndexSpec{name: "idx_experiments_lower_name", table: "experiments", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_experiments_lower_name" ON "experiments" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_experiments_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipelines_lower_name", table: "pipelines", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipelines_lower_name" ON "pipelines" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipelines_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipeline_versions_lower_name", table: "pipeline_versions", column: "Name"},
+			wantCreate: `CREATE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipeline_versions_lower_name" ON "pipeline_versions" (LOWER("Name"))`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipeline_versions_lower_name"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_experiments_lower_name_namespace_uniq", table: "experiments", column: "Name", scopeColumn: "Namespace", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_experiments_lower_name_namespace_uniq" ON "experiments" (LOWER("Name"), "Namespace")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_experiments_lower_name_namespace_uniq"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipelines_lower_name_namespace_uniq", table: "pipelines", column: "Name", scopeColumn: "Namespace", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipelines_lower_name_namespace_uniq" ON "pipelines" (LOWER("Name"), "Namespace")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipelines_lower_name_namespace_uniq"`,
+		},
+		{
+			spec:       expressionIndexSpec{name: "idx_pipeline_versions_lower_name_pipelineid_uniq", table: "pipeline_versions", column: "Name", scopeColumn: "PipelineId", unique: true},
+			wantCreate: `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "idx_pipeline_versions_lower_name_pipelineid_uniq" ON "pipeline_versions" (LOWER("Name"), "PipelineId")`,
+			wantDrop:   `DROP INDEX CONCURRENTLY IF EXISTS "idx_pipeline_versions_lower_name_pipelineid_uniq"`,
+		},
+	}
+
+	for _, tc := range tests {
+		assert.Equal(t, tc.wantCreate, expressionIndexCreateStmt(d, tc.spec))
+		assert.Equal(t, tc.wantDrop, expressionIndexDropStmt(d, tc.spec))
+	}
+
+	// Guards the exact regression this test exists for: a plain CREATE/DROP
+	// INDEX (without CONCURRENTLY) takes a SHARE lock that blocks writes for
+	// the duration of the index build.
+	for _, spec := range expressionIndexes {
+		assert.Contains(t, expressionIndexCreateStmt(d, spec), "CONCURRENTLY")
+		assert.Contains(t, expressionIndexDropStmt(d, spec), "CONCURRENTLY")
+	}
+}
+
+func TestCreateExpressionIndexes_NonPostgresNoop(t *testing.T) {
+	db := getTestSQLite(t)
+	assert.NotPanics(t, func() {
+		createExpressionIndexes(db, dialect.NewDBDialect("sqlite"))
+	})
 }
