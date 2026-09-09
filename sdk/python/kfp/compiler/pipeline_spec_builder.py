@@ -16,8 +16,7 @@
 import copy
 import json
 import typing
-from typing import (Any, DefaultDict, Dict, List, Mapping, Optional, Tuple,
-                    Union)
+from typing import Any, DefaultDict, Dict, List, Mapping, Optional, Tuple, Union
 import warnings
 
 from google.protobuf import json_format
@@ -2033,6 +2032,10 @@ def validate_pipeline_outputs_dict(
                 )
 
         elif isinstance(channel, pipeline_channel.PipelineChannel):
+            if channel.task is None:
+                raise compiler_utils.InvalidTopologyException(
+                    'Pipeline outputs must be produced by a task, not a pipeline input parameter.'
+                )
             if channel.task.parent_task_group.group_type != tasks_group.TasksGroupType.PIPELINE:
                 raise compiler_utils.InvalidTopologyException(
                     f'Pipeline outputs may only be returned from the top level of the pipeline function scope. Got pipeline output from within the control flow group dsl.{channel.task.parent_task_group.__class__.__name__}.'
