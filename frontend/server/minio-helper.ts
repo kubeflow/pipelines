@@ -18,7 +18,7 @@ import gunzip from 'gunzip-maybe';
 import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { isAWSS3Endpoint } from './aws-helper.js';
-import { S3ProviderInfo } from './handlers/artifacts.js';
+import type { S3ProviderInfo } from './handlers/artifacts.js';
 import { getK8sSecret } from './k8s-helper.js';
 import { parseJSONString } from './utils.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
@@ -43,6 +43,60 @@ export interface Credentials {
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken?: string;
+}
+
+export interface ArtifactStoreEndpoint {
+  endPoint: string;
+  port?: number;
+  useSSL: boolean;
+  origin: string;
+}
+
+export function parseArtifactStoreEndpoint(
+  endpoint: string,
+  insecure: boolean,
+): ArtifactStoreEndpoint | undefined {
+  try {
+    const hasExplicitProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(endpoint);
+    const expectedProtocol = insecure ? 'http:' : 'https:';
+    const parsed = new URL(hasExplicitProtocol ? endpoint : `${expectedProtocol}//${endpoint}`);
+    if (
+      parsed.protocol !== expectedProtocol ||
+      parsed.username ||
+      parsed.password ||
+      parsed.pathname !== '/' ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return undefined;
+    }
+    return {
+      endPoint: parsed.hostname,
+      port: parsed.port ? Number(parsed.port) : undefined,
+      useSSL: !insecure,
+      origin: parsed.origin,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Returns the effective origin of an operator-configured object-store client. */
+export function getArtifactStoreOrigin({
+  endPoint,
+  port,
+  useSSL,
+}: Pick<MinioClientOptions, 'endPoint' | 'port' | 'useSSL'>): string | undefined {
+  const insecure = useSSL === false;
+  const endpoint = parseArtifactStoreEndpoint(endPoint, insecure);
+  if (!endpoint) {
+    return undefined;
+  }
+  const origin = new URL(endpoint.origin);
+  if (port !== undefined && !origin.port) {
+    origin.port = String(port);
+  }
+  return origin.origin;
 }
 
 /**
@@ -78,6 +132,10 @@ export async function createMinioClient(
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
 ) {
+  // Provider parsing applies request-specific endpoint and credential fields.
+  // Never let those mutations escape into the shared server configuration.
+  config = { ...config };
+
   if (customCredentialProvider) {
     try {
       const creds = await customCredentialProvider();
@@ -103,16 +161,31 @@ export async function createMinioClient(
   }
 
   if (providerInfoString) {
-    const providerInfo = parseJSONString<S3ProviderInfo>(providerInfoString);
-    if (!providerInfo) {
-      throw new Error('Failed to parse provider info.');
+    const providerInfo = parseJSONString<unknown>(providerInfoString);
+    if (
+      !providerInfo ||
+      typeof providerInfo !== 'object' ||
+      Array.isArray(providerInfo) ||
+      !('Params' in providerInfo) ||
+      !providerInfo.Params ||
+      typeof providerInfo.Params !== 'object' ||
+      Array.isArray(providerInfo.Params)
+    ) {
+      throw new Error('Invalid provider info.');
+    }
+    const typedProviderInfo = providerInfo as S3ProviderInfo;
+    if (
+      typedProviderInfo.Params.fromEnv !== 'true' &&
+      typedProviderInfo.Params.fromEnv !== 'false'
+    ) {
+      throw new Error('Provider info fromEnv must be true or false.');
     }
     // If fromEnv == false, we rely on the default credentials or env to provide credentials (e.g. IRSA)
-    if (providerInfo.Params.fromEnv === 'false') {
+    if (typedProviderInfo.Params.fromEnv === 'false') {
       if (!namespace) {
         throw new Error('Artifact Store provider given, but no namespace provided.');
       } else {
-        config = await parseS3ProviderInfo(config, providerInfo, namespace);
+        config = await parseS3ProviderInfo(config, typedProviderInfo, namespace);
       }
     }
   }
@@ -249,6 +322,18 @@ async function parseS3ProviderInfo(
     );
   }
 
+  let parsedProviderEndpoint: ArtifactStoreEndpoint | undefined;
+  if (providerInfo.Params.endpoint) {
+    const insecure = providerInfo.Params.disableSSL?.toLowerCase() === 'true';
+    parsedProviderEndpoint = parseArtifactStoreEndpoint(providerInfo.Params.endpoint, insecure);
+    if (!parsedProviderEndpoint) {
+      throw new Error('Provider info endpoint is not a valid HTTP(S) origin.');
+    }
+    if (!parsedProviderEndpoint.useSSL && isAWSS3Endpoint(parsedProviderEndpoint.endPoint)) {
+      throw new Error('AWS S3 provider endpoints must use HTTPS.');
+    }
+  }
+
   try {
     config.accessKey = await getK8sSecret(
       providerInfo.Params.secretName,
@@ -267,49 +352,19 @@ async function parseS3ProviderInfo(
     );
   }
 
-  if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
-    if (providerInfo.Params.endpoint) {
-      if (providerInfo.Params.endpoint.startsWith('https')) {
-        const parseEndpoint = new URL(providerInfo.Params.endpoint);
-        config.endPoint = parseEndpoint.hostname;
-      } else {
-        config.endPoint = providerInfo.Params.endpoint;
-      }
-    } else {
-      throw new Error('Provider info missing endpoint parameter.');
-    }
+  if (parsedProviderEndpoint) {
+    config.endPoint = parsedProviderEndpoint.endPoint;
+    config.port = parsedProviderEndpoint.port;
+    config.useSSL = parsedProviderEndpoint.useSSL;
+  }
 
-    if (providerInfo.Params.region) {
-      config.region = providerInfo.Params.region;
-    }
-
-    // It's possible the user specifies these via config
-    // since aws s3 and s3-compatible use the same config parameters
-    // safeguard the user by ensuring these remain unset (default)
-    config.port = undefined;
-    config.useSSL = undefined;
-  } else {
-    if (providerInfo.Params.endpoint) {
-      const url = providerInfo.Params.endpoint;
-      // this is a bit of a hack to add support for endpoints without a protocol (required by WHATWG URL standard)
-      // example: <ip>:<port> format. In general should expect most endpoints to provide a protocol as serviced
-      // by the backend
-      const parseEndpoint = new URL(url.startsWith('http') ? url : `https://${url}`);
-      const host = parseEndpoint.hostname;
-      const port = parseEndpoint.port;
-      config.endPoint = host;
-      // user provided port in endpoint takes precedence
-      // e.g. if the user has provided <service-name>.<namespace>.svc.cluster.local:<service-port>
-      config.port = port ? Number(port) : undefined;
-    }
-
-    config.region = providerInfo.Params.region ? providerInfo.Params.region : undefined;
-
-    if (providerInfo.Params.disableSSL) {
-      config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
-    } else {
-      config.useSSL = undefined;
-    }
+  if (providerInfo.Params.region) {
+    config.region = providerInfo.Params.region;
+  } else if (!isAWSS3Endpoint(config.endPoint)) {
+    config.region = undefined;
+  }
+  if (!providerInfo.Params.endpoint && providerInfo.Params.disableSSL) {
+    config.useSSL = !(providerInfo.Params.disableSSL.toLowerCase() === 'true');
   }
   return config;
 }

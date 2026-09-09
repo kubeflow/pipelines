@@ -1,12 +1,13 @@
-import os
-from unittest import mock
-import threading
-import sync
-from sync import get_settings_from_env, server_factory
 import json
+import os
+import threading
+from unittest import mock
 
 import pytest
 import requests
+import sync
+from sync import get_settings_from_env
+from sync import server_factory
 
 # Data sets passed to server
 DATA_INCORRECT_CHILDREN = {
@@ -68,49 +69,48 @@ MINIO_SECRET_KEY = "uvwxyz"
 ENV_VARIABLES_BASE = {
     "MINIO_ACCESS_KEY": MINIO_ACCESS_KEY,
     "MINIO_SECRET_KEY": MINIO_SECRET_KEY,
-    "CONTROLLER_PORT": "0",  # HTTPServer randomly assigns the port to a free port
+    "CONTROLLER_PORT":
+        "0",  # HTTPServer randomly assigns the port to a free port
 }
 
-ENV_KFP_VERSION_ONLY = dict(ENV_VARIABLES_BASE,
-                            **{
-                                "KFP_VERSION": KFP_VERSION,
-                            }
-                            )
+ENV_KFP_VERSION_ONLY = dict(ENV_VARIABLES_BASE, **{
+    "KFP_VERSION": KFP_VERSION,
+})
 
-ENV_IMAGES_NO_TAGS = dict(ENV_VARIABLES_BASE,
-                          **{
-                              "KFP_VERSION": KFP_VERSION,
-                              "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
-                              "FRONTEND_IMAGE": FRONTEND_IMAGE,
-                          }
-                          )
+ENV_IMAGES_NO_TAGS = dict(
+    ENV_VARIABLES_BASE, **{
+        "KFP_VERSION": KFP_VERSION,
+        "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
+        "FRONTEND_IMAGE": FRONTEND_IMAGE,
+    })
 
-ENV_IMAGES_WITH_TAGS = dict(ENV_VARIABLES_BASE,
-                            **{
-                                "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
-                                "FRONTEND_IMAGE": FRONTEND_IMAGE,
-                                "VISUALIZATION_SERVER_TAG": VISUALIZATION_SERVER_TAG,
-                                "FRONTEND_TAG": FRONTEND_TAG,
-                            }
-                            )
+ENV_IMAGES_WITH_TAGS = dict(
+    ENV_VARIABLES_BASE, **{
+        "VISUALIZATION_SERVER_IMAGE": VISUALIZATION_SERVER_IMAGE,
+        "FRONTEND_IMAGE": FRONTEND_IMAGE,
+        "VISUALIZATION_SERVER_TAG": VISUALIZATION_SERVER_TAG,
+        "FRONTEND_TAG": FRONTEND_TAG,
+    })
 
-ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS,
-                                      **{
-                                          "DISABLE_ISTIO_SIDECAR": "false",
-                                      }
-                                      )
+ENV_IMAGES_WITH_TAGS_AND_ISTIO = dict(ENV_IMAGES_WITH_TAGS, **{
+    "DISABLE_ISTIO_SIDECAR": "false",
+})
+
+ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS = dict(
+    ENV_KFP_VERSION_ONLY, **{
+        "ALLOWED_ARTIFACT_ENDPOINTS": "https://objects.example.com:9443",
+        "ARTIFACTS_PROXY_ENABLED": "true",
+    })
 
 
 def generate_image_name(imagename, tag):
     return f"{str(imagename)}:{str(tag)}"
 
 
-@pytest.fixture(
-    scope="function",
-)
+@pytest.fixture(scope="function",)
 def sync_server(request):
-    """
-    Starts the sync HTTP server for a given set of environment variables on a separate thread
+    """Starts the sync HTTP server for a given set of environment variables on
+    a separate thread.
 
     Yields:
     * the server (useful to interrogate for the server address)
@@ -130,12 +130,10 @@ def sync_server(request):
         yield server, environ
 
 
-@pytest.fixture(
-    scope="function",
-)
+@pytest.fixture(scope="function",)
 def sync_server_from_arguments(request):
-    """
-    Starts the sync HTTP server for a given set of parameters passed as arguments, with server on a separate thread
+    """Starts the sync HTTP server for a given set of parameters passed as
+    arguments, with server on a separate thread.
 
     Yields:
     * the server (useful to interrogate for the server address)
@@ -155,47 +153,61 @@ def sync_server_from_arguments(request):
     "sync_server, data, expected_status, expected_visualization_server_image, expected_frontend_server_image",
     [
         (
-                ENV_KFP_VERSION_ONLY,
-                DATA_INCORRECT_CHILDREN,
-                {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(DEFAULT_VISUALIZATION_IMAGE, KFP_VERSION),
-                generate_image_name(DEFAULT_FRONTEND_IMAGE, KFP_VERSION),
+            ENV_KFP_VERSION_ONLY,
+            DATA_INCORRECT_CHILDREN,
+            {
+                "kubeflow-pipelines-ready": "False"
+            },
+            generate_image_name(DEFAULT_VISUALIZATION_IMAGE, KFP_VERSION),
+            generate_image_name(DEFAULT_FRONTEND_IMAGE, KFP_VERSION),
         ),
         (
-                ENV_IMAGES_NO_TAGS,
-                DATA_INCORRECT_CHILDREN,
-                {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(ENV_IMAGES_NO_TAGS["VISUALIZATION_SERVER_IMAGE"], KFP_VERSION),
-                generate_image_name(ENV_IMAGES_NO_TAGS["FRONTEND_IMAGE"], KFP_VERSION),
+            ENV_IMAGES_NO_TAGS,
+            DATA_INCORRECT_CHILDREN,
+            {
+                "kubeflow-pipelines-ready": "False"
+            },
+            generate_image_name(
+                ENV_IMAGES_NO_TAGS["VISUALIZATION_SERVER_IMAGE"], KFP_VERSION),
+            generate_image_name(ENV_IMAGES_NO_TAGS["FRONTEND_IMAGE"],
+                                KFP_VERSION),
         ),
         (
-                ENV_IMAGES_WITH_TAGS,
-                DATA_INCORRECT_CHILDREN,
-                {"kubeflow-pipelines-ready": "False"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
-                generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
+            ENV_IMAGES_WITH_TAGS,
+            DATA_INCORRECT_CHILDREN,
+            {
+                "kubeflow-pipelines-ready": "False"
+            },
+            generate_image_name(
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
+            generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"],
+                                ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
         (
-                ENV_IMAGES_WITH_TAGS,
-                DATA_CORRECT_CHILDREN,
-                {"kubeflow-pipelines-ready": "True"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
-                generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
+            ENV_IMAGES_WITH_TAGS,
+            DATA_CORRECT_CHILDREN,
+            {
+                "kubeflow-pipelines-ready": "True"
+            },
+            generate_image_name(
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
+            generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"],
+                                ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
     ],
-    indirect=["sync_server"]
-)
+    indirect=["sync_server"])
 def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
-                                           expected_visualization_server_image, expected_frontend_server_image):
-    """
-    Nearly end-to-end test of how Controller serves .sync as a POST
+                                           expected_visualization_server_image,
+                                           expected_frontend_server_image):
+    """Nearly end-to-end test of how Controller serves .sync as a POST.
 
-    Tests case where metadata.labels.pipelines.kubeflow.org/enabled exists, and thus
-    we should produce children
+    Tests case where metadata.labels.pipelines.kubeflow.org/enabled
+    exists, and thus we should produce children
 
-    Only does spot checks on children to see if key properties are correct
+    Only does spot checks on children to see if key properties are
+    correct
     """
     server, environ = sync_server
 
@@ -212,33 +224,36 @@ def test_sync_server_with_pipeline_enabled(sync_server, data, expected_status,
 
     # Poke a few children to test things that can vary by environment variable
     assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_visualization_server_image
+        "image"] == expected_visualization_server_image
     assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_frontend_server_image
+        "image"] == expected_frontend_server_image
 
 
 @pytest.mark.parametrize(
     "sync_server_from_arguments, data, expected_status, expected_visualization_server_image, "
-    "expected_frontend_server_image",
-    [
+    "expected_frontend_server_image", [
         (
-                ENV_IMAGES_WITH_TAGS_AND_ISTIO,
-                DATA_CORRECT_CHILDREN,
-                {"kubeflow-pipelines-ready": "True"},
-                generate_image_name(ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
-                                    ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
-                generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"], ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
+            ENV_IMAGES_WITH_TAGS_AND_ISTIO,
+            DATA_CORRECT_CHILDREN,
+            {
+                "kubeflow-pipelines-ready": "True"
+            },
+            generate_image_name(
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_IMAGE"],
+                ENV_IMAGES_WITH_TAGS["VISUALIZATION_SERVER_TAG"]),
+            generate_image_name(ENV_IMAGES_WITH_TAGS["FRONTEND_IMAGE"],
+                                ENV_IMAGES_WITH_TAGS["FRONTEND_TAG"]),
         ),
     ],
-    indirect=["sync_server_from_arguments"]
-)
+    indirect=["sync_server_from_arguments"])
 def test_sync_server_with_direct_passing_of_settings(
-        sync_server_from_arguments, data, expected_status, expected_visualization_server_image,
-        expected_frontend_server_image):
-    """
-    Nearly end-to-end test of how Controller serves .sync as a POST, taking variables as arguments
+        sync_server_from_arguments, data, expected_status,
+        expected_visualization_server_image, expected_frontend_server_image):
+    """Nearly end-to-end test of how Controller serves .sync as a POST, taking
+    variables as arguments.
 
-    Only does spot checks on children to see if key properties are correct
+    Only does spot checks on children to see if key properties are
+    correct
     """
     server, environ = sync_server_from_arguments
 
@@ -255,25 +270,23 @@ def test_sync_server_with_direct_passing_of_settings(
 
     # Poke a few children to test things that can vary by environment variable
     assert results['children'][1]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_visualization_server_image
+        "image"] == expected_visualization_server_image
     assert results['children'][5]["spec"]["template"]["spec"]["containers"][0][
-               "image"] == expected_frontend_server_image
+        "image"] == expected_frontend_server_image
 
 
 @pytest.mark.parametrize(
-    "sync_server, data, expected_status, expected_children",
-    [
+    "sync_server, data, expected_status, expected_children", [
         (ENV_IMAGES_WITH_TAGS, DATA_MISSING_PIPELINE_ENABLED, {}, []),
     ],
-    indirect=["sync_server"]
-)
-def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status,
+    indirect=["sync_server"])
+def test_sync_server_without_pipeline_enabled(sync_server, data,
+                                              expected_status,
                                               expected_children):
-    """
-    Nearly end-to-end test of how Controller serves .sync as a POST
+    """Nearly end-to-end test of how Controller serves .sync as a POST.
 
-    Tests case where metadata.labels.pipelines.kubeflow.org/enabled does not
-    exist and thus server returns an empty reply
+    Tests case where metadata.labels.pipelines.kubeflow.org/enabled does
+    not exist and thus server returns an empty reply
     """
     server, environ = sync_server
 
@@ -287,11 +300,58 @@ def test_sync_server_without_pipeline_enabled(sync_server, data, expected_status
     assert results['children'] == expected_children
 
 
+@pytest.mark.parametrize(
+    "sync_server",
+    [ENV_ARTIFACT_PROXY_WITH_ALLOWED_ENDPOINTS],
+    indirect=True,
+)
+def test_artifact_proxy_receives_allowed_endpoints(sync_server):
+    server, _ = sync_server
+    url = f"http://{server.server_address[0]}:{str(server.server_address[1])}"
+    existing_secret = {
+        'apiVersion': 'v1',
+        'kind': 'Secret',
+        'metadata': {
+            'name': 'mlpipeline-minio-artifact',
+            'namespace': 'myName',
+        },
+    }
+    response = requests.post(
+        url,
+        json={
+            'object': DATA_CORRECT_CHILDREN['parent'],
+            'attachments': {
+                'Secret.v1': {
+                    'myName/mlpipeline-minio-artifact': existing_secret
+                },
+                'ConfigMap.v1': {},
+                'Deployment.apps/v1': {},
+                'Service.v1': {},
+            },
+        })
+    results = json.loads(response.text)
+    artifact_deployment = next(
+        child for child in results['attachments']
+        if child.get('kind') == 'Deployment' and
+        child.get('metadata', {}).get('name') == 'ml-pipeline-ui-artifact')
+    container_env = artifact_deployment['spec']['template']['spec'][
+        'containers'][0]['env']
+
+    assert {
+        'name': 'ALLOWED_ARTIFACT_ENDPOINTS',
+        'value': 'https://objects.example.com:9443',
+    } in container_env
+
+
 def test_create_iam_client_uses_endpoint(monkeypatch):
     called = {}
 
     class DummySession:
-        def create_client(self, service_name, region_name=None, endpoint_url=None):
+
+        def create_client(self,
+                          service_name,
+                          region_name=None,
+                          endpoint_url=None):
             called["service_name"] = service_name
             called["endpoint_url"] = endpoint_url
             return object()

@@ -16,7 +16,7 @@ import {
   createPodLogsMinioRequestConfig,
   composePodLogsStreamHandler,
   getPodLogsStreamFromK8s,
-  getPodLogsStreamFromWorkflow,
+  createPodLogsStreamFromWorkflow,
   toGetPodLogsStream,
 } from '../workflow-helper.js';
 import { ArgoConfigs, MinioConfigs, AWSConfigs } from '../configs.js';
@@ -25,6 +25,7 @@ import {
   AuthorizeRequestVerb,
 } from '../src/generated/apis/auth/index.js';
 import { AuthorizeFn } from '../helpers/auth.js';
+import { getArtifactStoreOrigin } from '../minio-helper.js';
 
 /**
  * Returns a handler which attempts to retrieve the logs for the specific pod,
@@ -42,6 +43,7 @@ export function getPodLogsHandler(
   artifactsOptions: {
     minio: MinioConfigs;
     aws: AWSConfigs;
+    allowedEndpoints?: string[];
   },
   podLogContainerName: string,
   authorizeFn: AuthorizeFn,
@@ -54,6 +56,14 @@ export function getPodLogsHandler(
     keyFormat,
     artifactRepositoriesLookup,
   } = argoOptions;
+
+  const trustedEndpoints = [
+    getArtifactStoreOrigin(artifactsOptions.minio),
+    getArtifactStoreOrigin(artifactsOptions.aws),
+    ...(argoOptions.artifactRepositoryEndpoints || []),
+    ...(artifactsOptions.allowedEndpoints || []),
+  ].filter((endpoint): endpoint is string => endpoint !== undefined);
+  const getPodLogsStreamFromWorkflow = createPodLogsStreamFromWorkflow(trustedEndpoints);
 
   // get pod log from the provided bucket and keyFormat.
   const getPodLogsStreamFromArchive = toGetPodLogsStream(

@@ -20,7 +20,13 @@ import {
   getConfigMap,
   getServerNamespace,
 } from './k8s-helper.js';
-import { createMinioClient, MinioRequestConfig, getObjectStream } from './minio-helper.js';
+import {
+  createMinioClient,
+  MinioRequestConfig,
+  getObjectStream,
+  parseArtifactStoreEndpoint,
+} from './minio-helper.js';
+import { isTrustedArtifactEndpoint } from './handlers/domain-checker.js';
 import { CORE_SCHEMA, load as jsYamlLoad, mergeTag } from 'js-yaml';
 
 export interface PartialArgoWorkflow {
@@ -118,15 +124,16 @@ export async function getPodLogsStreamFromK8s(
 }
 
 /**
- * Returns a stream containing the pod logs using the information provided in the
+ * Creates a pod-log stream handler using the information provided in the
  * workflow status (uses k8s api to retrieve the workflow and secrets).
- * @param podName name of the pod.
- * @param createdAt YYYY-MM-DD run was created. Not used.
- * @param namespace namespace of the pod (uses the same namespace as the server if not provided).
+ * @param trustedEndpoints object-store origins configured by the server operator.
  */
-export const getPodLogsStreamFromWorkflow = toGetPodLogsStream(
-  getPodLogsMinioRequestConfigfromWorkflow,
-);
+export function createPodLogsStreamFromWorkflow(trustedEndpoints: string[]) {
+  const configuredEndpoints = [...trustedEndpoints];
+  return toGetPodLogsStream((podName, createdAt, namespace) =>
+    getPodLogsMinioRequestConfigfromWorkflow(podName, createdAt, namespace, configuredEndpoints),
+  );
+}
 
 /**
  * Returns a function that retrieves the pod log streams using the provided
@@ -291,11 +298,13 @@ export function createPodLogsMinioRequestConfig(
  * minio client need to retrieve them) from the corresponding argo workflow status.
  *
  * @param podName name of the pod to retrieve the logs.
+ * @param trustedEndpoints object-store origins configured by the server operator.
  */
 export async function getPodLogsMinioRequestConfigfromWorkflow(
   podName: string,
   _createdAt?: string,
   namespace?: string,
+  trustedEndpoints: string[] = [],
 ): Promise<MinioRequestConfig> {
   let workflow: PartialArgoWorkflow;
   // We should probably parameterize this replace statement. It's brittle to
@@ -336,7 +345,25 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
     throw new Error('Unable to find artifact repository information from workflow status.');
   }
 
-  const { host, port } = urlSplit(s3Artifact.endpoint, s3Artifact.insecure);
+  if (
+    typeof s3Artifact.endpoint !== 'string' ||
+    (s3Artifact.insecure !== undefined && typeof s3Artifact.insecure !== 'boolean')
+  ) {
+    throw new Error(
+      'Artifact store endpoint must be a valid HTTP(S) origin consistent with insecure',
+    );
+  }
+  const endpoint = parseArtifactStoreEndpoint(s3Artifact.endpoint, s3Artifact.insecure === true);
+  if (!endpoint) {
+    throw new Error(
+      'Artifact store endpoint must be a valid HTTP(S) origin consistent with insecure',
+    );
+  }
+  if (!isTrustedArtifactEndpoint(endpoint.origin, trustedEndpoints)) {
+    throw new Error(
+      'Artifact store endpoint is not allowed; add its exact origin to ALLOWED_ARTIFACT_ENDPOINTS',
+    );
+  }
   // Security: Only read the object-store credential Secret from the server's own
   // namespace. In multi-user deployments the run namespace is a customer/user
   // namespace, and the ml-pipeline-ui service account may not read Secrets there;
@@ -380,14 +407,10 @@ export async function getPodLogsMinioRequestConfigfromWorkflow(
   const client = await createMinioClient(
     {
       accessKey,
-      // TODO: endPoint needs to be set to 'localhost' for local development.
-      // start-proxy-and-server.sh sets MINIO_HOST=localhost, but it doesn't
-      // seem to be respected when running the server in development mode.
-      // Investigate and fix this.
-      endPoint: host,
-      port,
+      endPoint: endpoint.endPoint,
+      port: endpoint.port ?? (endpoint.useSSL ? 443 : 80),
       secretKey,
-      useSSL: !s3Artifact.insecure,
+      useSSL: endpoint.useSSL,
     },
     's3',
   );
@@ -412,18 +435,4 @@ async function getMinioClientSecrets(
   const accessKey = await getK8sSecret(accessKeySecret.name, accessKeySecret.key, namespace);
   const secretKey = await getK8sSecret(secretKeySecret.name, secretKeySecret.key, namespace);
   return { accessKey, secretKey };
-}
-
-/**
- * Split an uri into host and port.
- * @param uri uri to split
- * @param insecure if port is not provided in uri, return port depending on whether ssl is enabled.
- */
-
-function urlSplit(uri: string, insecure: boolean) {
-  const chunks = uri.split(':');
-  if (chunks.length === 1) {
-    return { host: chunks[0], port: insecure ? 80 : 443 };
-  }
-  return { host: chunks[0], port: parseInt(chunks[1], 10) };
 }
