@@ -69,7 +69,7 @@ shorter than 32 bytes or matches `MINIO_SECRET_KEY`.
 
 ## Proxy
 
-Since KFP 2.5, you can set a server-scoped proxy configuration for the backend by setting any of the following environment variables (in uppercase) in the 
+Since KFP 2.5, you can set a server-scoped proxy configuration for the backend by setting any of the following environment variables (in uppercase) in the
 API Server deployment. All variables are optional.
 
 - `HTTP_PROXY`
