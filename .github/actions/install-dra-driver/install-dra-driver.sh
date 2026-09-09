@@ -13,6 +13,7 @@ git -C "${driver_dir}" remote add origin \
 git -C "${driver_dir}" fetch --quiet --depth 1 origin "${driver_commit}"
 git -C "${driver_dir}" checkout --quiet --detach FETCH_HEAD
 
+# Confirm checked-out repository HEAD matches pinned commit before Helm installs it.
 actual_commit=$(git -C "${driver_dir}" rev-parse HEAD)
 if [[ "${actual_commit}" != "${driver_commit}" ]]; then
   echo "ERROR: Expected DRA driver commit ${driver_commit}, got ${actual_commit}" >&2
