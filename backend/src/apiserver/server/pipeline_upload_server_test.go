@@ -35,6 +35,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 const (
@@ -42,6 +44,98 @@ const (
 	fakeVersionName = "a_fake_version_name"
 	fakeDescription = "a_fake_description"
 )
+
+func TestUploadPipelineAuthorization(t *testing.T) {
+	for _, apiVersion := range []string{"v1beta1", "v2beta1"} {
+		for _, versionUpload := range []bool{false, true} {
+			for _, tc := range []struct {
+				name      string
+				namespace string
+				multiUser bool
+				allowed   bool
+			}{
+				{name: "shared allowed", multiUser: true, allowed: true},
+				{name: "shared denied", multiUser: true},
+				{name: "namespaced allowed", namespace: "tenant-ns", multiUser: true, allowed: true},
+				{name: "namespaced denied", namespace: "tenant-ns", multiUser: true},
+				{name: "single user shared"},
+				{name: "single user namespaced", namespace: "tenant-ns"},
+			} {
+				t.Run(fmt.Sprintf("%s/version=%t/%s", apiVersion, versionUpload, tc.name), func(t *testing.T) {
+					for _, key := range []string{common.MultiUserMode, common.RequireNamespaceForPipelines, common.KubeflowUserIDHeader, common.PodNamespace} {
+						previous := viper.Get(key)
+						t.Cleanup(func() { viper.Set(key, previous) })
+					}
+					viper.Set(common.PodNamespace, "kfp-system-test")
+					viper.Set(common.MultiUserMode, false)
+					viper.Set(common.KubeflowUserIDHeader, "kubeflow-userid")
+					viper.Set(common.RequireNamespaceForPipelines, false)
+					clients, server := setupClientManagerAndServer()
+					t.Cleanup(func() { clients.Close() })
+					if versionUpload {
+						_, err := server.resourceManager.CreatePipeline(&model.Pipeline{
+							Name: "existing-pipeline", Namespace: tc.namespace,
+						})
+						require.NoError(t, err)
+					}
+					review := &recordingSubjectAccessReviewClient{allowed: tc.allowed}
+					clients.SubjectAccessReviewClientFake = review
+					server = updateClientManager(clients, util.NewFakeUUIDGeneratorOrFatal(fakeVersionUUID, nil))
+					viper.Set(common.MultiUserMode, tc.multiUser)
+					buffer, writer := setupWriter("")
+					setWriterWithBuffer("uploadfile", "hello-world.yaml", v2SpecHelloWorld, writer)
+					endpoint := "/apis/" + apiVersion + "/pipelines/upload?name=test-pipeline&namespace=" + tc.namespace
+					handler := server.UploadPipeline
+					if apiVersion == "v1beta1" {
+						handler = server.UploadPipelineV1
+					}
+					if versionUpload {
+						endpoint = "/apis/" + apiVersion + "/pipelines/upload_version?name=test-version&pipelineid=" + DefaultFakeUUID
+						handler = server.UploadPipelineVersion
+						if apiVersion == "v1beta1" {
+							handler = server.UploadPipelineVersionV1
+						}
+					}
+					request := httptest.NewRequest(http.MethodPost, endpoint, bytes.NewReader(buffer.Bytes()))
+					request.Header.Set("Content-Type", writer.FormDataContentType())
+					request.Header.Set("kubeflow-userid", common.GetKubeflowUserIDPrefix()+"tenant@example.com")
+					response := httptest.NewRecorder()
+					handler(response, request)
+					if tc.multiUser && !tc.allowed {
+						assert.Equal(t, http.StatusBadRequest, response.Code, response.Body.String())
+					} else {
+						require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+						pipelineID := fakeVersionUUID
+						if versionUpload {
+							pipelineID = DefaultFakeUUID
+						}
+						pipeline, err := clients.PipelineStore().GetPipeline(pipelineID)
+						require.NoError(t, err)
+						expectedStoredNamespace := tc.namespace
+						if !tc.multiUser && !versionUpload {
+							expectedStoredNamespace = ""
+						}
+						assert.Equal(t, expectedStoredNamespace, pipeline.Namespace)
+					}
+					if !tc.multiUser {
+						assert.Empty(t, review.requests)
+						return
+					}
+					expectedNamespace := tc.namespace
+					if expectedNamespace == "" {
+						expectedNamespace = "kfp-system-test"
+					}
+					require.Len(t, review.requests, 1)
+					assert.Equal(t, authorizationv1.ResourceAttributes{
+						Namespace: expectedNamespace, Verb: common.RbacResourceVerbCreate,
+						Group: common.RbacPipelinesGroup, Version: common.RbacPipelinesVersion,
+						Resource: common.RbacResourceTypePipelines,
+					}, review.requests[0])
+				})
+			}
+		}
+	}
+}
 
 // TODO: move other upload pipeline tests into this table driven test
 func TestUploadPipeline(t *testing.T) {
