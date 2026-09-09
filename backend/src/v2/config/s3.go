@@ -16,9 +16,12 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 )
 
@@ -26,6 +29,14 @@ type S3ProviderConfig struct {
 	Default *S3ProviderDefault `json:"default"`
 	// optional, ordered, the auth config for the first matching prefix is used
 	Overrides []S3Override `json:"Overrides"`
+	// optional; controls whether an artifact URI's own query string (e.g.
+	// ?endpoint=...) is honored when no Default/Overrides configuration
+	// exists for this provider at all. Defaults to true for upgrade
+	// compatibility with existing importer/runtime-URI artifacts; a future
+	// release will default this to false. Has no effect once any
+	// Default/Overrides configuration exists for this provider -- that
+	// configuration is always authoritative and a query can never bypass it.
+	AllowUnmanagedProviderQueries *bool `json:"allowUnmanagedProviderQueries"`
 }
 
 type S3ProviderDefault struct {
@@ -84,10 +95,25 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 
 	params := map[string]string{}
 
-	// 1. If provider config did not have a matching configuration for the provider inferred from pipelineroot OR
-	// 2. If a user has provided query parameters
-	// then we use blob.OpenBucket(ctx, config.bucketURL()) by setting "FromEnv = True"
-	if (p.Default == nil && p.Overrides == nil) || queryString != "" {
+	// No Default/Overrides configuration exists for this provider at all, so
+	// there is no admin policy to enforce for this bucket. Defer to
+	// blob.OpenBucket(ctx, config.bucketURL()) by setting "FromEnv = True" --
+	// which lets an artifact URI's own query string (if any) supply
+	// endpoint/region/disableSSL, gated by AllowUnmanagedProviderQueries.
+	//
+	// Once any Default/Overrides configuration exists for this provider, it
+	// is always authoritative below: a query string can never bypass it.
+	if p.Default == nil && p.Overrides == nil {
+		if queryString != "" {
+			if !p.allowUnmanagedProviderQueries() {
+				return objectstore.SessionInfo{}, fmt.Errorf(
+					"artifact URI provider query for bucket %q rejected: no S3 provider configuration exists and allowUnmanagedProviderQueries is disabled", bucketName)
+			}
+			if err := validateUnmanagedProviderQuery(queryString); err != nil {
+				return objectstore.SessionInfo{}, fmt.Errorf("artifact URI provider query for bucket %q rejected: %w", bucketName, err)
+			}
+			glog.Warningf("DEPRECATED: honoring an artifact URI's own provider query for bucket %q with no admin S3 provider configuration; a future release will require allowUnmanagedProviderQueries=true for this", bucketName)
+		}
 		params["fromEnv"] = strconv.FormatBool(true)
 		return objectstore.SessionInfo{
 			Provider: "s3",
@@ -169,6 +195,73 @@ func (p S3ProviderConfig) ProvideSessionInfo(path string) (objectstore.SessionIn
 		}
 	}
 	return sessionInfo, nil
+}
+
+// allowUnmanagedProviderQueries reports whether an artifact URI's own query
+// string may be honored when no Default/Overrides configuration exists for
+// this provider. Defaults to true when unset for upgrade compatibility.
+func (p S3ProviderConfig) allowUnmanagedProviderQueries() bool {
+	if p.AllowUnmanagedProviderQueries == nil {
+		return true
+	}
+	return *p.AllowUnmanagedProviderQueries
+}
+
+// validateUnmanagedProviderQuery applies SSRF/TLS-downgrade guardrails to an
+// artifact URI's own provider query, for the unmanaged case only -- no
+// Default/Overrides configuration exists for this bucket, so there is no
+// admin override to grant permission for disableSSL, and no allowlist entry
+// to trust an endpoint against. Once any admin configuration exists for a
+// bucket, this function is never called: the admin's settings are used
+// as-is and this validation does not apply.
+//
+// This only rejects a literal loopback/link-local/private IP address in the
+// endpoint. It deliberately does not resolve hostnames: a DNS lookup here
+// would still not defend against DNS rebinding (the resolved address can
+// legitimately differ between this check and the connection actually made
+// later), would add a real network call to what is otherwise pure config
+// parsing, and would give false confidence about a guarantee this function
+// cannot make. Closing the hostname/DNS-rebinding gap requires resolve-time
+// IP pinning and/or NetworkPolicy egress control at the cluster level.
+func validateUnmanagedProviderQuery(queryString string) error {
+	values, err := url.ParseQuery(strings.TrimPrefix(queryString, "?"))
+	if err != nil {
+		return fmt.Errorf("invalid provider query: %w", err)
+	}
+
+	if disableSSL := values.Get(objectstore.S3ParamDisableSSL); disableSSL != "" {
+		if b, err := strconv.ParseBool(disableSSL); err == nil && b {
+			return fmt.Errorf("%s is only permitted via an admin-configured provider override", objectstore.S3ParamDisableSSL)
+		}
+	}
+
+	endpoint := values.Get(objectstore.S3ParamEndpoint)
+	if endpoint == "" {
+		return nil
+	}
+	host := endpoint
+	if u, err := url.Parse(endpoint); err == nil && u.Host != "" {
+		host = u.Host
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.Trim(host, "[]")
+
+	ip := net.ParseIP(host)
+	if ip == nil {
+		// Not a literal IP -- see the caveat above on why this function does
+		// not resolve hostnames.
+		return nil
+	}
+	return rejectUnsafeIP(host, ip)
+}
+
+func rejectUnsafeIP(host string, ip net.IP) error {
+	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsPrivate() || ip.IsUnspecified() {
+		return fmt.Errorf("endpoint %q resolves to a loopback/link-local/private address (%s), which is not permitted", host, ip.String())
+	}
+	return nil
 }
 
 // getOverrideByPrefix returns first matching bucketname and prefix in overrides

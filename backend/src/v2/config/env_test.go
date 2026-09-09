@@ -507,12 +507,23 @@ func Test_QueryParameters(t *testing.T) {
 			shouldError: false,
 		},
 		{
-			msg:          "valid - for minio fetch fromEnv when when query parameters are present, and when matching provider config is provided",
+			// A matching admin Override always takes precedence over a
+			// tenant-supplied URI query string -- the query must not be able
+			// to bypass admin-configured provider settings/credentials.
+			msg:          "valid - matching provider override wins over query parameters on the URI",
 			pipelineroot: "minio://bucket_name/v2/artifacts/profile_name?region=bucket_region&endpoint=endpoint&disableSSL=not_use_ssl&s3ForcePathStyle=true",
 			expectedSessionInfo: objectstore.SessionInfo{
 				Provider: "minio",
 				Params: map[string]string{
-					"fromEnv": "true",
+					"endpoint":       "minio-endpoint-12.com",
+					"region":         "minio",
+					"disableSSL":     "true",
+					"forcePathStyle": "true",
+					"maxRetries":     "5",
+					"fromEnv":        "false",
+					"secretName":     "minio-test-secret-12-a",
+					"accessKeyKey":   "minio-test-accessKeyKey-12-a",
+					"secretKeyKey":   "minio-test-secretKeyKey-12-a",
 				},
 			},
 			shouldError:  false,
