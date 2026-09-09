@@ -15,8 +15,8 @@ package argocompiler
 
 import (
 	"fmt"
-	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
@@ -593,29 +593,22 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
-	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
+	args = append(args,
+		"--cache_disabled="+strconv.FormatBool(c.cacheDisabled),
+		"--log_level", pipelineLogLevelArg(),
+		"--publish_logs", publishLogsArg(),
+		"--ml_pipeline_tls_enabled="+strconv.FormatBool(c.mlPipelineTLSEnabled),
+		"--metadata_tls_enabled="+strconv.FormatBool(common.GetMetadataTLSEnabled()),
+	)
 
+	// Always passed; empty unless a custom CA bundle is configured.
+	caCertPath := ""
 	setCABundle := false
-	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to DAG driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
+		caCertPath = common.CustomCaCertPath
 		setCABundle = true
 	}
-
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
-	}
+	args = append(args, "--ca_cert_path", caCertPath)
 
 	template := &wfapi.Template{
 		Name: name,
@@ -647,6 +640,9 @@ func (c *workflowCompiler) addDAGDriverTemplate() string {
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
+
+	applyDriverPodConfig(c.driverPodConfig, template)
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the DAG driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
@@ -701,6 +697,10 @@ func addImplicitDependencies(dagSpec *pipelinespec.DagSpec) error {
 				// other artifact input types do not introduce implicit dependencies
 			}
 		}
+		// Dependencies are collected by iterating input maps, whose order is not
+		// deterministic in Go. Sort so the compiled output is stable across runs;
+		// dependentTasks is a set, so ordering is semantically irrelevant.
+		sort.Strings(task.DependentTasks)
 	}
 	return nil
 }

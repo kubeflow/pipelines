@@ -574,7 +574,7 @@ def get_outputs_for_all_groups(
                 processed_oneofs.add(channel)
 
     # handle dsl.Collected returned from pipeline
-    # TODO: consider migrating dsl.Collected returns to pattern used by dsl.OneOf, where the OneOf constructor returns a parameter/artifact channel, which fits in more cleanly into the existing compiler abtractions
+    # TODO: consider migrating dsl.Collected returns to pattern used by dsl.OneOf, where the OneOf constructor returns a parameter/artifact channel, which fits in more cleanly into the existing compiler abstractions
     for output_key, channel in pipeline_outputs_dict.items():
         if isinstance(channel, for_loop.Collected):
             surfaced_output_name = additional_input_name_for_pipeline_channel(

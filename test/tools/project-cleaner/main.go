@@ -16,7 +16,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -26,6 +25,7 @@ import (
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"google.golang.org/api/container/v1"
+	"google.golang.org/api/iterator"
 	computepb "google.golang.org/genproto/googleapis/cloud/compute/v1"
 	"gopkg.in/yaml.v2"
 )
@@ -135,15 +135,16 @@ func (p *ProjectCleaner) PersistentDiskHandler(resource GCPResource) {
 			// OrderBy:    &order,
 			// MaxResults: &maxResults,
 		}
-		disk_list, listerr := c.List(ctx, req)
-		if listerr != nil {
-			log.Fatalf("Could not get perisistent disk list: %v, zone: %s", listerr, zone)
-		}
-		diskmarshal, _ := json.Marshal(disk_list)
-		log.Printf("disk_list:%s", string(diskmarshal))
-		log.Printf("disk_list size:%d", len(disk_list.GetItems()))
+		diskIterator := c.List(ctx, req)
+		for {
+			disk, listError := diskIterator.Next()
+			if listError == iterator.Done {
+				break
+			}
+			if listError != nil {
+				log.Fatalf("Could not get perisistent disk list: %v, zone: %s", listError, zone)
+			}
 
-		for _, disk := range disk_list.GetItems() {
 			// If the disk is not detached yet, do not delete the persistent disk.
 			if len(disk.GetLastDetachTimestamp()) == 0 {
 				log.Printf("disk: %s doesn't have last detach time, do not delete.", disk.GetName())

@@ -29,7 +29,7 @@ import { Apis, ExperimentSortKeys, ListRequest } from 'src/lib/Apis';
 import { V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import { V2beta1Filter, V2beta1PredicateOperation } from 'src/apisv2beta1/filter';
 import RunList from 'src/pages/RunList';
-import immerProduce from 'immer';
+import { produce as immerProduce } from 'immer';
 import { Tooltip } from '@mui/material';
 
 export interface ExperimentListProps extends RouteComponentProps {
@@ -122,7 +122,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
   };
 
   protected async _loadExperiments(request: ListRequest): Promise<string> {
-    let nextPageToken = '';
+    let nextPageToken: string;
     let displayExperiments: DisplayExperiment[];
 
     if (this.props.storageState) {

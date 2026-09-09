@@ -41,7 +41,9 @@ const (
 	RbacResourceVerbUnarchive     = "unarchive"
 	RbacResourceVerbReportMetrics = "reportMetrics"
 	RbacResourceVerbReadArtifact  = "readArtifact"
+	RbacResourceVerbReadLog       = "readLog"
 	RbacResourceVerbReport        = "report"
+	RbacResourceVerbUse           = "use"
 )
 
 const (

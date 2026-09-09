@@ -261,6 +261,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		glog.Errorf("Failed to start transaction to list pipelines")
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to start transaction to list pipelines")
 	}
+	defer tx.Rollback()
 
 	// Get pipelines
 	rows, err := tx.Query(rowsSql, rowsArgs...)
@@ -268,6 +269,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
@@ -277,7 +279,6 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of listing pipelines")
 	}
-	defer rows.Close()
 
 	// Count pipelines
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
@@ -285,6 +286,7 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
 	}
+	defer sizeRow.Close()
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
@@ -294,7 +296,6 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 		tx.Rollback()
 		return nil, nil, 0, "", util.NewInternalServerError(err, "Failed to parse results of counting pipelines")
 	}
-	defer sizeRow.Close()
 
 	// Commit transaction
 	err = tx.Commit()
@@ -371,6 +372,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		glog.Errorf("Failed to start transaction to list pipelines")
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to start transaction to list pipelines")
 	}
+	defer tx.Rollback()
 
 	// Get pipelines
 	rows, err := tx.Query(rowsSql, rowsArgs...)
@@ -378,6 +380,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to execute SQL for listing pipelines")
@@ -395,6 +398,7 @@ func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
 	}
+	defer sizeRow.Close()
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipelines")
@@ -670,6 +674,7 @@ func (s *PipelineStore) CreatePipelineAndPipelineVersion(p *model.Pipeline, pv *
 	if err != nil {
 		return nil, nil, util.NewInternalServerError(err, "Failed to start a transaction to create a new pipeline and a new pipeline version")
 	}
+	defer tx.Rollback()
 
 	_, err = tx.Exec(pipelineSql, pipelineArgs...)
 	if err != nil {
@@ -749,6 +754,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to start a transaction to create a new pipeline")
 	}
+	defer tx.Rollback()
 	_, err = tx.Exec(sql, args...)
 	if err != nil {
 		if s.db.IsDuplicateError(err) {
@@ -840,6 +846,7 @@ func (s *PipelineStore) updateEntityFields(entityTable, tagTable, idColumn, id, 
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to start transaction to update %v %v", entityTable, id)
 	}
+	defer tx.Rollback()
 	if displayName != "" {
 		sqlStr, args, err := sq.Update(entityTable).SetMap(sq.Eq{"DisplayName": displayName}).Where(sq.Eq{"UUID": id}).ToSql()
 		if err != nil {
@@ -958,6 +965,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 			err,
 			"Failed to insert a new pipeline version")
 	}
+	defer tx.Rollback()
 	_, err = tx.Exec(versionSql, versionArgs...)
 	if err != nil {
 		tx.Rollback()
@@ -1010,7 +1018,8 @@ func (s *PipelineStore) GetLatestPipelineVersion(pipelineId string) (*model.Pipe
 		Select(pipelineVersionColumns...).
 		From("pipeline_versions").
 		Where(sq.And{sq.Eq{"pipeline_versions.PipelineId": pipelineId}, sq.Eq{"pipeline_versions.Status": model.PipelineVersionReady}}).
-		OrderBy("pipeline_versions.CreatedAtInSec DESC").
+		// CreatedAtInSec has second granularity; UUID breaks ties so results are stable.
+		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipeline_versions.UUID DESC").
 		Limit(1).
 		ToSql()
 	if err != nil {
@@ -1228,6 +1237,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 		glog.Errorf("Failed to begin SQL query listing pipeline versions")
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to begin SQL query listing pipeline versions for pipeline %v", pipelineID)
 	}
+	defer tx.Rollback()
 
 	// Fetch the rows
 	rows, err := tx.Query(rowsSQL, rowsArgs...)
@@ -1235,6 +1245,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineID)
 	}
+	defer rows.Close()
 	if err := rows.Err(); err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list pipeline versions for pipeline %v", pipelineID)
@@ -1252,6 +1263,7 @@ func (s *PipelineStore) ListPipelineVersions(pipelineID string, opts *list.Optio
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineID)
 	}
+	defer sizeRow.Close()
 	if err := sizeRow.Err(); err != nil {
 		tx.Rollback()
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to count pipeline versions for pipeline %v", pipelineID)

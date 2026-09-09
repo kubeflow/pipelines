@@ -1,7 +1,7 @@
 ---
 name: ⚠️ Report Frontend Bug
 about: Report a Frontend bug on Kubeflow Pipelines
-title: "[frontend] <Bug Name>"
+title: "bug(frontend): <Bug Name>"
 labels: kind/bug, area/frontend
 ---
 

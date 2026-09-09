@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-import { load } from 'js-yaml';
+import { loadYaml } from 'src/lib/YamlLoad';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import {
   ComponentSpec,
@@ -33,20 +33,28 @@ function getPipelineDefFromYaml(template: string) {
   // If pipeline_spec exists in the parsed YAML,
   // which means the original yaml contains platform_spec,
   // then the PipelineSpec(IR) is stored in 'pipeline_spec' field.
-  const parsedTemplate = load(template) as Record<string, unknown>;
+  const parsedTemplate = loadYaml(template) as Record<string, unknown>;
   return parsedTemplate[PIPELINE_SPEC_TEMPLATE_KEY] ?? parsedTemplate;
 }
 
 function getPlatformDefFromYaml(template: string) {
-  return (load(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
+  return (loadYaml(template) as Record<string, unknown>)[PLATFORM_SPEC_TEMPLATE_KEY];
 }
 
 export function isV2Pipeline(workflow: Workflow): boolean {
   return workflow?.metadata?.annotations?.['pipelines.kubeflow.org/v2_pipeline'] === 'true';
 }
 
-export function isArgoWorkflowTemplate(template: Workflow): boolean {
-  if (template?.kind === 'Workflow' && template?.apiVersion?.startsWith('argoproj.io/')) {
+export function isArgoWorkflowTemplate(template: unknown): template is Workflow {
+  const candidate = template as Workflow | undefined;
+  // apiVersion comes from arbitrary parsed YAML, so it is not necessarily a
+  // string. Optional chaining only guards null/undefined, and calling
+  // startsWith on a number would throw rather than return false.
+  if (
+    candidate?.kind === 'Workflow' &&
+    typeof candidate.apiVersion === 'string' &&
+    candidate.apiVersion.startsWith('argoproj.io/')
+  ) {
     return true;
   }
   return false;
@@ -55,7 +63,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
 export function isTemplateV2(templateString: string): boolean {
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (isArgoWorkflowTemplate(template as Workflow)) {
+    if (isArgoWorkflowTemplate(template)) {
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
@@ -98,7 +106,7 @@ export function isPipelineSpec(templateString: string) {
   }
   try {
     const template = getPipelineDefFromYaml(templateString);
-    if (WorkflowUtils.isArgoWorkflowTemplate(template as Workflow)) {
+    if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template as Workflow);
       return false;
     } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {

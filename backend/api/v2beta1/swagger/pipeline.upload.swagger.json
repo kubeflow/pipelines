@@ -63,6 +63,13 @@
             "required": false,
             "type": "string",
             "description": "JSON-encoded map of key-value pairs for pipeline tags."
+          },
+          {
+            "name": "code_source_url",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Optional URL to the pipeline source code."
           }
         ],
         "tags": ["PipelineUploadService"]
@@ -125,6 +132,13 @@
             "required": false,
             "type": "string",
             "description": "JSON-encoded map of key-value pairs for pipeline version tags."
+          },
+          {
+            "name": "code_source_url",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "description": "Optional URL to the pipeline source code."
           }
         ],
         "tags": ["PipelineUploadService"]

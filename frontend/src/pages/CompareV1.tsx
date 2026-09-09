@@ -310,7 +310,7 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   private _collapseAllSections(): void {
-    const collapseSections = {
+    const collapseSections: { [sectionName: string]: boolean } = {
       [OVERVIEW_SECTION_NAME]: true,
       [PARAMS_SECTION_NAME]: true,
       [METRICS_SECTION_NAME]: true,

@@ -533,12 +533,13 @@ func toApiPipelineVersion(pv *model.PipelineVersion) *apiv2beta1.PipelineVersion
 		Tags:              pv.Tags,
 	}
 
-	// Infer pipeline url
+	// Set code source url
 	if pv.CodeSourceUrl != "" {
-		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
-			PipelineUrl: string(pv.PipelineSpecURI),
-		}
-	} else if pv.PipelineSpecURI != "" {
+		apiPipelineVersion.CodeSourceUrl = pv.CodeSourceUrl
+	}
+
+	// Set package url from pipeline spec URI
+	if pv.PipelineSpecURI != "" {
 		apiPipelineVersion.PackageUrl = &apiv2beta1.Url{
 			PipelineUrl: string(pv.PipelineSpecURI),
 		}

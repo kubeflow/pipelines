@@ -457,6 +457,30 @@ export function generateS3ArtifactUrl(s3Uri: string): string | undefined {
   });
 }
 
+/**
+ * Returns the given URL only when it uses a browsable, safe scheme (http/https),
+ * otherwise undefined. Used to gate user-supplied values (for example a pipeline
+ * version's code_source_url) before placing them in an anchor href, so that
+ * untrusted schemes such as `javascript:` are never rendered as clickable links.
+ *
+ * @param url Candidate URL, typically user-supplied.
+ * @returns The URL when it has an HTTP(S) scheme, otherwise undefined.
+ */
+export function sanitizeExternalHref(url?: string): string | undefined {
+  if (!url) {
+    return undefined;
+  }
+  try {
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
+      return url;
+    }
+  } catch {
+    // Malformed and relative URLs are not safe external links.
+  }
+  return undefined;
+}
+
 export function buildQuery(queriesMap: { [key: string]: string | number | undefined }): string {
   const queryContent = Object.entries(queriesMap)
     .filter((entry): entry is [string, string | number] => entry[1] != null)
@@ -476,15 +500,25 @@ export async function decodeCompressedNodes(compressedNodes: string): Promise<ob
         .map((char) => char.charCodeAt(0)),
     );
     try {
-      const result = pako.ungzip(compressedBuffer, { to: 'string' });
+      const result = pako.ungzip(compressedBuffer, { toText: true });
       const nodes = JSON.parse(result);
       resolve(nodes);
     } catch (error) {
-      const gz_error_msg = `failed to ungzip data: ${error}`;
+      // pako 3 rejects with an Error object where pako 2 threw a bare string.
+      // Unwrap it so the reported message stays the same across the upgrade.
+      const reason = error instanceof Error ? error.message : error;
+      const gz_error_msg = `failed to ungzip data: ${reason}`;
       logger.error(gz_error_msg);
       reject(gz_error_msg);
     }
   });
+}
+
+declare global {
+  interface Window {
+    // Nonstandard, Safari-only; used below purely for browser detection.
+    safari?: { pushNotification?: object };
+  }
 }
 
 export function isSafari(): boolean {
@@ -493,9 +527,9 @@ export function isSafari(): boolean {
   // The code of detecting wether isSafari is from: https://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/9851769#9851769
   const isSafari =
     /constructor/i.test(window.HTMLElement.toString()) ||
-    (function (p) {
-      return p.toString() === '[object SafariRemoteNotification]';
-    })(!window['safari'] || (typeof 'safari' !== 'undefined' && window['safari'].pushNotification));
+    (function (p: unknown) {
+      return String(p) === '[object SafariRemoteNotification]';
+    })(!window.safari || window.safari.pushNotification);
   return isSafari;
 }
 

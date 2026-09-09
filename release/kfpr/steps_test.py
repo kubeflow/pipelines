@@ -1549,6 +1549,21 @@ class DryRunOutputTest(unittest.TestCase):
     self.assertIn('https://github.com/kubeflow/pipelines/releases/tag/sdk-3.2.0', final_checklist)
     self.assertIn('Changes: ', final_checklist)
     self.assertIn('https://github.com/kubeflow/pipelines/blob/master/CHANGELOG.md', final_checklist)
+    self.assertNotIn('does not support Argo Workflows 3.x', final_checklist)
+
+  def test_kfp_3_0_checkpoint_announces_argo_3_support_removal(self):
+    metadata = core.ReleaseMetadata.from_version('major', '3.0.0')
+
+    final_checklist = steps.manual_checklist('confirm-website-and-slack', metadata)
+
+    self.assertIn('does not support Argo Workflows 3.x', final_checklist)
+    self.assertIn('requires a', final_checklist)
+    self.assertIn('supported Argo Workflows 4.x release', final_checklist)
+    self.assertIn(
+        'release notes list removal of Argo Workflows 3.x support as a breaking',
+        final_checklist,
+    )
+    self.assertIn('6. After the website PR merges', final_checklist)
 
   def test_final_confirmation_prints_release_completion_message(self):
     with TemporaryDirectory() as tmpdir:

@@ -331,6 +331,16 @@ ginkgo -v --label-filter="Smoke" ./backend/test/v2/api/
 ginkgo -v --label-filter="Pipeline" ./backend/test/v2/api/
 ```
 
+Pipeline-run cases that explicitly configure caching carry either the
+`PipelineCacheEnabled` or `PipelineCacheDisabled` label. New cache-sensitive
+pipeline-run tests should use the label matching the behavior they validate.
+Automatic multi-user CI uses complementary label filters, so every
+`ApiServerTests` spec runs once; unclassified specs outside the upload group
+fall through to the cache-disabled shard.
+
+- Cache enabled: `ApiServerTests && (PipelineUpload || PipelineCacheEnabled)`
+- Cache disabled: `ApiServerTests && !(PipelineUpload || PipelineCacheEnabled)`
+
 ### Configuration Options
 
 | Flag                  | Default    | Description                   |
@@ -369,4 +379,4 @@ ginkgo -v --label-filter="Pipeline" ./backend/test/v2/api/
 - [ ] Comprehensive logging is included
 - [ ] Test labels are correctly applied
 - [ ] Error cases are handled appropriately
-- [ ] Documentation is updated if needed 
+- [ ] Documentation is updated if needed

@@ -71,6 +71,7 @@ rules:
   - unarchive
   - reportMetrics
   - readArtifact
+  - readLog
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
@@ -86,6 +87,13 @@ rules:
   - '*'
   resources:
   - scheduledworkflows
+- apiGroups:
+  - kubeflow.org
+  resources:
+  - viewers
+  verbs:
+  - create
+  - delete
 - apiGroups:
   - argoproj.io
   verbs:
@@ -126,14 +134,13 @@ rules:
   - get
   - list
   - readArtifact
+  - readLog
 - apiGroups:
   - kubeflow.org
   resources:
   - viewers
   verbs:
-  - create
   - get
-  - delete
 - apiGroups:
   - pipelines.kubeflow.org
   resources:

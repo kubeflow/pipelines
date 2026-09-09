@@ -248,7 +248,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     nextProps: ParamEditorProps,
     prevState: ParamEditorState,
   ): { isInJsonForm: boolean; isJsonField: boolean } {
-    let isJson = true;
+    let isJson: boolean;
     let paramType = nextProps.param.type;
 
     switch (paramType) {

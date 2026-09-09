@@ -18,7 +18,7 @@ import { useState } from 'react';
 import { V2beta1Pipeline, V2beta1PipelineVersion } from 'src/apisv2beta1/pipeline';
 import { Description } from 'src/components/Description';
 import { commonCss } from 'src/Css';
-import { formatDateString } from 'src/lib/Utils';
+import { formatDateString, sanitizeExternalHref } from 'src/lib/Utils';
 
 import { Button, FormControl, InputLabel, MenuItem, Paper, Select } from '@mui/material';
 
@@ -38,7 +38,7 @@ export function PipelineVersionCard({
   const [summaryShown, setSummaryShown] = useState(false);
 
   const createVersionUrl = () => {
-    return selectedVersion?.code_source_url;
+    return sanitizeExternalHref(selectedVersion?.code_source_url);
   };
 
   return (
@@ -76,11 +76,13 @@ export function PipelineVersionCard({
                   </FormControl>
                 </form>
               </div>
-              <div className='text-blue-500 mt-5'>
-                <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
-                  Version source
-                </a>
-              </div>
+              {createVersionUrl() && (
+                <div className='text-blue-500 mt-5'>
+                  <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
+                    Version source
+                  </a>
+                </div>
+              )}
             </>
           )}
           <div className='text-gray-900 mt-5'>Uploaded on</div>

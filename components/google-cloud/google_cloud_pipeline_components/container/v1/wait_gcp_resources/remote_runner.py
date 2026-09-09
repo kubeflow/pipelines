@@ -66,9 +66,9 @@ def wait_gcp_resources(
   match = uri_pattern.match(dataflow_job_uri)
   # Get the project and location from the job URI instead from the parameter.
   try:
-    project = match.group('project')
-    location = match.group('location')
-    job_id = match.group('jobid')
+    project = match.group('project')  # pyrefly: ignore[missing-attribute]
+    location = match.group('location')  # pyrefly: ignore[missing-attribute]
+    job_id = match.group('jobid')  # pyrefly: ignore[missing-attribute]
   except AttributeError as err:
     # TODO(ruifang) propagate the error.
     raise ValueError(
@@ -121,7 +121,7 @@ def wait_gcp_resources(
               )
           )
 
-      job_state = job.get('currentState', None)
+      job_state = job.get('currentState', None)  # pyrefly: ignore[unbound-name]
       # Write the job details as gcp_resources
       if job_state in _JOB_SUCCESSFUL_STATES:
         logging.info(

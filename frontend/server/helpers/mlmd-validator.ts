@@ -32,9 +32,7 @@ function loadProtos(): boolean {
   let lastError: unknown = null;
   for (const base of candidateBases) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       servicePb = require(`${base}metadata_store_service_pb.js`);
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       storePb = require(`${base}metadata_store_pb.js`);
       return true;
     } catch (error) {

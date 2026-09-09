@@ -14,7 +14,7 @@
 import os
 import sys
 import tempfile
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 import unittest
 
 from absl.testing import parameterized
@@ -80,6 +80,165 @@ class _VertexDummy(artifact_types.Artifact):
 
     def __init__(self):
         super().__init__(uri='uri', name='name', metadata={'dummy': '123'})
+
+
+try:
+    import pydantic
+except ImportError:
+    pydantic = None
+
+
+@unittest.skipIf(pydantic is None, 'pydantic is not installed')
+class TestPydanticBaseModelSupport(parameterized.TestCase):
+
+    def test_is_pydantic_basemodel_subclass_true(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(type_utils.is_pydantic_basemodel_subclass(MyModel))
+
+    def test_is_pydantic_basemodel_subclass_false_for_plain_class(self):
+        self.assertFalse(
+            type_utils.is_pydantic_basemodel_subclass(_ArbitraryClass))
+
+    def test_is_pydantic_basemodel_subclass_false_for_non_type(self):
+        self.assertFalse(type_utils.is_pydantic_basemodel_subclass('MyModel'))
+        self.assertFalse(type_utils.is_pydantic_basemodel_subclass(None))
+
+    def test_annotation_to_type_struct_for_pydantic_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
+
+    def test_get_parameter_type_for_pydantic_basemodel_type_struct(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        type_struct = type_utils._annotation_to_type_struct(MyModel)
+        self.assertEqual(pb.ParameterType.STRUCT,
+                         type_utils.get_parameter_type(type_struct))
+
+    def test_validate_pydantic_basemodel_version_passes_for_v2(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        # should not raise, since the test environment runs pydantic v2
+        type_utils.validate_pydantic_basemodel_version(MyModel)
+
+    def test_validate_pydantic_basemodel_version_raises_for_v1(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(
+                    TypeError,
+                    r'requires pydantic>=2\. Found pydantic==1\.10\.13'):
+                type_utils.validate_pydantic_basemodel_version(MyModel)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_annotation_to_type_struct_raises_for_pydantic_v1(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        original_version = pydantic.VERSION
+        pydantic.VERSION = '1.10.13'
+        try:
+            with self.assertRaisesRegex(TypeError, 'requires pydantic>=2'):
+                type_utils._annotation_to_type_struct(MyModel)
+        finally:
+            pydantic.VERSION = original_version
+
+    def test_annotation_to_type_struct_for_optional_pydantic_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual(
+            'Dict', type_utils._annotation_to_type_struct(Optional[MyModel]))
+
+    def test_is_parameter_true_for_optional_pydantic_basemodel(self):
+        from kfp.dsl import executor
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(executor.is_parameter(Optional[MyModel]))
+
+    @unittest.skipUnless(sys.version_info >= (3, 10),
+                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    def test_annotation_to_type_struct_for_pep604_optional_pydantic_basemodel(
+            self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertEqual('Dict',
+                         type_utils._annotation_to_type_struct(MyModel | None))
+
+    @unittest.skipUnless(sys.version_info >= (3, 10),
+                         'PEP 604 `X | Y` union syntax requires Python 3.10+.')
+    def test_is_parameter_true_for_pep604_optional_pydantic_basemodel(self):
+        from kfp.dsl import executor
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertTrue(executor.is_parameter(MyModel | None))
+
+    def test_annotation_to_type_struct_for_rootmodel_scalar(self):
+
+        class IntRoot(pydantic.RootModel[int]):
+            pass
+
+        self.assertEqual('Integer',
+                         type_utils._annotation_to_type_struct(IntRoot))
+
+    def test_annotation_to_type_struct_for_rootmodel_list(self):
+
+        class ListRoot(pydantic.RootModel[List[str]]):
+            pass
+
+        type_struct = type_utils._annotation_to_type_struct(ListRoot)
+        self.assertEqual(pb.ParameterType.LIST,
+                         type_utils.get_parameter_type(type_struct))
+
+    def test_is_pydantic_rootmodel_subclass_true(self):
+
+        class IntRoot(pydantic.RootModel[int]):
+            pass
+
+        self.assertTrue(type_utils.is_pydantic_rootmodel_subclass(IntRoot))
+
+    def test_is_pydantic_rootmodel_subclass_false_for_plain_basemodel(self):
+
+        class MyModel(pydantic.BaseModel):
+            foo: str
+
+        self.assertFalse(type_utils.is_pydantic_rootmodel_subclass(MyModel))
+
+    def test_annotation_to_type_struct_does_not_raise_for_mismatched_alias(
+            self):
+        # KFP does not validate pydantic alias configuration up front (see
+        # _pydantic_basemodel_to_type_struct's docstring) -- a model with a
+        # validation_alias/serialization_alias mismatch still compiles. Round
+        # trip correctness for that model is the component author's concern,
+        # not KFP's.
+
+        class MyModel(pydantic.BaseModel):
+            foo: str = pydantic.Field(
+                validation_alias='foo_in', serialization_alias='foo_out')
+
+        self.assertEqual('Dict', type_utils._annotation_to_type_struct(MyModel))
 
 
 class TypeUtilsTest(parameterized.TestCase):

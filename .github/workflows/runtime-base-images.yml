@@ -11,16 +11,22 @@ on:
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
+      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
   pull_request:
     paths:
       - '.github/workflows/runtime-base-images.yml'
       - '.github/workflows/image-builds.yml'
       - '.github/resources/runtime-base-images.txt'
       - '.github/resources/scripts/helper-functions.sh'
+      - '.github/resources/scripts/configure-docker-hub-mirror.sh'
+      - '.github/resources/scripts/configure_docker_registry_mirror.py'
       - '.github/resources/scripts/prune_runtime_base_image_caches.py'
       - '.github/resources/scripts/runtime_base_image_artifacts.py'
+      - 'test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile'
 
 concurrency:
   group: runtime-base-images-${{ github.event.pull_request.number || github.ref }}
@@ -36,10 +42,15 @@ jobs:
       cache-key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
     env:
       ARTIFACTS_PATH: "runtime-base-images-cache"
+      MODELCAR_IMAGE_ARCHIVE: "modelcar.tar"
       RUNTIME_BASE_IMAGE_ARCHIVE: "runtime-base-images.tar"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+
+      - name: Configure Docker Hub mirror
+        shell: bash
+        run: bash ./.github/resources/scripts/configure-docker-hub-mirror.sh
 
       - name: Configure runtime base images
         id: configure-runtime-base-images
@@ -50,7 +61,8 @@ jobs:
             .github/resources/scripts/runtime_base_image_artifacts.py fingerprint \
             .github/resources/runtime-base-images.txt \
             .github/resources/scripts/helper-functions.sh \
-            .github/workflows/runtime-base-images.yml)
+            .github/workflows/runtime-base-images.yml \
+            test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile)
           {
             echo "artifact-name=runtime-base-images-${archive_fingerprint}"
             echo "cache-key=runtime-base-images-${archive_fingerprint}-$(date -u +%F)"
@@ -59,9 +71,11 @@ jobs:
 
       - name: Restore runtime base images from cache
         id: cache-runtime-base-images
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+            ${{ env.ARTIFACTS_PATH }}/${{ env.MODELCAR_IMAGE_ARCHIVE }}
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
 
       - name: Pull and save runtime base images
@@ -74,21 +88,36 @@ jobs:
             .github/resources/runtime-base-images.txt \
             "${ARTIFACTS_PATH}/${RUNTIME_BASE_IMAGE_ARCHIVE}"
 
+      - name: Build and save the sample Modelcar fixture image
+        if: steps.cache-runtime-base-images.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          source .github/resources/scripts/helper-functions.sh
+          retry 3 30 env DOCKER_BUILDKIT=1 docker build \
+            --file test_data/sdk_compiled_pipelines/valid/critical/modelcar/Dockerfile \
+            --tag registry.domain.local/modelcar:test \
+            .
+          docker save registry.domain.local/modelcar:test \
+            --output "${ARTIFACTS_PATH}/${MODELCAR_IMAGE_ARCHIVE}"
+
       - name: Save runtime base images to cache
         if: >-
           github.event_name != 'pull_request' &&
           github.ref == 'refs/heads/master' &&
           steps.cache-runtime-base-images.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          path: |
+            ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+            ${{ env.ARTIFACTS_PATH }}/${{ env.MODELCAR_IMAGE_ARCHIVE }}
           key: ${{ steps.configure-runtime-base-images.outputs.cache-key }}
 
       - name: Upload runtime base image producer artifact
         uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.configure-runtime-base-images.outputs.artifact-name }}
-          path: ${{ env.ARTIFACTS_PATH }}/${{ env.RUNTIME_BASE_IMAGE_ARCHIVE }}
+          path: ${{ env.ARTIFACTS_PATH }}
           if-no-files-found: error
           retention-days: 3
 
@@ -102,7 +131,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Prune superseded runtime base image caches
         shell: bash

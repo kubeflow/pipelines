@@ -23,6 +23,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 )
 
@@ -1323,6 +1324,59 @@ func TestGetLatestPipelineVersion(t *testing.T) {
 			Status:         model.PipelineVersionReady,
 		},
 		*pipelineVersion, "Got unexpected pipeline version")
+}
+
+// Versions uploaded within the same second tie on CreatedAtInSec.
+func TestGetLatestPipelineVersion_SameCreationSecond(t *testing.T) {
+	db := NewFakeDBOrFatal()
+	defer db.Close()
+	pipelineStore := NewPipelineStore(
+		db,
+		util.NewFakeTimeForEpoch(),
+		util.NewFakeUUIDGeneratorOrFatal(DefaultFakePipelineId, nil))
+
+	pipelineStore.CreatePipeline(
+		&model.Pipeline{
+			Name:   "pipeline_1",
+			Status: model.PipelineReady,
+		},
+	)
+
+	// Ascending UUID order, so insertion order and UUID order disagree: without the tiebreaker
+	// this returns the first-inserted version and the assertion below fails.
+	for _, versionID := range []string{
+		DefaultFakePipelineIdTwo,
+		DefaultFakePipelineIdThree,
+		DefaultFakePipelineIdFour,
+	} {
+		pipelineStore.uuid = util.NewFakeUUIDGeneratorOrFatal(versionID, nil)
+		_, err := pipelineStore.CreatePipelineVersion(
+			&model.PipelineVersion{
+				Name:       "version_" + versionID,
+				PipelineId: DefaultFakePipelineId,
+				Status:     model.PipelineVersionReady,
+			},
+		)
+		require.Nil(t, err)
+	}
+
+	// Force the tie that the fake clock's per-call increment otherwise hides.
+	_, err := db.Exec(
+		"UPDATE pipeline_versions SET CreatedAtInSec = ? WHERE PipelineId = ?",
+		100, DefaultFakePipelineId,
+	)
+	require.Nil(t, err)
+
+	for i := 0; i < 5; i++ {
+		pipelineVersion, err := pipelineStore.GetLatestPipelineVersion(DefaultFakePipelineId)
+		require.Nil(t, err)
+		require.Equal(
+			t,
+			DefaultFakePipelineIdFour,
+			pipelineVersion.UUID,
+			"a tie on CreatedAtInSec must resolve to the highest UUID on every call",
+		)
+	}
 }
 
 func TestGetPipelineVersion_InternalError(t *testing.T) {

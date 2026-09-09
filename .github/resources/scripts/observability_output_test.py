@@ -26,6 +26,7 @@ import os
 import subprocess
 import tempfile
 import textwrap
+import time
 import unittest
 from pathlib import Path
 
@@ -126,6 +127,116 @@ class OutputMirroringTest(unittest.TestCase):
                 check=True, capture_output=True, text=True, env=environment,
             )
             self.assertIn('Runner telemetry', result.stdout)
+
+
+class ContentionDeltaTest(unittest.TestCase):
+
+    def test_reads_current_v2_cgroup_instead_of_mount_root(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            proc_root = temporary_path / 'proc'
+            cgroup_root = temporary_path / 'cgroup'
+            (proc_root / 'self').mkdir(parents=True)
+            (cgroup_root / 'actions-job').mkdir(parents=True)
+            (proc_root / 'self' / 'cgroup').write_text(
+                '0::/actions-job\n', encoding='utf-8')
+            (cgroup_root / 'cpu.stat').write_text(
+                'nr_throttled 999\n', encoding='utf-8')
+            (cgroup_root / 'actions-job' / 'cpu.stat').write_text(
+                'nr_throttled 7\n', encoding='utf-8')
+            snapshot = temporary_path / 'contention.tsv'
+            environment = os.environ.copy()
+            environment['RUNNER_TELEMETRY_PROC_ROOT'] = str(proc_root)
+            environment['RUNNER_TELEMETRY_CGROUP_ROOT'] = str(cgroup_root)
+
+            subprocess.run(
+                ['bash', str(TELEMETRY_SCRIPT), 'contention-baseline', str(snapshot)],
+                check=True,
+                env=environment,
+            )
+
+            contents = snapshot.read_text(encoding='utf-8')
+            self.assertIn('runner_cgroup_nr_throttled\t7\n', contents)
+            self.assertNotIn('runner_cgroup_nr_throttled\t999\n', contents)
+
+    def test_reports_psi_and_cgroup_v2_deltas(self):
+        output = self._render_contention(
+            baseline={
+                'cpu_psi_some_us': 100000,
+                'cpu_psi_full_us': 50000,
+                'runner_cgroup_nr_periods': 100,
+                'runner_cgroup_nr_throttled': 10,
+                'runner_cgroup_throttled_usec': 1000,
+            },
+            pressure='some avg10=0.00 total=300000\nfull avg10=0.00 total=50000\n',
+            cpu_stat='nr_periods 120\nnr_throttled 15\nthrottled_usec 6000\n',
+        )
+
+        self.assertIn('| CPU PSI some stall | 100000 | 300000 | 200.0 ms', output)
+        self.assertIn('| Runner cgroup throttled periods | 10 | 15 | 5 | ok |', output)
+        self.assertIn('| Runner cgroup throttled time | 1000 | 6000 | 5.0 ms | ok |', output)
+        self.assertIn('25.0% of test-window periods', output)
+
+    def test_normalizes_cgroup_v1_throttled_time(self):
+        output = self._render_contention(
+            baseline={'runner_cgroup_throttled_usec': 1000},
+            pressure='',
+            cpu_stat='nr_periods 2\nnr_throttled 1\nthrottled_time 5000000\n',
+        )
+
+        self.assertIn('| Runner cgroup throttled time | 1000 | 5000 | 4.0 ms | ok |', output)
+
+    def test_reports_unavailable_and_reset_without_negative_delta(self):
+        output = self._render_contention(
+            baseline={
+                'cpu_psi_some_us': 500,
+                'cpu_psi_full_us': 100,
+                'runner_cgroup_nr_throttled': 9,
+            },
+            pressure='some avg10=0.00 total=400\n',
+            cpu_stat='nr_throttled 2\n',
+        )
+
+        self.assertIn('| CPU PSI some stall | 500 | 400 | — | counter reset |', output)
+        self.assertIn('| CPU PSI full stall | 100 | — | — | unavailable |', output)
+        self.assertIn('| Runner cgroup throttled periods | 9 | 2 | — | counter reset |', output)
+
+    def _render_contention(self, baseline, pressure, cpu_stat):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            proc_root = temporary_path / 'proc'
+            cgroup_root = temporary_path / 'cgroup'
+            (proc_root / 'pressure').mkdir(parents=True)
+            cgroup_root.mkdir()
+            (proc_root / 'pressure' / 'cpu').write_text(pressure, encoding='utf-8')
+            (cgroup_root / 'cpu.stat').write_text(cpu_stat, encoding='utf-8')
+            baseline_path = temporary_path / 'baseline.tsv'
+            baseline_values = {'epoch_us': time.time_ns() // 1000 - 10_000_000}
+            baseline_values.update(baseline)
+            baseline_path.write_text(
+                ''.join(f'{key}\t{value}\n' for key, value in baseline_values.items()),
+                encoding='utf-8',
+            )
+            csv = temporary_path / 'telemetry.csv'
+            csv.write_text(
+                'epoch,cpu_pct,mem_used_mb,load1\n'
+                '1700000000,10,1000,1.0\n'
+                '1700000005,20,1000,1.0\n'
+                '1700000010,30,1000,1.0\n',
+                encoding='utf-8',
+            )
+            environment = os.environ.copy()
+            environment.pop('GITHUB_STEP_SUMMARY', None)
+            environment['RUNNER_TELEMETRY_PROC_ROOT'] = str(proc_root)
+            environment['RUNNER_TELEMETRY_CGROUP_ROOT'] = str(cgroup_root)
+            result = subprocess.run(
+                ['bash', str(TELEMETRY_SCRIPT), 'render', str(csv), str(baseline_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+                env=environment,
+            )
+            return result.stdout
 
 
 if __name__ == '__main__':

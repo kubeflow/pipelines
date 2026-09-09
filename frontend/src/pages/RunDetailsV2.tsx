@@ -16,6 +16,7 @@ import { MouseEvent as ReactMouseEvent, useCallback, useEffect, useMemo, useStat
 import { useQuery } from '@tanstack/react-query';
 import { V2beta1Experiment } from 'src/apisv2beta1/experiment';
 import { queryKeys } from 'src/hooks/queryKeys';
+import { useKeyedState } from 'src/hooks/useKeyedState';
 import { V2beta1Run, V2beta1RuntimeState, V2beta1RunStorageState } from 'src/apisv2beta1/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
@@ -96,7 +97,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedNode, setSelectedNode] = useState<PipelineFlowElement | null>(null);
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
-  const [runFinished, setRunFinished] = useState(false);
+  const runStateKey = `${run.run_id || runId}:${run.state || ''}`;
+  const [retriedCurrentRunState, setRetriedCurrentRunState] = useKeyedState(runStateKey, false);
+  const runFinished = hasFinishedV2(run.state) && !retriedCurrentRunState;
 
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, isError, error, data } = useQuery<MlmdPackage, Error>({
@@ -188,9 +191,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [buttons] = useState(new Buttons(props, () => forceUpdate));
   const [runIdFromParams] = useState(props.match.params[RouteParams.runId]);
   useEffect(() => {
-    if (hasFinishedV2(run.state)) {
-      setRunFinished(true);
-    }
     updateToolBarActions(
       buttons,
       runIdFromParams,
@@ -198,9 +198,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       runFinished,
       props.updateToolbar,
       () => forceUpdate,
-      () => setRunFinished(false),
+      (_selectedIds, success) => {
+        if (success) {
+          setRetriedCurrentRunState(true);
+        }
+      },
     );
-  }, [buttons, runIdFromParams, run, runFinished, props.updateToolbar]);
+  }, [buttons, runIdFromParams, run, runFinished, props.updateToolbar, setRetriedCurrentRunState]);
 
   return (
     <>
@@ -316,7 +320,7 @@ function updateToolBarActions(
   runFinished: boolean,
   updateToolbar: (toolbarProps: Partial<ToolbarProps>) => void,
   refresh: () => void,
-  retry: () => void,
+  retry: (selectedIds: string[], success: boolean) => void,
 ) {
   const runMetadata = run;
   const getRunIdList = () =>
@@ -327,7 +331,7 @@ function updateToolBarActions(
         : [];
 
   buttons
-    .retryRun(getRunIdList, true, () => retry())
+    .retryRun(getRunIdList, true, retry)
     .cloneRun(getRunIdList, true)
     .terminateRun(getRunIdList, true, () => refresh());
   !runMetadata || runMetadata.storage_state === V2beta1RunStorageState.ARCHIVED

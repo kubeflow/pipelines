@@ -25,6 +25,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestGetRepoBranchURLRAW_UsesTestFixtureBaseURL(t *testing.T) {
+	t.Setenv("KFP_TEST_FIXTURE_BASE_URL", "http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080/")
+	t.Setenv("PULL_NUMBER", "12345")
+
+	got, err := GetRepoBranchURLRAW(
+		"kubeflow/pipelines",
+		"ignored-branch",
+		"backend/test/v2/resources/sequential.yaml",
+	)
+
+	require.NoError(t, err)
+	assert.Equal(
+		t,
+		"http://pipeline-test-fixtures.kubeflow.svc.cluster.local:8080/backend/test/v2/resources/sequential.yaml",
+		got,
+	)
+}
+
 func TestHeadWithGitHubAuthAndRetry_RetriesThenSucceeds(t *testing.T) {
 	restore := headRetryBackoffUnit
 	headRetryBackoffUnit = time.Millisecond

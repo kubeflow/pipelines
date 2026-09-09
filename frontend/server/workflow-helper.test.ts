@@ -159,6 +159,32 @@ describe('workflow-helper', () => {
       expect(mockedGetConfigMap).toBeCalledTimes(1);
       expect(res).toEqual('foo');
     });
+
+    it('resolves a keyFormat inherited through a YAML merge key.', async () => {
+      const artifactRepositories = {
+        'artifact-repositories':
+          'common: &common\n' +
+          '  keyFormat: inherited-format\n' +
+          '  insecure: true\n' +
+          's3:\n' +
+          '  <<: *common\n' +
+          '  bucket: mlpipeline\n',
+      };
+
+      const mockedConfigMap: V1ConfigMap = {
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: new V1ObjectMeta(),
+        data: artifactRepositories,
+        binaryData: {},
+      };
+
+      const mockedGetConfigMap: Mock = getConfigMap as any;
+      mockedGetConfigMap.mockResolvedValueOnce([mockedConfigMap, undefined]);
+      const res = await getKeyFormatFromArtifactRepositories('');
+      expect(mockedGetConfigMap).toBeCalledTimes(1);
+      expect(res).toEqual('inherited-format');
+    });
   });
 
   describe('createPodLogsMinioRequestConfig', () => {

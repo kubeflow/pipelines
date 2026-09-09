@@ -125,6 +125,13 @@ func (t *TaskPluginDispatcherImpl) RetrieveUserContainerEnvVars(taskInfo *TaskIn
 
 	injectVarNameSet := map[string]bool{}
 	for _, handler := range t.handlers {
+		if t.startedHandlers != nil && !t.startedHandlers[handler.Name()] {
+			glog.Infof(
+				"Skipping user container env vars for handler %s (OnTaskStart did not succeed)",
+				handler.Name(),
+			)
+			continue
+		}
 		vars, err := handler.RetrieveUserContainerEnvVars()
 		if err != nil {
 			return nil, fmt.Errorf("failed to retrieve user container env vars for handler %s: %v", handler.Name(), err)

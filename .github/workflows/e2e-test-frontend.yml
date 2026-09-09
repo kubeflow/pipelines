@@ -11,6 +11,7 @@ on:
       - '.github/actions/deploy/**'
       - '.github/resources/**'
       - 'frontend/**'
+      - 'third_party/metadata_envoy/**'
       - 'manifests/kustomize/**'
       - 'test/server-integration-test/**'
       - 'test/frontend-integration-test/**'
@@ -26,10 +27,35 @@ jobs:
   build:
     uses: ./.github/workflows/image-builds.yml
 
+  frontend-integration-dependency-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    name: Frontend Integration Dependency Checks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+
+      - name: Install dependencies
+        working-directory: ./test/frontend-integration-test
+        run: npm ci
+
+      - name: Dependency compatibility checks
+        working-directory: ./test/frontend-integration-test
+        run: npm run test:dependencies
+
   frontend-integration-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    needs: build
+    permissions:
+      actions: read
+      contents: read
     strategy:
       matrix:
         k8s_version: [ "v1.33.12", "v1.36.1" ]
@@ -37,10 +63,10 @@ jobs:
     name: Frontend Integration Tests - K8s ${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.9
 
@@ -57,9 +83,9 @@ jobs:
         uses: ./.github/actions/deploy
         if: ${{ steps.create-kfp-cluster.outcome == 'success' }}
         with:
-          image_path: ${{ needs.build.outputs.IMAGE_PATH }}
-          image_tag: ${{ needs.build.outputs.IMAGE_TAG }}
-          image_registry: ${{ needs.build.outputs.IMAGE_REGISTRY }}
+          image_path: images_${{ github.run_id }}
+          image_tag: latest
+          image_registry: kind-registry:5000
           pod_to_pod_tls_enabled: ${{ matrix.pod_to_pod_tls_enabled }}
 
       - name: Forward Frontend port
@@ -73,13 +99,13 @@ jobs:
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
         working-directory: ./test/server-integration-test
         run: |
-          node server-test.js --url http://localhost:3000
+          node server-test.js --url http://localhost:3000 --timeout 30000
           node k8s-integration-test.js --url http://localhost:3000
         continue-on-error: true
 
       - name: Build frontend integration tests image
         working-directory: ./test/frontend-integration-test
-        run: docker build --build-arg NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc) -t kfp-frontend-integration-test:local .
+        run: docker build --build-arg "NODE_VERSION=$(tr -d 'v' < ../../frontend/.nvmrc)" -t kfp-frontend-integration-test:local .
 
       - name: Prepare frontend integration test artifacts
         if: ${{ steps.forward-frontend-port.outcome == 'success' }}
@@ -105,7 +131,7 @@ jobs:
           exit 1
 
       - name: Collect test results
-        if: always()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: kfp-frontend-integration-test-artifacts-k8s-${{ matrix.k8s_version }} pod_to_pod_tls_enabled=${{ matrix.pod_to_pod_tls_enabled }}

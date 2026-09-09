@@ -1057,7 +1057,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     let workflowFromRun: Workflow | undefined;
     let useWorkflowFromRun = false;
     let usePipelineFromRunLabel = '';
-    let name = '';
+    let name: string;
     let pipelineVersionName = '';
     const serviceAccount = originalRun.service_account || '';
 

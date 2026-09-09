@@ -70,6 +70,7 @@ var defaultPorts = map[string]string{
 
 var (
 	blockedNets    []*net.IPNet
+	allowedNets    []*net.IPNet
 	allowedDomains []*regexp.Regexp
 	urlConfigInit  sync.Once
 )
@@ -83,6 +84,20 @@ func initURLConfig() {
 				blockedNets = append(blockedNets, ipNet)
 			} else {
 				glog.Warningf("Failed to parse blocked CIDR %q: %v", cidr, err)
+			}
+		}
+
+		// Parse operator-configured CIDRs that override the blocklist, so a
+		// deployment can fetch pipelines from hosts on an internal network.
+		userCIDRs := common.GetStringConfigWithDefault(common.PipelineURLAllowedCIDRs, "")
+		for _, c := range strings.Split(userCIDRs, ",") {
+			if c = strings.TrimSpace(c); c == "" {
+				continue
+			}
+			if _, ipNet, err := net.ParseCIDR(c); err == nil {
+				allowedNets = append(allowedNets, ipNet)
+			} else {
+				glog.Warningf("Failed to parse allowed CIDR %q: %v", c, err)
 			}
 		}
 
@@ -184,6 +199,12 @@ func validateResolvedIPs(host string) error {
 }
 
 func isBlockedIP(ip net.IP) bool {
+	// An operator-configured CIDR overrides the blocklist.
+	for _, ipNet := range allowedNets {
+		if ipNet.Contains(ip) {
+			return false
+		}
+	}
 	for _, ipNet := range blockedNets {
 		if ipNet.Contains(ip) {
 			return true
@@ -192,9 +213,9 @@ func isBlockedIP(ip net.IP) bool {
 	return false
 }
 
-// SafePipelineHTTPClient creates an HTTP client with timeout, redirect validation,
-// and a custom dialer that enforces IP validation at connection time to prevent
-// DNS rebinding (TOCTOU) attacks.
+// SafePipelineHTTPClient creates an HTTP client with timeout and redirect validation.
+// When URL validation is enabled, its custom dialer also enforces IP validation at
+// connection time to prevent DNS rebinding (TOCTOU) attacks.
 const minimumHTTPTimeout = 1
 
 func SafePipelineHTTPClient() *http.Client {
@@ -206,7 +227,11 @@ func SafePipelineHTTPClient() *http.Client {
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = nil
-	transport.DialContext = safeDialContext
+	// The validation switch is test-only and must bypass both the URL checks and
+	// the connection-time private IP guard. Production keeps the secure default.
+	if common.GetBoolConfigWithDefault(common.PipelineURLValidationEnabled, true) {
+		transport.DialContext = safeDialContext
+	}
 
 	return &http.Client{
 		Timeout:   timeout,

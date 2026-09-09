@@ -1,0 +1,168 @@
+name: OSV-Scanner Vulnerability Scan
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # Every Friday at 19:39
+    - cron: '39 19 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan-source:
+    name: Scan repository dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install OSV-Scanner
+        env:
+          OSV_SCANNER_VERSION: '2.5.0'
+          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            --output osv-scanner
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Scan dependency manifests and lockfiles
+        run: |
+          scan_exit_code=0
+          ./osv-scanner scan source \
+            --recursive \
+            --no-resolve \
+            --experimental-exclude backend/api/v1beta1/python_http_client \
+            --experimental-exclude backend/api/v2beta1/python_http_client \
+            --format sarif \
+            --output-file osv-results.sarif \
+            . || scan_exit_code=$?
+
+          # Exit code 1 means vulnerabilities were found. Findings are reported
+          # through SARIF and do not make this reporting workflow fail.
+          if [[ "${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code ${scan_exit_code}"
+            exit "${scan_exit_code}"
+          fi
+
+      - name: Remove exact duplicate source results
+        if: always() && hashFiles('osv-results.sarif') != ''
+        run: |
+          python3 .github/resources/scripts/deduplicate_sarif.py \
+            --input osv-results.sarif \
+            --output osv-results-deduplicated.sarif
+
+      - name: Upload OSV-Scanner results to GitHub Security
+        if: always() && hashFiles('osv-results-deduplicated.sarif') != ''
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: osv-results-deduplicated.sarif
+          category: kubeflow-pipelines-osv-scanner
+
+  discover-images:
+    name: Discover deployed images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.images.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install Kustomize
+        env:
+          KUSTOMIZE_VERSION: '5.8.1'
+          KUSTOMIZE_SHA256: '029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d'
+        run: |
+          kustomize_archive="kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/${kustomize_archive}" \
+            --output "${RUNNER_TEMP}/${kustomize_archive}"
+          echo "${KUSTOMIZE_SHA256}  ${RUNNER_TEMP}/${kustomize_archive}" | \
+            sha256sum --check --strict
+          tar -xzf "${RUNNER_TEMP}/${kustomize_archive}" -C "${RUNNER_TEMP}"
+          chmod +x "${RUNNER_TEMP}/kustomize"
+
+      - name: Render manifests and collect images
+        id: images
+        run: |
+          image_matrix=$(python3 .github/resources/scripts/osv_manifest_images.py \
+            --kustomize "${RUNNER_TEMP}/kustomize" \
+            --overlay manifests/kustomize/env/platform-agnostic \
+            --overlay manifests/kustomize/env/platform-agnostic-multi-user)
+          echo "matrix=${image_matrix}" >> "${GITHUB_OUTPUT}"
+
+  scan-images:
+    name: Scan image (${{ matrix.image }})
+    needs: discover-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.discover-images.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install OSV-Scanner
+        env:
+          OSV_SCANNER_VERSION: '2.5.0'
+          OSV_SCANNER_SHA256: 'edcfc41d257db36148f065055655fe3fcfc434b0b423ea67468a84c207524e0c'
+        run: |
+          curl -fsSL --retry 5 --retry-all-errors \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" \
+            --output osv-scanner
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict
+          chmod +x osv-scanner
+          ./osv-scanner --version
+
+      - name: Scan deployed container image
+        env:
+          IMAGE: ${{ matrix.image }}
+        run: |
+          bash .github/resources/scripts/docker-pull-with-retry.sh "${IMAGE}"
+
+          scan_exit_code=0
+          ./osv-scanner scan image "${IMAGE}" \
+            --format sarif \
+            --output-file osv-image-results.sarif \
+            || scan_exit_code=$?
+
+          if [[ "${scan_exit_code}" -ne 0 && "${scan_exit_code}" -ne 1 ]]; then
+            echo "::error::OSV-Scanner failed with exit code ${scan_exit_code} for ${IMAGE}"
+            exit "${scan_exit_code}"
+          fi
+
+      - name: Remove exact duplicate image results
+        if: always() && hashFiles('osv-image-results.sarif') != ''
+        run: |
+          python3 .github/resources/scripts/deduplicate_sarif.py \
+            --input osv-image-results.sarif \
+            --output osv-image-results-deduplicated.sarif
+
+      - name: Upload image results to GitHub Security
+        if: always() && hashFiles('osv-image-results-deduplicated.sarif') != ''
+        uses: github/codeql-action/upload-sarif@256d634097be96e792d6764f9edaefc4320557b1 # v4
+        with:
+          sarif_file: osv-image-results-deduplicated.sarif
+          category: kubeflow-pipelines-osv-image-${{ matrix.category }}

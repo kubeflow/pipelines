@@ -14,19 +14,14 @@ HELPER="test/seaweedfs/s3_helper.py"
 ENDPOINT="http://localhost:8333"
 BUCKET="mlpipeline"
 SECRET="mlpipeline-minio-artifact"
-
-for cmd in kubectl python3; do
-    command -v "$cmd" >/dev/null || { echo "Error: $cmd is required"; exit 1; }
-done
-python3 -c "import boto3" 2>/dev/null || pip3 install boto3
+CREDENTIAL_TIMEOUT_SECONDS="${CREDENTIAL_TIMEOUT_SECONDS:-300}"
+CREDENTIAL_POLL_INTERVAL_SECONDS="${CREDENTIAL_POLL_INTERVAL_SECONDS:-5}"
 
 port_forward_pid=""
 cleanup() {
     [ -n "$port_forward_pid" ] && kill "$port_forward_pid" 2>/dev/null || true
     kubectl delete profile test-profile-1 test-profile-2 --ignore-not-found
 }
-trap cleanup EXIT
-
 create_profiles() {
     kubectl apply -f - <<EOF
 apiVersion: kubeflow.org/v1
@@ -54,12 +49,52 @@ EOF
     echo "Error: namespaces not created"; exit 1
 }
 
+credential_diagnostics() {
+    local namespace=$1
+    echo "----- credential reconciliation diagnostics for ${namespace} -----"
+    kubectl get profile "$namespace" -o yaml 2>&1 || true
+    kubectl get namespace "$namespace" --show-labels 2>&1 || true
+    kubectl get events -n "$namespace" --sort-by=.lastTimestamp 2>&1 || true
+}
+
 wait_for_credentials() {
-    for _ in {1..6}; do
-        kubectl get secret -n "$1" "$SECRET" >/dev/null 2>&1 && return 0
-        sleep 10
+    local deadline=$((SECONDS + CREDENTIAL_TIMEOUT_SECONDS))
+    local namespace missing sleep_seconds
+
+    while (( SECONDS < deadline )); do
+        missing=""
+        for namespace in "$@"; do
+            if ! kubectl get secret -n "$namespace" "$SECRET" >/dev/null 2>&1; then
+                missing="${missing} ${namespace}"
+            fi
+        done
+
+        if [ -z "$missing" ]; then
+            echo "Credentials found in all test Profile namespaces."
+            return 0
+        fi
+
+        echo "Waiting for${missing} credentials... ($((deadline - SECONDS))s remaining)"
+        sleep_seconds=$CREDENTIAL_POLL_INTERVAL_SECONDS
+        if (( sleep_seconds > deadline - SECONDS )); then
+            sleep_seconds=$((deadline - SECONDS))
+        fi
+        if (( sleep_seconds > 0 )); then
+            sleep "$sleep_seconds"
+        fi
     done
-    echo "Error: no credentials in $1"; return 1
+
+    echo "Error: credentials were not created within ${CREDENTIAL_TIMEOUT_SECONDS}s"
+    for namespace in "$@"; do
+        if ! kubectl get secret -n "$namespace" "$SECRET" >/dev/null 2>&1; then
+            credential_diagnostics "$namespace"
+        fi
+    done
+    kubectl get pods -n kubeflow -l app=kubeflow-pipelines-profile-controller -o wide 2>&1 || true
+    kubectl logs -n kubeflow deployment/kubeflow-pipelines-profile-controller \
+        -c profile-controller --tail=200 2>&1 || true
+    kubectl get events -n kubeflow --sort-by=.lastTimestamp 2>&1 | tail -100 || true
+    return 1
 }
 
 # Run the helper as the given namespace.
@@ -98,11 +133,15 @@ check() {
 }
 
 main() {
+    for cmd in kubectl python3; do
+        command -v "$cmd" >/dev/null || { echo "Error: $cmd is required"; exit 1; }
+    done
+    python3 -c "import boto3" 2>/dev/null || pip3 install boto3
+    trap cleanup EXIT
+
     create_profiles
     echo "Waiting for profile controller to create credentials..."
-    sleep 30
-    wait_for_credentials test-profile-1
-    wait_for_credentials test-profile-2
+    wait_for_credentials test-profile-1 test-profile-2
     start_port_forward
 
     # Seed one file in each namespace's own prefix (best-effort).
@@ -161,4 +200,6 @@ main() {
     fi
 }
 
-main
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main
+fi

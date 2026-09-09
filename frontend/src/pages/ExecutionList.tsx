@@ -188,6 +188,7 @@ class ExecutionList extends Page<ExecutionListProps, ExecutionListState> {
           errorMessage
             ? `Failed getting executions: ${errorMessage}`
             : 'Failed getting executions.',
+          { cause: err },
         );
       }
     }

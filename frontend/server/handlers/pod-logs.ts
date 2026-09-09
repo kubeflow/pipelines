@@ -79,6 +79,10 @@ export function getPodLogsHandler(
   );
 
   return async (req, res) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Disposition', 'attachment');
+    res.type('text/plain');
+
     if (!req.query.podname) {
       res.status(400).send('podname argument is required');
       return;
@@ -120,7 +124,28 @@ export function getPodLogsHandler(
 
     try {
       const stream = await getPodLogsStream(podName, createdAt, podNamespace);
-      stream.on('error', (err) => {
+      if (res.destroyed || res.writableEnded) {
+        stream.destroy();
+        return;
+      }
+      let settled = false;
+      const cleanup = () => {
+        stream.off('error', failOnce);
+        stream.off('end', finishOnce);
+        res.off('close', stopOnPrematureClose);
+      };
+      const failOnce = (err: Error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        stream.destroy();
+        if (res.headersSent) {
+          console.error('[pod-logs] aborting committed response:', err);
+          res.destroy();
+          return;
+        }
         if (
           err?.message &&
           err.message?.indexOf('Unable to find pod log archive information') > -1
@@ -129,9 +154,39 @@ export function getPodLogsHandler(
         } else {
           res.status(500).send('Could not get main container logs: ' + err);
         }
-      });
-      stream.on('end', () => res.end());
-      stream.pipe(res);
+      };
+      const finishOnce = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        res.end();
+      };
+      const stopOnPrematureClose = () => {
+        if (settled || res.writableFinished) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        stream.destroy();
+      };
+      stream.once('error', failOnce);
+      stream.once('end', finishOnce);
+      res.once('close', stopOnPrematureClose);
+
+      // getObjectStream starts its pipeline before returning. A fast storage
+      // failure can therefore precede this request-specific listener; inspect
+      // the terminal state after attaching it so no event can fall in between.
+      if (stream.errored) {
+        failOnce(stream.errored);
+        return;
+      }
+      if (stream.destroyed) {
+        failOnce(new Error('Pod log stream closed before response streaming started'));
+        return;
+      }
+      stream.pipe(res, { end: false });
     } catch (err) {
       res.status(500).send('Could not get main container logs: ' + err);
     }

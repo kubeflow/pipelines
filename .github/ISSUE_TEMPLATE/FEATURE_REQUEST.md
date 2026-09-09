@@ -1,7 +1,7 @@
 ---
 name: 💡 Feature Request
 about: An idea to improve Kubeflow Pipelines
-title: "[feature] <Description>"
+title: "feat(<component>): <Description>"
 labels: kind/feature
 ---
 

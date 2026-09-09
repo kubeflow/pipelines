@@ -218,6 +218,12 @@ func GetTLSConfig(caCertPath string) (*tls.Config, error) {
 }
 
 func GetRepoBranchURLRAW(repoName, branch, path string) (string, error) {
+	// CI serves checked-out fixtures inside the test cluster so the API server
+	// can exercise URL imports without relying on external network access.
+	if fixtureBaseURL := os.Getenv("KFP_TEST_FIXTURE_BASE_URL"); fixtureBaseURL != "" {
+		return strings.TrimRight(fixtureBaseURL, "/") + "/" + strings.TrimLeft(path, "/"), nil
+	}
+
 	url := fmt.Sprintf("https://github.com/%s/raw/refs/heads/%s/%s", repoName, branch, path)
 
 	pullNumber := os.Getenv("PULL_NUMBER")

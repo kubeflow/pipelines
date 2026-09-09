@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipeline-test-fixtures
+  namespace: kubeflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pipeline-test-fixtures
+  template:
+    metadata:
+      labels:
+        app: pipeline-test-fixtures
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          image: python:3.11
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -m
+            - http.server
+            - "8080"
+            - --directory
+            - /fixtures
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /backend/test/v2/resources/sequential.yaml
+              port: http
+            periodSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /backend/test/v2/resources/sequential.yaml
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+          volumeMounts:
+            - name: fixtures
+              mountPath: /fixtures
+              readOnly: true
+      terminationGracePeriodSeconds: 1
+      volumes:
+        - name: fixtures
+          configMap:
+            name: pipeline-test-fixtures
+            items:
+              - key: backend-test-v2-resources-sequential.yaml
+                path: backend/test/v2/resources/sequential.yaml
+              - key: backend-test-v2-resources-arguments-parameters.zip
+                path: backend/test/v2/resources/arguments_parameters.zip
+              - key: backend-test-resources-arguments-parameters.zip
+                path: backend/test/resources/arguments_parameters.zip
+              - key: test-data-sequential-v1.yaml
+                path: test_data/sdk_compiled_pipelines/valid/sequential_v1.yaml
+              - key: test-data-arguments-parameters.zip
+                path: test_data/sdk_compiled_pipelines/valid/arguments_parameters.zip

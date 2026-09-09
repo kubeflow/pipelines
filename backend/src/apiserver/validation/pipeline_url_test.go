@@ -18,6 +18,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"sync"
 	"testing"
@@ -31,6 +32,7 @@ import (
 func resetURLConfig() {
 	urlConfigInit = sync.Once{}
 	blockedNets = nil
+	allowedNets = nil
 	allowedDomains = nil
 }
 
@@ -295,6 +297,23 @@ func TestSafePipelineHTTPClient_HasCustomTransport(t *testing.T) {
 	assert.True(t, ok, "Transport should be *http.Transport with custom DialContext")
 }
 
+func TestSafePipelineHTTPClient_ValidationDisabledAllowsPrivateAddress(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_VALIDATION_ENABLED", "false")
+	resetURLConfig()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := SafePipelineHTTPClient().Get(server.URL)
+	if assert.NoError(t, err) {
+		defer resp.Body.Close()
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+}
+
 func TestSafeDialContext_BlocksPrivateIPs(t *testing.T) {
 	viper.Reset()
 	resetURLConfig()
@@ -340,4 +359,67 @@ func TestSafePipelineHTTPClient_DisablesProxyFromEnvironment(t *testing.T) {
 	transport, ok := client.Transport.(*http.Transport)
 	assert.True(t, ok)
 	assert.Nil(t, transport.Proxy)
+}
+
+func TestIsBlockedIP_AllowedCIDROverride(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_ALLOWED_CIDRS", "10.20.0.0/16")
+	resetURLConfig()
+	initURLConfig()
+
+	assert.False(t, isBlockedIP(net.ParseIP("10.20.30.40")), "configured CIDR should be allowed")
+	assert.True(t, isBlockedIP(net.ParseIP("10.99.0.1")), "10.x outside the override stays blocked")
+	assert.True(t, isBlockedIP(net.ParseIP("127.0.0.1")), "loopback stays blocked")
+	assert.False(t, isBlockedIP(net.ParseIP("8.8.8.8")), "public IPs unaffected")
+}
+
+func TestIsBlockedIP_AllowedCIDRsParsing(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_ALLOWED_CIDRS", "not-a-cidr, 10.20.0.0/16, 192.168.5.0/24, ")
+	resetURLConfig()
+	initURLConfig()
+
+	// A malformed entry is skipped without discarding the valid ones.
+	assert.False(t, isBlockedIP(net.ParseIP("10.20.0.1")))
+	assert.False(t, isBlockedIP(net.ParseIP("192.168.5.10")))
+	assert.True(t, isBlockedIP(net.ParseIP("192.168.6.10")), "outside the override stays blocked")
+}
+
+func TestIsBlockedIP_NoOverrideConfigured(t *testing.T) {
+	viper.Reset()
+	resetURLConfig()
+	initURLConfig()
+
+	assert.True(t, isBlockedIP(net.ParseIP("10.20.30.40")), "default behavior unchanged")
+	assert.False(t, isBlockedIP(net.ParseIP("8.8.8.8")))
+}
+
+func TestValidatePipelineURL_AllowedCIDRStillNeedsDomain(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_ALLOWED_CIDRS", "10.20.0.0/16")
+	resetURLConfig()
+
+	// The override only relaxes the IP check; the domain allowlist still applies.
+	err := ValidatePipelineURL("https://10.20.30.40/pipeline.yaml")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not in allowlist")
+
+	viper.Set("PIPELINE_URL_ALLOWED_DOMAINS", "10.20.30.40")
+	resetURLConfig()
+	assert.NoError(t, ValidatePipelineURL("https://10.20.30.40/pipeline.yaml"))
+}
+
+func TestSafeDialContext_AllowedCIDRPassesIPCheck(t *testing.T) {
+	viper.Reset()
+	viper.Set("PIPELINE_URL_ALLOWED_CIDRS", "10.20.0.0/16")
+	resetURLConfig()
+	initURLConfig()
+
+	// Bounded so an unroutable address fails fast rather than on TCP timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	_, err := safeDialContext(ctx, "tcp", "10.20.30.40:9")
+	if err != nil {
+		assert.NotContains(t, err.Error(), "blocked IP range denied")
+	}
 }

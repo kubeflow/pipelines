@@ -182,8 +182,26 @@ describe('Apis', () => {
         isDownload: true,
       }),
     ).toEqual(
-      'artifacts/s3/testbucket/testkey?namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D',
+      'artifacts/get?source=s3&namespace=testnamespace&providerInfo=%7B%22Provider%22%3A%22s3%22%7D&bucket=testbucket&key=testkey&download=true',
     );
+  });
+
+  it('buildReadFileUrl keeps reserved characters and dot segments in the download query', () => {
+    const url = Apis.buildReadFileUrl({
+      path: {
+        bucket: 'testbucket',
+        key: 'reports/.././a?final#100%.csv',
+        source: StorageService.S3,
+      },
+      isDownload: true,
+    });
+
+    expect(url).toEqual(
+      'artifacts/get?source=s3&bucket=testbucket&key=reports%2F..%2F.%2Fa%3Ffinal%23100%25.csv&download=true',
+    );
+    const parsedUrl = new URL(url, 'https://example.test/pipeline/');
+    expect(parsedUrl.pathname).toBe('/pipeline/artifacts/get');
+    expect(parsedUrl.searchParams.get('key')).toBe('reports/.././a?final#100%.csv');
   });
 
   it('buildArtifactLinkText', () => {
@@ -331,6 +349,66 @@ describe('Apis', () => {
         encodeURIComponent('test display name') +
         '&description=' +
         encodeURIComponent('test description'),
+      {
+        body: expect.anything(),
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        method: 'POST',
+      },
+    );
+  });
+
+  it('uploadPipelineV2 with codeSourceUrl', async () => {
+    const spy = fetchSpy(JSON.stringify({ pipeline_id: 'new-pipeline-id' }));
+    await Apis.uploadPipelineV2(
+      'test pipeline name',
+      'test display name',
+      'test description',
+      new File([], 'test name'),
+      'test-ns',
+      'https://github.com/example/repo',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'apis/v2beta1/pipelines/upload?name=' +
+        encodeURIComponent('test pipeline name') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
+        '&description=' +
+        encodeURIComponent('test description') +
+        '&namespace=' +
+        encodeURIComponent('test-ns') +
+        '&code_source_url=' +
+        encodeURIComponent('https://github.com/example/repo'),
+      {
+        body: expect.anything(),
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        method: 'POST',
+      },
+    );
+  });
+
+  it('uploadPipelineVersionV2 with codeSourceUrl', async () => {
+    const spy = fetchSpy(JSON.stringify({ pipeline_version_id: 'new-version-id' }));
+    await Apis.uploadPipelineVersionV2(
+      'test version name',
+      'test display name',
+      'test-pipeline-id',
+      new File([], 'test name'),
+      'test description',
+      'https://github.com/example/repo',
+    );
+    expect(spy).toHaveBeenCalledWith(
+      'apis/v2beta1/pipelines/upload_version?name=' +
+        encodeURIComponent('test version name') +
+        '&pipelineid=' +
+        encodeURIComponent('test-pipeline-id') +
+        '&display_name=' +
+        encodeURIComponent('test display name') +
+        '&description=' +
+        encodeURIComponent('test description') +
+        '&code_source_url=' +
+        encodeURIComponent('https://github.com/example/repo'),
       {
         body: expect.anything(),
         cache: 'no-cache',

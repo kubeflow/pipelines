@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> V2beta1Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags)
+> V2beta1Pipeline upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
 
 
 
@@ -53,9 +53,10 @@ display_name = 'display_name_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
 namespace = 'namespace_example' # str |  (optional)
 tags = 'tags_example' # str | JSON-encoded map of key-value pairs for pipeline tags. (optional)
+code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline source code. (optional)
 
     try:
-        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags)
+        api_response = api_instance.upload_pipeline(uploadfile, name=name, display_name=display_name, description=description, namespace=namespace, tags=tags, code_source_url=code_source_url)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline: %s\n" % e)
@@ -71,6 +72,7 @@ Name | Type | Description  | Notes
  **description** | **str**|  | [optional] 
  **namespace** | **str**|  | [optional] 
  **tags** | **str**| JSON-encoded map of key-value pairs for pipeline tags. | [optional] 
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
 
 ### Return type
 
@@ -94,7 +96,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **upload_pipeline_version**
-> V2beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags)
+> V2beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags, code_source_url=code_source_url)
 
 
 
@@ -138,9 +140,10 @@ display_name = 'display_name_example' # str |  (optional)
 pipelineid = 'pipelineid_example' # str |  (optional)
 description = 'description_example' # str |  (optional)
 tags = 'tags_example' # str | JSON-encoded map of key-value pairs for pipeline version tags. (optional)
+code_source_url = 'code_source_url_example' # str | Optional URL to the pipeline source code. (optional)
 
     try:
-        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags)
+        api_response = api_instance.upload_pipeline_version(uploadfile, name=name, display_name=display_name, pipelineid=pipelineid, description=description, tags=tags, code_source_url=code_source_url)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling PipelineUploadServiceApi->upload_pipeline_version: %s\n" % e)
@@ -156,6 +159,7 @@ Name | Type | Description  | Notes
  **pipelineid** | **str**|  | [optional] 
  **description** | **str**|  | [optional] 
  **tags** | **str**| JSON-encoded map of key-value pairs for pipeline version tags. | [optional] 
+ **code_source_url** | **str**| Optional URL to the pipeline source code. | [optional] 
 
 ### Return type
 

@@ -298,7 +298,7 @@ def main(argv):
   )
   import_model_evaluation_response = client.import_model_evaluation(
       parent=parsed_args.model_name,
-      model_evaluation=model_evaluation,
+      model_evaluation=model_evaluation,  # pyrefly: ignore[bad-argument-type]
   )
   model_evaluation_name = import_model_evaluation_response.name
 
@@ -354,7 +354,7 @@ def main(argv):
 
     def batch_import_slices_list(slices_list) -> Iterable[str]:
       for i in range(0, len(slices_list), SLICE_BATCH_IMPORT_LIMIT):
-        yield client.batch_import_model_evaluation_slices(
+        yield client.batch_import_model_evaluation_slices(  # pyrefly: ignore[invalid-yield]
             parent=model_evaluation_name,
             model_evaluation_slices=slices_list[
                 i : i + SLICE_BATCH_IMPORT_LIMIT

@@ -16,6 +16,7 @@ __version__ = '2.15.2'
 
 __all__ = [
     'add_ephemeral_volume',
+    'add_init_container',
     'add_node_selector',
     'add_node_selector_json',
     'add_node_affinity',
@@ -45,6 +46,7 @@ from kfp.kubernetes.empty_dir import empty_dir_mount
 from kfp.kubernetes.field import use_field_path_as_env
 from kfp.kubernetes.image import set_image_pull_policy
 from kfp.kubernetes.image import set_image_pull_secrets
+from kfp.kubernetes.init_container import add_init_container
 from kfp.kubernetes.node_selector import add_node_selector
 from kfp.kubernetes.node_selector import add_node_selector_json
 from kfp.kubernetes.node_affinity import add_node_affinity

@@ -142,7 +142,7 @@ spec:
           name: data
         resources:
           requests:
-            cpu: 128m
+            cpu: 64m
             memory: 256Mi
       volumes:
       - name: data

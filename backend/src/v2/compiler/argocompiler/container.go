@@ -23,7 +23,6 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/config/proxy"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -130,6 +129,25 @@ func GetLauncherCommand() []string {
 	return strings.Split(launcherCommand, " ")
 }
 
+// pipelineLogLevelArg resolves the log level from the environment, defaulting
+// to "1". The driver requires --log_level, so the compiler always emits it
+// rather than conditionally omitting the flag.
+func pipelineLogLevelArg() string {
+	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
+		return value
+	}
+	return "1"
+}
+
+// publishLogsArg resolves whether to publish component logs from the
+// environment, defaulting to "true".
+func publishLogsArg() string {
+	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
+		return value
+	}
+	return "true"
+}
+
 func GetPipelineRunAsUser() *int64 {
 	runAsUserStr := os.Getenv(PipelineRunAsUserEnvVar)
 	if runAsUserStr == "" {
@@ -215,29 +233,25 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 		"--mlmd_server_address", metadata.GetMetadataConfig().Address,
 		"--mlmd_server_port", metadata.GetMetadataConfig().Port,
 	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if c.mlPipelineTLSEnabled {
-		args = append(args, "--ml_pipeline_tls_enabled")
-	}
-	if common.GetMetadataTLSEnabled() {
-		args = append(args, "--metadata_tls_enabled")
-	}
+	args = append(args,
+		"--cache_disabled="+strconv.FormatBool(c.cacheDisabled),
+		"--log_level", pipelineLogLevelArg(),
+		"--publish_logs", publishLogsArg(),
+		"--ml_pipeline_tls_enabled="+strconv.FormatBool(c.mlPipelineTLSEnabled),
+		"--metadata_tls_enabled="+strconv.FormatBool(common.GetMetadataTLSEnabled()),
+	)
 
+	// Always passed; empty unless a custom CA bundle is configured.
+	caCertPath := ""
 	setCABundle := false
-	// If CABUNDLE_SECRET_NAME or CABUNDLE_CONFIGMAP_NAME is set, add ca_cert_path arg to container driver.
 	if common.GetCaBundleSecretName() != "" || common.GetCaBundleConfigMapName() != "" {
-		args = append(args, "--ca_cert_path", common.CustomCaCertPath)
+		caCertPath = common.CustomCaCertPath
 		setCABundle = true
 	}
+	args = append(args, "--ca_cert_path", caCertPath)
 
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
-	}
+	// Admin defaults are emitted only when configured; an unset default is
+	// indistinguishable from "not set", so these stay optional (not required).
 	if c.defaultRunAsUser != nil {
 		args = append(args, "--default_run_as_user", strconv.FormatInt(*c.defaultRunAsUser, 10))
 	}
@@ -281,6 +295,9 @@ func (c *workflowCompiler) addContainerDriverTemplate() string {
 	}
 	setRuntimeRole(template, util.ExecutionRuntimeRoleDriver)
 	applySecurityContextToTemplate(template)
+
+	applyDriverPodConfig(c.driverPodConfig, template)
+
 	// If TLS is enabled (apiserver or metadata), add the custom CA bundle to the container driver template.
 	if setCABundle {
 		ConfigureCustomCABundle(template)
@@ -319,13 +336,9 @@ func (c *workflowCompiler) containerExecutorTask(name string, inputs containerEx
 		return nil, fmt.Errorf("component reference is nil")
 	}
 
-	// Retrieve pod metadata defined in the Kubernetes Spec, if any
-	kubernetesConfigParam := c.wf.Spec.Arguments.GetParameterByName(argumentsKubernetesSpec + refName)
-	k8sExecCfg := &kubernetesplatform.KubernetesExecutorConfig{}
-	if kubernetesConfigParam != nil && kubernetesConfigParam.Value != nil {
-		if err := protojson.Unmarshal([]byte((*kubernetesConfigParam.Value)), k8sExecCfg); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kubernetes config: %v", err)
-		}
+	k8sExecCfg := c.kubernetesConfigs[refName]
+	if k8sExecCfg == nil {
+		k8sExecCfg = &kubernetesplatform.KubernetesExecutorConfig{}
 	}
 	dagTask := &wfapi.DAGTask{
 		Name:     name,
@@ -438,15 +451,6 @@ func (c *workflowCompiler) addContainerExecutorTemplate(task *pipelinespec.Pipel
 
 	args := []string{
 		"--copy", component.KFPLauncherPath,
-	}
-	if c.cacheDisabled {
-		args = append(args, "--cache_disabled")
-	}
-	if value, ok := os.LookupEnv(PipelineLogLevelEnvVar); ok {
-		args = append(args, "--log_level", value)
-	}
-	if value, ok := os.LookupEnv(PublishLogsEnvVar); ok {
-		args = append(args, "--publish_logs", value)
 	}
 	executor := &wfapi.Template{
 		Name: nameContainerImpl,

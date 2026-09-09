@@ -426,6 +426,38 @@ func Test_resolveContainerArgs(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name: "IfPresent with artifact present",
+			args: []string{
+				`{"IfPresent": {"InputName": "model", "Then": ["--model", "{{$.inputs.artifacts['model'].uri}}"], "Else": ["--no-model"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"model": {
+							Artifacts: []*pipelinespec.RuntimeArtifact{{Uri: "s3://bucket/model"}},
+						},
+					},
+				},
+			},
+			expected: []string{"--model", "{{$.inputs.artifacts['model'].uri}}"},
+			wantErr:  false,
+		},
+		{
+			name: "IfPresent with empty artifact list",
+			args: []string{
+				`{"IfPresent": {"InputName": "model", "Then": ["--model"], "Else": ["--no-model"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					Artifacts: map[string]*pipelinespec.ArtifactList{
+						"model": {},
+					},
+				},
+			},
+			expected: []string{"--no-model"},
+			wantErr:  false,
+		},
+		{
 			name: "input parameter channel",
 			args: []string{
 				"{{$.inputs.parameters['pipelinechannel--someParameterName']}}",
@@ -526,6 +558,37 @@ func Test_resolveContainerArgs(t *testing.T) {
 				"mkdir -p /tmp/kfp/outputs && echo {{$.inputs.parameters['result']}} > {{$.outputs.parameters['sum'].output_file}}",
 			},
 			wantErr: false,
+		},
+		{
+			name: "output placeholder in selected IfPresent branch should be preserved",
+			args: []string{
+				`{"IfPresent": {"InputName": "write_output", "Then": ["{{$.outputs.parameters['result'].output_file}}"], "Else": ["--skip-output"]}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"write_output": structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"{{$.outputs.parameters['result'].output_file}}"},
+			wantErr:  false,
+		},
+		{
+			name: "structured placeholders in selected IfPresent branch",
+			args: []string{
+				`{"IfPresent": {"InputName": "write_output", "Then": {"Concat": ["--out=", {"IfPresent": {"InputName": "use_uri", "Then": "{{$.outputs.artifacts['result'].uri}}", "Else": "disabled"}}]}}}`,
+			},
+			executorInput: &pipelinespec.ExecutorInput{
+				Inputs: &pipelinespec.ExecutorInput_Inputs{
+					ParameterValues: map[string]*structpb.Value{
+						"write_output": structpb.NewBoolValue(true),
+						"use_uri":      structpb.NewBoolValue(true),
+					},
+				},
+			},
+			expected: []string{"--out={{$.outputs.artifacts['result'].uri}}"},
+			wantErr:  false,
 		},
 		{
 			name: "embedded placeholder in fstring should be template-substituted",

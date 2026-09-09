@@ -546,6 +546,58 @@ func TestConfigWrapperCustomValues(t *testing.T) {
 	}
 }
 
+// TestRunGarbageCollectionConfigEnvVars locks the contract that the apiserver
+// deployment relies on: viper.AutomaticEnv() uppercases the config key to
+// derive the env var name. If these names drift, the GC silently falls back
+// to its disabled/default values.
+func TestRunGarbageCollectionConfigEnvVars(t *testing.T) {
+	t.Run("retention times read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_RETENTION_TIME", "720h")
+		t.Setenv("ARCHIVED_RUNS_RETENTION_TIME", "2160h")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 720*time.Hour, GetRunsRetentionTime())
+		assert.Equal(t, 2160*time.Hour, GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("interval and batch size read from uppercased env vars", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "1h")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "250")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 250, GetRunsGCBatchSize())
+	})
+
+	t.Run("empty retention keeps GC disabled", func(t *testing.T) {
+		viper.Reset()
+		viper.AutomaticEnv()
+
+		assert.Equal(t, time.Duration(0), GetRunsRetentionTime())
+		assert.Equal(t, time.Duration(0), GetArchivedRunsRetentionTime())
+	})
+
+	t.Run("non-positive interval and batch size fall back to defaults", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_INTERVAL", "0s")
+		t.Setenv("RUNS_GC_BATCH_SIZE", "0")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 6*time.Hour, GetRunsGCInterval())
+		assert.Equal(t, 100, GetRunsGCBatchSize())
+	})
+
+	t.Run("batch size exceeding upper bound is clamped to 1000", func(t *testing.T) {
+		viper.Reset()
+		t.Setenv("RUNS_GC_BATCH_SIZE", "5000")
+		viper.AutomaticEnv()
+
+		assert.Equal(t, 1000, GetRunsGCBatchSize())
+	})
+}
+
 func TestGetClusterDomain(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -794,4 +846,68 @@ func TestGetPluginLimitsConfigConflictingSourceUsesGetterContract(t *testing.T) 
 	limits, err := GetPluginLimitsConfig()
 	require.NoError(t, err)
 	assert.Equal(t, 9, limits.MaxKeys)
+}
+
+func TestValidateServiceAccountAllowList_AllowedSA(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "custom-sa")
+	err := ValidateServiceAccountAllowList("custom-sa")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_DisallowedSA(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "other-sa")
+	err := ValidateServiceAccountAllowList("evil-sa")
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestValidateServiceAccountAllowList_DefaultAlwaysAllowed(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList(DefaultPipelineRunnerServiceAccount)
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_EmptyListRejectsCustom(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList("custom-sa")
+	require.NotNil(t, err)
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+func TestValidateServiceAccountAllowList_MultipleSAs(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "sa1,sa2,sa3")
+	err := ValidateServiceAccountAllowList("sa2")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_WhitespaceTrimming(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, " sa1 , sa2 ")
+	err := ValidateServiceAccountAllowList("sa1")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_EmptyStringAllowed(t *testing.T) {
+	viper.Reset()
+	err := ValidateServiceAccountAllowList("")
+	assert.Nil(t, err)
+}
+
+func TestValidateServiceAccountAllowList_ErrorDoesNotLeakAllowList(t *testing.T) {
+	viper.Reset()
+	viper.Set(AllowedServiceAccountsFlag, "secret-sa-1,secret-sa-2")
+	err := ValidateServiceAccountAllowList("evil-sa")
+	require.NotNil(t, err)
+	assert.NotContains(t, err.Error(), "secret-sa-1")
+	assert.NotContains(t, err.Error(), "secret-sa-2")
+}
+
+func TestValidateServiceAccountAllowList_ConfiguredDefaultAllowed(t *testing.T) {
+	viper.Reset()
+	viper.Set(DefaultPipelineRunnerServiceAccountFlag, "my-runner")
+	err := ValidateServiceAccountAllowList("my-runner")
+	assert.Nil(t, err)
 }

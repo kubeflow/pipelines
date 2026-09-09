@@ -133,7 +133,7 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 		var pipelineDir = "valid/critical"
 		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
 		for _, pipelineFile := range pipelineFiles {
-			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), Label(E2eCriticalShardForPipeline(pipelineFile)), FlakeAttempts(2), func() {
 				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
@@ -232,6 +232,19 @@ var _ = Describe("Upload and Verify Pipeline Run >", Label(FullRegression), func
 				Expect(updatedRun.State).NotTo(BeNil(), "Updated pipeline run state is Nil")
 				Expect(*updatedRun.State).To(Equal(run_model.V2beta1RuntimeStateFAILED), "Pipeline run was expected to fail, but is "+*updatedRun.State)
 
+			})
+		}
+	})
+
+	// Schedule-only NVIDIA GPU check (Kind + FGO fake). Does not assert CUDA/torch.
+	// Filter with --label-filter=gpu-scheduling-check. Without a filter this also
+	// runs and needs a cluster that advertises nvidia.com/gpu (real or FGO fake).
+	Context("GPU scheduling check >", Label(E2eGpuSchedulingCheck), func() {
+		var pipelineDir = "valid/gpu-scheduling"
+		pipelineFiles := testutil.GetListOfFilesInADir(filepath.Join(testutil.GetPipelineFilesDir(), pipelineDir))
+		for _, pipelineFile := range pipelineFiles {
+			It(fmt.Sprintf("Upload %s pipeline", pipelineFile), FlakeAttempts(2), func() {
+				validatePipelineRunSuccess(pipelineFile, pipelineDir, testContext)
 			})
 		}
 	})

@@ -51,12 +51,25 @@ swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json
 echo "Removing old content in DIR first."
 rm -rf "$DIR"
 
+generator_options=()
+if [[ "$API_VERSION" == "v1beta1" ]]; then
+    generator_options+=(
+        --global-property
+        apiTests=false,modelTests=false
+    )
+fi
+
 echo "Generating python code from swagger json in $DIR."
-java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" -c <(echo '{
+java -jar "$codegen_file" generate -g python -t "$CURRENT_DIR/$API_VERSION/python_http_client_template" -i "$swagger_file" -o "$DIR" \
+    "${generator_options[@]}" -c <(echo '{
     "packageName": "'"kfp_server_api"'",
     "packageVersion": "'"$VERSION"'",
     "packageUrl": "https://github.com/kubeflow/pipelines"
 }')
+
+if [[ "$API_VERSION" == "v1beta1" ]]; then
+    rm "$DIR/tox.ini" "$DIR/test-requirements.txt"
+fi
 
 echo "Removing unnecessary GitLab and TravisCI generated files"
 rm $CURRENT_DIR/$API_VERSION/python_http_client/.gitlab-ci.yml

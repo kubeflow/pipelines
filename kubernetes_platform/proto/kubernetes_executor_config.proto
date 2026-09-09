@@ -41,6 +41,7 @@ message KubernetesExecutorConfig {
     EnabledSharedMemory enabled_shared_memory = 16;
     repeated EmptyDirMount empty_dir_mounts = 17;
     SecurityContext security_context = 18;
+    repeated InitContainer init_containers = 19;
 }
 
 message EnabledSharedMemory {
@@ -313,4 +314,54 @@ message EmptyDirMount {
     string mount_path = 2;
     optional string medium = 3;
     optional string size_limit = 4;
+}
+
+// Init container that runs to completion before the main container starts.
+// https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
+message InitContainer {
+    // Name of the init container. Must be unique within the pod. The name
+    // "kfp-launcher" is reserved for the launcher init container injected
+    // by the compiler.
+    string name = 1;
+    // Container image of the init container.
+    string image = 2;
+    // Entrypoint array. Corresponds to Container.command.
+    repeated string command = 3;
+    // Arguments to the entrypoint. Corresponds to Container.args.
+    repeated string args = 4;
+
+    message EnvVar {
+        // Name of the environment variable.
+        string name = 1;
+        // Value of the environment variable.
+        string value = 2;
+    }
+    // Environment variables to set in the init container.
+    repeated EnvVar env = 5;
+
+    message VolumeMount {
+        // Name of a volume defined on the pod, for example via
+        // empty_dir_mounts, pvc_mount or generic_ephemeral_volume.
+        string volume_name = 1;
+        // Path within the init container at which the volume should be mounted.
+        string mount_path = 2;
+    }
+    // Volumes to mount into the init container. Each referenced volume must
+    // be defined on the pod through other fields of this config.
+    repeated VolumeMount volume_mounts = 6;
+
+    // Restart policy for the init container. The only supported value is
+    // "Always", which turns the init container into a Kubernetes native
+    // sidecar that keeps running alongside the main container.
+    // https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+    optional string restart_policy = 7;
+
+    message ResourceRequirements {
+        // Resource name to Kubernetes quantity, for example cpu: "500m".
+        map<string, string> requests = 1;
+        map<string, string> limits = 2;
+    }
+    // Compute resource requests and limits for the init container.
+    // Corresponds to Container.resources.
+    ResourceRequirements resources = 8;
 }

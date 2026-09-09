@@ -56,12 +56,13 @@ var _ = BeforeEach(func() {
 var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.PipelineRun, constants.APIServerTests, constants.FullRegression), func() {
 
 	type TestParams struct {
-		pipelineCacheEnabled bool
+		pipelineCacheDisabled bool
+		cacheLabel            string
 	}
 
 	testParams := []TestParams{
-		{pipelineCacheEnabled: true},
-		{pipelineCacheEnabled: false},
+		{pipelineCacheDisabled: false, cacheLabel: constants.PipelineCacheEnabled},
+		{pipelineCacheDisabled: true, cacheLabel: constants.PipelineCacheDisabled},
 	}
 	pipelineDirectory := "valid"
 	pipelineFilePaths := testutil.GetListOfAllFilesInDir(filepath.Join(pipelineFilesRootDir, pipelineDirectory))
@@ -69,12 +70,12 @@ var _ = Describe("Verify Pipeline Run >", Label(constants.POSITIVE, constants.Pi
 	Context("Create a valid pipeline and verify the created run >", func() {
 		for _, param := range testParams {
 			for _, pipelineFilePath := range pipelineFilePaths {
-				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, param.pipelineCacheEnabled), func() {
+				It(fmt.Sprintf("Create a '%s' pipeline with cacheEnabled=%t and verify run", pipelineFilePath, !param.pipelineCacheDisabled), Label(param.cacheLabel), func() {
 					createdExperiment := createExperiment(experimentName)
 					pipelineFilePath := pipelineFilePath
 					pipelineFileName := filepath.Base(pipelineFilePath)
 					testutil.CheckIfSkipping(pipelineFileName)
-					configuredPipelineSpecFile := configureCacheSettingAndGetPipelineFile(pipelineFilePath, param.pipelineCacheEnabled)
+					configuredPipelineSpecFile := configureCacheSettingAndGetPipelineFile(pipelineFilePath, param.pipelineCacheDisabled)
 					createdPipeline := uploadAPipeline(configuredPipelineSpecFile, &testContext.Pipeline.PipelineGeneratedName)
 					createdPipelineVersion := testutil.GetLatestPipelineVersion(pipelineClient, &createdPipeline.PipelineID)
 					pipelineRuntimeInputs := testutil.GetPipelineRunTimeInputs(configuredPipelineSpecFile)
