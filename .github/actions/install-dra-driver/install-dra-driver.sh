@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 # Install DRA Example Driver via Helm from a pinned commit.
-# Env: DRIVER_COMMIT, NAMESPACE
+# Env: NAMESPACE
 
 set -euo pipefail
 
+driver_commit="bb67e6bac6b045a80498017ad60a1aa6b23eb9ce" # v0.2.1; latest driver tag compatible with Kubernetes 1.34.
 driver_dir="/tmp/dra-example-driver"
-echo "Fetching dra-example-driver at ${DRIVER_COMMIT}..."
+echo "Fetching dra-example-driver at ${driver_commit}..."
 git init --quiet "${driver_dir}"
 git -C "${driver_dir}" remote add origin \
   https://github.com/kubernetes-sigs/dra-example-driver.git
-git -C "${driver_dir}" fetch --quiet --depth 1 origin "${DRIVER_COMMIT}"
+git -C "${driver_dir}" fetch --quiet --depth 1 origin "${driver_commit}"
 git -C "${driver_dir}" checkout --quiet --detach FETCH_HEAD
 
 actual_commit=$(git -C "${driver_dir}" rev-parse HEAD)
-if [[ "${actual_commit}" != "${DRIVER_COMMIT}" ]]; then
-  echo "ERROR: Expected DRA driver commit ${DRIVER_COMMIT}, got ${actual_commit}" >&2
+if [[ "${actual_commit}" != "${driver_commit}" ]]; then
+  echo "ERROR: Expected DRA driver commit ${driver_commit}, got ${actual_commit}" >&2
   exit 1
 fi
 

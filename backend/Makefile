@@ -172,8 +172,6 @@ dev-kind-cluster:
 
 .PHONY: install-dra-driver
 install-dra-driver:
-	# v0.2.1; latest driver tag compatible with Kubernetes 1.34.
-	DRIVER_COMMIT="bb67e6bac6b045a80498017ad60a1aa6b23eb9ce" \
 	NAMESPACE="$(DRA_DRIVER_NAMESPACE)" \
 	bash "$(MOD_ROOT)/.github/actions/install-dra-driver/install-dra-driver.sh"
 
