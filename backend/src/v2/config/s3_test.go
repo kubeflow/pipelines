@@ -115,6 +115,11 @@ func TestS3ProvideSessionInfoMaxRetries(t *testing.T) {
 	}
 }
 
+// The override-bypass regression cases (override/default winning over a
+// hostile query, the allowUnmanagedProviderQueries gate, and the SSRF/
+// disableSSL guardrails) live in provider_policy_conformance_test.go,
+// shared with the frontend's mirror implementation. See kubeflow/pipelines#14046.
+
 func TestS3ProvideSessionInfoOverrideKeepsRemainingParams(t *testing.T) {
 	providerConfig := S3ProviderConfig{
 		Default: &S3ProviderDefault{

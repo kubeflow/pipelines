@@ -453,7 +453,15 @@ export function getArtifactsHandler({
         break;
       case 'minio':
         try {
-          client = await createMinioClient(minio, 'minio', effectiveProviderInfo, namespace);
+          client = await createMinioClient(
+            minio,
+            'minio',
+            effectiveProviderInfo,
+            namespace,
+            undefined,
+            bucket,
+            key,
+          );
         } catch (e) {
           sendArtifactError(res, 500, `Failed to initialize Minio Client for Minio Provider: ${e}`);
           return;
@@ -471,7 +479,15 @@ export function getArtifactsHandler({
         break;
       case 's3':
         try {
-          client = await createMinioClient(aws, 's3', effectiveProviderInfo, namespace);
+          client = await createMinioClient(
+            aws,
+            's3',
+            effectiveProviderInfo,
+            namespace,
+            undefined,
+            bucket,
+            key,
+          );
         } catch (e) {
           sendArtifactError(res, 500, `Failed to initialize Minio Client for S3 Provider: ${e}`);
           return;

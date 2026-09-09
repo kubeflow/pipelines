@@ -19,9 +19,41 @@ import { URL } from 'url';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
 import { isAWSS3Endpoint } from './aws-helper.js';
 import { S3ProviderInfo } from './handlers/artifacts.js';
-import { getK8sSecret } from './k8s-helper.js';
+import { getConfigMap, getK8sSecret } from './k8s-helper.js';
 import { parseJSONString } from './utils.js';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { load as jsYamlLoad } from 'js-yaml';
+import { BucketProviders, resolveS3ProviderInfo } from './helpers/provider-policy.js';
+
+const LAUNCHER_CONFIGMAP_NAME = 'kfp-launcher';
+
+/**
+ * Loads the same admin S3/MinIO provider policy the Go launcher reads from
+ * the `kfp-launcher` ConfigMap, so this server can independently enforce it.
+ * Returns null (not an error) when the ConfigMap or its `providers` key is
+ * absent -- that's a normal, unconfigured deployment.
+ */
+async function loadBucketProviders(namespace: string): Promise<BucketProviders | null> {
+  let configMap;
+  let error;
+  try {
+    [configMap, error] = await getConfigMap(LAUNCHER_CONFIGMAP_NAME, namespace);
+  } catch (e) {
+    console.warn(
+      `Failed to load ${LAUNCHER_CONFIGMAP_NAME} config, treating as unconfigured: ${e}`,
+    );
+    return null;
+  }
+  if (error || !configMap?.data?.providers) {
+    return null;
+  }
+  try {
+    return (jsYamlLoad(configMap.data.providers) as BucketProviders) ?? null;
+  } catch (e) {
+    console.warn(`Ignoring malformed ${LAUNCHER_CONFIGMAP_NAME} providers config: ${e}`);
+    return null;
+  }
+}
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
   bucket: string;
@@ -70,6 +102,9 @@ export interface Credentials {
  * @param namespace
  * @param customCredentialProvider An optional function which can be added to resolve credentials from a non-standard source. Useful
  * for enterprises who may have bespoke credential retrieval processes or for refreshing short-lived tokens.
+ * @param bucket bucket name, used to independently check providerInfoString against the same
+ * admin S3/MinIO provider policy (kfp-launcher ConfigMap) the Go launcher enforces.
+ * @param key object key, used the same way as bucket for provider-policy matching.
  */
 export async function createMinioClient(
   config: MinioClientOptionsWithOptionalSecrets,
@@ -77,6 +112,8 @@ export async function createMinioClient(
   providerInfoString?: string,
   namespace?: string,
   customCredentialProvider?: () => Promise<Credentials> | Credentials,
+  bucket?: string,
+  key?: string,
 ) {
   if (customCredentialProvider) {
     try {
@@ -112,7 +149,14 @@ export async function createMinioClient(
       if (!namespace) {
         throw new Error('Artifact Store provider given, but no namespace provided.');
       } else {
-        config = await parseS3ProviderInfo(config, providerInfo, namespace);
+        config = await parseS3ProviderInfo(
+          config,
+          providerInfo,
+          namespace,
+          providerType === 's3' ? 's3' : 'minio',
+          bucket ?? '',
+          key ?? '',
+        );
       }
     }
   }
@@ -233,38 +277,73 @@ function parseEndpoint(
  * dropped for user namespaces and credentials fall back to the server's own
  * environment credentials or the per-namespace artifact proxy.
  * See: https://github.com/kubeflow/pipelines/pull/12860
+ *
+ * Security: Before honoring providerInfo's endpoint/region/disableSSL/secret
+ * fields, this independently re-derives the effective provider info from the
+ * same kfp-launcher admin policy (see resolveS3ProviderInfo) the Go launcher
+ * enforces -- an admin-configured default/override always wins over
+ * providerInfo, and an unmanaged query is subject to the same
+ * SSRF/TLS-downgrade guardrails. See kubeflow/pipelines#14046.
  */
 async function parseS3ProviderInfo(
   config: MinioClientOptionsWithOptionalSecrets,
-  providerInfo: S3ProviderInfo,
+  requestedProviderInfo: S3ProviderInfo,
   namespace: string,
+  provider: 's3' | 'minio',
+  bucket: string,
+  key: string,
 ): Promise<MinioClientOptionsWithOptionalSecrets> {
-  if (
-    !providerInfo.Params.accessKeyKey ||
-    !providerInfo.Params.secretKeyKey ||
-    !providerInfo.Params.secretName
-  ) {
-    throw new Error(
-      'Provider info with fromEnv:false supplied with incomplete secret credential info.',
-    );
+  const bucketProviders = await loadBucketProviders(namespace);
+  const decision = resolveS3ProviderInfo(
+    bucketProviders,
+    provider,
+    bucket,
+    key,
+    requestedProviderInfo,
+  );
+  if (!decision.allowed) {
+    throw new Error(decision.rejectionReason);
   }
+  if (!decision.effectiveProviderInfo) {
+    // No admin config and no client-supplied provider info to apply --
+    // nothing left to do here; the caller falls back to environment
+    // credentials.
+    return config;
+  }
+  const providerInfo = decision.effectiveProviderInfo;
 
-  try {
-    config.accessKey = await getK8sSecret(
-      providerInfo.Params.secretName,
-      providerInfo.Params.accessKeyKey,
-      namespace,
-    );
-    config.secretKey = await getK8sSecret(
-      providerInfo.Params.secretName,
-      providerInfo.Params.secretKeyKey,
-      namespace,
-    );
-  } catch (e) {
-    throw new Error(
-      `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
-      { cause: e },
-    );
+  // An admin-configured default/override can resolve to fromEnv:true even
+  // when the original request asked for fromEnv:false -- the admin's
+  // decision always wins, so only fetch a Secret when the *effective*
+  // provider info still calls for one.
+  if (providerInfo.Params.fromEnv === 'false') {
+    if (
+      !providerInfo.Params.accessKeyKey ||
+      !providerInfo.Params.secretKeyKey ||
+      !providerInfo.Params.secretName
+    ) {
+      throw new Error(
+        'Provider info with fromEnv:false supplied with incomplete secret credential info.',
+      );
+    }
+
+    try {
+      config.accessKey = await getK8sSecret(
+        providerInfo.Params.secretName,
+        providerInfo.Params.accessKeyKey,
+        namespace,
+      );
+      config.secretKey = await getK8sSecret(
+        providerInfo.Params.secretName,
+        providerInfo.Params.secretKeyKey,
+        namespace,
+      );
+    } catch (e) {
+      throw new Error(
+        `Encountered error when trying to fetch provider secret ${providerInfo.Params.secretName}.`,
+        { cause: e },
+      );
+    }
   }
 
   if (isAWSS3Endpoint(providerInfo.Params.endpoint)) {
