@@ -46,6 +46,9 @@ func ListPipelines(client *api_server.PipelineClient, namespace *string) []*pipe
 // UploadPipeline - Upload a pipeline
 func UploadPipeline(pipelineUploadClient api_server.PipelineUploadInterface, pipelineFilePath string, pipelineName *string, pipelineDisplayName *string) (*model.V2beta1Pipeline, error) {
 	uploadParams := upload_params.NewUploadPipelineParams()
+	if *test_config.MultiUserMode || *test_config.KubeflowMode || *test_config.AuthToken != "" {
+		uploadParams.SetNamespace(test_config.UserNamespace)
+	}
 	uploadParams.SetName(pipelineName)
 	if pipelineDisplayName != nil {
 		uploadParams.SetDisplayName(pipelineDisplayName)
