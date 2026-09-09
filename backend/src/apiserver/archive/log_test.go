@@ -143,6 +143,25 @@ func TestGetLogObjectKey_InvalidConfig(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestGetLogObjectKey_RejectsPathTraversalNodeID(t *testing.T) {
+	logArchive := initLogArchive()
+	workflow := util.NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{Name: "MY_NAME"},
+	})
+
+	for _, nodeID := range []string{
+		"../../other-run/node",
+		"..",
+		"node/../../etc/passwd",
+		`..\other-run`,
+		"a/b",
+	} {
+		key, err := logArchive.GetLogObjectKey(workflow, nodeID)
+		assert.NotNil(t, err, "node id %q should be rejected", nodeID)
+		assert.Empty(t, key)
+	}
+}
+
 func TestCopyLogFromArchive_FromJsonToJson(t *testing.T) {
 	logArchive := initLogArchive()
 	opts := ExtractLogOptions{LogFormat: LogFormatJSON}
