@@ -45,20 +45,28 @@ func TestUploadPipelineUsesTenantNamespace(t *testing.T) {
 		kubeflow      bool
 		token         string
 		wantNamespace bool
+		kubernetes    bool
 	}{
 		{name: "single user"},
 		{name: "multi user", multiUser: true, wantNamespace: true},
 		{name: "kubeflow", kubeflow: true, wantNamespace: true},
 		{name: "explicit token", token: "test-token", wantNamespace: true},
+		{name: "kubernetes single user", kubernetes: true},
+		{name: "kubernetes multi user", kubernetes: true, multiUser: true},
+		{name: "kubernetes kubeflow", kubernetes: true, kubeflow: true},
+		{name: "kubernetes explicit token", kubernetes: true, token: "test-token"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			previousMultiUser, previousKubeflow := *config.MultiUserMode, *config.KubeflowMode
+			previousKubernetes := *config.UploadPipelinesWithKubernetes
 			previousToken, previousNamespace, previousImage := *config.AuthToken, *config.UserNamespace, *config.BaseImage
 			t.Cleanup(func() {
+				*config.UploadPipelinesWithKubernetes = previousKubernetes
 				*config.MultiUserMode, *config.KubeflowMode = previousMultiUser, previousKubeflow
 				*config.AuthToken, *config.UserNamespace, *config.BaseImage = previousToken, previousNamespace, previousImage
 			})
 			*config.MultiUserMode, *config.KubeflowMode = tc.multiUser, tc.kubeflow
+			*config.UploadPipelinesWithKubernetes = tc.kubernetes
 			*config.AuthToken, *config.UserNamespace, *config.BaseImage = tc.token, "test-tenant", ""
 			path := filepath.Join(t.TempDir(), "pipeline.yaml")
 			require.NoError(t, os.WriteFile(path, []byte("pipelineInfo:\n  name: test-pipeline\n"), 0600))
