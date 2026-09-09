@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
-import os
 import base64
 import hashlib
+from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
+import json
+import os
 
 # From awscli installed in alpine/k8s image
 import botocore.session
@@ -25,19 +26,66 @@ S3_BUCKET_NAME = 'mlpipeline'
 
 session = botocore.session.get_session()
 # S3 client for lifecycle policy and bucket policy management
-s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL", "http://seaweedfs.kubeflow:8333")
-s3 = session.create_client('s3', region_name='foobar', endpoint_url=s3_endpoint_url)
+s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL",
+                                 "http://seaweedfs.kubeflow:8333")
+s3 = session.create_client(
+    's3', region_name='foobar', endpoint_url=s3_endpoint_url)
 
 
 def _normalize_domain(domain):
     return domain if domain.startswith('.') else '.' + domain
 
 
+def artifact_server_environment(namespace, cluster_domain,
+                                allowed_artifact_endpoints):
+    return [
+        {
+            "name": "MINIO_ACCESS_KEY",
+            "valueFrom": {
+                "secretKeyRef": {
+                    "key": "accesskey",
+                    "name": "mlpipeline-minio-artifact"
+                }
+            }
+        },
+        {
+            "name": "MINIO_SECRET_KEY",
+            "valueFrom": {
+                "secretKeyRef": {
+                    "key": "secretkey",
+                    "name": "mlpipeline-minio-artifact"
+                }
+            }
+        },
+        {
+            "name": "ML_PIPELINE_SERVICE_HOST",
+            "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
+        },
+        {
+            "name": "ML_PIPELINE_SERVICE_PORT",
+            "value": "8888"
+        },
+        {
+            "name": "FRONTEND_SERVER_NAMESPACE",
+            "value": namespace,
+        },
+        {
+            "name": "CLUSTER_DOMAIN",
+            "value": cluster_domain,
+        },
+        {
+            "name": "ALLOWED_ARTIFACT_ENDPOINTS",
+            "value": allowed_artifact_endpoints,
+        },
+    ]
+
+
 def create_iam_client():
     # To interact with SeaweedFS user management. Region does not matter.
     endpoint_url = os.environ.get("AWS_ENDPOINT_URL")
     if endpoint_url:
-        return session.create_client('iam', region_name='foobar', endpoint_url=endpoint_url)
+        return session.create_client(
+            'iam', region_name='foobar', endpoint_url=endpoint_url)
     return session.create_client('iam', region_name='foobar')
 
 
@@ -55,11 +103,12 @@ def get_settings_from_env(controller_port=None,
                           frontend_tag=None,
                           disable_istio_sidecar=None,
                           artifacts_proxy_enabled=None,
+                          allowed_artifact_endpoints=None,
                           artifact_retention_days=None,
                           cluster_domain=None,
                           object_store_host=None):
-    """
-    Returns a dict of settings from environment variables relevant to the controller
+    """Returns a dict of settings from environment variables relevant to the
+    controller.
 
     Environment settings can be overridden by passing them here as arguments.
 
@@ -82,6 +131,10 @@ def get_settings_from_env(controller_port=None,
     settings["artifacts_proxy_enabled"] = \
         artifacts_proxy_enabled or \
         os.environ.get("ARTIFACTS_PROXY_ENABLED", "false")
+
+    settings["allowed_artifact_endpoints"] = \
+        allowed_artifact_endpoints if allowed_artifact_endpoints is not None \
+            else os.environ.get("ALLOWED_ARTIFACT_ENDPOINTS", "")
 
     settings["artifact_retention_days"] = \
         artifact_retention_days or \
@@ -115,29 +168,39 @@ def server_factory(frontend_image,
                    disable_istio_sidecar,
                    artifacts_proxy_enabled,
                    artifact_retention_days,
+                   allowed_artifact_endpoints="",
                    cluster_domain=".svc.cluster.local",
                    object_store_host="seaweedfs",
                    url="",
                    controller_port=8080):
-    """
-    Returns an HTTPServer populated with Handler with customized settings
-    """
+    """Returns an HTTPServer populated with Handler with customized
+    settings."""
+
     class Controller(BaseHTTPRequestHandler):
+
         def upsert_lifecycle_policy(self, bucket_name, artifact_retention_days):
-            """Configures or deletes the lifecycle policy based on the artifact_retention_days string."""
+            """Configures or deletes the lifecycle policy based on the
+            artifact_retention_days string."""
             try:
                 retention_days = int(artifact_retention_days)
             except ValueError:
-                print(f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update.")
+                print(
+                    f"ERROR: ARTIFACT_RETENTION_DAYS value '{artifact_retention_days}' is not a valid integer. Aborting policy update."
+                )
                 return
 
             # To disable lifecycle policy we need to delete it
             if retention_days <= 0:
-                print(f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy.")
+                print(
+                    f"ARTIFACT_RETENTION_DAYS is non-positive ({retention_days} days). Attempting to delete lifecycle policy."
+                )
                 try:
-                    response = s3.get_bucket_lifecycle_configuration(Bucket=bucket_name)
+                    response = s3.get_bucket_lifecycle_configuration(
+                        Bucket=bucket_name)
                     # Check if there are any enabled rules
-                    has_enabled_rules = any(rule.get('Status') == 'Enabled' for rule in response.get('Rules', []))
+                    has_enabled_rules = any(
+                        rule.get('Status') == 'Enabled'
+                        for rule in response.get('Rules', []))
 
                     if has_enabled_rules:
                         s3.delete_bucket_lifecycle(Bucket=bucket_name)
@@ -150,41 +213,49 @@ def server_factory(frontend_image,
 
             # Create/update lifecycle policy
             life_cycle_policy = {
-                "Rules": [
-                    {
-                        "Status": "Enabled",
-                        "Filter": {"Prefix": "private-artifacts"},
-                        "Expiration": {"Days": retention_days},
-                        "ID": "private-artifacts",
+                "Rules": [{
+                    "Status": "Enabled",
+                    "Filter": {
+                        "Prefix": "private-artifacts"
                     },
-                ]
+                    "Expiration": {
+                        "Days": retention_days
+                    },
+                    "ID": "private-artifacts",
+                },]
             }
             print('upsert_lifecycle_policy:', life_cycle_policy)
 
             try:
                 api_response = s3.put_bucket_lifecycle_configuration(
                     Bucket=bucket_name,
-                    LifecycleConfiguration = life_cycle_policy
-                )
+                    LifecycleConfiguration=life_cycle_policy)
                 print('Lifecycle policy configured successfully:', api_response)
             except Exception as exception:
-                if hasattr(exception, 'response') and 'Error' in exception.response:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}")
+                if hasattr(exception,
+                           'response') and 'Error' in exception.response:
+                    print(
+                        f"ERROR: Failed to configure lifecycle policy: {exception.response['Error']['Code']} - {exception}"
+                    )
                 else:
-                    print(f"ERROR: Failed to configure lifecycle policy: {exception}")
+                    print(
+                        f"ERROR: Failed to configure lifecycle policy: {exception}"
+                    )
 
         def ensure_bucket_list_policy(self, bucket_name):
             """Bucket-wide ListBucket isolation, keyed on ${aws:username}.
 
-            Top-level folder browsing is allowed for everyone; listing deeper
-            inside another namespace's private prefix is denied. HeadBucket
-            (KServe storage-initializer) is allowed. Set as a bucket policy
-            because the embedded user-policy engine is Allow-only and cannot
-            express Deny; SeaweedFS evaluates the bucket policy before it.
+            Top-level folder browsing is allowed for everyone; listing
+            deeper inside another namespace's private prefix is denied.
+            HeadBucket (KServe storage-initializer) is allowed. Set as a
+            bucket policy because the embedded user-policy engine is
+            Allow-only and cannot express Deny; SeaweedFS evaluates the
+            bucket policy before it.
             """
             bucket_arn = f"arn:aws:s3:::{bucket_name}"
             desired = {
-                "Version": "2012-10-17",
+                "Version":
+                    "2012-10-17",
                 "Statement": [
                     {
                         "Sid": "AllowOwnDeepList",
@@ -192,12 +263,16 @@ def server_factory(frontend_image,
                         "Principal": "*",
                         "Action": "s3:ListBucket",
                         "Resource": bucket_arn,
-                        "Condition": {"StringLike": {"s3:prefix": [
-                            "private-artifacts/${aws:username}/*",
-                            "private/${aws:username}/*",
-                            "artifacts/*",
-                            "shared/*",
-                        ]}},
+                        "Condition": {
+                            "StringLike": {
+                                "s3:prefix": [
+                                    "private-artifacts/${aws:username}/*",
+                                    "private/${aws:username}/*",
+                                    "artifacts/*",
+                                    "shared/*",
+                                ]
+                            }
+                        },
                     },
                     {
                         "Sid": "AllowHeadBucket",
@@ -205,7 +280,11 @@ def server_factory(frontend_image,
                         "Principal": "*",
                         "Action": "s3:ListBucket",
                         "Resource": bucket_arn,
-                        "Condition": {"StringEquals": {"s3:RequestMethod": "HEAD"}},
+                        "Condition": {
+                            "StringEquals": {
+                                "s3:RequestMethod": "HEAD"
+                            }
+                        },
                     },
                     {
                         "Sid": "AllowTopLevelDelimitedBrowse",
@@ -214,8 +293,12 @@ def server_factory(frontend_image,
                         "Action": "s3:ListBucket",
                         "Resource": bucket_arn,
                         "Condition": {
-                            "Null": {"s3:prefix": "true"},
-                            "StringEquals": {"s3:delimiter": "/"},
+                            "Null": {
+                                "s3:prefix": "true"
+                            },
+                            "StringEquals": {
+                                "s3:delimiter": "/"
+                            },
                         },
                     },
                     {
@@ -225,11 +308,17 @@ def server_factory(frontend_image,
                         "Action": "s3:ListBucket",
                         "Resource": bucket_arn,
                         "Condition": {
-                            "StringLike": {"s3:prefix": ["private-artifacts/*", "private/*"]},
-                            "StringNotLike": {"s3:prefix": [
-                                "private-artifacts/${aws:username}/*",
-                                "private/${aws:username}/*",
-                            ]},
+                            "StringLike": {
+                                "s3:prefix": [
+                                    "private-artifacts/*", "private/*"
+                                ]
+                            },
+                            "StringNotLike": {
+                                "s3:prefix": [
+                                    "private-artifacts/${aws:username}/*",
+                                    "private/${aws:username}/*",
+                                ]
+                            },
                         },
                     },
                 ],
@@ -237,18 +326,25 @@ def server_factory(frontend_image,
             desired_json = json.dumps(desired, sort_keys=True)
 
             try:
-                current = s3.get_bucket_policy(Bucket=bucket_name).get("Policy", "")
-                if current and json.dumps(json.loads(current), sort_keys=True) == desired_json:
+                current = s3.get_bucket_policy(Bucket=bucket_name).get(
+                    "Policy", "")
+                if current and json.dumps(
+                        json.loads(current), sort_keys=True) == desired_json:
                     return
             except Exception:
                 pass
 
             try:
-                s3.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(desired))
-                print(f"Set ListBucket isolation bucket policy on {bucket_name}")
+                s3.put_bucket_policy(
+                    Bucket=bucket_name, Policy=json.dumps(desired))
+                print(
+                    f"Set ListBucket isolation bucket policy on {bucket_name}")
             except Exception as exception:
-                if hasattr(exception, 'response') and 'Error' in exception.response:
-                    print(f"ERROR: Failed to set bucket policy: {exception.response['Error']['Code']} - {exception}")
+                if hasattr(exception,
+                           'response') and 'Error' in exception.response:
+                    print(
+                        f"ERROR: Failed to set bucket policy: {exception.response['Error']['Code']} - {exception}"
+                    )
                 else:
                     print(f"ERROR: Failed to set bucket policy: {exception}")
 
@@ -267,8 +363,10 @@ def server_factory(frontend_image,
                 "kubeflow-pipelines-ready":
                     len(attachments["Secret.v1"]) == 1 and
                     len(attachments["ConfigMap.v1"]) == 3 and
-                    len(attachments["Deployment.apps/v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
-                    len(attachments["Service.v1"]) == (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(attachments["Deployment.apps/v1"]) ==
+                    (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
+                    len(attachments["Service.v1"]) ==
+                    (1 if artifacts_proxy_enabled.lower() == "true" else 0) and
                     "True" or "False"
             }
 
@@ -282,8 +380,10 @@ def server_factory(frontend_image,
                         "namespace": namespace,
                     },
                     "data": {
-                        "defaultPipelineRoot": f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
-                        "clusterDomain": cluster_domain,
+                        "defaultPipelineRoot":
+                            f"minio://{S3_BUCKET_NAME}/private-artifacts/{namespace}/v2/artifacts",
+                        "clusterDomain":
+                            cluster_domain,
                     },
                 },
                 {
@@ -296,7 +396,8 @@ def server_factory(frontend_image,
                     "data": {
                         "METADATA_GRPC_SERVICE_HOST":
                             "metadata-grpc-service.kubeflow",
-                        "METADATA_GRPC_SERVICE_PORT": "8080",
+                        "METADATA_GRPC_SERVICE_PORT":
+                            "8080",
                     },
                 },
                 {
@@ -306,27 +407,33 @@ def server_factory(frontend_image,
                         "name": "artifact-repositories",
                         "namespace": namespace,
                         "annotations": {
-                            "workflows.argoproj.io/default-artifact-repository": "default-namespaced"
+                            "workflows.argoproj.io/default-artifact-repository":
+                                "default-namespaced"
                         }
                     },
                     "data": {
-                        "default-namespaced": json.dumps({
-                            "archiveLogs": True,
-                            "s3": {
-                                "endpoint": f"{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000",
-                                "bucket": S3_BUCKET_NAME,
-                                "keyFormat": f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
-                                "insecure": True,
-                                "accessKeySecret": {
-                                    "name": "mlpipeline-minio-artifact",
-                                    "key": "accesskey",
-                                },
-                                "secretKeySecret": {
-                                    "name": "mlpipeline-minio-artifact",
-                                    "key": "secretkey",
+                        "default-namespaced":
+                            json.dumps({
+                                "archiveLogs": True,
+                                "s3": {
+                                    "endpoint":
+                                        f"{object_store_host}.kubeflow{_normalize_domain(cluster_domain)}:9000",
+                                    "bucket":
+                                        S3_BUCKET_NAME,
+                                    "keyFormat":
+                                        f"private-artifacts/{namespace}/{{{{workflow.name}}}}/{{{{workflow.creationTimestamp.Y}}}}/{{{{workflow.creationTimestamp.m}}}}/{{{{workflow.creationTimestamp.d}}}}/{{{{pod.name}}}}",
+                                    "insecure":
+                                        True,
+                                    "accessKeySecret": {
+                                        "name": "mlpipeline-minio-artifact",
+                                        "key": "accesskey",
+                                    },
+                                    "secretKeySecret": {
+                                        "name": "mlpipeline-minio-artifact",
+                                        "key": "secretkey",
+                                    }
                                 }
-                            }
-                        })
+                            })
                     }
                 },
             ]
@@ -356,56 +463,32 @@ def server_factory(frontend_image,
                                         "app": "ml-pipeline-ui-artifact"
                                     },
                                     "annotations": {
-                                        **({"sidecar.istio.io/inject": "false"} if disable_istio_sidecar else {}),
-                                        "kubeflow-pipelines/image-spec-hash": hashlib.sha256(f"{frontend_image}:{frontend_tag}".encode()).hexdigest()[:16],
+                                        **({
+                                            "sidecar.istio.io/inject": "false"
+                                        } if disable_istio_sidecar else {}),
+                                        "kubeflow-pipelines/image-spec-hash":
+                                            hashlib.sha256(
+                                                f"{frontend_image}:{frontend_tag}"
+                                                .encode()).hexdigest()[:16],
                                     },
                                 },
                                 "spec": {
                                     "containers": [{
                                         "name":
                                             "ml-pipeline-ui-artifact",
-                                        "image": f"{frontend_image}:{frontend_tag}",
+                                        "image":
+                                            f"{frontend_image}:{frontend_tag}",
                                         "imagePullPolicy":
                                             "IfNotPresent",
                                         "ports": [{
                                             "containerPort": 3000
                                         }],
-                                        "env": [
-                                            {
-                                                "name": "MINIO_ACCESS_KEY",
-                                                "valueFrom": {
-                                                    "secretKeyRef": {
-                                                        "key": "accesskey",
-                                                        "name": "mlpipeline-minio-artifact"
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "name": "MINIO_SECRET_KEY",
-                                                "valueFrom": {
-                                                    "secretKeyRef": {
-                                                        "key": "secretkey",
-                                                        "name": "mlpipeline-minio-artifact"
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "name": "ML_PIPELINE_SERVICE_HOST",
-                                                "value": f"ml-pipeline.kubeflow{_normalize_domain(cluster_domain)}"
-                                            },
-                                            {
-                                                "name": "ML_PIPELINE_SERVICE_PORT",
-                                                "value": "8888"
-                                            },
-                                            {
-                                                "name": "FRONTEND_SERVER_NAMESPACE",
-                                                "value": namespace,
-                                            },
-                                            {
-                                                "name": "CLUSTER_DOMAIN",
-                                                "value": cluster_domain,
-                                            }
-                                        ],
+                                        "env":
+                                            artifact_server_environment(
+                                                namespace,
+                                                cluster_domain,
+                                                allowed_artifact_endpoints,
+                                            ),
                                         "resources": {
                                             "requests": {
                                                 "cpu": "10m",
@@ -417,8 +500,7 @@ def server_factory(frontend_image,
                                             },
                                         }
                                     }],
-                                    "serviceAccountName":
-                                        "default-editor"
+                                    "serviceAccountName": "default-editor"
                                 }
                             }
                         }
@@ -449,13 +531,15 @@ def server_factory(frontend_image,
                 ])
 
             print('Received request:\n', json.dumps(parent, sort_keys=True))
-            print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
+            print('Desired resources except secrets:\n',
+                  json.dumps(desired_resources, sort_keys=True))
 
             # Moved after the print argument because this is sensitive data.
 
             # Check if secret is already there when the controller made the request. If yes, then
             # use it. Else create a new credentials on seaweedfs for the namespace.
-            if s3_secret := attachments["Secret.v1"].get(f"{namespace}/mlpipeline-minio-artifact"):
+            if s3_secret := attachments["Secret.v1"].get(
+                    f"{namespace}/mlpipeline-minio-artifact"):
                 desired_resources.append(s3_secret)
                 print('Using existing secret')
             else:
@@ -468,36 +552,32 @@ def server_factory(frontend_image,
                 iam.put_user_policy(
                     UserName=namespace,
                     PolicyName=f"KubeflowProject{namespace}",
-                    PolicyDocument=json.dumps(
-                        {
-                            "Version": "2012-10-17",
-                            "Statement": [
-                                {
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "s3:Put*",
-                                        "s3:Get*",
-                                        "s3:List*",
-                                        "s3:DeleteObject"
-                                    ],
-                                    "Resource": [
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
-                                        f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
-                                    ]
-                                }
+                    PolicyDocument=json.dumps({
+                        "Version":
+                            "2012-10-17",
+                        "Statement": [{
+                            "Effect":
+                                "Allow",
+                            "Action": [
+                                "s3:Put*", "s3:Get*", "s3:List*",
+                                "s3:DeleteObject"
+                            ],
+                            "Resource": [
+                                f"arn:aws:s3:::{S3_BUCKET_NAME}/artifacts/*",
+                                f"arn:aws:s3:::{S3_BUCKET_NAME}/private-artifacts/{namespace}/*",
+                                f"arn:aws:s3:::{S3_BUCKET_NAME}/private/{namespace}/*",
+                                f"arn:aws:s3:::{S3_BUCKET_NAME}/shared/*",
                             ]
-                        })
-                )
+                        }]
+                    }))
 
                 self.ensure_bucket_list_policy(S3_BUCKET_NAME)
 
-                self.upsert_lifecycle_policy(S3_BUCKET_NAME, artifact_retention_days)
+                self.upsert_lifecycle_policy(S3_BUCKET_NAME,
+                                             artifact_retention_days)
 
                 desired_resources.insert(
-                    0,
-                    {
+                    0, {
                         "apiVersion": "v1",
                         "kind": "Secret",
                         "metadata": {
@@ -505,10 +585,17 @@ def server_factory(frontend_image,
                             "namespace": namespace,
                         },
                         "data": {
-                            "accesskey": base64.b64encode(s3_access_key["AccessKey"]["AccessKeyId"].encode('utf-8')).decode("utf-8"),
-                            "secretkey": base64.b64encode(s3_access_key["AccessKey"]["SecretAccessKey"].encode('utf-8')).decode("utf-8"),
-                    },
-                })
+                            "accesskey":
+                                base64.b64encode(s3_access_key["AccessKey"]
+                                                 ["AccessKeyId"].encode('utf-8')
+                                                ).decode("utf-8"),
+                            "secretkey":
+                                base64.b64encode(
+                                    s3_access_key["AccessKey"]
+                                    ["SecretAccessKey"].encode('utf-8')
+                                ).decode("utf-8"),
+                        },
+                    })
 
             return {"status": desired_status, "attachments": desired_resources}
 

@@ -108,6 +108,12 @@ spec:
                 name: pipeline-install-config
                 key: ARTIFACTS_PROXY_ENABLED
                 optional: true
+          - name: ALLOWED_ARTIFACT_ENDPOINTS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: ALLOWED_ARTIFACT_ENDPOINTS
+                optional: true
         readinessProbe:
           httpGet:
             path: /apis/v1beta1/healthz
