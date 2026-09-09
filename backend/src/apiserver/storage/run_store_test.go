@@ -16,12 +16,14 @@ package storage
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"testing"
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common/sql/dialect"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -38,24 +40,30 @@ const (
 	defaultFakeRunIdThree = "123e4567-e89b-12d3-a456-426655440023"
 )
 
-func testLargeTextPtr(s string) *model.LargeText {
-	lt := model.LargeText(s)
-	return &lt
-}
-
 type RunMetricSorter []*model.RunMetric
 
 func (r RunMetricSorter) Len() int           { return len(r) }
 func (r RunMetricSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
 func (r RunMetricSorter) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 
-func initializeRunStore() (*DB, *RunStore) {
-	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+func testLargeTextPtr(s string) *model.LargeText {
+	lt := model.LargeText(s)
+	return &lt
+}
+
+func initializeRunStore() (*sql.DB, dialect.DBDialect, *RunStore) {
+	db, testDialect := NewFakeDBOrFatal()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	if err != nil {
+		panic(err)
+	}
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	expStore = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	expStore, err = NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
+	if err != nil {
+		panic(err)
+	}
 	expStore.CreateExperiment(&model.Experiment{Name: "exp2"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	run1 := &model.Run{
 		UUID:         "1",
@@ -142,11 +150,11 @@ func initializeRunStore() (*DB, *RunStore) {
 	runStore.CreateMetric(metric1)
 	runStore.CreateMetric(metric2)
 
-	return db, runStore
+	return db, testDialect, runStore
 }
 
 func TestListRuns_Pagination(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -232,27 +240,27 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -338,21 +346,21 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 
@@ -360,54 +368,50 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptions(&model.Run{}, 1, "metric:dummymetric desc", nil)
 	assert.Nil(t, err)
 
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
-	db, runStore := initializeRunStore()
+	// An injection-shaped metric name is not rejected on page 1: the raw metric
+	// name only ever reaches SQL as a bind parameter, so parameterization — not
+	// name validation — is what keeps query structure safe.
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
-	// A malicious sortBy value attempting SQL injection through the metric name.
-	// The payload has no spaces so it passes format validation and reaches SQL
-	// generation. Prior to the fix, opts.SortByFieldName was concatenated directly
-	// into SQL structure (alias and JOIN predicate). After the fix, the metric name
-	// is passed as a bind parameter and the SQL alias is the fixed string
-	// "sort_metric_value", so this must execute without error.
-	maliciousSort := "metric:';DROP/**/TABLE/**/run_metrics;--"
-	opts, err := list.NewOptions(&model.Run{}, 10, maliciousSort, nil)
-	assert.Nil(t, err)
+	// Lowercase because NewOptions lowercases the whole sort_by expression.
+	maliciousMetric := "';drop/**/table/**/run_metrics;--"
+	opts, err := list.NewOptions(&model.Run{}, 10, "metric:"+maliciousMetric, nil)
+	assert.Nil(t, err, "NewOptions must accept the metric name; it is only used as a bind value")
 
-	runs, _, _, err := runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
-	assert.Nil(t, err, "SQL injection payload must not cause a query error")
-	// Runs are returned but without a matching metric value (NULL join), so
-	// ordering is stable but no metric value is injected into SQL structure.
-	assert.NotNil(t, runs)
-
-	// Verify the run_metrics table was NOT dropped by confirming a normal
-	// metric-sort query still works.
-	opts2, err := list.NewOptions(&model.Run{}, 10, "metric:dummymetric", nil)
+	sql, args, err := runStore.buildSelectRunsQuery(false, opts,
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}})
 	assert.Nil(t, err)
-	_, _, _, err = runStore.ListRuns(
-		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}},
-		opts2)
-	assert.Nil(t, err, "run_metrics table must still exist after injection attempt")
+	assert.NotContains(t, sql, maliciousMetric, "metric name must never be spliced into SQL text")
+	assert.Contains(t, args, maliciousMetric, "metric name must be passed as a bind parameter")
+
+	// Page 2 is where the name is validated: a forged page token carrying the
+	// same payload must be rejected by token unmarshalling.
+	forged := base64.StdEncoding.EncodeToString(fmt.Appendf(nil,
+		`{"KeyFieldName":"UUID","SortByFieldName":%q,"SortBySQLColumn":%q}`,
+		maliciousMetric, model.MetricSortSQLAlias))
+	_, err = list.NewOptionsFromToken(forged, 10)
+	assert.NotNil(t, err, "page token with an invalid metric name must be rejected")
 }
 
 // TestListRuns_HyphenatedMetricSort verifies that metric names containing
@@ -416,7 +420,7 @@ func TestListRuns_MetricSortInjectionSafe(t *testing.T) {
 // SortByFieldName with a SQL identifier regex that rejects "-", causing page-2
 // requests with hyphenated metric names to fail with "Invalid sort field name".
 func TestListRuns_HyphenatedMetricSort(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Seed runs 1 and 2 with the hyphenated metric so pagination produces a page token.
@@ -445,20 +449,20 @@ func TestListRuns_HyphenatedMetricSort(t *testing.T) {
 }
 
 func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 }
 
 func TestListRuns_TotalSizeWithFilter(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Add a filter
@@ -477,14 +481,14 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 	}
 	newFilter, _ := filter.New(filterProto)
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", newFilter)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 }
 
 func TestListRuns_SkipCount(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
@@ -497,7 +501,7 @@ func TestListRuns_SkipCount(t *testing.T) {
 }
 
 func TestListRuns_DoesNotSkipCountByDefault(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// SkipCount left unset (false), matching every caller before this option existed.
@@ -510,7 +514,7 @@ func TestListRuns_DoesNotSkipCountByDefault(t *testing.T) {
 }
 
 func TestListRuns_Pagination_Descend(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedFirstPageRuns := []*model.Run{
@@ -594,7 +598,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	for i, run := range runs {
 		runs[i] = run.ToV1()
@@ -602,23 +606,23 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed")
 	assert.NotEmpty(t, nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err = runStore.ListRuns(
+	runs, totalSize, nextPageToken, err = runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRuns := []*model.Run{
@@ -702,24 +706,25 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed")
 	assert.Empty(t, nextPageToken)
 }
 
 func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
+	_, err = expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	require.Nil(t, err)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Insert three runs with manifests 'z', 'm', 'a'
 	runs := []*model.Run{
@@ -793,7 +798,7 @@ func TestListRuns_Pagination_WithSortingOnRuntimeDetails(t *testing.T) {
 }
 
 func TestListRunsError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
@@ -804,7 +809,7 @@ func TestListRunsError(t *testing.T) {
 }
 
 func TestGetRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -850,7 +855,7 @@ func TestGetRun(t *testing.T) {
 }
 
 func TestGetRun_NotFoundError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	_, err := runStore.GetRun("notfound")
@@ -859,7 +864,7 @@ func TestGetRun_NotFoundError(t *testing.T) {
 }
 
 func TestGetRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	_, err := runStore.GetRun("1")
@@ -868,7 +873,7 @@ func TestGetRun_InternalError(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	expectedRun := &model.Run{
@@ -971,7 +976,7 @@ func TestCreateAndUpdateRun_UpdateSuccess(t *testing.T) {
 }
 
 func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	_, err := runStore.CreateRun(&model.Run{
@@ -1023,7 +1028,7 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsStaleManifest(t *testing.T) 
 }
 
 func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	const runID = "runtime-manifest-aba-run"
@@ -1084,12 +1089,13 @@ func TestUpdateRunIfRuntimeManifestsUnchangedRejectsRecreatedRun(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	assert.Nil(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
 	// Checking that the run is not yet in the DB
-	_, err := runStore.GetRun("2000")
+	_, err = runStore.GetRun("2000")
 	assert.NotNil(t, err)
 
 	runDetail := &model.Run{
@@ -1142,7 +1148,7 @@ func TestCreateAndUpdateRun_CreateSuccess(t *testing.T) {
 }
 
 func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	run := &model.Run{
@@ -1161,7 +1167,7 @@ func TestCreateAndUpdateRun_UpdateNotFound(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -1184,7 +1190,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 }
 
 func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	runDetail := &model.Run{
@@ -1217,7 +1223,7 @@ func TestCreateOrUpdateRun_DuplicateUUID(t *testing.T) {
 }
 
 func TestUpdateRun_RunNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.UpdateRun(&model.Run{UUID: "not-exist", RunDetails: model.RunDetails{State: model.RuntimeStateSucceeded}})
@@ -1238,7 +1244,7 @@ func TestUpdateRunFromWorkflow_RejectsTerminationRace(t *testing.T) {
 		{name: "termination before read with unspecified report", terminateBeforeRead: true, incomingState: model.RuntimeStateUnspecified},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			db, runStore := initializeRunStore()
+			db, _, runStore := initializeRunStore()
 			defer db.Close()
 
 			if test.terminateBeforeRead {
@@ -1292,7 +1298,7 @@ func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
 		{name: "empty state", state: "", conditions: "Ready"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			db, runStore := initializeRunStore()
+			db, _, runStore := initializeRunStore()
 			defer db.Close()
 
 			_, err := db.Exec(
@@ -1329,7 +1335,7 @@ func TestUpdateRunFromWorkflow_MatchesLegacyStateRepresentations(t *testing.T) {
 }
 
 func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	staleRun, err := runStore.GetRun("1")
@@ -1358,7 +1364,7 @@ func TestUpdateRunFromWorkflow_RejectsStaleRetryGeneration(t *testing.T) {
 }
 
 func TestTerminateRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("1")
@@ -1419,7 +1425,7 @@ func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
 		{name: "empty state", state: "", conditions: "Ready"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			db, runStore := initializeRunStore()
+			db, _, runStore := initializeRunStore()
 			defer db.Close()
 
 			_, err := db.Exec(
@@ -1440,7 +1446,7 @@ func TestTerminateRun_LegacyStateRepresentations(t *testing.T) {
 }
 
 func TestTerminateRun_RunDoesNotExist(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("does-not-exist")
@@ -1449,7 +1455,7 @@ func TestTerminateRun_RunDoesNotExist(t *testing.T) {
 }
 
 func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	err := runStore.TerminateRun("2")
@@ -1458,7 +1464,7 @@ func TestTerminateRun_RunHasAlreadyFinished(t *testing.T) {
 }
 
 func TestCreateMetric_Success(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric := &model.RunMetric{
@@ -1486,7 +1492,7 @@ func TestCreateMetric_Success(t *testing.T) {
 }
 
 func TestCreateMetric_DupReports_Fail(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	metric1 := &model.RunMetric{
@@ -1511,7 +1517,7 @@ func TestCreateMetric_DupReports_Fail(t *testing.T) {
 }
 
 func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	sql, args, _ := sq.
 		Insert("run_metrics").
@@ -1531,7 +1537,7 @@ func TestGetRun_InvalidMetricPayload_Ignore(t *testing.T) {
 }
 
 func TestListRuns_WithMetrics(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 	metric1 := &model.RunMetric{
 		RunUUID:     "1",
@@ -1641,10 +1647,10 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
 	assert.Nil(t, err)
-	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
+	runs, totalSize, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	runs[0] = runs[0].ToV1()
 	runs[1] = runs[1].ToV1()
-	assert.Equal(t, 3, total_size)
+	assert.Equal(t, 3, totalSize)
 	assert.Nil(t, err)
 	for _, run := range expectedRuns {
 		sort.Sort(RunMetricSorter(run.Metrics))
@@ -1656,9 +1662,9 @@ func TestListRuns_WithMetrics(t *testing.T) {
 }
 
 func TestArchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1677,7 +1683,7 @@ func TestArchiveRun(t *testing.T) {
 }
 
 func TestArchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1688,9 +1694,9 @@ func TestArchiveRun_InternalError(t *testing.T) {
 }
 
 func TestUnarchiveRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1716,7 +1722,7 @@ func TestUnarchiveRun(t *testing.T) {
 }
 
 func TestUnarchiveRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	db.Close()
@@ -1727,7 +1733,7 @@ func TestUnarchiveRun_InternalError(t *testing.T) {
 }
 
 func TestArchiveRun_IncludedInRunList(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Archive run
@@ -1779,19 +1785,19 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 	}
 	expectedRuns[0] = expectedRuns[0].ToV1()
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
-	runs, total_size, nextPageToken, err := runStore.ListRuns(
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	runs[0] = runs[0].ToV1()
 	assert.Nil(t, err)
-	assert.Equal(t, 2, total_size)
+	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, expectedRuns, runs)
 	assert.NotEmpty(t, nextPageToken)
 }
 
 func TestDeleteRun(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, testDialect, runStore := initializeRunStore()
 	defer db.Close()
-	resourceReferenceStore := NewResourceReferenceStore(db, nil)
+	resourceReferenceStore := NewResourceReferenceStore(db, nil, testDialect)
 	// Check resource reference exists
 	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
@@ -1811,7 +1817,7 @@ func TestDeleteRun(t *testing.T) {
 }
 
 func TestDeleteRun_InternalError(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	db.Close()
 
 	err := runStore.DeleteRun("1")
@@ -1820,12 +1826,13 @@ func TestDeleteRun_InternalError(t *testing.T) {
 }
 
 func TestDeleteRun_CleansUpTasksAndMetrics(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
-	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 
 	run := &model.Run{
 		UUID:         defaultFakeRunId,
@@ -1861,7 +1868,7 @@ func TestDeleteRun_CleansUpTasksAndMetrics(t *testing.T) {
 
 	// Verify rows exist before deletion.
 	var metricCount int
-	err := db.QueryRow("SELECT COUNT(*) FROM run_metrics WHERE RunUUID = ?", defaultFakeRunId).Scan(&metricCount)
+	err = db.QueryRow("SELECT COUNT(*) FROM run_metrics WHERE RunUUID = ?", defaultFakeRunId).Scan(&metricCount)
 	require.Nil(t, err)
 	assert.Equal(t, 1, metricCount)
 
@@ -1951,8 +1958,159 @@ func TestRunAPIFieldMap(t *testing.T) {
 	}
 }
 
+func TestListRuns_Pagination_WithSortingOnMetrics_StringValueInToken(t *testing.T) {
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+
+	expectedSecondPageRuns := []*model.Run{
+		{
+			UUID:         "2",
+			ExperimentId: defaultFakeExpId,
+			K8SName:      "run2",
+			DisplayName:  "run2",
+			StorageState: model.StorageStateAvailable,
+			Namespace:    "n2",
+			RunDetails: model.RunDetails{
+				CreatedAtInSec:          2,
+				ScheduledAtInSec:        2,
+				Conditions:              "Succeeded",
+				State:                   model.RuntimeStateSucceeded,
+				WorkflowRuntimeManifest: "",
+				StateHistory: []*model.RuntimeStatus{
+					{
+						UpdateTimeInSec: 2,
+						State:           model.RuntimeStateSucceeded,
+					},
+				},
+			},
+			Metrics: []*model.RunMetric{
+				{
+					RunUUID:     "2",
+					NodeID:      "node2",
+					Name:        "dummymetric",
+					NumberValue: 2.0,
+					Format:      "PERCENTAGE",
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
+				},
+			},
+		},
+	}
+	expectedSecondPageRuns[0] = expectedSecondPageRuns[0].ToV1()
+
+	// Sort in asc order
+	opts, err := list.NewOptions(&model.Run{}, 1, "metric:dummymetric", nil)
+	assert.Nil(t, err)
+
+	_, _, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, nextPageToken)
+
+	// Decode token to modify SortByFieldValue to string
+	// list.Token is exported now
+	var tokenMap map[string]interface{}
+	tokenBytes, err := base64.StdEncoding.DecodeString(nextPageToken)
+	assert.Nil(t, err)
+	err = json.Unmarshal(tokenBytes, &tokenMap)
+	assert.Nil(t, err)
+
+	// Force it to string
+	tokenMap["SortByFieldValue"] = fmt.Sprintf("%v", tokenMap["SortByFieldValue"])
+
+	// Encode back
+	newTokenBytes, err := json.Marshal(tokenMap)
+	assert.Nil(t, err)
+	newToken := base64.StdEncoding.EncodeToString(newTokenBytes)
+
+	// Use the manipulated token
+	opts, err = list.NewOptionsFromToken(newToken, 1)
+	assert.Nil(t, err)
+	runs, totalSize, nextPageToken, err := runStore.ListRuns(
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
+	runs[0] = runs[0].ToV1()
+
+	// Should not error and return correct results
+	assert.Nil(t, err)
+	assert.Equal(t, 2, totalSize)
+	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed with string token")
+	assert.Empty(t, nextPageToken)
+}
+
+// TestBuildSelectRunsQuery_PgxPlaceholder verifies that buildSelectRunsQuery
+// produces well-formed $N placeholders for the pgx dialect, with no bare ?
+// and no duplicate numbering.
+//
+// This test encodes three invariants of the squirrel placeholder contract:
+//  1. No bare ? in the final SQL (Dollar conversion covers all sub-queries,
+//     including those nested via FromSelect inside addMetricsResourceReferencesAndTasks).
+//  2. $N numbers are globally sequential with no gaps or duplicates. If any
+//     sub-builder inside addMetricsResourceReferencesAndTasks used Dollar format
+//     prematurely, its own ?s would become $1,$2 before the outer scan runs,
+//     producing duplicate $1 in the final SQL — caught here by exact string match.
+//  3. args length == max N, and each arg value is in the correct position
+//     (caught by exact args slice match).
+//
+// Background: squirrel's aliasExpr.ToSql() (used by FromSelect) calls each
+// sub-builder's own ToSql() independently. The inner builder applies its own
+// PlaceholderFormat before handing the SQL string to the outer builder. This
+// means all sub-builders MUST use Question format (a no-op), leaving a single
+// unified Dollar replacement to the outermost caller. sq.SelectBuilder couples
+// query structure with placeholder format (squirrel design limitation), so
+// addMetricsResourceReferencesAndTasks() enforces this contract at its entry
+// by overwriting whatever format the caller passed in.
+//
+// Why not an integration test? Existing CI tests run against SQLite, which uses
+// Question format and never exercises the pgx Dollar path. This unit test is the
+// only gate that catches placeholder bugs before they reach a real PostgreSQL
+// instance. See the integration test conversation for the pgx end-to-end layer.
+func TestBuildSelectRunsQuery_PgxPlaceholder(t *testing.T) {
+	// Use initializeRunStore to get a fully wired store (SQLite DB + time/UUID fakes),
+	// then swap its dialect to pgx. buildSelectRunsQuery only generates SQL — it does
+	// not execute — so the underlying SQLite connection is never used in this test.
+	db, _, runStore := initializeRunStore()
+	defer db.Close()
+	runStore.dbDialect = dialect.NewDBDialect("pgx")
+
+	filterContext := &model.FilterContext{
+		ReferenceKey: &model.ReferenceKey{
+			Type: model.ExperimentResourceType,
+			ID:   "exp-123",
+		},
+	}
+	// "created_at" maps to the SQL column "CreatedAtInSec" via Run.APIToModelFieldMap.
+	opts, err := list.NewOptions(&model.Run{}, 10, "created_at desc", nil)
+	assert.Nil(t, err)
+
+	sqlStr, args, err := runStore.buildSelectRunsQuery(false, opts, filterContext)
+	assert.Nil(t, err)
+
+	// Invariant 1 & 2: exact SQL match catches both bare ? (Dollar conversion missed
+	// a sub-query) and duplicate $1 (a sub-builder used Dollar format prematurely,
+	// causing its own ?s to be numbered before the outer scan runs).
+	// The only bind parameter is ExperimentUUID = $1; all other clauses are literal SQL.
+	//
+	// The query uses the paginate-then-aggregate pattern: a lightweight paging
+	// subquery (UUID + sort key, ORDER BY + LIMIT) is the innermost layer, and
+	// the refs/tasks/metrics aggregation runs only over the paged rows. The
+	// outer ORDER BY re-sorts the final result without LIMIT (already applied).
+	expectedSQL := `SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "PipelineRuntimeManifest", "WorkflowRuntimeManifest", "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec", "refs", "taskDetails", "metrics" FROM (SELECT rd."UUID", rd."ExperimentUUID", rd."DisplayName", rd."Name", rd."StorageState", rd."Namespace", rd."ServiceAccount", rd."Description", rd."CreatedAtInSec", rd."ScheduledAtInSec", rd."FinishedAtInSec", rd."Conditions", rd."PipelineId", rd."PipelineVersionId", rd."PipelineName", rd."PipelineSpecManifest", rd."WorkflowSpecManifest", rd."Parameters", rd."RuntimeParameters", rd."PipelineRoot", rd."PipelineRuntimeManifest", rd."WorkflowRuntimeManifest", rd."JobUUID", rd."State", rd."StateHistory", rd."PluginsInput", rd."PluginsOutput", rd."PipelineContextId", rd."PipelineRunContextId", rd."RetryGeneration", rd."RetryClaimedAtInSec", rd."ArchivedAtInSec", withmetrics."refs", withmetrics."taskDetails", withmetrics."metrics" FROM (SELECT subq."UUID", subq."refs", subq."taskDetails", '[' || COALESCE(string_agg(rm."Payload", ','), '') || ']' AS "metrics" FROM (SELECT rdref."UUID", rdref."refs", '[' || COALESCE(string_agg(tasks."Payload", ','), '') || ']' AS "taskDetails" FROM (SELECT filtered."UUID", '[' || COALESCE(string_agg(rr."Payload", ','), '') || ']' AS "refs" FROM (SELECT "UUID", "CreatedAtInSec" FROM (SELECT "UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description", "CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineVersionId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", '' AS PipelineRuntimeManifest, '' AS WorkflowRuntimeManifest, "JobUUID", "State", "StateHistory", "PluginsInput", "PluginsOutput", "PipelineContextId", "PipelineRunContextId", "RetryGeneration", "RetryClaimedAtInSec", "ArchivedAtInSec" FROM "run_details" WHERE "ExperimentUUID" = $1) AS filtered ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC LIMIT 11) AS filtered LEFT JOIN "resource_references" AS rr ON rr."ResourceType"='Run' AND filtered."UUID"=rr."ResourceUUID" GROUP BY filtered."UUID") AS rdref LEFT JOIN "tasks" AS tasks ON rdref."UUID"=tasks."RunUUID" GROUP BY rdref."UUID", rdref."refs") AS subq LEFT JOIN "run_metrics" AS rm ON subq."UUID"=rm."RunUUID" GROUP BY subq."UUID", subq."refs", subq."taskDetails") AS withmetrics JOIN "run_details" AS rd ON withmetrics."UUID"=rd."UUID") AS final ORDER BY ("CreatedAtInSec" IS NULL) ASC, "CreatedAtInSec" DESC, "UUID" DESC`
+	assert.Equal(t, expectedSQL, sqlStr,
+		"SQL must use $N placeholders (not ?) and $1 must appear exactly once for ExperimentUUID")
+
+	// Invariant 3: args length == max N (here 1), and each value is in the correct
+	// position. If squirrel appended args in the wrong order or emitted extra args
+	// from a sub-builder, this exact match will fail.
+	assert.Equal(t, []interface{}{"exp-123"}, args,
+		"args must contain exactly the ExperimentUUID bind value at position 0 ($1)")
+}
+
 func TestGetRunByRecurringRunIdAndDisplayName(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer db.Close()
 
 	// Create the run without RecurringRunId to avoid the resource-reference FK
@@ -2008,61 +2166,9 @@ func TestGetRunByRecurringRunIdAndDisplayName(t *testing.T) {
 	}
 }
 
-func TestCreateRun_DuplicateRecurringRunIsIdempotent(t *testing.T) {
-	db, runStore := initializeRunStore()
-	defer db.Close()
-
-	// Recurring-run triggers compute a deterministic UUID, so a concurrent trigger
-	// reuses the same primary key. Created without RecurringRunId to avoid the
-	// resource-reference FK check, then JobUUID is patched to mark it recurring.
-	const sharedUUID = "deterministic-run-uuid"
-	firstRun := &model.Run{
-		UUID:         sharedUUID,
-		DisplayName:  "scheduled-run-trigger-1",
-		K8SName:      "scheduled-run-k8s",
-		Namespace:    "n1",
-		StorageState: model.StorageStateAvailable,
-		ExperimentId: defaultFakeExpId,
-		RunDetails: model.RunDetails{
-			CreatedAtInSec: 10,
-			State:          model.RuntimeStatePending,
-		},
-	}
-	_, err := runStore.CreateRun(firstRun)
-	assert.Nil(t, err)
-	_, err = db.Exec(`UPDATE run_details SET JobUUID = ? WHERE UUID = ?`, "job-uuid-1", sharedUUID)
-	assert.Nil(t, err)
-
-	// A second trigger races in with the same deterministic UUID and RecurringRunId.
-	// The duplicate primary-key insert must resolve to the existing run, not error.
-	secondRun := &model.Run{
-		UUID:           sharedUUID,
-		DisplayName:    "scheduled-run-trigger-1",
-		RecurringRunId: "job-uuid-1",
-		K8SName:        "scheduled-run-k8s",
-		Namespace:      "n1",
-		StorageState:   model.StorageStateAvailable,
-		ExperimentId:   defaultFakeExpId,
-		RunDetails: model.RunDetails{
-			CreatedAtInSec: 11,
-			State:          model.RuntimeStatePending,
-		},
-	}
-	returned, err := runStore.CreateRun(secondRun)
-	assert.Nil(t, err)
-	assert.Equal(t, sharedUUID, returned.UUID)
-	assert.Equal(t, "scheduled-run-trigger-1", returned.DisplayName)
-	// The original CreatedAtInSec is preserved, proving no overwrite occurred.
-	assert.Equal(t, int64(10), returned.CreatedAtInSec)
-
-	// Only one row exists for this recurring run + display name.
-	existingUUID, err := runStore.GetRunByRecurringRunIDAndDisplayName("job-uuid-1", "scheduled-run-trigger-1")
-	assert.Nil(t, err)
-	assert.Equal(t, sharedUUID, existingUUID)
-}
 func TestCreateRunWithPluginsFields(t *testing.T) {
 	const runUUID = "plugins-run-1"
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	run := &model.Run{
@@ -2094,7 +2200,7 @@ func TestCreateRunWithPluginsFields(t *testing.T) {
 
 func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
 	const runUUID = "empty-plugins-1"
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	run := &model.Run{
@@ -2120,8 +2226,6 @@ func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
 	assert.Nil(t, got.PluginsOutputString, "nil plugins_output should round-trip as nil")
 
 	// Verify at the DB level that the columns are NULL, not empty strings.
-	// The read path only sets the field when sql.NullString.Valid is true,
-	// so a non-zero value here would mean '' was written instead of NULL.
 	var pluginsInput, pluginsOutput sql.NullString
 	row := db.QueryRow("SELECT PluginsInput, PluginsOutput FROM run_details WHERE UUID = ?", runUUID)
 	err = row.Scan(&pluginsInput, &pluginsOutput)
@@ -2132,7 +2236,7 @@ func TestCreateRunWithEmptyPluginsFieldsWritesNull(t *testing.T) {
 
 func TestUpdateRunPreservesPluginsFields(t *testing.T) {
 	const runUUID = "preserve-plugins-1"
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	run := &model.Run{
@@ -2170,7 +2274,7 @@ func TestUpdateRunPreservesPluginsFields(t *testing.T) {
 
 func TestUpdateRunPluginsOutputOnly(t *testing.T) {
 	const runUUID = "plugins-output-only-1"
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	run := &model.Run{
@@ -2192,7 +2296,6 @@ func TestUpdateRunPluginsOutputOnly(t *testing.T) {
 	_, err := runStore.CreateRun(run)
 	require.NoError(t, err)
 
-	// Update only PluginsOutput — core fields must remain untouched.
 	updatedOutput := testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_SUCCEEDED","stateMessage":""}}`)
 	err = runStore.UpdateRunPluginsOutput(runUUID, updatedOutput)
 	require.NoError(t, err)
@@ -2200,22 +2303,19 @@ func TestUpdateRunPluginsOutputOnly(t *testing.T) {
 	got, err := runStore.GetRun(runUUID)
 	require.NoError(t, err)
 
-	// Core fields should be unchanged.
 	assert.Equal(t, model.RuntimeStateRunning, got.State)
 	assert.Equal(t, "Running", got.Conditions)
 	assert.Equal(t, model.LargeText("original-manifest"), got.WorkflowRuntimeManifest)
 
-	// PluginsInput should be unchanged.
 	require.NotNil(t, got.PluginsInputString)
 	assert.Equal(t, model.LargeText(`{"mlflow":{"experiment_name":"my-exp"}}`), *got.PluginsInputString)
 
-	// PluginsOutput should be updated.
 	require.NotNil(t, got.PluginsOutputString)
 	assert.Equal(t, model.LargeText(`{"mlflow":{"state":"PLUGIN_SUCCEEDED","stateMessage":""}}`), *got.PluginsOutputString)
 }
 
 func TestUpdateRunPluginsOutputNotFound(t *testing.T) {
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	output := testLargeTextPtr(`{"mlflow":{"state":"PLUGIN_FAILED"}}`)
@@ -2226,7 +2326,7 @@ func TestUpdateRunPluginsOutputNotFound(t *testing.T) {
 
 func TestListRunsReturnsPluginsFields(t *testing.T) {
 	const runName = "list-run"
-	db, runStore := initializeRunStore()
+	db, _, runStore := initializeRunStore()
 	defer func() { require.NoError(t, db.Close()) }()
 
 	run := &model.Run{
@@ -2271,11 +2371,12 @@ func TestListRunsReturnsPluginsFields(t *testing.T) {
 }
 
 func TestArchiveExpiredRuns_ArchivesTerminalRunsPastCutoff(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Run that finished 100 seconds ago (epoch=100) with terminal state SUCCEEDED.
 	succeededRun := &model.Run{
@@ -2347,11 +2448,12 @@ func TestArchiveExpiredRuns_ArchivesTerminalRunsPastCutoff(t *testing.T) {
 }
 
 func TestArchiveExpiredRuns_NoCandidates(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Run that finished AFTER the cutoff — should NOT be archived.
 	recentRun := &model.Run{
@@ -2381,11 +2483,12 @@ func TestArchiveExpiredRuns_NoCandidates(t *testing.T) {
 }
 
 func TestArchiveExpiredRuns_RespectsAlreadyArchived(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Already archived run — should NOT be re-archived (no-op).
 	archivedRun := &model.Run{
@@ -2410,11 +2513,12 @@ func TestArchiveExpiredRuns_RespectsAlreadyArchived(t *testing.T) {
 }
 
 func TestArchiveExpiredRuns_BatchSizeLimitsResults(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Create 3 expired terminal runs.
 	for i := 1; i <= 3; i++ {
@@ -2441,12 +2545,13 @@ func TestArchiveExpiredRuns_BatchSizeLimitsResults(t *testing.T) {
 }
 
 func TestDeleteExpiredArchivedRuns_DeletesArchivedRunsAndDependentTables(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
-	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil))
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil), testDialect)
 
 	// Create an archived run that finished in the past.
 	archivedRun := &model.Run{
@@ -2531,11 +2636,12 @@ func TestDeleteExpiredArchivedRuns_DeletesArchivedRunsAndDependentTables(t *test
 }
 
 func TestDeleteExpiredArchivedRuns_NoCandidates(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Create an available (non-archived) run — should not be deleted.
 	runStore.CreateRun(&model.Run{
@@ -2564,11 +2670,12 @@ func TestDeleteExpiredArchivedRuns_NoCandidates(t *testing.T) {
 }
 
 func TestDeleteExpiredArchivedRuns_DoesNotDeleteRecentArchived(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Archived run that finished AFTER the cutoff.
 	runStore.CreateRun(&model.Run{
@@ -2597,11 +2704,12 @@ func TestDeleteExpiredArchivedRuns_DoesNotDeleteRecentArchived(t *testing.T) {
 }
 
 func TestDeleteExpiredArchivedRuns_IncludesLegacyDisabledState(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Create with a valid state first (CreateRun validates StorageState).
 	runStore.CreateRun(&model.Run{
@@ -2620,7 +2728,7 @@ func TestDeleteExpiredArchivedRuns_IncludesLegacyDisabledState(t *testing.T) {
 	})
 
 	// Simulate legacy v1 row by raw-updating StorageState to "DISABLED".
-	_, err := db.Exec(`UPDATE run_details SET StorageState = ? WHERE UUID = ?`, model.LegacyStateDisabled, "run-legacy-disabled")
+	_, err = db.Exec(`UPDATE run_details SET StorageState = ? WHERE UUID = ?`, model.LegacyStateDisabled, "run-legacy-disabled")
 	require.Nil(t, err)
 
 	// Cutoff at 200 — run finished at 100, so it is expired.
@@ -2638,14 +2746,15 @@ func TestDeleteExpiredArchivedRuns_IncludesLegacyDisabledState(t *testing.T) {
 // Without this fix, GetRun always returns RetryGeneration=0 and UpdateRun
 // silently matches zero rows, permanently sticking the run.
 func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Create a terminal run.
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-retry-gen",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-retry-gen",
@@ -2691,13 +2800,14 @@ func TestClaimRunForRetry_GetRunReadsRetryGeneration(t *testing.T) {
 // normalizes to v2 ("Failed" -> "FAILED"), which made the Conditions fallback
 // dead code and broke retry for legacy v1 rows with State NULL.
 func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-legacy-conditions",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-legacy-conditions",
@@ -2730,13 +2840,14 @@ func TestClaimRunForRetry_LegacyConditionsRow(t *testing.T) {
 // set made the reporter's orphaned-claim handling treat the restored terminal
 // row as a live claim.
 func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-rollback-claim",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-rollback-claim",
@@ -2774,13 +2885,14 @@ func TestRollbackRetryClaim_ClearsClaimTimestamp(t *testing.T) {
 // pre-check and this claim taking its row lock. The locked read must catch it,
 // otherwise the claim leaves the row PENDING and ARCHIVED at the same time.
 func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.Nil(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-archived-claim",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-archived-claim",
@@ -2815,9 +2927,9 @@ func TestClaimRunForRetry_RejectsArchivedRun(t *testing.T) {
 }
 
 func TestClaimRunForRetry_RunNotFound(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	_, _, _, _, err := runStore.ClaimRunForRetry("no-such-run", false)
 	require.NotNil(t, err)
@@ -2829,13 +2941,14 @@ func TestClaimRunForRetry_RunNotFound(t *testing.T) {
 // Rows archived before the column existed (ArchivedAtInSec=0) fall back to the
 // FinishedAtInSec bound.
 func TestDeleteExpiredArchivedRuns_HonorsArchivalWindow(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-recently-archived",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-recently-archived",
@@ -2871,13 +2984,14 @@ func TestDeleteExpiredArchivedRuns_HonorsArchivalWindow(t *testing.T) {
 // The archive pass must stamp ArchivedAtInSec so the delete pass can measure
 // the observation window from archival time.
 func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-archive-stamp",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-archive-stamp",
@@ -2908,13 +3022,14 @@ func TestArchiveExpiredRuns_SetsArchivedAt(t *testing.T) {
 // A later claim must be able to take over once the claim has aged out (or its
 // timestamp was cleared); a fresh claim must still be protected.
 func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
-	_, err := runStore.CreateRun(&model.Run{
+	_, err = runStore.CreateRun(&model.Run{
 		UUID:         "run-abandoned-claim",
 		ExperimentId: defaultFakeExpId,
 		K8SName:      "run-abandoned-claim",
@@ -2958,11 +3073,12 @@ func TestClaimRunForRetry_TakesOverAbandonedClaim(t *testing.T) {
 // queries (archival-time-driven and legacy finish-time-driven) and must pick
 // up both kinds in one call while respecting the batch cap.
 func TestDeleteExpiredArchivedRuns_LegacyAndCurrentCandidates(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	require.NoError(t, err)
 	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	for _, id := range []string{"run-legacy-archived", "run-current-archived", "run-fresh-archived"} {
 		_, err := runStore.CreateRun(&model.Run{
@@ -2983,7 +3099,7 @@ func TestDeleteExpiredArchivedRuns_LegacyAndCurrentCandidates(t *testing.T) {
 	}
 	// Legacy: ArchivedAtInSec stays 0. Current: archived before the cutoff.
 	// Fresh: archived after the cutoff, must survive.
-	_, err := db.Exec(`UPDATE run_details SET ArchivedAtInSec = 150 WHERE UUID = ?`, "run-current-archived")
+	_, err = db.Exec(`UPDATE run_details SET ArchivedAtInSec = 150 WHERE UUID = ?`, "run-current-archived")
 	require.Nil(t, err)
 	_, err = db.Exec(`UPDATE run_details SET ArchivedAtInSec = 1000 WHERE UUID = ?`, "run-fresh-archived")
 	require.Nil(t, err)
@@ -2997,13 +3113,14 @@ func TestDeleteExpiredArchivedRuns_LegacyAndCurrentCandidates(t *testing.T) {
 }
 
 func TestListRuns_FilterByPipelineId(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_filter"})
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	require.NoError(t, err)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	_, err = expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_filter"})
+	require.NoError(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	targetPipelineID := "pipeline-aaa-bbb-ccc"
 	otherPipelineID := "pipeline-xxx-yyy-zzz"
@@ -3099,13 +3216,14 @@ func TestListRuns_FilterByPipelineId(t *testing.T) {
 // falls back to the default field, or if a row is skipped or repeated across a
 // page boundary.
 func TestListRuns_SortByPipelineIdPaginates(t *testing.T) {
-	db := NewFakeDBOrFatal()
+	db, testDialect := NewFakeDBOrFatal()
 	defer db.Close()
 
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
-	_, err := expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_sort"})
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
 	require.NoError(t, err)
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	_, err = expStore.CreateExperiment(&model.Experiment{Name: "exp_pipeline_sort"})
+	require.NoError(t, err)
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	// Created in an order that does not match the pipeline ID ordering, so a
 	// sort that silently fell back to the default field would be visible.

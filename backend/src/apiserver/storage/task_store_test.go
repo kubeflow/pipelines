@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"database/sql"
 	"reflect"
 	"testing"
 
@@ -34,13 +35,16 @@ const (
 	defaultFakeTaskIdSix   = "123e4567-e89b-12d3-a456-426655440016"
 )
 
-func initializeTaskStore() (*DB, *TaskStore) {
-	db := NewFakeDBOrFatal()
-	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+func initializeTaskStore() (*sql.DB, *TaskStore) {
+	db, testDialect := NewFakeDBOrFatal()
+	expStore, err := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil), testDialect)
+	if err != nil {
+		panic(err)
+	}
 	expStore.CreateExperiment(&model.Experiment{Name: "e1", Namespace: "ns1"})
 	expStore.uuid = util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpIdTwo, nil)
 	expStore.CreateExperiment(&model.Experiment{Name: "e2", Namespace: "ns2"})
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), testDialect)
 
 	run1 := &model.Run{
 		UUID:           defaultFakeRunId,
@@ -95,7 +99,7 @@ func initializeTaskStore() (*DB, *TaskStore) {
 	runStore.CreateRun(run2)
 	runStore.CreateRun(run3)
 
-	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeTaskId, nil))
+	taskStore := NewTaskStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeTaskId, nil), testDialect)
 	task1 := &model.Task{
 		Namespace:         "ns1",
 		PodName:           "pod1",
@@ -297,6 +301,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	tests := []struct {
 		name    string
 		tasks   []*model.Task
+		runID   string
 		want    []*model.Task
 		wantErr bool
 		errMsg  string
@@ -315,6 +320,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "1",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFour,
@@ -347,6 +353,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFive,
@@ -379,6 +386,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					Namespace:         "ns2",
@@ -397,6 +405,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 		{
 			"empty",
 			[]*model.Task{},
+			defaultFakeRunIdTwo,
 			[]*model.Task{},
 			false,
 			"",
@@ -447,6 +456,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 					Fingerprint:       "10",
 				},
 			},
+			defaultFakeRunIdTwo,
 			[]*model.Task{
 				{
 					UUID:              defaultFakeTaskIdFour,
@@ -505,7 +515,7 @@ func TestTaskStore_patchWithExistingTasks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := taskStore.patchWithExistingTasks(taskStore.db, tt.tasks, defaultFakeRunIdTwo)
+			err := taskStore.patchWithExistingTasks(taskStore.db, tt.tasks, tt.runID)
 			if tt.wantErr {
 				assert.NotNil(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
@@ -628,7 +638,7 @@ func TestTaskAPIFieldMap(t *testing.T) {
 func TestCreateOrUpdateTasksIfRunUnchangedAcceptsMatchingRun(t *testing.T) {
 	db, taskStore := initializeTaskStore()
 	defer db.Close()
-	runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+	runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), taskStore.dbDialect)
 
 	run, err := runStore.GetRun(defaultFakeRunIdTwo)
 	require.NoError(t, err)
@@ -682,7 +692,7 @@ func TestCreateOrUpdateTasksIfRunUnchangedRejectsRecreatedRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			db, taskStore := initializeTaskStore()
 			defer db.Close()
-			runStore := NewRunStore(db, util.NewFakeTimeForEpoch())
+			runStore := NewRunStore(db, util.NewFakeTimeForEpoch(), taskStore.dbDialect)
 
 			staleRun, err := runStore.GetRun(defaultFakeRunIdTwo)
 			require.NoError(t, err)
