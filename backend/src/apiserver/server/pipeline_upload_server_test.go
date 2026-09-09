@@ -56,6 +56,8 @@ func TestUploadPipelineAuthorization(t *testing.T) {
 			}{
 				{name: "shared allowed", multiUser: true, allowed: true},
 				{name: "shared denied", multiUser: true},
+				{name: "sentinel shared allowed", namespace: model.NoNamespace, multiUser: true, allowed: true},
+				{name: "sentinel shared denied", namespace: model.NoNamespace, multiUser: true},
 				{name: "namespaced allowed", namespace: "tenant-ns", multiUser: true, allowed: true},
 				{name: "namespaced denied", namespace: "tenant-ns", multiUser: true},
 				{name: "single user shared"},
@@ -122,7 +124,7 @@ func TestUploadPipelineAuthorization(t *testing.T) {
 						return
 					}
 					expectedNamespace := tc.namespace
-					if expectedNamespace == "" {
+					if expectedNamespace == "" || expectedNamespace == model.NoNamespace {
 						expectedNamespace = "kfp-system-test"
 					}
 					require.Len(t, review.requests, 1)

@@ -401,13 +401,8 @@ func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipel
 			resourceAttributes.Namespace = namespace
 		}
 	}
-	if resourceAttributes.Namespace == "" {
-		// Shared (cluster-wide) pipelines have no namespace of their own. The
-		// upload endpoints only ever perform writes (create pipeline / create
-		// version), and writes to shared pipelines must still be authorized
-		// against the KFP system namespace, mirroring canAccessPipeline in
-		// pipeline_server.go. Previously this returned nil here, skipping the
-		// SubjectAccessReview entirely for empty-namespace uploads.
+	if s.resourceManager.IsEmptyNamespace(resourceAttributes.Namespace) {
+		// Shared-pipeline writes require authorization in the KFP system namespace.
 		resourceAttributes.Namespace = common.GetPodNamespace()
 	}
 
