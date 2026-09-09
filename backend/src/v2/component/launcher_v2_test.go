@@ -918,3 +918,86 @@ func Test_retrieve_artifact_path(t *testing.T) {
 		})
 	}
 }
+
+// fetchNonDefaultBuckets resolves the launcher's admin S3/MinIO/GCS provider
+// policy for artifacts that live outside the pipeline root (e.g. an imported
+// artifact consumed as a downstream component's input), instead of silently
+// opening an unguarded default client for them.
+func Test_fetchNonDefaultBuckets_ResolvesProviderPolicy(t *testing.T) {
+	defaultBucketConfig := &objectstore.Config{
+		Scheme:     "minio://",
+		BucketName: "mlpipeline",
+		Prefix:     "v2/artifacts/",
+	}
+
+	t.Run("admin override is honored for a non-default bucket, tenant query is ignored", func(t *testing.T) {
+		providersYAML := `
+s3:
+  default:
+    endpoint: s3.company.example
+    credentials:
+      fromEnv: true
+  Overrides:
+    - bucketName: other-bucket
+      keyPrefix: path
+      endpoint: allowed-endpoint.example
+      credentials:
+        fromEnv: true
+`
+		clientset := fake.NewClientset(&k8score.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "kfp-launcher", Namespace: "my-namespace"},
+			Data:       map[string]string{"providers": providersYAML},
+		})
+
+		artifacts := map[string]*pipelinespec.ArtifactList{
+			"input": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://other-bucket/path/model?endpoint=attacker.example"},
+				},
+			},
+		}
+
+		buckets, err := fetchNonDefaultBuckets(context.Background(), artifacts, defaultBucketConfig, "my-namespace", clientset)
+		assert.NoError(t, err)
+		assert.Len(t, buckets, 1)
+	})
+
+	t.Run("rejects an unconfigured bucket's query when unmanaged queries are disabled", func(t *testing.T) {
+		providersYAML := `
+s3:
+  allowUnmanagedProviderQueries: false
+`
+		clientset := fake.NewClientset(&k8score.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{Name: "kfp-launcher", Namespace: "my-namespace"},
+			Data:       map[string]string{"providers": providersYAML},
+		})
+
+		artifacts := map[string]*pipelinespec.ArtifactList{
+			"input": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://other-bucket/path/model?endpoint=example.com"},
+				},
+			},
+		}
+
+		_, err := fetchNonDefaultBuckets(context.Background(), artifacts, defaultBucketConfig, "my-namespace", clientset)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "provider policy rejected")
+	})
+
+	t.Run("no launcher configmap falls back to unmanaged fromEnv, matching prior behavior", func(t *testing.T) {
+		clientset := fake.NewClientset()
+
+		artifacts := map[string]*pipelinespec.ArtifactList{
+			"input": {
+				Artifacts: []*pipelinespec.RuntimeArtifact{
+					{Uri: "s3://other-bucket/path/model"},
+				},
+			},
+		}
+
+		buckets, err := fetchNonDefaultBuckets(context.Background(), artifacts, defaultBucketConfig, "my-namespace", clientset)
+		assert.NoError(t, err)
+		assert.Len(t, buckets, 1)
+	})
+}

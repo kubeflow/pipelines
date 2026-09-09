@@ -38,6 +38,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
@@ -1011,6 +1012,23 @@ func fetchNonDefaultBuckets(
 	k8sClient kubernetes.Interface,
 ) (buckets map[string]*blob.Bucket, err error) {
 	nonDefaultBuckets := make(map[string]*blob.Bucket)
+
+	// Loaded lazily, once, only if an artifact actually needs it below -- most
+	// runs never touch a non-default bucket at all.
+	var launcherCfg *config.Config
+	launcherCfgLoaded := false
+	loadLauncherCfg := func() *config.Config {
+		if !launcherCfgLoaded {
+			launcherCfgLoaded = true
+			cfg, cfgErr := config.FromConfigMap(ctx, k8sClient, namespace)
+			if cfgErr != nil {
+				glog.Warningf("failed to load launcher config while resolving provider policy for non-default-bucket artifacts: %v", cfgErr)
+			}
+			launcherCfg = cfg
+		}
+		return launcherCfg
+	}
+
 	for name, artifactList := range artifacts {
 		if len(artifactList.Artifacts) == 0 {
 			continue
@@ -1026,7 +1044,9 @@ func fetchNonDefaultBuckets(
 		// The artifact does not belong under the object store path for this run. Cases:
 		// 1. Artifact is cached from a different run, so it may still be in the default bucket, but under a different run id subpath
 		// 2. Artifact is imported from the same bucket, but from a different path (re-use the same session)
-		// 3. Artifact is imported from a different bucket, or obj store (default to using user env in this case)
+		// 3. Artifact is imported from a different bucket, or obj store: resolve the same admin
+		//    provider policy (Default/Overrides/AllowUnmanagedProviderQueries) the pipeline root
+		//    itself would use, rather than silently falling back to an unguarded default client.
 		if !strings.HasPrefix(artifact.Uri, defaultBucketConfig.PrefixedBucket()) {
 			nonDefaultBucketConfig, parseErr := objectstore.ParseBucketConfigForArtifactURI(artifact.Uri)
 			if parseErr != nil {
@@ -1035,6 +1055,12 @@ func fetchNonDefaultBuckets(
 			// check if it's same bucket but under a different path, re-use the default bucket session in this case.
 			if (nonDefaultBucketConfig.Scheme == defaultBucketConfig.Scheme) && (nonDefaultBucketConfig.BucketName == defaultBucketConfig.BucketName) {
 				nonDefaultBucketConfig.SessionInfo = defaultBucketConfig.SessionInfo
+			} else if cfg := loadLauncherCfg(); cfg != nil {
+				sess, sessErr := cfg.GetStoreSessionInfo(artifact.Uri)
+				if sessErr != nil {
+					return nonDefaultBuckets, fmt.Errorf("provider policy rejected input artifact %q with uri %q: %w", name, artifact.GetUri(), sessErr)
+				}
+				nonDefaultBucketConfig.SessionInfo = &sess
 			}
 			nonDefaultBucket, bucketErr := objectstore.OpenBucket(ctx, k8sClient, namespace, nonDefaultBucketConfig)
 			if bucketErr != nil {
