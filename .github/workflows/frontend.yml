@@ -74,8 +74,14 @@ jobs:
     - name: Verify pipeline and platform spec generation
       working-directory: frontend
       run: |
-        sudo apt-get update
-        sudo apt-get install --yes protobuf-compiler
+        # Protobuf only needs Ubuntu sources, not the runner's third-party repositories.
+        test -s /etc/apt/sources.list.d/ubuntu.sources
+        apt_sources=(
+          -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources
+          -o Dir::Etc::sourceparts=-
+        )
+        sudo apt-get "${apt_sources[@]}" update
+        sudo apt-get "${apt_sources[@]}" install --yes protobuf-compiler
         bash scripts/check-spec-generation.sh
 
     - name: Run Frontend Tests
