@@ -205,14 +205,11 @@ export function parseTensorboardProxyPayload(
   }
 
   const expectedSignature = signTensorboardProxyPayload(serializedPayload, signingSecret);
-  if (!BASE64URL_PATTERN.test(signature)) {
+  if (signature.length !== expectedSignature.length || !BASE64URL_PATTERN.test(signature)) {
     return undefined;
   }
   const signatureBuffer = Buffer.from(signature, 'ascii');
   const expectedSignatureBuffer = Buffer.from(expectedSignature, 'ascii');
-  if (signatureBuffer.length !== expectedSignatureBuffer.length) {
-    return undefined;
-  }
   if (!timingSafeEqual(signatureBuffer, expectedSignatureBuffer)) {
     return undefined;
   }

@@ -119,6 +119,49 @@ describe('tensorboard-proxy', () => {
     expect(authorizeFn).not.toHaveBeenCalled();
   });
 
+  it.each([42, 44, 64 * 1024])(
+    'rejects a %i-character signature before allocating its buffer',
+    (signatureLength) => {
+      const encodedPayload = Buffer.from(
+        JSON.stringify({ namespace: 'test-ns', viewerName: 'viewer-abcdefg' }),
+      ).toString('base64url');
+      const signature = 'a'.repeat(signatureLength);
+      const bufferFromSpy = vi.spyOn(Buffer, 'from');
+
+      try {
+        expect(
+          parseTensorboardProxyPayload(
+            `${encodedPayload}.${signature}`,
+            TENSORBOARD_PROXY_SIGNING_SECRET,
+          ),
+        ).toBeUndefined();
+        expect(bufferFromSpy).not.toHaveBeenCalledWith(signature, 'ascii');
+      } finally {
+        bufferFromSpy.mockRestore();
+      }
+    },
+  );
+
+  it('rejects Unicode signatures that truncate to valid signature bytes', () => {
+    const proxyPath = createTensorboardProxyPath(
+      'test-ns',
+      'viewer-abcdefg',
+      TENSORBOARD_PROXY_SIGNING_SECRET,
+    );
+    const parsedRequest = parseTensorboardProxyRequest(TENSORBOARD_PROXY_PREFIX, `/${proxyPath}`);
+    const [encodedPayload, signature] = parsedRequest!.token.split('.');
+    const unicodeSignature = Array.from(signature, (character) =>
+      String.fromCharCode(character.charCodeAt(0) + 256),
+    ).join('');
+
+    expect(
+      parseTensorboardProxyPayload(
+        `${encodedPayload}.${encodeURIComponent(unicodeSignature)}`,
+        TENSORBOARD_PROXY_SIGNING_SECRET,
+      ),
+    ).toBeUndefined();
+  });
+
   it('rejects invalid proxy tokens before proxying upstream traffic', async () => {
     const app = express();
     registerTensorboardProxy(

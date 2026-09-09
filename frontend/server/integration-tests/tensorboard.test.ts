@@ -49,10 +49,18 @@ describe('/apps/tensorboard', () => {
 
   function loadConfigs(argv: string[], env: ProcessEnv) {
     return loadApplicationConfigs(argv, {
-      TENSORBOARD_PROXY_SIGNING_SECRET: tensorboardProxySigningSecret,
       ...env,
+      TENSORBOARD_PROXY_SIGNING_SECRET: tensorboardProxySigningSecret,
     });
   }
+
+  it.each([undefined, 'another-tensorboard-test-secret-at-least-32-bytes'])(
+    'keeps the fixed test signing secret when env provides %s',
+    (signingSecret) => {
+      const configs = loadConfigs(argv, { TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret });
+      expect(configs.viewer.tensorboard.proxySigningSecret).toBe(tensorboardProxySigningSecret);
+    },
+  );
 
   const POD_TEMPLATE_SPEC = {
     spec: {

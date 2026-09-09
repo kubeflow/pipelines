@@ -129,16 +129,17 @@ function getArgoArtifactRepositoryEndpoints(
 }
 
 const MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES = 32;
-const EPHEMERAL_TENSORBOARD_PROXY_SIGNING_SECRET = randomBytes(
-  MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES,
-).toString('base64url');
+let ephemeralTensorboardProxySigningSecret: string | undefined;
 
 function resolveTensorboardProxySigningSecret(
   configuredSecret: string | undefined,
   minioSecret: string,
 ): string {
   if (configuredSecret === undefined) {
-    return EPHEMERAL_TENSORBOARD_PROXY_SIGNING_SECRET;
+    ephemeralTensorboardProxySigningSecret ??= randomBytes(
+      MIN_TENSORBOARD_PROXY_SIGNING_SECRET_BYTES,
+    ).toString('base64url');
+    return ephemeralTensorboardProxySigningSecret;
   }
 
   if (configuredSecret === minioSecret) {

@@ -11,8 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { randomBytes } from 'crypto';
 import * as os from 'os';
+import { vi } from 'vitest';
 import { getConfigsForLogging, loadConfigs } from './configs.js';
+
+vi.mock('crypto', { spy: true });
 
 describe('loadConfigs', () => {
   it('should throw error if no static dir provided', () => {
@@ -64,6 +68,28 @@ describe('loadConfigs', () => {
       TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
     });
     expect(configs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
+  });
+
+  it('generates the fallback signing secret only when needed and reuses it', async () => {
+    vi.resetModules();
+    vi.mocked(randomBytes).mockClear();
+    const { loadConfigs: freshLoadConfigs } = await import('./configs.js');
+    expect(randomBytes).not.toHaveBeenCalled();
+
+    const argv = ['node', 'dist/server.js', os.tmpdir()];
+    const signingSecret = 'dedicated-tensorboard-proxy-secret';
+    const configuredConfigs = freshLoadConfigs(argv, {
+      TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
+    });
+    expect(configuredConfigs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
+    expect(randomBytes).not.toHaveBeenCalled();
+
+    const firstConfigs = freshLoadConfigs(argv, {});
+    const secondConfigs = freshLoadConfigs(argv, {});
+    expect(randomBytes).toHaveBeenCalledExactlyOnceWith(32);
+    expect(secondConfigs.viewer.tensorboard.proxySigningSecret).toBe(
+      firstConfigs.viewer.tensorboard.proxySigningSecret,
+    );
   });
 
   it('redacts the tensorboard proxy signing secret from logged configs', () => {
