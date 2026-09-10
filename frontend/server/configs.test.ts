@@ -11,8 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+import { randomBytes } from 'crypto';
 import * as os from 'os';
-import { loadConfigs } from './configs.js';
+import { vi } from 'vitest';
+import { getConfigsForLogging, loadConfigs } from './configs.js';
+
+vi.mock('crypto', { spy: true });
 
 describe('loadConfigs', () => {
   it('should throw error if no static dir provided', () => {
@@ -41,21 +45,88 @@ describe('loadConfigs', () => {
     expect(configs.viewer.tensorboard.clusterDomain).toBe('cluster.corp');
   });
 
-  it('tensorboard proxy signing secret defaults to the minio secret', () => {
+  it('generates a process-local tensorboard proxy signing secret when unset', () => {
     const tmpdir = os.tmpdir();
-    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+    const firstConfigs = loadConfigs(['node', 'dist/server.js', tmpdir], {
       MINIO_SECRET_KEY: 'shared-minio-secret',
     });
-    expect(configs.viewer.tensorboard.proxySigningSecret).toBe('shared-minio-secret');
+    const secondConfigs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      MINIO_SECRET_KEY: 'another-minio-secret',
+    });
+
+    const signingSecret = firstConfigs.viewer.tensorboard.proxySigningSecret;
+    expect(signingSecret).not.toBe('shared-minio-secret');
+    expect(Buffer.from(signingSecret, 'base64url')).toHaveLength(32);
+    expect(secondConfigs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
   });
 
   it('tensorboard proxy signing secret uses TENSORBOARD_PROXY_SIGNING_SECRET when set', () => {
     const tmpdir = os.tmpdir();
+    const signingSecret = 'dedicated-tensorboard-proxy-secret';
     const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
       MINIO_SECRET_KEY: 'shared-minio-secret',
-      TENSORBOARD_PROXY_SIGNING_SECRET: 'dedicated-proxy-secret',
+      TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
     });
-    expect(configs.viewer.tensorboard.proxySigningSecret).toBe('dedicated-proxy-secret');
+    expect(configs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
+  });
+
+  it('generates the fallback signing secret only when needed and reuses it', async () => {
+    vi.resetModules();
+    vi.mocked(randomBytes).mockClear();
+    const { loadConfigs: freshLoadConfigs } = await import('./configs.js');
+    expect(randomBytes).not.toHaveBeenCalled();
+
+    const argv = ['node', 'dist/server.js', os.tmpdir()];
+    const signingSecret = 'dedicated-tensorboard-proxy-secret';
+    const configuredConfigs = freshLoadConfigs(argv, {
+      TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
+    });
+    expect(configuredConfigs.viewer.tensorboard.proxySigningSecret).toBe(signingSecret);
+    expect(randomBytes).not.toHaveBeenCalled();
+
+    const firstConfigs = freshLoadConfigs(argv, {});
+    const secondConfigs = freshLoadConfigs(argv, {});
+    expect(randomBytes).toHaveBeenCalledExactlyOnceWith(32);
+    expect(secondConfigs.viewer.tensorboard.proxySigningSecret).toBe(
+      firstConfigs.viewer.tensorboard.proxySigningSecret,
+    );
+  });
+
+  it('redacts the tensorboard proxy signing secret from logged configs', () => {
+    const tmpdir = os.tmpdir();
+    const signingSecret = 'dedicated-tensorboard-proxy-secret';
+    const configs = loadConfigs(['node', 'dist/server.js', tmpdir], {
+      TENSORBOARD_PROXY_SIGNING_SECRET: signingSecret,
+    });
+
+    const loggedConfigs = getConfigsForLogging(configs);
+
+    expect(JSON.stringify(loggedConfigs)).not.toContain(signingSecret);
+    expect(loggedConfigs.viewer.tensorboard.clusterDomain).toBe('.svc.cluster.local');
+    expect(loggedConfigs.viewer.tensorboard.proxySigningSecret).toContain('omitted');
+  });
+
+  it('rejects a tensorboard proxy signing secret reused from MINIO_SECRET_KEY', () => {
+    const tmpdir = os.tmpdir();
+    const sharedSecret = 'shared-secret-that-is-at-least-32-bytes';
+
+    expect(() =>
+      loadConfigs(['node', 'dist/server.js', tmpdir], {
+        MINIO_SECRET_KEY: sharedSecret,
+        TENSORBOARD_PROXY_SIGNING_SECRET: sharedSecret,
+      }),
+    ).toThrowError('must not reuse MINIO_SECRET_KEY');
+  });
+
+  it('rejects a short tensorboard proxy signing secret', () => {
+    const tmpdir = os.tmpdir();
+
+    expect(() =>
+      loadConfigs(['node', 'dist/server.js', tmpdir], {
+        MINIO_SECRET_KEY: 'different-minio-secret',
+        TENSORBOARD_PROXY_SIGNING_SECRET: 'too-short',
+      }),
+    ).toThrowError('must be at least 32 bytes');
   });
 
   it.each([
