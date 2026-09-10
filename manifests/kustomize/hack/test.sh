@@ -52,4 +52,6 @@ do
   kustomize build "${MANIFESTS_DIR}/${path}" >/dev/null
 done
 
+python3 "${DIR}/tensorboard_signing_key_test.py"
+
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null

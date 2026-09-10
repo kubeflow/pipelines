@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - secret.yaml
+  - rbac.yaml
+  - job.yaml
+configMapGenerator:
+  - name: ml-pipeline-ui-signing-key-init
+    literals:
+      - image=ghcr.io/kubeflow/kfp-frontend:dummy
+      - secretName=ml-pipeline-ui-tensorboard-proxy
+      - secretKey=signing-secret
+    files:
+      - job-template=job.yaml
+configurations:
+  - configuration.yaml
