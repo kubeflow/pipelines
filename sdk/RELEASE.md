@@ -14,6 +14,11 @@
 
 ## Bug fixes and other changes
 
+* Generated components now extract their embedded archive through an explicit safe
+  extraction policy instead of relying on the runtime's default `tarfile.extractall()`
+  behavior, which varies by Python version. Pipelines compiled with earlier versions
+  keep their previously generated extraction code and must be recompiled to pick this up.
+
 # 2.15.2
 
 ## Bug fixes and other changes
