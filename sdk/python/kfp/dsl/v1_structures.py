@@ -296,7 +296,7 @@ class ContainerSpec(ModelBase):
     """Describes the container component implementation."""
     _serialized_names = {
         'file_outputs':
-            'fileOutputs',  #TODO: rename to something like legacy_unconfigurable_output_paths
+            'fileOutputs',  # TODO: rename to something like legacy_unconfigurable_output_paths
     }
 
     def __init__(
@@ -308,7 +308,7 @@ class ContainerSpec(ModelBase):
             file_outputs:
         Optional[Mapping[
             str,
-            str]] = None,  #TODO: rename to something like legacy_unconfigurable_output_paths
+            str]] = None,  # TODO: rename to something like legacy_unconfigurable_output_paths
     ):
         super().__init__(locals())
 
@@ -733,7 +733,7 @@ class TaskSpec(ModelBase):
         annotations: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(locals())
-        #TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
+        # TODO: If component_ref is resolved to component spec, then check that the arguments correspond to the inputs
 
     def _init_outputs(self):
         #Adding output references to the task

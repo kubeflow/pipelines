@@ -26,7 +26,7 @@ class ExecutorResponse(object):
     pattern.
 
     TODO() This class should be extended to contain data structure to better
-    represent the underlying data instaed of dict for various response types.
+    represent the underlying data instead of dict for various response types.
     """
 
     def execute_command(self, command_list: List[Text]):
@@ -38,7 +38,7 @@ class ExecutorResponse(object):
         deviates from MVP design pattern. It should be factored out in future.
 
         Args:
-          command_list: A List of strings that represts the command and parameters
+          command_list: A List of strings that represents the command and parameters
             to be executed.
 
         Returns:
