@@ -23,6 +23,7 @@ from kfp.compiler import pipeline_spec_builder as builder
 from kfp.compiler.compiler_utils import KubernetesManifestOptions
 from kfp.dsl import base_component
 from kfp.dsl.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class Compiler:
@@ -58,6 +59,7 @@ class Compiler:
         kubernetes_manifest_options: Optional[
             'KubernetesManifestOptions'] = None,
         kubernetes_manifest_format: bool = False,
+        deduplicate_executors: bool = False,
     ) -> None:
         """Compiles the pipeline or component function into IR YAML.
 
@@ -70,6 +72,7 @@ class Compiler:
             type_check: Whether to enable type checking of component interfaces during compilation.
             kubernetes_manifest_options: KubernetesManifestOptions object for Kubernetes manifest output during pipeline compilation.
             kubernetes_manifest_format: Output the compiled pipeline as a Kubernetes manifest.
+            deduplicate_executors: When True, collapse identical entries in ``deploymentSpec.executors`` so multiple components that share the same executor body (image, command, args, env, resources) and per-executor platform configuration point to a single executor entry. Useful for pipelines that invoke the same component many times and would otherwise exceed the Kubernetes API server request-size limit. Off by default to preserve byte-identical compiler output for existing users.
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
@@ -86,10 +89,21 @@ class Compiler:
                 pipeline_parameters=pipeline_parameters,
                 pipeline_display_name=pipeline_display_name)
 
+            platform_spec = pipeline_func.platform_spec
+            if deduplicate_executors:
+                # Copy so the in-place dedup pass doesn't mutate the
+                # GraphComponent's cached platform_spec across compile calls.
+                platform_spec = pipeline_spec_pb2.PlatformSpec()
+                platform_spec.CopyFrom(pipeline_func.platform_spec)
+                builder.deduplicate_executors_in_place(
+                    pipeline_spec=pipeline_spec,
+                    platform_spec=platform_spec,
+                )
+
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,
                 pipeline_description=pipeline_func.description,
-                platform_spec=pipeline_func.platform_spec,
+                platform_spec=platform_spec,
                 package_path=package_path,
                 kubernetes_manifest_options=kubernetes_manifest_options,
                 kubernetes_manifest_format=kubernetes_manifest_format,
