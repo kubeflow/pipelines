@@ -42,7 +42,7 @@
     "react-router-dom": "^5.3.4",
     "react-textarea-autosize": "^8.5.9",
     "react-virtualized": "^9.22.6",
-    "recharts": "^3.7.0",
+    "recharts": "^3.10.1",
     "runtypes": "^6.3.0",
     "ts-proto": "^2.12.1",
     "typestyle": "^2.4.0",
