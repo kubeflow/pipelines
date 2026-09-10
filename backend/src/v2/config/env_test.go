@@ -15,6 +15,7 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -22,6 +23,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -603,4 +607,64 @@ func fetchProviderFromData(cases TestcaseData, name string) string {
 		}
 	}
 	return ""
+}
+func TestFromConfigMapRejectsPercentInDefaultPipelineRoot(t *testing.T) {
+	clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      configMapName,
+			Namespace: "default",
+		},
+		Data: map[string]string{
+			configKeyDefaultPipelineRoot: "s3://bucket/root%20dir",
+		},
+	})
+
+	_, err := FromConfigMap(context.Background(), clientSet, "default")
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "s3://bucket/root%20dir")
+}
+
+func TestFromConfigMapAcceptsValidDefaultPipelineRoot(t *testing.T) {
+	tests := []struct {
+		name string
+		root string
+	}{
+		{
+			name: "literal space",
+			root: "s3://bucket/root dir",
+		},
+		{
+			name: "unicode",
+			root: "s3://bucket/root/测试",
+		},
+		{
+			name: "ampersand",
+			root: "s3://bucket/root&dir",
+		},
+		{
+			name: "question mark",
+			root: "s3://bucket/root?dir",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clientSet := fake.NewSimpleClientset(&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName,
+					Namespace: "default",
+				},
+				Data: map[string]string{
+					configKeyDefaultPipelineRoot: tt.root,
+				},
+			})
+
+			config, err := FromConfigMap(context.Background(), clientSet, "default")
+
+			require.NoError(t, err)
+			require.NotNil(t, config)
+			assert.Equal(t, tt.root, config.DefaultPipelineRoot())
+		})
+	}
 }
