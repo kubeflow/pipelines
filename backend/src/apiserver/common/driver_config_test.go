@@ -16,6 +16,8 @@
 package common
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -23,6 +25,41 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// writeConfigFile loads a config.json without the environment lookup, since an environment
+// variable would take precedence over the file.
+func writeConfigFile(t *testing.T, contents string) {
+	t.Helper()
+
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.json"), []byte(contents), 0o600))
+
+	viper.Reset()
+	resetDriverConfig()
+	t.Cleanup(func() {
+		viper.Reset()
+		resetDriverConfig()
+	})
+
+	viper.SetConfigName("config")
+	viper.AddConfigPath(dir)
+	require.NoError(t, viper.ReadInConfig())
+}
+
+// t.Setenv can only set a value, so a test needing a variable absent has to
+// unset it and put back whatever was there.
+func unsetEnvForTest(t *testing.T, names ...string) {
+	t.Helper()
+
+	for _, name := range names {
+		if previous, ok := os.LookupEnv(name); ok {
+			t.Cleanup(func() { _ = os.Setenv(name, previous) })
+		} else {
+			t.Cleanup(func() { _ = os.Unsetenv(name) })
+		}
+		require.NoError(t, os.Unsetenv(name))
+	}
+}
 
 // resetDriverConfig resets the driver config state for testing
 func resetDriverConfig() {
@@ -248,9 +285,7 @@ func TestInitDriverPodConfigFromJSONString(t *testing.T) {
 	}, annotations)
 }
 
-// TestInitDriverPodConfig_NonStringJSONValues verifies that a ConfigMap value whose
-// JSON contains a value that is not a string (for example a boolean) fails startup
-// instead of being silently swallowed as an empty map by viper.GetStringMapString.
+// viper.GetStringMapString swallows a non-string value as an empty map.
 func TestInitDriverPodConfig_NonStringJSONValues(t *testing.T) {
 	viper.Reset()
 	resetDriverConfig()
@@ -264,11 +299,8 @@ func TestInitDriverPodConfig_NonStringJSONValues(t *testing.T) {
 	assert.Contains(t, err.Error(), DriverPodLabels)
 }
 
-// TestInitDriverPodConfig_NullJSONValue guards a case that is easy to miss. Viper does not
-// drop a JSON null the way it drops a boolean or a number. It quietly turns null into an
-// empty string, so without an explicit check the operator would get a label with an empty
-// value and no warning at all. Someone writing null for the Istio injection flag would
-// believe injection was enabled while the driver pod carried an empty value instead.
+// Viper turns a null into an empty string rather than dropping it, so this one
+// needs a check of its own.
 func TestInitDriverPodConfig_NullJSONValue(t *testing.T) {
 	viper.Reset()
 	resetDriverConfig()
@@ -294,6 +326,75 @@ func TestInitDriverPodConfig_NullMixedWithValidValue(t *testing.T) {
 
 	require.Error(t, err, "a JSON null mixed with a valid value should still fail startup")
 	assert.Contains(t, err.Error(), "sidecar.istio.io/inject")
+}
+
+// A bare null unmarshals into a nil map without an error, so the per entry check never runs.
+func TestInitDriverPodConfig_TopLevelNull(t *testing.T) {
+	for _, name := range []string{DriverPodLabels, DriverPodAnnotations} {
+		t.Run(name, func(t *testing.T) {
+			viper.Reset()
+			resetDriverConfig()
+
+			viper.Set(name, "null")
+
+			err := InitDriverPodConfig()
+
+			require.Error(t, err, "a null document should fail startup rather than be accepted")
+			assert.Contains(t, err.Error(), name)
+			assert.Nil(t, GetDriverPodConfig(), "a rejected value must not reach the cache")
+		})
+	}
+}
+
+// The same check on the path a real install takes, where the value arrives as an
+// environment variable rather than being set on Viper.
+func TestInitDriverPodConfig_TopLevelNullFromEnvVar(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+	t.Cleanup(func() {
+		viper.Reset()
+		resetDriverConfig()
+	})
+
+	// Same Viper setup as initConfig() in main.go.
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+	viper.AllowEmptyEnv(true)
+
+	t.Setenv(strings.ToUpper(DriverPodLabels), "null")
+
+	err := InitDriverPodConfig()
+
+	require.Error(t, err, "a null delivered as an environment variable should fail startup")
+	assert.Contains(t, err.Error(), DriverPodLabels)
+}
+
+// TestInitDriverPodConfig_NotAJSONObject checks the whole family of values that parse as JSON
+// but are not an object, so the rejection is not limited to the null that prompted it.
+func TestInitDriverPodConfig_NotAJSONObject(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		raw  string
+	}{
+		{"null", "null"},
+		{"boolean", "true"},
+		{"number", "42"},
+		{"string", `"a string"`},
+		{"array", `["a","b"]`},
+		{"array of objects", `[{"app":"driver"}]`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			viper.Reset()
+			resetDriverConfig()
+
+			viper.Set(DriverPodLabels, tt.raw)
+
+			err := InitDriverPodConfig()
+
+			require.Error(t, err, "%s is not a JSON object and should fail startup", tt.raw)
+			assert.Contains(t, err.Error(), DriverPodLabels)
+		})
+	}
 }
 
 // TestInitDriverPodConfig_MalformedJSON verifies that a syntactically invalid JSON
@@ -324,9 +425,7 @@ func TestInitDriverPodConfig_EmptyJSONObjectIsValid(t *testing.T) {
 	assert.Nil(t, GetDriverPodAnnotations())
 }
 
-// TestInitDriverPodConfig_BlankValuesAreValid guards the manifest default, where the
-// ConfigMap ships DriverPodLabels and DriverPodAnnotations as empty strings. A blank or
-// whitespace value must initialize cleanly with no configuration and never fail startup.
+// The manifest default ships both keys as empty strings.
 func TestInitDriverPodConfig_BlankValuesAreValid(t *testing.T) {
 	for _, raw := range []string{"", "   "} {
 		viper.Reset()
@@ -339,12 +438,9 @@ func TestInitDriverPodConfig_BlankValuesAreValid(t *testing.T) {
 	}
 }
 
-// TestInitDriverPodConfig_FromEnvVarWiring locks the contract between the API server
-// Deployment and Viper. The Deployment wires the pipeline-install-config keys into the
-// container as the environment variables DRIVERPODLABELS and DRIVERPODANNOTATIONS,
-// which are the uppercased forms of the Viper keys below. Without that wiring the
-// ConfigMap values never reach the API server. If the Viper keys are ever renamed, the
-// Deployment must be updated to match, and this test is what will catch it.
+// The Deployment passes the ConfigMap keys as the uppercased forms of the Viper
+// keys. Renaming one without the other silently stops the values arriving, and
+// this is what catches it.
 func TestInitDriverPodConfig_FromEnvVarWiring(t *testing.T) {
 	viper.Reset()
 	resetDriverConfig()
@@ -367,11 +463,8 @@ func TestInitDriverPodConfig_FromEnvVarWiring(t *testing.T) {
 	assert.Equal(t, map[string]string{"proxy.istio.io/config": "hold"}, GetDriverPodAnnotations())
 }
 
-// TestInitDriverPodConfig_EmptyEnvVarIsValid guards the default install. Every manifest
-// ships DriverPodLabels and DriverPodAnnotations as empty strings, and the Deployment
-// passes them to the container as empty environment variables. Viper runs with
-// AllowEmptyEnv, so an empty variable still counts as set. Startup must succeed with no
-// configuration, otherwise every default install would fail to start.
+// Viper runs with AllowEmptyEnv, so the empty variable every default install sets
+// still counts as set.
 func TestInitDriverPodConfig_EmptyEnvVarIsValid(t *testing.T) {
 	viper.Reset()
 	resetDriverConfig()
@@ -431,12 +524,65 @@ func TestInitDriverPodConfig_InvalidAnnotationKey(t *testing.T) {
 	err := InitDriverPodConfig()
 
 	require.Error(t, err, "an invalid annotation key should fail startup")
-	assert.Contains(t, err.Error(), "invalid annotation key")
+	assert.Contains(t, err.Error(), DriverPodAnnotations)
+	assert.Contains(t, err.Error(), "bad key!", "the error should name the key that was refused")
 }
 
-// TestInitDriverPodConfig_IstioMetadataAccepted guards the primary use case. Annotation
-// values are free form and often carry JSON, so validation must check annotation keys
-// only and must never reject a value like the Istio proxy config below.
+func TestInitDriverPodConfig_AnnotationKeyCaseFollowsKubernetes(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	viper.Set(DriverPodAnnotations, map[string]string{"Example.com/Name": "value"})
+
+	require.NoError(t, InitDriverPodConfig(), "Kubernetes accepts this annotation key, so it must not fail startup")
+	assert.Equal(t, "value", GetDriverPodAnnotations()["Example.com/Name"])
+}
+
+// Each key and value is acceptable on its own, so only the total catches this.
+func TestInitDriverPodConfig_AnnotationsTooLarge(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	viper.Set(DriverPodAnnotations, map[string]string{
+		"example.com/payload": strings.Repeat("x", 300*1024),
+	})
+
+	err := InitDriverPodConfig()
+
+	require.Error(t, err, "annotations larger than the Kubernetes limit should fail startup")
+	assert.Contains(t, err.Error(), DriverPodAnnotations)
+	assert.Nil(t, GetDriverPodConfig(), "a rejected value must not reach the cache")
+}
+
+func TestInitDriverPodConfig_AnnotationsAtLimitAccepted(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	const key = "example.com/payload"
+	value := strings.Repeat("x", 256*1024-len(key))
+	viper.Set(DriverPodAnnotations, map[string]string{key: value})
+
+	require.NoError(t, InitDriverPodConfig(),
+		"the configured annotations alone are within the limit, so startup validation must accept them")
+	assert.Len(t, GetDriverPodAnnotations()[key], len(value))
+}
+
+// TestInitDriverPodConfig_ReservedAnnotationsNotCounted pins the order of the two checks:
+// reserved entries never reach the pod, so they must be dropped before the size is measured.
+func TestInitDriverPodConfig_ReservedAnnotationsNotCounted(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	viper.Set(DriverPodAnnotations, map[string]string{
+		ReservedLabelPrefix + "oversized": strings.Repeat("x", 300*1024),
+		"example.com/kept":                "value",
+	})
+
+	require.NoError(t, InitDriverPodConfig(), "a reserved entry must not count toward the limit")
+	assert.Equal(t, map[string]string{"example.com/kept": "value"}, GetDriverPodAnnotations())
+}
+
+// Annotation values are free form, so only the keys are checked.
 func TestInitDriverPodConfig_IstioMetadataAccepted(t *testing.T) {
 	viper.Reset()
 	resetDriverConfig()
@@ -450,6 +596,148 @@ func TestInitDriverPodConfig_IstioMetadataAccepted(t *testing.T) {
 
 	assert.Equal(t, "true", GetDriverPodLabels()["sidecar.istio.io/inject"])
 	assert.Equal(t, `{"holdApplicationUntilProxyStarts":true}`, GetDriverPodAnnotations()["proxy.istio.io/config"])
+}
+
+// The example from backend/README.md verbatim, so its escaping fails here rather
+// than in an install.
+func TestInitDriverPodConfig_ConfigFileExample(t *testing.T) {
+	writeConfigFile(t, `{
+  "DRIVER_POD_LABELS": "{\"sidecar.istio.io/inject\":\"true\",\"app\":\"ml-pipeline-driver\"}",
+  "DRIVER_POD_ANNOTATIONS": "{\"proxy.istio.io/config\":\"{\\\"holdApplicationUntilProxyStarts\\\":true}\"}"
+}`)
+
+	require.NoError(t, InitDriverPodConfig())
+
+	assert.Equal(t, "true", GetDriverPodLabels()["sidecar.istio.io/inject"])
+	assert.Equal(t, "ml-pipeline-driver", GetDriverPodLabels()["app"])
+	assert.Equal(t, `{"holdApplicationUntilProxyStarts":true}`,
+		GetDriverPodAnnotations()["proxy.istio.io/config"])
+}
+
+func TestInitDriverPodConfig_ConfigFileStringFormKeepsKeyCase(t *testing.T) {
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": "{\"example.com/BuildID\":\"123\"}"}`)
+
+	require.NoError(t, InitDriverPodConfig())
+
+	assert.Equal(t, map[string]string{"example.com/BuildID": "123"}, GetDriverPodLabels())
+}
+
+func TestInitDriverPodConfig_ConfigFileStringFormKeepsBothCases(t *testing.T) {
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": "{\"example.com/BuildID\":\"123\",\"example.com/buildid\":\"456\"}"}`)
+
+	require.NoError(t, InitDriverPodConfig())
+
+	assert.Equal(t, map[string]string{
+		"example.com/BuildID": "123",
+		"example.com/buildid": "456",
+	}, GetDriverPodLabels())
+}
+
+func TestInitDriverPodConfig_ConfigFileObjectRefused(t *testing.T) {
+	for _, tt := range []struct{ name, body string }{
+		{"all values are strings", `{"sidecar.istio.io/inject": "true"}`},
+		{"null", `{"sidecar.istio.io/inject": null}`},
+		{"boolean", `{"enabled": true}`},
+		{"number", `{"replicas": 3}`},
+		{"list", `{"items": ["a","b"]}`},
+		{"nested object", `{"outer": {"inner": "v"}}`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, key := range []string{DriverPodLabels, DriverPodAnnotations} {
+				writeConfigFile(t, `{"`+key+`": `+tt.body+`}`)
+
+				err := InitDriverPodConfig()
+
+				require.Error(t, err, "%s written as an object in %s should fail startup", tt.name, key)
+				assert.Contains(t, err.Error(), key)
+				assert.Contains(t, err.Error(), "must be a JSON string",
+					"the error should name the form the operator must use instead")
+				assert.Nil(t, GetDriverPodConfig(), "a refused value must not reach the cache")
+			}
+		})
+	}
+}
+
+func TestInitDriverPodConfig_ConfigFileObjectHidesValues(t *testing.T) {
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": {"Team": "ml", "team": null}}`)
+
+	got, ok := viper.Get(DriverPodLabels).(map[string]any)
+	require.True(t, ok, "Viper should return a map for a JSON object")
+	assert.Len(t, got, 1, "case-differing keys merge, proving one value is hidden")
+	_, hasTeam := got["team"]
+	assert.True(t, hasTeam, "the surviving key should be lowercased")
+}
+
+func TestInitDriverPodConfig_StringFormSeesBothCases(t *testing.T) {
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": "{\"Team\":\"ml\",\"team\":null}"}`)
+
+	err := InitDriverPodConfig()
+
+	require.Error(t, err, "the null must be seen even though another key differs only in case")
+	assert.Contains(t, err.Error(), "team")
+}
+
+func TestInitDriverPodConfig_EmptyEnvVarShadowsConfigFile(t *testing.T) {
+	// The first half asserts what happens with no variable set, so a variable inherited from
+	// whoever started the test would quietly invalidate it.
+	unsetEnvForTest(t, strings.ToUpper(DriverPodLabels), strings.ToUpper(DriverPodAnnotations))
+
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": "{\"sidecar.istio.io/inject\":\"true\"}"}`)
+
+	// Same Viper setup as initConfig() in main.go, which the configuration file tests above
+	// leave out because they exercise the file on its own.
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+	viper.AllowEmptyEnv(true)
+
+	require.NoError(t, InitDriverPodConfig())
+	require.Equal(t, "true", GetDriverPodLabels()["sidecar.istio.io/inject"],
+		"without the Deployment variables the configuration file applies")
+
+	t.Setenv(strings.ToUpper(DriverPodLabels), "")
+	resetDriverConfig()
+
+	require.NoError(t, InitDriverPodConfig())
+	assert.Nil(t, GetDriverPodLabels(), "the empty Deployment variable takes precedence over the configuration file")
+}
+
+func TestInitDriverPodConfig_ConfigFileNativeNullMeansUnset(t *testing.T) {
+	writeConfigFile(t, `{"DRIVER_POD_LABELS": null}`)
+
+	require.False(t, viper.IsSet(DriverPodLabels), "Viper reports a native null as not set")
+	require.NoError(t, InitDriverPodConfig())
+	assert.Nil(t, GetDriverPodConfig())
+}
+
+// A configuration file cannot produce this shape, so its keys arrive as written.
+func TestInitDriverPodConfig_ProgrammaticMapAccepted(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	viper.Set(DriverPodLabels, map[string]string{"sidecar.istio.io/inject": "true"})
+
+	require.NoError(t, InitDriverPodConfig())
+
+	assert.Equal(t, "true", GetDriverPodLabels()["sidecar.istio.io/inject"])
+}
+
+// Argo's default sidecar kill command is one the Istio proxy does not answer, so
+// an operator using both needs this annotation to survive key validation.
+func TestInitDriverPodConfig_ArgoKillCommandAccepted(t *testing.T) {
+	viper.Reset()
+	resetDriverConfig()
+
+	// Copied verbatim from the ConfigMap example in backend/README.md, so the escaping an
+	// operator is told to write stays under test.
+	viper.Set(DriverPodLabels, `{"sidecar.istio.io/inject":"true"}`)
+	viper.Set(DriverPodAnnotations, `{"proxy.istio.io/config":"{\"holdApplicationUntilProxyStarts\":true}","workflows.argoproj.io/kill-cmd-istio-proxy":"[\"pilot-agent\", \"request\", \"POST\", \"quitquitquit\"]"}`)
+
+	require.NoError(t, InitDriverPodConfig())
+
+	annotations := GetDriverPodAnnotations()
+	assert.Equal(t, "true", GetDriverPodLabels()["sidecar.istio.io/inject"])
+	assert.Equal(t, `{"holdApplicationUntilProxyStarts":true}`, annotations["proxy.istio.io/config"])
+	assert.Equal(t, `["pilot-agent", "request", "POST", "quitquitquit"]`, annotations["workflows.argoproj.io/kill-cmd-istio-proxy"])
 }
 
 func TestGetDriverPodLabelsNotInitialized(t *testing.T) {
