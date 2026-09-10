@@ -36,6 +36,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -335,16 +336,25 @@ func (s *RunAPITestSuite) TestRunAPIs() {
 	}}
 	longRunningRun, err := s.runClient.Create(createLongRunningRunRequest)
 	assert.Nil(t, err)
+	longRunningRunID := longRunningRun.RunID
 
 	/* ---------- Terminate the long-running run ------------*/
 	err = s.runClient.Terminate(&run_params.RunServiceTerminateRunParams{
-		RunID: longRunningRun.RunID,
+		RunID: longRunningRunID,
 	})
 	assert.Nil(t, err)
 
 	/* ---------- Get long-running run ---------- */
-	longRunningRun, err = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: longRunningRun.RunID})
-	assert.Nil(t, err)
+	var getRunErr error
+	require.Eventually(t, func() bool {
+		longRunningRun, getRunErr = s.runClient.Get(&run_params.RunServiceGetRunParams{RunID: longRunningRunID})
+		if getRunErr != nil || longRunningRun == nil || longRunningRun.State == nil {
+			return false
+		}
+		return *longRunningRun.State == run_model.V2beta1RuntimeStateCANCELING ||
+			*longRunningRun.State == run_model.V2beta1RuntimeStateCANCELED
+	}, time.Minute, time.Second, "terminated run should become CANCELING or CANCELED")
+	require.NoError(t, getRunErr)
 	s.checkTerminatedRunDetail(t, longRunningRun, helloWorldExperiment.ExperimentID, longRunningPipelineVersion.PipelineID, longRunningPipelineVersion.PipelineVersionID)
 }
 
