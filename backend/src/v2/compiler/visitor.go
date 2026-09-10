@@ -22,7 +22,6 @@
 package compiler
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 
@@ -58,10 +57,12 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 	if job == nil {
 		return nil
 	}
-	// TODO(Bobgy): reserve root as a keyword that cannot be user component names
 	spec, err := GetPipelineSpec(job)
 	if err != nil {
 		return err
+	}
+	if _, exists := spec.GetComponents()[RootComponentName]; exists {
+		return fmt.Errorf("reserved component name %q cannot be used as a user component name", RootComponentName)
 	}
 	deploy, err := GetDeploymentConfig(spec)
 	if err != nil {
@@ -73,6 +74,7 @@ func Accept(job *pipelinespec.PipelineJob, kubernetesSpec *pipelinespec.SinglePl
 		kubernetesSpec: kubernetesSpec,
 		visitor:        v,
 		visited:        make(map[string]bool),
+		inStack:        make(map[string]bool),
 	}
 	return state.dfs(RootComponentName, spec.GetRoot(), nil)
 }
@@ -84,22 +86,33 @@ type pipelineDFS struct {
 	visitor        Visitor
 	// Records which DAG components are visited, map key is component name.
 	visited map[string]bool
+	// Records components currently in the active DFS recursion stack for cycle detection.
+	inStack map[string]bool
 }
 
 func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec, componentTask *pipelinespec.PipelineTaskSpec) error {
-	// each component is only visited once
-	// TODO(Bobgy): return an error when circular reference detected
+	if state == nil {
+		return fmt.Errorf("dfs: unexpected value state=nil")
+	}
+	if state.inStack[name] {
+		return fmt.Errorf("circular reference detected in component graph: %s", name)
+	}
 	if state.visited[name] {
 		return nil
 	}
 	state.visited[name] = true
+	state.inStack[name] = true
+	defer func() {
+		delete(state.inStack, name)
+	}()
+
 	if component == nil {
 		return nil
 	}
-	if state == nil {
-		return fmt.Errorf("dfs: unexpected value state=nil")
-	}
 	componentError := func(err error) error {
+		if componentTask != nil && componentTask.GetTaskInfo() != nil && componentTask.GetTaskInfo().GetName() != "" {
+			return fmt.Errorf("error processing task %q (component name=%q): %w", componentTask.GetTaskInfo().GetName(), name, err)
+		}
 		return fmt.Errorf("error processing component name=%q: %w", name, err)
 	}
 	executorLabel := component.GetExecutorLabel()
@@ -174,32 +187,35 @@ func (state *pipelineDFS) dfs(name string, component *pipelinespec.ComponentSpec
 }
 
 func GetDeploymentConfig(spec *pipelinespec.PipelineSpec) (*pipelinespec.PipelineDeploymentConfig, error) {
+	if spec == nil || spec.GetDeploymentSpec() == nil {
+		return &pipelinespec.PipelineDeploymentConfig{}, nil
+	}
 	jsonBytes, err := protojson.Marshal(spec.GetDeploymentSpec())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal deployment spec: %w", err)
 	}
-	buffer := bytes.NewBuffer(jsonBytes)
 	deploymentConfig := &pipelinespec.PipelineDeploymentConfig{}
 	// Allow unknown '@type' field in the json message.
 	unmarshaler := protojson.UnmarshalOptions{
 		DiscardUnknown: true,
 	}
-	if err := unmarshaler.Unmarshal(buffer.Bytes(), deploymentConfig); err != nil {
-		return nil, err
+	if err := unmarshaler.Unmarshal(jsonBytes, deploymentConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal deployment config: %w", err)
 	}
 	return deploymentConfig, nil
 }
 
 func GetPipelineSpec(job *pipelinespec.PipelineJob) (*pipelinespec.PipelineSpec, error) {
-	// TODO(Bobgy): can we avoid this marshal to string step?
+	if job == nil || job.GetPipelineSpec() == nil {
+		return nil, fmt.Errorf("pipeline spec is nil in pipeline job")
+	}
 	marshaler := &protojson.MarshalOptions{}
 	jsonBytes, err := marshaler.Marshal(job.GetPipelineSpec())
 	if err != nil {
 		return nil, fmt.Errorf("failed marshal pipeline spec to json: %w", err)
 	}
-	jsonStr := string(jsonBytes)
 	spec := &pipelinespec.PipelineSpec{}
-	if err := protojson.Unmarshal([]byte(jsonStr), spec); err != nil {
+	if err := protojson.Unmarshal(jsonBytes, spec); err != nil {
 		return nil, fmt.Errorf("failed to parse pipeline spec: %v", err)
 	}
 	return spec, nil
