@@ -17,6 +17,7 @@ import json
 import os
 import sys
 from time import sleep
+from ml_metadata.errors import AlreadyExistsError
 from ml_metadata.proto import metadata_store_pb2
 from ml_metadata.metadata_store import metadata_store
 from ipaddress import ip_address, IPv4Address 
@@ -190,12 +191,15 @@ def create_context_with_type(
 def get_context_by_name(
     store,
     context_name: str,
+    type_name: str,
 ) -> metadata_store_pb2.Context:
-    matching_contexts = [context for context in store.get_contexts() if context.name == context_name]
-    assert len(matching_contexts) <= 1
-    if len(matching_contexts) == 0:
+    context = store.get_context_by_type_and_name(
+        type_name=type_name,
+        context_name=context_name,
+    )
+    if context is None:
         raise ValueError('Context with name "{}" was not found'.format(context_name))
-    return matching_contexts[0]
+    return context
 
 
 def get_or_create_context_with_type(
@@ -207,16 +211,21 @@ def get_or_create_context_with_type(
     custom_properties: dict = None,
 ) -> metadata_store_pb2.Context:
     try:
-        context = get_context_by_name(store, context_name)
-    except:
-        context = create_context_with_type(
-            store=store,
-            context_name=context_name,
-            type_name=type_name,
-            properties=properties,
-            type_properties=type_properties,
-            custom_properties=custom_properties,
-        )
+        context = get_context_by_name(store, context_name, type_name)
+    except ValueError:
+        try:
+            context = create_context_with_type(
+                store=store,
+                context_name=context_name,
+                type_name=type_name,
+                properties=properties,
+                type_properties=type_properties,
+                custom_properties=custom_properties,
+            )
+        except AlreadyExistsError:
+            # Another writer created the context between our lookup and
+            # create. Look it up again instead of failing.
+            context = get_context_by_name(store, context_name, type_name)
         return context
 
     # Verifying that the context has the expected type name
