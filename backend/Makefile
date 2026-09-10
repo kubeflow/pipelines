@@ -8,6 +8,7 @@ DATABASE ?= mysql
 WEBHOOK_PROXY_ENABLED ?= $(if $(filter mysql,$(DATABASE)),true,false)
 
 CERT_MANAGER_VERSION ?= v1.16.2
+DRA_DRIVER_NAMESPACE ?= dra-example-driver
 
 # Validate DATABASE value
 VALID_DATABASES := mysql postgres
@@ -168,6 +169,11 @@ dev-kind-cluster:
 	kubectl -n kubeflow wait --for condition=Available --timeout=10m deployment/$(DB_DEPLOYMENT_NAME)
 	kubectl -n kubeflow wait --for condition=Available --timeout=3m deployment/metadata-grpc-deployment
 	kubectl config set-context --current --namespace=kubeflow
+
+.PHONY: install-dra-driver
+install-dra-driver:
+	NAMESPACE="$(DRA_DRIVER_NAMESPACE)" \
+	bash "$(MOD_ROOT)/.github/actions/install-dra-driver/install-dra-driver.sh"
 
 .PHONY: kind-load-driver-debug
 kind-load-driver-debug:
