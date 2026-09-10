@@ -55,7 +55,7 @@ export const getTensorboardHandlers = (
         req,
       );
       if (authError) {
-        res.status(401).send(authError.message);
+        res.status(401).type('text/plain').send(authError.message);
         return;
       }
       const tensorboardInstance = await k8sHelper.getTensorboardInstance(
@@ -76,7 +76,10 @@ export const getTensorboardHandlers = (
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to list Tensorboard pods: ${details.message}`, details.additionalInfo);
-      res.status(500).send(`Failed to list Tensorboard pods: ${details.message}`);
+      res
+        .status(500)
+        .type('text/plain')
+        .send(`Failed to list Tensorboard pods: ${details.message}`);
     }
   };
 
@@ -119,7 +122,7 @@ export const getTensorboardHandlers = (
       try {
         podTemplateSpec = JSON.parse(podTemplateSpecRaw as string);
       } catch (err) {
-        res.status(400).send(`podtemplatespec is not valid JSON: ${err}`);
+        res.status(400).type('text/plain').send(`podtemplatespec is not valid JSON: ${err}`);
         return;
       }
     }
@@ -134,7 +137,7 @@ export const getTensorboardHandlers = (
         req,
       );
       if (authError) {
-        res.status(401).send(authError.message);
+        res.status(401).type('text/plain').send(authError.message);
         return;
       }
       await k8sHelper.newTensorboardInstance(
@@ -159,7 +162,13 @@ export const getTensorboardHandlers = (
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to start Tensorboard app: ${details.message}`, details.additionalInfo);
-      res.status(500).send(`Failed to start Tensorboard app: ${details.message}`);
+      // The error message echoes the caller-supplied logdir, so send it as plain
+      // text rather than the res.send() default of text/html to avoid reflecting
+      // an unescaped payload as executable markup.
+      res
+        .status(500)
+        .type('text/plain')
+        .send(`Failed to start Tensorboard app: ${details.message}`);
     }
   };
 
@@ -192,7 +201,7 @@ export const getTensorboardHandlers = (
         req,
       );
       if (authError) {
-        res.status(401).send(authError.message);
+        res.status(401).type('text/plain').send(authError.message);
         return;
       }
       await k8sHelper.deleteTensorboardInstance(logdir as string, namespace as string);
@@ -200,7 +209,10 @@ export const getTensorboardHandlers = (
     } catch (err) {
       const details = await parseError(err);
       console.error(`Failed to delete Tensorboard app: ${details.message}`, details.additionalInfo);
-      res.status(500).send(`Failed to delete Tensorboard app: ${details.message}`);
+      res
+        .status(500)
+        .type('text/plain')
+        .send(`Failed to delete Tensorboard app: ${details.message}`);
     }
   };
 
