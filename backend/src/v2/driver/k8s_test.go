@@ -4514,11 +4514,8 @@ func Test_extendPodSpecPatch_PodResourceClaims(t *testing.T) {
 			err := extendPodSpecPatch(
 				context.Background(),
 				got,
-				Options{TaskName: tt.taskName, KubernetesExecutorConfig: tt.k8sExecCfg},
-				nil,
-				nil,
-				nil,
-				tt.inputParams,
+				common.Options{TaskName: tt.taskName, KubernetesExecutorConfig: tt.k8sExecCfg},
+				mapToIOParameters(tt.inputParams),
 				taskConfig,
 			)
 
@@ -4550,10 +4547,7 @@ func Test_extendPodSpecPatch_PodResourceClaims_Passthrough_NotAppliedToPod(t *te
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{KubernetesExecutorConfig: cfg, Component: comp},
-		nil,
-		nil,
-		nil,
+		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		nil,
 		taskCfg,
 	)
@@ -4583,10 +4577,7 @@ func Test_extendPodSpecPatch_PodResourceClaims_Passthrough_AppliedToPod(t *testi
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{KubernetesExecutorConfig: cfg, Component: comp},
-		nil,
-		nil,
-		nil,
+		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		nil,
 		taskCfg,
 	)
@@ -4614,10 +4605,7 @@ func Test_extendPodSpecPatch_PodResourceClaims_DefaultSetOnPod(t *testing.T) {
 	err := extendPodSpecPatch(
 		context.Background(),
 		podSpec,
-		Options{KubernetesExecutorConfig: cfg, Component: comp},
-		nil,
-		nil,
-		nil,
+		common.Options{KubernetesExecutorConfig: cfg, Component: comp},
 		nil,
 		taskCfg,
 	)
