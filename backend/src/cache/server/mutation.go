@@ -99,6 +99,11 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		log.Printf("This pod %s is created by KFP v2 pipelines.", pod.ObjectMeta.Name)
 		return nil, nil
 	}
+	// Namespace comes from the API server's admission context, not caller metadata.
+	if req.Namespace == "" || (pod.Namespace != "" && pod.Namespace != req.Namespace) {
+		log.Printf("Skipping cache lookup for pod %s: missing or inconsistent namespace", pod.Name)
+		return nil, nil
+	}
 
 	var patches []patchOperation
 	annotations := pod.ObjectMeta.Annotations
@@ -150,7 +155,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	log.Printf("cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
 
 	var cachedExecution *model.ExecutionCache
-	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(req.Namespace, executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -251,6 +256,9 @@ func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[str
 }
 
 func generateCacheKeyFromTemplate(template string, namespace string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("cache key requires a pod namespace")
+	}
 	var templateMap map[string]interface{}
 	b := []byte(template)
 	err := json.Unmarshal(b, &templateMap)

@@ -26,7 +26,7 @@ import (
 )
 
 type ExecutionCacheStoreInterface interface {
-	GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error)
+	GetExecutionCache(namespace, executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
 }
 
@@ -36,7 +36,10 @@ type ExecutionCacheStore struct {
 	dialect dialect.DBDialect
 }
 
-func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
+func (s *ExecutionCacheStore) GetExecutionCache(namespace, executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("cache lookup requires a pod namespace")
+	}
 	rowsAffected, err := s.cleanDatabase(maximumCacheStaleness)
 	log.Printf("Number of deleted rows: %d", rowsAffected)
 	if err != nil {
@@ -46,7 +49,7 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 		return nil, fmt.Errorf("CacheStaleness=0, Cache is disabled.")
 	}
 	var executionCaches []model.ExecutionCache
-	result := s.db.Where(map[string]interface{}{"ExecutionCacheKey": executionCacheKey}).Find(&executionCaches)
+	result := s.db.Where(map[string]interface{}{"Namespace": namespace, "ExecutionCacheKey": executionCacheKey}).Find(&executionCaches)
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to get execution cache: %q, err: %v", executionCacheKey, result.Error)
 	}
@@ -144,10 +147,13 @@ func getLatestCacheEntry(executionCaches []*model.ExecutionCache) (*model.Execut
 }
 
 func (s *ExecutionCacheStore) CreateExecutionCache(executionCache *model.ExecutionCache) (*model.ExecutionCache, error) {
+	if executionCache.Namespace == "" {
+		return nil, fmt.Errorf("cache write requires a pod namespace")
+	}
 	log.Printf("checking for existing row with cache key: %s before insertion", executionCache.ExecutionCacheKey)
 
 	var existingCaches []model.ExecutionCache
-	result := s.db.Where(map[string]interface{}{"ExecutionCacheKey": executionCache.ExecutionCacheKey}).Find(&existingCaches)
+	result := s.db.Where(map[string]interface{}{"Namespace": executionCache.Namespace, "ExecutionCacheKey": executionCache.ExecutionCacheKey}).Find(&existingCaches)
 	if result.Error != nil {
 		log.Printf("Failed to get execution cache with key: %s, err: %v", executionCache.ExecutionCacheKey, result.Error)
 		return nil, result.Error

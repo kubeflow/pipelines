@@ -169,6 +169,7 @@ func TestMutatePodIfCached(t *testing.T) {
 
 func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "5ea9e9f07d01e21f5bbda698d3bb7d29db34b6f7462e796e8832718d336b410f",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"}}`,
@@ -188,6 +189,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 
 func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "5ea9e9f07d01e21f5bbda698d3bb7d29db34b6f7462e796e8832718d336b410f",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"}}`,
@@ -207,6 +209,7 @@ func TestSetImage(t *testing.T) {
 	defer os.Unsetenv("CACHE_IMAGE")
 
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "5ea9e9f07d01e21f5bbda698d3bb7d29db34b6f7462e796e8832718d336b410f",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"}}`,
@@ -224,6 +227,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 	os.Setenv("CACHE_NODE_RESTRICTIONS", "false")
 
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "5ea9e9f07d01e21f5bbda698d3bb7d29db34b6f7462e796e8832718d336b410f",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.11"},"nodeSelector":{"disktype":"ssd"}}`,
@@ -239,6 +243,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "71ad0d3873235ed88b5a3a2934b82cc180987e3a5a4107f8cb42bffe2de6cf64",
 		ExecutionOutput:   "testOutput",
 		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.11"},"outputs":"anything"}`,

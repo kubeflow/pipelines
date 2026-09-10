@@ -34,6 +34,7 @@ func closeDB(t *testing.T, db *gorm.DB) {
 
 func createExecutionCache(cacheKey string, cacheOutput string) *model.ExecutionCache {
 	return &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: cacheKey,
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   cacheOutput,
@@ -48,6 +49,7 @@ func TestCreateExecutionCache(t *testing.T) {
 	defer closeDB(t, db)
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
@@ -57,6 +59,7 @@ func TestCreateExecutionCache(t *testing.T) {
 		EndedAtInSec:      1,
 	}
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -69,6 +72,7 @@ func TestCreateExecutionCache(t *testing.T) {
 
 func TestCreateExecutionCacheWithDuplicateRecord(t *testing.T) {
 	executionCache := &model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "test",
 		ExecutionTemplate: "testTemplate",
@@ -93,6 +97,7 @@ func TestGetExecutionCache(t *testing.T) {
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -103,7 +108,7 @@ func TestGetExecutionCache(t *testing.T) {
 	}
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
@@ -115,7 +120,7 @@ func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("wrongKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "wrongKey", -1, -1)
 	require.Nil(t, executionCache)
 	require.Contains(t, err.Error(), `Execution cache not found with cache key: "wrongKey"`)
 }
@@ -129,6 +134,7 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput2"))
 
 	executionCacheExpected := model.ExecutionCache{
+		Namespace:         "default",
 		ID:                1,
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
@@ -138,7 +144,7 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 		EndedAtInSec:      1,
 	}
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
@@ -148,6 +154,7 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 	defer closeDB(t, db)
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -156,7 +163,7 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
 	require.Contains(t, err.Error(), "Execution cache not found")
 	require.Nil(t, executionCache)
 }
@@ -166,6 +173,7 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 	defer closeDB(t, db)
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -174,7 +182,7 @@ func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", 0, -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", 0, -1)
 	log.Println(executionCache)
 	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "CacheStaleness=0, Cache is disabled.")
@@ -186,6 +194,7 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 	defer closeDB(t, db)
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect)
 	executionCacheToPersist := &model.ExecutionCache{
+		Namespace:         "default",
 		ExecutionCacheKey: "testKey",
 		ExecutionTemplate: "testTemplate",
 		ExecutionOutput:   "testOutput",
@@ -194,7 +203,7 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, 0)
+	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, 0)
 	log.Println(executionCache)
 	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "Execution cache not found")
@@ -212,7 +221,7 @@ func TestGetExecutionCacheWithEmptyKey(t *testing.T) {
 	_, err := executionCacheStore.CreateExecutionCache(createExecutionCache("someKey", "output1"))
 	require.NoError(t, err)
 
-	result, err := executionCacheStore.GetExecutionCache("", -1, -1)
+	result, err := executionCacheStore.GetExecutionCache("default", "", -1, -1)
 	require.Nil(t, result)
 	require.Contains(t, err.Error(), "Execution cache not found")
 }
