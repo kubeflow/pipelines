@@ -162,6 +162,9 @@ func TestCacheRejectsWrongShapedTemplates(t *testing.T) {
 			key, err := generateCacheKeyFromTemplate(template, p.Namespace)
 			require.Error(t, err)
 			require.Empty(t, key)
+			legacyKey, err := generateLegacyCacheKeyFromTemplate(template)
+			require.Error(t, err)
+			require.Empty(t, legacyKey)
 			req := GetFakeRequestFromPod(p)
 			req.Namespace = p.Namespace
 			patches, err := MutatePodIfCached(req, m)

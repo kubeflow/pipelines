@@ -122,7 +122,8 @@ func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
 	var executionCache *model.ExecutionCache
 	executionCache, err := executionCacheStore.GetExecutionCache("default", "wrongKey", -1, -1)
 	require.Nil(t, executionCache)
-	require.Contains(t, err.Error(), `Execution cache not found with cache key: "wrongKey"`)
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
+	require.Contains(t, err.Error(), `"wrongKey"`)
 }
 
 func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
@@ -164,7 +165,7 @@ func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 
 	var executionCache *model.ExecutionCache
 	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, -1)
-	require.Contains(t, err.Error(), "Execution cache not found")
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
 	require.Nil(t, executionCache)
 }
 
@@ -206,7 +207,7 @@ func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
 	executionCache, err := executionCacheStore.GetExecutionCache("default", "testKey", -1, 0)
 	log.Println(executionCache)
 	log.Println("error: " + err.Error())
-	require.Contains(t, err.Error(), "Execution cache not found")
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
 	require.Nil(t, executionCache)
 }
 
@@ -223,7 +224,7 @@ func TestGetExecutionCacheWithEmptyKey(t *testing.T) {
 
 	result, err := executionCacheStore.GetExecutionCache("default", "", -1, -1)
 	require.Nil(t, result)
-	require.Contains(t, err.Error(), "Execution cache not found")
+	require.ErrorIs(t, err, ErrExecutionCacheNotFound)
 }
 
 // Guardrail: the WHERE predicate must use the model-tag column name

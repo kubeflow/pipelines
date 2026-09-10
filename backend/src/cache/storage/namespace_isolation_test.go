@@ -79,9 +79,13 @@ func TestCacheNamespaceMigrationAndStorage(t *testing.T) {
 
 			s := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch(), dialect.NewDBDialect(backend))
 			_, err = s.GetExecutionCache("tenant-a", "shared-key", -1, -1)
-			require.Error(t, err, "legacy rows must not satisfy scoped lookups")
+			require.ErrorIs(t, err, ErrExecutionCacheNotFound, "legacy rows must not satisfy scoped lookups")
+			cachedLegacy, err := s.GetLegacyExecutionCache("shared-key", -1, -1)
+			require.NoError(t, err)
+			require.Equal(t, &migrated, cachedLegacy)
 			_, err = s.GetExecutionCache("", "shared-key", -1, -1)
 			require.Error(t, err)
+			require.NotErrorIs(t, err, ErrExecutionCacheNotFound, "invalid namespaces must not trigger legacy fallback")
 			_, err = s.CreateExecutionCache(&model.ExecutionCache{ExecutionCacheKey: "shared-key"})
 			require.Error(t, err, "new rows require ownership")
 			for _, ns := range []string{"tenant-a", "tenant-b"} {
@@ -101,7 +105,10 @@ func TestCacheNamespaceMigrationAndStorage(t *testing.T) {
 				require.Equal(t, ns+"-output", cached.ExecutionOutput)
 			}
 			_, err = s.GetExecutionCache("tenant-c", "shared-key", -1, -1)
-			require.Error(t, err)
+			require.ErrorIs(t, err, ErrExecutionCacheNotFound)
+			cachedLegacy, err = s.GetLegacyExecutionCache("shared-key", -1, -1)
+			require.NoError(t, err)
+			require.Equal(t, &migrated, cachedLegacy, "legacy lookups must exclude namespaced entries with the same key")
 		})
 	}
 }

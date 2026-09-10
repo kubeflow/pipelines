@@ -18,6 +18,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -156,6 +157,22 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(req.Namespace, executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+	if errors.Is(err, storage.ErrExecutionCacheNotFound) {
+		allowLegacyFallback, configErr := getEnvBool("ALLOW_LEGACY_CACHE_FALLBACK")
+		if configErr != nil {
+			return nil, fmt.Errorf("invalid ALLOW_LEGACY_CACHE_FALLBACK: set it to true or false: %w", configErr)
+		}
+		if allowLegacyFallback {
+			legacyKey, keyErr := generateLegacyCacheKeyFromTemplate(template)
+			if keyErr != nil {
+				return nil, keyErr
+			}
+			cachedExecution, err = clientMgr.CacheStore().GetLegacyExecutionCache(legacyKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
+			if cachedExecution != nil {
+				log.Printf("Using legacy cache entry %d for pod %s/%s: original namespace is unknown; ALLOW_LEGACY_CACHE_FALLBACK is enabled", cachedExecution.ID, req.Namespace, pod.Name)
+			}
+		}
+	}
 	if err != nil {
 		log.Println(err.Error())
 	}
@@ -271,14 +288,38 @@ func generateCacheKeyFromTemplate(template string, namespace string) (string, er
 	if namespace == "" {
 		return "", fmt.Errorf("cache key requires a pod namespace")
 	}
+	cacheKeyMap, err := filterTemplateForCacheKey(template)
+	if err != nil {
+		return "", err
+	}
+
+	// Database namespace predicates enforce ownership. Including the trusted
+	// namespace in the hash also keeps tenant identities distinct if a future
+	// lookup accidentally omits its namespace predicate.
+	return hashCacheKey(map[string]interface{}{
+		"namespace": namespace,
+		"template":  cacheKeyMap,
+	})
+}
+
+// generateLegacyCacheKeyFromTemplate reproduces the pre-namespace key for legacy-only reads.
+func generateLegacyCacheKeyFromTemplate(template string) (string, error) {
+	cacheKeyMap, err := filterTemplateForCacheKey(template)
+	if err != nil {
+		return "", err
+	}
+	return hashCacheKey(cacheKeyMap)
+}
+
+func filterTemplateForCacheKey(template string) (map[string]interface{}, error) {
 	var templateMap map[string]interface{}
 	b := []byte(template)
 	err := json.Unmarshal(b, &templateMap)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if templateMap == nil {
-		return "", fmt.Errorf("cache template must be a JSON object, not null")
+		return nil, fmt.Errorf("cache template must be a JSON object, not null")
 	}
 
 	// Selectively copying parts of the template that should affect the cache
@@ -296,21 +337,12 @@ func generateCacheKeyFromTemplate(template string, namespace string) (string, er
 		"initContainers": nil,
 		"sidecars":       nil,
 	}
-	cacheKeyMap, err := intersectStructureWithSkeleton(templateMap, templateSkeleton)
-	if err != nil {
-		return "", err
-	}
+	return intersectStructureWithSkeleton(templateMap, templateSkeleton)
+}
 
-	// Bind the cache entry to the pod's namespace (the KFP tenant boundary) so an
-	// entry written by one tenant is never served to another. Without the
-	// namespace the key is a pure function of container content, which any tenant
-	// can replicate, allowing cross-tenant cache hits in multi-user mode.
-	keyedStructure := map[string]interface{}{
-		"namespace": namespace,
-		"template":  cacheKeyMap,
-	}
-
-	b, err = json.Marshal(keyedStructure)
+func hashCacheKey(keyedStructure map[string]interface{}) (string, error) {
+	// encoding/json.Marshal documents sorted map keys, including nested maps.
+	b, err := json.Marshal(keyedStructure)
 	if err != nil {
 		return "", err
 	}
@@ -376,7 +408,7 @@ func isV2Pod(pod *corev1.Pod) bool {
 }
 
 func getEnvBool(key string) (bool, error) {
-	v, ok := os.LookupEnv("CACHE_NODE_RESTRICTIONS")
+	v, ok := os.LookupEnv(key)
 	if !ok {
 		return false, nil
 	}

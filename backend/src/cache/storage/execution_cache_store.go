@@ -16,6 +16,7 @@ package storage
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -25,8 +26,12 @@ import (
 	"gorm.io/gorm"
 )
 
+// ErrExecutionCacheNotFound indicates that no cache entry satisfies the lookup and staleness requirements.
+var ErrExecutionCacheNotFound = errors.New("execution cache not found")
+
 type ExecutionCacheStoreInterface interface {
 	GetExecutionCache(namespace, executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error)
+	GetLegacyExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error)
 	CreateExecutionCache(*model.ExecutionCache) (*model.ExecutionCache, error)
 }
 
@@ -40,6 +45,16 @@ func (s *ExecutionCacheStore) GetExecutionCache(namespace, executionCacheKey str
 	if namespace == "" {
 		return nil, fmt.Errorf("cache lookup requires a pod namespace")
 	}
+	return s.getExecutionCache(namespace, executionCacheKey, cacheStaleness, maximumCacheStaleness)
+}
+
+// GetLegacyExecutionCache reads only historical entries with unknown namespace ownership.
+// Callers must explicitly opt in to cross-namespace reuse before using this lookup.
+func (s *ExecutionCacheStore) GetLegacyExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
+	return s.getExecutionCache("", executionCacheKey, cacheStaleness, maximumCacheStaleness)
+}
+
+func (s *ExecutionCacheStore) getExecutionCache(namespace, executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
 	rowsAffected, err := s.cleanDatabase(maximumCacheStaleness)
 	log.Printf("Number of deleted rows: %d", rowsAffected)
 	if err != nil {
@@ -49,6 +64,7 @@ func (s *ExecutionCacheStore) GetExecutionCache(namespace, executionCacheKey str
 		return nil, fmt.Errorf("CacheStaleness=0, Cache is disabled.")
 	}
 	var executionCaches []model.ExecutionCache
+	// A map retains the empty namespace predicate for explicit legacy lookups.
 	result := s.db.Where(map[string]interface{}{"Namespace": namespace, "ExecutionCacheKey": executionCacheKey}).Find(&executionCaches)
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to get execution cache: %q, err: %v", executionCacheKey, result.Error)
@@ -67,7 +83,7 @@ func (s *ExecutionCacheStore) GetExecutionCache(namespace, executionCacheKey str
 	}
 
 	if len(validCaches) == 0 {
-		return nil, fmt.Errorf("Execution cache not found with cache key: %q", executionCacheKey)
+		return nil, fmt.Errorf("%w with cache key: %q", ErrExecutionCacheNotFound, executionCacheKey)
 	}
 	latestCache, err := getLatestCacheEntry(validCaches)
 	if err != nil {
