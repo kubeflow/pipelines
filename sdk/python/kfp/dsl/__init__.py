@@ -288,35 +288,34 @@ Example:
 """
 
 # compile-time only dependencies
-if os.environ.get('_KFP_RUNTIME', 'false') != 'true':
-    from kfp.dsl.component_decorator import component
-    from kfp.dsl.component_task_config import TaskConfigField
-    from kfp.dsl.component_task_config import TaskConfigPassthrough
-    from kfp.dsl.container_component_decorator import container_component
-    # TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
-    from kfp.dsl.for_loop import Collected
-    from kfp.dsl.importer_node import importer
-    from kfp.dsl.notebook_component_decorator import notebook_component
-    from kfp.dsl.pipeline_channel import OneOf
-    from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
-    from kfp.dsl.pipeline_config import PipelineConfig
-    from kfp.dsl.pipeline_config import WorkspaceConfig
-    from kfp.dsl.pipeline_context import pipeline
-    from kfp.dsl.pipeline_task import PipelineTask
-    from kfp.dsl.placeholders import ConcatPlaceholder
-    from kfp.dsl.placeholders import IfPresentPlaceholder
-    from kfp.dsl.structures import ContainerSpec
-    from kfp.dsl.tasks_group import Condition
-    from kfp.dsl.tasks_group import Elif
-    from kfp.dsl.tasks_group import Else
-    from kfp.dsl.tasks_group import ExitHandler
-    from kfp.dsl.tasks_group import If
-    from kfp.dsl.tasks_group import ParallelFor
-    __all__.extend([
-        'component', 'container_component', 'pipeline', 'importer',
-        'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
-        'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
-        'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
-        'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
-        'TaskConfigPassthrough', 'notebook_component'
-    ])
+from kfp.dsl.component_decorator import component
+from kfp.dsl.component_task_config import TaskConfigField
+from kfp.dsl.component_task_config import TaskConfigPassthrough
+from kfp.dsl.container_component_decorator import container_component
+# TODO: Collected should be moved to pipeline_channel.py, consistent with OneOf
+from kfp.dsl.for_loop import Collected
+from kfp.dsl.importer_node import importer
+from kfp.dsl.notebook_component_decorator import notebook_component
+from kfp.dsl.pipeline_channel import OneOf
+from kfp.dsl.pipeline_config import KubernetesWorkspaceConfig
+from kfp.dsl.pipeline_config import PipelineConfig
+from kfp.dsl.pipeline_config import WorkspaceConfig
+from kfp.dsl.pipeline_context import pipeline
+from kfp.dsl.pipeline_task import PipelineTask
+from kfp.dsl.placeholders import ConcatPlaceholder
+from kfp.dsl.placeholders import IfPresentPlaceholder
+from kfp.dsl.structures import ContainerSpec
+from kfp.dsl.tasks_group import Condition
+from kfp.dsl.tasks_group import Elif
+from kfp.dsl.tasks_group import Else
+from kfp.dsl.tasks_group import ExitHandler
+from kfp.dsl.tasks_group import If
+from kfp.dsl.tasks_group import ParallelFor
+__all__.extend([
+    'component', 'container_component', 'pipeline', 'importer',
+    'ContainerSpec', 'Condition', 'If', 'Elif', 'Else', 'OneOf',
+    'ExitHandler', 'ParallelFor', 'Collected', 'IfPresentPlaceholder',
+    'ConcatPlaceholder', 'PipelineTask', 'PipelineConfig',
+    'WorkspaceConfig', 'KubernetesWorkspaceConfig', 'TaskConfigField',
+    'TaskConfigPassthrough', 'notebook_component'
+])
