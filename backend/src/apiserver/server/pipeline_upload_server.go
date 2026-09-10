@@ -42,13 +42,16 @@ import (
 )
 
 const (
-	FormFileKey                 = "uploadfile"
-	NameQueryStringKey          = "name"
-	DisplayNameQueryStringKey   = "display_name"
-	DescriptionQueryStringKey   = "description"
-	NamespaceStringQuery        = "namespace"
-	TagsQueryStringKey          = "tags"
-	CodeSourceURLQueryStringKey = "code_source_url"
+	FormFileKey                      = "uploadfile"
+	NameQueryStringKey               = "name"
+	DisplayNameQueryStringKey        = "display_name"
+	DescriptionQueryStringKey        = "description"
+	VersionNameQueryStringKey        = "version_name"
+	VersionDisplayNameQueryStringKey = "version_display_name"
+	VersionDescriptionQueryStringKey = "version_description"
+	NamespaceStringQuery             = "namespace"
+	TagsQueryStringKey               = "tags"
+	CodeSourceURLQueryStringKey      = "code_source_url"
 	// Pipeline Id in the query string specifies a pipeline when creating versions.
 	PipelineKey = "pipelineid"
 )
@@ -165,15 +168,34 @@ func (s *PipelineUploadServer) uploadPipeline(apiVersion string, w http.Response
 		pipeline.Tags = tags
 	}
 
+	versionNameQueryString := r.URL.Query().Get(VersionNameQueryStringKey)
+	versionDisplayNameQueryString := r.URL.Query().Get(VersionDisplayNameQueryStringKey)
+	versionDescriptionQueryString := r.URL.Query().Get(VersionDescriptionQueryStringKey)
+
+	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, pipeline.Name)
+	versionDisplayName := versionDisplayNameQueryString
+	if versionDisplayName == "" {
+		versionDisplayName = pipelineVersionName
+	}
+	versionDescription := model.LargeText(versionDescriptionQueryString)
+	if versionDescriptionQueryString == "" {
+		versionDescription = pipeline.Description
+	}
+
 	pipelineVersion := &model.PipelineVersion{
-		Name:          pipeline.Name,
-		DisplayName:   pipeline.DisplayName,
-		Description:   pipeline.Description,
+		Name:          pipelineVersionName,
+		DisplayName:   versionDisplayName,
+		Description:   versionDescription,
 		PipelineSpec:  model.LargeText(pipelineFile),
 		CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
 	}
 
 	if err := validation.ValidateFieldLength("Pipeline", "Name", pipeline.Name); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := validation.ValidateFieldLength("PipelineVersion", "Name", pipelineVersion.Name); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -275,7 +297,18 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 	}
 
 	versionNameQueryString := r.URL.Query().Get(NameQueryStringKey)
+	if versionNameQueryString == "" {
+		versionNameQueryString = r.URL.Query().Get(VersionNameQueryStringKey)
+	}
 	versionDisplayNameQueryString := r.URL.Query().Get(DisplayNameQueryStringKey)
+	if versionDisplayNameQueryString == "" {
+		versionDisplayNameQueryString = r.URL.Query().Get(VersionDisplayNameQueryStringKey)
+	}
+	versionDescriptionQueryString := r.URL.Query().Get(DescriptionQueryStringKey)
+	if versionDescriptionQueryString == "" {
+		versionDescriptionQueryString = r.URL.Query().Get(VersionDescriptionQueryStringKey)
+	}
+
 	pipelineVersionName := buildPipelineName(versionNameQueryString, versionDisplayNameQueryString, header.Filename)
 
 	displayName := versionDisplayNameQueryString
@@ -330,7 +363,7 @@ func (s *PipelineUploadServer) uploadPipelineVersion(apiVersion string, w http.R
 		&model.PipelineVersion{
 			Name:          pipelineVersionName,
 			DisplayName:   displayName,
-			Description:   model.LargeText(r.URL.Query().Get(DescriptionQueryStringKey)),
+			Description:   model.LargeText(versionDescriptionQueryString),
 			PipelineId:    pipelineID,
 			PipelineSpec:  model.LargeText(pipelineFile),
 			CodeSourceUrl: r.URL.Query().Get(CodeSourceURLQueryStringKey),
