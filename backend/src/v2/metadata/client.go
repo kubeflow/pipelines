@@ -850,7 +850,7 @@ func (c *Client) UpdateDAGExecutionsState(ctx context.Context, dag *DAG, pipelin
 	switch {
 	case completedTasks == int(expectedTaskCount):
 		newState = pb.Execution_COMPLETE
-	case failedTasks > 0:
+	case failedTasks > 0 && completedTasks+failedTasks == int(expectedTaskCount):
 		newState = pb.Execution_FAILED
 	default:
 		glog.V(4).Infof("DAG is still running")
