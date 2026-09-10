@@ -752,6 +752,39 @@ implementation:
             pipeline_spec['root']['dag']['tasks']['for-loop-2']
             ['iteratorPolicy']['parallelismLimit'], 2)
 
+    def test_compile_parallel_for_with_name_and_collected_uses_consistent_task_name(
+            self):
+
+        @dsl.component
+        def echo(item: str) -> str:
+            return item
+
+        @dsl.component
+        def collect(items: List[str]) -> str:
+            return str(items)
+
+        @dsl.pipeline(name='test-parallel-for-with-name-and-collected')
+        def my_pipeline():
+            with dsl.ParallelFor(items=['a', 'b'], name='My Custom Loop'
+                                ) as item:
+                work = echo(item=item)
+            collect(items=dsl.Collected(work.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['dag']['tasks']['for-loop-2']['taskInfo']
+            ['name'], 'for-loop-2')
+        self.assertEqual(
+            pipeline_spec['root']['dag']['tasks']['collect']['inputs']
+            ['parameters']['items']['taskOutputParameter']['producerTask'],
+            'for-loop-2')
+
     def test_compile_parallel_for_with_incompatible_input_type(self):
 
         @dsl.component
