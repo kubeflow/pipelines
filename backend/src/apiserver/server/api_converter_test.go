@@ -4344,6 +4344,38 @@ func TestToModelRun(t *testing.T) {
 	}
 }
 
+func TestToModelRun_MalformedPipelineInfoDoesNotPanic(t *testing.T) {
+	// Regression: toModelRun reads specMap["PipelineInfo"] straight out of a
+	// client-submitted PipelineSpec (a structpb.Struct, i.e. arbitrary JSON), then
+	// asserts it's a map and asserts its "Name" is a string, both without checking
+	// ok. A pipeline spec where PipelineInfo isn't an object, or has a non-string
+	// Name, used to panic instead of returning an error.
+	tests := []struct {
+		name         string
+		pipelineInfo interface{}
+	}{
+		{"PipelineInfo is not an object", "not-an-object"},
+		{"PipelineInfo.Name is not a string", map[string]interface{}{"Name": 123}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pipelineSpec, err := structpb.NewStruct(map[string]interface{}{
+				"PipelineInfo": tt.pipelineInfo,
+			})
+			require.NoError(t, err)
+			run := &apiv2beta1.Run{
+				RunId: "run1",
+				PipelineSource: &apiv2beta1.Run_PipelineSpec{
+					PipelineSpec: pipelineSpec,
+				},
+			}
+			assert.NotPanics(t, func() {
+				_, _ = toModelRun(run)
+			})
+		})
+	}
+}
+
 func Test_toApiRun(t *testing.T) {
 	tests := []struct {
 		name    string
