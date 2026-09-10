@@ -61,4 +61,6 @@ do
   } | python3 "${DIR}/profile_controller_networkpolicy_test.py"
 done
 
+python3 "${DIR}/tensorboard_signing_key_test.py"
+
 kpt pkg tree "${MANIFESTS_DIR}" >/dev/null
