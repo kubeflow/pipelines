@@ -29,6 +29,7 @@ export type SubDagFlowElementData = FlowElementDataBase & {
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
   state?: Execution.State;
+  debugPaused?: boolean;
 };
 
 export type ArtifactFlowElementData = FlowElementDataBase & {

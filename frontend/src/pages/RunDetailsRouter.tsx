@@ -44,6 +44,7 @@ export default function RunDetailsRouter(
   } = useQuery<V2beta1Run, Error>({
     queryKey: queryKeys.v2RunDetail(runId),
     queryFn: () => Apis.runServiceApiV2.getRun(runId),
+    refetchInterval: 10000,
   });
 
   if (getV2RunSuccess && v2Run && v2Run.pipeline_spec) {
