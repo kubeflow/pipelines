@@ -125,7 +125,7 @@ def execute_single_task(
     max_retries = retry_policy.max_retry_count if retry_policy.max_retry_count > 0 else 0
     backoff_duration = retry_policy.backoff_duration.seconds if retry_policy.HasField(
         'backoff_duration') else 0
-    backoff_factor = retry_policy.backoff_factor if retry_policy.backoff_factor > 0 else 2.0
+    backoff_factor = retry_policy.backoff_factor if retry_policy.backoff_factor >= 0 else 2.0
     backoff_max_duration = retry_policy.backoff_max_duration.seconds if retry_policy.HasField(
         'backoff_max_duration') else 3600
 
