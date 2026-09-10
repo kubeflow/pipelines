@@ -19,15 +19,11 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY must be set}"
 : "${GITHUB_RUN_ID:?GITHUB_RUN_ID must be set}"
 
-# Many matrix jobs can reach this barrier together. Poll slowly enough to keep
-# their shared GITHUB_TOKEN comfortably below the repository API rate limit.
-# Forty attempts at the default interval form a roughly 20-minute wait window.
-# If that window expires while a missing artifact still has an active producer
-# job, start another window instead of racing the producer upload.
 WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-40}"
 WAIT_INTERVAL_SECONDS="${WAIT_INTERVAL_SECONDS:-30}"
 PUBLICATION_GRACE_ATTEMPTS="${PUBLICATION_GRACE_ATTEMPTS:-3}"
-PRODUCER_STATE_UNAVAILABLE_EXTENSIONS="${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS:-1}"
+PRODUCER_STATE_UNAVAILABLE_EXTENSIONS="${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS:-3}"
+
 if ! [[ "$WAIT_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
   echo "WAIT_ATTEMPTS must be a positive integer, got: ${WAIT_ATTEMPTS}" >&2
   exit 2
@@ -47,114 +43,145 @@ fi
 
 source "${BASH_SOURCE%/*}/ci-image-artifacts.sh"
 
-active_missing_producers=()
-failed_missing_producers=()
-successful_missing_producers=()
-unknown_missing_producers=()
-classify_missing_producers() {
-  local producer_jobs=""
-  if ! producer_jobs=$(gh api --paginate \
-      "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?filter=latest&per_page=100" \
-      --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv'); then
-    echo "::warning::Could not list image producer jobs." >&2
-    return 1
+case "$(uname -m)" in
+  x86_64) ARCH_NAME="amd64" ;;
+  aarch64|arm64) ARCH_NAME="arm64" ;;
+  *) echo "::error::Unsupported runner architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+
+EXPECTED_CI_IMAGE_ARTIFACTS=()
+for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
+  EXPECTED_CI_IMAGE_ARTIFACTS+=("${artifact}-${ARCH_NAME}")
+done
+
+artifact_producer_pattern() {
+  local artifact="${1%-${ARCH_NAME}}"
+  if [[ "$artifact" == "runtime-base-images" ]]; then
+    printf '%s\n' 'build / runtime-base-images'
+  else
+    printf '%s\n' "build / image-build (${artifact},"
   fi
-
-  active_missing_producers=()
-  failed_missing_producers=()
-  successful_missing_producers=()
-  unknown_missing_producers=()
-  local artifact conclusion job_name producer_found producer_prefix status
-  for artifact in "${missing_artifacts[@]}"; do
-    if [[ "$artifact" == "runtime-base-images" ]]; then
-      producer_prefix="build / runtime-base-images"
-    else
-      producer_prefix="build / image-build (${artifact},"
-    fi
-
-    producer_found=false
-    while IFS=$'\t' read -r job_name status conclusion; do
-      if [[ "$job_name" == "$producer_prefix"* ]]; then
-        producer_found=true
-        if [[ "$status" != "completed" ]]; then
-          active_missing_producers+=("$artifact")
-        elif [[ "$conclusion" == "success" ]]; then
-          successful_missing_producers+=("$artifact")
-        else
-          failed_missing_producers+=("${artifact}:${conclusion:-unknown}")
-        fi
-        break
-      fi
-    done <<< "$producer_jobs"
-    if [[ "$producer_found" == "false" ]]; then
-      unknown_missing_producers+=("$artifact")
-    fi
-  done
 }
 
-missing_artifacts=()
+producer_for_artifact() {
+  local artifact="$1"
+  local prefix
+  prefix="$(artifact_producer_pattern "$artifact")"
+  while IFS=$'\t' read -r job_name job_status job_conclusion; do
+    [[ -z "$job_name" ]] && continue
+    if [[ "$job_name" == "$prefix"* ]]; then
+      printf '%s\t%s\t%s\n' "$job_name" "$job_status" "$job_conclusion"
+      return 0
+    fi
+  done <<< "$PRODUCER_JOBS"
+  return 1
+}
+
+artifact_is_available() {
+  local artifact="$1"
+  if grep -Fqx -- "$artifact" <<< "$artifact_names"; then
+    return 0
+  fi
+  local legacy_name="${artifact%-${ARCH_NAME}}"
+  grep -Fqx -- "$legacy_name" <<< "$artifact_names"
+}
+
 attempt=0
-publication_grace_remaining=0
-producer_state_unavailable_extensions=0
-while true; do
+publication_grace_used=0
+producer_state_unavailable_used=0
+producer_extensions_used=0
+
+while :; do
   attempt=$((attempt + 1))
-  window_attempt=$((((attempt - 1) % WAIT_ATTEMPTS) + 1))
+
   artifact_names=""
   if ! artifact_names=$(gh api --paginate \
       "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" \
       --jq '.artifacts[].name'); then
-    echo "::warning::Could not list image artifacts on attempt ${window_attempt}/${WAIT_ATTEMPTS}."
+    echo "::warning::Could not list image artifacts on attempt ${attempt}."
   fi
 
   missing_artifacts=()
-  for artifact in "${ALL_CI_IMAGE_ARTIFACTS[@]}"; do
-    if ! grep -Fqx -- "$artifact" <<< "$artifact_names"; then
+  for artifact in "${EXPECTED_CI_IMAGE_ARTIFACTS[@]}"; do
+    if ! artifact_is_available "$artifact"; then
       missing_artifacts+=("$artifact")
     fi
   done
 
   if (( ${#missing_artifacts[@]} == 0 )); then
-    echo "All ${#ALL_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
+    echo "All ${#EXPECTED_CI_IMAGE_ARTIFACTS[@]} branch image artifacts are available."
     exit 0
   fi
 
-  if (( publication_grace_remaining > 0 )); then
-    publication_grace_remaining=$((publication_grace_remaining - 1))
-    if (( publication_grace_remaining == 0 )); then
-      echo "Missing branch image artifacts after producer completion grace: ${missing_artifacts[*]}" >&2
-      exit 1
-    fi
-    echo "Waiting for completed producers' artifacts to become visible;" \
-      "remaining grace attempts: ${publication_grace_remaining}"
+  if (( attempt < WAIT_ATTEMPTS )); then
+    echo "Waiting for branch image artifacts (${attempt}/${WAIT_ATTEMPTS}); missing: ${missing_artifacts[*]}"
     sleep "$WAIT_INTERVAL_SECONDS"
     continue
   fi
 
-  if (( window_attempt == WAIT_ATTEMPTS )); then
-    if classify_missing_producers; then
-      if (( ${#failed_missing_producers[@]} > 0 )); then
-        echo "Image producers completed without publishing required artifacts: ${failed_missing_producers[*]}" >&2
-        exit 1
-      fi
-      if (( ${#active_missing_producers[@]} > 0 )); then
-        echo "Extending image artifact wait; active producers: ${active_missing_producers[*]}"
-      else
-        publication_grace_remaining=$PUBLICATION_GRACE_ATTEMPTS
-        echo "Allowing ${PUBLICATION_GRACE_ATTEMPTS} publication grace attempts;" \
-          "successful producers: ${successful_missing_producers[*]:-none};" \
-          "unknown producers: ${unknown_missing_producers[*]:-none}"
-      fi
-    else
-      if (( producer_state_unavailable_extensions >= PRODUCER_STATE_UNAVAILABLE_EXTENSIONS )); then
-        echo "Missing branch image artifacts and producer state remains unavailable: ${missing_artifacts[*]}" >&2
-        exit 1
-      fi
-      producer_state_unavailable_extensions=$((producer_state_unavailable_extensions + 1))
-      echo "Extending image artifact wait because producer state is unavailable" \
-        "(${producer_state_unavailable_extensions}/${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS})."
+  producer_state_ok=true
+  producer_jobs=""
+  if ! producer_jobs=$(gh api --paginate \
+      "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+      --jq '.jobs[] | [.name, .status, (.conclusion // "")] | @tsv'); then
+    producer_state_ok=false
+  fi
+  PRODUCER_JOBS="$producer_jobs"
+
+  if [[ "$producer_state_ok" != true ]]; then
+    if (( producer_state_unavailable_used < PRODUCER_STATE_UNAVAILABLE_EXTENSIONS )); then
+      producer_state_unavailable_used=$((producer_state_unavailable_used + 1))
+      echo "Extending image artifact wait because producer state is unavailable (${producer_state_unavailable_used}/${PRODUCER_STATE_UNAVAILABLE_EXTENSIONS})"
+      sleep "$WAIT_INTERVAL_SECONDS"
+      continue
     fi
+    echo "producer state remains unavailable; missing: ${missing_artifacts[*]}" >&2
+    exit 1
   fi
 
-  echo "Waiting for branch image artifacts (${window_attempt}/${WAIT_ATTEMPTS}); missing: ${missing_artifacts[*]}"
-  sleep "$WAIT_INTERVAL_SECONDS"
+  active_producers=()
+  failed_producers=()
+  successful_producers=()
+  for artifact in "${missing_artifacts[@]}"; do
+    if ! producer_info=$(producer_for_artifact "$artifact"); then
+      continue
+    fi
+    IFS=$'\t' read -r job_name job_status job_conclusion <<< "$producer_info"
+    case "$job_status" in
+      queued|in_progress|waiting|requested|pending)
+        active_producers+=("${artifact%-${ARCH_NAME}}") ;;
+      completed)
+        case "$job_conclusion" in
+          success) successful_producers+=("${artifact%-${ARCH_NAME}}");;
+          failure|cancelled|timed_out|action_required|stale|startup_failure)
+            failed_producers+=("${artifact%-${ARCH_NAME}}:${job_conclusion}");;
+        esac ;;
+    esac
+  done
+
+  if (( ${#failed_producers[@]} > 0 )); then
+    echo "Branch image producer failed: ${failed_producers[*]}" >&2
+    exit 1
+  fi
+
+  if (( ${#active_producers[@]} > 0 && producer_extensions_used < WAIT_ATTEMPTS )); then
+    producer_extensions_used=$((producer_extensions_used + 1))
+    echo "Extending image artifact wait; active producers: ${active_producers[*]}"
+    sleep "$WAIT_INTERVAL_SECONDS"
+    continue
+  fi
+
+  if (( publication_grace_used < PUBLICATION_GRACE_ATTEMPTS )); then
+    publication_grace_used=$((publication_grace_used + 1))
+    if (( ${#successful_producers[@]} > 0 )); then
+      echo "Allowing ${PUBLICATION_GRACE_ATTEMPTS} publication grace attempts (${publication_grace_used}/${PUBLICATION_GRACE_ATTEMPTS}); completed producers: ${successful_producers[*]}"
+    else
+      echo "Allowing ${PUBLICATION_GRACE_ATTEMPTS} publication grace attempts (${publication_grace_used}/${PUBLICATION_GRACE_ATTEMPTS})"
+    fi
+    sleep "$WAIT_INTERVAL_SECONDS"
+    continue
+  fi
+
+  echo "Missing branch image artifacts after producer completion grace: ${missing_artifacts[*]}" >&2
+  exit 1
 done
