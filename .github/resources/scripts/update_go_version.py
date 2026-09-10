@@ -84,9 +84,11 @@ GO_VERSION_INPUT_PATTERN = re.compile(r'^[ ]*go-version:', re.MULTILINE)
 
 DIGEST_LOOKUP_TIMEOUT_SECONDS = 30
 DIGEST_LOOKUP_ATTEMPTS = 2
+REQUIRED_IMAGE_PLATFORMS = ('linux/amd64', 'linux/arm64')
 
 Version = Tuple[int, int, int]
 DigestResolver = Callable[[str], str]
+ImageVersionResolver = Callable[[str], Dict[str, str]]
 
 
 class PolicyError(RuntimeError):
@@ -482,6 +484,65 @@ def resolve_image_digest(tag: str) -> str:
         f'could not resolve Go builder tag {tag}: {"; ".join(failures)}')
 
 
+def _inspect_image_versions(image: str) -> Dict[str, str]:
+    result = _run((
+        'docker',
+        'buildx',
+        'imagetools',
+        'inspect',
+        image,
+        '--format',
+        '{{json .Image}}',
+    ),
+                  REPOSITORY_ROOT,
+                  timeout=DIGEST_LOOKUP_TIMEOUT_SECONDS)
+    try:
+        platforms = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise PolicyError(f'docker returned invalid image metadata for {image}') \
+            from error
+
+    versions = {}
+    for platform in REQUIRED_IMAGE_PLATFORMS:
+        try:
+            config = platforms[platform]
+            if f'{config["os"]}/{config["architecture"]}' != platform:
+                raise ValueError('platform does not match image configuration')
+            environment = config['config']['Env']
+            if not isinstance(environment, list) or not all(
+                    isinstance(value, str) for value in environment):
+                raise ValueError('Env must be a list of strings')
+            values = [
+                value.removeprefix('GOLANG_VERSION=')
+                for value in environment
+                if value.startswith('GOLANG_VERSION=')
+            ]
+            if len(values) != 1 or EXACT_VERSION_PATTERN.fullmatch(
+                    values[0]) is None:
+                raise ValueError('expected one exact GOLANG_VERSION')
+            versions[platform] = values[0]
+        except (KeyError, TypeError, ValueError) as error:
+            raise PolicyError(
+                f'{image} has missing or invalid {platform} Go image metadata; '
+                'expected GOLANG_VERSION in its image configuration') from error
+    return versions
+
+
+def resolve_image_versions(digest: str) -> Dict[str, str]:
+    images = (f'golang@{digest}', f'mirror.gcr.io/library/golang@{digest}')
+    failures = []
+    for attempt in range(DIGEST_LOOKUP_ATTEMPTS):
+        for image in images:
+            try:
+                return _inspect_image_versions(image)
+            except PolicyError as error:
+                failures.append(str(error))
+        if attempt + 1 < DIGEST_LOOKUP_ATTEMPTS:
+            time.sleep(attempt + 1)
+    raise PolicyError(
+        f'could not inspect pinned Go builder {digest}: {"; ".join(failures)}')
+
+
 def _updated_dockerfile(contents: str, metadata: DockerMetadata, version: str,
                         digest: str) -> str:
     replacement = (
@@ -580,22 +641,27 @@ def update_repository(
 
 def verify_image_digests(
         repo_root: Path,
-        digest_resolver: DigestResolver = resolve_image_digest,
+        image_version_resolver: ImageVersionResolver = resolve_image_versions,
         docker_pins: Sequence[DockerPin] = MANAGED_DOCKERFILES,
         setup_actions: Sequence[Path] = MANAGED_SETUP_GO_ACTIONS) -> None:
     check_repository(repo_root, docker_pins, setup_actions)
     tracked_paths = _tracked_paths(repo_root)
     _, docker_metadata = _validate_inventory(repo_root, tracked_paths,
                                              docker_pins, setup_actions)
-    pins_by_tag = {}
-    for metadata in docker_metadata.values():
-        pins_by_tag[metadata.version + metadata.flavor] = metadata.digest
-    for tag, pinned_digest in sorted(pins_by_tag.items()):
-        resolved_digest = digest_resolver(tag)
-        if resolved_digest != pinned_digest:
-            raise PolicyError(
-                f'Go builder tag {tag} resolves to {resolved_digest}, not '
-                f'pinned digest {pinned_digest}; rerun make update-go-version')
+    versions_by_digest = {
+        metadata.digest: metadata.version
+        for metadata in docker_metadata.values()
+    }
+    for digest, expected_version in sorted(versions_by_digest.items()):
+        image_versions = image_version_resolver(digest)
+        for platform in REQUIRED_IMAGE_PLATFORMS:
+            actual_version = image_versions.get(platform)
+            if actual_version != expected_version:
+                raise PolicyError(
+                    f'Go builder golang@{digest} for {platform} reports '
+                    f'Go {actual_version!r}, expected {expected_version}; '
+                    'rerun make update-go-version '
+                    f'GO_VERSION={expected_version}')
 
 
 def main() -> int:
@@ -604,7 +670,11 @@ def main() -> int:
     operation = parser.add_mutually_exclusive_group(required=True)
     operation.add_argument('--check', action='store_true')
     operation.add_argument('--version')
-    operation.add_argument('--check-image-digests', action='store_true')
+    operation.add_argument(
+        '--check-image-digests',
+        action='store_true',
+        help='Verify the Go version in each pinned image configuration',
+    )
     arguments = parser.parse_args()
     try:
         if arguments.check:
