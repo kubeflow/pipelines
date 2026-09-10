@@ -53,6 +53,27 @@
               "type": "string"
             },
             {
+              "name": "version_name",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional initial pipeline version name. Defaults to pipeline name if omitted."
+            },
+            {
+              "name": "version_display_name",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional initial pipeline version display name."
+            },
+            {
+              "name": "version_description",
+              "in": "query",
+              "required": false,
+              "type": "string",
+              "description": "Optional initial pipeline version description."
+            },
+            {
               "name": "namespace",
               "in": "query",
               "required": false,

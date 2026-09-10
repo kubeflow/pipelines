@@ -101,147 +101,160 @@ export const fonts = {
   secondary: '"Roboto", "Helvetica Neue", sans-serif',
 };
 
-const palette = {
-  primary: {
-    dark: color.themeDarker,
-    main: color.theme,
-  },
-  secondary: {
-    main: 'rgba(0, 0, 0, .38)',
-  },
-};
-
-export const theme = createTheme({
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        text: {
-          fontSize: fontsize.base,
-          fontWeight: 'bold',
-          minHeight: dimension.tiny,
-          textTransform: 'none',
-        },
-        textPrimary: {
-          border: '1px solid #ddd',
-          cursor: 'pointer',
-          fontSize: fontsize.base,
-          marginRight: 10,
-          textTransform: 'none',
-        },
-        textSecondary: {
-          color: color.theme,
-        },
-        root: {
-          '&.Mui-disabled': {
-            backgroundColor: 'initial',
+export function getAppTheme(mode: 'light' | 'dark' = 'light') {
+  const isDark = mode === 'dark';
+  return createTheme({
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          text: {
+            fontSize: fontsize.base,
+            fontWeight: 'bold',
+            minHeight: dimension.tiny,
+            textTransform: 'none',
           },
-          color: color.theme,
-          marginRight: 10,
-          padding: '0 8px',
+          textPrimary: {
+            border: isDark ? '1px solid #444' : '1px solid #ddd',
+            cursor: 'pointer',
+            fontSize: fontsize.base,
+            marginRight: 10,
+            textTransform: 'none',
+          },
+          textSecondary: {
+            color: color.theme,
+          },
+          root: {
+            '&.Mui-disabled': {
+              backgroundColor: 'initial',
+            },
+            color: color.theme,
+            marginRight: 10,
+            padding: '0 8px',
+          },
         },
       },
-    },
-    MuiDialogActions: {
-      styleOverrides: {
-        root: {
-          margin: 15,
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            margin: 15,
+          },
         },
       },
-    },
-    MuiDialogTitle: {
-      styleOverrides: {
-        root: {
-          fontSize: fontsize.large,
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            fontSize: fontsize.large,
+          },
         },
       },
-    },
-    MuiFormControlLabel: {
-      styleOverrides: {
-        root: {
-          marginLeft: 0,
+      MuiFormControlLabel: {
+        styleOverrides: {
+          root: {
+            marginLeft: 0,
+          },
         },
       },
-    },
-    MuiFormLabel: {
-      styleOverrides: {
-        filled: {
-          marginLeft: 0,
-          marginTop: 0,
-        },
-        root: {
-          '&.Mui-focused': {
+      MuiFormLabel: {
+        styleOverrides: {
+          filled: {
             marginLeft: 0,
             marginTop: 0,
           },
-          fontSize: fontsize.base,
-          marginLeft: 5,
-          marginTop: -8,
+          root: {
+            '&.Mui-focused': {
+              marginLeft: 0,
+              marginTop: 0,
+            },
+            fontSize: fontsize.base,
+            marginLeft: 5,
+            marginTop: -8,
+          },
         },
       },
-    },
-    MuiIconButton: {
-      styleOverrides: {
-        root: {
-          padding: 9,
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            padding: 9,
+          },
         },
       },
-    },
-    MuiInput: {
-      styleOverrides: {
-        input: { padding: 0 },
-        root: { padding: 0 },
-      },
-    },
-    MuiInputAdornment: {
-      styleOverrides: {
-        positionEnd: {
-          paddingRight: 0,
+      MuiInput: {
+        styleOverrides: {
+          input: { padding: 0 },
+          root: { padding: 0 },
         },
-        root: { padding: 0 },
       },
-    },
-    MuiTableSortLabel: {
-      styleOverrides: {
-        // Match v3 behavior more closely: keep header text color inherited
-        // from table column styles and avoid washed-out inactive labels.
-        root: {
-          '&.Mui-active': {
+      MuiInputAdornment: {
+        styleOverrides: {
+          positionEnd: {
+            paddingRight: 0,
+          },
+          root: { padding: 0 },
+        },
+      },
+      MuiTableSortLabel: {
+        styleOverrides: {
+          root: {
+            '&.Mui-active': {
+              color: 'inherit',
+            },
+            '&:hover': {
+              color: 'inherit',
+            },
             color: 'inherit',
           },
-          '&:hover': {
-            color: 'inherit',
+          icon: {
+            color: isDark ? '#e0e0e0 !important' : `${color.strong} !important`,
           },
-          color: 'inherit',
-        },
-        icon: {
-          color: `${color.strong} !important`,
         },
       },
-    },
-    MuiSvgIcon: {
-      styleOverrides: {
-        // Keep icon sizing consistent with MUI v3 where these were fixed pixel values.
-        root: { fontSize: 24 },
-        fontSizeSmall: { fontSize: 20 },
-        fontSizeLarge: { fontSize: 35 },
+      MuiSvgIcon: {
+        styleOverrides: {
+          root: { fontSize: 24 },
+          fontSizeSmall: { fontSize: 20 },
+          fontSizeLarge: { fontSize: 35 },
+        },
       },
-    },
-    MuiTooltip: {
-      styleOverrides: {
-        tooltip: {
-          backgroundColor: '#666',
-          color: '#f1f1f1',
-          fontSize: 12,
+      MuiTooltip: {
+        styleOverrides: {
+          tooltip: {
+            backgroundColor: isDark ? '#333' : '#666',
+            color: '#f1f1f1',
+            fontSize: 12,
+          },
         },
       },
     },
-  },
-  palette,
-  typography: {
-    fontFamily: fonts.main,
-    fontSize: fontsize.base,
-  },
-});
+    palette: {
+      mode,
+      primary: {
+        dark: color.themeDarker,
+        main: color.theme,
+      },
+      secondary: {
+        main: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, .38)',
+      },
+      ...(isDark
+        ? {
+            background: {
+              default: '#121212',
+              paper: '#1e1e1e',
+            },
+            text: {
+              primary: '#e0e0e0',
+              secondary: 'rgba(255, 255, 255, 0.7)',
+            },
+          }
+        : {}),
+    },
+    typography: {
+      fontFamily: fonts.main,
+      fontSize: fontsize.base,
+    },
+  });
+}
+
+export const theme = getAppTheme('light');
 
 export const commonCss = stylesheet({
   absoluteCenter: {
@@ -267,7 +280,7 @@ export const commonCss = stylesheet({
         backgroundColor: theme.palette.primary.dark,
       },
     },
-    backgroundColor: palette.primary.main,
+    backgroundColor: color.theme,
     color: 'white',
   },
   ellipsis: {
