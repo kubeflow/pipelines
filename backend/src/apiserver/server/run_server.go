@@ -157,7 +157,43 @@ func (s *BaseRunServer) createRun(ctx context.Context, run *model.Run) (*model.R
 	if err := s.canAccessRun(ctx, "", resourceAttributes); err != nil {
 		return nil, util.Wrapf(err, "Failed to create a run due to authorization error. Check if you have write permissions to namespace %s", run.Namespace)
 	}
+	if err := validateRecurringRunNamespace(s.resourceManager, run); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run for the referenced recurring run")
+	}
+	if err := canAccessReferencedPipeline(ctx, s.resourceManager, &run.PipelineSpec, run.Namespace); err != nil {
+		return nil, util.Wrap(err, "Failed to create a run due to authorization error on the referenced pipeline")
+	}
 	return s.resourceManager.CreateRun(ctx, run)
+}
+
+func validateRecurringRunNamespace(resourceManager *resource.ResourceManager, run *model.Run) error {
+	if !common.IsMultiUserMode() || run.RecurringRunId == "" {
+		return nil
+	}
+	job, err := resourceManager.GetJob(run.RecurringRunId)
+	if err != nil {
+		return util.Wrapf(err, "Failed to retrieve recurring run %s", run.RecurringRunId)
+	}
+	jobNamespace := job.Namespace
+	if resourceManager.IsEmptyNamespace(jobNamespace) {
+		jobNamespace, err = resourceManager.GetNamespaceFromExperimentId(job.ExperimentId)
+		if err != nil {
+			return util.Wrapf(err, "Failed to determine the namespace of recurring run %s", run.RecurringRunId)
+		}
+	}
+	if resourceManager.IsEmptyNamespace(jobNamespace) || jobNamespace != run.Namespace {
+		if resourceManager.IsEmptyNamespace(jobNamespace) {
+			return util.NewPermissionDeniedError(
+				fmt.Errorf("recurring run %q has no resolvable namespace", run.RecurringRunId),
+				"The recurring run has no resolvable namespace; recreate it in a namespaced experiment before triggering runs",
+			)
+		}
+		return util.NewPermissionDeniedError(
+			fmt.Errorf("recurring run namespace %q does not match destination namespace %q", jobNamespace, run.Namespace),
+			"A recurring run can only create runs in its own namespace",
+		)
+	}
+	return nil
 }
 
 // Creates a run.
@@ -678,6 +714,84 @@ func (s *BaseRunServer) canAccessRun(ctx context.Context, runId string, resource
 	err := s.resourceManager.IsAuthorized(ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrapf(err, "Failed to access run %s. Check if you have access to namespace %s", runId, resourceAttributes.Namespace)
+	}
+	return nil
+}
+
+func canAccessReferencedPipeline(ctx context.Context, resourceManager *resource.ResourceManager, pipelineSpec *model.PipelineSpec, destinationNamespace string) error {
+	if !common.IsMultiUserMode() {
+		// Skip authz if not multi-user mode.
+		return nil
+	}
+	pipelineVersionID := pipelineSpec.PipelineVersionId
+	pipelineID := pipelineSpec.PipelineId
+	hasExplicitPipelineVersionID := pipelineVersionID != ""
+	// The pipeline/version may instead be encoded in the full pipeline name.
+	// Parse it even when one explicit field is present so mixed reference forms
+	// cannot hide a version from authorization.
+	if pipelineSpec.PipelineName != "" {
+		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
+		if pipelineVersionID == "" {
+			pipelineVersionID = resourceNames[common.PipelineVersionIDResourceNameKey]
+		}
+		// V1 conversion historically synthesizes PipelineName as
+		// "pipelines/<version-id>" for a version-only reference. Do not treat
+		// that compatibility name as an independent pipeline ID when the real
+		// version ID is already explicit.
+		if pipelineID == "" && !hasExplicitPipelineVersionID {
+			pipelineID = resourceNames[common.PipelineIDResourceNameKey]
+		}
+	}
+	resourceAttributes := &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet}
+	// Run creation resolves a version before a pipeline ID, so authorization must
+	// follow the same order when both are supplied.
+	if pipelineVersionID != "" {
+		pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionID)
+		if err != nil {
+			return util.Wrapf(err, "Failed to authorize access to the referenced pipeline version %s", pipelineVersionID)
+		}
+		// Fail closed if the version has no owning pipeline: authorizing an empty
+		// pipeline ID would leave the namespace empty and be treated as a shared,
+		// world-readable pipeline, skipping the SubjectAccessReview entirely.
+		if pipelineVersion.PipelineId == "" {
+			return util.NewInternalServerError(
+				fmt.Errorf("pipeline version %s resolves to an empty pipeline id", pipelineVersionID),
+				"Failed to authorize access to the referenced pipeline")
+		}
+		if err := authorizeReferencedPipelineAccess(ctx, resourceManager, pipelineVersion.PipelineId, destinationNamespace, resourceAttributes); err != nil {
+			return err
+		}
+		if pipelineID != "" && pipelineVersion.PipelineId != "" && pipelineID != pipelineVersion.PipelineId {
+			return util.NewInvalidInputError("Pipeline version %s does not belong to pipeline %s", pipelineVersionID, pipelineID)
+		}
+		return nil
+	}
+	if pipelineID == "" {
+		// Inline manifests do not reference a stored pipeline.
+		return nil
+	}
+	return authorizeReferencedPipelineAccess(ctx, resourceManager, pipelineID, destinationNamespace, resourceAttributes)
+}
+
+// authorizeReferencedPipelineAccess first applies the caller's normal pipeline
+// authorization, then ensures that a private pipeline cannot be used to create
+// a run in another namespace. This second check is required for trusted
+// controllers whose service account can read pipelines cluster-wide: otherwise
+// a namespaced custom resource could make the controller act as a confused
+// deputy for a pipeline owned by a different tenant. Shared pipelines remain
+// available in every namespace. MULTIUSER_SHARED_READ intentionally permits
+// cross-namespace references because that mode makes private pipeline reads
+// globally available.
+func authorizeReferencedPipelineAccess(ctx context.Context, resourceManager *resource.ResourceManager, pipelineID string, destinationNamespace string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	pipeline, err := authorizePipelineAccessAndGet(ctx, resourceManager, pipelineID, resourceAttributes)
+	if err != nil {
+		return err
+	}
+	if !common.IsMultiUserSharedReadMode() && !resourceManager.IsEmptyNamespace(pipeline.Namespace) && pipeline.Namespace != destinationNamespace {
+		return util.NewPermissionDeniedError(
+			fmt.Errorf("pipeline namespace %q does not match destination namespace %q", pipeline.Namespace, destinationNamespace),
+			"A private pipeline can only be referenced by runs in its own namespace",
+		)
 	}
 	return nil
 }

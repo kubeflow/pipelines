@@ -1603,19 +1603,19 @@ func (r *ResourceManager) fetchPipelineVersionFromPipelineSpec(pipelineSpec mode
 		return pipelineVersion, nil
 	} else if pipelineSpec.PipelineName != "" {
 		resourceNames := common.ParseResourceIdsFromFullName(pipelineSpec.PipelineName)
-		if resourceNames["PipelineVersionId"] == "" && resourceNames["PipelineId"] == "" {
+		if resourceNames[common.PipelineVersionIDResourceNameKey] == "" && resourceNames[common.PipelineIDResourceNameKey] == "" {
 			return nil, util.Wrapf(util.NewInvalidInputError("Pipeline spec source is missing"), "Failed to fetch a pipeline version and its manifest due to an empty pipeline spec source: %v", pipelineSpec.PipelineName)
 		}
-		if resourceNames["PipelineVersionId"] != "" {
-			pipelineVersion, err := r.GetPipelineVersion(resourceNames["PipelineVersionId"])
+		if resourceNames[common.PipelineVersionIDResourceNameKey] != "" {
+			pipelineVersion, err := r.GetPipelineVersion(resourceNames[common.PipelineVersionIDResourceNameKey])
 			if err != nil {
-				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames["PipelineVersionId"])
+				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline version %v exists", pipelineSpec.PipelineName, resourceNames[common.PipelineVersionIDResourceNameKey])
 			}
 			return pipelineVersion, nil
 		} else {
-			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames["PipelineId"])
+			pipelineVersion, err := r.GetLatestPipelineVersion(resourceNames[common.PipelineIDResourceNameKey])
 			if err != nil {
-				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames["PipelineId"])
+				return nil, util.Wrapf(err, "Failed to fetch a pipeline version and its manifest from pipeline %v. Check if pipeline %v exists", pipelineSpec.PipelineName, resourceNames[common.PipelineIDResourceNameKey])
 			}
 			return pipelineVersion, nil
 		}
