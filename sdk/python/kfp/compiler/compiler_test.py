@@ -4020,6 +4020,36 @@ class TestResourceConfig(unittest.TestCase):
         self.assertIn('resourceCount', resources['accelerator'])
         self.assertNotIn('count', resources['accelerator'])
 
+    def test_ephemeral_storage(self):
+
+        @dsl.pipeline
+        def simple_pipeline():
+            return_1().set_ephemeral_storage_request('2G').set_ephemeral_storage_limit(
+                '5G')
+
+        dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
+        resources = dict_format['deploymentSpec']['executors']['exec-return-1'][
+            'container']['resources']
+
+        self.assertEqual('2G', resources['resourceEphemeralStorageRequest'])
+        self.assertEqual('5G', resources['resourceEphemeralStorageLimit'])
+
+    def test_ephemeral_storage_input_parameter(self):
+
+        @dsl.pipeline
+        def simple_pipeline(ephemeral_storage_request: str,
+                            ephemeral_storage_limit: str):
+            return_1().set_ephemeral_storage_request(
+                ephemeral_storage_request).set_ephemeral_storage_limit(
+                    ephemeral_storage_limit)
+
+        dict_format = json_format.MessageToDict(simple_pipeline.pipeline_spec)
+        resources = dict_format['deploymentSpec']['executors']['exec-return-1'][
+            'container']['resources']
+
+        self.assertIn('resourceEphemeralStorageRequest', resources)
+        self.assertIn('resourceEphemeralStorageLimit', resources)
+
 
 class TestPlatformConfig(unittest.TestCase):
 
