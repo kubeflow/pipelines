@@ -1,0 +1,309 @@
+# PIPELINE DEFINITION
+# Name: time-series-forecasting-pipeline
+# Description: Production-grade KFP v2 time-series demand forecasting pipeline.
+# Inputs:
+#    alpha: float [Default: 1.0]
+#    num_lags: int [Default: 3.0]
+#    num_steps: int [Default: 500.0]
+#    random_state: int [Default: 42.0]
+#    test_size: float [Default: 0.2]
+components:
+  comp-evaluate-forecast:
+    executorLabel: exec-evaluate-forecast
+    inputDefinitions:
+      artifacts:
+        model_path:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        metrics:
+          artifactType:
+            schemaTitle: system.Metrics
+            schemaVersion: 0.0.1
+      parameters:
+        eval_report:
+          parameterType: STRING
+  comp-extract-telemetry-metrics:
+    executorLabel: exec-extract-telemetry-metrics
+    inputDefinitions:
+      parameters:
+        num_lags:
+          defaultValue: 3.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        num_steps:
+          defaultValue: 500.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        processed_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-train-regressor:
+    executorLabel: exec-train-regressor
+    inputDefinitions:
+      artifacts:
+        processed_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        alpha:
+          defaultValue: 1.0
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+        random_state:
+          defaultValue: 42.0
+          isOptional: true
+          parameterType: NUMBER_INTEGER
+        test_size:
+          defaultValue: 0.2
+          isOptional: true
+          parameterType: NUMBER_DOUBLE
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+        test_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+        train_dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-evaluate-forecast:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - evaluate_forecast
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \ 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef evaluate_forecast(\n    test_dataset: dsl.InputPath(dsl.Dataset),\n\
+          \    model_path: dsl.InputPath(dsl.Model),\n    metrics: dsl.Output[dsl.Metrics],\n\
+          \    eval_report: dsl.OutputPath(str),\n):\n    \"\"\"Computes MAE and R-squared\
+          \ metrics, logs to KFP Metrics artifact, and outputs text summary report.\"\
+          \"\"\n    import os\n    import joblib\n    import pandas as pd\n    from\
+          \ sklearn.metrics import mean_absolute_error, r2_score\n\n    test_df =\
+          \ pd.read_csv(test_dataset)\n    X_test = test_df.drop(columns=['demand'])\n\
+          \    y_test = test_df['demand']\n\n    reg = joblib.load(model_path)\n \
+          \   y_pred = reg.predict(X_test)\n\n    mae = float(mean_absolute_error(y_test,\
+          \ y_pred))\n    r2 = float(r2_score(y_test, y_pred))\n\n    metrics.log_metric('mae',\
+          \ mae)\n    metrics.log_metric('r2_score', r2)\n\n    report_text = f\"\
+          Time-Series Forecast Evaluation Report\\n\"\n    report_text += f\"====================================\\\
+          n\"\n    report_text += f\"Mean Absolute Error (MAE): {mae:.4f}\\n\"\n \
+          \   report_text += f\"R-squared (R2 Score):      {r2:.4f}\\n\"\n\n    os.makedirs(os.path.dirname(eval_report),\
+          \ exist_ok=True)\n    with open(eval_report, 'w') as f:\n        f.write(report_text)\n\
+          \n    print(report_text)\n\n"
+        image: python:3.11
+    exec-extract-telemetry-metrics:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - extract_telemetry_metrics
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'numpy'\
+          \ 'scikit-learn'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef extract_telemetry_metrics(\n    processed_dataset: dsl.OutputPath(dsl.Dataset),\n\
+          \    num_steps: int = 500,\n    num_lags: int = 3,\n    random_state: int\
+          \ = 42,\n):\n    \"\"\"Loads historical sequence of numerical readings,\
+          \ forward-fills missing values, and creates rolling lag features.\"\"\"\n\
+          \    import os\n    import numpy as np\n    import pandas as pd\n\n    np.random.seed(random_state)\n\
+          \    time_idx = pd.date_range(start='2026-01-01', periods=num_steps, freq='h')\n\
+          \n    trend = np.linspace(10, 50, num_steps)\n    seasonality = 10 * np.sin(np.pi\
+          \ * np.arange(num_steps) / 12.0)\n    noise = np.random.normal(0, 2, num_steps)\n\
+          \    readings = trend + seasonality + noise\n\n    nan_mask = np.random.rand(num_steps)\
+          \ < 0.05\n    readings[nan_mask] = np.nan\n\n    df = pd.DataFrame({'timestamp':\
+          \ time_idx, 'demand': readings})\n    df['demand'] = df['demand'].ffill().bfill()\n\
+          \n    for lag in range(1, num_lags + 1):\n        df[f'lag_{lag}'] = df['demand'].shift(lag)\n\
+          \n    df = df.dropna().reset_index(drop=True)\n\n    os.makedirs(os.path.dirname(processed_dataset),\
+          \ exist_ok=True)\n    df.to_csv(processed_dataset, index=False)\n\n"
+        image: python:3.11
+    exec-train-regressor:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - train_regressor
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet --no-warn-script-location 'pandas' 'scikit-learn'\
+          \ 'joblib'  &&  python3 -m pip install --quiet --no-warn-script-location\
+          \ 'kfp==2.17.0' '--no-deps' 'typing-extensions>=3.7.4,<5; python_version<\"\
+          3.9\"' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          _KFP_RUNTIME=true python3 -m kfp.dsl.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef train_regressor(\n    processed_dataset: dsl.InputPath(dsl.Dataset),\n\
+          \    train_dataset: dsl.OutputPath(dsl.Dataset),\n    test_dataset: dsl.OutputPath(dsl.Dataset),\n\
+          \    model: dsl.OutputPath(dsl.Model),\n    alpha: float = 1.0,\n    test_size:\
+          \ float = 0.2,\n    random_state: int = 42,\n):\n    \"\"\"Trains a Ridge\
+          \ Regression model on historical lag sequences and splits dataset into train/test.\"\
+          \"\"\n    import os\n    import joblib\n    import pandas as pd\n    from\
+          \ sklearn.linear_model import Ridge\n    from sklearn.model_selection import\
+          \ train_test_split\n\n    df = pd.read_csv(processed_dataset)\n    feature_cols\
+          \ = [c for c in df.columns if c.startswith('lag_')]\n    target_col = 'demand'\n\
+          \n    X = df[feature_cols]\n    y = df[target_col]\n\n    X_train, X_test,\
+          \ y_train, y_test = train_test_split(\n        X, y, test_size=test_size,\
+          \ random_state=random_state, shuffle=False\n    )\n\n    reg = Ridge(alpha=float(alpha),\
+          \ random_state=random_state)\n    reg.fit(X_train, y_train)\n\n    train_df\
+          \ = pd.concat([X_train, y_train], axis=1)\n    test_df = pd.concat([X_test,\
+          \ y_test], axis=1)\n\n    os.makedirs(os.path.dirname(train_dataset), exist_ok=True)\n\
+          \    os.makedirs(os.path.dirname(test_dataset), exist_ok=True)\n    os.makedirs(os.path.dirname(model),\
+          \ exist_ok=True)\n\n    train_df.to_csv(train_dataset, index=False)\n  \
+          \  test_df.to_csv(test_dataset, index=False)\n    joblib.dump(reg, model)\n\
+          \n"
+        image: python:3.11
+pipelineInfo:
+  description: Production-grade KFP v2 time-series demand forecasting pipeline.
+  name: time-series-forecasting-pipeline
+root:
+  dag:
+    tasks:
+      evaluate-forecast:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-evaluate-forecast
+        dependentTasks:
+        - train-regressor
+        inputs:
+          artifacts:
+            model_path:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: train-regressor
+            test_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: test_dataset
+                producerTask: train-regressor
+        taskInfo:
+          name: evaluate-forecast
+      extract-telemetry-metrics:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-extract-telemetry-metrics
+        inputs:
+          parameters:
+            num_lags:
+              componentInputParameter: num_lags
+            num_steps:
+              componentInputParameter: num_steps
+            random_state:
+              componentInputParameter: random_state
+        taskInfo:
+          name: extract-telemetry-metrics
+      train-regressor:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-train-regressor
+        dependentTasks:
+        - extract-telemetry-metrics
+        inputs:
+          artifacts:
+            processed_dataset:
+              taskOutputArtifact:
+                outputArtifactKey: processed_dataset
+                producerTask: extract-telemetry-metrics
+          parameters:
+            alpha:
+              componentInputParameter: alpha
+            random_state:
+              componentInputParameter: random_state
+            test_size:
+              componentInputParameter: test_size
+        taskInfo:
+          name: train-regressor
+  inputDefinitions:
+    parameters:
+      alpha:
+        defaultValue: 1.0
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+      num_lags:
+        defaultValue: 3.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      num_steps:
+        defaultValue: 500.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      random_state:
+        defaultValue: 42.0
+        isOptional: true
+        parameterType: NUMBER_INTEGER
+      test_size:
+        defaultValue: 0.2
+        isOptional: true
+        parameterType: NUMBER_DOUBLE
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.17.0
