@@ -334,18 +334,17 @@ func extendPodSpecPatch(
 				continue
 			}
 			if claim.ResourceClaimJson != nil {
-				resolvedParam, err := resolveInputParameter(ctx, dag, pipeline, opts, mlmd,
-					claim.GetResourceClaimJson(), inputParams)
+				resolvedParam, _, err := resolver.ResolveInputParameter(opts, claim.GetResourceClaimJson(), inputParams)
 				if err != nil {
-					if errors.Is(err, ErrResolvedParameterNull) {
+					if errors.Is(err, resolver.ErrResolvedParameterNull) {
 						continue
 					}
 					return fmt.Errorf("failed to resolve resource claim: %w", err)
 				}
 
 				switch {
-				case resolvedParam.GetStructValue() != nil:
-					structVal := resolvedParam.GetStructValue()
+				case resolvedParam.GetValue().GetStructValue() != nil:
+					structVal := resolvedParam.GetValue().GetStructValue()
 					if structVal != nil && len(structVal.Fields) > 0 {
 						paramJSON, err := structVal.MarshalJSON()
 						if err != nil {
@@ -363,8 +362,8 @@ func extendPodSpecPatch(
 					} else {
 						return fmt.Errorf("resource claim JSON must be a non-empty object")
 					}
-				case resolvedParam.GetListValue() != nil:
-					listVal := resolvedParam.GetListValue()
+				case resolvedParam.GetValue().GetListValue() != nil:
+					listVal := resolvedParam.GetValue().GetListValue()
 					if listVal != nil && len(listVal.Values) > 0 {
 						paramJSON, err := listVal.MarshalJSON()
 						if err != nil {
