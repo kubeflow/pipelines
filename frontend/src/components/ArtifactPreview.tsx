@@ -87,9 +87,7 @@ function FullArtifactUri({ uri }: { uri: string }) {
   return (
     <details className={css.fullUri}>
       <summary>Full URI</summary>
-      <code className={css.uriText} tabIndex={0} aria-label='Full artifact URI'>
-        {uri}
-      </code>
+      <code className={css.uriText}>{uri}</code>
       <Button size='small' onClick={copyUri}>
         Copy URI
       </Button>

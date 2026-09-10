@@ -15,6 +15,7 @@
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from '../lib/Apis';
 import { expectErrors, testBestPractices } from '../TestUtils';
@@ -34,23 +35,26 @@ describe('ArtifactPreview', () => {
     expect(screen.getByRole('link')).toHaveAttribute('title', uri);
     expect(container.querySelector('details')).not.toHaveAttribute('open');
     fireEvent.click(screen.getByText('Full URI'));
-    expect(screen.getByLabelText('Full artifact URI')).toHaveTextContent(uri);
-    expect(screen.getByLabelText('Full artifact URI')).toHaveAttribute('tabindex', '0');
+    expect(screen.getByText(uri, { selector: 'code' })).toBeVisible();
+    expect(screen.getByText(uri, { selector: 'code' })).not.toHaveAttribute('aria-label');
+    expect(screen.getByText(uri, { selector: 'code' })).not.toHaveAttribute('tabindex');
     expect(readFile).not.toHaveBeenCalled();
   });
 
-  it('copies the exact URI without fetching artifact contents', async () => {
+  it('tabs directly from the URI disclosure to keyboard copying without fetching contents', async () => {
     const uri = 's3://bucket/caf%C3%A9/output?region=us-west-2';
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { userAgent: navigator.userAgent, clipboard: { writeText } });
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue(undefined);
     const readFile = vi.spyOn(Apis, 'readFile');
     render(
       <CommonTestWrapper>
         <ArtifactPreview value={uri} />
       </CommonTestWrapper>,
     );
-    fireEvent.click(screen.getByText('Full URI'));
-    fireEvent.click(screen.getByRole('button', { name: 'Copy URI' }));
+    await user.click(screen.getByText('Full URI'));
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Copy URI' })).toHaveFocus();
+    await user.keyboard('{Enter}');
     expect(await screen.findByText('URI copied.')).toBeVisible();
     expect(writeText).toHaveBeenCalledWith(uri);
     expect(readFile).not.toHaveBeenCalled();
@@ -71,7 +75,7 @@ describe('ArtifactPreview', () => {
     expect(
       await screen.findByText('Could not copy. Select the URI above and copy it manually.'),
     ).toBeVisible();
-    expect(screen.getByLabelText('Full artifact URI')).toHaveTextContent('s3://bucket/first');
+    expect(screen.getByText('s3://bucket/first', { selector: 'code' })).toBeVisible();
     rerender(
       <CommonTestWrapper>
         <ArtifactPreview value='s3://bucket/second' />
@@ -79,7 +83,7 @@ describe('ArtifactPreview', () => {
     );
     expect(screen.queryByText(/Could not copy/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('Full URI'));
-    expect(screen.getByLabelText('Full artifact URI')).toHaveTextContent('s3://bucket/second');
+    expect(screen.getByText('s3://bucket/second', { selector: 'code' })).toBeVisible();
   });
 
   it('loads bounded inline previews when requested by the containing surface', async () => {
