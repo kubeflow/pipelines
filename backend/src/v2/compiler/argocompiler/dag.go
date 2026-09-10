@@ -456,6 +456,16 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			Tasks: iterationTasks,
 		},
 	}
+
+	taskRetrySpec := task.GetRetryPolicy()
+	if taskRetrySpec != nil {
+		iterationsTmpl.Inputs.Parameters = append(iterationsTmpl.Inputs.Parameters, c.addParameterDefault(c.getTaskRetryParameters(task), "0")...)
+		iterationsTmpl.RetryStrategy = c.getTaskRetryStrategyFromInput(inputParameter(paramRetryMaxCount),
+			inputParameter(paramRetryBackOffDuration),
+			inputParameter(paramRetryBackOffFactor),
+			inputParameter(paramRetryBackOffMaxDuration))
+	}
+
 	iterationsTmplName, err := c.addTemplate(iterationsTmpl, componentName+"-"+name)
 	if err != nil {
 		return nil, err
@@ -484,6 +494,11 @@ func (c *workflowCompiler) iterationItemTask(name string, task *pipelinespec.Pip
 			WithSequence: &wfapi.Sequence{Count: &iterationCount},
 		},
 	}
+
+	if taskRetrySpec != nil {
+		iteratorTasks[1].Arguments.Parameters = append(iteratorTasks[1].Arguments.Parameters, c.getTaskRetryParametersWithValues(task)...)
+	}
+
 	return iteratorTasks, nil
 }
 
